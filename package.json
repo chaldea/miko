@@ -1,0 +1,20 @@
+{
+  "name": "miko",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm run build.css && dotnet watch -p ./samples/Miko.Smaples.Wasm run",
+    "build.css": "npm run css.sass && npm run css.minify",
+    "css.minify": "cleancss -O2 -o ./src/components/wwwroot/css/miko.css ./css/ionic.bundle.css",
+    "css.sass": "sass src/css:./css",
+    "test1": "sass src/components/button/button.md.scss:./css/button.md.css",
+    "test2": "cleancss -O2 -o ./css/button.md.bundle.css ./css/button.md.css"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "clean-css-cli": "^5.3.3",
+    "sass": "^1.37.5"
+  }
+}

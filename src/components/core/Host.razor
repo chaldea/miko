@@ -1,0 +1,37 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+@CreateHost()
+
+@code {
+    private ElementReference _ref;
+
+    private ForwardRef TargetForwardRef { get; set; } = new();
+
+    [Parameter] public string Name { get; set; }
+
+    [Parameter] public RenderFragment<ForwardRef> ChildContent { get; set; }
+
+    [Inject] public MikoJsInterop MikoJsInterop { get; set; }
+
+    private RenderFragment CreateHost() => builder =>
+    {
+        var i = 0;
+        builder.OpenElement(i++, Name);
+        builder.AddAttribute(i++, "class", Class);
+        builder.AddAttribute(i++, "style", Style);
+        builder.AddElementReferenceCapture(i++, (ele) =>
+        {
+            _ref = ele;
+        });
+        builder.AddContent(i++, ChildContent, TargetForwardRef);
+        builder.CloseElement();
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        await MikoJsInterop.CreateShadowDomAsync(_ref, TargetForwardRef.Current);
+    }
+
+}
