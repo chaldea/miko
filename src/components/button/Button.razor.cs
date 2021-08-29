@@ -1,9 +1,15 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using System.Collections.Generic;
+using Microsoft.AspNetCore.Components;
 
 namespace Miko
 {
     public partial class Button
     {
+        private readonly IDictionary<string, string> _styleUrls = new Dictionary<string, string>
+        {
+            {"ios", "button.ios.scss"},
+            {"md", "button.md.scss"},
+        };
         private bool inItem = false;
         private bool inListHeader = false;
         private bool inToolbar = false;

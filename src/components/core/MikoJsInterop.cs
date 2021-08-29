@@ -15,10 +15,14 @@ namespace Miko
             _jsRuntime = jsRuntime;
         }
 
-        public async ValueTask CreateShadowDomAsync(ElementReference root, IList<ElementReference> children, string style,
-            string type)
+        public async ValueTask CreateShadowDomAsync(ElementReference root, IList<ElementReference> children, string styleUrl)
         {
-            await _jsRuntime.InvokeVoidAsync($"{ModuleName}.createShadowDom", root, children, style, type);
+            await _jsRuntime.InvokeVoidAsync($"{ModuleName}.createShadowDom", root, children, styleUrl);
+        }
+
+        public async ValueTask CreateStyle(string styleUrl)
+        {
+            await _jsRuntime.InvokeVoidAsync($"{ModuleName}.createStyle", styleUrl);
         }
     }
 }

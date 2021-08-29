@@ -1,11 +1,11 @@
 ﻿@namespace Miko
 @inherits MikoDomComponentBase
 
-<Host Name="ion-toolbar"
+<Host Tag="ion-toolbar"
+      StyleUrls="@_styleUrls"
+      Shadow="true"
       Class="@ClassMapper.Class"
-      Style="@Style"
-      IsShadow="true"
-      StyleMode="@Mode">
+      Style="@Style">
     <div @ref="context[0]" class="toolbar-background"></div>
     <div @ref="context[1]" class="toolbar-container">
         <slot name="start"></slot>

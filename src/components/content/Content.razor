@@ -1,10 +1,11 @@
 ﻿@namespace Miko
 @inherits MikoDomComponentBase
 
-<Host Name="ion-content"
+<Host Tag="ion-content"
+      StyleUrl="content.scss"
+      Shadow="true"
       Class="@ClassMapper.Class"
-      Style="@Style"
-      IsShadow="true">
+      Style="@Style">
     <div @ref="context[0]" id="background-content" part="background"></div>
     <main @ref="context[1]" class="inner-scroll scroll-y" part="scroll">
         <slot></slot>

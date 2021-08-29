@@ -2,11 +2,18 @@ const fs = require('fs');
 const path = require('path')
 const { exec } = require("child_process");
 
-const components = {
-    'ion-button': 'src/components/button',
-    'ion-toolbar': 'src/components/toolbar',
-    'ion-content': 'src/components/content'
-}
+const src = [
+    'src/components/app/app.scss',
+    'src/components/button/button.ios.scss',
+    'src/components/button/button.md.scss',
+    'src/components/content/content.scss',
+    'src/components/header/header.ios.scss',
+    'src/components/header/header.md.scss',
+    'src/components/title/title.ios.scss',
+    'src/components/title/title.md.scss',
+    'src/components/toolbar/toolbar.ios.scss',
+    'src/components/toolbar/toolbar.md.scss',
+]
 
 function createBundle(dist, bundle) {
     return new Promise((resolve, reject) => {
@@ -54,41 +61,16 @@ function getCss(source) {
 
 async function generate() {
     let template = '';
-    template += 'const styleMap = {\n'
-    for (const key in components) {
-        const root = components[key];
-        const fileName = path.basename(components[key]);
-        const base = `${root}/${fileName}.scss`;
-        const ios = `${root}/${fileName}.ios.scss`;
-        const md = `${root}/${fileName}.md.scss`;
-        if(fs.existsSync(ios) && fs.existsSync(md)) {
-            console.log(ios);
-            console.log(md);
-            const iosCss = await getCss(ios);
-            const mdCss = await getCss(md);
-            template += `    "${key}-md": \`${mdCss}\`,\n`;
-            template += `    "${key}-ios": \`${iosCss}\`,\n`;
-        } else if(fs.existsSync(base)){
-            console.log(base);
-            const css = await getCss(base);
-            template += `    "${key}": \`${css}\`,\n`;
+    template += 'export const styles = {\n'
+    for (const item of src) {
+        const fileName = path.basename(item);
+        if(fs.existsSync(item)) {
+            console.log(item);
+            const css = await getCss(item);
+            template += `    "${fileName}": \`${css}\`,\n`;
         }
     }
-    template += `};
-
-const styleCache: { [key: string]: any } = {};
-
-export function getStyle(name: string, type: string): CSSStyleSheet {
-    let key = name;
-    if (type) {
-        key = \`\${name}-\${type}\`;
-    }
-    if (!styleCache[key]) {
-        styleCache[key] = new CSSStyleSheet();
-        styleCache[key].replace(styleMap[key]);
-    }
-    return styleCache[key];
-}`;
+    template += `};`;
     try {
         fs.writeFileSync('./src/components/core/JsInterop/style.ts', template);
     } catch (err) {
