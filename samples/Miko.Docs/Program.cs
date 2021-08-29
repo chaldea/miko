@@ -8,7 +8,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Miko.Smaples.Wasm
+namespace Miko.Docs
 {
     public class Program
     {
@@ -18,6 +18,7 @@ namespace Miko.Smaples.Wasm
             builder.RootComponents.Add<App>("#app");
 
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddScoped<MikoJsInterop>();
 
             await builder.Build().RunAsync();
         }

@@ -4,6 +4,8 @@ const { exec } = require("child_process");
 
 const components = {
     'ion-button': 'src/components/button',
+    'ion-toolbar': 'src/components/toolbar',
+    'ion-content': 'src/components/content'
 }
 
 function createBundle(dist, bundle) {
@@ -55,23 +57,32 @@ async function generate() {
     template += 'const styleMap = {\n'
     for (const key in components) {
         const root = components[key];
-        const fileName = path.basename(components[key])
+        const fileName = path.basename(components[key]);
+        const base = `${root}/${fileName}.scss`;
         const ios = `${root}/${fileName}.ios.scss`;
         const md = `${root}/${fileName}.md.scss`;
-        console.log(ios);
-        console.log(md);
-        const iosCss = await getCss(ios);
-        const mdCss = await getCss(md);
-
-        template += `    "${key}-md": \`${mdCss}\`,\n`;
-        template += `    "${key}-ios": \`${iosCss}\`,\n`;
+        if(fs.existsSync(ios) && fs.existsSync(md)) {
+            console.log(ios);
+            console.log(md);
+            const iosCss = await getCss(ios);
+            const mdCss = await getCss(md);
+            template += `    "${key}-md": \`${mdCss}\`,\n`;
+            template += `    "${key}-ios": \`${iosCss}\`,\n`;
+        } else if(fs.existsSync(base)){
+            console.log(base);
+            const css = await getCss(base);
+            template += `    "${key}": \`${css}\`,\n`;
+        }
     }
     template += `};
 
 const styleCache: { [key: string]: any } = {};
 
 export function getStyle(name: string, type: string): CSSStyleSheet {
-    const key = \`\${name}-\${type}\`;
+    let key = name;
+    if (type) {
+        key = \`\${name}-\${type}\`;
+    }
     if (!styleCache[key]) {
         styleCache[key] = new CSSStyleSheet();
         styleCache[key].replace(styleMap[key]);

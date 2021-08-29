@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npm run build.css && dotnet watch -p ./samples/Miko.Smaples.Wasm run",
     "generate": "node generator.ts",
+    "build": "npm run build.ts && npm run build.css",
     "build.ts": "gulp --gulpfile ./gulpfile.js",
     "build.css": "npm run css.sass && npm run css.minify",
     "css.sass": "sass src/css:./dist",

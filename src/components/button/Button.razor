@@ -1,8 +1,12 @@
 ﻿@namespace Miko
 @inherits MikoDomComponentBase
 
-<Host Name="ion-button" Class="@ClassMapper.Class" Style="@Style">
-    <button @ref="context.Current"
+<Host Name="ion-button" 
+      Class="@ClassMapper.Class" 
+      Style="@Style"
+      IsShadow="true"
+      StyleMode="@Mode">
+    <button @ref="context[0]"
             class="button-native"
             part="native"
             disabled="@Disabled">

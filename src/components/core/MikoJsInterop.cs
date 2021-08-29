@@ -1,36 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Miko
 {
-    public class MikoJsInterop : IAsyncDisposable
+    public class MikoJsInterop
     {
-        private readonly Lazy<Task<IJSObjectReference>> moduleTask;
+        private const string ModuleName = "Miko.interop";
+        private readonly IJSRuntime _jsRuntime;
 
         public MikoJsInterop(IJSRuntime jsRuntime)
         {
-            moduleTask = new(() => jsRuntime.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Miko/js/miko.js").AsTask());
+            _jsRuntime = jsRuntime;
         }
 
-        public async ValueTask<string> CreateShadowDomAsync(ElementReference root, ElementReference child)
+        public async ValueTask CreateShadowDomAsync(ElementReference root, IList<ElementReference> children, string style,
+            string type)
         {
-            var module = await moduleTask.Value;
-            return await module.InvokeAsync<string>("createShadowDom", root, child);
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            if (moduleTask.IsValueCreated)
-            {
-                var module = await moduleTask.Value;
-                await module.DisposeAsync();
-            }
+            await _jsRuntime.InvokeVoidAsync($"{ModuleName}.createShadowDom", root, children, style, type);
         }
     }
 }

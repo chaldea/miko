@@ -6,11 +6,18 @@
 @code {
     private ElementReference _ref;
 
-    private ForwardRef TargetForwardRef { get; set; } = new();
+    private readonly ElementRefList _elementRefList = new ElementRefList();
 
     [Parameter] public string Name { get; set; }
 
-    [Parameter] public RenderFragment<ForwardRef> ChildContent { get; set; }
+    [Parameter] public RenderFragment<ElementRefList> ChildContent { get; set; }
+
+    [Parameter] public bool IsShadow { get; set; }
+
+    [Parameter] public string StyleMode { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
 
     [Inject] public MikoJsInterop MikoJsInterop { get; set; }
 
@@ -18,20 +25,27 @@
     {
         var i = 0;
         builder.OpenElement(i++, Name);
+        foreach (var attr in Attributes)
+        {
+            builder.AddAttribute(i++, attr.Key, attr.Value);
+        }
         builder.AddAttribute(i++, "class", Class);
         builder.AddAttribute(i++, "style", Style);
         builder.AddElementReferenceCapture(i++, (ele) =>
         {
             _ref = ele;
         });
-        builder.AddContent(i++, ChildContent, TargetForwardRef);
+        builder.AddContent(i++, ChildContent, _elementRefList);
         builder.CloseElement();
     };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        await MikoJsInterop.CreateShadowDomAsync(_ref, TargetForwardRef.Current);
+        if (IsShadow)
+        {
+            await MikoJsInterop.CreateShadowDomAsync(_ref, _elementRefList.Refs, Name, StyleMode);
+        }
     }
 
 }

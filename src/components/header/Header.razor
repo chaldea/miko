@@ -1,0 +1,15 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<Host Name="ion-header"
+      Class="@ClassMapper.Class"
+      Style="@Style"
+      role="banner"
+      translucent>
+    @if (Mode == "ios" && Translucent)
+    {
+        <div class="header-background"></div>
+    }
+    <slot></slot>
+    @ChildContent
+</Host>

@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Miko.Smaples.Wasm", "sample
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Miko", "src\components\Miko.csproj", "{CF6B27B6-6FFA-4811-BADC-918908CAE1B1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "site", "site", "{A7B4BA54-2F8C-4D9A-9CEA-0ACC9806F025}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Miko.Docs", "samples\Miko.Docs\Miko.Docs.csproj", "{DF9B7539-57B7-4EFE-8EBB-9B7815CB46A9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +29,10 @@ Global
 		{CF6B27B6-6FFA-4811-BADC-918908CAE1B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CF6B27B6-6FFA-4811-BADC-918908CAE1B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CF6B27B6-6FFA-4811-BADC-918908CAE1B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF9B7539-57B7-4EFE-8EBB-9B7815CB46A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF9B7539-57B7-4EFE-8EBB-9B7815CB46A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF9B7539-57B7-4EFE-8EBB-9B7815CB46A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF9B7539-57B7-4EFE-8EBB-9B7815CB46A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -32,6 +40,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{C73DDB33-F7AE-4A60-BC12-7F59A78C87B4} = {C43D37D7-C1A1-4967-8046-373A5AF8ED0D}
 		{CF6B27B6-6FFA-4811-BADC-918908CAE1B1} = {F64CC2FF-FED0-464E-A75D-9F249A2F732E}
+		{DF9B7539-57B7-4EFE-8EBB-9B7815CB46A9} = {C43D37D7-C1A1-4967-8046-373A5AF8ED0D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {292B8279-C011-410D-8A90-AE85BA8E659B}

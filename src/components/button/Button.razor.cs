@@ -8,6 +8,12 @@ namespace Miko
         private bool inListHeader = false;
         private bool inToolbar = false;
 
+        /// <summary>
+        /// Default options are: 
+        /// `"primary"`, `"secondary"`, `"tertiary"`, `"success"`, `"warning"`, `"danger"`, `"light"`, `"medium"`, and `"dark"`
+        /// </summary>
+        [Parameter] public string Color { get; set; }
+
         [Parameter] public string ButtonType { get; set; } = "button";
 
         [Parameter] public bool Disabled { get; set; } = false;
@@ -36,6 +42,8 @@ namespace Miko
             var fill = string.IsNullOrEmpty(Fill) ? inToolbar || inListHeader ? "clear" : "solid" : Fill;
             ClassMapper
                 .Clear()
+                .If("ion-color", () => !string.IsNullOrEmpty(Color))
+                .If($"ion-color-{Color}", () => !string.IsNullOrEmpty(Color))
                 .Add(Mode)
                 .Add(ButtonType)
                 .If($"{ButtonType}-{Expand}", () => !string.IsNullOrEmpty(Expand))
