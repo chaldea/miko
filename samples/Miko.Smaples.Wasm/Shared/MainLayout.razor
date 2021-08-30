@@ -1,17 +1,94 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<header id="header" class="clearfix @(IsHome?"home-header":"")">
+    <Row Style="flex-flow: nowrap; height: 64px;" OnBreakpoint="OnBreakpoint">
+        <GridCol Xs="24" Sm="24" Md="6" Lg="6" Xl="5" Xxl="4">
+            <h1>
+                <a id="logo" href="/">
+                    <img alt="logo" src="/docs/assets/logo.svg">Miko
+                </a>
+            </h1>
+        </GridCol>
+        <GridCol Class="menu-row" Xs="0" Sm="0" Md="18" Lg="18" Xl="19" Xxl="20">
+            <div id="search-box" class="">
+                <Icon Type="search" />
+                <span class="algolia-autocomplete" style="position: relative; display: inline-block; direction: ltr;">
+                    <input placeholder="全文本搜索..." type="text" class="ant-input ds-input" value="" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-label="search input" aria-owns="algolia-autocomplete-listbox-0" dir="auto" style="max-width: 210px;
+                    min-width: 210px;
+                    position: relative;
+                    vertical-align: top;
+                ">
+                </span>
+            </div>
 
-    <div class="main">
-        <div class="top-row px-4">
-            <a href="http://blazor.net" target="_blank" class="ml-md-auto">About</a>
-        </div>
+            <Menu Mode="MenuMode.Horizontal" Id="nav" Class="menu-site">
+                <MenuItem Class="ant-menu-item-only-child">
+                    <span>文档</span>
+                </MenuItem>
+                <MenuItem Class="ant-menu-item-only-child">
+                    <span>组件</span>
+                </MenuItem>
+            </Menu>
+            <Button Class="header-button header-lang-button" Size="small">简体中文</Button>
 
-        <div class="content px-4">
-            @Body
-        </div>
+            <span id="github-btn" class="github-btn">
+                <a class="gh-btn" href="@($"//github.com/{_org}/{_repo}")" target="_blank">
+                    <span class="gh-ico" aria-hidden="true"></span>
+                    <span class="gh-text">Star</span>
+                </a>
+                <a class="gh-count" target="_blank" href="@($"//github.com/{_org}/{_repo}/stargazers")" style="display: block;">100</a>
+            </span>
+        </GridCol>
+    </Row>
+</header>
+
+<div id="react-content">
+    <div class="main-wrapper">
+
     </div>
+    <Row>
+        <GridCol Class="main-menu" Xs="24" Sm="24" Md="6" Lg="6" Xl="5" Xxl="4">
+            <Affix>
+                <section class="main-menu-inner">
+                    <Menu Class="aside-container menu-site" Theme="MenuTheme.Light" Mode="MenuMode.Inline" >
+                        <MenuItemGroup Title="组件总览">
+                            <MenuItem>
+                                <span>Overview 组件总览</span>
+                            </MenuItem>
+                        </MenuItemGroup>
+                        <MenuItemGroup Title="Action Sheet">
+                            <MenuItem>
+                                <span>ion-action-sheet</span>
+                            </MenuItem>
+                        </MenuItemGroup>
+                    </Menu>
+                </section>
+            </Affix>
+        </GridCol>
+        
+        <GridCol Xs="24" Sm="24" Md="18" Lg="18" Xl="19" Xxl="20">
+            <CascadingValue Value="this">
+                @Body
+            </CascadingValue>
+        </GridCol>
+    </Row>
 </div>
+
+@code {
+    public bool _isMobile;
+    public string _org = "chaldea";
+    public string _repo = "miko";
+
+    [Parameter] public bool IsHome { get; set; }
+
+    [Parameter] public EventCallback<bool> OnMobileModeChanged { get; set; }
+
+    private void OnBreakpoint(BreakpointType breakpoint)
+    {
+        _isMobile = breakpoint.IsIn(BreakpointType.Sm, BreakpointType.Xs, BreakpointType.Md);
+        if (OnMobileModeChanged.HasDelegate)
+        {
+            OnMobileModeChanged.InvokeAsync(_isMobile);
+        }
+    }
+}
