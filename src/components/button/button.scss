@@ -3,7 +3,7 @@
 // Button
 // --------------------------------------------------
 
-:host {
+ion-button {
   /**
    * @prop --background: Background of the button
    * @prop --background-activated: Background of the button when pressed. Note: setting this will interfere with the Material Design ripple.
@@ -66,7 +66,7 @@
   font-kerning: none;
 }
 
-:host(.button-disabled) {
+ion-button.button-disabled {
   cursor: default;
   opacity: .5;
   pointer-events: none;
@@ -76,7 +76,7 @@
 // --------------------------------------------------
 
 // Default Solid Color
-:host(.button-solid) {
+ion-button.button-solid {
   --background: #{ion-color(primary, base)};
   --color: #{ion-color(primary, contrast)};
 }
@@ -86,7 +86,7 @@
 // --------------------------------------------------
 
 // Default Outline Color
-:host(.button-outline) {
+ion-button.button-outline {
   --border-color: #{ion-color(primary, base)};
   --background: transparent;
   --color: #{ion-color(primary, base)};
@@ -97,7 +97,7 @@
 // --------------------------------------------------
 
 // Default Clear Color
-:host(.button-clear) {
+ion-button.button-clear {
   --border-width: 0;
   --background: transparent;
   --color: #{ion-color(primary, base)};
@@ -107,11 +107,11 @@
 // Block Button
 // --------------------------------------------------
 
-:host(.button-block) {
+ion-button.button-block {
   display: block;
 }
 
-:host(.button-block) .button-native {
+ion-button.button-block .button-native {
   @include margin-horizontal(0);
 
   display: block;
@@ -123,7 +123,7 @@
   contain: content;
 }
 
-:host(.button-block) .button-native::after {
+ion-button.button-block .button-native::after {
   clear: both;
 }
 
@@ -131,11 +131,11 @@
 // Full Button
 // --------------------------------------------------
 
-:host(.button-full) {
+ion-button.button-full {
   display: block;
 }
 
-:host(.button-full) .button-native {
+ion-button.button-full .button-native {
   @include margin-horizontal(0);
 
   display: block;
@@ -145,7 +145,7 @@
   contain: content;
 }
 
-:host(.button-full:not(.button-round)) .button-native {
+ion-button.button-full:not(.button-round) .button-native {
   @include border-radius(0);
 
   border-right-width: 0;
@@ -213,20 +213,20 @@
 // Button Icons
 // --------------------------------------------------
 
-::slotted(ion-icon) {
+ion-button ion-icon {
   font-size: 1.4em;
   pointer-events: none;
 }
 
-::slotted(ion-icon[slot="start"]) {
+ion-button ion-icon[slot="start"] {
   @include margin(0, .3em, 0, -.3em);
 }
 
-::slotted(ion-icon[slot="end"]) {
+ion-button ion-icon[slot="end"] {
   @include margin(0, -.2em, 0, .3em);
 }
 
-::slotted(ion-icon[slot="icon-only"]) {
+ion-button ion-icon[slot="icon-only"] {
   font-size: 1.8em;
 }
 
@@ -247,22 +247,22 @@ ion-ripple-effect {
 }
 
 // Button Activated
-:host(.ion-activated) {
+ion-button.ion-activated {
   color: var(--color-activated);
 }
 
-:host(.ion-activated) .button-native::after {
+ion-button.ion-activated .button-native::after {
   background: var(--background-activated);
 
   opacity: var(--background-activated-opacity);
 }
 
 // Button Focused
-:host(.ion-focused) {
+ion-button.ion-focused {
   color: var(--color-focused);
 }
 
-:host(.ion-focused) .button-native::after {
+ion-button.ion-focused .button-native::after {
   background: var(--background-focused);
 
   opacity: var(--background-focused-opacity);
@@ -270,11 +270,11 @@ ion-ripple-effect {
 
 // Button Hover
 @media (any-hover: hover) {
-  :host(:hover) {
+  ion-button:hover {
     color: var(--color-hover);
   }
 
-  :host(:hover) .button-native::after {
+  ion-button:hover .button-native::after {
     background: var(--background-hover);
 
     opacity: var(--background-hover-opacity);
@@ -286,13 +286,13 @@ ion-ripple-effect {
 // --------------------------------------------------
 
 // Solid Button with Color
-:host(.button-solid.ion-color) .button-native {
+ion-button.button-solid.ion-color .button-native {
   background: current-color(base);
   color: current-color(contrast);
 }
 
 // Outline Button with Color
-:host(.button-outline.ion-color) .button-native {
+ion-button.button-outline.ion-color .button-native {
   border-color: current-color(base);
 
   background: transparent;
@@ -300,7 +300,7 @@ ion-ripple-effect {
 }
 
 // Clear Button with Color
-:host(.button-clear.ion-color) .button-native {
+ion-button.button-clear.ion-color .button-native {
   background: transparent;
   color: current-color(base);
 }
@@ -308,15 +308,15 @@ ion-ripple-effect {
 // Button in Toolbar
 // --------------------------------------------------
 
-:host(.in-toolbar:not(.ion-color):not(.in-toolbar-color)) .button-native {
+ion-button.in-toolbar:not(.ion-color):not(.in-toolbar-color) .button-native {
   color: #{var(--ion-toolbar-color, var(--color))};
 }
 
-:host(.button-outline.in-toolbar:not(.ion-color):not(.in-toolbar-color)) .button-native {
+ion-button.button-outline.in-toolbar:not(.ion-color):not(.in-toolbar-color) .button-native {
   border-color: #{var(--ion-toolbar-color, var(--color, var(--border-color)))};
 }
 
-:host(.button-solid.in-toolbar:not(.ion-color):not(.in-toolbar-color)) .button-native {
+ion-button.button-solid.in-toolbar:not(.ion-color):not(.in-toolbar-color) .button-native {
   background: #{var(--ion-toolbar-color, var(--background))};
   color: #{var(--ion-toolbar-background, var(--color))};
 }

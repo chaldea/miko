@@ -3,7 +3,7 @@
 // Material Design Title
 // --------------------------------------------------
 
-:host {
+ion-title.md {
   @include padding(0, 20px);
 
   font-size: 20px;
@@ -16,7 +16,7 @@
 // Material Design Title: Small
 // --------------------------------------------------
 
-:host(.title-small) {
+ion-title.md.title-small {
   width: 100%;
   height: 100%;
 

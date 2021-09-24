@@ -44,20 +44,20 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        var styleUrl = StyleUrl;
-        if (StyleUrls != null)
-        {
-            styleUrl = StyleUrls[Mode];
-        }
-
-        if (Shadow)
-        {
-            await MikoJsInterop.CreateShadowDomAsync(_ref, _elementRefList.Refs, styleUrl);
-        }
-        else
-        {
-            await MikoJsInterop.CreateStyle(styleUrl);
-        }
+        // var styleUrl = StyleUrl;
+        // if (StyleUrls != null)
+        // {
+        //     styleUrl = StyleUrls[Mode];
+        // }
+        //
+        // if (Shadow)
+        // {
+        //     await MikoJsInterop.CreateShadowDomAsync(_ref, _elementRefList.Refs, styleUrl);
+        // }
+        // else
+        // {
+        //     await MikoJsInterop.CreateStyle(styleUrl);
+        // }
     }
 
 }

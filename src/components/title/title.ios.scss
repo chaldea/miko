@@ -3,7 +3,7 @@
 // iOS Title
 // --------------------------------------------------
 
-:host {
+ion-title.ios {
   @include position(0, null, null, 0);
   @include padding(var(--padding-top), 90px, var(--padding-bottom));
 
@@ -26,7 +26,7 @@
 // iOS Title: Small
 // --------------------------------------------------
 
-:host(.title-small) {
+ion-title.ios.title-small {
   @include padding(6px, 9px, 16px, 9px);
 
   position: relative;
@@ -39,7 +39,7 @@
 // iOS Title: Large
 // --------------------------------------------------
 
-:host(.title-large) {
+ion-title.ios.title-large {
   @include padding(0, 16px);
   @include transform-origin(left, center);
 
@@ -57,14 +57,14 @@
   text-align: start;
 }
 
-:host(.title-large.title-rtl) {
+ion-title.ios.title-large.title-rtl {
   @include transform-origin(right, center);
 }
 
-:host(.title-large.ion-cloned-element) {
+ion-title.ios.title-large.ion-cloned-element {
   --color: #{$text-color};
 }
 
-:host(.title-large) .toolbar-title {
+ion-title.ios.title-large .toolbar-title {
   @include transform-origin(inherit);
 }

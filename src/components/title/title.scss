@@ -3,7 +3,7 @@
 // Title
 // --------------------------------------------------
 
-:host {
+ion-title {
   /**
    * @prop --color: Text color of the title
    */
@@ -19,7 +19,7 @@
   color: var(--color);
 }
 
-:host(.ion-color) {
+ion-title.ion-color {
   color: #{current-color(base)};
 }
 
@@ -40,6 +40,6 @@
 // Small Title
 // --------------------------------------------------
 
-:host(.title-small) .toolbar-title {
+ion-title.title-small .toolbar-title {
   white-space: normal;
 }

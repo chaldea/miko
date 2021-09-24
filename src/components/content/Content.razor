@@ -6,10 +6,9 @@
       Shadow="true"
       Class="@ClassMapper.Class"
       Style="@Style">
-    <div @ref="context[0]" id="background-content" part="background"></div>
-    <main @ref="context[1]" class="inner-scroll scroll-y" part="scroll">
-        <slot></slot>
+    <div id="background-content" part="background"></div>
+    <main class="inner-scroll scroll-y" part="scroll">
+        <slot>@ChildContent</slot>
     </main>
-    <slot @ref="context[2]" name="fixed"></slot>
-    @ChildContent
+    <slot name="fixed"></slot>
 </Host>

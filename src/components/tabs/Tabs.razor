@@ -1,0 +1,13 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<Host Tag="ion-tabs"
+      StyleUrl="tabs.scss"
+      Shadow="true">
+    <slot @ref="context[0]" name="top"></slot>
+    <div @ref="context[1]" class="tabs-inner">
+        <slot></slot>
+    </div>
+    <slot @ref="context[2]" name="bottom"></slot>
+    @ChildContent
+</Host>

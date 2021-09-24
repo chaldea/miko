@@ -15,6 +15,19 @@ const src = [
     'src/components/toolbar/toolbar.md.scss',
 ]
 
+const components = {
+    'ion-button': ['src/components/button/button.scss'],
+    'ion-button.md': ['src/components/button/button.md.scss'],
+    'ion-button.ios': ['src/components/button/button.ios.scss'],
+    'ion-content': ['src/components/content/content.scss'],
+    'ion-title': ['src/components/title/title.scss'],
+    'ion-title.md': ['src/components/title/title.md.scss'],
+    'ion-title.ios': ['src/components/title/title.ios.scss'],
+    'ion-toolbar': ['src/components/toolbar/toolbar.scss'],
+    'ion-toolbar.md': ['src/components/toolbar/toolbar.md.scss'],
+    'ion-toolbar.ios': ['src/components/toolbar/toolbar.ios.scss']
+}
+
 function createBundle(dist, bundle) {
     return new Promise((resolve, reject) => {
         exec(`"node_modules/.bin/cleancss" -o ${bundle} ${dist}`, (error, stdout) => {
@@ -64,7 +77,7 @@ async function generate() {
     template += 'export const styles = {\n'
     for (const item of src) {
         const fileName = path.basename(item);
-        if(fs.existsSync(item)) {
+        if (fs.existsSync(item)) {
             console.log(item);
             const css = await getCss(item);
             template += `    "${fileName}": \`${css}\`,\n`;
@@ -78,4 +91,17 @@ async function generate() {
     }
 }
 
-generate();
+function convert() {
+    const srcPath = '../../ionic/ionic-framework/core';
+    const regex1 = /:host\(([\s\S]*?)\)([\s|,])|:host/gm;
+    const regex2 = /::slotted\(([\s\S]*?)\)/gm;
+    for (const name in components) {
+        const src = components[name];
+        for (const item of src) {
+            const file = fs.readFileSync(path.resolve(srcPath, item), 'utf8');
+            const content = file.replace(regex1, `${name}$1$2`).replace(regex2, `${name} $1`);
+            fs.writeFileSync(item, content);
+        }
+    }
+}
+convert();

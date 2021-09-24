@@ -8,8 +8,7 @@
       Style="@Style"
       IsShadow="true"
       StyleMode="@Mode">
-    <div @ref="context[0]" class="toolbar-title">
-        <slot></slot>
+    <div class="toolbar-title">
+        <slot>@ChildContent</slot>
     </div>
-    @ChildContent
 </Host>

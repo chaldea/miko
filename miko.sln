@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Miko", "src\components\Miko
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "site", "site", "{A7B4BA54-2F8C-4D9A-9CEA-0ACC9806F025}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Miko.Docs", "samples\Miko.Docs\Miko.Docs.csproj", "{DF9B7539-57B7-4EFE-8EBB-9B7815CB46A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Miko.Docs", "samples\Miko.Docs\Miko.Docs.csproj", "{DF9B7539-57B7-4EFE-8EBB-9B7815CB46A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

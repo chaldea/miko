@@ -3,7 +3,7 @@
 // Content
 // --------------------------------------------------
 
-:host {
+ion-content {
   /**
    * @prop --background: Background of the content
    *
@@ -49,13 +49,13 @@
   contain: size style;
 }
 
-:host(.ion-color) .inner-scroll {
+ion-content.ion-color .inner-scroll {
   background: current-color(base);
   color: current-color(contrast);
 }
 
 // TODO we should remove outer-content in favor of a color
-:host(.outer-content) {
+ion-content.outer-content {
   --background: #{$background-color-step-50};
 }
 
@@ -139,10 +139,10 @@
   top: -1px;
 }
 
-:host(.content-sizing) {
+ion-content.content-sizing {
   contain: none;
 }
-:host(.content-sizing) .inner-scroll {
+ion-content.content-sizing .inner-scroll {
   position: relative;
 }
 
@@ -197,6 +197,6 @@
 // Content: Fixed
 // --------------------------------------------------
 
-::slotted([slot="fixed"]) {
+ion-content [slot="fixed"] {
   position: absolute;
 }

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npm run build.css && dotnet watch -p ./samples/Miko.Smaples.Wasm run",
+    "start": "npm run build && dotnet watch --project ./samples/Miko.Smaples.Wasm run",
     "generate": "node generator.ts",
     "build": "npm run build.ts && npm run build.css",
     "build.ts": "gulp --gulpfile ./gulpfile.js",

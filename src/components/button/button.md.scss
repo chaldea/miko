@@ -4,7 +4,7 @@
 // Material Design Button
 // --------------------------------------------------
 
-:host {
+ion-button.md {
   --border-radius: #{$button-md-border-radius};
   --padding-top: #{$button-md-padding-top};
   --padding-bottom: #{$button-md-padding-bottom};
@@ -29,7 +29,7 @@
 // Material Design Solid Button
 // --------------------------------------------------
 
-:host(.button-solid) {
+ion-button.md.button-solid {
   --background-activated: transparent;
   --background-hover: #{ion-color(primary, contrast)};
   --background-focused: #{ion-color(primary, contrast)};
@@ -39,14 +39,14 @@
   --box-shadow: #{$button-md-box-shadow};
 }
 
-:host(.button-solid.ion-activated) {
+ion-button.md.button-solid.ion-activated {
   --box-shadow: #{$button-md-box-shadow-activated};
 }
 
 // Material Design Outline Button
 // --------------------------------------------------
 
-:host(.button-outline) {
+ion-button.md.button-outline {
   --border-width: 2px;
   --border-style: solid;
   --box-shadow: none;
@@ -58,7 +58,7 @@
   --background-hover-opacity: .04;
 }
 
-:host(.button-outline.ion-activated.ion-color) .button-native {
+ion-button.md.button-outline.ion-activated.ion-color .button-native {
   background: transparent;
 }
 
@@ -66,7 +66,7 @@
 // Material Design Clear Button
 // --------------------------------------------------
 
-:host(.button-clear) {
+ion-button.md.button-clear {
   --background-activated: transparent;
   --background-focused: #{ion-color(primary, base)};
   --background-hover: #{ion-color(primary, base)};
@@ -79,7 +79,7 @@
 // Material Design Round Button
 // --------------------------------------------------
 
-:host(.button-round) {
+ion-button.md.button-round {
   --border-radius: #{$button-md-round-border-radius};
   --padding-top: #{$button-md-round-padding-top};
   --padding-start: #{$button-md-round-padding-start};
@@ -91,7 +91,7 @@
 // Material Design Button Sizes
 // --------------------------------------------------
 
-:host(.button-large) {
+ion-button.md.button-large {
   --padding-top: #{$button-md-large-padding-top};
   --padding-start: #{$button-md-large-padding-start};
   --padding-end: #{$button-md-large-padding-end};
@@ -102,7 +102,7 @@
   font-size: #{$button-md-large-font-size};
 }
 
-:host(.button-small) {
+ion-button.md.button-small {
   --padding-top: #{$button-md-small-padding-top};
   --padding-start: #{$button-md-small-padding-start};
   --padding-end: #{$button-md-small-padding-end};
@@ -117,11 +117,11 @@
 // MD strong Button
 // --------------------------------------------------
 
-:host(.button-strong) {
+ion-button.md.button-strong {
   font-weight: #{$button-md-strong-font-weight};
 }
 
-::slotted(ion-icon[slot="icon-only"]) {
+ion-button.md ion-icon[slot="icon-only"] {
   @include padding(0);
 }
 
@@ -135,23 +135,23 @@
  * colors when using the color prop.
  */
 
-:host(.button-solid.ion-color.ion-focused) .button-native::after {
+ion-button.md.button-solid.ion-color.ion-focused .button-native::after {
   background: #{current-color(contrast)};
 }
 
-:host(.button-clear.ion-color.ion-focused) .button-native::after,
-:host(.button-outline.ion-color.ion-focused) .button-native::after {
+ion-button.md.button-clear.ion-color.ion-focused .button-native::after,
+ion-button.md.button-outline.ion-color.ion-focused .button-native::after {
   background: #{current-color(base)};
 }
 
 
 @media (any-hover: hover) {
-  :host(.button-solid.ion-color:hover) .button-native::after {
+  ion-button.md.button-solid.ion-color:hover .button-native::after {
     background: #{current-color(contrast)};
   }
 
-  :host(.button-clear.ion-color:hover) .button-native::after,
-  :host(.button-outline.ion-color:hover) .button-native::after {
+  ion-button.md.button-clear.ion-color:hover .button-native::after,
+  ion-button.md.button-outline.ion-color:hover .button-native::after {
     background: #{current-color(base)};
   }
 }
