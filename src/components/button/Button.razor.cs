@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Miko
 {
@@ -36,6 +38,9 @@ namespace Miko
 
         [Parameter] public RenderFragment ChildContent { get; set; }
 
+        [Parameter]
+        public EventCallback<MouseEventArgs> OnClick { get; set; }
+
         protected override void OnInitialized()
         {
             base.OnInitialized();
@@ -57,11 +62,22 @@ namespace Miko
                 .If($"{ButtonType}-{Shape}", () => !string.IsNullOrEmpty(Shape))
                 .Add($"{ButtonType}-{fill}")
                 .If($"{ButtonType}-strong", () => Strong)
+                .If("in-toolbar", () => false)
+                .If("in-toolbar-color", () => false)
+                .If("button-has-icon-only", () => false)
                 .If("button-disabled", () => Disabled)
-                // .Add("button-has-icon-only")
                 .Add("ion-activatable")
                 .Add("ion-focusable")
+                .Add("ion-focusable")
                 .Add("hydrated");
+        }
+
+        private async Task HandleOnClick(MouseEventArgs args)
+        {
+            if (OnClick.HasDelegate)
+            {
+                await OnClick.InvokeAsync(args);
+            }
         }
     }
 }
