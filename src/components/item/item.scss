@@ -1,0 +1,557 @@
+@import "./item.vars";
+
+// Item
+// --------------------------------------------------
+
+ion-item {
+  /**
+   * @prop --background: Background of the item
+   * @prop --background-activated: Background of the item when pressed. Note: setting this will interfere with the Material Design ripple.
+   * @prop --background-activated-opacity: Opacity of the item background when pressed
+   * @prop --background-focused: Background of the item when focused with the tab key
+   * @prop --background-focused-opacity: Opacity of the item background when focused with the tab key
+   * @prop --background-hover: Background of the item on hover
+   * @prop --background-hover-opacity: Opacity of the background of the item on hover
+   *
+   * @prop --border-color: Color of the item border
+   * @prop --border-radius: Radius of the item border
+   * @prop --border-style: Style of the item border
+   * @prop --border-width: Width of the item border
+   *
+   * @prop --color: Color of the item
+   * @prop --color-activated: Color of the item when pressed
+   * @prop --color-focused: Color of the item when focused with the tab key
+   * @prop --color-hover: Color of the item on hover
+   *
+   * @prop --detail-icon-color: Color of the item detail icon
+   * @prop --detail-icon-opacity: Opacity of the item detail icon
+   * @prop --detail-icon-font-size: Font size of the item detail icon
+   *
+   * @prop --inner-border-width: Width of the item inner border
+   * @prop --inner-box-shadow: Box shadow of the item inner
+   * @prop --inner-padding-top: Top padding of the item inner
+   * @prop --inner-padding-end: Right padding if direction is left-to-right, and left padding if direction is right-to-left of the item inner
+   * @prop --inner-padding-bottom: Bottom padding of the item inner
+   * @prop --inner-padding-start: Left padding if direction is left-to-right, and right padding if direction is right-to-left of the item inner
+   *
+   * @prop --min-height: Minimum height of the item
+   *
+   * @prop --padding-bottom: Bottom padding of the item
+   * @prop --padding-end: Right padding if direction is left-to-right, and left padding if direction is right-to-left of the item
+   * @prop --padding-start: Left padding if direction is left-to-right, and right padding if direction is right-to-left of the item
+   * @prop --padding-top: Top padding of the item
+   *
+   * @prop --transition: Transition of the item
+   *
+   * @prop --ripple-color: Color of the item ripple effect
+   *
+   * @prop --highlight-height: The height of the highlight on the item
+   * @prop --highlight-color-focused: The color of the highlight on the item when focused
+   * @prop --highlight-color-valid: The color of the highlight on the item when valid
+   * @prop --highlight-color-invalid: The color of the highlight on the item when invalid
+   */
+  --border-radius: 0px;
+  --border-width: 0px;
+  --border-style: solid;
+  --padding-top: 0px;
+  --padding-bottom: 0px;
+  --padding-end: 0px;
+  --padding-start: 0px;
+  --inner-border-width: 0px;
+  --inner-padding-top: 0px;
+  --inner-padding-bottom: 0px;
+  --inner-padding-start: 0px;
+  --inner-padding-end: 0px;
+  --inner-box-shadow: none;
+  --show-full-highlight: 0;
+  --show-inset-highlight: 0;
+  --detail-icon-color: initial;
+  --detail-icon-font-size: 20px;
+  --detail-icon-opacity: 0.25;
+  --color-activated: var(--color);
+  --color-focused: var(--color);
+  --color-hover: var(--color);
+  --ripple-color: currentColor;
+
+  @include font-smoothing();
+
+  display: block;
+
+  position: relative;
+
+  align-items: center;
+  justify-content: space-between;
+
+  outline: none;
+
+  color: var(--color);
+
+  font-family: $font-family-base;
+
+  text-align: initial;
+  text-decoration: none;
+
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+
+// Item: Color
+// --------------------------------------------------
+
+ion-item.ion-color:not(.item-fill-solid):not(.item-fill-outline) .item-native {
+  background: current-color(base);
+  color: current-color(contrast);
+}
+
+ion-item.ion-color:not(.item-fill-solid):not(.item-fill-outline) .item-native,
+ion-item.ion-color:not(.item-fill-solid):not(.item-fill-outline) .item-inner {
+  border-color: current-color(shade);
+}
+
+
+// Item: Activated
+// --------------------------------------------------
+
+ion-item.ion-activated .item-native {
+  color: var(--color-activated);
+
+  &::after {
+    background: var(--background-activated);
+
+    opacity: var(--background-activated-opacity);
+  }
+}
+
+ion-item.ion-color.ion-activated .item-native {
+  color: current-color(contrast);
+}
+
+
+// Item: Focused
+// --------------------------------------------------
+
+ion-item.ion-focused .item-native {
+  color: var(--color-focused);
+
+  &::after {
+    background: var(--background-focused);
+
+    opacity: var(--background-focused-opacity);
+  }
+}
+
+ion-item.ion-color.ion-focused .item-native {
+  color: current-color(contrast);
+
+  &::after {
+    background: current-color(contrast);
+  }
+}
+
+
+// Item: Hover
+// --------------------------------------------------
+
+@media (any-hover: hover) {
+  ion-item.ion-activatable:not(.ion-focused):hover .item-native {
+    color: var(--color-hover);
+
+    &::after {
+      background: var(--background-hover);
+
+      opacity: var(--background-hover-opacity);
+    }
+  }
+
+  ion-item.ion-color.ion-activatable:not(.ion-focused):hover .item-native {
+    color: #{current-color(contrast)};
+
+    &::after {
+      background: #{current-color(contrast)};
+    }
+  }
+}
+
+
+// Item: Disabled
+// --------------------------------------------------
+
+ion-item.item-interactive-disabled:not(.item-multiple-inputs) {
+  cursor: default;
+  pointer-events: none;
+}
+
+ion-item.item-disabled {
+  cursor: default;
+  opacity: .3;
+  pointer-events: none;
+}
+
+
+// Native Item
+// --------------------------------------------------
+
+.item-native {
+  @include border-radius(var(--border-radius));
+  @include margin(0);
+  @include padding(
+    var(--padding-top),
+    var(--padding-end),
+    var(--padding-bottom),
+    calc(var(--padding-start) + var(--ion-safe-area-left, 0px))
+  );
+  @include text-inherit();
+
+  display: flex;
+  position: relative;
+
+  align-items: inherit;
+  justify-content: inherit;
+
+  width: 100%;
+  min-height: var(--min-height);
+
+  transition: var(--transition);
+
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border-color);
+
+  outline: none;
+
+  background: var(--background);
+
+  overflow: inherit;
+  box-sizing: border-box;
+
+  z-index: 1;
+}
+
+.item-native::-moz-focus-inner {
+  border: 0;
+}
+
+.item-native::after {
+  @include button-state();
+
+  transition: var(--transition);
+
+  z-index: -1;
+}
+
+button, a {
+  cursor: pointer;
+  user-select: none;
+
+  -webkit-user-drag: none;
+}
+
+
+// Inner Item
+// --------------------------------------------------
+
+.item-inner {
+  @include margin(0);
+  @include padding(
+    var(--inner-padding-top),
+    calc(var(--ion-safe-area-right, 0px) + var(--inner-padding-end)),
+    var(--inner-padding-bottom),
+    var(--inner-padding-start)
+  );
+
+  display: flex;
+
+  // This is required to work with an inset highlight
+  position: relative;
+
+  flex: 1;
+  flex-direction: inherit;
+  align-items: inherit;
+  align-self: stretch;
+
+  min-height: inherit;
+
+  border-width: var(--inner-border-width);
+  border-style: var(--border-style);
+  border-color: var(--border-color);
+
+  box-shadow: var(--inner-box-shadow);
+  overflow: inherit;
+  box-sizing: border-box;
+}
+
+
+// Item Bottom
+// --------------------------------------------------
+
+.item-bottom {
+  @include margin(0);
+  @include padding(
+    0,
+    var(--inner-padding-end),
+    0,
+    calc(var(--padding-start) + var(--ion-safe-area-left, 0px))
+  );
+
+  display: flex;
+
+  justify-content: space-between;
+
+}
+
+
+// Item Detail Icon
+// --------------------------------------------------
+
+.item-detail-icon {
+  color: var(--detail-icon-color);
+
+  font-size: var(--detail-icon-font-size);
+
+  opacity: var(--detail-icon-opacity);
+}
+
+
+// Item Slots
+// --------------------------------------------------
+
+ion-item slot ion-icon {
+  font-size: 1.6em;
+}
+
+ion-item slot ion-button {
+  --margin-top: 0;
+  --margin-bottom: 0;
+  --margin-start: 0;
+  --margin-end: 0;
+
+  z-index: 1;
+}
+
+ion-item slot ion-label:not([slot="end"]) {
+  flex: 1;
+}
+
+// Item Input
+// --------------------------------------------------
+
+ion-item.item-input {
+  align-items: center;
+}
+
+.input-wrapper {
+  display: flex;
+
+  flex: 1;
+  flex-direction: inherit;
+
+  align-items: inherit;
+  align-self: stretch;
+
+  text-overflow: ellipsis;
+
+  overflow: inherit;
+  box-sizing: border-box;
+}
+
+ion-item.item-label-stacked,
+ion-item.item-label-floating {
+  align-items: start;
+}
+
+ion-item.item-label-stacked .input-wrapper,
+ion-item.item-label-floating .input-wrapper {
+  flex: 1;
+  flex-direction: column;
+}
+
+
+// Item Input Highlight
+// --------------------------------------------------
+
+.item-highlight,
+.item-inner-highlight {
+  @include position(0, 0, 0, 0);
+  @include border-radius(inherit);
+  position: absolute;
+
+  width: 100%;
+
+  height: 100%;
+
+  transform: scaleX(0);
+
+  transition: transform 200ms, border-bottom-width 200ms;
+
+  z-index: 2;
+
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+ion-item.item-interactive.item-has-focus .item-native {
+  caret-color: var(--highlight-background);
+}
+
+// Item Input Focused
+// --------------------------------------------------
+
+ion-item.item-interactive.ion-focused,
+ion-item.item-interactive.item-has-focus,
+ion-item.item-interactive.ion-touched.ion-invalid {
+  // If the item has a full border and highlight is enabled, show the full item highlight
+  --full-highlight-height: #{calc(var(--highlight-height) * var(--show-full-highlight))};
+
+  // If the item has an inset border and highlight is enabled, show the inset item highlight
+  --inset-highlight-height: #{calc(var(--highlight-height) * var(--show-inset-highlight))};
+}
+
+// Item Input Focus
+// --------------------------------------------------
+
+ion-item.item-interactive.ion-focused,
+ion-item.item-interactive.item-has-focus {
+  --highlight-background: var(--highlight-color-focused);
+}
+
+// Item Input Valid
+// --------------------------------------------------
+
+ion-item.item-interactive.ion-valid {
+  --highlight-background: var(--highlight-color-valid);
+}
+
+// Item Input Invalid
+// --------------------------------------------------
+
+ion-item.item-interactive.ion-invalid {
+  --highlight-background: var(--highlight-color-invalid);
+}
+
+ion-item.item-interactive.ion-invalid slot [slot="helper"] {
+  display: none;
+}
+
+ion-item slot [slot="error"] {
+  display: none;
+
+  color: var(--highlight-color-invalid);
+}
+
+ion-item.item-interactive.ion-invalid slot [slot="error"] {
+  display: block;
+}
+
+// Item Select
+// --------------------------------------------------
+
+ion-item:not(.item-label) slot ion-select {
+  --padding-start: 0;
+
+  max-width: none;
+}
+
+ion-item.item-label-stacked slot ion-select,
+ion-item.item-label-floating slot ion-select {
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  --padding-start: 0;
+
+  align-self: stretch;
+
+  width: 100%;
+
+  max-width: 100%;
+}
+
+
+// Item Datetime
+// --------------------------------------------------
+
+ion-item:not(.item-label) slot ion-datetime {
+  --padding-start: 0;
+}
+
+ion-item.item-label-stacked slot ion-datetime,
+ion-item.item-label-floating slot ion-datetime {
+  --padding-start: 0;
+
+  width: 100%;
+}
+
+
+// Item w/ Multiple Inputs
+// --------------------------------------------------
+// Multiple inputs in an item should have the input
+// cover relative to themselves instead of the item
+
+ion-item.item-multiple-inputs slot ion-checkbox,
+ion-item.item-multiple-inputs slot ion-datetime,
+ion-item.item-multiple-inputs slot ion-radio,
+ion-item.item-multiple-inputs slot ion-select {
+  position: relative;
+}
+
+// Item Textarea
+// --------------------------------------------------
+
+ion-item.item-textarea {
+  align-items: stretch;
+}
+
+
+// Item Reorder
+// --------------------------------------------------
+
+ion-item slot ion-reorder[slot] {
+  @include margin(0, null);
+}
+
+
+// Item Button Ripple effect
+// --------------------------------------------------
+
+ion-ripple-effect {
+  color: var(--ripple-color);
+}
+
+ion-item.item-fill-solid slot [slot="start"],
+ion-item.item-fill-solid slot [slot="end"],
+ion-item.item-fill-outline slot [slot="start"],
+ion-item.item-fill-outline slot [slot="end"] {
+  align-self: center;
+}
+
+ion-item slot [slot="helper"],
+ion-item slot [slot="error"],
+.item-counter {
+  padding-top: 5px;
+
+  font-size: 12px;
+
+  z-index: 1;
+}
+
+// Item Max Length Counter
+// --------------------------------------------------
+
+.item-counter {
+  @include margin-horizontal(auto, null);
+
+  color: #{$background-color-step-550};
+
+  white-space: nowrap;
+
+  padding-inline-start: 16px;
+}
+
+// Item: Reduced Motion
+// --------------------------------------------------
+
+@media (prefers-reduced-motion: reduce) {
+  .item-highlight,
+  .item-inner-highlight {
+    transition: none;
+  }
+}

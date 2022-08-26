@@ -121,7 +121,7 @@ ion-button.md.button-strong {
   font-weight: #{$button-md-strong-font-weight};
 }
 
-ion-button.md ion-icon[slot="icon-only"] {
+ion-button.md slot ion-icon[slot="icon-only"] {
   @include padding(0);
 }
 

@@ -1,0 +1,193 @@
+@import "./label";
+@import "./label.md.vars";
+
+// Material Design Label
+// --------------------------------------------------
+
+ion-label.md.ion-text-wrap,
+ion-label.md[text-wrap] {
+  line-height: $label-md-text-wrap-line-height;
+}
+
+
+// Material Design Stacked & Floating Labels
+// --------------------------------------------------
+
+/**
+ * When translating the label, we need to use translateY
+ * instead of translate3d due to a WebKit bug: https://bugs.webkit.org/show_bug.cgi?id=215731
+ */
+ ion-label.md.label-stacked,
+ ion-label.md.label-floating {
+   @include margin(0, 0, 0, 0);
+   /* stylelint-disable property-disallowed-list */
+   transform-origin: top left;
+   /* stylelint-enable property-disallowed-list */
+ }
+
+ ion-label.md.label-stacked.label-rtl,
+ ion-label.md.label-floating.label-rtl {
+   /* stylelint-disable property-disallowed-list */
+   transform-origin: top right;
+   /* stylelint-enable property-disallowed-list */
+ }
+
+ion-label.md.label-stacked {
+  @include transform(translateY(50%), scale(.75));
+
+  transition: color 150ms $label-md-transition-timing-function;
+}
+
+ion-label.md.label-floating {
+  @include transform(translateY(96%));
+
+  transition:
+    color 150ms $label-md-transition-timing-function,
+    transform 150ms $label-md-transition-timing-function;
+}
+
+.ion-focused ion-label.md.label-floating,
+.item-has-focus ion-label.md.label-floating,
+.item-has-placeholder:not(.item-input) ion-label.md.label-floating,
+.item-has-value ion-label.md.label-floating {
+  @include transform(translateY(50%), scale(.75));
+}
+
+/**
+ * When translating the label inside of an ion-item with `fill="outline"`,
+ * add pseudo-elements to imitate fieldset-like padding without shifting the label
+ */
+.item-fill-outline.ion-focused ion-label.md.label-floating,
+.item-fill-outline.item-has-focus ion-label.md.label-floating,
+.item-fill-outline.item-has-placeholder:not(.item-input) ion-label.md.label-floating,
+.item-fill-outline.item-has-value ion-label.md.label-floating {
+  @include transform(translateY(-6px), scale(.75));
+  position: relative;
+
+  max-width: min-content;
+
+  background-color: $item-md-background;
+
+  overflow: visible;
+  // Places the label on top of the item outline
+  z-index: 3;
+
+  &::before,
+  &::after {
+    position: absolute;
+
+    width: $item-md-fill-outline-label-padding;
+
+    height: 100%;
+
+    background-color: $item-md-background;
+
+    content: "";
+  }
+
+  &::before {
+    /* stylelint-disable property-disallowed-list */
+    left: calc(-1 * #{$item-md-fill-outline-label-padding});
+    /* stylelint-enable property-disallowed-list */
+  }
+
+  &::after {
+    /* stylelint-disable property-disallowed-list */
+    right: calc(-1 * #{$item-md-fill-outline-label-padding});
+    /* stylelint-enable property-disallowed-list */
+  }
+}
+
+.item-fill-outline.ion-focused.item-has-start-slot ion-label.md.label-floating,
+.item-fill-outline.item-has-focus.item-has-start-slot ion-label.md.label-floating,
+.item-fill-outline.item-has-placeholder:not(.item-input ion-label.md.item-has-start-slot).label-floating,
+.item-fill-outline.item-has-value.item-has-start-slot ion-label.md.label-floating {
+  @include transform(translateX(#{$item-md-fill-outline-label-translate-x}), translateY(-6px), scale(.75));
+}
+
+.item-fill-outline.ion-focused.item-has-start-slot ion-label.md.label-floating.label-rtl,
+.item-fill-outline.item-has-focus.item-has-start-slot ion-label.md.label-floating.label-rtl,
+.item-fill-outline.item-has-placeholder:not(.item-input ion-label.md.item-has-start-slot).label-floating.label-rtl,
+.item-fill-outline.item-has-value.item-has-start-slot ion-label.md.label-floating.label-rtl {
+  @include transform(translateX(calc(-1 * #{$item-md-fill-outline-label-translate-x})), translateY(-6px), scale(.75));
+}
+
+.ion-focused ion-label.md.label-stacked:not(.ion-color),
+.ion-focused ion-label.md.label-floating:not(.ion-color),
+.item-has-focus ion-label.md.label-stacked:not(.ion-color),
+.item-has-focus ion-label.md.label-floating:not(.ion-color) {
+  color: $label-md-text-color-focused;
+}
+
+.ion-focused.ion-color ion-label.md.label-stacked:not(.ion-color),
+.ion-focused.ion-color ion-label.md.label-floating:not(.ion-color),
+.item-has-focus.ion-color ion-label.md.label-stacked:not(.ion-color),
+.item-has-focus.ion-color ion-label.md.label-floating:not(.ion-color) {
+  color: #{current-color(contrast)};
+}
+
+.item-fill-solid.ion-focused.ion-color ion-label.md.label-stacked:not(.ion-color),
+.item-fill-solid.ion-focused.ion-color ion-label.md.label-floating:not(.ion-color),
+.item-fill-outline.ion-focused.ion-color ion-label.md.label-stacked:not(.ion-color),
+.item-fill-outline.ion-focused.ion-color ion-label.md.label-floating:not(.ion-color),
+.item-fill-solid.item-has-focus.ion-color ion-label.md.label-stacked:not(.ion-color),
+.item-fill-solid.item-has-focus.ion-color ion-label.md.label-floating:not(.ion-color),
+.item-fill-outline.item-has-focus.ion-color ion-label.md.label-stacked:not(.ion-color),
+.item-fill-outline.item-has-focus.ion-color ion-label.md.label-floating:not(.ion-color) {
+  color: #{current-color(base)};
+}
+
+.ion-invalid.ion-touched ion-label.md.label-stacked:not(.ion-color),
+.ion-invalid.ion-touched ion-label.md.label-floating:not(.ion-color) {
+  color: var(--highlight-color-invalid);
+}
+
+
+// MD Typography
+// --------------------------------------------------
+
+ion-label.md slot * h1 {
+  @include margin(0, 0, 2px);
+
+  font-size: 24px;
+  font-weight: normal;
+}
+
+ion-label.md slot * h2 {
+  @include margin(2px, 0);
+
+  font-size: 16px;
+  font-weight: normal;
+}
+
+ion-label.md slot * h3,
+ion-label.md slot * h4,
+ion-label.md slot * h5,
+ion-label.md slot * h6 {
+  @include margin(2px, 0);
+
+  font-size: 14px;
+  font-weight: normal;
+
+  line-height: normal;
+}
+
+ion-label.md slot * p {
+  @include margin(0, 0, 2px);
+
+  font-size: 14px;
+
+  line-height: 20px;
+
+  text-overflow: inherit;
+
+  overflow: inherit;
+}
+
+ion-label.md slot p {
+  color: $item-md-paragraph-text-color;
+}
+
+ion-label.md.in-item-color slot p {
+  color: inherit;
+}

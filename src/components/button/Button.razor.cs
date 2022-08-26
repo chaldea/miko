@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
 namespace Miko
@@ -67,7 +65,6 @@ namespace Miko
                 .If("button-has-icon-only", () => false)
                 .If("button-disabled", () => Disabled)
                 .Add("ion-activatable")
-                .Add("ion-focusable")
                 .Add("ion-focusable")
                 .Add("hydrated");
         }

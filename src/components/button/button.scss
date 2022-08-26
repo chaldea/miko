@@ -213,20 +213,20 @@ ion-button.button-full:not(.button-round) .button-native {
 // Button Icons
 // --------------------------------------------------
 
-ion-button ion-icon {
+ion-button slot ion-icon {
   font-size: 1.4em;
   pointer-events: none;
 }
 
-ion-button ion-icon[slot="start"] {
+ion-button slot ion-icon[slot="start"] {
   @include margin(0, .3em, 0, -.3em);
 }
 
-ion-button ion-icon[slot="end"] {
+ion-button slot ion-icon[slot="end"] {
   @include margin(0, -.2em, 0, .3em);
 }
 
-ion-button ion-icon[slot="icon-only"] {
+ion-button slot ion-icon[slot="icon-only"] {
   font-size: 1.8em;
 }
 

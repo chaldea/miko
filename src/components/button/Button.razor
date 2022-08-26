@@ -1,11 +1,9 @@
 ﻿@namespace Miko
 @inherits MikoDomComponentBase
 
-<Host Tag="ion-button"
-      StyleUrls="@_styleUrls"
-      Shadow="true"
-      Class="@ClassMapper.Class" 
-      Style="@Style">
+<ion-button
+      class="@ClassMapper.Class" 
+      style="@Style">
     <button class="button-native"
             part="native"
             disabled="@Disabled"
@@ -17,4 +15,4 @@
             <slot name="end"></slot>
         </span>
     </button>
-</Host>
+</ion-button>

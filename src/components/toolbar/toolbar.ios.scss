@@ -40,15 +40,15 @@ ion-toolbar.ios.toolbar-searchbar .toolbar-container {
   @include padding(0, null);
 }
 
-ion-toolbar.ios.toolbar-searchbar ion-toolbar.ios * {
+ion-toolbar.ios.toolbar-searchbar slot * {
   align-self: start;
 }
 
-ion-toolbar.ios.toolbar-searchbar ion-toolbar.ios ion-chip {
+ion-toolbar.ios.toolbar-searchbar slot ion-chip {
   @include margin(3px, null, null, null);
 }
 
-ion-toolbar.ios.toolbar-searchbar ion-toolbar.ios ion-back-button {
+ion-toolbar.ios.toolbar-searchbar slot ion-back-button {
   height: 38px;
 }
 
@@ -56,25 +56,25 @@ ion-toolbar.ios.toolbar-searchbar ion-toolbar.ios ion-back-button {
 // iOS Toolbar Slot Placement
 // --------------------------------------------------
 
-ion-toolbar.ios ion-buttons {
+ion-toolbar.ios slot ion-buttons {
   min-height: 38px;
 }
 
-ion-toolbar.ios [slot="start"] {
+ion-toolbar.ios slot [slot="start"] {
   order: map-get($toolbar-order-ios, slot-start);
 }
 
-ion-toolbar.ios [slot="secondary"] {
+ion-toolbar.ios slot [slot="secondary"] {
   order: map-get($toolbar-order-ios, slot-secondary);
 }
 
-ion-toolbar.ios [slot="primary"] {
+ion-toolbar.ios slot [slot="primary"] {
   order: map-get($toolbar-order-ios, slot-primary);
 
   text-align: end;
 }
 
-ion-toolbar.ios [slot="end"] {
+ion-toolbar.ios slot [slot="end"] {
   order: map-get($toolbar-order-ios, slot-end);
 
   text-align: end;

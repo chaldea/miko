@@ -1,0 +1,15 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<ion-tab-button
+    role="tab"
+    tabindex="0"
+    aria-selected="true"
+    id=""
+    class="">
+    <a tabIndex="-1" class="button-native" part="native">
+        <span class="button-inner">
+            <slot>@ChildContent</slot>
+        </span>
+    </a>
+</ion-tab-button>

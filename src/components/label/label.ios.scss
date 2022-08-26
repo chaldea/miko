@@ -1,0 +1,107 @@
+@import "./label";
+@import "./label.ios.vars";
+
+// iOS Label
+// --------------------------------------------------
+
+ion-label.ios.ion-text-wrap,
+ion-label.ios[text-wrap] {
+  font-size: $label-ios-text-wrap-font-size;
+
+  line-height: $label-ios-text-wrap-line-height;
+}
+
+// iOS Stacked & Floating Labels
+// --------------------------------------------------
+
+ion-label.ios.label-stacked {
+  @include margin(null, null, 4px, null);
+
+  font-size: 14px;
+}
+
+ion-label.ios.label-floating {
+  @include margin(null, null, 0, null);
+  @include transform(translate(0, 29px));
+  @include transform-origin(start, top);
+
+  transition: transform 150ms ease-in-out;
+}
+
+.item-textarea ion-label.ios.label-floating {
+  @include transform(translate(0, 28px));
+}
+
+.item-has-focus ion-label.ios.label-stacked,
+.item-has-focus ion-label.ios.label-floating {
+  color: $label-ios-text-color-focused;
+}
+
+.item-has-focus ion-label.ios.label-floating,
+.item-has-placeholder:not(.item-input) ion-label.ios.label-floating,
+.item-has-value ion-label.ios.label-floating {
+  @include transform(scale(0.82));
+}
+
+// iOS Typography
+// --------------------------------------------------
+
+ion-label.ios slot * h1 {
+  @include margin(3px, 0, 2px);
+
+  font-size: 22px;
+  font-weight: normal;
+}
+
+ion-label.ios slot * h2 {
+  @include margin(0, 0, 2px);
+
+  font-size: 17px;
+  font-weight: normal;
+}
+
+ion-label.ios slot * h3,
+ion-label.ios slot * h4,
+ion-label.ios slot * h5,
+ion-label.ios slot * h6 {
+  @include margin(0, 0, 3px);
+
+  font-size: 14px;
+  font-weight: normal;
+
+  line-height: normal;
+}
+
+ion-label.ios slot * p {
+  @include margin(
+    $item-ios-paragraph-margin-top,
+    $item-ios-paragraph-margin-end,
+    $item-ios-paragraph-margin-bottom,
+    $item-ios-paragraph-margin-start
+  );
+
+  font-size: $item-ios-paragraph-font-size;
+
+  line-height: normal;
+
+  text-overflow: inherit;
+
+  overflow: inherit;
+}
+
+ion-label.ios slot p {
+  color: #{$item-ios-paragraph-text-color};
+}
+
+ion-label.ios.in-item-color slot p {
+  color: inherit;
+}
+
+ion-label.ios slot * h2:last-child,
+ion-label.ios slot * h3:last-child,
+ion-label.ios slot * h4:last-child,
+ion-label.ios slot * h5:last-child,
+ion-label.ios slot * h6:last-child,
+ion-label.ios slot * p:last-child {
+  @include margin(null, null, 0, null);
+}

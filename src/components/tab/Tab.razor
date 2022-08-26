@@ -1,0 +1,11 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<ion-tab 
+    role="tabpanel"
+    aria-hidden="@(!Active ? "true" : null)"
+    aria-labelledby="@($"tab-button-{Title}")"
+    class="@ClassMapper.Class"
+    style="@Style">
+    @ChildContent
+</ion-tab>

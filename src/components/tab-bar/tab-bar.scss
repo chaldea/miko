@@ -1,0 +1,75 @@
+@import "../../themes/ionic.globals";
+
+ion-tab-bar {
+  /**
+   * @prop --background: Background of the tab bar
+   * @prop --border: Border of the tab bar
+   * @prop --color: Color of the tab bar
+   */
+
+  @include padding-horizontal(var(--ion-safe-area-left), var(--ion-safe-area-right));
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: auto;
+
+  padding-bottom: var(--ion-safe-area-bottom, 0);
+
+  border-top: var(--border);
+
+  background: var(--background);
+  color: var(--color);
+
+  text-align: center;
+
+  contain: strict;
+  user-select: none;
+  z-index: $z-index-toolbar;
+
+  /* stylelint-disable-next-line declaration-no-important */
+  box-sizing: content-box !important;
+}
+
+ion-tab-bar.ion-color slot ion-tab-button {
+  --background-focused: #{current-color(shade)};
+  --color-selected: #{current-color(contrast)};
+}
+
+ion-tab-bar.ion-color slot .tab-selected {
+  color: #{current-color(contrast)};;
+}
+
+ion-tab-bar.ion-color,
+ion-tab-bar.ion-color slot ion-tab-button {
+  color: #{current-color(contrast, .7)};
+}
+
+ion-tab-bar.ion-color,
+ion-tab-bar.ion-color slot ion-tab-button {
+  background: #{current-color(base)};
+}
+
+ion-tab-bar.ion-color slot ion-tab-button.ion-focused,
+ion-tab-bar.tab-bar-translucent slot ion-tab-button.ion-focused {
+  background: var(--background-focused)
+}
+
+ion-tab-bar.tab-bar-translucent slot ion-tab-button {
+  background: transparent;
+}
+
+ion-tab-bar[slot="top"] {
+  padding-top: var(--ion-safe-area-top, 0);
+  padding-bottom: 0;
+
+  border-top: 0;
+  border-bottom: var(--border);
+}
+
+ion-tab-bar.tab-bar-hidden {
+  /* stylelint-disable-next-line declaration-no-important */
+  display: none !important;
+}

@@ -6,9 +6,9 @@ namespace Miko
     {
         [Parameter] public RenderFragment ChildContent { get; set; }
 
-        protected override void OnInitialized()
+        protected override async Task OnInitializedAsync()
         {
-            base.OnInitialized();
+            await base.OnInitializedAsync();
             SetClassMap();
         }
 

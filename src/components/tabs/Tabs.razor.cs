@@ -4,6 +4,7 @@ namespace Miko
 {
     public partial class Tabs
     {
+        [Parameter] public string Slot { get; set; }
         [Parameter] public RenderFragment ChildContent { get; set; }
     }
 }
