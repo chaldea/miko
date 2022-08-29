@@ -4,7 +4,7 @@ namespace Miko
 {
     public partial class Label
     {
-        [Parameter] public string Position { get; set; } = "fixed";
+        [Parameter] public string Position { get; set; }
 
         [Parameter] public bool NoAnimate { get; set; }
 
@@ -22,7 +22,8 @@ namespace Miko
                 .Clear()
                 .Add(Mode)
                 .If($"label-{Position}", () => !string.IsNullOrEmpty(Position))
-                .If("abel-no-animate", () => NoAnimate);
+                .If("abel-no-animate", () => NoAnimate)
+                .If("label-rtl", () => false);
         }
     }
 }

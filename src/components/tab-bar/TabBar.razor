@@ -3,7 +3,7 @@
 
 <ion-tab-bar 
     role="tablist"
-    aria-hidden="true"
+    aria-hidden="@(keyboardVisible ? "true" : null)"
     class="@ClassMapper.Class">
     <slot>@ChildContent</slot>
 </ion-tab-bar>

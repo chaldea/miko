@@ -2,11 +2,13 @@
 @inherits MikoDomComponentBase
 
 <ion-tab-button
+    tab="@Tab"
     role="tab"
     tabindex="0"
-    aria-selected="true"
-    id=""
-    class="">
+    aria-selected="@Selected"
+    id="tab-button-@Tab"
+    class="@ClassMapper.Class"
+    style="@Style">
     <a tabIndex="-1" class="button-native" part="native">
         <span class="button-inner">
             <slot>@ChildContent</slot>

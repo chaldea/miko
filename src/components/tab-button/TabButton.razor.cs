@@ -14,7 +14,7 @@ namespace Miko
 
         [Parameter] public bool HasIcon { get; set; }
 
-        [Parameter] public string Layout { get; set; }
+        [Parameter] public string Layout { get; set; } = "icon-top";
 
         [Parameter] public RenderFragment ChildContent { get; set; }
 
@@ -31,8 +31,8 @@ namespace Miko
                 .Add(Mode)
                 .If("tab-selected", () => Selected)
                 .If("tab-disabled", () => Disabled)
-                .If("tab-has-label", () => HasLabel)
-                .If("tab-has-icon", () => HasIcon)
+                .If("tab-has-label", () => true)
+                .If("tab-has-icon", () => true)
                 .If("tab-has-label-only", () => HasLabel && !HasIcon)
                 .If("tab-has-icon-only", () => HasIcon && !HasLabel)
                 .Add($"tab-layout-{Layout}")

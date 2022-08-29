@@ -8,7 +8,7 @@ namespace Miko
     {
         [Parameter] public bool Active { get; set; }
 
-        [Parameter] public string Title { get; set; }
+        [Parameter] public string Name { get; set; }
 
         [Parameter] public RenderFragment ChildContent { get; set; }
 

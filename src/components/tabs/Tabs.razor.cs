@@ -6,5 +6,6 @@ namespace Miko
     {
         [Parameter] public string Slot { get; set; }
         [Parameter] public RenderFragment ChildContent { get; set; }
+        [Parameter] public RenderFragment TabBarRender { get; set; }
     }
 }

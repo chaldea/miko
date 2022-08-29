@@ -4,7 +4,11 @@ namespace Miko
 {
     public partial class TabBar
     {
+        protected bool keyboardVisible = false;
+
         [Parameter] public RenderFragment ChildContent { get; set; }
+
+        [Parameter] public bool Translucent { get; set; }
 
         [Parameter] public string Slot { get; set; }
 
@@ -18,7 +22,9 @@ namespace Miko
         {
             ClassMapper
                 .Clear()
-                .Add(Mode);
+                .Add(Mode)
+                .If("tab-bar-translucent", () => Translucent)
+                .If("tab-bar-hidden", () => keyboardVisible);
         }
     }
 }

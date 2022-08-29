@@ -4,24 +4,23 @@
 <ion-tabs
     class="@ClassMapper.Class"
     style="@Style">
-    <slot name="top">
+    <CascadingValue Value="@Slot">
         @if (Slot == "top")
         {
-            @ChildContent
+            <slot name="top">
+                @TabBarRender
+            </slot>
         }
-    </slot>
-    <div class="tabs-inner">
-        <slot>
-            @if (Slot == null)
-            {
+        <div class="tabs-inner">
+            <slot>
                 @ChildContent
-            }
-        </slot>
-    </div>
-    <slot name="bottom">
+            </slot>
+        </div>
         @if (Slot == "bottom")
         {
-            @ChildContent
+            <slot name="bottom">
+                @TabBarRender
+            </slot>
         }
-    </slot>
+    </CascadingValue>
 </ion-tabs>
