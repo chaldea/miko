@@ -11,6 +11,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{A7B4BA54-2
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Miko.Docs", "docs\Miko.Docs\Miko.Docs.csproj", "{81BADCA0-7480-4C7C-96FB-4F9A22B2AAAE}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{0E930820-54CB-431D-B656-2C53DD87CF2D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Miko.Samples.MauiTabs", "samples\Miko.Samples.MauiTabs\Miko.Samples.MauiTabs.csproj", "{3F1B4415-9C15-4E3E-A648-7BF8A283E333}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +29,12 @@ Global
 		{81BADCA0-7480-4C7C-96FB-4F9A22B2AAAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81BADCA0-7480-4C7C-96FB-4F9A22B2AAAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81BADCA0-7480-4C7C-96FB-4F9A22B2AAAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F1B4415-9C15-4E3E-A648-7BF8A283E333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F1B4415-9C15-4E3E-A648-7BF8A283E333}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F1B4415-9C15-4E3E-A648-7BF8A283E333}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{3F1B4415-9C15-4E3E-A648-7BF8A283E333}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F1B4415-9C15-4E3E-A648-7BF8A283E333}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F1B4415-9C15-4E3E-A648-7BF8A283E333}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -32,6 +42,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{CF6B27B6-6FFA-4811-BADC-918908CAE1B1} = {F64CC2FF-FED0-464E-A75D-9F249A2F732E}
 		{81BADCA0-7480-4C7C-96FB-4F9A22B2AAAE} = {A7B4BA54-2F8C-4D9A-9CEA-0ACC9806F025}
+		{3F1B4415-9C15-4E3E-A648-7BF8A283E333} = {0E930820-54CB-431D-B656-2C53DD87CF2D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {292B8279-C011-410D-8A90-AE85BA8E659B}

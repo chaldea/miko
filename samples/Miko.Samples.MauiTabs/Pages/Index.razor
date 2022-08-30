@@ -1,0 +1,59 @@
+﻿@page "/"
+
+<Miko.App>
+    <Miko.Tabs Slot="bottom">
+        <ChildContent>
+            <Miko.Tab Name="music">
+                <Miko.Header>
+                    <Miko.Toolbar>
+                        <Miko.Title>Music</Miko.Title>
+                    </Miko.Toolbar>
+                </Miko.Header>
+                <Miko.Content Class="ion-padding">
+                    <h1>Music</h1>
+                </Miko.Content>
+            </Miko.Tab>
+    
+            <Miko.Tab Name="movies">
+                <Miko.Header>
+                    <Miko.Toolbar>
+                        <Miko.Title>Movies</Miko.Title>
+                    </Miko.Toolbar>
+                </Miko.Header>
+                <Miko.Content Class="ion-padding">
+                    <h1>Movies</h1>
+                </Miko.Content>
+            </Miko.Tab>
+    
+            <Miko.Tab Name="games">
+                <Miko.Header>
+                    <Miko.Toolbar>
+                        <Miko.Title>Games</Miko.Title>
+                    </Miko.Toolbar>
+                </Miko.Header>
+                <Miko.Content Class="ion-padding">
+                    <h1>Games</h1>
+                </Miko.Content>
+            </Miko.Tab>
+        </ChildContent>
+    
+        <TabBarRender>
+            <Miko.TabBar>
+                <Miko.TabButton Tab="music">
+                    <Miko.Label>Movies</Miko.Label>
+                    <Miko.Icon Name="musical-note" />
+                </Miko.TabButton>
+
+                <Miko.TabButton Tab="movies">
+                    <Miko.Label>Movies</Miko.Label>
+                    <Miko.Icon Name="videocam" />
+                </Miko.TabButton>
+
+                <Miko.TabButton Tab="games">
+                    <Miko.Label>Games</Miko.Label>
+                    <Miko.Icon Name="game-controller" />
+                </Miko.TabButton>
+            </Miko.TabBar>
+        </TabBarRender>
+    </Miko.Tabs>
+</Miko.App>
