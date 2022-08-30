@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Components;
-using System.ComponentModel;
-using System.Drawing;
 
 namespace Miko
 {
@@ -12,9 +10,13 @@ namespace Miko
 
         [Parameter] public RenderFragment ChildContent { get; set; }
 
+        [CascadingParameter]
+        public Tabs Tabs { get; set; }
+
         protected override void OnInitialized()
         {
             base.OnInitialized();
+            Tabs.AddTab(this);
             SetClassMap();
         }
 
@@ -24,6 +26,11 @@ namespace Miko
                 .Clear()
                 .If("ion-page", () => ChildContent == null)
                 .If("tab-hidden", () => !Active);
+        }
+
+        public void SetActive(bool active)
+        {
+            Active = active;
         }
     }
 }

@@ -1,26 +1,26 @@
 ﻿@namespace Miko
 @inherits MikoDomComponentBase
 
-<ion-tabs
-    class="@ClassMapper.Class"
-    style="@Style">
-    <CascadingValue Value="@Slot">
-        @if (Slot == "top")
-        {
-            <slot name="top">
+<CascadingValue Value="this">
+    <ion-tabs
+        class="@ClassMapper.Class"
+        style="@Style">
+        <slot name="top">
+            @if (Slot == "top")
+            {
                 @TabBarRender
-            </slot>
-        }
+            }
+        </slot>
         <div class="tabs-inner">
             <slot>
                 @ChildContent
             </slot>
         </div>
-        @if (Slot == "bottom")
-        {
-            <slot name="bottom">
+        <slot name="bottom">
+            @if (Slot == "bottom")
+            {
                 @TabBarRender
-            </slot>
-        }
-    </CascadingValue>
-</ion-tabs>
+            }
+        </slot>
+    </ion-tabs>
+</CascadingValue>

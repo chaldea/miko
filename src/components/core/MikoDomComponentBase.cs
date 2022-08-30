@@ -1,50 +1,23 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 
 namespace Miko
 {
     public abstract class MikoDomComponentBase : MikoComponentBase
     {
-        // [Inject]
-        // private IComponentIdGenerator ComponentIdGenerator { get; set; }
+        private ElementReference _ref;
+        private string _class;
+        private string _style;
+
+        [Inject]
+        private IOptions<MikoOptions> Options { get; set; }
 
         [Parameter]
         public string Id { get; set; }
 
-        //[Parameter(CaptureUnmatchedValues = true)]
-        //public Dictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
+        [Parameter(CaptureUnmatchedValues = true)]
+        public Dictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
 
-        private ElementReference _ref;
-
-        /// <summary>
-        /// Returned ElementRef reference for DOM element.
-        /// </summary>
-        public virtual ElementReference Ref
-        {
-            get => _ref;
-            set
-            {
-                _ref = value;
-                RefBack?.Set(value);
-            }
-        }
-
-        protected ClassMapper ClassMapper { get; } = new ClassMapper();
-
-        protected MikoDomComponentBase()
-        {
-            ClassMapper
-                .Get(() => this.Class);
-        }
-
-        protected override void OnInitialized()
-        {
-            // Id ??= ComponentIdGenerator.Generate(this);
-            base.OnInitialized();
-        }
-
-        /// <summary>
-        /// Specifies one or more class names for an DOM element.
-        /// </summary>
         [Parameter]
         public string Class
         {
@@ -56,9 +29,6 @@ namespace Miko
             }
         }
 
-        /// <summary>
-        /// Specifies an inline style for an DOM element.
-        /// </summary>
         [Parameter]
         public string Style
         {
@@ -66,18 +36,33 @@ namespace Miko
             set
             {
                 _style = value;
-                this.StateHasChanged();
+                StateHasChanged();
             }
         }
 
-        public string Mode { get; set; } = "md"; // md or ios
+        public virtual ElementReference Ref
+        {
+            get => _ref;
+            set
+            {
+                _ref = value;
+                RefBack?.Set(value);
+            }
+        }
+
+        public string Mode => Options == null ? "md" : Options.Value.Mode;
+
+        protected ClassMapper ClassMapper { get; } = new();
+
+        protected MikoDomComponentBase()
+        {
+            ClassMapper
+                .Get(() => Class);
+        }
 
         protected virtual string GenerateStyle()
         {
             return Style;
         }
-
-        private string _class;
-        private string _style;
     }
 }

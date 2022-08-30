@@ -8,7 +8,8 @@
     aria-selected="@Selected"
     id="tab-button-@Tab"
     class="@ClassMapper.Class"
-    style="@Style">
+    style="@Style"
+    @onclick="HandleOnClick">
     <a tabIndex="-1" class="button-native" part="native">
         <span class="button-inner">
             <slot>@ChildContent</slot>

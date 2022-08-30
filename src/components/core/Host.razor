@@ -16,9 +16,6 @@
 
     [Parameter] public IDictionary<string, string> StyleUrls { get; set; }
 
-    [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
-
     [Parameter] public RenderFragment<ElementRefList> ChildContent { get; set; }
 
     [Inject] public MikoJsInterop MikoJsInterop { get; set; }

@@ -2,7 +2,7 @@
 
 <Miko.Tabs Slot="bottom">
     <ChildContent>
-        <Miko.Tab Name="music" Active="true">
+        <Miko.Tab Name="music">
             <Miko.Header>
                 <Miko.Toolbar>
                     <Miko.Title>Music</Miko.Title>
@@ -19,7 +19,7 @@
                     <Miko.Title>Movies</Miko.Title>
                 </Miko.Toolbar>
             </Miko.Header>
-            <Miko.Content>
+            <Miko.Content Class="ion-padding">
                 <h1>Movies</h1>
             </Miko.Content>
         </Miko.Tab>
@@ -30,7 +30,7 @@
                     <Miko.Title>Games</Miko.Title>
                 </Miko.Toolbar>
             </Miko.Header>
-            <Miko.Content>
+            <Miko.Content Class="ion-padding">
                 <h1>Games</h1>
             </Miko.Content>
         </Miko.Tab>
@@ -38,7 +38,7 @@
     
     <TabBarRender>
         <Miko.TabBar>
-            <Miko.TabButton Selected="true" Tab="music">
+            <Miko.TabButton Tab="music">
                 <Miko.Label>Movies</Miko.Label>
                 <Miko.Icon Name="musical-note" />
             </Miko.TabButton>

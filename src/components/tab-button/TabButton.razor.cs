@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Miko
 {
@@ -18,9 +19,13 @@ namespace Miko
 
         [Parameter] public RenderFragment ChildContent { get; set; }
 
+        [CascadingParameter]
+        public Tabs Tabs { get; set; }
+
         protected override void OnInitialized()
         {
             base.OnInitialized();
+            Tabs.AddTabButton(this);
             SetClassMap();
         }
 
@@ -39,6 +44,16 @@ namespace Miko
                 .Add("ion-activatable")
                 .Add("ion-selectable")
                 .Add("ion-focusable");
+        }
+
+        public void SetSelected(bool selected)
+        {
+            Selected = selected;
+        }
+
+        private void HandleOnClick(MouseEventArgs args)
+        {
+            Tabs.SelectTab(Tab);
         }
     }
 }
