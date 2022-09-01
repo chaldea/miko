@@ -4,7 +4,7 @@
 // iOS Menu
 // --------------------------------------------------
 
-:host(.menu-type-overlay) .menu-inner {
+ion-menu.ios.menu-type-overlay .menu-inner {
   box-shadow: $menu-ios-box-shadow-overlay;
 }
 
@@ -12,10 +12,10 @@
 // iOS Menu Push
 // --------------------------------------------------
 
-:host(.menu-type-push) {
+ion-menu.ios.menu-type-push {
   z-index: $z-index-menu-overlay;
 }
 
-:host(.menu-type-push) .show-backdrop {
+ion-menu.ios.menu-type-push .show-backdrop {
   display: block;
 }

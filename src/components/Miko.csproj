@@ -9,7 +9,6 @@
     <None Remove="Miko.csproj.DotSettings" />
   </ItemGroup>
 
-  
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
@@ -19,9 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="action-sheet\" />
-    <Folder Include="core\JsInterop\" />
-    <Folder Include="wwwroot\css\" />
+	<Folder Include="wwwroot\css\" />
     <Folder Include="wwwroot\js\" />
   </ItemGroup>
 

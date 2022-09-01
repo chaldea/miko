@@ -3,7 +3,7 @@
 // Menu
 // --------------------------------------------------
 
-:host {
+ion-menu {
   /**
    * @prop --background: Background of the menu
    *
@@ -31,14 +31,14 @@
   contain: strict;
 }
 
-:host(.show-menu) {
+ion-menu.show-menu {
   display: block;
 }
 
 
 .menu-inner {
   @include position(0, auto, 0, 0);
-  @include transform(translate3d(-9999px, 0, 0));
+  @include transform(translateX(-9999px));
 
   display: flex;
   position: absolute;
@@ -59,7 +59,7 @@
   contain: strict;
 }
 
-:host(.menu-side-start) .menu-inner {
+ion-menu.menu-side-start .menu-inner {
   --ion-safe-area-right: 0px;
 
   @include multi-dir() {
@@ -69,7 +69,7 @@
   }
 }
 
-:host(.menu-side-end) .menu-inner {
+ion-menu.menu-side-end .menu-inner {
   --ion-safe-area-left: 0px;
 
   @include multi-dir() {
@@ -98,11 +98,11 @@ ion-backdrop {
 // The content slides over to reveal the menu underneath.
 // The menu itself, which is under the content, does not move.
 
-:host(.menu-type-reveal) {
+ion-menu.menu-type-reveal {
   z-index: 0;
 }
 
-:host(.menu-type-reveal.show-menu) .menu-inner {
+ion-menu.menu-type-reveal.show-menu .menu-inner {
   @include transform(translate3d(0, 0, 0));
 }
 
@@ -112,11 +112,11 @@ ion-backdrop {
 // The menu slides over the content. The content
 // itself, which is under the menu, does not move.
 
-:host(.menu-type-overlay) {
+ion-menu.menu-type-overlay {
   z-index: $z-index-menu-overlay;
 }
 
-:host(.menu-type-overlay) .show-backdrop {
+ion-menu.menu-type-overlay .show-backdrop {
   display: block;
 
   cursor: pointer;
@@ -126,13 +126,13 @@ ion-backdrop {
 // Menu Split Pane
 // --------------------------------------------------
 
-:host(.menu-pane-visible) {
+ion-menu.menu-pane-visible {
   width: var(--width);
   min-width: var(--min-width);
   max-width: var(--max-width);
 }
 
-:host(.menu-pane-visible) .menu-inner {
+ion-menu.menu-pane-visible .menu-inner {
   @include position-horizontal(0, 0);
 
   width: auto;
@@ -143,7 +143,7 @@ ion-backdrop {
   box-shadow: none !important;
 }
 
-:host(.menu-pane-visible) ion-backdrop {
+ion-menu.menu-pane-visible ion-backdrop {
   display: hidden !important;
   /* stylelint-enable declaration-no-important */
 }
