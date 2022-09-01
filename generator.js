@@ -2,32 +2,291 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const components = {
-    'ion-button': ['src/components/button/button.scss'],
-    'ion-button.md': ['src/components/button/button.md.scss'],
-    'ion-button.ios': ['src/components/button/button.ios.scss'],
-    'ion-content': ['src/components/content/content.scss'],
-    'ion-item': ['src/components/item/item.scss'],
-    'ion-item.md': ['src/components/item/item.md.scss'],
-    'ion-item.ios': ['src/components/item/item.ios.scss'],
-    'ion-label': ['src/components/label/label.scss'],
-    'ion-label.md': ['src/components/label/label.md.scss'],
-    'ion-label.ios': ['src/components/label/label.ios.scss'],
-    'ion-tab': ['src/components/tab/tab.scss'],
-    'ion-tabs': ['src/components/tabs/tabs.scss'],
-    'ion-tab-bar': ['src/components/tab-bar/tab-bar.scss'],
-    'ion-tab-bar.md': ['src/components/tab-bar/tab-bar.md.scss'],
-    'ion-tab-bar.ios': ['src/components/tab-bar/tab-bar.ios.scss'],
-    'ion-tab-button': ['src/components/tab-button/tab-button.scss'],
-    'ion-tab-button.md': ['src/components/tab-button/tab-button.md.scss'],
-    'ion-tab-button.ios': ['src/components/tab-button/tab-button.ios.scss'],
-    'ion-title': ['src/components/title/title.scss'],
-    'ion-title.md': ['src/components/title/title.md.scss'],
-    'ion-title.ios': ['src/components/title/title.ios.scss'],
-    'ion-toolbar': ['src/components/toolbar/toolbar.scss'],
-    'ion-toolbar.md': ['src/components/toolbar/toolbar.md.scss'],
-    'ion-toolbar.ios': ['src/components/toolbar/toolbar.ios.scss'],
-}
+const components = [
+    // {
+    //     tag: 'ion-accordion',
+    //     srcDir: 'src/components/accordion',
+    //     include: '.scss',
+    //     specifics: [
+    //         {
+    //             name: 'accordion.scss',
+    //             transform: true,
+    //         },
+    //         {
+    //             name: 'accordion.md.scss',
+    //             transform: true,
+    //             import: true,
+    //             suffix: '.md'
+    //         },
+    //         {
+    //             name: 'accordion.ios.scss',
+    //             transform: true,
+    //             import: true,
+    //             suffix: '.ios'
+    //         },
+    //     ]
+    // },
+    {
+        tag: 'ion-app',
+        srcDir: 'src/components/app',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'app.scss',
+                import: true,
+            }
+        ]
+    },
+    {
+        tag: 'ion-button',
+        srcDir: 'src/components/button',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'button.scss',
+                transform: true,
+            },
+            {
+                name: 'button.md.scss',
+                transform: true,
+                import: true,
+                suffix: '.md'
+            },
+            {
+                name: 'button.ios.scss',
+                transform: true,
+                import: true,
+                suffix: '.ios'
+            }
+        ]
+    },
+    {
+        tag: 'ion-content',
+        srcDir: 'src/components/content',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'content.scss',
+                transform: true,
+                import: true,
+            },
+        ]
+    },
+    {
+        tag: 'ion-header',
+        srcDir: 'src/components/header',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'header.md.scss',
+                import: true,
+            },
+            {
+                name: 'header.ios.scss',
+                import: true,
+            }
+        ]
+    },
+    {
+        tag: 'ion-icon',
+        root: '../../ionic/ionicons',
+        srcDir: 'src/components/icon',
+        include: '.css',
+        specifics: [
+            {
+                name: 'icon.css',
+                transform: true,
+                import: true,
+                extname: '.scss'
+            }
+        ]
+    },
+    {
+        tag: 'ion-item',
+        srcDir: 'src/components/item',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'item.scss',
+                transform: true,
+            },
+            {
+                name: 'item.md.scss',
+                transform: true,
+                import: true,
+                suffix: '.md'
+            },
+            {
+                name: 'item.ios.scss',
+                transform: true,
+                import: true,
+                suffix: '.ios'
+            }
+        ]
+    },
+    {
+        tag: 'ion-label',
+        srcDir: 'src/components/label',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'label.scss',
+                transform: true,
+            },
+            {
+                name: 'label.md.scss',
+                transform: true,
+                import: true,
+                suffix: '.md'
+            },
+            {
+                name: 'label.ios.scss',
+                transform: true,
+                import: true,
+                suffix: '.ios'
+            }
+        ]
+    },
+    {
+        tag: 'ion-menu',
+        srcDir: 'src/components/menu',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'menu.scss',
+                transform: true,
+            },
+            {
+                name: 'menu.md.scss',
+                transform: true,
+                import: true,
+                suffix: '.md'
+            },
+            {
+                name: 'menu.ios.scss',
+                transform: true,
+                import: true,
+                suffix: '.ios'
+            }
+        ]
+    },
+    {
+        tag: 'ion-tab',
+        srcDir: 'src/components/tab',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'tab.scss',
+                transform: true,
+                import: true,
+            }
+        ]
+    },
+    {
+        tag: 'ion-tabs',
+        srcDir: 'src/components/tabs',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'tabs.scss',
+                transform: true,
+                import: true,
+            }
+        ]
+    },
+    {
+        tag: 'ion-tab-bar',
+        srcDir: 'src/components/tab-bar',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'tab-bar.scss',
+                transform: true,
+            },
+            {
+                name: 'tab-bar.md.scss',
+                transform: true,
+                import: true,
+                suffix: '.md'
+            },
+            {
+                name: 'tab-bar.ios.scss',
+                transform: true,
+                import: true,
+                suffix: '.ios'
+            }
+        ]
+    },
+    {
+        tag: 'ion-tab-button',
+        srcDir: 'src/components/tab-button',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'tab-button.scss',
+                transform: true,
+            },
+            {
+                name: 'tab-button.md.scss',
+                transform: true,
+                import: true,
+                suffix: '.md'
+            },
+            {
+                name: 'tab-button.ios.scss',
+                transform: true,
+                import: true,
+                suffix: '.ios'
+            }
+        ]
+    },
+    {
+        tag: 'ion-title',
+        srcDir: 'src/components/title',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'title.scss',
+                transform: true,
+            },
+            {
+                name: 'title.md.scss',
+                transform: true,
+                import: true,
+                suffix: '.md'
+            },
+            {
+                name: 'title.ios.scss',
+                transform: true,
+                import: true,
+                suffix: '.ios'
+            }
+        ]
+    },
+    {
+        tag: 'ion-toolbar',
+        srcDir: 'src/components/toolbar',
+        include: '.scss',
+        specifics: [
+            {
+                name: 'toolbar.scss',
+                transform: true,
+            },
+            {
+                name: 'toolbar.md.scss',
+                transform: true,
+                import: true,
+                suffix: '.md'
+            },
+            {
+                name: 'toolbar.ios.scss',
+                transform: true,
+                import: true,
+                suffix: '.ios'
+            }
+        ]
+    },
+]
 
 const slotted1 = /(?: )::slotted\(([\s\S]*?)\)(?!\))/gm;    // match ::slotted
 const slotted2 = /(?:\):):slotted\(([\s\S]*?)\)(?!\))/gm;   // match ::slotted
@@ -46,23 +305,51 @@ function transform(name, content) {
 
 function generateCss() {
     const srcPath = '../../ionic/ionic-framework/core';
-    for (const name in components) {
-        const src = components[name];
-        for (const item of src) {
-            const styleFile = path.resolve(srcPath, item);
-            console.log(styleFile);
-            const file = fs.readFileSync(styleFile, 'utf8');
-            const content = transform(name, file);
-            fs.writeFileSync(item, content);
+    const imports = [];
+    for (const component of components) {
+        const componentPath = path.resolve(component.root ? component.root : srcPath, component.srcDir);
+        const fileNames = fs.readdirSync(componentPath);
+        for (let fileName of fileNames) {
+            // 跳过无需处理的文件类型
+            if (path.extname(fileName) !== component.include) {
+                continue;
+            }
+            const specific = component.specifics.find(x => x.name === fileName);
+            const srcFile = path.resolve(componentPath, fileName);
+            let distFile = path.resolve(component.srcDir, fileName);
+            if (specific) {
+                if (specific.extname) {
+                    fileName = fileName.replace(path.extname(fileName), specific.extname);
+                    distFile = distFile.replace(path.extname(distFile), specific.extname);
+                }
+
+                if (specific.import) {
+                    imports.push(`${component.srcDir.replace('src', '..')}/${fileName}`);
+                }
+
+                if (specific.transform) {
+                    const name = specific.suffix ? `${component.tag}${specific.suffix}` : component.tag;
+                    const file = fs.readFileSync(srcFile, 'utf8');
+                    const content = transform(name, file);
+                    console.log(distFile);
+                    fs.writeFileSync(distFile, content);
+                } else {
+                    fs.copyFileSync(srcFile, distFile);
+                }
+            } else {
+                fs.copyFileSync(srcFile, distFile);
+            }
         }
     }
+
+    const context = {
+        path: 'src/css/components.scss',
+        imports: imports
+    }
+    execSync(`"./node_modules/.bin/hygen" generator component component --json=${Buffer.from(JSON.stringify(context)).toString('base64')}`);
 }
 
 function generateIcons() {
-    const stylePath = '../../ionic/ionicons/src/components/icon/icon.css'
-    const style = fs.readFileSync(stylePath, 'utf8');
-    const content = transform('ion-icon', style);
-    fs.writeFileSync('src/components/icon/icon.scss', content);
     const context = {
         path: 'src/components/icon/IconResource.cs',
         svgRoot: '../../ionic/ionicons/src/svg'
@@ -70,6 +357,9 @@ function generateIcons() {
     execSync(`"./node_modules/.bin/hygen" generator icon icon --json=${Buffer.from(JSON.stringify(context)).toString('base64')}`);
 }
 
-generateCss();
+function generate() {
+    generateCss();
+    generateIcons();
+}
 
-generateIcons();
+generate();
