@@ -1,0 +1,9 @@
+@import "./accordion-group";
+
+// iOS Accordion Group
+// --------------------------------------------------
+
+ion-accordion-group.ios.accordion-group-expand-inset slot ion-accordion.accordion-expanding,
+ion-accordion-group.ios.accordion-group-expand-inset slot ion-accordion.accordion-expanded {
+  border-bottom: none;
+}

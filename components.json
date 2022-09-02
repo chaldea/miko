@@ -1,0 +1,1860 @@
+[
+    {
+        "tag": "ion-accordion",
+        "srcDir": "src/components/accordion",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "accordion.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "accordion.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "accordion.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-accordion-group",
+        "srcDir": "src/components/accordion-group",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "accordion-group.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "accordion-group.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "accordion-group.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-action-sheet",
+        "srcDir": "src/components/action-sheet",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "action-sheet.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "action-sheet.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "action-sheet.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-alert",
+        "srcDir": "src/components/alert",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "alert.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "alert.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "alert.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-app",
+        "srcDir": "src/components/app",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "app.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-avatar",
+        "srcDir": "src/components/avatar",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "avatar.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "avatar.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "avatar.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-back-button",
+        "srcDir": "src/components/back-button",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "back-button.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "back-button.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "back-button.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-backdrop",
+        "srcDir": "src/components/backdrop",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "backdrop.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "backdrop.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "backdrop.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-badge",
+        "srcDir": "src/components/badge",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "badge.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "badge.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "badge.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-breadcrumb",
+        "srcDir": "src/components/breadcrumb",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "breadcrumb.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "breadcrumb.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "breadcrumb.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-breadcrumbs",
+        "srcDir": "src/components/breadcrumbs",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "breadcrumbs.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "breadcrumbs.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "breadcrumbs.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-button",
+        "srcDir": "src/components/button",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "button.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "button.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "button.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-buttons",
+        "srcDir": "src/components/buttons",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "buttons.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "buttons.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "buttons.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-card",
+        "srcDir": "src/components/card",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "card.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "card.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "card.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-card-content",
+        "srcDir": "src/components/card-content",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "card-content.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "card-content.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "card-content.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-card-header",
+        "srcDir": "src/components/card-header",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "card-header.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "card-header.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "card-header.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-card-subtitle",
+        "srcDir": "src/components/card-subtitle",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "card-subtitle.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "card-subtitle.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "card-subtitle.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-card-title",
+        "srcDir": "src/components/card-title",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "card-title.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "card-title.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "card-title.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-checkbox",
+        "srcDir": "src/components/checkbox",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "checkbox.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "checkbox.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "checkbox.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-chip",
+        "srcDir": "src/components/chip",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "chip.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "chip.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "chip.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-col",
+        "srcDir": "src/components/col",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "col.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-content",
+        "srcDir": "src/components/content",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "content.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-datetime",
+        "srcDir": "src/components/datetime",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "datetime.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "datetime.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "datetime.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-datetime-button",
+        "srcDir": "src/components/datetime-button",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "datetime-button.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-fab",
+        "srcDir": "src/components/fab",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "fab.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-fab-button",
+        "srcDir": "src/components/fab-button",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "fab-button.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "fab-button.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "fab-button.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-fab-list",
+        "srcDir": "src/components/fab-list",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "fab-list.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-footer",
+        "srcDir": "src/components/footer",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "footer.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "footer.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "footer.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-grid",
+        "srcDir": "src/components/grid",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "grid.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-header",
+        "srcDir": "src/components/header",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "header.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "header.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "header.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-icon",
+        "srcDir": "src/components/icon",
+        "include": ".scss",
+        "specifics": [
+        ]
+    },
+    {
+        "tag": "ion-img",
+        "srcDir": "src/components/img",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "img.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-infinite-scroll",
+        "srcDir": "src/components/infinite-scroll",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "infinite-scroll.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-infinite-scroll-content",
+        "srcDir": "src/components/infinite-scroll-content",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "infinite-scroll-content.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "infinite-scroll-content.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "infinite-scroll-content.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-input",
+        "srcDir": "src/components/input",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "input.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "input.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "input.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-item",
+        "srcDir": "src/components/item",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "item.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "item.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "item.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-item-divider",
+        "srcDir": "src/components/item-divider",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "item-divider.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "item-divider.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "item-divider.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-item-group",
+        "srcDir": "src/components/item-group",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "item-group.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "item-group.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "item-group.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-item-option",
+        "srcDir": "src/components/item-option",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "item-option.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "item-option.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "item-option.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-item-options",
+        "srcDir": "src/components/item-options",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "item-options.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "item-options.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "item-options.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-item-sliding",
+        "srcDir": "src/components/item-sliding",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "item-sliding.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-label",
+        "srcDir": "src/components/label",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "label.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "label.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "label.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-list",
+        "srcDir": "src/components/list",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "list.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "list.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "list.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-list-header",
+        "srcDir": "src/components/list-header",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "list-header.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "list-header.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "list-header.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-loading",
+        "srcDir": "src/components/loading",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "loading.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "loading.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "loading.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-menu",
+        "srcDir": "src/components/menu",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "menu.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "menu.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "menu.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-menu-button",
+        "srcDir": "src/components/menu-button",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "menu-button.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "menu-button.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "menu-button.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-menu-toggle",
+        "srcDir": "src/components/menu-toggle",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "menu-toggle.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-modal",
+        "srcDir": "src/components/modal",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "modal.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "modal.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "modal.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-nav",
+        "srcDir": "src/components/nav",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "nav.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-nav-link",
+        "srcDir": "src/components/nav-link",
+        "include": ".scss",
+        "specifics": [
+        ]
+    },
+    {
+        "tag": "ion-note",
+        "srcDir": "src/components/note",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "note.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "note.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "note.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-picker",
+        "srcDir": "src/components/picker",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "picker.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "picker.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "picker.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-picker-column",
+        "srcDir": "src/components/picker-column",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "picker-column.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "picker-column.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "picker-column.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-picker-column-internal",
+        "srcDir": "src/components/picker-column-internal",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "picker-column-internal.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "picker-column-internal.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "picker-column-internal.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-picker-internal",
+        "srcDir": "src/components/picker-internal",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "picker-internal.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "picker-internal.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "picker-internal.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-popover",
+        "srcDir": "src/components/popover",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "popover.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "popover.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "popover.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-progress-bar",
+        "srcDir": "src/components/progress-bar",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "progress-bar.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "progress-bar.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "progress-bar.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-radio",
+        "srcDir": "src/components/radio",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "radio.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "radio.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "radio.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-radio-group",
+        "srcDir": "src/components/radio-group",
+        "include": ".scss",
+        "specifics": [
+        ]
+    },
+    {
+        "tag": "ion-range",
+        "srcDir": "src/components/range",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "range.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "range.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "range.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-refresher",
+        "srcDir": "src/components/refresher",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "refresher.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "refresher.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "refresher.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-refresher-content",
+        "srcDir": "src/components/refresher-content",
+        "include": ".scss",
+        "specifics": [
+        ]
+    },
+    {
+        "tag": "ion-reorder",
+        "srcDir": "src/components/reorder",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "reorder.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "reorder.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "reorder.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-reorder-group",
+        "srcDir": "src/components/reorder-group",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "reorder-group.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-ripple-effect",
+        "srcDir": "src/components/ripple-effect",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "ripple-effect.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-route",
+        "srcDir": "src/components/route",
+        "include": ".scss",
+        "specifics": [
+        ]
+    },
+    {
+        "tag": "ion-route-redirect",
+        "srcDir": "src/components/route-redirect",
+        "include": ".scss",
+        "specifics": [
+        ]
+    },
+    {
+        "tag": "ion-router",
+        "srcDir": "src/components/router",
+        "include": ".scss",
+        "specifics": [
+        ]
+    },
+    {
+        "tag": "ion-router-link",
+        "srcDir": "src/components/router-link",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "router-link.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-router-outlet",
+        "srcDir": "src/components/router-outlet",
+        "include": ".scss",
+        "specifics": [
+        ]
+    },
+    {
+        "tag": "ion-row",
+        "srcDir": "src/components/row",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "row.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-searchbar",
+        "srcDir": "src/components/searchbar",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "searchbar.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "searchbar.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "searchbar.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-segment",
+        "srcDir": "src/components/segment",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "segment.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "segment.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "segment.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-segment-button",
+        "srcDir": "src/components/segment-button",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "segment-button.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "segment-button.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "segment-button.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-select",
+        "srcDir": "src/components/select",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "select.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "select.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "select.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-select-option",
+        "srcDir": "src/components/select-option",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "select-option.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-select-popover",
+        "srcDir": "src/components/select-popover",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "select-popover.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "select-popover.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "select-popover.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-skeleton-text",
+        "srcDir": "src/components/skeleton-text",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "skeleton-text.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-slide",
+        "srcDir": "src/components/slide",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "slide.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-slides",
+        "srcDir": "src/components/slides",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "slides.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "slides.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "slides.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-spinner",
+        "srcDir": "src/components/spinner",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "spinner.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-split-pane",
+        "srcDir": "src/components/split-pane",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "split-pane.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "split-pane.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "split-pane.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-tab",
+        "srcDir": "src/components/tab",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "tab.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-tab-bar",
+        "srcDir": "src/components/tab-bar",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "tab-bar.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "tab-bar.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "tab-bar.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-tab-button",
+        "srcDir": "src/components/tab-button",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "tab-button.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "tab-button.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "tab-button.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-tabs",
+        "srcDir": "src/components/tabs",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "tabs.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-text",
+        "srcDir": "src/components/text",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "text.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-textarea",
+        "srcDir": "src/components/textarea",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "textarea.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "textarea.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "textarea.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-thumbnail",
+        "srcDir": "src/components/thumbnail",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "thumbnail.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-title",
+        "srcDir": "src/components/title",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "title.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "title.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "title.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-toast",
+        "srcDir": "src/components/toast",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "toast.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "toast.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "toast.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-toggle",
+        "srcDir": "src/components/toggle",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "toggle.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "toggle.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "toggle.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-toolbar",
+        "srcDir": "src/components/toolbar",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "toolbar.scss",
+                "transform": true,
+                "import": true
+            },
+            {
+                "name": "toolbar.md.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".md"
+            },
+            {
+                "name": "toolbar.ios.scss",
+                "transform": true,
+                "import": true,
+                "suffix": ".ios"
+            }
+        ]
+    },
+    {
+        "tag": "ion-virtual-scroll",
+        "srcDir": "src/components/virtual-scroll",
+        "include": ".scss",
+        "specifics": [
+            {
+                "name": "virtual-scroll.scss",
+                "transform": true,
+                "import": true
+            }
+        ]
+    },
+    {
+        "tag": "ion-icon",
+        "root": "../../ionic/ionicons",
+        "srcDir": "src/components/icon",
+        "include": ".css",
+        "specifics": [
+            {
+                "name": "icon.css",
+                "transform": true,
+                "import": true,
+                "extname": ".scss"
+            }
+        ]
+    }
+]

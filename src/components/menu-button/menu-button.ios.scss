@@ -4,7 +4,7 @@
 // iOS Menu Button
 // --------------------------------------------------
 
-:host {
+ion-menu-button.ios {
   --background-focused: currentColor;
   --background-focused-opacity: .1;
   --border-radius: 4px;
@@ -21,7 +21,7 @@
 // Menu Button: Activated
 // --------------------------------------------------
 
-:host(.ion-activated) {
+ion-menu-button.ios.ion-activated {
   opacity: .4;
 }
 
@@ -30,7 +30,7 @@
 // --------------------------------------------------
 
 @media (any-hover: hover) {
-  :host(:hover) {
+  ion-menu-button.ios:hover {
     opacity: .6;
   }
 }

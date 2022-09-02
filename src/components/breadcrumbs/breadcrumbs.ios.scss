@@ -1,0 +1,14 @@
+@import "./breadcrumbs";
+
+// iOS Breadcrumbs
+// --------------------------------------------------
+
+// Breadcrumbs: In Toolbar
+// --------------------------------------------------
+
+ion-breadcrumbs.ios.in-toolbar {
+  @include padding(0, 20px);
+
+  justify-content: center;
+}
+

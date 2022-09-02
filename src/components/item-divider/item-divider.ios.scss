@@ -1,0 +1,92 @@
+@import "./item-divider";
+@import "./item-divider.ios.vars";
+
+// iOS Item Divider
+// --------------------------------------------------
+
+ion-item-divider.ios {
+  --background: #{$item-divider-ios-background};
+  --color: #{$item-divider-ios-color};
+  --padding-start: #{$item-divider-ios-padding-start};
+  --inner-padding-end: #{$item-divider-ios-padding-end * 0.5};
+
+  @include border-radius(0);
+
+  position: relative;
+
+  min-height: $item-divider-ios-min-height;
+
+  font-size: $item-divider-ios-font-size;
+
+  font-weight: $item-divider-ios-font-weight;
+}
+
+
+// iOS Item Divider Slots
+// --------------------------------------------------
+
+ion-item-divider.ios[slot="start"] {
+  @include margin($item-ios-slot-start-margin-top, $item-ios-slot-start-margin-end, $item-ios-slot-start-margin-bottom, $item-ios-slot-start-margin-start);
+}
+
+ion-item-divider.ios[slot="end"] {
+  @include margin($item-ios-slot-end-margin-top, $item-ios-slot-end-margin-end, $item-ios-slot-end-margin-bottom, $item-ios-slot-end-margin-start);
+}
+
+ion-item-divider.ios slot ion-icon[slot="start"],
+ion-item-divider.ios slot ion-icon[slot="end"] {
+  @include margin($item-ios-icon-slot-margin-top, $item-ios-icon-slot-margin-end, $item-ios-icon-slot-margin-bottom, $item-ios-icon-slot-margin-start);
+}
+
+
+// iOS Item Divider Content
+// --------------------------------------------------
+
+ion-item-divider.ios slot h1 {
+  @include margin(0, 0, 2px);
+
+  font-size: 24px;
+  font-weight: normal;
+}
+
+ion-item-divider.ios slot h2 {
+  @include margin(0, 0, 2px);
+
+  font-size: 17px;
+  font-weight: normal;
+}
+
+ion-item-divider.ios slot h3,
+ion-item-divider.ios slot h4,
+ion-item-divider.ios slot h5,
+ion-item-divider.ios slot h6 {
+  @include margin(0, 0, 3px);
+
+  font-size: 14px;
+  font-weight: normal;
+
+  line-height: normal;
+}
+
+ion-item-divider.ios slot p {
+  @include margin($item-ios-paragraph-margin-top, $item-ios-paragraph-margin-end, $item-ios-paragraph-margin-bottom, $item-ios-paragraph-margin-start);
+
+  color: $item-ios-paragraph-text-color;
+
+  font-size: $item-ios-paragraph-font-size;
+
+  line-height: normal;
+
+  text-overflow: inherit;
+
+  overflow: inherit;
+}
+
+ion-item-divider.ios slot h2:last-child
+ion-item-divider.ios slot h3:last-child,
+ion-item-divider.ios slot h4:last-child,
+ion-item-divider.ios slot h5:last-child,
+ion-item-divider.ios slot h6:last-child,
+ion-item-divider.ios slot p:last-child {
+  @include margin(null, null, 0, null);
+}

@@ -1,0 +1,17 @@
+@import "./item-option";
+@import "./item-option.ios.vars";
+
+// iOS Item Option
+// --------------------------------------------------
+
+ion-item-option.ios {
+  font-size: $item-option-button-ios-font-size;
+}
+
+ion-item-option.ios.ion-activated {
+  background: ion-color(primary, shade);
+}
+
+ion-item-option.ios.ion-color.ion-activated {
+  background: current-color(shade);
+}

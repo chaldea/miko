@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npm run build && dotnet watch --project ./samples/Miko.Smaples.Wasm run",
     "generate": "node generator.js",
+    "generate:component": "hygen generator component component",
     "build": "npm run build.ts && npm run build.css",
     "build.ts": "gulp --gulpfile ./gulpfile.js",
     "build.css": "npm run css.sass && npm run css.minify",

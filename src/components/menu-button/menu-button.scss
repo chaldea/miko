@@ -3,7 +3,7 @@
 // Menu Button
 // --------------------------------------------------
 
-:host {
+ion-menu-button {
   /**
    * @prop --border-radius: Border radius of the menu button
    *
@@ -99,14 +99,14 @@ ion-icon {
 // Menu Button: Hidden
 // --------------------------------------------------
 
-:host(.menu-button-hidden) {
+ion-menu-button.menu-button-hidden {
   display: none;
 }
 
 // Menu Button: Disabled
 // --------------------------------------------------
 
-:host(.menu-button-disabled) {
+ion-menu-button.menu-button-disabled {
   cursor: default;
   opacity: .5;
   pointer-events: none;
@@ -116,7 +116,7 @@ ion-icon {
 // Menu Button: Focused
 // --------------------------------------------------
 
-:host(.ion-focused) .button-native {
+ion-menu-button.ion-focused .button-native {
   color: var(--color-focused);
 
   &::after {
@@ -135,7 +135,7 @@ ion-icon {
 }
 
 @media (any-hover: hover) {
-  :host(:hover) .button-native {
+  ion-menu-button:hover .button-native {
     color: var(--color-hover);
 
     &::after {
@@ -150,7 +150,7 @@ ion-icon {
 // Menu Button with Color
 // --------------------------------------------------
 
-:host(.ion-color) .button-native {
+ion-menu-button.ion-color .button-native {
   color: current-color(base);
 }
 
@@ -158,6 +158,6 @@ ion-icon {
 // Menu Button in Toolbar: Global Theming
 // --------------------------------------------------
 
-:host(.in-toolbar:not(.in-toolbar-color)) {
+ion-menu-button.in-toolbar:not(.in-toolbar-color) {
   color: #{var(--ion-toolbar-color, var(--color))};
 }

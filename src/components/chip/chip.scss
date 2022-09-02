@@ -1,0 +1,162 @@
+@import "../../themes/ionic.globals";
+
+ion-chip {
+  /**
+   * @prop --background: Background of the chip
+   * @prop --color: Color of the chip
+   */
+  --background: #{rgba($text-color-rgb, .12)};
+  --color: #{rgba($text-color-rgb, .87)};
+
+  @include border-radius(16px);
+  @include font-smoothing();
+  @include margin(4px);
+  @include padding(7px, 12px);
+
+  display: inline-flex;
+
+  position: relative;
+
+  align-items: center;
+
+  height: 32px;
+
+  background: var(--background);
+  color: var(--color);
+
+  font-family: $font-family-base;
+  font-size: 14px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+ion-chip.chip-disabled {
+  cursor: default;
+  opacity: .4;
+  pointer-events: none;
+}
+
+// Chip Colors
+// ---------------------------------------------
+
+ion-chip.ion-color {
+  background: current-color(base, .08);
+  color: current-color(shade);
+}
+
+ion-chip.ion-color:focus {
+  background: current-color(base, .12);
+}
+
+ion-chip.ion-color.ion-activated {
+  background: current-color(base, .16);
+}
+
+
+// Outline Chip
+// ---------------------------------------------
+
+ion-chip.chip-outline {
+  border-width: 1px;
+  border-style: solid;
+}
+
+ion-chip.chip-outline {
+  border-color: rgba(0, 0, 0, .32);
+
+  background: transparent;
+}
+
+ion-chip.chip-outline.ion-color {
+  border-color: current-color(base, .32);
+}
+
+ion-chip.chip-outline:not(.ion-color):focus {
+  background: rgba(0, 0, 0, .04);
+}
+
+ion-chip.chip-outline.ion-activated:not(.ion-color) {
+  background: rgba(0, 0, 0, .08);
+}
+
+
+// Chip Icon
+// ---------------------------------------------
+
+ion-chip slot ion-icon {
+  font-size: 20px;
+}
+
+ion-chip:not(.ion-color) slot ion-icon {
+  color: rgba(0, 0, 0, .54);
+}
+
+ion-chip slot ion-icon:first-child {
+  @include margin(-4px, 8px, -4px, -4px);
+}
+
+ion-chip slot ion-icon:last-child {
+  @include margin(-4px, -4px, -4px, 8px);
+}
+
+
+// Chip Avatar
+// ---------------------------------------------
+
+ion-chip slot ion-avatar {
+  width: 24px;
+  height: 24px;
+}
+
+ion-chip slot ion-avatar:first-child {
+  @include margin(-4px, 8px, -4px, -8px);
+}
+
+ion-chip slot ion-avatar:last-child {
+  @include margin(-4px, -8px, -4px, 8px);
+}
+
+
+// Chip: Focus
+// ---------------------------------------------
+
+ion-chip:focus {
+  outline: none;
+}
+
+ion-chip:focus {
+  --background: #{rgba($text-color-rgb, .16)};
+}
+
+
+// Chip: Activated
+// ---------------------------------------------
+
+ion-chip.ion-activated {
+  --background: #{rgba($text-color-rgb, .20)};
+}
+
+
+// Chip: Hover
+// ---------------------------------------------
+
+@media (any-hover: hover) {
+  ion-chip:hover {
+    --background: #{rgba($text-color-rgb, .16)};
+  }
+
+  ion-chip.ion-color:hover {
+    background: current-color(base, .12);
+  }
+
+  ion-chip.chip-outline:not(.ion-color):hover {
+    background: rgba($text-color-rgb, .04);
+  }
+}

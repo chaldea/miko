@@ -1,0 +1,24 @@
+@import "../../themes/ionic.globals";
+
+// Anchor
+// --------------------------------------------------
+
+ion-router-link {
+  /**
+   * @prop --background: Background of the router link
+   * @prop --color: Text color of the router link
+   */
+  --background: transparent;
+  --color: #{ion-color(primary, base)};
+
+  background: var(--background);
+  color: var(--color);
+}
+
+ion-router-link.ion-color {
+  color: current-color(base);
+}
+
+a {
+  @include text-inherit();
+}

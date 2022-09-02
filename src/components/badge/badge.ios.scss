@@ -1,0 +1,9 @@
+@import "./badge";
+@import "./badge.ios.vars";
+
+// iOS Badge
+// --------------------------------------------------
+
+ion-badge.ios {
+  @include border-radius($badge-ios-border-radius);
+}

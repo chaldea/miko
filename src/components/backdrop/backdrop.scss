@@ -1,0 +1,29 @@
+@import "./backdrop.vars";
+
+// Backdrop
+// --------------------------------------------------
+
+ion-backdrop {
+  @include position(0, 0, 0, 0);
+
+  display: block;
+  position: absolute;
+
+  transform: translateZ(0);
+
+  contain: strict;
+  cursor: pointer;
+  opacity: .01;
+  touch-action: none;
+  z-index: $z-index-backdrop;
+}
+
+
+ion-backdrop.backdrop-hide {
+  background: transparent;
+}
+
+ion-backdrop.backdrop-no-tappable {
+  cursor: auto;
+}
+

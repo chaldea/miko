@@ -4,7 +4,7 @@
 // MD Menu Button
 // --------------------------------------------------
 
-:host {
+ion-menu-button.md {
   --background-focused: currentColor;
   --background-focused-opacity: .12;
   --background-hover: currentColor;
@@ -24,7 +24,7 @@
 // Menu Button Color: Focused
 // --------------------------------------------------
 
-:host(.ion-color.ion-focused)::after {
+ion-menu-button.md.ion-color.ion-focused)::after {
   background: #{current-color(base)};
 }
 
@@ -32,8 +32,8 @@
 // Menu Button Color: Hover
 // --------------------------------------------------
 
-@media (any-hover: hover) {
-  :host(.ion-color:hover) .button-native::after {
+@media (any-hover: hover {
+  ion-menu-button.md.ion-color:hover .button-native::after {
     background: #{current-color(base)};
   }
 }
