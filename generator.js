@@ -6,7 +6,7 @@ const slotted1 = /(?: )::slotted\(([\s\S]*?)\)(?!\))/gm;    // match ::slotted
 const slotted2 = /(?:\):):slotted\(([\s\S]*?)\)(?!\))/gm;   // match ::slotted
 const slotted3 = /::slotted\(([\s\S]*?)\)(?!\))/gm;         // match ::slotted
 const host1 = /:host-context\(([\s\S]*?)\)(?!\))/gm;        // match :host-context
-const host2 = /:host(?!-)(?:\(([\s\S]*?)\))*([\s|,])/gm;    // match :host
+const host2 = /:host(?!-)(?:\(([\s\S]*?)\))*(\s|,|::)/gm;   // match :host
 
 function transform(name, content) {
     return content

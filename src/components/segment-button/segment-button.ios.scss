@@ -51,7 +51,7 @@ ion-segment-button.ios {
 // Segment Button: Borders
 // --------------------------------------------------
 
-:host::before {
+ion-segment-button.ios::before {
   @include margin(5px, 0);
 
   transition: 160ms opacity ease-in-out;
@@ -66,7 +66,7 @@ ion-segment-button.ios {
   will-change: opacity;
 }
 
-ion-segment-button.ios:first-of-type)::before {
+ion-segment-button.ios:first-of-type::before {
   border-left-color: transparent;
 }
 
@@ -74,7 +74,7 @@ ion-segment-button.ios:first-of-type)::before {
 // Segment Button: Disabled
 // --------------------------------------------------
 
-:host(.segment-button-disabled {
+ion-segment-button.ios.segment-button-disabled {
   opacity: $segment-button-ios-opacity-disabled;
 }
 
@@ -123,8 +123,8 @@ ion-segment-button.ios.segment-button-layout-icon-end slot ion-label {
 // Segment Button: Checked Borders
 // --------------------------------------------------
 
-ion-segment-button.ios.segment-button-checked)::before,
-:host(.segment-button-after-checked)::before {
+ion-segment-button.ios.segment-button-checked::before,
+ion-segment-button.ios.segment-button-after-checked::before {
   opacity: 0;
 }
 
@@ -132,7 +132,7 @@ ion-segment-button.ios.segment-button-checked)::before,
 // Segment Button: Checked
 // --------------------------------------------------
 
-:host(.segment-button-checked {
+ion-segment-button.ios.segment-button-checked {
   z-index: -1;
 }
 

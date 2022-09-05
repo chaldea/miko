@@ -29,7 +29,7 @@ ion-picker-column-internal {
 /**
  * Hide scrollbars on Chrome and Safari
  */
-:host::-webkit-scrollbar {
+ion-picker-column-internal::-webkit-scrollbar {
   display: none;
 }
 
