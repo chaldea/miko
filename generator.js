@@ -107,10 +107,10 @@ function generateCss() {
         }
     }
 
-    // const context = {
-    //     path: 'src/css/components.scss',
-    // }
-    // execSync(`"./node_modules/.bin/hygen" generator style style --json=${Buffer.from(JSON.stringify(context)).toString('base64')}`);
+    const context = {
+        path: 'src/css/components.scss',
+    }
+    execSync(`"./node_modules/.bin/hygen" generator style style --json=${Buffer.from(JSON.stringify(context)).toString('base64')}`);
 }
 
 function generateIcons() {
@@ -123,9 +123,7 @@ function generateIcons() {
 
 function generate() {
     generateCss();
-    // generateIcons();
+    generateIcons();
 }
 
 generate();
-
-// listConflictingStyles();
