@@ -139,7 +139,12 @@
             {
                 "name": "back-button.scss",
                 "transform": true,
-                "import": true
+                "import": true,
+                "conflict": [
+                    ".button-native",
+                    ".button-inner",
+                    ".button-native::after"
+                ]
             },
             {
                 "name": "back-button.md.scss",
@@ -259,7 +264,13 @@
             {
                 "name": "button.scss",
                 "transform": true,
-                "import": true
+                "import": true,
+                "conflict": [
+                    ".button-native",
+                    ".button-inner",
+                    ".button-native::after",
+                    ".button-native::-moz-focus-inner"
+                ]
             },
             {
                 "name": "button.md.scss",
@@ -547,7 +558,12 @@
             {
                 "name": "fab-button.scss",
                 "transform": true,
-                "import": true
+                "import": true,
+                "conflict": [
+                    ".button-native",
+                    ".button-inner",
+                    ".button-native::after"
+                ]
             },
             {
                 "name": "fab-button.md.scss",
@@ -794,7 +810,11 @@
             {
                 "name": "item-option.scss",
                 "transform": true,
-                "import": true
+                "import": true,
+                "conflict": [
+                    ".button-native",
+                    ".button-inner"
+                ]
             },
             {
                 "name": "item-option.md.scss",
@@ -974,7 +994,12 @@
             {
                 "name": "menu-button.scss",
                 "transform": true,
-                "import": true
+                "import": true,
+                "conflict": [
+                    ".button-native",
+                    ".button-inner",
+                    ".button-native::after"
+                ]
             },
             {
                 "name": "menu-button.md.scss",
@@ -1455,7 +1480,12 @@
             {
                 "name": "segment-button.scss",
                 "transform": true,
-                "import": true
+                "import": true,
+                "conflict": [
+                    ".button-native",
+                    ".button-inner",
+                    ".button-native::after"
+                ]
             },
             {
                 "name": "segment-button.md.scss",
@@ -1659,7 +1689,12 @@
             {
                 "name": "tab-button.scss",
                 "transform": true,
-                "import": true
+                "import": true,
+                "conflict": [
+                    ".button-native",
+                    ".button-inner",
+                    ".button-native::after"
+                ]
             },
             {
                 "name": "tab-button.md.scss",

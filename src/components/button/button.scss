@@ -152,7 +152,7 @@ ion-button.button-full:not(.button-round) .button-native {
   border-left-width: 0;
 }
 
-.button-native {
+ion-button .button-native{
   @include border-radius(var(--border-radius));
   @include font-smoothing();
   @include margin(0);
@@ -190,11 +190,11 @@ ion-button.button-full:not(.button-round) .button-native {
   appearance: none;
 }
 
-.button-native::-moz-focus-inner {
+ion-button .button-native::-moz-focus-inner{
   border: 0;
 }
 
-.button-inner {
+ion-button .button-inner{
   display: flex;
   position: relative;
 
@@ -242,7 +242,7 @@ ion-ripple-effect {
 // Button: States
 // --------------------------------------------------
 
-.button-native::after {
+ion-button .button-native::after{
   @include button-state();
 }
 

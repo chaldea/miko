@@ -34,7 +34,7 @@ ion-item-option.ion-color {
   color: current-color(contrast);
 }
 
-.button-native {
+ion-item-option .button-native{
   @include text-inherit();
   @include padding(0, .7em);
 
@@ -57,7 +57,7 @@ ion-item-option.ion-color {
   box-sizing: border-box;
 }
 
-.button-inner {
+ion-item-option .button-inner{
   display: flex;
 
   flex-flow: column nowrap;

@@ -37,7 +37,7 @@ ion-tab-button {
 // Tab Button: Native
 // --------------------------------------------------
 
-.button-native {
+ion-tab-button .button-native{
   @include border-radius(inherit);
   @include margin(0);
   @include padding(var(--padding-top), var(--padding-end), var(--padding-bottom), var(--padding-start));
@@ -67,11 +67,11 @@ ion-tab-button {
   -webkit-user-drag: none;
 }
 
-.button-native::after {
+ion-tab-button .button-native::after{
   @include button-state();
 }
 
-.button-inner {
+ion-tab-button .button-inner{
   display: flex;
   position: relative;
 

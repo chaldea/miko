@@ -69,7 +69,7 @@ ion-fab-button {
 }
 
 
-.button-native {
+ion-fab-button .button-native{
   @include border-radius(var(--border-radius));
   @include padding(var(--padding-top), var(--padding-end), var(--padding-bottom), var(--padding-start));
   @include text-inherit();
@@ -109,11 +109,11 @@ ion-fab-button slot ion-icon {
   line-height: 1;
 }
 
-.button-native::after {
+ion-fab-button .button-native::after{
   @include button-state();
 }
 
-.button-inner {
+ion-fab-button .button-inner{
   @include position(0, 0, null, 0);
 
   display: flex;

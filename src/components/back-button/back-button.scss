@@ -124,7 +124,7 @@ ion-back-button.back-button-disabled {
 // Native Back Button
 // --------------------------------------------------
 
-.button-native {
+ion-back-button .button-native{
   @include border-radius(var(--border-radius));
   @include font-smoothing();
   @include margin(var(--margin-top), var(--margin-end), var(--margin-bottom), var(--margin-start));
@@ -159,7 +159,7 @@ ion-back-button.back-button-disabled {
   appearance: none;
 }
 
-.button-inner {
+ion-back-button .button-inner{
   display: flex;
   position: relative;
 
@@ -208,7 +208,7 @@ ion-back-button.ion-focused .button-native {
 // Back Button: Hover
 // --------------------------------------------------
 
-.button-native::after {
+ion-back-button .button-native::after{
   @include button-state();
 }
 

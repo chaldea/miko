@@ -39,7 +39,7 @@ ion-menu-button {
   font-kerning: none;
 }
 
-.button-native {
+ion-menu-button .button-native{
   @include border-radius(var(--border-radius));
   @include text-inherit();
   @include margin(0);
@@ -74,7 +74,7 @@ ion-menu-button {
   appearance: none;
 }
 
-.button-inner {
+ion-menu-button .button-inner{
   display: flex;
   position: relative;
 
@@ -130,7 +130,7 @@ ion-menu-button.ion-focused .button-native {
 // Menu Button: Hover
 // --------------------------------------------------
 
-.button-native::after {
+ion-menu-button .button-native::after{
   @include button-state();
 }
 

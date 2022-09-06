@@ -76,7 +76,7 @@ ion-segment-button {
   cursor: pointer;
 }
 
-.button-native {
+ion-segment-button .button-native{
   @include border-radius(0);
   @include text-inherit();
   @include margin(var(--margin-top), var(--margin-end), var(--margin-bottom), var(--margin-start));
@@ -116,11 +116,11 @@ ion-segment-button {
   z-index: 2;
 }
 
-.button-native::after {
+ion-segment-button .button-native::after{
   @include button-state();
 }
 
-.button-inner {
+ion-segment-button .button-inner{
   display: flex;
   position: relative;
 
