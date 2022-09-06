@@ -15,5 +15,20 @@ namespace Miko
         {
             await AnimationRef.InvokeVoidAsync("play");
         }
+
+        public async Task Pause()
+        {
+            await AnimationRef.InvokeVoidAsync("pause");
+        }
+
+        public async Task Stop()
+        {
+            await AnimationRef.InvokeVoidAsync("stop");
+        }
+
+        public async Task Destroy(bool? clearStyleSheets)
+        {
+            await AnimationRef.InvokeVoidAsync("destroy", clearStyleSheets);
+        }
     }
 }

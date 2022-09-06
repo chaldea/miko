@@ -39,4 +39,18 @@ public static class AnimationExtensions
         await ani.AnimationRef.InvokeVoidAsync("fromTo", property, fromValue, toValue);
         return ani;
     }
+
+    public static async Task<IAnimation> Iterations(this Task<IAnimation> animation, int iterations)
+    {
+        var ani = await animation.ConfigureAwait(false);
+        await ani.AnimationRef.InvokeVoidAsync("iterations", iterations);
+        return ani;
+    }
+
+    public static async Task<IAnimation> Keyframes(this Task<IAnimation> animation, object[] keyframes)
+    {
+        var ani = await animation.ConfigureAwait(false);
+        await ani.AnimationRef.InvokeVoidAsync("keyframes", new object[] { keyframes });
+        return ani;
+    }
 }
