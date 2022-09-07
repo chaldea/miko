@@ -1,7 +1,7 @@
 ﻿@page "/menu"
 
 <Miko.App>
-    <Miko.Menu Side="start" ContentId="">
+    <Miko.Menu Side="start" ContentId="main-content">
         <Miko.Header>
             <Miko.Toolbar>
                 <Miko.Title>Menu</Miko.Title>
@@ -11,4 +11,31 @@
             <h1>Menu Content</h1>
         </Miko.Content>
     </Miko.Menu>
+    
+    <Miko.Header>
+        <Miko.Toolbar>
+            <StartSlot>
+                <Miko.Buttons>
+                    <Miko.MenuButton></Miko.MenuButton>
+                </Miko.Buttons>
+            </StartSlot>
+            <ChildContent>
+                <Miko.Title>Inbox</Miko.Title>
+            </ChildContent>
+        </Miko.Toolbar>
+    </Miko.Header>
+    
+    <Miko.Content Class="ion-padding">
+        <Miko.Button Expand="block" OnClick="Open">Open Menu</Miko.Button>
+    </Miko.Content>
 </Miko.App>
+
+@code
+{
+    [Inject] public MenuService MenuService { get; set; }
+
+    public async Task Open()
+    {
+        await MenuService.OpenAsync();
+    }
+}

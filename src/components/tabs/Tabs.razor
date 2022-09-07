@@ -6,10 +6,7 @@
         class="@ClassMapper.Class"
         style="@Style">
         <slot name="top">
-            @if (Slot == "top")
-            {
-                @TabBarRender
-            }
+            @TopSlot
         </slot>
         <div class="tabs-inner">
             <slot>
@@ -17,10 +14,7 @@
             </slot>
         </div>
         <slot name="bottom">
-            @if (Slot == "bottom")
-            {
-                @TabBarRender
-            }
+            @BottomSlot
         </slot>
     </ion-tabs>
 </CascadingValue>

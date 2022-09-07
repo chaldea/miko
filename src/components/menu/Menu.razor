@@ -2,17 +2,17 @@
 @inherits MikoDomComponentBase
 
 <ion-menu
+    @ref="Ref"
     role="navigation"
     aria-label="menu"
     class="@ClassMapper.Class"
     style="@Style">
-    <div class="menu-inner" part="container">
+    <div @ref="_containerRef" class="menu-inner" part="container">
         <slot>@ChildContent</slot>
     </div>
     
-    <ion-backdrop
-        class="menu-backdrop"
-        tappable="false"
-        stopPropagation="false"
-        part="backdrop"/>
+    <Miko.Backdrop 
+        Class="menu-backdrop" 
+        Visible="_isOpen" 
+        OnTap="HandleBackdropTap" />
 </ion-menu>

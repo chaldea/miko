@@ -7,11 +7,11 @@ namespace Miko
         private readonly List<Tab> _tabs = new();
         private readonly List<TabButton> _tabButtons = new();
 
-        [Parameter] public string Slot { get; set; }
-
         [Parameter] public RenderFragment ChildContent { get; set; }
 
-        [Parameter] public RenderFragment TabBarRender { get; set; }
+        [Parameter] public RenderFragment TopSlot { get; set; }
+
+        [Parameter] public RenderFragment BottomSlot { get; set; }
 
         public void AddTab(Tab tab)
         {

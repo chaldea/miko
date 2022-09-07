@@ -1,6 +1,6 @@
 ﻿@page "/tabs"
 
-<Miko.Tabs Slot="bottom">
+<Miko.Tabs>
     <ChildContent>
         <Miko.Tab Name="music">
             <Miko.Header>
@@ -36,7 +36,7 @@
         </Miko.Tab>
     </ChildContent>
     
-    <TabBarRender>
+    <BottomSlot>
         <Miko.TabBar>
             <Miko.TabButton Tab="music">
                 <Miko.Label>Music</Miko.Label>
@@ -53,5 +53,5 @@
                 <Miko.Icon Name="game-controller" />
             </Miko.TabButton>
         </Miko.TabBar>
-    </TabBarRender>
+    </BottomSlot>
 </Miko.Tabs>

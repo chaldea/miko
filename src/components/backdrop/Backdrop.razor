@@ -1,6 +1,11 @@
 ﻿@namespace Miko
 @inherits MikoDomComponentBase
 
-<ion-backdrop>
+<ion-backdrop
+    tabindex="-1"
+    aria-hidden="true"
+    part="backdrop"
+    class="@ClassMapper.Class"
+    @onclick="OnTap">
 
 </ion-backdrop>
