@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Miko
 {
@@ -17,6 +18,9 @@ namespace Miko
 
         [Parameter] 
         public RenderFragment ChildContent { get; set; }
+
+        [Inject]
+        public MenuService MenuService { get; set; }
 
         protected override void OnInitialized()
         {
@@ -37,6 +41,11 @@ namespace Miko
                 .If("in-toolbar", () => true)
                 .If("in-toolbar-color", () => true)
                 .If("in-toolbar-color", () => true);
+        }
+
+        public async Task HandleOnClick(MouseEventArgs args)
+        {
+            await MenuService.OpenAsync();
         }
     }
 }

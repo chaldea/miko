@@ -5,7 +5,7 @@
     aria-disabled="@(Disabled ? "true" : null)"
     aria-hidden="@(Hidden ? "true" : null)"
     class="@ClassMapper.Class">
-    <button disabled="@Disabled" class="button-native" part="native" aria-label="menu">
+    <button disabled="@Disabled" class="button-native" part="native" aria-label="menu" @onclick="HandleOnClick">
         <span class="button-inner">
             <slot>
                 <Miko.Icon Name="menu-outline" />

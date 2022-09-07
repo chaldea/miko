@@ -59,6 +59,7 @@ namespace Miko
         public async Task Show()
         {
             _isOpen = true;
+            StateHasChanged();
             await _openAnimation.Play();
         }
 

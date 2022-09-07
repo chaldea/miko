@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Miko.Docs", "docs\Miko.Docs
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{0E930820-54CB-431D-B656-2C53DD87CF2D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Miko.Samples.MauiTabs", "samples\Miko.Samples.MauiTabs\Miko.Samples.MauiTabs.csproj", "{3F1B4415-9C15-4E3E-A648-7BF8A283E333}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Miko.Samples.MauiTabs", "samples\Miko.Samples.MauiTabs\Miko.Samples.MauiTabs.csproj", "{3F1B4415-9C15-4E3E-A648-7BF8A283E333}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

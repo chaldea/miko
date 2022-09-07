@@ -2,9 +2,10 @@
 @inherits MikoDomComponentBase
 
 <ion-icon
-    aria-label=""
+    aria-label="@Name"
     role="img"
-    class="">
+    class="@ClassMapper.Class"
+    @attributes="@Attributes">
     <div class="icon-inner">
         @((MarkupString)_svgContent)
     </div>
