@@ -6,15 +6,19 @@
     class="@ClassMapper.Class"
     role="listitem">
     <TagType Type="@_tagType" Class="item-native" part="native">
-        <slot name="start">@StartSlot</slot>
+        <slot name="start">
+            <CascadingValue Value="@("start")" Name="Slot">@StartSlot</CascadingValue>
+        </slot>
         <div class="item-inner">
             <div class="input-wrapper">
                 <slot>@ChildContent</slot>
             </div>
-            <slot name="end">@EndSlot</slot>
+            <slot name="end">
+                <CascadingValue Value="@("end")" Name="Slot">@EndSlot</CascadingValue>
+            </slot>
             @if (_showDetail)
             {
-                <Miko.Icon Name="detail" Class="item-detail-icon" />
+                <Miko.Icon Name="detail" Class="item-detail-icon"/>
             }
             <div class="item-inner-highlight"></div>
         </div>

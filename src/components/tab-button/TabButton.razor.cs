@@ -17,6 +17,8 @@ namespace Miko
 
         [Parameter] public string Layout { get; set; } = "icon-top";
 
+        [Parameter] public string Href { get; set; }
+
         [Parameter] public RenderFragment ChildContent { get; set; }
 
         [CascadingParameter]

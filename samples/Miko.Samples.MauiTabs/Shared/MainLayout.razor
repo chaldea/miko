@@ -1,3 +1,30 @@
 ﻿@inherits LayoutComponentBase
 
-@Body
+<Miko.App>
+    <Miko.Tabs>
+        <ChildContent>
+            <Miko.Tab>
+                @Body
+            </Miko.Tab>
+        </ChildContent>
+
+        <BottomSlot>
+            <Miko.TabBar>
+                <Miko.TabButton Tab="music" Href="/">
+                    <Miko.Label>Music</Miko.Label>
+                    <Miko.Icon Name="musical-note" />
+                </Miko.TabButton>
+
+                <Miko.TabButton Tab="movies" Href="/movies">
+                    <Miko.Label>Movies</Miko.Label>
+                    <Miko.Icon Name="videocam" />
+                </Miko.TabButton>
+
+                <Miko.TabButton Tab="games" Href="/games">
+                    <Miko.Label>Games</Miko.Label>
+                    <Miko.Icon Name="game-controller" />
+                </Miko.TabButton>
+            </Miko.TabBar>
+        </BottomSlot>
+    </Miko.Tabs>
+</Miko.App>

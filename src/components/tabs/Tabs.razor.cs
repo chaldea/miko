@@ -6,12 +6,15 @@ namespace Miko
     {
         private readonly List<Tab> _tabs = new();
         private readonly List<TabButton> _tabButtons = new();
+        private bool _isRoutingTab = false;
 
         [Parameter] public RenderFragment ChildContent { get; set; }
 
         [Parameter] public RenderFragment TopSlot { get; set; }
 
         [Parameter] public RenderFragment BottomSlot { get; set; }
+
+        [Inject] public NavigationManager NavigationManager { get; set; }
 
         public void AddTab(Tab tab)
         {
@@ -29,18 +32,30 @@ namespace Miko
             {
                 _tabButtons[0].SetSelected(true);
             }
+
+            if (tabButton.Href != null)
+            {
+                _isRoutingTab = true;
+            }
         }
 
         public void SelectTab(string name)
         {
-            foreach (var tab in _tabs)
+            if (!_isRoutingTab)
             {
-                tab.SetActive(tab.Name == name);
+                foreach (var tab in _tabs)
+                {
+                    tab.SetActive(tab.Name == name);
+                }
             }
-
+            
             foreach (var button in _tabButtons)
             {
                 button.SetSelected(button.Tab == name);
+                if (_isRoutingTab && button.Tab == name)
+                {
+                    NavigationManager.NavigateTo(button.Href);
+                }
             }
             StateHasChanged();
         }

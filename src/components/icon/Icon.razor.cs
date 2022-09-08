@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Components;
-using System.ComponentModel;
 
 namespace Miko
 {
@@ -14,6 +13,9 @@ namespace Miko
         [Parameter] public string Size { get; set; }
 
         [Parameter] public bool FlipRtl { get; set; }
+
+        [CascadingParameter(Name = "Slot")]
+        public string Slot { get; set; }
 
         protected override void OnInitialized()
         {
