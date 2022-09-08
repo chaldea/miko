@@ -4,16 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npm run build && dotnet watch --project ./samples/Miko.Smaples.Wasm run",
-    "generate": "node generator.js",
-    "generate:component": "hygen generator component component",
-    "build": "npm run build.ts && npm run build.css",
-    "build.ts": "gulp --gulpfile ./gulpfile.js",
-    "build.css": "npm run css.sass && npm run css.minify",
+    "start": "npm run build && dotnet watch --project ./docs/Miko.Docs run",
+    "publish": "npm run build && dotnet pack src/components/Miko.csproj -c Release -o .",
+    "build": "npm run build:ts && npm run build:css",
+    "build:ts": "gulp --gulpfile ./gulpfile.js",
+    "build:css": "npm run css.sass && npm run css.minify",
     "css.sass": "sass src/css:./dist",
-    "css.minify": "cleancss -O2 -o ./src/components/wwwroot/css/miko.css ./dist/ionic.bundle.css"
+    "css.minify": "cleancss -O2 -o ./src/components/wwwroot/css/miko.css ./dist/ionic.bundle.css",
+    "generate:css": "node generator.js",
+    "generate:component": "hygen generator component component"
   },
-  "author": "",
+  "author": "Chaldea",
   "license": "MIT",
   "devDependencies": {
     "babel-core": "^6.26.3",
