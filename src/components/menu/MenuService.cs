@@ -15,7 +15,7 @@ namespace Miko
             _menus.TryAdd(menuId, menu);
         }
 
-        public async Task OpenAsync(string menuId = null)
+        public void Open(string menuId = null)
         {
             Menu menu;
             if (menuId == null)
@@ -27,7 +27,7 @@ namespace Miko
                 _menus.TryGetValue(menuId, out menu);
             }
 
-            await menu.Show();
+            menu.Show();
         }
     }
 }

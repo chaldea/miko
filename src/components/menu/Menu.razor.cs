@@ -9,7 +9,7 @@ namespace Miko
         private bool _isEndSide = false;
         private bool _isOpen = false;
         private ElementReference _containerRef;
-        private IAnimation _openAnimation;
+        private Animation _ani;
 
         [Parameter] public string ContentId { get; set; }
         [Parameter] public string Type { get; set; } = "overlay";
@@ -17,7 +17,6 @@ namespace Miko
         [Parameter] public string Side { get; set; } = "start";
         [Parameter] public string MenuId { get; set; } = Guid.NewGuid().ToString("N");
         [Parameter] public RenderFragment ChildContent { get; set; }
-        [Inject] public AnimationService AnimationService { get; set; }
         [Inject] public MenuService MenuService { get; set; }
 
         protected override void OnInitialized()
@@ -25,22 +24,11 @@ namespace Miko
             base.OnInitialized();
             MenuService.Add(MenuId, this);
             SetClassMap();
-        }
-
-        protected override async Task OnAfterRenderAsync(bool firstRender)
-        {
-            await base.OnAfterRenderAsync(firstRender);
-            if (firstRender)
-            {
-                _openAnimation = await AnimationService
-                    .Create()
-                    .AddElement(_containerRef)
-                    .Fill("both")
-                    .Direction("normal")
-                    .Easing("ease-in")
-                    .Duration(300)
-                    .FromTo("transform", "translateX(-100%)", "translateX(-0px)");
-            }
+            _ani = new Animation()
+                .Fill("both")
+                .Direction("normal")
+                .Duration(300)
+                .FromTo("transform", "translateX(-100%)", "translateX(-0px)");
         }
 
         protected void SetClassMap()
@@ -56,22 +44,31 @@ namespace Miko
                 .If("show-menu", () => _isOpen);
         }
 
-        public async Task Show()
+        public void Show()
         {
             _isOpen = true;
             StateHasChanged();
-            await _openAnimation.Play();
+            _ani
+                .Easing("cubic-bezier(0.0,0.0,0.2,1)")
+                .Direction("normal")
+                .Play();
         }
 
-        public async Task Close()
+        public void Close()
         {
-            _isOpen = false;
-            await _openAnimation.Stop();
+            _ani
+                .Easing("cubic-bezier(0.4, 0, 0.6, 1)")
+                .Direction("reverse")
+                .Play(() =>
+                {
+                    _isOpen = false;
+                    StateHasChanged();
+                });
         }
 
-        public async Task HandleBackdropTap(MouseEventArgs args)
+        public void HandleBackdropTap(MouseEventArgs args)
         {
-            await Close();
+            Close();
         }
     }
 }

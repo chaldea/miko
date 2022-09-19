@@ -7,7 +7,7 @@
     aria-label="menu"
     class="@ClassMapper.Class"
     style="@Style">
-    <div @ref="_containerRef" class="menu-inner" part="container">
+    <div class="menu-inner" part="container" style="@_ani.Style">
         <slot>@ChildContent</slot>
     </div>
     
@@ -16,3 +16,7 @@
         Visible="_isOpen" 
         OnTap="HandleBackdropTap" />
 </ion-menu>
+
+<style>
+    @_ani.StyleSheet
+</style>

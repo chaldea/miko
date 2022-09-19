@@ -1,1 +1,3 @@
-export { createAnimation } from './animation/animation';
+/*
+ * export some js modules
+ */

@@ -83,8 +83,8 @@
 {
     [Inject] public MenuService MenuService { get; set; }
 
-    public async Task Open()
+    public void Open()
     {
-        await MenuService.OpenAsync();
+        MenuService.Open();
     }
 }

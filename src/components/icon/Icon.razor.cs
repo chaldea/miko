@@ -14,6 +14,7 @@ namespace Miko
 
         [Parameter] public bool FlipRtl { get; set; }
 
+        [Parameter]
         [CascadingParameter(Name = "Slot")]
         public string Slot { get; set; }
 

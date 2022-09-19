@@ -1,6 +1,6 @@
 ﻿@page "/animation"
 
-<div @ref="_square1" class="square1"></div>
+<div class="square1" style="@animation1.Style"></div>
 
 <div>
     <Miko.Button OnClick="Play1">Play</Miko.Button>
@@ -10,7 +10,7 @@
 <br />
 <br />
 <br />
-<div @ref="_square2" class="square2"></div>
+<div class="square2" style="@animation2.Style"></div>
 <div>
     <Miko.Button OnClick="Play2">Play</Miko.Button>
     <Miko.Button OnClick="Pause2">Pause</Miko.Button>
@@ -30,70 +30,64 @@
         height: 100px;
         background: rgba(0, 0, 255, 0.5);
     }
+
+    @animation1.StyleSheet
+    @animation2.StyleSheet
 </style>
 
 @code {
-    [Inject] public AnimationService AnimationService { get; set; }
-
     private ElementReference _square1;
     private ElementReference _square2;
-    private IAnimation animation1;
-    private IAnimation animation2;
+    private Miko.Animation animation1;
+    private Miko.Animation animation2;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnInitialized()
     {
-        await base.OnAfterRenderAsync(firstRender);
-        if (firstRender)
-        {
-            animation1 = await AnimationService
-                .Create()
-                .AddElement(_square1)
-                .Duration(1500)
-                .Iterations(int.MaxValue)
-                .FromTo("transform", "translateX(0px)", "translateX(100px)")
-                .FromTo("opacity", "1", "0.2");
+        base.OnInitialized();
+        animation1 = new Miko.Animation()
+            .Duration(1500)
+            .Iterations(int.MaxValue)
+            .FromTo("transform", "translateX(0px)", "translateX(100px)")
+            .FromTo("opacity", "1", "0.2");
 
-            animation2 = await AnimationService
-                .Create()
-                .AddElement(_square2)
-                .Duration(3000)
-                .Iterations(int.MaxValue)
-                .Keyframes(new object[]
-                {
-                    new { offset = (float) 0, background = "red"  },
-                    new { offset = (float) 0.72, background = "var(--background)"  },
-                    new { offset = (float) 1, background = "green"  },
-                });
-        }
+        animation2 = new Miko.Animation()
+            .Duration(3000)
+            .Iterations(int.MaxValue)
+            .Keyframes(new List<AnimationKeyframe>
+            {
+                new (){ Offset = 0, Background = "red"  },
+                new (){ Offset = 0.72f, Background = "var(--background)"  },
+                new (){ Offset = 1, Background = "green"  },
+            });
     }
 
-    public async Task Play1(MouseEventArgs args)
+    public void Play1(MouseEventArgs args)
     {
-        await animation1.Play();
+        animation1.Play();
     }
 
-    public async Task Pause1(MouseEventArgs args)
+    public void Pause1(MouseEventArgs args)
     {
-        await animation1.Pause();
+        animation1.Pause();
     }
 
-    public async Task Stop1(MouseEventArgs args)
+    public void Stop1(MouseEventArgs args)
     {
-        await animation1.Stop();
+        animation1.Stop();
     }
 
-    public async Task Play2(MouseEventArgs args)
+    public void Play2(MouseEventArgs args)
     {
-        await animation2.Play();
+        animation2.Play();
     }
 
-    public async Task Pause2(MouseEventArgs args)
+    public void Pause2(MouseEventArgs args)
     {
-        await animation2.Pause();
+        animation2.Pause();
     }
 
-    public async Task Stop2(MouseEventArgs args)
+    public void Stop2(MouseEventArgs args)
     {
-        await animation2.Stop();
+        animation2.Stop();
     }
 }

@@ -43,9 +43,9 @@ namespace Miko
                 .If("in-toolbar-color", () => true);
         }
 
-        public async Task HandleOnClick(MouseEventArgs args)
+        public void HandleOnClick(MouseEventArgs args)
         {
-            await MenuService.OpenAsync();
+            MenuService.Open();
         }
     }
 }
