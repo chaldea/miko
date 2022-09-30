@@ -2,16 +2,17 @@
 {
     public class Animation
     {
-        private static int _instanceId;
+        private static int _index = 0;
+        private readonly int _instanceId = 0;
         private readonly Dictionary<string, string> _style = new();
-        private string _keyframeName = string.Empty;
+        private string _keyframeName;
         private int _playCount = 0;
         private int _duration = 0;
         private int _delay = 0;
         private int _iterations = 1;
         private string _easing;
         private string _fill = "both";
-        private string _direction;
+        private string _direction = "normal";
         private string _styleSheet;
         private bool _initialized;
         private List<AnimationKeyframe>? _keyframes;
@@ -22,7 +23,8 @@
 
         public Animation()
         {
-            _instanceId++;
+            _instanceId = _index++;
+            _keyframeName = string.Format($"ion-animation-{_instanceId}_{_playCount}");
         }
 
         public Animation Duration(int animationDuration)

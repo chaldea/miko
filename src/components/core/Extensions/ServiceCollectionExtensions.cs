@@ -9,6 +9,7 @@ namespace Miko
         {
             services.TryAddScoped<MikoJsInterop>();
             services.TryAddScoped<MenuService>();
+            services.TryAddScoped<RouteService>();
             services.Configure(configure);
             return services;
         }

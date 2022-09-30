@@ -1,0 +1,31 @@
+﻿@namespace Miko
+@inherits LayoutComponentBase
+
+<ion-route class="@ClassMapper.Class"
+     style="@RouteContext.Effect.Style">
+    @Body
+</ion-route>
+
+<style>
+    ion-route {
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        position: absolute;
+        display: block !important;
+        contain: layout size style;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .transitioned {
+        z-index: 1;
+    }
+
+    .transitioned_behind {
+        z-index: 0;
+    }
+
+    @RouteContext.Effect.StyleSheet
+</style>

@@ -1,6 +1,15 @@
 ﻿@namespace Miko
-@inherits MikoDomComponentBase
 
-<ion-route>
-
-</ion-route>
+<Miko.RouteState
+    RouteData="RouteData" 
+    ForgetStateOnTransition="true" 
+    IsActive="true">
+    <Miko.RouteView DefaultLayout="@(typeof(RouteLayout))" />
+</Miko.RouteState>
+        
+<Miko.RouteState
+    RouteData="RouteData" 
+    ForgetStateOnTransition="true" 
+    IsActive="false">
+    <Miko.RouteView DefaultLayout="@(typeof(RouteLayout))" />
+</Miko.RouteState>

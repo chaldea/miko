@@ -1,17 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Miko
 {
     public abstract class MikoComponentBase : ComponentBase, IDisposable
     {
+        private readonly Queue<Func<Task>> _afterRenderCallQuene = new();
+
+        protected bool IsDisposed { get; private set; }
+
         [Parameter]
         public ForwardRef RefBack { get; set; }
 
-        private readonly Queue<Func<Task>> _afterRenderCallQuene = new Queue<Func<Task>>();
+        [Inject]
+        protected IJSRuntime Js { get; set; }
+
+        protected MikoComponentBase()
+        {
+        }
 
         protected void CallAfterRender(Func<Task> action)
         {
@@ -48,10 +54,6 @@ namespace Miko
             return Task.CompletedTask;
         }
 
-        protected MikoComponentBase()
-        {
-        }
-
         protected void InvokeStateHasChanged()
         {
             InvokeAsync(() =>
@@ -73,9 +75,6 @@ namespace Miko
                 }
             });
         }
-
-        [Inject]
-        protected IJSRuntime Js { get; set; }
 
         protected async Task<T> JsInvokeAsync<T>(string code, params object[] args)
         {
@@ -103,8 +102,6 @@ namespace Miko
             }
         }
 
-        protected bool IsDisposed { get; private set; }
-
         protected virtual void Dispose(bool disposing)
         {
             if (IsDisposed) return;
@@ -120,7 +117,6 @@ namespace Miko
 
         ~MikoComponentBase()
         {
-            // Finalizer calls Dispose(false)
             Dispose(false);
         }
     }
