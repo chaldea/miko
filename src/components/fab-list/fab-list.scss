@@ -1,0 +1,73 @@
+@import "./fab-list.vars";
+
+// Floating Action Button List
+// --------------------------------------------------
+
+ion-fab-list {
+  @include margin($fab-size + $fab-list-margin, 0);
+
+  display: none;
+  position: absolute;
+  top: 0;
+
+  flex-direction: column;
+  align-items: center;
+
+  min-width: $fab-size;
+  min-height: $fab-size;
+}
+
+ion-fab-list.fab-list-active {
+  display: flex;
+}
+
+ion-fab-list slot .fab-button-in-list {
+  @include margin(8px, 0);
+
+  width: #{$fab-small-size};
+  height: #{$fab-small-size};
+
+  transform: scale(0);
+
+  opacity: 0;
+  visibility: hidden;
+}
+
+ion-fab-list.fab-list-side-top slot .fab-button-in-list,
+ion-fab-list.fab-list-side-bottom slot .fab-button-in-list {
+  @include margin(5px, 0, 5px, 0);
+}
+
+ion-fab-list.fab-list-side-start slot .fab-button-in-list,
+ion-fab-list.fab-list-side-end slot .fab-button-in-list {
+  @include margin(0, 5px, 0, 5px);
+}
+
+ion-fab-list slot .fab-button-in-list.fab-button-show {
+  transform: scale(1);
+
+  opacity: 1;
+  visibility: visible;
+}
+
+
+ion-fab-list.fab-list-side-top {
+  top: auto;
+  bottom: 0;
+
+  flex-direction: column-reverse;
+}
+
+ion-fab-list.fab-list-side-start {
+  @include margin(0, $fab-size + $fab-list-margin);
+  @include position-horizontal(null, 0);
+
+  flex-direction: row-reverse;
+}
+
+ion-fab-list.fab-list-side-end {
+  @include margin(0, $fab-size + $fab-list-margin);
+  @include position(null, null, null, 0);
+
+  flex-direction: row;
+}

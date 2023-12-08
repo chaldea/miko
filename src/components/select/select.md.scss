@@ -1,0 +1,54 @@
+@import "./select";
+@import "./select.md.vars";
+
+// Material Design Select
+// --------------------------------------------------
+
+ion-select.md {
+  --padding-top: #{$select-md-padding-top};
+  --padding-end: #{$select-md-padding-end};
+  --padding-bottom: #{$select-md-padding-bottom};
+  --padding-start: #{$select-md-padding-start};
+}
+
+.select-icon {
+  width: 19px;
+  height: 19px;
+
+  transition: transform .15s cubic-bezier(.4, 0, .2, 1);
+
+  opacity: .55;
+
+}
+
+/**
+ * Adjust the arrow so that it appears in the middle
+ * of the item. If the item has fill="outline" then
+ * we should adjust the entire ion-select rather than
+ * just the outline so the selected value appears centered too.
+ */
+.item-label-stacked ion-select.md .select-icon,
+.item-label-floating:not(.item-fill-outline) ion-select.md .select-icon,
+.item-label-floating.item-fill-outline ion-select.md {
+  @include transform(translate3d(0, -9px, 0));
+}
+
+.item-has-focus ion-select.md .select-icon {
+  @include transform(rotate(180deg));
+}
+
+/**
+ * Ensure that the translation we did
+ * above is preserved when we rotate the select icon.
+ */
+.item-has-focus.item-label-stacked ion-select.md .select-icon,
+.item-has-focus.item-label-floating:not(.item-fill-outline) ion-select.md .select-icon {
+  @include transform(rotate(180deg), translate3d(0, -9px, 0));
+}
+
+ion-item.ion-focused ion-select.md .select-icon,
+.item-has-focus ion-select.md .select-icon {
+  color: var(--highlight-color-focused);
+
+  opacity: 1;
+}

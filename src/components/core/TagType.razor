@@ -1,0 +1,26 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+@CreateTag()
+
+@code {
+    [Parameter] 
+    public string Type { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    private RenderFragment CreateTag() => builder =>
+    {
+        var i = 0;
+        builder.OpenElement(i++, Type);
+        foreach (var attr in Attributes)
+        {
+            builder.AddAttribute(i++, attr.Key, attr.Value);
+        }
+        builder.AddAttribute(i++, "class", Class);
+        builder.AddAttribute(i++, "style", Style);
+        builder.AddContent(i++, ChildContent);
+        builder.CloseElement();
+    };
+}

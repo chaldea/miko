@@ -1,0 +1,60 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+@CreateHost()
+
+@code {
+    private ElementReference _ref;
+
+    private readonly ElementRefList _elementRefList = new ElementRefList();
+
+    [Parameter] public string Tag { get; set; }
+
+    [Parameter] public bool Shadow { get; set; }
+
+    [Parameter] public string StyleUrl { get; set; }
+
+    [Parameter] public IDictionary<string, string> StyleUrls { get; set; }
+
+    [Parameter] public RenderFragment<ElementRefList> ChildContent { get; set; }
+
+    [Inject] public MikoJsInterop MikoJsInterop { get; set; }
+
+    private RenderFragment CreateHost() => builder =>
+    {
+        var i = 0;
+        builder.OpenElement(i++, Tag);
+        foreach (var attr in Attributes)
+        {
+            builder.AddAttribute(i++, attr.Key, attr.Value);
+        }
+        builder.AddAttribute(i++, "class", Class);
+        builder.AddAttribute(i++, "style", Style);
+        builder.AddElementReferenceCapture(i++, (ele) =>
+        {
+            _ref = ele;
+        });
+        builder.AddContent(i++, ChildContent, _elementRefList);
+        builder.CloseElement();
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        // var styleUrl = StyleUrl;
+        // if (StyleUrls != null)
+        // {
+        //     styleUrl = StyleUrls[Mode];
+        // }
+        //
+        // if (Shadow)
+        // {
+        //     await MikoJsInterop.CreateShadowDomAsync(_ref, _elementRefList.Refs, styleUrl);
+        // }
+        // else
+        // {
+        //     await MikoJsInterop.CreateStyle(styleUrl);
+        // }
+    }
+
+}

@@ -1,0 +1,21 @@
+@import "./textarea";
+@import "./textarea.ios.vars";
+
+// iOS Textarea
+// --------------------------------------------------
+
+ion-textarea.ios {
+  --padding-top: #{$textarea-ios-padding-top};
+  --padding-end: #{$textarea-ios-padding-end};
+  --padding-bottom: #{$textarea-ios-padding-bottom};
+  --padding-start: #{$textarea-ios-padding-start};
+
+  font-size: $textarea-ios-font-size;
+}
+
+.item-label-stacked ion-textarea.ios,
+.item-label-floating ion-textarea.ios {
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  --padding-start: 0px;
+}

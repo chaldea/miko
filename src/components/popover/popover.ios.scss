@@ -1,0 +1,101 @@
+@import "./popover";
+@import "./popover.ios.vars";
+
+// iOS Popover
+// --------------------------------------------------
+
+ion-popover.ios {
+  --width: #{$popover-ios-width};
+  --max-height: #{$popover-ios-max-height};
+  --box-shadow: none;
+  --backdrop-opacity: var(--ion-backdrop-opacity, 0.08);
+}
+
+ion-popover.ios.popover-desktop {
+  --box-shadow: #{$popover-ios-desktop-box-shadow};
+}
+
+.popover-content {
+  @include border-radius($popover-ios-border-radius);
+}
+
+ion-popover.ios.popover-desktop .popover-content {
+  border: #{$popover-ios-desktop-border};
+}
+
+
+// Popover Arrow
+// -----------------------------------------
+
+.popover-arrow {
+  display: block;
+  position: absolute;
+
+  width: 20px;
+  height: 10px;
+
+  overflow: hidden;
+}
+
+.popover-arrow::after {
+  @include position(3px, null, null, 3px);
+  @include border-radius(3px);
+
+  position: absolute;
+
+  width: 14px;
+  height: 14px;
+
+  transform: rotate(45deg);
+
+  background: var(--background);
+
+  content: "";
+  z-index: $z-index-overlay-wrapper;
+}
+
+ion-popover.ios.popover-bottom .popover-arrow {
+  top: auto;
+  bottom: -10px;
+}
+
+ion-popover.ios.popover-bottom .popover-arrow::after {
+  top: -6px;
+}
+
+ion-popover.ios.popover-side-left .popover-arrow {
+  transform: rotate(90deg);
+}
+
+ion-popover.ios.popover-side-right .popover-arrow {
+  transform: rotate(-90deg);
+}
+
+ion-popover.ios.popover-side-top .popover-arrow {
+  transform: rotate(180deg);
+}
+
+ion-popover.ios.popover-side-start .popover-arrow {
+  @include rtl() {
+    transform: rotate(-90deg);
+  }
+  transform: rotate(90deg);
+}
+
+ion-popover.ios.popover-side-end .popover-arrow {
+  @include rtl() {
+    transform: rotate(90deg);
+  }
+  transform: rotate(-90deg);
+}
+
+// Translucent Popover
+// -----------------------------------------
+
+@supports (backdrop-filter: blur(0)) {
+  ion-popover.ios.popover-translucent .popover-content,
+  ion-popover.ios.popover-translucent .popover-arrow::after {
+    background: $popover-ios-translucent-background-color;
+    backdrop-filter: $popover-ios-translucent-filter;
+  }
+}

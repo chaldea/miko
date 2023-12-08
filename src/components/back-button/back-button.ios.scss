@@ -1,0 +1,48 @@
+@import "./back-button";
+@import "./back-button.ios.vars";
+
+// iOS Back Button
+// --------------------------------------------------
+
+ion-back-button.ios {
+  --background-hover: transparent;
+  --background-hover-opacity: 1;
+  --background-focused: currentColor;
+  --background-focused-opacity: .1;
+  --border-radius: 4px;
+  --color: #{$back-button-ios-color};
+  --icon-margin-end: -5px;
+  --icon-margin-start: -4px;
+  --icon-font-size: 1.85em;
+  --min-height: 32px;
+
+  font-size: 17px;
+}
+
+.button-native {
+  transform: translateZ(0);
+
+  overflow: visible;
+  z-index: $back-button-ios-button-z-index;
+}
+
+// Back Button States
+// --------------------------------------------------
+
+ion-back-button.ios.ion-activated .button-native {
+  opacity: .4;
+}
+
+@media (any-hover: hover) {
+  ion-back-button.ios:hover {
+    opacity: .6;
+  }
+}
+
+
+// Back Button Color: Focused
+// --------------------------------------------------
+
+ion-back-button.ios.ion-color.ion-focused .button-native::after {
+  background: #{current-color(base)};
+}

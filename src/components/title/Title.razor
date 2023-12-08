@@ -1,0 +1,14 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<Host Tag="ion-title"
+      StyleUrls="@_styleUrls"
+      Shadow="true"
+      Class="@ClassMapper.Class"
+      Style="@Style"
+      IsShadow="true"
+      StyleMode="@Mode">
+    <div class="toolbar-title">
+        <slot>@ChildContent</slot>
+    </div>
+</Host>

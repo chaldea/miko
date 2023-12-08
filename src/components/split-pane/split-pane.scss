@@ -1,0 +1,72 @@
+@import "./split-pane.vars";
+@import "../menu/menu.vars";
+
+// Split Pane
+// --------------------------------------------------
+
+ion-split-pane {
+  /**
+   * @prop --border: Border between panes
+   * @prop --side-min-width: Minimum width of the side pane. Does not apply when split pane is collapsed.
+   * @prop --side-max-width: Maximum width of the side pane. Does not apply when split pane is collapsed.
+   * @prop --side-width: Width of the side pane. Does not apply when split pane is collapsed.
+   */
+  --side-width: 100%;
+
+  @include position(0, 0, 0, 0);
+
+  display: flex;
+  position: absolute;
+
+  flex-direction: row;
+  flex-wrap: nowrap;
+
+  contain: strict;
+}
+
+/**
+ * Do not pass CSS Variables down on larger
+ * screens as we want them to affect the outer
+ * `ion-menu` rather than the inner content
+ */
+ion-split-pane slot ion-menu.menu-pane-visible {
+  flex: 0 1 auto;
+
+  width: var(--side-width);
+  min-width: var(--side-min-width);
+  max-width: var(--side-max-width);
+}
+
+ion-split-pane.split-pane-visible slot .split-pane-side,
+ion-split-pane.split-pane-visible slot .split-pane-main {
+  @include position(0, 0, 0, 0);
+
+  position: relative;
+
+  /* stylelint-disable-next-line declaration-no-important */
+  box-shadow: none !important;
+  z-index: 0;
+}
+
+ion-split-pane.split-pane-visible slot .split-pane-main {
+  flex: 1;
+}
+
+ion-split-pane.split-pane-visible slot .split-pane-side:not(ion-menu),
+ion-split-pane.split-pane-visible slot ion-menu.split-pane-side.menu-enabled {
+  display: flex;
+
+  flex-shrink: 0;
+}
+
+ion-split-pane slot .split-pane-side:not(ion-menu) {
+  display: none;
+}
+
+ion-split-pane.split-pane-visible slot .split-pane-side {
+  order: -1;
+}
+
+ion-split-pane.split-pane-visible slot .split-pane-side[side=end] {
+  order: 1;
+}

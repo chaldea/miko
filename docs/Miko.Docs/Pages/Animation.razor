@@ -1,0 +1,93 @@
+﻿@page "/animation"
+
+<div class="square1" style="@animation1.Style"></div>
+
+<div>
+    <Miko.Button OnClick="Play1">Play</Miko.Button>
+    <Miko.Button OnClick="Pause1">Pause</Miko.Button>
+    <Miko.Button OnClick="Stop1">Stop</Miko.Button>
+</div>
+<br />
+<br />
+<br />
+<div class="square2" style="@animation2.Style"></div>
+<div>
+    <Miko.Button OnClick="Play2">Play</Miko.Button>
+    <Miko.Button OnClick="Pause2">Pause</Miko.Button>
+    <Miko.Button OnClick="Stop2">Stop</Miko.Button>
+</div>
+
+<style>
+    .square1 {
+        width: 100px;
+        height: 100px;
+        background: rgba(0, 0, 255, 0.5);
+    }
+
+    .square2 {
+        --background: blue;
+        width: 100px;
+        height: 100px;
+        background: rgba(0, 0, 255, 0.5);
+    }
+
+    @animation1.StyleSheet
+    @animation2.StyleSheet
+</style>
+
+@code {
+    private ElementReference _square1;
+    private ElementReference _square2;
+    private Miko.Animation animation1;
+    private Miko.Animation animation2;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        animation1 = new Miko.Animation()
+            .Duration(1500)
+            .Iterations(int.MaxValue)
+            .FromTo("transform", "translateX(0px)", "translateX(100px)")
+            .FromTo("opacity", "1", "0.2");
+
+        animation2 = new Miko.Animation()
+            .Duration(3000)
+            .Iterations(int.MaxValue)
+            .Keyframes(new List<AnimationKeyframe>
+            {
+                new (){ Offset = 0, Background = "red"  },
+                new (){ Offset = 0.72f, Background = "var(--background)"  },
+                new (){ Offset = 1, Background = "green"  },
+            });
+    }
+
+    public void Play1(MouseEventArgs args)
+    {
+        animation1.Play();
+    }
+
+    public void Pause1(MouseEventArgs args)
+    {
+        animation1.Pause();
+    }
+
+    public void Stop1(MouseEventArgs args)
+    {
+        animation1.Stop();
+    }
+
+    public void Play2(MouseEventArgs args)
+    {
+        animation2.Play();
+    }
+
+    public void Pause2(MouseEventArgs args)
+    {
+        animation2.Pause();
+    }
+
+    public void Stop2(MouseEventArgs args)
+    {
+        animation2.Stop();
+    }
+}

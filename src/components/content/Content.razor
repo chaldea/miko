@@ -1,0 +1,12 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<ion-content
+      class="@ClassMapper.Class"
+      style="@Style">
+    <div id="background-content" part="background"></div>
+    <main class="inner-scroll scroll-y" part="scroll">
+        <slot>@ChildContent</slot>
+    </main>
+    <slot name="fixed"></slot>
+</ion-content>

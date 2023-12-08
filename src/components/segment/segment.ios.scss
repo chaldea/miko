@@ -1,0 +1,47 @@
+@import "./segment";
+@import "./segment.ios.vars";
+
+// iOS Segment
+// --------------------------------------------------
+
+ion-segment.ios {
+  --background: #{$segment-ios-background-color};
+
+  @include border-radius($segment-ios-border-radius);
+
+  overflow: hidden;
+
+  z-index: 0;
+}
+
+
+// Segment: Color
+// --------------------------------------------------
+
+ion-segment.ios.ion-color {
+  background: #{current-color(base, 0.065)};
+}
+
+
+// Segment: Default Toolbar
+// --------------------------------------------------
+
+ion-segment.ios.in-toolbar {
+  @include margin(0, auto);
+
+  width: auto;
+}
+
+// Default Segment, In a Toolbar
+ion-segment.ios.in-toolbar:not(.ion-color) {
+  background: var(--ion-toolbar-segment-background, var(--background));
+}
+
+
+// Segment: Color Toolbar
+// --------------------------------------------------
+
+// Toolbar with Color, Default Segment
+ion-segment.ios.in-toolbar-color:not(.ion-color) {
+  background: #{current-color(contrast, 0.11)};
+}

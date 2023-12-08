@@ -1,0 +1,31 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<ion-item
+    aria-disabled="@(Disabled ? "true" : null)"
+    class="@ClassMapper.Class"
+    role="listitem">
+    <TagType Type="@_tagType" Class="item-native" part="native">
+        <slot name="start">
+            <CascadingValue Value="@("start")" Name="Slot">@StartSlot</CascadingValue>
+        </slot>
+        <div class="item-inner">
+            <div class="input-wrapper">
+                <slot>@ChildContent</slot>
+            </div>
+            <slot name="end">
+                <CascadingValue Value="@("end")" Name="Slot">@EndSlot</CascadingValue>
+            </slot>
+            @if (_showDetail)
+            {
+                <Miko.Icon Name="detail" Class="item-detail-icon"/>
+            }
+            <div class="item-inner-highlight"></div>
+        </div>
+        <div class="item-highlight"></div>
+    </TagType>
+    <div class="item-bottom">
+        <slot name="error"></slot>
+        <slot name="helper"></slot>
+    </div>
+</ion-item>

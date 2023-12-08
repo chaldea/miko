@@ -1,0 +1,166 @@
+@import "./datetime.scss";
+@import "./datetime.ios.vars.scss";
+@import "../../themes/ionic.globals.ios";
+
+ion-datetime.ios {
+  --background: var(--ion-color-light, #ffffff);
+  --background-rgb: var(--ion-color-light-rgb);
+  --title-color: #{$text-color-step-400};
+}
+
+ion-datetime.ios.datetime-presentation-date-time:not(.datetime-prefer-wheel),
+ion-datetime.ios.datetime-presentation-time-date:not(.datetime-prefer-wheel),
+ion-datetime.ios.datetime-presentation-date:not(.datetime-prefer-wheel) {
+  min-height: 350px;
+}
+
+// Header
+// -----------------------------------
+ion-datetime.ios .datetime-header {
+  @include padding($datetime-ios-padding, $datetime-ios-padding, $datetime-ios-padding, $datetime-ios-padding);
+
+  border-bottom: $datetime-ios-border-color;
+}
+
+ion-datetime.ios .datetime-header .datetime-title {
+  color: var(--title-color);
+
+  font-size: 14px;
+}
+
+// Calendar / Header / Action Buttons
+// -----------------------------------
+ion-datetime.ios .calendar-action-buttons ion-item {
+  --padding-start: #{$datetime-ios-padding};
+  --background-hover: transparent;
+  --background-activated: transparent;
+
+  font-size: 16px;
+  font-weight: 600;
+}
+
+ion-datetime.ios .calendar-action-buttons ion-item ion-icon,
+ion-datetime.ios .calendar-action-buttons ion-buttons ion-button {
+  color: current-color(base);
+}
+
+ion-datetime.ios .calendar-action-buttons ion-buttons {
+  @include padding($datetime-ios-padding * 0.5, 0, 0, 0);
+}
+
+ion-datetime.ios .calendar-action-buttons ion-buttons ion-button {
+  @include margin(0, 0, 0, 0);
+}
+
+// Calendar / Header / Days of Week
+// -----------------------------------
+ion-datetime.ios .calendar-days-of-week {
+  @include padding(0, $datetime-ios-padding * 0.5, 0, $datetime-ios-padding * 0.5);
+
+  color: $text-color-step-700;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  line-height: 24px;
+
+  text-transform: uppercase;
+}
+
+// Calendar / Body
+// -----------------------------------
+ion-datetime.ios .calendar-body .calendar-month .calendar-month-grid {
+
+  /**
+   * We need to apply the padding to
+   * each month grid item otherwise
+   * older versions of WebKit will consider
+   * this padding a snapping point if applied
+   * on .calendar-month
+   */
+  @include padding($datetime-ios-padding * 0.5, $datetime-ios-padding * 0.5, $datetime-ios-padding * 0.5, $datetime-ios-padding * 0.5);
+
+  height: calc(100% - #{$datetime-ios-padding});
+}
+
+ion-datetime.ios .calendar-day {
+  font-size: 20px;
+}
+
+ion-datetime.ios .calendar-day:after {
+  opacity: 0.2;
+}
+
+ion-datetime.ios .calendar-day:focus:after {
+  background: current-color(base);
+}
+
+/**
+ * Day that today but not selected
+ * should have ion-color for text color.
+ */
+ion-datetime.ios .calendar-day.calendar-day-today {
+  color: current-color(base);
+}
+
+/**
+ * Day that is not today but
+ * is selected should have ion-color for
+ * text color and be bolder.
+ */
+ion-datetime.ios .calendar-day.calendar-day-active {
+  color: current-color(base);
+
+  font-weight: 600;
+}
+
+ion-datetime.ios .calendar-day.calendar-day-active:after {
+  background: current-color(base);
+}
+
+/**
+ * Day that is selected and is today
+ * should have white color.
+ */
+ion-datetime.ios .calendar-day.calendar-day-today.calendar-day-active {
+  color: current-color(contrast);
+}
+
+ion-datetime.ios .calendar-day.calendar-day-today.calendar-day-active:after {
+  background: current-color(base);
+
+  opacity: 1;
+}
+
+// Time / Header
+// -----------------------------------
+ion-datetime.ios .datetime-time {
+  @include padding($datetime-ios-padding * 0.5, $datetime-ios-padding, $datetime-ios-padding, $datetime-ios-padding);
+
+  font-size: 16px;
+}
+
+ion-datetime.ios .datetime-time .time-header {
+  font-weight: 600;
+}
+
+// Footer
+// -----------------------------------
+ion-datetime.ios .datetime-buttons {
+  @include padding($datetime-ios-padding * 0.5, $datetime-ios-padding * 0.5, $datetime-ios-padding * 0.5, $datetime-ios-padding * 0.5);
+
+  border-top: $datetime-ios-border-color;
+}
+
+ion-datetime.ios .datetime-buttons slot ion-buttons,
+ion-datetime.ios .datetime-buttons ion-buttons {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+}
+
+ion-datetime.ios .datetime-action-buttons {
+  width: 100%;
+}

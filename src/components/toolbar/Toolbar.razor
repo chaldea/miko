@@ -1,0 +1,16 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<ion-toolbar
+    class="@ClassMapper.Class">
+    <div class="toolbar-background"></div>
+    <div class="toolbar-container">
+        <slot name="start">@StartSlot</slot>
+        <slot name="secondary">@SecondarySlot</slot>
+        <div class="toolbar-content">
+            <slot>@ChildContent</slot>
+        </div>
+        <slot name="primary">@PrimarySlot</slot>
+        <slot name="end">@EndSlot</slot>
+    </div>
+</ion-toolbar>

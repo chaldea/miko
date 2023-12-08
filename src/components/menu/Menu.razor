@@ -1,0 +1,22 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<ion-menu
+    @ref="Ref"
+    role="navigation"
+    aria-label="menu"
+    class="@ClassMapper.Class"
+    style="@Style">
+    <div class="menu-inner" part="container" style="@_ani.Style">
+        <slot>@ChildContent</slot>
+    </div>
+    
+    <Miko.Backdrop 
+        Class="menu-backdrop" 
+        Visible="_isOpen" 
+        OnTap="HandleBackdropTap" />
+</ion-menu>
+
+<style>
+    @_ani.StyleSheet
+</style>

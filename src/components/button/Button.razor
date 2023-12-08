@@ -1,0 +1,18 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<ion-button
+      class="@ClassMapper.Class" 
+      style="@Style">
+    <button class="button-native"
+            part="native"
+            disabled="@Disabled"
+            @onclick="HandleOnClick">
+        <span class="button-inner">
+            <slot name="icon-only"></slot>
+            <slot name="start"></slot>
+            <slot>@ChildContent</slot>
+            <slot name="end"></slot>
+        </span>
+    </button>
+</ion-button>

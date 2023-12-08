@@ -1,0 +1,17 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<ion-slides
+    class="@ClassMapper.Class">
+    <div class="swiper-wrapper">
+        <slot>@ChildContent</slot>
+    </div>
+    @if (Pager)
+    {
+        <div class="swiper-pagination">@Pagination</div>
+    }
+    @if (Scrollbar)
+    {
+        <div class="swiper-scrollbar"></div>
+    }
+</ion-slides>

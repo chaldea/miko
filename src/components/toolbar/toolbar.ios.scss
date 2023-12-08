@@ -1,0 +1,97 @@
+@import "./toolbar";
+@import "./toolbar.ios.vars";
+
+// iOS Toolbar
+// --------------------------------------------------
+
+ion-toolbar.ios {
+  --background: #{$toolbar-ios-background};
+  --color: #{$toolbar-ios-color};
+  --border-color: #{$toolbar-ios-border-color};
+  --padding-top: #{$toolbar-ios-padding-top};
+  --padding-bottom: #{$toolbar-ios-padding-bottom};
+  --padding-start: #{$toolbar-ios-padding-start};
+  --padding-end: #{$toolbar-ios-padding-end};
+  --min-height: #{$toolbar-ios-min-height};
+}
+
+// Toolbar: Content
+// --------------------------------------------------
+
+.toolbar-content {
+  flex: 1;
+  order: map-get($toolbar-order-ios, content);
+
+  min-width: 0;
+}
+
+
+// Toolbar: Segment
+// --------------------------------------------------
+
+ion-toolbar.ios.toolbar-segment .toolbar-content {
+  display: inline-flex;
+}
+
+// Toolbar: Searchbar
+// --------------------------------------------------
+
+ion-toolbar.ios.toolbar-searchbar .toolbar-container {
+  @include padding(0, null);
+}
+
+ion-toolbar.ios.toolbar-searchbar slot * {
+  align-self: start;
+}
+
+ion-toolbar.ios.toolbar-searchbar slot ion-chip {
+  @include margin(3px, null, null, null);
+}
+
+ion-toolbar.ios.toolbar-searchbar slot ion-back-button {
+  height: 38px;
+}
+
+
+// iOS Toolbar Slot Placement
+// --------------------------------------------------
+
+ion-toolbar.ios slot ion-buttons {
+  min-height: 38px;
+}
+
+ion-toolbar.ios slot [slot="start"] {
+  order: map-get($toolbar-order-ios, slot-start);
+}
+
+ion-toolbar.ios slot [slot="secondary"] {
+  order: map-get($toolbar-order-ios, slot-secondary);
+}
+
+ion-toolbar.ios slot [slot="primary"] {
+  order: map-get($toolbar-order-ios, slot-primary);
+
+  text-align: end;
+}
+
+ion-toolbar.ios slot [slot="end"] {
+  order: map-get($toolbar-order-ios, slot-end);
+
+  text-align: end;
+}
+
+
+// Toolbar: Large Title
+// --------------------------------------------------
+
+ion-toolbar.ios.toolbar-title-large .toolbar-container {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+ion-toolbar.ios.toolbar-title-large .toolbar-content ion-title {
+  flex: 1;
+  order: map-get($toolbar-order-ios, title-large);
+
+  min-width: 100%;
+}

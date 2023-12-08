@@ -1,0 +1,31 @@
+@import "./breadcrumbs.vars";
+
+// Breadcrumbs
+// --------------------------------------------------
+
+ion-breadcrumbs {
+  /**
+   * @prop --background: Background of the breadcrumbs
+   * @prop --color: Text color of the breadcrumbs
+   */
+  @include font-smoothing();
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  align-items: center;
+}
+
+
+// Breadcrumbs: In Toolbar
+// --------------------------------------------------
+
+ion-breadcrumbs.in-toolbar-color,
+ion-breadcrumbs.in-toolbar-color .breadcrumbs-collapsed-indicator ion-icon {
+  color: #{current-color(contrast)};
+}
+
+ion-breadcrumbs.in-toolbar-color .breadcrumbs-collapsed-indicator {
+  background: #{current-color(contrast, 0.11)};
+}

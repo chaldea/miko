@@ -1,0 +1,95 @@
+@import "../../themes/ionic.globals";
+
+
+// Label
+// --------------------------------------------------
+
+.item ion-label {
+  /**
+   * @prop --color: Color of the label
+   */
+  --color: initial;
+
+  display: block;
+
+  color: var(--color);
+
+  font-family: $font-family-base;
+  font-size: inherit;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+ion-label.ion-color {
+  color: current-color(base);
+}
+
+ion-label.ion-text-wrap,
+ion-label[text-wrap] {
+  white-space: normal;
+}
+
+.item-interactive-disabled:not(.item-multiple-inputs) ion-label {
+  cursor: default;
+  opacity: .3;
+  pointer-events: none;
+}
+
+.item-input ion-label {
+  flex: initial;
+
+  max-width: 200px;
+  pointer-events: none;
+}
+
+.item-textarea ion-label {
+  align-self: baseline;
+}
+
+
+// Fixed Inputs
+// --------------------------------------------------
+
+ion-label.label-fixed {
+  flex: 0 0 100px;
+
+  width: 100px;
+  min-width: 100px;
+  max-width: 200px;
+}
+
+// Stacked & Floating Inputs
+// --------------------------------------------------
+
+ion-label.label-stacked,
+ion-label.label-floating {
+  @include margin(null, null, 0, null);
+
+  align-self: stretch;
+
+  width: auto;
+  max-width: 100%;
+}
+
+ion-label.label-no-animate.label-floating {
+  transition: none;
+}
+
+// Headings
+// --------------------------------------------------
+
+ion-label slot * h1,
+ion-label slot * h2,
+ion-label slot * h3,
+ion-label slot * h4,
+ion-label slot * h5,
+ion-label slot * h6 {
+  text-overflow: inherit;
+
+  overflow: inherit;
+}

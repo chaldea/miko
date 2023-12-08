@@ -1,0 +1,90 @@
+﻿@page "/menu"
+
+<Miko.App>
+    <Miko.Menu Side="start" ContentId="main-content">
+        <Miko.Header>
+            <Miko.Toolbar>
+                <Miko.Title>Menu</Miko.Title>
+            </Miko.Toolbar>
+        </Miko.Header>
+        <Miko.Content>
+            <Miko.List>
+                <Miko.Item>
+                    <StartSlot>
+                        <Miko.Icon Name="mail"></Miko.Icon>
+                    </StartSlot>
+                    <ChildContent>
+                        <Miko.Label>Inbox</Miko.Label>
+                    </ChildContent>
+                </Miko.Item>
+                <Miko.Item>
+                    <StartSlot>
+                        <Miko.Icon Name="paper-plane"></Miko.Icon>
+                    </StartSlot>
+                    <ChildContent>
+                        <Miko.Label>Outbox</Miko.Label>
+                    </ChildContent>
+                </Miko.Item>
+                <Miko.Item>
+                    <StartSlot>
+                        <Miko.Icon Name="heart"></Miko.Icon>
+                    </StartSlot>
+                    <ChildContent>
+                        <Miko.Label>Favorites</Miko.Label>
+                    </ChildContent>
+                </Miko.Item>
+                <Miko.Item>
+                    <StartSlot>
+                        <Miko.Icon Name="archive"></Miko.Icon>
+                    </StartSlot>
+                    <ChildContent>
+                        <Miko.Label>Archived</Miko.Label>
+                    </ChildContent>
+                </Miko.Item>
+                <Miko.Item>
+                    <StartSlot>
+                        <Miko.Icon Name="trash"></Miko.Icon>
+                    </StartSlot>
+                    <ChildContent>
+                        <Miko.Label>Trash</Miko.Label>
+                    </ChildContent>
+                </Miko.Item>
+                <Miko.Item>
+                    <StartSlot>
+                        <Miko.Icon Name="warning"></Miko.Icon>
+                    </StartSlot>
+                    <ChildContent>
+                        <Miko.Label>Spam</Miko.Label>
+                    </ChildContent>
+                </Miko.Item>
+            </Miko.List>
+        </Miko.Content>
+    </Miko.Menu>
+    
+    <Miko.Header>
+        <Miko.Toolbar>
+            <StartSlot>
+                <Miko.Buttons>
+                    <Miko.MenuButton></Miko.MenuButton>
+                </Miko.Buttons>
+            </StartSlot>
+            <ChildContent>
+                <Miko.Title>Inbox</Miko.Title>
+            </ChildContent>
+        </Miko.Toolbar>
+    </Miko.Header>
+    
+    <Miko.Content Class="ion-padding">
+        <Miko.Button Expand="block" OnClick="Open">Open Menu</Miko.Button>
+    </Miko.Content>
+</Miko.App>
+
+@code
+{
+    [Inject] public MenuService MenuService { get; set; }
+
+    public void Open()
+    {
+        MenuService.Open();
+    }
+}

@@ -1,0 +1,8 @@
+﻿@namespace Miko
+
+@if (RouteContext?.RouteData != null)
+{
+    <CascadingValue Value="@RouteContext">
+        <Microsoft.AspNetCore.Components.RouteView RouteData="@RouteContext.RouteData" DefaultLayout="@DefaultLayout" />
+    </CascadingValue>
+}

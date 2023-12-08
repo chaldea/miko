@@ -1,0 +1,10 @@
+@import "../../themes/ionic.globals";
+
+ion-select-popover ion-list {
+  @include margin(0);
+}
+
+ion-list-header,
+ion-label {
+  @include margin(0);
+}

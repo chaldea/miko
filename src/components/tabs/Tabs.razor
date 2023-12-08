@@ -1,0 +1,20 @@
+﻿@namespace Miko
+@inherits MikoDomComponentBase
+
+<CascadingValue Value="this">
+    <ion-tabs
+        class="@ClassMapper.Class"
+        style="@Style">
+        <slot name="top">
+            @TopSlot
+        </slot>
+        <div class="tabs-inner">
+            <slot>
+                @ChildContent
+            </slot>
+        </div>
+        <slot name="bottom">
+            @BottomSlot
+        </slot>
+    </ion-tabs>
+</CascadingValue>

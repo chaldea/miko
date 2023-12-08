@@ -1,0 +1,21 @@
+@import "./menu";
+@import "./menu.ios.vars";
+
+// iOS Menu
+// --------------------------------------------------
+
+ion-menu.ios.menu-type-overlay .menu-inner {
+  box-shadow: $menu-ios-box-shadow-overlay;
+}
+
+
+// iOS Menu Push
+// --------------------------------------------------
+
+ion-menu.ios.menu-type-push {
+  z-index: $z-index-menu-overlay;
+}
+
+ion-menu.ios.menu-type-push .show-backdrop {
+  display: block;
+}

@@ -1,0 +1,23 @@
+@import "./textarea";
+@import "./textarea.md.vars";
+
+// Material Design Textarea
+// --------------------------------------------------
+
+ion-textarea.md {
+  --padding-top: #{$textarea-md-padding-top};
+  --padding-end: #{$textarea-md-padding-end};
+  --padding-bottom: #{$textarea-md-padding-bottom};
+  --padding-start: #{$textarea-md-padding-start};
+
+  @include margin(8px, 0, 0, 0);
+
+  font-size: $textarea-md-font-size;
+}
+
+.item-label-stacked ion-textarea.md,
+.item-label-floating ion-textarea.md {
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  --padding-start: 0;
+}

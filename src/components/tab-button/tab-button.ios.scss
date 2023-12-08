@@ -1,0 +1,145 @@
+@import "./tab-button";
+@import "./tab-button.ios.vars";
+
+ion-tab-button.ios {
+  --padding-top: #{$tab-button-ios-padding-top};
+  --padding-end: #{$tab-button-ios-padding-end};
+  --padding-bottom: #{$tab-button-ios-padding-bottom};
+  --padding-start: #{$tab-button-ios-padding-start};
+
+  max-width: $tab-button-ios-max-width;
+
+  font-size: $tab-button-ios-font-size;
+}
+
+
+// iOS Tab Button: Badge
+// --------------------------------------------------
+
+ion-tab-button.ios slot ion-badge {
+  @include padding(1px, 6px);
+  @include position(4px, null, null, calc(50% + 6px));
+
+  height: auto;
+
+  font-size: 12px;
+
+  line-height: 16px;
+}
+
+
+// iOS Tab Button: Icon
+// --------------------------------------------------
+
+ion-tab-button.ios slot ion-icon {
+  @include margin(2px, null, 2px, null);
+
+  font-size: $tab-button-ios-icon-size;
+}
+
+ion-tab-button.ios slot ion-icon::before {
+  vertical-align: top;
+}
+
+
+// iOS Tab Button: Label
+// --------------------------------------------------
+
+ion-tab-button.ios slot ion-label {
+  @include margin(0, null, 1px, null);
+
+  min-height: $tab-button-ios-font-size + 1;
+
+  font-weight: 500;
+}
+
+
+// iOS Tab Button Label Only
+// --------------------------------------------------
+
+ion-tab-button.ios.tab-has-label-only slot ion-label {
+  @include margin(2px, 0);
+
+  font-size: $tab-button-ios-font-size + 2;
+  font-size: 14px;
+
+  line-height: 1.1;
+}
+
+
+// iOS Tab Button Layout
+// --------------------------------------------------
+
+ion-tab-button.ios.tab-layout-icon-end slot ion-label,
+ion-tab-button.ios.tab-layout-icon-start slot ion-label,
+ion-tab-button.ios.tab-layout-icon-hide slot ion-label {
+  margin-top: 2px;
+  margin-bottom: 2px;
+
+  font-size: 14px;
+
+  line-height: 1.1;
+}
+
+ion-tab-button.ios.tab-layout-icon-end slot ion-icon,
+ion-tab-button.ios.tab-layout-icon-start slot ion-icon {
+  min-width: 24px;
+  height: 26px;
+
+  margin-top: 2px;
+  margin-bottom: 1px;
+
+  font-size: 24px;
+}
+
+
+// iOS Tab Button: Icon Bottom Layout
+// --------------------------------------------------
+
+// Badge
+ion-tab-button.ios.tab-layout-icon-bottom slot ion-badge {
+  @include position(null, null, null, calc(50% + 12px));
+}
+
+// Icon
+ion-tab-button.ios.tab-layout-icon-bottom slot ion-icon {
+  @include margin(0, null, 1px, null);
+}
+
+// Label
+ion-tab-button.ios.tab-layout-icon-bottom slot ion-label {
+  @include margin(4px, null, null, null);
+}
+
+
+// iOS Tab Button: Icon Start / End Layout
+// --------------------------------------------------
+
+ion-tab-button.ios.tab-layout-icon-start slot ion-badge,
+ion-tab-button.ios.tab-layout-icon-end slot ion-badge {
+  @include position(10px, null, null, calc(50% + 35px));
+}
+
+
+// iOS Tab Button: Icon Hide / Label Only Layout
+// --------------------------------------------------------------
+
+// Badge
+ion-tab-button.ios.tab-layout-icon-hide slot ion-badge,
+ion-tab-button.ios.tab-has-label-only slot ion-badge {
+  @include position(10px, null, null, calc(50% + 30px));
+}
+
+
+// iOS Tab Button: Icon Only / Label Hide Layout
+// --------------------------------------------------------------
+
+// Badge
+ion-tab-button.ios.tab-layout-label-hide slot ion-badge,
+ion-tab-button.ios.tab-has-icon-only slot ion-badge {
+  @include position(10px, null, null, null);
+}
+
+ion-tab-button.ios.tab-layout-label-hide slot ion-icon {
+  @include margin(0);
+}
