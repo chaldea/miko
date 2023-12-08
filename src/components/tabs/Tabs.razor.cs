@@ -16,6 +16,8 @@ namespace Miko
 
         [Inject] public NavigationManager NavigationManager { get; set; }
 
+        [Inject] public RouteService RouteService { get; set; }
+
         public void AddTab(Tab tab)
         {
             _tabs.Add(tab);
@@ -28,14 +30,20 @@ namespace Miko
         public void AddTabButton(TabButton tabButton)
         {
             _tabButtons.Add(tabButton);
-            if (_tabButtons.Count == 1)
-            {
-                _tabButtons[0].SetSelected(true);
-            }
-
             if (tabButton.Href != null)
             {
+                RouteService.AddTabRoute(tabButton.Href);
                 _isRoutingTab = true;
+            }
+
+            if (_isRoutingTab)
+            {
+                var route = $"/{NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}";
+                tabButton.SetSelected(route == tabButton.Href);
+            }
+            else if (_tabButtons.Count == 1)
+            {
+                _tabButtons[0].SetSelected(true);
             }
         }
 
@@ -43,21 +51,28 @@ namespace Miko
         {
             if (!_isRoutingTab)
             {
+                // set selected tab
                 foreach (var tab in _tabs)
                 {
                     tab.SetActive(tab.Name == name);
                 }
             }
             
+            // set selected button
+            TabButton selectedButton = null;
             foreach (var button in _tabButtons)
             {
                 button.SetSelected(button.Tab == name);
-                if (_isRoutingTab && button.Tab == name)
+                if (button.Tab == name)
                 {
-                    NavigationManager.NavigateTo(button.Href);
+                    selectedButton = button;
                 }
             }
-            StateHasChanged();
+
+            if (_isRoutingTab && selectedButton != null)
+            {
+                NavigationManager.NavigateTo(selectedButton.Href);
+            }
         }
     }
 }

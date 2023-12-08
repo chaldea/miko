@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Microsoft.AspNetCore.Components;
+using System.Collections.Concurrent;
 
 namespace Miko
 {
@@ -9,6 +10,8 @@ namespace Miko
         private readonly Animation _fadeOutLeft;
         private readonly Animation _fadeOutRight;
         private readonly ConcurrentDictionary<(Type From,Type To), (Animation EffectOut, Animation EffectIn)> _animations = new();
+        private readonly List<string> _tabRoutes = new();
+
         public RouteService()
         {
             _fadeInLeft = new Animation()
@@ -42,12 +45,50 @@ namespace Miko
 
         public Animation GetEffect(Type from, Type to, bool isActive)
         {
+            if (from == null || to == null) return null;
+            var fromRoute = ParseRoute(from);
+            var toRoute = ParseRoute(to);
+            if (_tabRoutes.Contains(fromRoute) && _tabRoutes.Contains(toRoute))
+            {
+                return null;
+            }
+
             if (_animations.TryGetValue((from, to), out var value))
             {
                 return isActive? value.EffectIn: value.EffectOut;
             }
 
             return isActive ? _fadeInRight : _fadeOutLeft;
+        }
+
+        public void AddTabRoute(string route)
+        {
+            _tabRoutes.Add(route);
+        }
+
+        private static string ParseRoute(Type component)
+        {
+            var attributes = component.GetCustomAttributes(inherit: true);
+
+            var routeAttribute = attributes.OfType<RouteAttribute>().FirstOrDefault();
+
+            if (routeAttribute is null)
+            {
+                return null;
+            }
+
+            var route = routeAttribute.Template;
+
+            if (string.IsNullOrEmpty(route))
+            {
+                throw new Exception($"RouteAttribute in component '{component}' has empty route template");
+            }
+
+            if (route.Contains('{'))
+            {
+                throw new Exception($"RouteAttribute for component '{component}' contains route values. Route values are invalid for prerendering");
+            }
+            return route;
         }
     }
 }

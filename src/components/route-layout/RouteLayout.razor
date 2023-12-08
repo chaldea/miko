@@ -2,7 +2,7 @@
 @inherits LayoutComponentBase
 
 <ion-route class="@ClassMapper.Class"
-     style="@RouteContext.Effect.Style">
+     style="@RouteContext.Effect?.Style">
     @Body
 </ion-route>
 
@@ -27,5 +27,5 @@
         z-index: 0;
     }
 
-    @RouteContext.Effect.StyleSheet
+    @RouteContext.Effect?.StyleSheet
 </style>

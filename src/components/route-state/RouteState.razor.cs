@@ -25,12 +25,6 @@ namespace Miko
         [Parameter]
         public bool ForgetStateOnTransition { get; set; }
 
-        [Parameter]
-        public Animation ActiveEffect { get; set; } = new();
-
-        [Parameter]
-        public Animation DeactiveEffect { get; set; } = new();
-
         [Inject]
         public RouteService RouteService { get; set; }
 
@@ -74,21 +68,26 @@ namespace Miko
             var from = _isActive ? switchedRouteData?.PageType : routeDataToUse?.PageType;
             var to = _isActive ? routeDataToUse?.PageType : switchedRouteData?.PageType;
             var effect = RouteService.GetEffect(from, to, _isActive);
+            var callback = () =>
+            {
+                // remove view
+                if (canResetStateOnTransitionOut)
+                {
+                    Console.WriteLine($"{Name} remove");
+                    RouteContext = RouteContext.Create(routeData: null, switchedRouteData: null, effect: null,
+                        RouteContext.IntoView, RouteContext.Backwards, RouteContext.FirstRender);
+                    if (_invokesStateChanged)
+                    {
+                        StateHasChanged();
+                    }
+                }
+            };
             if (!firstRender)
             {
-                effect.Play(() =>
+                if (effect != null)
                 {
-                    // remove view
-                    if (canResetStateOnTransitionOut)
-                    {
-                        Console.WriteLine($"{Name} remove");
-                        RouteContext = RouteContext.Create(routeData: null, switchedRouteData: null, effect: null, RouteContext.IntoView, RouteContext.Backwards, RouteContext.FirstRender);
-                        if (_invokesStateChanged)
-                        {
-                            StateHasChanged();
-                        }
-                    }
-                });
+                    effect.Play(callback);
+                }
             }
             RouteContext = RouteContext.Create(routeDataToUse, switchedRouteData, effect, _isActive, backwards, firstRender);
             if (_invokesStateChanged)
@@ -97,6 +96,11 @@ namespace Miko
             }
             _isActive = !_isActive;
             _lastRouteData = RouteData;
+
+            if (effect == null)
+            {
+                callback();
+            }
         }
     }
 }
