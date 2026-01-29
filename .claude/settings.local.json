@@ -7,7 +7,8 @@
       "Bash(dir:*)",
       "Bash(dotnet run:*)",
       "WebFetch(domain:html.spec.whatwg.org)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
