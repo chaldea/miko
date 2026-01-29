@@ -1,3 +1,4 @@
+using Miko.Events;
 using Miko.Layout;
 using Miko.Styling;
 
@@ -20,6 +21,94 @@ public abstract class Element
 
     // 脏标记
     internal bool IsDirty { get; set; }
+
+    // 事件监听器列表
+    private readonly List<EventListener> _eventListeners = new();
+
+    // 便捷事件处理器属性
+    public MikoEventHandler<MouseEventArgs>? OnClick { get; set; }
+    public MikoEventHandler<MouseEventArgs>? OnMouseEnter { get; set; }
+    public MikoEventHandler<MouseEventArgs>? OnMouseLeave { get; set; }
+    public MikoEventHandler<MouseEventArgs>? OnMouseDown { get; set; }
+    public MikoEventHandler<MouseEventArgs>? OnMouseUp { get; set; }
+    public MikoEventHandler<FocusEventArgs>? OnFocus { get; set; }
+    public MikoEventHandler<FocusEventArgs>? OnBlur { get; set; }
+    public MikoEventHandler<ChangeEventArgs>? OnChange { get; set; }
+
+    /// <summary>
+    /// 添加事件监听器
+    /// </summary>
+    public void AddEventListener<T>(string eventType, MikoEventHandler<T> handler) where T : MikoEventArgs
+    {
+        _eventListeners.Add(new EventListener
+        {
+            EventType = eventType,
+            Handler = handler
+        });
+    }
+
+    /// <summary>
+    /// 移除事件监听器
+    /// </summary>
+    public void RemoveEventListener<T>(string eventType, MikoEventHandler<T> handler) where T : MikoEventArgs
+    {
+        _eventListeners.RemoveAll(l => l.EventType == eventType && l.Handler.Equals(handler));
+    }
+
+    /// <summary>
+    /// 获取指定类型的事件监听器
+    /// </summary>
+    internal IEnumerable<EventListener> GetEventListeners(string eventType)
+    {
+        return _eventListeners.Where(l => l.EventType == eventType);
+    }
+
+    // 元素状态
+    public ElementState State { get; private set; } = ElementState.None;
+
+    /// <summary>
+    /// 设置状态标志
+    /// </summary>
+    public void SetState(ElementState state)
+    {
+        if ((State & state) != state)
+        {
+            State |= state;
+            IsDirty = true;
+        }
+    }
+
+    /// <summary>
+    /// 清除状态标志
+    /// </summary>
+    public void ClearState(ElementState state)
+    {
+        if ((State & state) != ElementState.None)
+        {
+            State &= ~state;
+            IsDirty = true;
+        }
+    }
+
+    /// <summary>
+    /// 检查是否有指定状态
+    /// </summary>
+    public bool HasState(ElementState state)
+    {
+        return (State & state) == state;
+    }
+
+    /// <summary>
+    /// 检查元素是否被禁用（包括检查父元素链）
+    /// </summary>
+    public bool IsDisabled
+    {
+        get
+        {
+            if (HasState(ElementState.Disabled)) return true;
+            return Parent?.IsDisabled ?? false;
+        }
+    }
 
     public abstract string TagName { get; }
 

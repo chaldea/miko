@@ -85,6 +85,16 @@ public static class BootstrapStyles
         AddButtonVariant(styleSheet, "btn-light", Colors.Light, Colors.TextDark);
         AddButtonVariant(styleSheet, "btn-dark", Colors.Dark, Colors.TextWhite);
 
+        // Button hover
+        AddButtonHover(styleSheet, "btn-primary", Color.FromHex("0069d9"), Color.FromHex("0062cc"));
+        AddButtonHover(styleSheet, "btn-secondary", Color.FromHex("5a6268"), Color.FromHex("545b62"));
+        AddButtonHover(styleSheet, "btn-success", Color.FromHex("218838"), Color.FromHex("1e7e34"));
+        AddButtonHover(styleSheet, "btn-danger", Color.FromHex("c82333"), Color.FromHex("bd2130"));
+        AddButtonHover(styleSheet, "btn-warning", Color.FromHex("e0a800"), Color.FromHex("d39e00"));
+        AddButtonHover(styleSheet, "btn-info", Color.FromHex("138496"), Color.FromHex("117a8b"));
+        AddButtonHover(styleSheet, "btn-light", Color.FromHex("e2e6ea"), Color.FromHex("dae0e5"));
+        AddButtonHover(styleSheet, "btn-dark", Color.FromHex("23272b"), Color.FromHex("1d2124"));
+
         // Outline button variants
         AddOutlineButtonVariant(styleSheet, "btn-outline-primary", Colors.Primary);
         AddOutlineButtonVariant(styleSheet, "btn-outline-secondary", Colors.Secondary);
@@ -157,6 +167,17 @@ public static class BootstrapStyles
                 BorderColor = bgColor
             }
         );
+    }
+
+    private static void AddButtonHover(StyleSheet styleSheet, string className, Color bgColor, Color borderColor)
+    {
+        styleSheet.AddRule(
+            new CompoundSelector(new ClassSelector(className), new HoverSelector()),
+            new Style()
+            {
+                BackgroundColor = bgColor,
+                BorderColor = borderColor
+            });
     }
 
     private static void AddOutlineButtonVariant(StyleSheet styleSheet, string className, Color color)
