@@ -1,4 +1,6 @@
+using Miko.Common;
 using Miko.Core;
+using Miko.Core.DomElements;
 
 namespace Miko.Styling;
 
@@ -195,16 +197,8 @@ public class StyleResolver
                 break;
 
             case "input":
-                // Browser default: display: inline-block, padding: 1px 2px
-                // Note: Border appearance simplified (browsers use 'inset' style)
-                style.Display ??= Common.Display.InlineBlock;
-                style.PaddingTop ??= Common.Length.Px(1);
-                style.PaddingRight ??= Common.Length.Px(2);
-                style.PaddingBottom ??= Common.Length.Px(1);
-                style.PaddingLeft ??= Common.Length.Px(2);
-                style.BorderWidth ??= Common.Length.Px(2);
-                style.BorderStyle ??= Common.BorderStyle.Solid;
-                style.BorderColor ??= Common.Color.Gray;
+                // Input elements have different default styles based on type
+                ApplyInputDefaultStyles(element, style);
                 break;
 
             case "img":
@@ -213,6 +207,126 @@ public class StyleResolver
                 style.BorderWidth ??= Common.Length.Px(0);
                 style.BorderStyle ??= Common.BorderStyle.None;
                 break;
+
+            case "select":
+                // Browser default: display: inline-block, border: 1px solid
+                // Padding for text and dropdown arrow
+                style.Display ??= Common.Display.InlineBlock;
+                style.PaddingTop ??= Common.Length.Px(1);
+                style.PaddingRight ??= Common.Length.Px(20);  // Extra space for dropdown arrow
+                style.PaddingBottom ??= Common.Length.Px(1);
+                style.PaddingLeft ??= Common.Length.Px(4);
+                style.BorderWidth ??= Common.Length.Px(1);
+                style.BorderStyle ??= Common.BorderStyle.Solid;
+                style.BorderColor ??= Common.Color.Gray;
+                style.BackgroundColor ??= Common.Color.White;
+                style.MinWidth ??= Common.Length.Px(100);
+                style.Height ??= Common.Length.Px(22);
+                break;
+
+            case "option":
+                // Browser default: display: block
+                // Options are typically rendered in dropdown list
+                style.Display ??= Common.Display.Block;
+                style.PaddingTop ??= Common.Length.Px(2);
+                style.PaddingRight ??= Common.Length.Px(8);
+                style.PaddingBottom ??= Common.Length.Px(2);
+                style.PaddingLeft ??= Common.Length.Px(8);
+                break;
+
+            case "optgroup":
+                // Browser default: display: block, font-weight: bold
+                // OptGroup label styling
+                style.Display ??= Common.Display.Block;
+                style.FontWeight ??= Common.FontWeight.Bold;
+                style.PaddingTop ??= Common.Length.Px(2);
+                style.PaddingRight ??= Common.Length.Px(4);
+                style.PaddingBottom ??= Common.Length.Px(2);
+                style.PaddingLeft ??= Common.Length.Px(4);
+                break;
+
+            case "label":
+                // Browser default: display: inline
+                // Labels are inline elements that associate with form controls
+                style.Display ??= Common.Display.Inline;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 应用输入框元素的默认样式（根据 InputType 不同设置不同的样式）
+    /// </summary>
+    /// <remarks>
+    /// Based on browser default behavior:
+    /// - Text/Password: Similar to input fields with padding, border, and default dimensions
+    /// - Checkbox/Radio: Fixed 13x13px size (browser default), no padding/border in layout
+    /// - Range: Fixed height with default width
+    /// </remarks>
+    private void ApplyInputDefaultStyles(Element element, Style style)
+    {
+        // Common style for all input types
+        style.Display ??= Display.InlineBlock;
+
+        // Check if it's an InputElement to get the type
+        if (element is InputElement inputElement)
+        {
+            switch (inputElement.Type)
+            {
+                case InputType.Checkbox:
+                case InputType.Radio:
+                    // Browser default: checkbox/radio are 13x13px
+                    // No padding or border in layout (visuals are drawn separately)
+                    style.Width ??= Length.Px(13);
+                    style.Height ??= Length.Px(13);
+                    style.PaddingTop ??= Length.Px(0);
+                    style.PaddingRight ??= Length.Px(0);
+                    style.PaddingBottom ??= Length.Px(0);
+                    style.PaddingLeft ??= Length.Px(0);
+                    style.BorderWidth ??= Length.Px(0);
+                    style.BorderStyle ??= BorderStyle.None;
+                    break;
+
+                case InputType.Range:
+                    // Browser default: Range has fixed height ~21px and width ~129px (Chrome)
+                    style.Width ??= Length.Px(129);
+                    style.Height ??= Length.Px(21);
+                    style.PaddingTop ??= Length.Px(0);
+                    style.PaddingRight ??= Length.Px(0);
+                    style.PaddingBottom ??= Length.Px(0);
+                    style.PaddingLeft ??= Length.Px(0);
+                    style.BorderWidth ??= Length.Px(0);
+                    style.BorderStyle ??= BorderStyle.None;
+                    break;
+
+                case InputType.Text:
+                case InputType.Password:
+                default:
+                    // Browser default: text input has padding, border, and default dimensions
+                    // Default width: ~173px (Chrome), height: ~21px (including padding/border)
+                    style.Width ??= Length.Px(173);
+                    style.Height ??= Length.Px(21);
+                    style.PaddingTop ??= Length.Px(1);
+                    style.PaddingRight ??= Length.Px(2);
+                    style.PaddingBottom ??= Length.Px(1);
+                    style.PaddingLeft ??= Length.Px(2);
+                    style.BorderWidth ??= Length.Px(1);
+                    style.BorderStyle ??= BorderStyle.Solid;
+                    style.BorderColor ??= Color.Gray;
+                    break;
+            }
+        }
+        else
+        {
+            // Fallback for generic input elements (treat as text input)
+            style.Width ??= Length.Px(173);
+            style.Height ??= Length.Px(21);
+            style.PaddingTop ??= Length.Px(1);
+            style.PaddingRight ??= Length.Px(2);
+            style.PaddingBottom ??= Length.Px(1);
+            style.PaddingLeft ??= Length.Px(2);
+            style.BorderWidth ??= Length.Px(1);
+            style.BorderStyle ??= BorderStyle.Solid;
+            style.BorderColor ??= Color.Gray;
         }
     }
 }

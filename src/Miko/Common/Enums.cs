@@ -115,3 +115,15 @@ public enum LengthUnit
     Percent,
     Auto
 }
+
+/// <summary>
+/// 输入框类型
+/// </summary>
+public enum InputType
+{
+    Text,
+    Password,
+    Checkbox,
+    Radio,
+    Range
+}

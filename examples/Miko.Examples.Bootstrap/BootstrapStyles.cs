@@ -153,7 +153,272 @@ public static class BootstrapStyles
             }
         );
 
+        // Form control styles
+        AddFormControlStyles(styleSheet);
+
         return styleSheet;
+    }
+
+    private static void AddFormControlStyles(StyleSheet styleSheet)
+    {
+        // Base form-control style (text inputs)
+        styleSheet.AddRule(
+            new ClassSelector("form-control"),
+            new Style
+            {
+                Display = Display.Block,
+                Width = Length.Percent(100),
+                PaddingTop = Length.Px(6),
+                PaddingRight = Length.Px(12),
+                PaddingBottom = Length.Px(6),
+                PaddingLeft = Length.Px(12),
+                FontSize = Length.Px(14),
+                Color = Colors.TextDark,
+                BackgroundColor = Color.White,
+                Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")),
+                BorderRadius = new BorderRadius(4),
+                MarginBottom = Length.Px(0)
+            }
+        );
+
+        // Form control focus state
+        styleSheet.AddRule(
+            new CompoundSelector(new ClassSelector("form-control"), new FocusSelector()),
+            new Style
+            {
+                BorderColor = Color.FromHex("86b7fe"),
+                BackgroundColor = Color.White
+            }
+        );
+
+        // Form control sizes
+        styleSheet.AddRule(
+            new ClassSelector("form-control-lg"),
+            new Style
+            {
+                PaddingTop = Length.Px(8),
+                PaddingRight = Length.Px(16),
+                PaddingBottom = Length.Px(8),
+                PaddingLeft = Length.Px(16),
+                FontSize = Length.Px(18),
+                BorderRadius = new BorderRadius(6)
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("form-control-sm"),
+            new Style
+            {
+                PaddingTop = Length.Px(4),
+                PaddingRight = Length.Px(8),
+                PaddingBottom = Length.Px(4),
+                PaddingLeft = Length.Px(8),
+                FontSize = Length.Px(12),
+                BorderRadius = new BorderRadius(3)
+            }
+        );
+
+        // Form select (dropdown)
+        styleSheet.AddRule(
+            new ClassSelector("form-select"),
+            new Style
+            {
+                Display = Display.Block,
+                Width = Length.Percent(100),
+                PaddingTop = Length.Px(6),
+                PaddingRight = Length.Px(36),
+                PaddingBottom = Length.Px(6),
+                PaddingLeft = Length.Px(12),
+                FontSize = Length.Px(14),
+                Color = Colors.TextDark,
+                BackgroundColor = Color.White,
+                Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")),
+                BorderRadius = new BorderRadius(4)
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("form-select-lg"),
+            new Style
+            {
+                PaddingTop = Length.Px(8),
+                PaddingRight = Length.Px(40),
+                PaddingBottom = Length.Px(8),
+                PaddingLeft = Length.Px(16),
+                FontSize = Length.Px(18),
+                BorderRadius = new BorderRadius(6)
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("form-select-sm"),
+            new Style
+            {
+                PaddingTop = Length.Px(4),
+                PaddingRight = Length.Px(32),
+                PaddingBottom = Length.Px(4),
+                PaddingLeft = Length.Px(8),
+                FontSize = Length.Px(12),
+                BorderRadius = new BorderRadius(3)
+            }
+        );
+
+        // Form label
+        styleSheet.AddRule(
+            new ClassSelector("form-label"),
+            new Style
+            {
+                Display = Display.InlineBlock,
+                MarginBottom = Length.Px(8),
+                FontSize = Length.Px(14),
+                FontWeight = FontWeight.Normal,
+                Color = Colors.TextDark
+            }
+        );
+
+        // Form text (help text)
+        styleSheet.AddRule(
+            new ClassSelector("form-text"),
+            new Style
+            {
+                Display = Display.Block,
+                MarginTop = Length.Px(4),
+                FontSize = Length.Px(12),
+                Color = Colors.Secondary
+            }
+        );
+
+        // Form check (container for checkbox/radio)
+        styleSheet.AddRule(
+            new ClassSelector("form-check"),
+            new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                AlignItems = AlignItems.Center,
+                MarginBottom = Length.Px(8),
+                PaddingLeft = Length.Px(0)
+            }
+        );
+
+        // Form check label
+        styleSheet.AddRule(
+            new ClassSelector("form-check-label"),
+            new Style
+            {
+                Display = Display.InlineBlock,
+                MarginLeft = Length.Px(8),
+                FontSize = Length.Px(14),
+                Color = Colors.TextDark
+            }
+        );
+
+        // Margin bottom utility (for form groups)
+        styleSheet.AddRule(
+            new ClassSelector("mb-3"),
+            new Style
+            {
+                MarginBottom = Length.Px(16)
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("mb-4"),
+            new Style
+            {
+                MarginBottom = Length.Px(24)
+            }
+        );
+
+        // Input validation states
+        styleSheet.AddRule(
+            new ClassSelector("is-valid"),
+            new Style
+            {
+                BorderColor = Colors.Success
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("is-invalid"),
+            new Style
+            {
+                BorderColor = Colors.Danger
+            }
+        );
+
+        // Valid/Invalid feedback text
+        styleSheet.AddRule(
+            new ClassSelector("valid-feedback"),
+            new Style
+            {
+                Display = Display.Block,
+                MarginTop = Length.Px(4),
+                FontSize = Length.Px(12),
+                Color = Colors.Success
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("invalid-feedback"),
+            new Style
+            {
+                Display = Display.Block,
+                MarginTop = Length.Px(4),
+                FontSize = Length.Px(12),
+                Color = Colors.Danger
+            }
+        );
+
+        // Input group
+        styleSheet.AddRule(
+            new ClassSelector("input-group"),
+            new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                AlignItems = AlignItems.Stretch,
+                Width = Length.Percent(100)
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("input-group-text"),
+            new Style
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                PaddingTop = Length.Px(6),
+                PaddingRight = Length.Px(12),
+                PaddingBottom = Length.Px(6),
+                PaddingLeft = Length.Px(12),
+                FontSize = Length.Px(14),
+                Color = Colors.TextDark,
+                BackgroundColor = Color.FromHex("e9ecef"),
+                Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da"))
+            }
+        );
+
+        // Range input style
+        styleSheet.AddRule(
+            new ClassSelector("form-range"),
+            new Style
+            {
+                Display = Display.Block,
+                Width = Length.Percent(100),
+                Height = Length.Px(24)
+            }
+        );
+
+        // Disabled state
+        styleSheet.AddRule(
+            new ClassSelector("disabled"),
+            new Style
+            {
+                BackgroundColor = Color.FromHex("e9ecef"),
+                Color = Colors.Secondary
+            }
+        );
     }
 
     private static void AddButtonVariant(StyleSheet styleSheet, string className, Color bgColor, Color textColor)
