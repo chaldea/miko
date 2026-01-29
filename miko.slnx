@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Miko/Miko.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Miko.Tests/Miko.Tests.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/Miko.Examples.Bootstrap/Miko.Examples.Bootstrap.csproj" />
+  </Folder>
+</Solution>

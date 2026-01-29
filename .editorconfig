@@ -1,0 +1,29 @@
+# Remove the line below if you want to inherit .editorconfig settings from higher directories
+root = true
+
+[*]
+indent_style = space
+end_of_line = crlf
+
+# C# files
+[*.cs]
+indent_size = 4
+tab_width = 4
+max_line_length = 200
+insert_final_newline = true
+charset = utf-8-bom
+# IDE0073: File header
+dotnet_diagnostic.IDE0073.severity = warning
+file_header_template = The Chaldea licenses this file to you under the MIT license.\nSee the LICENSE file in the project root for more information.
+
+# XML project files
+[*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj}]
+indent_size = 2
+
+# XML config files
+[*.{props,targets,ruleset,config,nuspec,resx,vsixmanifest,vsct}]
+indent_size = 2
+
+# JSON files
+[*.json]
+indent_size = 2

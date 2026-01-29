@@ -1,0 +1,125 @@
+using Miko.Common;
+using Miko.Core;
+using Miko.Layout.LayoutAlgorithms;
+using Miko.Styling;
+
+namespace Miko.Layout;
+
+/// <summary>
+/// 布局引擎
+/// </summary>
+public class LayoutEngine
+{
+    private readonly StyleResolver _styleResolver = new();
+    private readonly BlockLayout _blockLayout = new();
+    private readonly InlineLayout _inlineLayout = new();
+    private readonly FlexLayout _flexLayout = new();
+
+    /// <summary>
+    /// 执行布局计算
+    /// </summary>
+    public LayoutBox Layout(Element root, List<StyleSheet> styleSheets, float viewportWidth, float viewportHeight)
+    {
+        // 1. 样式计算：为每个元素计算最终样式
+        ComputeStyles(root, styleSheets);
+
+        // 2. 构建布局树：根据 display 属性过滤和组织
+        var layoutRoot = BuildLayoutTree(root);
+
+        if (layoutRoot == null)
+        {
+            throw new InvalidOperationException("Failed to build layout tree");
+        }
+
+        // 3. 布局计算：计算每个盒子的位置和尺寸
+        var constraints = new LayoutConstraints(viewportWidth, viewportHeight);
+        CalculateLayout(layoutRoot, constraints, 0, 0);
+
+        return layoutRoot;
+    }
+
+    /// <summary>
+    /// 计算所有元素的样式
+    /// </summary>
+    private void ComputeStyles(Element element, List<StyleSheet> styleSheets)
+    {
+        var computedStyle = _styleResolver.Resolve(element, styleSheets);
+
+        // 创建布局盒子并关联
+        element.LayoutBox = new LayoutBox
+        {
+            Element = element,
+            ComputedStyle = computedStyle
+        };
+
+        // 递归处理子元素
+        foreach (var child in element.Children)
+        {
+            ComputeStyles(child, styleSheets);
+        }
+    }
+
+    /// <summary>
+    /// 构建布局树
+    /// </summary>
+    private LayoutBox? BuildLayoutTree(Element element)
+    {
+        if (element.LayoutBox == null)
+        {
+            return null;
+        }
+
+        var layoutBox = element.LayoutBox;
+
+        // 根据 display 属性确定布局类型
+        layoutBox.Type = layoutBox.ComputedStyle.Display switch
+        {
+            Display.Block => LayoutType.Block,
+            Display.Inline => LayoutType.Inline,
+            Display.InlineBlock => LayoutType.InlineBlock,
+            Display.Flex => LayoutType.Flex,
+            Display.None => LayoutType.Block, // 不会被添加到树中
+            _ => LayoutType.Block
+        };
+
+        // 如果是 display: none，不添加到布局树
+        if (layoutBox.ComputedStyle.Display == Display.None)
+        {
+            return null;
+        }
+
+        // 递归构建子元素的布局树
+        foreach (var child in element.Children)
+        {
+            var childLayoutBox = BuildLayoutTree(child);
+            if (childLayoutBox != null)
+            {
+                layoutBox.Children.Add(childLayoutBox);
+            }
+        }
+
+        return layoutBox;
+    }
+
+    /// <summary>
+    /// 计算布局
+    /// </summary>
+    private void CalculateLayout(LayoutBox box, LayoutConstraints constraints, float x, float y)
+    {
+        switch (box.Type)
+        {
+            case LayoutType.Block:
+                _blockLayout.Layout(box, constraints, x, y);
+                break;
+
+            case LayoutType.Inline:
+            case LayoutType.InlineBlock:
+                _inlineLayout.Layout(box, constraints, x, y);
+                break;
+
+            case LayoutType.Flex:
+                _flexLayout.Layout(box, constraints, x, y);
+                break;
+        }
+    }
+}

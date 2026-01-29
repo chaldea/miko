@@ -1,0 +1,119 @@
+using Miko.Common;
+
+namespace Miko.Styling;
+
+/// <summary>
+/// 计算后的样式（包含所有默认值）
+/// </summary>
+public class ComputedStyle : Style
+{
+    // 使用非空的默认值
+    public new Display Display { get; set; } = Common.Display.Block;
+    public new FlexDirection FlexDirection { get; set; } = Common.FlexDirection.Row;
+    public new JustifyContent JustifyContent { get; set; } = Common.JustifyContent.FlexStart;
+    public new AlignItems AlignItems { get; set; } = Common.AlignItems.Stretch;
+
+    public new Length Width { get; set; } = Length.Auto;
+    public new Length Height { get; set; } = Length.Auto;
+    public new Length MinWidth { get; set; } = Length.Px(0);
+    public new Length MinHeight { get; set; } = Length.Px(0);
+    public new Length MaxWidth { get; set; } = Length.Auto;
+    public new Length MaxHeight { get; set; } = Length.Auto;
+
+    public new Length PaddingTop { get; set; } = Length.Px(0);
+    public new Length PaddingRight { get; set; } = Length.Px(0);
+    public new Length PaddingBottom { get; set; } = Length.Px(0);
+    public new Length PaddingLeft { get; set; } = Length.Px(0);
+
+    public new Length MarginTop { get; set; } = Length.Px(0);
+    public new Length MarginRight { get; set; } = Length.Px(0);
+    public new Length MarginBottom { get; set; } = Length.Px(0);
+    public new Length MarginLeft { get; set; } = Length.Px(0);
+
+    public new Length BorderWidth { get; set; } = Length.Px(0);
+    public new Color BorderColor { get; set; } = Color.Black;
+    public new BorderStyle BorderStyle { get; set; } = Common.BorderStyle.None;
+
+    public new Length BorderTopLeftRadius { get; set; } = Length.Px(0);
+    public new Length BorderTopRightRadius { get; set; } = Length.Px(0);
+    public new Length BorderBottomRightRadius { get; set; } = Length.Px(0);
+    public new Length BorderBottomLeftRadius { get; set; } = Length.Px(0);
+
+    public new Color BackgroundColor { get; set; } = Color.Transparent;
+    public new Color Color { get; set; } = Color.Black;
+    public new string FontFamily { get; set; } = "Arial";
+    public new Length FontSize { get; set; } = Length.Px(16);
+    public new FontWeight FontWeight { get; set; } = Common.FontWeight.Normal;
+    public new TextAlign TextAlign { get; set; } = Common.TextAlign.Left;
+    public new Length LineHeight { get; set; } = Length.Px(0);  // 0 = auto/normal
+
+    public new Position Position { get; set; } = Common.Position.Static;
+    public new Length Top { get; set; } = Length.Auto;
+    public new Length Right { get; set; } = Length.Auto;
+    public new Length Bottom { get; set; } = Length.Auto;
+    public new Length Left { get; set; } = Length.Auto;
+
+    public new float Opacity { get; set; } = 1.0f;
+    public new int ZIndex { get; set; } = 0;
+
+    /// <summary>
+    /// 从样式对象创建计算样式
+    /// </summary>
+    public static ComputedStyle FromStyle(Style? style)
+    {
+        var computed = new ComputedStyle();
+
+        if (style != null)
+        {
+            if (style.Display.HasValue) computed.Display = style.Display.Value;
+            if (style.FlexDirection.HasValue) computed.FlexDirection = style.FlexDirection.Value;
+            if (style.JustifyContent.HasValue) computed.JustifyContent = style.JustifyContent.Value;
+            if (style.AlignItems.HasValue) computed.AlignItems = style.AlignItems.Value;
+
+            if (style.Width.HasValue) computed.Width = style.Width.Value;
+            if (style.Height.HasValue) computed.Height = style.Height.Value;
+            if (style.MinWidth.HasValue) computed.MinWidth = style.MinWidth.Value;
+            if (style.MinHeight.HasValue) computed.MinHeight = style.MinHeight.Value;
+            if (style.MaxWidth.HasValue) computed.MaxWidth = style.MaxWidth.Value;
+            if (style.MaxHeight.HasValue) computed.MaxHeight = style.MaxHeight.Value;
+
+            if (style.PaddingTop.HasValue) computed.PaddingTop = style.PaddingTop.Value;
+            if (style.PaddingRight.HasValue) computed.PaddingRight = style.PaddingRight.Value;
+            if (style.PaddingBottom.HasValue) computed.PaddingBottom = style.PaddingBottom.Value;
+            if (style.PaddingLeft.HasValue) computed.PaddingLeft = style.PaddingLeft.Value;
+
+            if (style.MarginTop.HasValue) computed.MarginTop = style.MarginTop.Value;
+            if (style.MarginRight.HasValue) computed.MarginRight = style.MarginRight.Value;
+            if (style.MarginBottom.HasValue) computed.MarginBottom = style.MarginBottom.Value;
+            if (style.MarginLeft.HasValue) computed.MarginLeft = style.MarginLeft.Value;
+
+            if (style.BorderWidth.HasValue) computed.BorderWidth = style.BorderWidth.Value;
+            if (style.BorderColor.HasValue) computed.BorderColor = style.BorderColor.Value;
+            if (style.BorderStyle.HasValue) computed.BorderStyle = style.BorderStyle.Value;
+
+            if (style.BorderTopLeftRadius.HasValue) computed.BorderTopLeftRadius = style.BorderTopLeftRadius.Value;
+            if (style.BorderTopRightRadius.HasValue) computed.BorderTopRightRadius = style.BorderTopRightRadius.Value;
+            if (style.BorderBottomRightRadius.HasValue) computed.BorderBottomRightRadius = style.BorderBottomRightRadius.Value;
+            if (style.BorderBottomLeftRadius.HasValue) computed.BorderBottomLeftRadius = style.BorderBottomLeftRadius.Value;
+
+            if (style.BackgroundColor.HasValue) computed.BackgroundColor = style.BackgroundColor.Value;
+            if (style.Color.HasValue) computed.Color = style.Color.Value;
+            if (style.FontFamily != null) computed.FontFamily = style.FontFamily;
+            if (style.FontSize.HasValue) computed.FontSize = style.FontSize.Value;
+            if (style.FontWeight.HasValue) computed.FontWeight = style.FontWeight.Value;
+            if (style.TextAlign.HasValue) computed.TextAlign = style.TextAlign.Value;
+            if (style.LineHeight.HasValue) computed.LineHeight = style.LineHeight.Value;
+
+            if (style.Position.HasValue) computed.Position = style.Position.Value;
+            if (style.Top.HasValue) computed.Top = style.Top.Value;
+            if (style.Right.HasValue) computed.Right = style.Right.Value;
+            if (style.Bottom.HasValue) computed.Bottom = style.Bottom.Value;
+            if (style.Left.HasValue) computed.Left = style.Left.Value;
+
+            if (style.Opacity.HasValue) computed.Opacity = style.Opacity.Value;
+            if (style.ZIndex.HasValue) computed.ZIndex = style.ZIndex.Value;
+        }
+
+        return computed;
+    }
+}
