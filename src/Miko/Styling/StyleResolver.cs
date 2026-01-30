@@ -290,6 +290,69 @@ public class StyleResolver
                 // List markers (bullets/numbers) would need separate Painter implementation
                 style.Display ??= Common.Display.Block;
                 break;
+
+            case "table":
+                // Browser default: display: table (using block for now), border-collapse: separate
+                // border-spacing: 2px, border-color: gray
+                style.Display ??= Common.Display.Block;
+                style.BorderWidth ??= Common.Length.Px(0);
+                style.BorderStyle ??= Common.BorderStyle.None;
+                // Note: border-collapse and border-spacing not yet implemented
+                break;
+
+            case "caption":
+                // Browser default: display: table-caption (using block), text-align: center
+                style.Display ??= Common.Display.Block;
+                style.TextAlign ??= Common.TextAlign.Center;
+                style.PaddingTop ??= Common.Length.Px(2);
+                style.PaddingBottom ??= Common.Length.Px(2);
+                break;
+
+            case "thead":
+            case "tbody":
+            case "tfoot":
+                // Browser default: display: table-row-group (using block for now)
+                // vertical-align: middle, border-color: inherit
+                style.Display ??= Common.Display.Block;
+                break;
+
+            case "colgroup":
+            case "col":
+                // Browser default: display: table-column-group / table-column
+                // These are typically not rendered but affect table layout
+                style.Display ??= Common.Display.None;
+                break;
+
+            case "tr":
+                // Browser default: display: table-row (using block for now)
+                // vertical-align: inherit, border-color: inherit
+                style.Display ??= Common.Display.Block;
+                break;
+
+            case "th":
+                // Browser default: display: table-cell (using inline-block for now)
+                // font-weight: bold, text-align: center, vertical-align: inherit
+                // padding: 1px
+                style.Display ??= Common.Display.InlineBlock;
+                style.FontWeight ??= Common.FontWeight.Bold;
+                style.TextAlign ??= Common.TextAlign.Center;
+                style.PaddingTop ??= Common.Length.Px(1);
+                style.PaddingRight ??= Common.Length.Px(1);
+                style.PaddingBottom ??= Common.Length.Px(1);
+                style.PaddingLeft ??= Common.Length.Px(1);
+                break;
+
+            case "td":
+                // Browser default: display: table-cell (using inline-block for now)
+                // vertical-align: inherit, text-align: left
+                // padding: 1px
+                style.Display ??= Common.Display.InlineBlock;
+                style.TextAlign ??= Common.TextAlign.Left;
+                style.PaddingTop ??= Common.Length.Px(1);
+                style.PaddingRight ??= Common.Length.Px(1);
+                style.PaddingBottom ??= Common.Length.Px(1);
+                style.PaddingLeft ??= Common.Length.Px(1);
+                break;
         }
     }
 

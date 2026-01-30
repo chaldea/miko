@@ -53,6 +53,17 @@ class Program
         );
 
         Console.WriteLine();
+
+        // Render Table Example
+        RenderExample(
+            TableExample.Title,
+            TableExample.CreateDOM(),
+            styleSheets,
+            Path.Combine(outputDir, TableExample.OutputFileName),
+            800, 2100
+        );
+
+        Console.WriteLine();
         Console.WriteLine("=".PadRight(60, '='));
         Console.WriteLine("All examples rendered successfully!");
         Console.WriteLine($"Output directory: {outputDir}");

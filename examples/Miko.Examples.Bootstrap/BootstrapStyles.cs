@@ -159,6 +159,9 @@ public static class BootstrapStyles
         // List styles
         AddListStyles(styleSheet);
 
+        // Table styles
+        AddTableStyles(styleSheet);
+
         return styleSheet;
     }
 
@@ -583,6 +586,217 @@ public static class BootstrapStyles
                 BackgroundColor = Color.Transparent,
                 Color = color,
                 BorderColor = color
+            }
+        );
+    }
+
+    private static void AddTableStyles(StyleSheet styleSheet)
+    {
+        // Base table style
+        styleSheet.AddRule(
+            new ClassSelector("table"),
+            new Style
+            {
+                Display = Display.Block,
+                Width = Length.Percent(100),
+                MarginBottom = Length.Px(16),
+                Color = Colors.TextDark,
+                BorderWidth = Length.Px(0)
+            }
+        );
+
+        // Table row
+        styleSheet.AddRule(
+            new ClassSelector("table-row"),
+            new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                BorderWidth = Length.Px(1),
+                BorderStyle = BorderStyle.Solid,
+                BorderColor = Color.FromHex("dee2e6")
+            }
+        );
+
+        // Table header row
+        styleSheet.AddRule(
+            new ClassSelector("table-header"),
+            new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                BorderWidth = Length.Px(2),
+                BorderStyle = BorderStyle.Solid,
+                BorderColor = Color.FromHex("212529")
+            }
+        );
+
+        // Table cell (th and td)
+        styleSheet.AddRule(
+            new ClassSelector("table-cell"),
+            new Style
+            {
+                Display = Display.Block,
+                FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = 0,
+                PaddingTop = Length.Px(8),
+                PaddingRight = Length.Px(8),
+                PaddingBottom = Length.Px(8),
+                PaddingLeft = Length.Px(8),
+                TextAlign = TextAlign.Left
+            }
+        );
+
+        // Table header cell
+        styleSheet.AddRule(
+            new ClassSelector("table-header-cell"),
+            new Style
+            {
+                Display = Display.Block,
+                FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = 0,
+                PaddingTop = Length.Px(8),
+                PaddingRight = Length.Px(8),
+                PaddingBottom = Length.Px(8),
+                PaddingLeft = Length.Px(8),
+                FontWeight = FontWeight.Bold,
+                TextAlign = TextAlign.Left
+            }
+        );
+
+        // Striped table rows
+        styleSheet.AddRule(
+            new ClassSelector("table-striped"),
+            new Style
+            {
+                BackgroundColor = Color.FromHex("f8f9fa")
+            }
+        );
+
+        // Bordered table
+        styleSheet.AddRule(
+            new ClassSelector("table-bordered"),
+            new Style
+            {
+                BorderWidth = Length.Px(1),
+                BorderStyle = BorderStyle.Solid,
+                BorderColor = Color.FromHex("dee2e6")
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("table-bordered-cell"),
+            new Style
+            {
+                BorderWidth = Length.Px(1),
+                BorderStyle = BorderStyle.Solid,
+                BorderColor = Color.FromHex("dee2e6")
+            }
+        );
+
+        // Borderless table
+        styleSheet.AddRule(
+            new ClassSelector("table-borderless"),
+            new Style
+            {
+                BorderWidth = Length.Px(0),
+                BorderStyle = BorderStyle.None
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("table-borderless-row"),
+            new Style
+            {
+                BorderWidth = Length.Px(0),
+                BorderStyle = BorderStyle.None
+            }
+        );
+
+        // Hoverable table row
+        styleSheet.AddRule(
+            new CompoundSelector(new ClassSelector("table-hover-row"), new HoverSelector()),
+            new Style
+            {
+                BackgroundColor = Color.FromHex("f5f5f5")
+            }
+        );
+
+        // Small table
+        styleSheet.AddRule(
+            new ClassSelector("table-sm"),
+            new Style
+            {
+                PaddingTop = Length.Px(4),
+                PaddingRight = Length.Px(4),
+                PaddingBottom = Length.Px(4),
+                PaddingLeft = Length.Px(4)
+            }
+        );
+
+        // Table contextual variants
+        AddTableVariant(styleSheet, "table-primary", Color.FromHex("cfe2ff"), Color.FromHex("084298"));
+        AddTableVariant(styleSheet, "table-secondary", Color.FromHex("e2e3e5"), Color.FromHex("41464b"));
+        AddTableVariant(styleSheet, "table-success", Color.FromHex("d1e7dd"), Color.FromHex("0f5132"));
+        AddTableVariant(styleSheet, "table-danger", Color.FromHex("f8d7da"), Color.FromHex("842029"));
+        AddTableVariant(styleSheet, "table-warning", Color.FromHex("fff3cd"), Color.FromHex("664d03"));
+        AddTableVariant(styleSheet, "table-info", Color.FromHex("cff4fc"), Color.FromHex("055160"));
+        AddTableVariant(styleSheet, "table-light", Color.FromHex("fcfcfd"), Color.FromHex("636464"));
+        AddTableVariant(styleSheet, "table-dark", Color.FromHex("212529"), Color.White);
+
+        // Dark table
+        styleSheet.AddRule(
+            new ClassSelector("table-dark-header"),
+            new Style
+            {
+                BackgroundColor = Color.FromHex("212529"),
+                Color = Color.White,
+                BorderColor = Color.FromHex("373b3e")
+            }
+        );
+
+        // Active row
+        styleSheet.AddRule(
+            new ClassSelector("table-active"),
+            new Style
+            {
+                BackgroundColor = Color.FromHex("e9ecef")
+            }
+        );
+
+        // Caption
+        styleSheet.AddRule(
+            new ClassSelector("table-caption"),
+            new Style
+            {
+                Display = Display.Block,
+                PaddingTop = Length.Px(8),
+                PaddingBottom = Length.Px(8),
+                Color = Colors.Secondary,
+                TextAlign = TextAlign.Left
+            }
+        );
+
+        // Caption on top
+        styleSheet.AddRule(
+            new ClassSelector("caption-top"),
+            new Style
+            {
+                MarginBottom = Length.Px(8)
+            }
+        );
+    }
+
+    private static void AddTableVariant(StyleSheet styleSheet, string className, Color bgColor, Color textColor)
+    {
+        styleSheet.AddRule(
+            new ClassSelector(className),
+            new Style
+            {
+                BackgroundColor = bgColor,
+                Color = textColor
             }
         );
     }
