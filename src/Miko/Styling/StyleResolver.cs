@@ -14,8 +14,9 @@ public class StyleResolver
     /// </summary>
     public ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets)
     {
-        // 1. 收集所有匹配的规则
-        var matchedRules = new List<(StyleRule rule, int specificity)>();
+        // 1. 收集所有匹配的规则（带有定义顺序索引）
+        var matchedRules = new List<(StyleRule rule, int specificity, int index)>();
+        int ruleIndex = 0;
 
         foreach (var sheet in styleSheets)
         {
@@ -23,13 +24,18 @@ public class StyleResolver
             {
                 if (rule.Selector.Matches(element))
                 {
-                    matchedRules.Add((rule, rule.Selector.Specificity));
+                    matchedRules.Add((rule, rule.Selector.Specificity, ruleIndex));
                 }
+                ruleIndex++;
             }
         }
 
-        // 2. 按特异性排序（特异性高的优先，因为 Merge 只在 null 时赋值）
-        matchedRules.Sort((a, b) => b.specificity.CompareTo(a.specificity));
+        // 2. 按特异性排序（特异性高的优先，同特异性时后定义的优先，因为 Merge 只在 null 时赋值）
+        // 使用 OrderByDescending 保证稳定排序
+        var sortedRules = matchedRules
+            .OrderByDescending(r => r.specificity)
+            .ThenByDescending(r => r.index)
+            .ToList();
 
         // 3. 创建基础样式（空）
         var baseStyle = new Style();
@@ -40,8 +46,8 @@ public class StyleResolver
             baseStyle.Merge(element.Style);
         }
 
-        // 5. 应用匹配的规则（按特异性从高到低）
-        foreach (var (rule, _) in matchedRules)
+        // 5. 应用匹配的规则（按特异性从高到低，同特异性按定义顺序从后到前）
+        foreach (var (rule, _, _) in sortedRules)
         {
             baseStyle.Merge(rule.Style);
         }

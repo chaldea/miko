@@ -168,16 +168,13 @@ public static class BootstrapStyles
             {
                 Display = Display.Block,
                 Width = Length.Percent(100),
-                PaddingTop = Length.Px(6),
-                PaddingRight = Length.Px(12),
-                PaddingBottom = Length.Px(6),
-                PaddingLeft = Length.Px(12),
+                Padding = new Padding(6, 12),
                 FontSize = Length.Px(14),
+                FontWeight = FontWeight.Normal,
                 Color = Colors.TextDark,
                 BackgroundColor = Color.White,
                 Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")),
-                BorderRadius = new BorderRadius(4),
-                MarginBottom = Length.Px(0)
+                BorderRadius = new BorderRadius(6)
             }
         );
 
@@ -186,8 +183,9 @@ public static class BootstrapStyles
             new CompoundSelector(new ClassSelector("form-control"), new FocusSelector()),
             new Style
             {
+                Color = Color.FromHex("212529"),
+                BackgroundColor = Color.White,
                 BorderColor = Color.FromHex("86b7fe"),
-                BackgroundColor = Color.White
             }
         );
 
@@ -383,19 +381,29 @@ public static class BootstrapStyles
         );
 
         styleSheet.AddRule(
+            new ClassSelector("input-group-control"),
+            new Style
+            {
+                Display = Display.Flex,
+                FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = 0
+            }
+        );
+
+        styleSheet.AddRule(
             new ClassSelector("input-group-text"),
             new Style
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
-                PaddingTop = Length.Px(6),
-                PaddingRight = Length.Px(12),
-                PaddingBottom = Length.Px(6),
-                PaddingLeft = Length.Px(12),
+                Padding = new Padding(6, 12),
                 FontSize = Length.Px(14),
                 Color = Colors.TextDark,
+                TextAlign = TextAlign.Center,
                 BackgroundColor = Color.FromHex("e9ecef"),
-                Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da"))
+                Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")),
+                BorderRadius = new BorderRadius(6)
             }
         );
 

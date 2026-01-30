@@ -13,6 +13,11 @@ public class Style
     public JustifyContent? JustifyContent { get; set; }
     public AlignItems? AlignItems { get; set; }
 
+    // Flex 子元素属性
+    public float? FlexGrow { get; set; }
+    public float? FlexShrink { get; set; }
+    public Length? FlexBasis { get; set; }
+
     // 盒子模型
     public Length? Width { get; set; }
     public Length? Height { get; set; }
@@ -143,6 +148,10 @@ public class Style
         FlexDirection ??= other.FlexDirection;
         JustifyContent ??= other.JustifyContent;
         AlignItems ??= other.AlignItems;
+
+        FlexGrow ??= other.FlexGrow;
+        FlexShrink ??= other.FlexShrink;
+        FlexBasis ??= other.FlexBasis;
 
         Width ??= other.Width;
         Height ??= other.Height;

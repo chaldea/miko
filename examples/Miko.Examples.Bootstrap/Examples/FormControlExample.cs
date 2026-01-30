@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 
@@ -274,7 +274,7 @@ public static class FormControlExample
                         new InputElement
                         {
                             Type = InputType.Text,
-                            Class = "form-control",
+                            Class = "form-control input-group-control",
                             Placeholder = "Amount"
                         },
                         new SpanElement { TextContent = ".00", Class = "input-group-text" }

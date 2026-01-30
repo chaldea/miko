@@ -40,7 +40,7 @@ public class InputElementTests
 
     /// <summary>
     /// 文本输入框应该具有默认宽度
-    /// 浏览器默认宽度约为 150-200px
+    /// 浏览器默认宽度约为 150-200px (Chrome ~173px, Firefox ~150px)
     /// </summary>
     [Fact]
     public void TextInput_DefaultWidth_ShouldMatchBrowserBehavior()
@@ -52,8 +52,9 @@ public class InputElementTests
         var computed = _styleResolver.Resolve(input, new List<StyleSheet>());
 
         // Assert: 浏览器默认文本输入框宽度约为 173px (Chrome) 或 150px (Firefox)
-        computed.Width.Value.ShouldBeGreaterThan(0,
-            "Text input should have a default width like browser behavior");
+        // We use Chrome's default value of 173px
+        computed.Width.Value.ShouldBe(173,
+            "Text input should have default width of 173px (browser default)");
     }
 
     /// <summary>
@@ -68,8 +69,18 @@ public class InputElementTests
         // Act
         var layoutRoot = _layoutEngine.Layout(input, new List<StyleSheet>(), 800, 600);
 
-        // Assert
-        layoutRoot.BoxModel.BorderBox.Height.ShouldBeInRange(18, 30,
+        // Assert: 布局后内容区域应为 173x21px (浏览器默认尺寸)
+        layoutRoot.BoxModel.Content.Width.ShouldBe(173,
+            "Text input content width should be 173px (browser default)");
+        layoutRoot.BoxModel.Content.Height.ShouldBe(21,
+            "Text input content height should be 21px (browser default)");
+
+        // BorderBox includes padding (1px top/bottom, 2px left/right) and border (1px)
+        // Width: 173 + 2 + 2 + 1 + 1 = 179
+        // Height: 21 + 1 + 1 + 1 + 1 = 25
+        layoutRoot.BoxModel.BorderBox.Width.ShouldBe(179,
+            "Text input border box width should include padding and border");
+        layoutRoot.BoxModel.BorderBox.Height.ShouldBeInRange(23, 27,
             "Text input border box height should be around browser default");
     }
 

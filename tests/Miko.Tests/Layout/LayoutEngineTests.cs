@@ -456,6 +456,692 @@ public class LayoutEngineTests
         layoutChild.BoxModel.Content.Y.ShouldBe(expectedY, 0.1f);
     }
 
+    [Fact]
+    public void FlexLayout_AlignItemsStretch_ShouldStretchChildrenToCrossAxisSize()
+    {
+        // Arrange - 两个子元素有不同的内容高度，AlignItems.Stretch 应该使它们高度统一
+        var root = new DivElement { Class = "input-group" };
+        var label = new LabelElement { Class = "label", TextContent = "UserName" };
+        var input = new InputElement { Class = "input", Type = InputType.Text, Value = "UserName" };
+        root.AddChild(label);
+        root.AddChild(input);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("input-group"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            AlignItems = AlignItems.Stretch,
+                            Width = Length.Percent(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("label"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Padding = new Padding(6, 12),
+                            Width = Length.Percent(20),
+                            FontSize = Length.Px(14),
+                            Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da"))
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("input"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Padding = new Padding(6, 12),
+                            Width = Length.Percent(80),
+                            FontSize = Length.Px(14),
+                            Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da"))
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        var box1 = layoutRoot.Children[0].BoxModel;
+        var box2 = layoutRoot.Children[1].BoxModel;
+
+        // 两个元素的 Content.Top 应该相同（因为 padding 和 border 相同）
+        box1.Content.Top.ShouldBe(box2.Content.Top, 0.01f);
+
+        // AlignItems.Stretch 应该使两个元素的 MarginBox 高度统一
+        box1.MarginBox.Height.ShouldBe(box2.MarginBox.Height, 0.01f);
+
+        // Padding.Bottom 和 Content.Bottom 也应该对齐
+        box1.Padding.Bottom.ShouldBe(box2.Padding.Bottom, 0.01f);
+        box1.Content.Bottom.ShouldBe(box2.Content.Bottom, 0.01f);
+    }
+
+    [Fact]
+    public void FlexLayout_Row_ChildrenWithTextContent_ShouldHaveDifferentXPositions()
+    {
+        // Arrange - 测试 flex row 容器中子元素的 X 坐标应该不同
+        // 当子元素没有设置宽度时，应该根据文本内容计算固有宽度
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new SpanElement { TextContent = "$", Class = "item" };
+        var child2 = new SpanElement { TextContent = "Amount", Class = "item" };
+        var child3 = new SpanElement { TextContent = ".00", Class = "item" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+        root.AddChild(child3);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(600)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            PaddingTop = Length.Px(6),
+                            PaddingRight = Length.Px(12),
+                            PaddingBottom = Length.Px(6),
+                            PaddingLeft = Length.Px(12)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 600, 600);
+
+        // Assert
+        layoutRoot.Children.Count.ShouldBe(3);
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+        var layoutChild3 = layoutRoot.Children[2];
+
+        // 子元素的 X 坐标应该不同（它们应该水平排列）
+        layoutChild1.BoxModel.Content.X.ShouldNotBe(layoutChild2.BoxModel.Content.X);
+        layoutChild2.BoxModel.Content.X.ShouldNotBe(layoutChild3.BoxModel.Content.X);
+
+        // 第二个元素应该在第一个元素之后
+        layoutChild2.BoxModel.Content.X.ShouldBeGreaterThan(layoutChild1.BoxModel.Content.X);
+        // 第三个元素应该在第二个元素之后
+        layoutChild3.BoxModel.Content.X.ShouldBeGreaterThan(layoutChild2.BoxModel.Content.X);
+    }
+
+    #endregion
+
+    #region Flex-Grow/Shrink/Basis Tests
+
+    [Fact]
+    public void FlexLayout_FlexGrow_ShouldDistributeRemainingSpace()
+    {
+        // Arrange - 三个子元素使用不同的 flex-grow 值分配剩余空间
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new DivElement { Class = "item1" };
+        var child2 = new DivElement { Class = "item2" };
+        var child3 = new DivElement { Class = "item3" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+        root.AddChild(child3);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(600),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item1"),
+                        Style = new Style
+                        {
+                            FlexGrow = 1,
+                            FlexBasis = Length.Px(0)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item2"),
+                        Style = new Style
+                        {
+                            FlexGrow = 2,
+                            FlexBasis = Length.Px(0)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item3"),
+                        Style = new Style
+                        {
+                            FlexGrow = 3,
+                            FlexBasis = Length.Px(0)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - 总共 600px，按 1:2:3 分配
+        // item1 = 600 * 1/6 = 100px
+        // item2 = 600 * 2/6 = 200px
+        // item3 = 600 * 3/6 = 300px
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+        var layoutChild3 = layoutRoot.Children[2];
+
+        layoutChild1.BoxModel.MarginBox.Width.ShouldBe(100, 1f);
+        layoutChild2.BoxModel.MarginBox.Width.ShouldBe(200, 1f);
+        layoutChild3.BoxModel.MarginBox.Width.ShouldBe(300, 1f);
+    }
+
+    [Fact]
+    public void FlexLayout_FlexShrink_ShouldShrinkWhenOverflow()
+    {
+        // Arrange - 子元素 flex-basis 总和超过容器宽度，使用 flex-shrink 收缩
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new DivElement { Class = "item1" };
+        var child2 = new DivElement { Class = "item2" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(300),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item1"),
+                        Style = new Style
+                        {
+                            FlexBasis = Length.Px(200),
+                            FlexShrink = 1
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item2"),
+                        Style = new Style
+                        {
+                            FlexBasis = Length.Px(200),
+                            FlexShrink = 1
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        // 容器 300px，两个子元素各 200px（总 400px），溢出 100px
+        // flex-shrink 都是 1，flex-basis 都是 200px
+        // 收缩比例: item1 = 1*200/(1*200+1*200) = 0.5, item2 = 0.5
+        // item1 缩小 100 * 0.5 = 50px → 最终 150px
+        // item2 缩小 100 * 0.5 = 50px → 最终 150px
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+
+        layoutChild1.BoxModel.MarginBox.Width.ShouldBe(150, 1f);
+        layoutChild2.BoxModel.MarginBox.Width.ShouldBe(150, 1f);
+    }
+
+    [Fact]
+    public void FlexLayout_FlexBasis_ShouldUseAsInitialSize()
+    {
+        // Arrange - flex-basis 应该覆盖 width 作为初始尺寸
+        var root = new DivElement { Class = "flex-container" };
+        var child = new DivElement { Class = "item" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(600),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(100), // 这个应该被忽略
+                            FlexBasis = Length.Px(200), // 这个应该作为初始尺寸
+                            FlexGrow = 0
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - flex-basis 应该作为初始尺寸
+        var layoutChild = layoutRoot.Children[0];
+        layoutChild.BoxModel.MarginBox.Width.ShouldBe(200, 1f);
+    }
+
+    [Fact]
+    public void FlexLayout_FlexGrow_Column_ShouldDistributeVerticalSpace()
+    {
+        // Arrange - 列方向的 flex-grow 分配垂直空间
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new DivElement { Class = "item1" };
+        var child2 = new DivElement { Class = "item2" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column,
+                            Width = Length.Px(200),
+                            Height = Length.Px(300)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item1"),
+                        Style = new Style
+                        {
+                            FlexGrow = 1,
+                            FlexBasis = Length.Px(0)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item2"),
+                        Style = new Style
+                        {
+                            FlexGrow = 2,
+                            FlexBasis = Length.Px(0)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - 总共 300px 高度，按 1:2 分配
+        // item1 = 300 * 1/3 = 100px
+        // item2 = 300 * 2/3 = 200px
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+
+        layoutChild1.BoxModel.MarginBox.Height.ShouldBe(100, 1f);
+        layoutChild2.BoxModel.MarginBox.Height.ShouldBe(200, 1f);
+    }
+
+    [Fact]
+    public void FlexLayout_FlexGrowZero_ShouldNotGrow()
+    {
+        // Arrange - flex-grow: 0 的子元素不应该增长
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new DivElement { Class = "item1" };
+        var child2 = new DivElement { Class = "item2" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(600),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item1"),
+                        Style = new Style
+                        {
+                            FlexBasis = Length.Px(100),
+                            FlexGrow = 0 // 不增长
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item2"),
+                        Style = new Style
+                        {
+                            FlexBasis = Length.Px(100),
+                            FlexGrow = 1 // 增长填充剩余空间
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        // 容器 600px，两个子元素各 100px（总 200px），剩余 400px
+        // item1 flex-grow: 0 → 保持 100px
+        // item2 flex-grow: 1 → 100 + 400 = 500px
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+
+        layoutChild1.BoxModel.MarginBox.Width.ShouldBe(100, 1f);
+        layoutChild2.BoxModel.MarginBox.Width.ShouldBe(500, 1f);
+    }
+
+    [Fact]
+    public void FlexLayout_FlexShrink_DifferentRatios_ShouldShrinkProportionally()
+    {
+        // Arrange - 不同的 flex-shrink 值应该按比例收缩
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new DivElement { Class = "item1" };
+        var child2 = new DivElement { Class = "item2" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(300),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item1"),
+                        Style = new Style
+                        {
+                            FlexBasis = Length.Px(200),
+                            FlexShrink = 1
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item2"),
+                        Style = new Style
+                        {
+                            FlexBasis = Length.Px(200),
+                            FlexShrink = 3
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        // 容器 300px，两个子元素各 200px（总 400px），溢出 100px
+        // 收缩系数: item1 = 1*200 = 200, item2 = 3*200 = 600, 总 = 800
+        // item1 收缩 100 * (200/800) = 25px → 最终 175px
+        // item2 收缩 100 * (600/800) = 75px → 最终 125px
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+
+        layoutChild1.BoxModel.MarginBox.Width.ShouldBe(175, 1f);
+        layoutChild2.BoxModel.MarginBox.Width.ShouldBe(125, 1f);
+    }
+
+    [Fact]
+    public void FlexLayout_FlexShrinkZero_ShouldNotShrink()
+    {
+        // Arrange - flex-shrink: 0 的子元素不应该收缩
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new DivElement { Class = "item1" };
+        var child2 = new DivElement { Class = "item2" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(300),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item1"),
+                        Style = new Style
+                        {
+                            FlexBasis = Length.Px(200),
+                            FlexShrink = 0 // 不收缩
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item2"),
+                        Style = new Style
+                        {
+                            FlexBasis = Length.Px(200),
+                            FlexShrink = 1 // 收缩承担全部溢出
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        // 容器 300px，两个子元素各 200px（总 400px），溢出 100px
+        // item1 flex-shrink: 0 → 保持 200px
+        // item2 flex-shrink: 1 → 承担全部收缩，200 - 100 = 100px
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+
+        layoutChild1.BoxModel.MarginBox.Width.ShouldBe(200, 1f);
+        layoutChild2.BoxModel.MarginBox.Width.ShouldBe(100, 1f);
+    }
+
+    [Fact]
+    public void FlexLayout_FlexBasisAuto_ShouldUseContentSize()
+    {
+        // Arrange - flex-basis: auto 应该使用内容尺寸
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new DivElement { Class = "item1", TextContent = "Short" };
+        var child2 = new DivElement { Class = "item2", TextContent = "Much Longer Text" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(800),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item1"),
+                        Style = new Style
+                        {
+                            // FlexBasis 默认为 auto
+                            FlexGrow = 0
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item2"),
+                        Style = new Style
+                        {
+                            // FlexBasis 默认为 auto
+                            FlexGrow = 0
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - 较长文本的元素应该比较短文本的元素宽
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+
+        layoutChild2.BoxModel.MarginBox.Width.ShouldBeGreaterThan(layoutChild1.BoxModel.MarginBox.Width);
+    }
+
+    [Fact]
+    public void FlexLayout_FlexBasisPercent_ShouldCalculateFromContainer()
+    {
+        // Arrange - flex-basis 百分比应该基于容器尺寸计算
+        var root = new DivElement { Class = "flex-container" };
+        var child = new DivElement { Class = "item" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(400),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
+                        Style = new Style
+                        {
+                            FlexBasis = Length.Percent(50), // 容器宽度的 50%
+                            FlexGrow = 0
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - 50% of 400px = 200px
+        var layoutChild = layoutRoot.Children[0];
+        layoutChild.BoxModel.MarginBox.Width.ShouldBe(200, 1f);
+    }
+
     #endregion
 
     #region Display.Inline Tests
@@ -1195,6 +1881,129 @@ public class LayoutEngineTests
         // 但在当前实现中，子元素的约束是基于父元素的内容宽度
         var layoutChild = layoutRoot.Children[0];
         layoutChild.ShouldNotBeNull();
+    }
+
+    #endregion
+
+    #region Input Element Default Width Tests
+
+    /// <summary>
+    /// 文本输入框在布局时应该使用浏览器默认宽度（约173px）
+    /// 这验证了 UA Stylesheet 中的默认宽度在布局阶段被正确应用
+    /// </summary>
+    [Fact]
+    public void TextInput_Layout_ShouldHaveDefaultWidth()
+    {
+        // Arrange
+        var input = new InputElement { Type = InputType.Text };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(input, new List<StyleSheet>(), 800, 600);
+
+        // Assert: 浏览器默认文本输入框宽度约为 173px (Chrome)
+        layoutRoot.BoxModel.Content.Width.ShouldBe(173,
+            "Text input should have default width of 173px (browser default)");
+    }
+
+    /// <summary>
+    /// 密码输入框在布局时应该与文本输入框有相同的默认宽度
+    /// </summary>
+    [Fact]
+    public void PasswordInput_Layout_ShouldHaveSameDefaultWidthAsText()
+    {
+        // Arrange
+        var textInput = new InputElement { Type = InputType.Text };
+        var passwordInput = new InputElement { Type = InputType.Password };
+
+        // Act
+        var textLayout = _layoutEngine.Layout(textInput, new List<StyleSheet>(), 800, 600);
+        var passwordLayout = _layoutEngine.Layout(passwordInput, new List<StyleSheet>(), 800, 600);
+
+        // Assert: 密码输入框应该与文本输入框具有相同的宽度
+        passwordLayout.BoxModel.Content.Width.ShouldBe(textLayout.BoxModel.Content.Width,
+            "Password input should have same default width as text input");
+        passwordLayout.BoxModel.Content.Width.ShouldBe(173,
+            "Password input should have default width of 173px");
+    }
+
+    /// <summary>
+    /// 文本输入框在 Flex 容器中应该保持其固有默认宽度
+    /// </summary>
+    [Fact]
+    public void TextInput_InFlexContainer_ShouldMaintainDefaultWidth()
+    {
+        // Arrange
+        var container = new DivElement { Class = "flex-container" };
+        var label = new SpanElement { TextContent = "Name:", Class = "label" };
+        var input = new InputElement { Type = InputType.Text, Class = "input" };
+        container.AddChild(label);
+        container.AddChild(input);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(600)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(container, styleSheets, 800, 600);
+
+        // Assert: 输入框在 Flex 容器中应该保持其默认宽度
+        var inputLayout = layoutRoot.Children[1];
+        inputLayout.BoxModel.Content.Width.ShouldBe(173,
+            "Text input in flex container should maintain default width of 173px");
+    }
+
+    /// <summary>
+    /// Checkbox 和 Radio 应该有固定的 13x13px 尺寸
+    /// </summary>
+    [Theory]
+    [InlineData(InputType.Checkbox)]
+    [InlineData(InputType.Radio)]
+    public void CheckboxAndRadio_Layout_ShouldHaveFixedSize(InputType inputType)
+    {
+        // Arrange
+        var input = new InputElement { Type = inputType };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(input, new List<StyleSheet>(), 800, 600);
+
+        // Assert: Checkbox 和 Radio 应该是 13x13px
+        layoutRoot.BoxModel.Content.Width.ShouldBe(13,
+            $"{inputType} should have fixed width of 13px");
+        layoutRoot.BoxModel.Content.Height.ShouldBe(13,
+            $"{inputType} should have fixed height of 13px");
+    }
+
+    /// <summary>
+    /// Range 输入框应该有默认宽度（约129px）
+    /// </summary>
+    [Fact]
+    public void RangeInput_Layout_ShouldHaveDefaultWidth()
+    {
+        // Arrange
+        var input = new InputElement { Type = InputType.Range };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(input, new List<StyleSheet>(), 800, 600);
+
+        // Assert: Range 输入框默认宽度约为 129px (Chrome)
+        layoutRoot.BoxModel.Content.Width.ShouldBe(129,
+            "Range input should have default width of 129px");
     }
 
     #endregion

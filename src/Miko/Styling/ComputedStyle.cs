@@ -13,6 +13,11 @@ public class ComputedStyle : Style
     public new JustifyContent JustifyContent { get; set; } = Common.JustifyContent.FlexStart;
     public new AlignItems AlignItems { get; set; } = Common.AlignItems.Stretch;
 
+    // Flex 子元素属性（CSS 默认值）
+    public new float FlexGrow { get; set; } = 0f;
+    public new float FlexShrink { get; set; } = 1f;
+    public new Length FlexBasis { get; set; } = Length.Auto;
+
     public new Length Width { get; set; } = Length.Auto;
     public new Length Height { get; set; } = Length.Auto;
     public new Length MinWidth { get; set; } = Length.Px(0);
@@ -69,6 +74,10 @@ public class ComputedStyle : Style
             if (style.FlexDirection.HasValue) computed.FlexDirection = style.FlexDirection.Value;
             if (style.JustifyContent.HasValue) computed.JustifyContent = style.JustifyContent.Value;
             if (style.AlignItems.HasValue) computed.AlignItems = style.AlignItems.Value;
+
+            if (style.FlexGrow.HasValue) computed.FlexGrow = style.FlexGrow.Value;
+            if (style.FlexShrink.HasValue) computed.FlexShrink = style.FlexShrink.Value;
+            if (style.FlexBasis.HasValue) computed.FlexBasis = style.FlexBasis.Value;
 
             if (style.Width.HasValue) computed.Width = style.Width.Value;
             if (style.Height.HasValue) computed.Height = style.Height.Value;
