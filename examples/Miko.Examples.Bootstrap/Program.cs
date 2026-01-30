@@ -42,6 +42,17 @@ class Program
         );
 
         Console.WriteLine();
+
+        // Render List Example
+        RenderExample(
+            ListExample.Title,
+            ListExample.CreateDOM(),
+            styleSheets,
+            Path.Combine(outputDir, ListExample.OutputFileName),
+            800, 1900
+        );
+
+        Console.WriteLine();
         Console.WriteLine("=".PadRight(60, '='));
         Console.WriteLine("All examples rendered successfully!");
         Console.WriteLine($"Output directory: {outputDir}");

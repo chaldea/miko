@@ -256,6 +256,40 @@ public class StyleResolver
                 // Labels are inline elements that associate with form controls
                 style.Display ??= Common.Display.Inline;
                 break;
+
+            case "ul":
+                // Browser default: display: block, margin: 1em 0, padding-left: 40px
+                // list-style-type: disc (not implemented - visual bullets would need Painter support)
+                style.Display ??= Common.Display.Block;
+                style.MarginTop ??= Common.Length.Px(16);     // 1em at 16px
+                style.MarginBottom ??= Common.Length.Px(16);
+                style.MarginLeft ??= Common.Length.Px(0);
+                style.MarginRight ??= Common.Length.Px(0);
+                style.PaddingLeft ??= Common.Length.Px(40);
+                style.PaddingTop ??= Common.Length.Px(0);
+                style.PaddingRight ??= Common.Length.Px(0);
+                style.PaddingBottom ??= Common.Length.Px(0);
+                break;
+
+            case "ol":
+                // Browser default: display: block, margin: 1em 0, padding-left: 40px
+                // list-style-type: decimal (not implemented - numbers would need Painter support)
+                style.Display ??= Common.Display.Block;
+                style.MarginTop ??= Common.Length.Px(16);     // 1em at 16px
+                style.MarginBottom ??= Common.Length.Px(16);
+                style.MarginLeft ??= Common.Length.Px(0);
+                style.MarginRight ??= Common.Length.Px(0);
+                style.PaddingLeft ??= Common.Length.Px(40);
+                style.PaddingTop ??= Common.Length.Px(0);
+                style.PaddingRight ??= Common.Length.Px(0);
+                style.PaddingBottom ??= Common.Length.Px(0);
+                break;
+
+            case "li":
+                // Browser default: display: list-item (using block as list-item not supported)
+                // List markers (bullets/numbers) would need separate Painter implementation
+                style.Display ??= Common.Display.Block;
+                break;
         }
     }
 

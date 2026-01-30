@@ -156,6 +156,9 @@ public static class BootstrapStyles
         // Form control styles
         AddFormControlStyles(styleSheet);
 
+        // List styles
+        AddListStyles(styleSheet);
+
         return styleSheet;
     }
 
@@ -425,6 +428,124 @@ public static class BootstrapStyles
             {
                 BackgroundColor = Color.FromHex("e9ecef"),
                 Color = Colors.Secondary
+            }
+        );
+    }
+
+    private static void AddListStyles(StyleSheet styleSheet)
+    {
+        // Column layout helper
+        styleSheet.AddRule(
+            new ClassSelector("col"),
+            new Style
+            {
+                Display = Display.Block,
+                FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = 0,
+                PaddingRight = Length.Px(15),
+                PaddingLeft = Length.Px(15)
+            }
+        );
+
+        // List group container
+        styleSheet.AddRule(
+            new ClassSelector("list-group"),
+            new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Column,
+                PaddingLeft = Length.Px(0),
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Px(20),
+                BorderRadius = new BorderRadius(6)
+            }
+        );
+
+        // List group item
+        styleSheet.AddRule(
+            new ClassSelector("list-group-item"),
+            new Style
+            {
+                Display = Display.Block,
+                PaddingTop = Length.Px(12),
+                PaddingRight = Length.Px(16),
+                PaddingBottom = Length.Px(12),
+                PaddingLeft = Length.Px(16),
+                Color = Colors.TextDark,
+                BackgroundColor = Color.White,
+                Border = new Border(1, BorderStyle.Solid, Color.FromHex("dee2e6")),
+                MarginTop = Length.Px(-1)  // Collapse borders
+            }
+        );
+
+        // Active list group item
+        styleSheet.AddRule(
+            new ClassSelector("list-group-item-active"),
+            new Style
+            {
+                Color = Color.White,
+                BackgroundColor = Colors.Primary,
+                BorderColor = Colors.Primary
+            }
+        );
+
+        // Disabled list group item
+        styleSheet.AddRule(
+            new ClassSelector("list-group-item-disabled"),
+            new Style
+            {
+                Color = Colors.Secondary,
+                BackgroundColor = Color.White
+            }
+        );
+
+        // Flush list group (no borders on sides, no rounded corners)
+        styleSheet.AddRule(
+            new ClassSelector("list-group-flush"),
+            new Style
+            {
+                BorderRadius = new BorderRadius(0)
+            }
+        );
+
+        // Numbered list group
+        styleSheet.AddRule(
+            new ClassSelector("list-group-numbered"),
+            new Style
+            {
+                PaddingLeft = Length.Px(40)
+            }
+        );
+
+        // Contextual list group item variants
+        AddListGroupItemVariant(styleSheet, "list-group-item-primary",
+            Color.FromHex("cfe2ff"), Color.FromHex("084298"), Color.FromHex("b6d4fe"));
+        AddListGroupItemVariant(styleSheet, "list-group-item-secondary",
+            Color.FromHex("e2e3e5"), Color.FromHex("41464b"), Color.FromHex("c4c8cb"));
+        AddListGroupItemVariant(styleSheet, "list-group-item-success",
+            Color.FromHex("d1e7dd"), Color.FromHex("0f5132"), Color.FromHex("badbcc"));
+        AddListGroupItemVariant(styleSheet, "list-group-item-danger",
+            Color.FromHex("f8d7da"), Color.FromHex("842029"), Color.FromHex("f5c2c7"));
+        AddListGroupItemVariant(styleSheet, "list-group-item-warning",
+            Color.FromHex("fff3cd"), Color.FromHex("664d03"), Color.FromHex("ffecb5"));
+        AddListGroupItemVariant(styleSheet, "list-group-item-info",
+            Color.FromHex("cff4fc"), Color.FromHex("055160"), Color.FromHex("b6effb"));
+        AddListGroupItemVariant(styleSheet, "list-group-item-light",
+            Color.FromHex("fefefe"), Color.FromHex("636464"), Color.FromHex("fdfdfe"));
+        AddListGroupItemVariant(styleSheet, "list-group-item-dark",
+            Color.FromHex("d3d3d4"), Color.FromHex("141619"), Color.FromHex("bababc"));
+    }
+
+    private static void AddListGroupItemVariant(StyleSheet styleSheet, string className, Color bgColor, Color textColor, Color borderColor)
+    {
+        styleSheet.AddRule(
+            new ClassSelector(className),
+            new Style
+            {
+                BackgroundColor = bgColor,
+                Color = textColor,
+                BorderColor = borderColor
             }
         );
     }
