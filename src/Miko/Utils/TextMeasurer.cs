@@ -1,4 +1,5 @@
 using Miko.Common;
+using Miko.Fonts;
 using SkiaSharp;
 
 namespace Miko.Utils;
@@ -27,24 +28,31 @@ public static class TextMeasurer
             return (0, 0);
         }
 
-        using var typeface = SKTypeface.FromFamilyName(
-            fontFamily,
-            (SKFontStyleWeight)(int)fontWeight,
-            SKFontStyleWidth.Normal,
-            SKFontStyleSlant.Upright);
+        var fontManager = FontManager.Instance;
+        var fallbackResolver = new FontFallbackResolver(fontManager);
+        var textRuns = fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight);
 
-        using var font = new SKFont(typeface, fontSize);
+        if (textRuns.Count == 0)
+        {
+            return (0, 0);
+        }
+
+        float totalWidth = 0;
+        float maxHeight = 0;
+
         using var paint = new SKPaint();
 
-        // 测量文本宽度
-        float width = font.MeasureText(text, paint);
+        foreach (var run in textRuns)
+        {
+            using var font = new SKFont(run.Typeface, fontSize);
+            totalWidth += font.MeasureText(run.Text, paint);
 
-        // 获取字体度量以计算高度
-        var metrics = font.Metrics;
-        // 使用 ascent 的绝对值加上 descent 来计算行高
-        float height = -metrics.Ascent + metrics.Descent;
+            var metrics = font.Metrics;
+            float height = -metrics.Ascent + metrics.Descent;
+            maxHeight = Math.Max(maxHeight, height);
+        }
 
-        return (width, height);
+        return (totalWidth, maxHeight);
     }
 
     /// <summary>
@@ -67,11 +75,17 @@ public static class TextMeasurer
         float fontSize,
         FontWeight fontWeight)
     {
-        using var typeface = SKTypeface.FromFamilyName(
-            fontFamily,
-            (SKFontStyleWeight)(int)fontWeight,
-            SKFontStyleWidth.Normal,
-            SKFontStyleSlant.Upright);
+        var fontManager = FontManager.Instance;
+        var typeface = fontManager.GetTypeface(fontFamily, fontWeight);
+
+        if (typeface == null)
+        {
+            typeface = SKTypeface.FromFamilyName(
+                fontFamily,
+                (SKFontStyleWeight)(int)fontWeight,
+                SKFontStyleWidth.Normal,
+                SKFontStyleSlant.Upright);
+        }
 
         using var font = new SKFont(typeface, fontSize);
 

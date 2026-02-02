@@ -1,4 +1,5 @@
 using Miko.Common;
+using Miko.Fonts;
 using SkiaSharp;
 
 namespace Miko.Rendering;
@@ -89,35 +90,45 @@ public class Painter
     {
         if (string.IsNullOrEmpty(text) || color.A == 0) return;
 
-        using var typeface = SKTypeface.FromFamilyName(fontFamily, (SKFontStyleWeight)(int)fontWeight, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright);
-        using var font = new SKFont(typeface, fontSize);
+        var fontManager = FontManager.Instance;
+        var fallbackResolver = new FontFallbackResolver(fontManager);
+        var textRuns = fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight);
+
+        if (textRuns.Count == 0) return;
+
         using var paint = new SKPaint
         {
             Color = color.ToSKColor(),
             IsAntialias = true
         };
 
-        // 计算文本位置
+        // 计算总宽度用于对齐
+        float totalWidth = 0;
+        foreach (var run in textRuns)
+        {
+            using var font = new SKFont(run.Typeface, fontSize);
+            totalWidth += font.MeasureText(run.Text, paint);
+        }
+
+        // 计算起始X位置
         float x = textAlign switch
         {
             TextAlign.Left => rect.Left,
-            TextAlign.Right => rect.Right,
-            TextAlign.Center => rect.Left + rect.Width / 2,
+            TextAlign.Right => rect.Right - totalWidth,
+            TextAlign.Center => rect.Left + (rect.Width - totalWidth) / 2,
             _ => rect.Left
-        };
-
-        var skTextAlign = textAlign switch
-        {
-            TextAlign.Left => SKTextAlign.Left,
-            TextAlign.Right => SKTextAlign.Right,
-            TextAlign.Center => SKTextAlign.Center,
-            _ => SKTextAlign.Left
         };
 
         // 垂直居中
         float y = rect.Top + (rect.Height + fontSize) / 2;
 
-        _canvas.DrawText(text, x, y, skTextAlign, font, paint);
+        // 绘制每个文本段
+        foreach (var run in textRuns)
+        {
+            using var font = new SKFont(run.Typeface, fontSize);
+            _canvas.DrawText(run.Text, x, y, SKTextAlign.Left, font, paint);
+            x += font.MeasureText(run.Text, paint);
+        }
     }
 
     /// <summary>

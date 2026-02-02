@@ -800,4 +800,154 @@ public static class BootstrapStyles
             }
         );
     }
+
+    /// <summary>
+    /// Adds Bootstrap Icons styles to the stylesheet.
+    /// </summary>
+    public static void AddIconStyles(StyleSheet styleSheet)
+    {
+        // Icon row container
+        styleSheet.AddRule(
+            new ClassSelector("icon-row"),
+            new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                MarginBottom = Length.Px(20),
+                AlignItems = AlignItems.FlexEnd
+            }
+        );
+
+        // Icon item container
+        styleSheet.AddRule(
+            new ClassSelector("icon-item"),
+            new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Column,
+                AlignItems = AlignItems.Center,
+                Margin = new Margin(0, 20, 10, 0),
+                MinWidth = Length.Px(80)
+            }
+        );
+
+        // Base icon style (bootstrap-icons font)
+        styleSheet.AddRule(
+            new ClassSelector("bi"),
+            new Style
+            {
+                FontFamily = "bootstrap-icons, Arial",
+                FontSize = Length.Px(24),
+                Color = Colors.TextDark,
+                MarginBottom = Length.Px(8)
+            }
+        );
+
+        // Icon label
+        styleSheet.AddRule(
+            new ClassSelector("icon-label"),
+            new Style
+            {
+                FontSize = Length.Px(12),
+                Color = Colors.Secondary
+            }
+        );
+
+        // Icon sizes
+        styleSheet.AddRule(
+            new ClassSelector("icon-sm"),
+            new Style
+            {
+                FontSize = Length.Px(16)
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("icon-md"),
+            new Style
+            {
+                FontSize = Length.Px(24)
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("icon-lg"),
+            new Style
+            {
+                FontSize = Length.Px(32)
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("icon-xl"),
+            new Style
+            {
+                FontSize = Length.Px(48)
+            }
+        );
+
+        // Icon colors
+        styleSheet.AddRule(
+            new ClassSelector("icon-primary"),
+            new Style
+            {
+                Color = Colors.Primary
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("icon-success"),
+            new Style
+            {
+                Color = Colors.Success
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("icon-danger"),
+            new Style
+            {
+                Color = Colors.Danger
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("icon-warning"),
+            new Style
+            {
+                Color = Colors.Warning
+            }
+        );
+
+        styleSheet.AddRule(
+            new ClassSelector("icon-info"),
+            new Style
+            {
+                Color = Colors.Info
+            }
+        );
+
+        // Icon button style
+        styleSheet.AddRule(
+            new ClassSelector("icon-btn"),
+            new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                AlignItems = AlignItems.Center
+            }
+        );
+
+        // Icon inside button
+        styleSheet.AddRule(
+            new ClassSelector("btn-icon"),
+            new Style
+            {
+                FontSize = Length.Px(16),
+                MarginRight = Length.Px(6),
+                MarginBottom = Length.Px(0),
+                Color = Colors.TextWhite
+            }
+        );
+    }
 }
