@@ -82,18 +82,47 @@ public class BlockLayout
         float contentX = x + box.BoxModel.Margin.Left + box.BoxModel.Border.Left + box.BoxModel.Padding.Left;
         float contentY = y + box.BoxModel.Margin.Top + box.BoxModel.Border.Top + box.BoxModel.Padding.Top;
 
-        // 4. 布局子元素（垂直堆叠）
+        // 4. 布局子元素
+        // Block 子元素垂直堆叠，Inline/InlineBlock 子元素水平排列
         float currentY = contentY;
         float maxChildWidth = 0;
 
-        foreach (var child in box.Children)
+        int i = 0;
+        while (i < box.Children.Count)
         {
-            var childConstraints = new LayoutConstraints(contentWidth, null);
-            LayoutChild(child, childConstraints, contentX, currentY);
+            var child = box.Children[i];
 
-            // 移动到下一个子元素的位置
-            currentY = child.BoxModel.MarginBox.Bottom;
-            maxChildWidth = Math.Max(maxChildWidth, child.BoxModel.MarginBox.Width);
+            if (IsInlineOrInlineBlock(child))
+            {
+                // 收集连续的 Inline/InlineBlock 子元素并水平布局
+                float lineX = contentX;
+                float lineHeight = 0;
+
+                while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i]))
+                {
+                    var inlineChild = box.Children[i];
+                    var childConstraints = new LayoutConstraints(null, null);
+                    LayoutChild(inlineChild, childConstraints, lineX, currentY);
+
+                    lineX = inlineChild.BoxModel.MarginBox.Right;
+                    lineHeight = Math.Max(lineHeight, inlineChild.BoxModel.MarginBox.Height);
+                    maxChildWidth = Math.Max(maxChildWidth, lineX - contentX);
+                    i++;
+                }
+
+                // 移动到下一行
+                currentY += lineHeight;
+            }
+            else
+            {
+                // Block 子元素垂直堆叠
+                var childConstraints = new LayoutConstraints(contentWidth, null);
+                LayoutChild(child, childConstraints, contentX, currentY);
+
+                currentY = child.BoxModel.MarginBox.Bottom;
+                maxChildWidth = Math.Max(maxChildWidth, child.BoxModel.MarginBox.Width);
+                i++;
+            }
         }
 
         // 5. 计算 height
@@ -140,5 +169,10 @@ public class BlockLayout
     private void LayoutChild(LayoutBox child, LayoutConstraints constraints, float x, float y)
     {
         LayoutDispatcher.Dispatch(child, constraints, x, y);
+    }
+
+    private static bool IsInlineOrInlineBlock(LayoutBox child)
+    {
+        return child.Type == LayoutType.Inline || child.Type == LayoutType.InlineBlock;
     }
 }

@@ -230,7 +230,7 @@ public static class BootstrapStyles
             new Style
             {
                 Display = Display.Block,
-                Width = Length.Percent(100),
+                Width = Length.Percent(90),
                 PaddingTop = Length.Px(6),
                 PaddingRight = Length.Px(36),
                 PaddingBottom = Length.Px(6),

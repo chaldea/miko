@@ -593,6 +593,98 @@ public class LayoutEngineTests
         layoutChild3.BoxModel.Content.X.ShouldBeGreaterThan(layoutChild2.BoxModel.Content.X);
     }
 
+    [Fact]
+    public void FlexLayout_DefaultAlignItems_ShouldNotStretchChildrenWithDifferentPadding()
+    {
+        // Arrange - Flex 容器中的子元素有不同的 padding
+        // 默认情况下（AlignItems = FlexStart），子元素应该保持各自的固有尺寸
+        var root = new DivElement { Class = "row" };
+        var button1 = new ButtonElement { TextContent = "Button", Class = "btn-sm" };
+        var button2 = new ButtonElement { TextContent = "Button" };
+        var button3 = new ButtonElement { TextContent = "Button", Class = "btn-lg" };
+        root.AddChild(button1);
+        root.AddChild(button2);
+        root.AddChild(button3);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("row"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row
+                            // 注意：没有显式设置 AlignItems，默认为 FlexStart
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new TagSelector("button"),
+                        Style = new Style
+                        {
+                            Display = Display.InlineBlock,
+                            Padding = new Padding(6, 12),
+                            FontSize = Length.Px(14)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("btn-sm"),
+                        Style = new Style
+                        {
+                            PaddingTop = Length.Px(4),
+                            PaddingRight = Length.Px(8),
+                            PaddingBottom = Length.Px(4),
+                            PaddingLeft = Length.Px(8),
+                            FontSize = Length.Px(14)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("btn-lg"),
+                        Style = new Style
+                        {
+                            PaddingTop = Length.Px(10),
+                            PaddingRight = Length.Px(16),
+                            PaddingBottom = Length.Px(10),
+                            PaddingLeft = Length.Px(16),
+                            FontSize = Length.Px(14)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        layoutRoot.Children.Count.ShouldBe(3);
+        var box1 = layoutRoot.Children[0].BoxModel;
+        var box2 = layoutRoot.Children[1].BoxModel;
+        var box3 = layoutRoot.Children[2].BoxModel;
+
+        // 验证子元素高度不同（btn-sm < medium < btn-lg）
+        // 因为垂直 padding 不同，所以 BorderBox 高度应该不同
+        // btn-sm: padding-top=4, padding-bottom=4, total vertical padding=8
+        // medium: padding-top=6, padding-bottom=6, total vertical padding=12
+        // btn-lg: padding-top=10, padding-bottom=10, total vertical padding=20
+        box1.BorderBox.Height.ShouldBeLessThan(box2.BorderBox.Height);
+        box2.BorderBox.Height.ShouldBeLessThan(box3.BorderBox.Height);
+
+        // 验证子元素宽度不同（使用相同文本，所以宽度差异仅来自 padding）
+        // btn-sm: padding-left=8, padding-right=8, total horizontal padding=16
+        // medium: padding-left=12, padding-right=12, total horizontal padding=24
+        // btn-lg: padding-left=16, padding-right=16, total horizontal padding=32
+        box1.BorderBox.Width.ShouldBeLessThan(box2.BorderBox.Width);
+        box2.BorderBox.Width.ShouldBeLessThan(box3.BorderBox.Width);
+    }
+
     #endregion
 
     #region Flex-Grow/Shrink/Basis Tests
@@ -1633,6 +1725,79 @@ public class LayoutEngineTests
 
         // 验证元素在同一行
         layoutChild1.BoxModel.Content.Y.ShouldBe(layoutChild2.BoxModel.Content.Y);
+    }
+
+    [Fact]
+    public void BlockLayout_WithInlineBlockChildren_ShouldArrangeHorizontally()
+    {
+        // Arrange - Block 容器包含多个 InlineBlock 子元素
+        // InlineBlock 子元素应该水平排列在同一行
+        var root = new DivElement { Class = "container" };
+        var button1 = new ButtonElement { TextContent = "Small", Class = "btn-sm" };
+        var button2 = new ButtonElement { TextContent = "Medium" };
+        var button3 = new ButtonElement { TextContent = "Large", Class = "btn-lg" };
+        root.AddChild(button1);
+        root.AddChild(button2);
+        root.AddChild(button3);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new TagSelector("button"),
+                        Style = new Style
+                        {
+                            Display = Display.InlineBlock,
+                            Padding = new Padding(6, 12),
+                            Margin = new Margin(0, 10, 10, 0)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("btn-sm"),
+                        Style = new Style
+                        {
+                            PaddingTop = Length.Px(4),
+                            PaddingRight = Length.Px(8),
+                            PaddingBottom = Length.Px(4),
+                            PaddingLeft = Length.Px(8)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("btn-lg"),
+                        Style = new Style
+                        {
+                            PaddingTop = Length.Px(10),
+                            PaddingRight = Length.Px(16),
+                            PaddingBottom = Length.Px(10),
+                            PaddingLeft = Length.Px(16)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        layoutRoot.Children.Count.ShouldBe(3);
+        var box1 = layoutRoot.Children[0].BoxModel;
+        var box2 = layoutRoot.Children[1].BoxModel;
+        var box3 = layoutRoot.Children[2].BoxModel;
+
+        // 验证三个按钮在同一行（BorderBox.Top 相同）
+        box1.BorderBox.Top.ShouldBe(box2.BorderBox.Top);
+        box2.BorderBox.Top.ShouldBe(box3.BorderBox.Top);
+
+        // 验证按钮水平排列（X 坐标递增）
+        box2.BorderBox.Left.ShouldBeGreaterThan(box1.BorderBox.Left);
+        box3.BorderBox.Left.ShouldBeGreaterThan(box2.BorderBox.Left);
     }
 
     #endregion

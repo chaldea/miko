@@ -501,39 +501,45 @@ public class FlexLayout
                     break;
 
                 case AlignItems.Stretch:
-                    // 拉伸子元素到交叉轴尺寸
+                    // 拉伸子元素到交叉轴尺寸，但只拉伸没有显式尺寸的子元素
                     if (isRow)
                     {
-                        // Row 布局：拉伸高度
-                        // 计算目标 content height = crossSize - margin - border - padding
-                        float targetContentHeight = crossSize
-                            - child.BoxModel.Margin.Vertical
-                            - child.BoxModel.Border.Vertical
-                            - child.BoxModel.Padding.Vertical;
-                        targetContentHeight = Math.Max(0, targetContentHeight);
+                        // Row 布局：只有当子元素没有显式高度时才拉伸
+                        if (child.ComputedStyle.Height.IsAuto)
+                        {
+                            // 计算目标 content height = crossSize - margin - border - padding
+                            float targetContentHeight = crossSize
+                                - child.BoxModel.Margin.Vertical
+                                - child.BoxModel.Border.Vertical
+                                - child.BoxModel.Padding.Vertical;
+                            targetContentHeight = Math.Max(0, targetContentHeight);
 
-                        child.BoxModel.Content = new RectF(
-                            child.BoxModel.Content.X,
-                            child.BoxModel.Content.Y,
-                            child.BoxModel.Content.Width,
-                            targetContentHeight
-                        );
+                            child.BoxModel.Content = new RectF(
+                                child.BoxModel.Content.X,
+                                child.BoxModel.Content.Y,
+                                child.BoxModel.Content.Width,
+                                targetContentHeight
+                            );
+                        }
                     }
                     else
                     {
-                        // Column 布局：拉伸宽度
-                        float targetContentWidth = crossSize
-                            - child.BoxModel.Margin.Horizontal
-                            - child.BoxModel.Border.Horizontal
-                            - child.BoxModel.Padding.Horizontal;
-                        targetContentWidth = Math.Max(0, targetContentWidth);
+                        // Column 布局：只有当子元素没有显式宽度时才拉伸
+                        if (child.ComputedStyle.Width.IsAuto)
+                        {
+                            float targetContentWidth = crossSize
+                                - child.BoxModel.Margin.Horizontal
+                                - child.BoxModel.Border.Horizontal
+                                - child.BoxModel.Padding.Horizontal;
+                            targetContentWidth = Math.Max(0, targetContentWidth);
 
-                        child.BoxModel.Content = new RectF(
-                            child.BoxModel.Content.X,
-                            child.BoxModel.Content.Y,
-                            targetContentWidth,
-                            child.BoxModel.Content.Height
-                        );
+                            child.BoxModel.Content = new RectF(
+                                child.BoxModel.Content.X,
+                                child.BoxModel.Content.Y,
+                                targetContentWidth,
+                                child.BoxModel.Content.Height
+                            );
+                        }
                     }
                     break;
 
