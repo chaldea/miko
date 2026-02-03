@@ -32,99 +32,26 @@ public static class TableExample
                 new H2Element { TextContent = "Bordered Table" },
                 CreateBorderedTable(),
 
-                // Borderless Table
-                new H2Element { TextContent = "Borderless Table" },
-                CreateBorderlessTable(),
+                // Hover Table
+                new H2Element { TextContent = "Hover Table" },
+                CreateHoverTable(),
 
                 // Small Table
                 new H2Element { TextContent = "Small Table" },
                 CreateSmallTable(),
 
-                // Dark Header Table
-                new H2Element { TextContent = "Dark Header" },
-                CreateDarkHeaderTable(),
-
-                // Contextual Rows
-                new H2Element { TextContent = "Contextual Rows" },
+                // Contextual Table
+                new H2Element { TextContent = "Contextual Classes" },
                 CreateContextualTable(),
 
-                // Table with Caption
-                new H2Element { TextContent = "Table with Caption" },
-                CreateCaptionTable()
+                // Dark Table
+                new H2Element { TextContent = "Dark Table" },
+                CreateDarkTable()
             }
         };
     }
 
-    private static Element CreateBasicTable()
-    {
-        return new TableElement
-        {
-            Class = "table",
-            Children =
-            {
-                // Header
-                new TheadElement
-                {
-                    Children =
-                    {
-                        new TrElement
-                        {
-                            Class = "table-header",
-                            Children =
-                            {
-                                new ThElement { TextContent = "#", Class = "table-header-cell" },
-                                new ThElement { TextContent = "First", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Last", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Handle", Class = "table-header-cell" }
-                            }
-                        }
-                    }
-                },
-                // Body
-                new TbodyElement
-                {
-                    Children =
-                    {
-                        new TrElement
-                        {
-                            Class = "table-row",
-                            Children =
-                            {
-                                new TdElement { TextContent = "1", Class = "table-cell" },
-                                new TdElement { TextContent = "Mark", Class = "table-cell" },
-                                new TdElement { TextContent = "Otto", Class = "table-cell" },
-                                new TdElement { TextContent = "@mdo", Class = "table-cell" }
-                            }
-                        },
-                        new TrElement
-                        {
-                            Class = "table-row",
-                            Children =
-                            {
-                                new TdElement { TextContent = "2", Class = "table-cell" },
-                                new TdElement { TextContent = "Jacob", Class = "table-cell" },
-                                new TdElement { TextContent = "Thornton", Class = "table-cell" },
-                                new TdElement { TextContent = "@fat", Class = "table-cell" }
-                            }
-                        },
-                        new TrElement
-                        {
-                            Class = "table-row",
-                            Children =
-                            {
-                                new TdElement { TextContent = "3", Class = "table-cell" },
-                                new TdElement { TextContent = "Larry", Class = "table-cell" },
-                                new TdElement { TextContent = "Bird", Class = "table-cell" },
-                                new TdElement { TextContent = "@twitter", Class = "table-cell" }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-    }
-
-    private static Element CreateStripedTable()
+    private static TableElement CreateBasicTable()
     {
         return new TableElement
         {
@@ -137,13 +64,12 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-header",
                             Children =
                             {
-                                new ThElement { TextContent = "#", Class = "table-header-cell" },
-                                new ThElement { TextContent = "First", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Last", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Handle", Class = "table-header-cell" }
+                                new ThElement { TextContent = "#", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "First", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Last", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Handle", Scope = TableHeaderScope.Col }
                             }
                         }
                     }
@@ -154,46 +80,32 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-row",
                             Children =
                             {
-                                new TdElement { TextContent = "1", Class = "table-cell" },
-                                new TdElement { TextContent = "Mark", Class = "table-cell" },
-                                new TdElement { TextContent = "Otto", Class = "table-cell" },
-                                new TdElement { TextContent = "@mdo", Class = "table-cell" }
+                                new ThElement { TextContent = "1", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Mark" },
+                                new TdElement { TextContent = "Otto" },
+                                new TdElement { TextContent = "@mdo" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-striped",
                             Children =
                             {
-                                new TdElement { TextContent = "2", Class = "table-cell" },
-                                new TdElement { TextContent = "Jacob", Class = "table-cell" },
-                                new TdElement { TextContent = "Thornton", Class = "table-cell" },
-                                new TdElement { TextContent = "@fat", Class = "table-cell" }
+                                new ThElement { TextContent = "2", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Jacob" },
+                                new TdElement { TextContent = "Thornton" },
+                                new TdElement { TextContent = "@fat" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row",
                             Children =
                             {
-                                new TdElement { TextContent = "3", Class = "table-cell" },
-                                new TdElement { TextContent = "Larry", Class = "table-cell" },
-                                new TdElement { TextContent = "Bird", Class = "table-cell" },
-                                new TdElement { TextContent = "@twitter", Class = "table-cell" }
-                            }
-                        },
-                        new TrElement
-                        {
-                            Class = "table-row table-striped",
-                            Children =
-                            {
-                                new TdElement { TextContent = "4", Class = "table-cell" },
-                                new TdElement { TextContent = "John", Class = "table-cell" },
-                                new TdElement { TextContent = "Doe", Class = "table-cell" },
-                                new TdElement { TextContent = "@johnd", Class = "table-cell" }
+                                new ThElement { TextContent = "3", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Larry" },
+                                new TdElement { TextContent = "Bird" },
+                                new TdElement { TextContent = "@twitter" }
                             }
                         }
                     }
@@ -202,7 +114,83 @@ public static class TableExample
         };
     }
 
-    private static Element CreateBorderedTable()
+    private static TableElement CreateStripedTable()
+    {
+        return new TableElement
+        {
+            Class = "table table-striped",
+            Children =
+            {
+                new TheadElement
+                {
+                    Children =
+                    {
+                        new TrElement
+                        {
+                            Children =
+                            {
+                                new ThElement { TextContent = "#", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "First", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Last", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Handle", Scope = TableHeaderScope.Col }
+                            }
+                        }
+                    }
+                },
+                new TbodyElement
+                {
+                    Class = "table-striped-body",
+                    Children =
+                    {
+                        new TrElement
+                        {
+                            Children =
+                            {
+                                new ThElement { TextContent = "1", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Mark" },
+                                new TdElement { TextContent = "Otto" },
+                                new TdElement { TextContent = "@mdo" }
+                            }
+                        },
+                        new TrElement
+                        {
+                            Class = "table-row-striped",
+                            Children =
+                            {
+                                new ThElement { TextContent = "2", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Jacob" },
+                                new TdElement { TextContent = "Thornton" },
+                                new TdElement { TextContent = "@fat" }
+                            }
+                        },
+                        new TrElement
+                        {
+                            Children =
+                            {
+                                new ThElement { TextContent = "3", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Larry" },
+                                new TdElement { TextContent = "Bird" },
+                                new TdElement { TextContent = "@twitter" }
+                            }
+                        },
+                        new TrElement
+                        {
+                            Class = "table-row-striped",
+                            Children =
+                            {
+                                new ThElement { TextContent = "4", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "John" },
+                                new TdElement { TextContent = "Doe" },
+                                new TdElement { TextContent = "@jdoe" }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    private static TableElement CreateBorderedTable()
     {
         return new TableElement
         {
@@ -215,13 +203,12 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-header",
                             Children =
                             {
-                                new ThElement { TextContent = "#", Class = "table-header-cell table-bordered-cell" },
-                                new ThElement { TextContent = "First", Class = "table-header-cell table-bordered-cell" },
-                                new ThElement { TextContent = "Last", Class = "table-header-cell table-bordered-cell" },
-                                new ThElement { TextContent = "Handle", Class = "table-header-cell table-bordered-cell" }
+                                new ThElement { TextContent = "#", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "First", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Last", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Handle", Scope = TableHeaderScope.Col }
                             }
                         }
                     }
@@ -232,24 +219,32 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-row",
                             Children =
                             {
-                                new TdElement { TextContent = "1", Class = "table-cell table-bordered-cell" },
-                                new TdElement { TextContent = "Mark", Class = "table-cell table-bordered-cell" },
-                                new TdElement { TextContent = "Otto", Class = "table-cell table-bordered-cell" },
-                                new TdElement { TextContent = "@mdo", Class = "table-cell table-bordered-cell" }
+                                new ThElement { TextContent = "1", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Mark" },
+                                new TdElement { TextContent = "Otto" },
+                                new TdElement { TextContent = "@mdo" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row",
                             Children =
                             {
-                                new TdElement { TextContent = "2", Class = "table-cell table-bordered-cell" },
-                                new TdElement { TextContent = "Jacob", Class = "table-cell table-bordered-cell" },
-                                new TdElement { TextContent = "Thornton", Class = "table-cell table-bordered-cell" },
-                                new TdElement { TextContent = "@fat", Class = "table-cell table-bordered-cell" }
+                                new ThElement { TextContent = "2", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Jacob" },
+                                new TdElement { TextContent = "Thornton" },
+                                new TdElement { TextContent = "@fat" }
+                            }
+                        },
+                        new TrElement
+                        {
+                            Children =
+                            {
+                                new ThElement { TextContent = "3", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Larry" },
+                                new TdElement { TextContent = "Bird" },
+                                new TdElement { TextContent = "@twitter" }
                             }
                         }
                     }
@@ -258,11 +253,11 @@ public static class TableExample
         };
     }
 
-    private static Element CreateBorderlessTable()
+    private static TableElement CreateHoverTable()
     {
         return new TableElement
         {
-            Class = "table table-borderless",
+            Class = "table table-hover",
             Children =
             {
                 new TheadElement
@@ -271,13 +266,12 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-header table-borderless-row",
                             Children =
                             {
-                                new ThElement { TextContent = "#", Class = "table-header-cell" },
-                                new ThElement { TextContent = "First", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Last", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Handle", Class = "table-header-cell" }
+                                new ThElement { TextContent = "#", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "First", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Last", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Handle", Scope = TableHeaderScope.Col }
                             }
                         }
                     }
@@ -288,24 +282,32 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-row table-borderless-row",
                             Children =
                             {
-                                new TdElement { TextContent = "1", Class = "table-cell" },
-                                new TdElement { TextContent = "Mark", Class = "table-cell" },
-                                new TdElement { TextContent = "Otto", Class = "table-cell" },
-                                new TdElement { TextContent = "@mdo", Class = "table-cell" }
+                                new ThElement { TextContent = "1", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Mark" },
+                                new TdElement { TextContent = "Otto" },
+                                new TdElement { TextContent = "@mdo" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-borderless-row",
                             Children =
                             {
-                                new TdElement { TextContent = "2", Class = "table-cell" },
-                                new TdElement { TextContent = "Jacob", Class = "table-cell" },
-                                new TdElement { TextContent = "Thornton", Class = "table-cell" },
-                                new TdElement { TextContent = "@fat", Class = "table-cell" }
+                                new ThElement { TextContent = "2", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Jacob" },
+                                new TdElement { TextContent = "Thornton" },
+                                new TdElement { TextContent = "@fat" }
+                            }
+                        },
+                        new TrElement
+                        {
+                            Children =
+                            {
+                                new ThElement { TextContent = "3", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Larry" },
+                                new TdElement { TextContent = "Bird" },
+                                new TdElement { TextContent = "@twitter" }
                             }
                         }
                     }
@@ -314,11 +316,11 @@ public static class TableExample
         };
     }
 
-    private static Element CreateSmallTable()
+    private static TableElement CreateSmallTable()
     {
         return new TableElement
         {
-            Class = "table",
+            Class = "table table-sm",
             Children =
             {
                 new TheadElement
@@ -327,13 +329,12 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-header",
                             Children =
                             {
-                                new ThElement { TextContent = "#", Class = "table-header-cell table-sm" },
-                                new ThElement { TextContent = "First", Class = "table-header-cell table-sm" },
-                                new ThElement { TextContent = "Last", Class = "table-header-cell table-sm" },
-                                new ThElement { TextContent = "Handle", Class = "table-header-cell table-sm" }
+                                new ThElement { TextContent = "#", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "First", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Last", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Handle", Scope = TableHeaderScope.Col }
                             }
                         }
                     }
@@ -344,24 +345,32 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-row",
                             Children =
                             {
-                                new TdElement { TextContent = "1", Class = "table-cell table-sm" },
-                                new TdElement { TextContent = "Mark", Class = "table-cell table-sm" },
-                                new TdElement { TextContent = "Otto", Class = "table-cell table-sm" },
-                                new TdElement { TextContent = "@mdo", Class = "table-cell table-sm" }
+                                new ThElement { TextContent = "1", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Mark" },
+                                new TdElement { TextContent = "Otto" },
+                                new TdElement { TextContent = "@mdo" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row",
                             Children =
                             {
-                                new TdElement { TextContent = "2", Class = "table-cell table-sm" },
-                                new TdElement { TextContent = "Jacob", Class = "table-cell table-sm" },
-                                new TdElement { TextContent = "Thornton", Class = "table-cell table-sm" },
-                                new TdElement { TextContent = "@fat", Class = "table-cell table-sm" }
+                                new ThElement { TextContent = "2", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Jacob" },
+                                new TdElement { TextContent = "Thornton" },
+                                new TdElement { TextContent = "@fat" }
+                            }
+                        },
+                        new TrElement
+                        {
+                            Children =
+                            {
+                                new ThElement { TextContent = "3", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Larry" },
+                                new TdElement { TextContent = "Bird" },
+                                new TdElement { TextContent = "@twitter" }
                             }
                         }
                     }
@@ -370,63 +379,7 @@ public static class TableExample
         };
     }
 
-    private static Element CreateDarkHeaderTable()
-    {
-        return new TableElement
-        {
-            Class = "table",
-            Children =
-            {
-                new TheadElement
-                {
-                    Children =
-                    {
-                        new TrElement
-                        {
-                            Class = "table-header table-dark-header",
-                            Children =
-                            {
-                                new ThElement { TextContent = "#", Class = "table-header-cell" },
-                                new ThElement { TextContent = "First", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Last", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Handle", Class = "table-header-cell" }
-                            }
-                        }
-                    }
-                },
-                new TbodyElement
-                {
-                    Children =
-                    {
-                        new TrElement
-                        {
-                            Class = "table-row",
-                            Children =
-                            {
-                                new TdElement { TextContent = "1", Class = "table-cell" },
-                                new TdElement { TextContent = "Mark", Class = "table-cell" },
-                                new TdElement { TextContent = "Otto", Class = "table-cell" },
-                                new TdElement { TextContent = "@mdo", Class = "table-cell" }
-                            }
-                        },
-                        new TrElement
-                        {
-                            Class = "table-row",
-                            Children =
-                            {
-                                new TdElement { TextContent = "2", Class = "table-cell" },
-                                new TdElement { TextContent = "Jacob", Class = "table-cell" },
-                                new TdElement { TextContent = "Thornton", Class = "table-cell" },
-                                new TdElement { TextContent = "@fat", Class = "table-cell" }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-    }
-
-    private static Element CreateContextualTable()
+    private static TableElement CreateContextualTable()
     {
         return new TableElement
         {
@@ -439,12 +392,11 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-header",
                             Children =
                             {
-                                new ThElement { TextContent = "Class", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Heading", Class = "table-header-cell" },
-                                new ThElement { TextContent = "Heading", Class = "table-header-cell" }
+                                new ThElement { TextContent = "Class", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Heading", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Heading", Scope = TableHeaderScope.Col }
                             }
                         }
                     }
@@ -455,92 +407,92 @@ public static class TableExample
                     {
                         new TrElement
                         {
-                            Class = "table-row",
+                            Class = "table-default",
                             Children =
                             {
-                                new TdElement { TextContent = "Default", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" }
+                                new ThElement { TextContent = "Default", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Cell" },
+                                new TdElement { TextContent = "Cell" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-primary",
+                            Class = "table-primary",
                             Children =
                             {
-                                new TdElement { TextContent = "Primary", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" }
+                                new ThElement { TextContent = "Primary", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Cell" },
+                                new TdElement { TextContent = "Cell" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-secondary",
+                            Class = "table-secondary",
                             Children =
                             {
-                                new TdElement { TextContent = "Secondary", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" }
+                                new ThElement { TextContent = "Secondary", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Cell" },
+                                new TdElement { TextContent = "Cell" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-success",
+                            Class = "table-success",
                             Children =
                             {
-                                new TdElement { TextContent = "Success", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" }
+                                new ThElement { TextContent = "Success", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Cell" },
+                                new TdElement { TextContent = "Cell" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-danger",
+                            Class = "table-danger",
                             Children =
                             {
-                                new TdElement { TextContent = "Danger", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" }
+                                new ThElement { TextContent = "Danger", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Cell" },
+                                new TdElement { TextContent = "Cell" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-warning",
+                            Class = "table-warning",
                             Children =
                             {
-                                new TdElement { TextContent = "Warning", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" }
+                                new ThElement { TextContent = "Warning", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Cell" },
+                                new TdElement { TextContent = "Cell" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-info",
+                            Class = "table-info",
                             Children =
                             {
-                                new TdElement { TextContent = "Info", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" }
+                                new ThElement { TextContent = "Info", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Cell" },
+                                new TdElement { TextContent = "Cell" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-light",
+                            Class = "table-light",
                             Children =
                             {
-                                new TdElement { TextContent = "Light", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" }
+                                new ThElement { TextContent = "Light", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Cell" },
+                                new TdElement { TextContent = "Cell" }
                             }
                         },
                         new TrElement
                         {
-                            Class = "table-row table-dark",
+                            Class = "table-dark",
                             Children =
                             {
-                                new TdElement { TextContent = "Dark", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" },
-                                new TdElement { TextContent = "Cell", Class = "table-cell" }
+                                new ThElement { TextContent = "Dark", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Cell" },
+                                new TdElement { TextContent = "Cell" }
                             }
                         }
                     }
@@ -549,76 +501,61 @@ public static class TableExample
         };
     }
 
-    private static Element CreateCaptionTable()
+    private static TableElement CreateDarkTable()
     {
-        return new DivElement
+        return new TableElement
         {
+            Class = "table table-dark",
             Children =
             {
-                new CaptionElement
+                new TheadElement
                 {
-                    TextContent = "List of users",
-                    Class = "table-caption caption-top"
-                },
-                new TableElement
-                {
-                    Class = "table",
                     Children =
                     {
-                        new TheadElement
+                        new TrElement
                         {
                             Children =
                             {
-                                new TrElement
-                                {
-                                    Class = "table-header",
-                                    Children =
-                                    {
-                                        new ThElement { TextContent = "#", Class = "table-header-cell" },
-                                        new ThElement { TextContent = "First", Class = "table-header-cell" },
-                                        new ThElement { TextContent = "Last", Class = "table-header-cell" },
-                                        new ThElement { TextContent = "Handle", Class = "table-header-cell" }
-                                    }
-                                }
+                                new ThElement { TextContent = "#", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "First", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Last", Scope = TableHeaderScope.Col },
+                                new ThElement { TextContent = "Handle", Scope = TableHeaderScope.Col }
+                            }
+                        }
+                    }
+                },
+                new TbodyElement
+                {
+                    Children =
+                    {
+                        new TrElement
+                        {
+                            Children =
+                            {
+                                new ThElement { TextContent = "1", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Mark" },
+                                new TdElement { TextContent = "Otto" },
+                                new TdElement { TextContent = "@mdo" }
                             }
                         },
-                        new TbodyElement
+                        new TrElement
                         {
                             Children =
                             {
-                                new TrElement
-                                {
-                                    Class = "table-row",
-                                    Children =
-                                    {
-                                        new TdElement { TextContent = "1", Class = "table-cell" },
-                                        new TdElement { TextContent = "Mark", Class = "table-cell" },
-                                        new TdElement { TextContent = "Otto", Class = "table-cell" },
-                                        new TdElement { TextContent = "@mdo", Class = "table-cell" }
-                                    }
-                                },
-                                new TrElement
-                                {
-                                    Class = "table-row",
-                                    Children =
-                                    {
-                                        new TdElement { TextContent = "2", Class = "table-cell" },
-                                        new TdElement { TextContent = "Jacob", Class = "table-cell" },
-                                        new TdElement { TextContent = "Thornton", Class = "table-cell" },
-                                        new TdElement { TextContent = "@fat", Class = "table-cell" }
-                                    }
-                                },
-                                new TrElement
-                                {
-                                    Class = "table-row",
-                                    Children =
-                                    {
-                                        new TdElement { TextContent = "3", Class = "table-cell" },
-                                        new TdElement { TextContent = "Larry", Class = "table-cell" },
-                                        new TdElement { TextContent = "Bird", Class = "table-cell" },
-                                        new TdElement { TextContent = "@twitter", Class = "table-cell" }
-                                    }
-                                }
+                                new ThElement { TextContent = "2", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Jacob" },
+                                new TdElement { TextContent = "Thornton" },
+                                new TdElement { TextContent = "@fat" }
+                            }
+                        },
+                        new TrElement
+                        {
+                            Children =
+                            {
+                                new ThElement { TextContent = "3", Scope = TableHeaderScope.Row },
+                                new TdElement { TextContent = "Larry" },
+                                new TdElement { TextContent = "Bird" },
+                                new TdElement { TextContent = "@twitter" }
                             }
                         }
                     }

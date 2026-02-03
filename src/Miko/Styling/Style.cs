@@ -76,13 +76,31 @@ public class Style
         }
     }
 
-    // 边框
+    // 边框（统一属性，作为各边的后备值）
     public Length? BorderWidth { get; set; }
     public Color? BorderColor { get; set; }
     public BorderStyle? BorderStyle { get; set; }
 
+    // 边框宽度（每边单独设置）
+    public Length? BorderTopWidth { get; set; }
+    public Length? BorderRightWidth { get; set; }
+    public Length? BorderBottomWidth { get; set; }
+    public Length? BorderLeftWidth { get; set; }
+
+    // 边框颜色（每边单独设置）
+    public Color? BorderTopColor { get; set; }
+    public Color? BorderRightColor { get; set; }
+    public Color? BorderBottomColor { get; set; }
+    public Color? BorderLeftColor { get; set; }
+
+    // 边框样式（每边单独设置）
+    public BorderStyle? BorderTopStyle { get; set; }
+    public BorderStyle? BorderRightStyle { get; set; }
+    public BorderStyle? BorderBottomStyle { get; set; }
+    public BorderStyle? BorderLeftStyle { get; set; }
+
     /// <summary>
-    /// 边框简写属性
+    /// 边框简写属性（设置所有边）
     /// </summary>
     public Border Border
     {
@@ -95,6 +113,78 @@ public class Style
             BorderWidth = value.Width;
             BorderColor = value.Color;
             BorderStyle = value.Style;
+            // 清除单边覆盖值
+            BorderTopWidth = BorderRightWidth = BorderBottomWidth = BorderLeftWidth = null;
+            BorderTopColor = BorderRightColor = BorderBottomColor = BorderLeftColor = null;
+            BorderTopStyle = BorderRightStyle = BorderBottomStyle = BorderLeftStyle = null;
+        }
+    }
+
+    /// <summary>
+    /// 上边框简写属性
+    /// </summary>
+    public BorderSide BorderTop
+    {
+        get => new BorderSide(
+            BorderTopWidth ?? BorderWidth ?? Length.Px(0),
+            BorderTopStyle ?? BorderStyle ?? Common.BorderStyle.None,
+            BorderTopColor ?? BorderColor ?? Common.Color.Transparent);
+        set
+        {
+            BorderTopWidth = value.Width;
+            BorderTopStyle = value.Style;
+            BorderTopColor = value.Color;
+        }
+    }
+
+    /// <summary>
+    /// 右边框简写属性
+    /// </summary>
+    public BorderSide BorderRight
+    {
+        get => new BorderSide(
+            BorderRightWidth ?? BorderWidth ?? Length.Px(0),
+            BorderRightStyle ?? BorderStyle ?? Common.BorderStyle.None,
+            BorderRightColor ?? BorderColor ?? Common.Color.Transparent);
+        set
+        {
+            BorderRightWidth = value.Width;
+            BorderRightStyle = value.Style;
+            BorderRightColor = value.Color;
+        }
+    }
+
+    /// <summary>
+    /// 下边框简写属性
+    /// </summary>
+    public BorderSide BorderBottom
+    {
+        get => new BorderSide(
+            BorderBottomWidth ?? BorderWidth ?? Length.Px(0),
+            BorderBottomStyle ?? BorderStyle ?? Common.BorderStyle.None,
+            BorderBottomColor ?? BorderColor ?? Common.Color.Transparent);
+        set
+        {
+            BorderBottomWidth = value.Width;
+            BorderBottomStyle = value.Style;
+            BorderBottomColor = value.Color;
+        }
+    }
+
+    /// <summary>
+    /// 左边框简写属性
+    /// </summary>
+    public BorderSide BorderLeft
+    {
+        get => new BorderSide(
+            BorderLeftWidth ?? BorderWidth ?? Length.Px(0),
+            BorderLeftStyle ?? BorderStyle ?? Common.BorderStyle.None,
+            BorderLeftColor ?? BorderColor ?? Common.Color.Transparent);
+        set
+        {
+            BorderLeftWidth = value.Width;
+            BorderLeftStyle = value.Style;
+            BorderLeftColor = value.Color;
         }
     }
 
@@ -173,6 +263,21 @@ public class Style
         BorderWidth ??= other.BorderWidth;
         BorderColor ??= other.BorderColor;
         BorderStyle ??= other.BorderStyle;
+
+        BorderTopWidth ??= other.BorderTopWidth;
+        BorderRightWidth ??= other.BorderRightWidth;
+        BorderBottomWidth ??= other.BorderBottomWidth;
+        BorderLeftWidth ??= other.BorderLeftWidth;
+
+        BorderTopColor ??= other.BorderTopColor;
+        BorderRightColor ??= other.BorderRightColor;
+        BorderBottomColor ??= other.BorderBottomColor;
+        BorderLeftColor ??= other.BorderLeftColor;
+
+        BorderTopStyle ??= other.BorderTopStyle;
+        BorderRightStyle ??= other.BorderRightStyle;
+        BorderBottomStyle ??= other.BorderBottomStyle;
+        BorderLeftStyle ??= other.BorderLeftStyle;
 
         BorderTopLeftRadius ??= other.BorderTopLeftRadius;
         BorderTopRightRadius ??= other.BorderTopRightRadius;

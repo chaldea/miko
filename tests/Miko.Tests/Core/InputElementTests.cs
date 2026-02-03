@@ -144,7 +144,7 @@ public class InputElementTests
         computed.PaddingRight.Value.ShouldBe(0);
         computed.PaddingBottom.Value.ShouldBe(0);
         computed.PaddingLeft.Value.ShouldBe(0);
-        computed.BorderWidth.Value.ShouldBe(0);
+        computed.BorderTopWidth.Value.ShouldBe(0);
     }
 
     #endregion
@@ -207,7 +207,7 @@ public class InputElementTests
         computed.PaddingRight.Value.ShouldBe(0);
         computed.PaddingBottom.Value.ShouldBe(0);
         computed.PaddingLeft.Value.ShouldBe(0);
-        computed.BorderWidth.Value.ShouldBe(0);
+        computed.BorderTopWidth.Value.ShouldBe(0);
     }
 
     #endregion

@@ -119,8 +119,8 @@ public class StyleResolverTests
         computed.PaddingRight.Value.ShouldBe(6);    // Updated to browser default
         computed.PaddingBottom.Value.ShouldBe(2);   // Updated to browser default
         computed.PaddingLeft.Value.ShouldBe(6);     // Updated to browser default
-        computed.BorderWidth.Value.ShouldBe(2);     // Updated to browser default
-        computed.BorderStyle.ShouldBe(BorderStyle.Solid);
+        computed.BorderTopWidth.Value.ShouldBe(2);     // Updated to browser default
+        computed.BorderTopStyle.ShouldBe(BorderStyle.Solid);
     }
 
     [Fact]
@@ -226,8 +226,8 @@ public class StyleResolverTests
         var computed = resolver.Resolve(element, new List<StyleSheet>());
 
         computed.Display.ShouldBe(Display.Inline);
-        computed.BorderWidth.Value.ShouldBe(0);
-        computed.BorderStyle.ShouldBe(BorderStyle.None);
+        computed.BorderTopWidth.Value.ShouldBe(0);
+        computed.BorderTopStyle.ShouldBe(BorderStyle.None);
     }
 
     [Theory]

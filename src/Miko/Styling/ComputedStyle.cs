@@ -35,9 +35,29 @@ public class ComputedStyle : Style
     public new Length MarginBottom { get; set; } = Length.Px(0);
     public new Length MarginLeft { get; set; } = Length.Px(0);
 
-    public new Length BorderWidth { get; set; } = Length.Px(0);
-    public new Color BorderColor { get; set; } = Color.Black;
-    public new BorderStyle BorderStyle { get; set; } = Common.BorderStyle.None;
+    // 边框宽度（每边单独计算）
+    public new Length BorderTopWidth { get; set; } = Length.Px(0);
+    public new Length BorderRightWidth { get; set; } = Length.Px(0);
+    public new Length BorderBottomWidth { get; set; } = Length.Px(0);
+    public new Length BorderLeftWidth { get; set; } = Length.Px(0);
+
+    // 边框颜色（每边单独计算）
+    public new Color BorderTopColor { get; set; } = Color.Black;
+    public new Color BorderRightColor { get; set; } = Color.Black;
+    public new Color BorderBottomColor { get; set; } = Color.Black;
+    public new Color BorderLeftColor { get; set; } = Color.Black;
+
+    // 边框样式（每边单独计算）
+    public new BorderStyle BorderTopStyle { get; set; } = Common.BorderStyle.None;
+    public new BorderStyle BorderRightStyle { get; set; } = Common.BorderStyle.None;
+    public new BorderStyle BorderBottomStyle { get; set; } = Common.BorderStyle.None;
+    public new BorderStyle BorderLeftStyle { get; set; } = Common.BorderStyle.None;
+
+    // 便捷属性：获取完整的边框侧
+    public BorderSide ComputedBorderTop => new(BorderTopWidth, BorderTopStyle, BorderTopColor);
+    public BorderSide ComputedBorderRight => new(BorderRightWidth, BorderRightStyle, BorderRightColor);
+    public BorderSide ComputedBorderBottom => new(BorderBottomWidth, BorderBottomStyle, BorderBottomColor);
+    public BorderSide ComputedBorderLeft => new(BorderLeftWidth, BorderLeftStyle, BorderLeftColor);
 
     public new Length BorderTopLeftRadius { get; set; } = Length.Px(0);
     public new Length BorderTopRightRadius { get; set; } = Length.Px(0);
@@ -96,9 +116,68 @@ public class ComputedStyle : Style
             if (style.MarginBottom.HasValue) computed.MarginBottom = style.MarginBottom.Value;
             if (style.MarginLeft.HasValue) computed.MarginLeft = style.MarginLeft.Value;
 
-            if (style.BorderWidth.HasValue) computed.BorderWidth = style.BorderWidth.Value;
-            if (style.BorderColor.HasValue) computed.BorderColor = style.BorderColor.Value;
-            if (style.BorderStyle.HasValue) computed.BorderStyle = style.BorderStyle.Value;
+            // 边框宽度：单边属性 > 统一属性 > 默认值
+            if (style.BorderTopWidth.HasValue)
+                computed.BorderTopWidth = style.BorderTopWidth.Value;
+            else if (style.BorderWidth.HasValue)
+                computed.BorderTopWidth = style.BorderWidth.Value;
+
+            if (style.BorderRightWidth.HasValue)
+                computed.BorderRightWidth = style.BorderRightWidth.Value;
+            else if (style.BorderWidth.HasValue)
+                computed.BorderRightWidth = style.BorderWidth.Value;
+
+            if (style.BorderBottomWidth.HasValue)
+                computed.BorderBottomWidth = style.BorderBottomWidth.Value;
+            else if (style.BorderWidth.HasValue)
+                computed.BorderBottomWidth = style.BorderWidth.Value;
+
+            if (style.BorderLeftWidth.HasValue)
+                computed.BorderLeftWidth = style.BorderLeftWidth.Value;
+            else if (style.BorderWidth.HasValue)
+                computed.BorderLeftWidth = style.BorderWidth.Value;
+
+            // 边框颜色：单边属性 > 统一属性 > 默认值
+            if (style.BorderTopColor.HasValue)
+                computed.BorderTopColor = style.BorderTopColor.Value;
+            else if (style.BorderColor.HasValue)
+                computed.BorderTopColor = style.BorderColor.Value;
+
+            if (style.BorderRightColor.HasValue)
+                computed.BorderRightColor = style.BorderRightColor.Value;
+            else if (style.BorderColor.HasValue)
+                computed.BorderRightColor = style.BorderColor.Value;
+
+            if (style.BorderBottomColor.HasValue)
+                computed.BorderBottomColor = style.BorderBottomColor.Value;
+            else if (style.BorderColor.HasValue)
+                computed.BorderBottomColor = style.BorderColor.Value;
+
+            if (style.BorderLeftColor.HasValue)
+                computed.BorderLeftColor = style.BorderLeftColor.Value;
+            else if (style.BorderColor.HasValue)
+                computed.BorderLeftColor = style.BorderColor.Value;
+
+            // 边框样式：单边属性 > 统一属性 > 默认值
+            if (style.BorderTopStyle.HasValue)
+                computed.BorderTopStyle = style.BorderTopStyle.Value;
+            else if (style.BorderStyle.HasValue)
+                computed.BorderTopStyle = style.BorderStyle.Value;
+
+            if (style.BorderRightStyle.HasValue)
+                computed.BorderRightStyle = style.BorderRightStyle.Value;
+            else if (style.BorderStyle.HasValue)
+                computed.BorderRightStyle = style.BorderStyle.Value;
+
+            if (style.BorderBottomStyle.HasValue)
+                computed.BorderBottomStyle = style.BorderBottomStyle.Value;
+            else if (style.BorderStyle.HasValue)
+                computed.BorderBottomStyle = style.BorderStyle.Value;
+
+            if (style.BorderLeftStyle.HasValue)
+                computed.BorderLeftStyle = style.BorderLeftStyle.Value;
+            else if (style.BorderStyle.HasValue)
+                computed.BorderLeftStyle = style.BorderStyle.Value;
 
             if (style.BorderTopLeftRadius.HasValue) computed.BorderTopLeftRadius = style.BorderTopLeftRadius.Value;
             if (style.BorderTopRightRadius.HasValue) computed.BorderTopRightRadius = style.BorderTopRightRadius.Value;

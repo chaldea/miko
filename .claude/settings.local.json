@@ -9,7 +9,8 @@
       "WebFetch(domain:html.spec.whatwg.org)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(xxd:*)"
     ]
   }
 }

@@ -23,7 +23,10 @@ public class FlexLayout
         );
 
         box.BoxModel.Border = new EdgeSizes(
-            style.BorderWidth.ToPixels(containerWidth)
+            style.BorderTopWidth.ToPixels(containerWidth),
+            style.BorderRightWidth.ToPixels(containerWidth),
+            style.BorderBottomWidth.ToPixels(containerWidth),
+            style.BorderLeftWidth.ToPixels(containerWidth)
         );
 
         box.BoxModel.Padding = new EdgeSizes(
@@ -208,7 +211,8 @@ public class FlexLayout
                 // 需要调整大小，或者使用了显式的 flex-basis/width
                 float childMarginLeft = childStyle.MarginLeft.ToPixels(contentWidth);
                 float childMarginRight = childStyle.MarginRight.ToPixels(contentWidth);
-                float childBorderWidth = childStyle.BorderWidth.ToPixels(contentWidth);
+                float childBorderLeftWidth = childStyle.BorderLeftWidth.ToPixels(contentWidth);
+                float childBorderRightWidth = childStyle.BorderRightWidth.ToPixels(contentWidth);
                 float childPaddingLeft = childStyle.PaddingLeft.ToPixels(contentWidth);
                 float childPaddingRight = childStyle.PaddingRight.ToPixels(contentWidth);
 
@@ -218,7 +222,7 @@ public class FlexLayout
                 {
                     // 从 margin box 计算 content width
                     childContentWidth = info.FinalSize - childMarginLeft - childMarginRight
-                        - childBorderWidth * 2 - childPaddingLeft - childPaddingRight;
+                        - childBorderLeftWidth - childBorderRightWidth - childPaddingLeft - childPaddingRight;
                 }
                 else
                 {
@@ -354,7 +358,8 @@ public class FlexLayout
                 // 需要调整大小，或者使用了显式的 flex-basis/height
                 float childMarginTop = childStyle.MarginTop.ToPixels(contentWidth);
                 float childMarginBottom = childStyle.MarginBottom.ToPixels(contentWidth);
-                float childBorderWidth = childStyle.BorderWidth.ToPixels(contentWidth);
+                float childBorderTopWidth = childStyle.BorderTopWidth.ToPixels(contentWidth);
+                float childBorderBottomWidth = childStyle.BorderBottomWidth.ToPixels(contentWidth);
                 float childPaddingTop = childStyle.PaddingTop.ToPixels(contentWidth);
                 float childPaddingBottom = childStyle.PaddingBottom.ToPixels(contentWidth);
 
@@ -364,7 +369,7 @@ public class FlexLayout
                 {
                     // 从 margin box 计算 content height
                     childContentHeight = info.FinalSize - childMarginTop - childMarginBottom
-                        - childBorderWidth * 2 - childPaddingTop - childPaddingBottom;
+                        - childBorderTopWidth - childBorderBottomWidth - childPaddingTop - childPaddingBottom;
                 }
                 else
                 {

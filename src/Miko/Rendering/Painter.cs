@@ -42,7 +42,7 @@ public class Painter
     }
 
     /// <summary>
-    /// 绘制边框
+    /// 绘制边框（统一样式）
     /// </summary>
     public void DrawBorder(RectF rect, float width, Color color, BorderStyle style, float topLeftRadius = 0, float topRightRadius = 0, float bottomRightRadius = 0, float bottomLeftRadius = 0)
     {
@@ -81,6 +81,203 @@ public class Painter
         {
             _canvas.DrawRect(rect.ToSKRect(), paint);
         }
+    }
+
+    /// <summary>
+    /// 绘制边框（每边可以有不同的样式）
+    /// </summary>
+    public void DrawBorderSides(
+        RectF rect,
+        BorderSide top, BorderSide right, BorderSide bottom, BorderSide left,
+        float topLeftRadius = 0, float topRightRadius = 0,
+        float bottomRightRadius = 0, float bottomLeftRadius = 0)
+    {
+        // 快速路径：如果所有边都相同，使用优化的单边框绘制
+        if (AreBordersUniform(top, right, bottom, left))
+        {
+            DrawBorder(rect, top.Width.Value, top.Color, top.Style,
+                topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius);
+            return;
+        }
+
+        // 分别绘制每条边
+        DrawTopBorder(rect, top, topLeftRadius, topRightRadius);
+        DrawRightBorder(rect, right, topRightRadius, bottomRightRadius);
+        DrawBottomBorder(rect, bottom, bottomRightRadius, bottomLeftRadius);
+        DrawLeftBorder(rect, left, bottomLeftRadius, topLeftRadius);
+    }
+
+    /// <summary>
+    /// 检查所有边框是否统一
+    /// </summary>
+    private static bool AreBordersUniform(BorderSide top, BorderSide right, BorderSide bottom, BorderSide left)
+    {
+        return Math.Abs(top.Width.Value - right.Width.Value) < 0.01f &&
+               Math.Abs(right.Width.Value - bottom.Width.Value) < 0.01f &&
+               Math.Abs(bottom.Width.Value - left.Width.Value) < 0.01f &&
+               top.Color.Equals(right.Color) &&
+               right.Color.Equals(bottom.Color) &&
+               bottom.Color.Equals(left.Color) &&
+               top.Style == right.Style &&
+               right.Style == bottom.Style &&
+               bottom.Style == left.Style;
+    }
+
+    /// <summary>
+    /// 绘制上边框
+    /// </summary>
+    private void DrawTopBorder(RectF rect, BorderSide border, float leftRadius, float rightRadius)
+    {
+        if (!border.IsVisible) return;
+
+        using var paint = CreateBorderPaint(border);
+        float halfWidth = border.Width.Value / 2;
+
+        using var path = new SKPath();
+        if (leftRadius > 0)
+        {
+            path.MoveTo(rect.Left + leftRadius, rect.Top + halfWidth);
+        }
+        else
+        {
+            path.MoveTo(rect.Left + halfWidth, rect.Top + halfWidth);
+        }
+
+        if (rightRadius > 0)
+        {
+            path.LineTo(rect.Right - rightRadius, rect.Top + halfWidth);
+        }
+        else
+        {
+            path.LineTo(rect.Right - halfWidth, rect.Top + halfWidth);
+        }
+
+        _canvas.DrawPath(path, paint);
+    }
+
+    /// <summary>
+    /// 绘制右边框
+    /// </summary>
+    private void DrawRightBorder(RectF rect, BorderSide border, float topRadius, float bottomRadius)
+    {
+        if (!border.IsVisible) return;
+
+        using var paint = CreateBorderPaint(border);
+        float halfWidth = border.Width.Value / 2;
+
+        using var path = new SKPath();
+        if (topRadius > 0)
+        {
+            path.MoveTo(rect.Right - halfWidth, rect.Top + topRadius);
+        }
+        else
+        {
+            path.MoveTo(rect.Right - halfWidth, rect.Top + halfWidth);
+        }
+
+        if (bottomRadius > 0)
+        {
+            path.LineTo(rect.Right - halfWidth, rect.Bottom - bottomRadius);
+        }
+        else
+        {
+            path.LineTo(rect.Right - halfWidth, rect.Bottom - halfWidth);
+        }
+
+        _canvas.DrawPath(path, paint);
+    }
+
+    /// <summary>
+    /// 绘制下边框
+    /// </summary>
+    private void DrawBottomBorder(RectF rect, BorderSide border, float rightRadius, float leftRadius)
+    {
+        if (!border.IsVisible) return;
+
+        using var paint = CreateBorderPaint(border);
+        float halfWidth = border.Width.Value / 2;
+
+        using var path = new SKPath();
+        if (rightRadius > 0)
+        {
+            path.MoveTo(rect.Right - rightRadius, rect.Bottom - halfWidth);
+        }
+        else
+        {
+            path.MoveTo(rect.Right - halfWidth, rect.Bottom - halfWidth);
+        }
+
+        if (leftRadius > 0)
+        {
+            path.LineTo(rect.Left + leftRadius, rect.Bottom - halfWidth);
+        }
+        else
+        {
+            path.LineTo(rect.Left + halfWidth, rect.Bottom - halfWidth);
+        }
+
+        _canvas.DrawPath(path, paint);
+    }
+
+    /// <summary>
+    /// 绘制左边框
+    /// </summary>
+    private void DrawLeftBorder(RectF rect, BorderSide border, float bottomRadius, float topRadius)
+    {
+        if (!border.IsVisible) return;
+
+        using var paint = CreateBorderPaint(border);
+        float halfWidth = border.Width.Value / 2;
+
+        using var path = new SKPath();
+        if (bottomRadius > 0)
+        {
+            path.MoveTo(rect.Left + halfWidth, rect.Bottom - bottomRadius);
+        }
+        else
+        {
+            path.MoveTo(rect.Left + halfWidth, rect.Bottom - halfWidth);
+        }
+
+        if (topRadius > 0)
+        {
+            path.LineTo(rect.Left + halfWidth, rect.Top + topRadius);
+        }
+        else
+        {
+            path.LineTo(rect.Left + halfWidth, rect.Top + halfWidth);
+        }
+
+        _canvas.DrawPath(path, paint);
+    }
+
+    /// <summary>
+    /// 创建边框画笔
+    /// </summary>
+    private static SKPaint CreateBorderPaint(BorderSide border)
+    {
+        var paint = new SKPaint
+        {
+            Color = border.Color.ToSKColor(),
+            StrokeWidth = border.Width.Value,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true,
+            StrokeCap = SKStrokeCap.Butt
+        };
+
+        switch (border.Style)
+        {
+            case BorderStyle.Dotted:
+                paint.PathEffect = SKPathEffect.CreateDash(
+                    new[] { border.Width.Value, border.Width.Value }, 0);
+                break;
+            case BorderStyle.Dashed:
+                paint.PathEffect = SKPathEffect.CreateDash(
+                    new[] { border.Width.Value * 3, border.Width.Value * 2 }, 0);
+                break;
+        }
+
+        return paint;
     }
 
     /// <summary>

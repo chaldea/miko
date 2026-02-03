@@ -20,9 +20,6 @@ class Program
         // Create Bootstrap stylesheet
         var styleSheet = BootstrapStyles.CreateBootstrapStyleSheet();
 
-        // Add icon styles
-        BootstrapStyles.AddIconStyles(styleSheet);
-
         var styleSheets = new List<Miko.Styling.StyleSheet> { styleSheet };
 
         // Render Button Example
@@ -64,7 +61,7 @@ class Program
             TableExample.CreateDOM(),
             styleSheets,
             Path.Combine(outputDir, TableExample.OutputFileName),
-            800, 2100
+            800, 2400
         );
 
         Console.WriteLine();
@@ -76,7 +73,7 @@ class Program
             IconExample.CreateDOM(),
             styleSheets,
             Path.Combine(outputDir, IconExample.OutputFileName),
-            800, 1200
+            800, 1400
         );
 
         Console.WriteLine();

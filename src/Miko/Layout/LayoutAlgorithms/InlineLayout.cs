@@ -23,7 +23,10 @@ public class InlineLayout
         );
 
         box.BoxModel.Border = new EdgeSizes(
-            style.BorderWidth.ToPixels(containerWidth)
+            style.BorderTopWidth.ToPixels(containerWidth),
+            style.BorderRightWidth.ToPixels(containerWidth),
+            style.BorderBottomWidth.ToPixels(containerWidth),
+            style.BorderLeftWidth.ToPixels(containerWidth)
         );
 
         box.BoxModel.Padding = new EdgeSizes(

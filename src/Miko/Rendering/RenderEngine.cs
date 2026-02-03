@@ -136,19 +136,27 @@ public class RenderEngine
         if (_painter == null) return;
 
         var style = box.ComputedStyle;
-        if (style.BorderStyle != BorderStyle.None && style.BorderWidth.Value > 0)
-        {
-            _painter.DrawBorder(
-                box.BoxModel.BorderBox,
-                style.BorderWidth.Value,
-                style.BorderColor,
-                style.BorderStyle,
-                style.BorderTopLeftRadius.Value,
-                style.BorderTopRightRadius.Value,
-                style.BorderBottomRightRadius.Value,
-                style.BorderBottomLeftRadius.Value
-            );
-        }
+
+        // 检查是否有任何可见边框
+        bool hasVisibleBorder =
+            style.ComputedBorderTop.IsVisible ||
+            style.ComputedBorderRight.IsVisible ||
+            style.ComputedBorderBottom.IsVisible ||
+            style.ComputedBorderLeft.IsVisible;
+
+        if (!hasVisibleBorder) return;
+
+        _painter.DrawBorderSides(
+            box.BoxModel.BorderBox,
+            style.ComputedBorderTop,
+            style.ComputedBorderRight,
+            style.ComputedBorderBottom,
+            style.ComputedBorderLeft,
+            style.BorderTopLeftRadius.Value,
+            style.BorderTopRightRadius.Value,
+            style.BorderBottomRightRadius.Value,
+            style.BorderBottomLeftRadius.Value
+        );
     }
 
     /// <summary>
@@ -212,7 +220,7 @@ public class RenderEngine
                 _painter.DrawCheckbox(
                     contentRect,
                     inputElement.Checked,
-                    style.BorderColor,
+                    style.BorderTopColor,
                     style.Color,
                     style.BackgroundColor
                 );
@@ -222,7 +230,7 @@ public class RenderEngine
                 _painter.DrawRadio(
                     contentRect,
                     inputElement.Checked,
-                    style.BorderColor,
+                    style.BorderTopColor,
                     style.Color,
                     style.BackgroundColor
                 );
@@ -312,7 +320,7 @@ public class RenderEngine
             borderBox,
             selectElement.GetDisplayText(),
             selectElement.IsOpen,
-            style.BorderColor,
+            style.BorderTopColor,
             style.BackgroundColor,
             style.Color,
             Color.Gray,  // Arrow color
@@ -384,7 +392,7 @@ public class RenderEngine
             dropdownRect,
             options,
             Color.White,           // Background
-            style.BorderColor,     // Border
+            style.BorderTopColor,  // Border
             style.Color,           // Text
             new Color(0, 120, 215),  // Selected background (blue)
             Color.White,           // Selected text

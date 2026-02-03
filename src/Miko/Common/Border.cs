@@ -58,4 +58,9 @@ public struct Border
     /// 无边框
     /// </summary>
     public static Border None => new(Length.Px(0), BorderStyle.None, Common.Color.Transparent);
+
+    /// <summary>
+    /// 转换为 BorderSide
+    /// </summary>
+    public BorderSide ToBorderSide() => new(Width, Style, Color);
 }
