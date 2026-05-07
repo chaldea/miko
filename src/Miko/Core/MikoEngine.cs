@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Core;
 using Miko.Layout;
 using Miko.Rendering;
@@ -6,24 +8,21 @@ using SkiaSharp;
 
 namespace Miko.Core;
 
-/// <summary>
-/// Miko 渲染引擎
-/// </summary>
 public class MikoEngine
 {
     private readonly LayoutEngine _layoutEngine = new();
     private readonly RenderEngine _renderEngine = new();
     private readonly DirtyRegionManager _dirtyManager = new();
     private List<StyleSheet> _styleSheets = new();
+    private ILogger _logger = NullLogger.Instance;
+
+    public void SetLogger(ILogger logger) => _logger = logger;
 
     private Element? _root;
     private LayoutBox? _currentLayout;
     private float _viewportWidth;
     private float _viewportHeight;
 
-    /// <summary>
-    /// 初始化引擎
-    /// </summary>
     public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight)
     {
         _root = root;
@@ -33,54 +32,34 @@ public class MikoEngine
 
         _renderEngine.SetCanvas(canvas);
 
-        // 首次完整渲染
+        _logger.LogInformation("Engine initialized with viewport {Width}x{Height}", viewportWidth, viewportHeight);
         _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight);
         _renderEngine.Render(_currentLayout);
     }
 
-    /// <summary>
-    /// 更新渲染
-    /// </summary>
     public void Update(SKCanvas canvas)
     {
-        if (_root == null)
-        {
-            throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
-        }
+        if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
         _renderEngine.SetCanvas(canvas);
 
-        // 增量更新
         if (_dirtyManager.HasDirtyRegions())
         {
-            // 重新布局
-            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
-
-            // 只重绘脏区域
             var dirtyRegions = _dirtyManager.GetDirtyRegions();
+            _logger.LogDebug("Incremental update, {Count} dirty regions", dirtyRegions.Count);
+            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
             _renderEngine.RenderDirty(_currentLayout, dirtyRegions);
         }
     }
 
-    /// <summary>
-    /// 完整重新渲染
-    /// </summary>
     public void Render(SKCanvas canvas)
     {
-        if (_root == null)
-        {
-            throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
-        }
+        if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
         _renderEngine.SetCanvas(canvas);
-
-        // 重新布局
+        _logger.LogDebug("Full render pass");
         _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
-
-        // 完整渲染
         _renderEngine.Render(_currentLayout);
-
-        // 清空脏区域
         _dirtyManager.Clear();
     }
 

@@ -7,5 +7,6 @@
   </Folder>
   <Folder Name="/examples/">
     <Project Path="examples/Miko.Examples.Bootstrap/Miko.Examples.Bootstrap.csproj" />
+    <Project Path="examples/MikoApp1/MikoApp1.csproj" />
   </Folder>
 </Solution>
