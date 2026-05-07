@@ -1,12 +1,17 @@
-using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
 
-namespace MikoApp1.Components;
+namespace Miko.Examples.Bootstrap.Examples;
 
-public class ButtonExample : MikoComponent
+/// <summary>
+/// Bootstrap-style button demonstration.
+/// </summary>
+public static class ButtonExample
 {
-    public override Element Build()
+    public const string OutputFileName = "bootstrap-buttons.png";
+    public const string Title = "Bootstrap Button Examples";
+
+    public static Element CreateDOM()
     {
         var hoverButtons = new DivElement
         {
@@ -24,7 +29,9 @@ public class ButtonExample : MikoComponent
             }
         };
         foreach (var elm in hoverButtons.Children)
+        {
             elm.SetState(ElementState.Hover);
+        }
 
         return new DivElement
         {
@@ -33,6 +40,7 @@ public class ButtonExample : MikoComponent
             {
                 new H1Element { TextContent = "Bootstrap Button Examples" },
 
+                // Standard Buttons Section
                 new H2Element { TextContent = "Standard Buttons" },
                 new DivElement
                 {
@@ -52,6 +60,7 @@ public class ButtonExample : MikoComponent
                 new H2Element { TextContent = "Standard Hover Buttons" },
                 hoverButtons,
 
+                // Outline Buttons Section
                 new H2Element { TextContent = "Outline Buttons" },
                 new DivElement
                 {
@@ -68,6 +77,7 @@ public class ButtonExample : MikoComponent
                     }
                 },
 
+                // Button Sizes Section
                 new H2Element { TextContent = "Button Sizes" },
                 new DivElement
                 {
@@ -80,6 +90,7 @@ public class ButtonExample : MikoComponent
                     }
                 },
 
+                // Mixed Examples Section
                 new H2Element { TextContent = "Mixed Examples" },
                 new DivElement
                 {
