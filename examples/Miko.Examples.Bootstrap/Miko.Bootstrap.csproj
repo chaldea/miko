@@ -8,14 +8,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Miko\Miko.csproj" />
-    <ProjectReference Include="..\Miko.Examples.Bootstrap\Miko.Bootstrap.csproj" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+    <PackageReference Include="SkiaSharp" Version="3.119.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Platforms\**\*" />
-    <Compile Remove="Components\ButtonExample.cs" />
+    <ProjectReference Include="..\..\src\Miko\Miko.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Program.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Fonts\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
