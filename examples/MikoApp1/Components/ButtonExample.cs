@@ -1,17 +1,16 @@
+using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
 
 namespace Miko.Examples.Bootstrap.Examples;
 
-/// <summary>
-/// Bootstrap-style button demonstration.
-/// </summary>
-public static class ButtonExample
+[Route("/")]
+[Route("/button")]
+public partial class ButtonExample : ComponentBase
 {
-    public const string OutputFileName = "bootstrap-buttons.png";
     public const string Title = "Bootstrap Button Examples";
 
-    public static Element CreateDOM()
+    public override Element Build()
     {
         var hoverButtons = new DivElement
         {

@@ -1,18 +1,16 @@
 ﻿using Miko.Common;
+using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
 
 namespace Miko.Examples.Bootstrap.Examples;
 
-/// <summary>
-/// Bootstrap-style form control demonstration.
-/// </summary>
-public static class FormControlExample
+[Route("/form")]
+public partial class FormControlExample : ComponentBase
 {
-    public const string OutputFileName = "bootstrap-form-controls.png";
     public const string Title = "Bootstrap Form Control Examples";
 
-    public static Element CreateDOM()
+    public override Element Build()
     {
         return new DivElement
         {
@@ -284,7 +282,7 @@ public static class FormControlExample
         };
     }
 
-    private static Element CreateFormGroup(string label, string id, InputType type, string placeholder, string? helpText = null)
+    private Element CreateFormGroup(string label, string id, InputType type, string placeholder, string? helpText = null)
     {
         var group = new DivElement
         {

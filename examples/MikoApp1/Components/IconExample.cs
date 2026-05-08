@@ -1,18 +1,14 @@
+using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
-using Miko.Fonts;
 
 namespace Miko.Examples.Bootstrap.Examples;
 
-/// <summary>
-/// Bootstrap Icons demonstration using WOFF2 font.
-/// </summary>
-public static class IconExample
+[Route("/icon")]
+public partial class IconExample : ComponentBase
 {
-    public const string OutputFileName = "bootstrap-icons.png";
     public const string Title = "Bootstrap Icons Examples";
 
-    // Bootstrap Icons Unicode codepoints
     public static class Icons
     {
         // Navigation & Actions
@@ -65,30 +61,7 @@ public static class IconExample
         public const string Alarm = "\uf102";
     }
 
-    /// <summary>
-    /// Register Bootstrap Icons font before creating DOM
-    /// </summary>
-    public static void RegisterFont()
-    {
-        var fontPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Fonts", "bootstrap-icons.woff2");
-        if (!File.Exists(fontPath))
-        {
-            // Try alternative path
-            fontPath = Path.Combine(AppContext.BaseDirectory, "Fonts", "bootstrap-icons.woff2");
-        }
-
-        if (File.Exists(fontPath))
-        {
-            FontManager.Instance.RegisterFont("bootstrap-icons", fontPath);
-            Console.WriteLine($"  -> Registered bootstrap-icons font from: {fontPath}");
-        }
-        else
-        {
-            Console.WriteLine($"  -> Warning: bootstrap-icons.woff2 not found");
-        }
-    }
-
-    public static Element CreateDOM()
+    public override Element Build()
     {
         return new DivElement
         {
@@ -238,7 +211,7 @@ public static class IconExample
         };
     }
 
-    private static Element CreateIconItem(string icon, string label)
+    private Element CreateIconItem(string icon, string label)
     {
         return new DivElement
         {
@@ -251,7 +224,7 @@ public static class IconExample
         };
     }
 
-    private static Element CreateSizedIcon(string icon, string sizeClass, string label)
+    private Element CreateSizedIcon(string icon, string sizeClass, string label)
     {
         return new DivElement
         {
@@ -264,7 +237,7 @@ public static class IconExample
         };
     }
 
-    private static Element CreateIconButton(string icon, string label)
+    private Element CreateIconButton(string icon, string label)
     {
         return new ButtonElement
         {
@@ -277,7 +250,7 @@ public static class IconExample
         };
     }
 
-    private static Element CreateColoredIcon(string icon, string colorClass, string label)
+    private Element CreateColoredIcon(string icon, string colorClass, string label)
     {
         return new DivElement
         {
