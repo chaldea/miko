@@ -39,6 +39,7 @@ public abstract class Element
     public MikoEventHandler<FocusEventArgs>? OnFocus { get; set; }
     public MikoEventHandler<FocusEventArgs>? OnBlur { get; set; }
     public MikoEventHandler<ChangeEventArgs>? OnChange { get; set; }
+    public MikoEventHandler<ScrollEventArgs>? OnScroll { get; set; }
 
     /// <summary>
     /// 添加事件监听器

@@ -110,6 +110,7 @@ public class MikoApp
         {
             mouse.MouseDown += OnMouseDown;
             mouse.MouseUp += OnMouseUp;
+            mouse.Scroll += OnMouseScroll;
         }
 
         using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
@@ -186,6 +187,15 @@ public class MikoApp
         };
 
         _eventDispatcher.Dispatch(target, EventTypes.Click, args);
+    }
+
+    private void OnMouseScroll(IMouse mouse, ScrollWheel scrollWheel)
+    {
+        float deltaY = scrollWheel.Y * -40f;
+        float deltaX = scrollWheel.X * -40f;
+        _logger.LogTrace("OnMouseScroll: wheel=({WheelX}, {WheelY}), pos=({PosX}, {PosY}), delta=({DeltaX}, {DeltaY})",
+            scrollWheel.X, scrollWheel.Y, mouse.Position.X, mouse.Position.Y, deltaX, deltaY);
+        _engine.ScrollBy(mouse.Position.X, mouse.Position.Y, deltaX, deltaY);
     }
 
     private void OnClose()

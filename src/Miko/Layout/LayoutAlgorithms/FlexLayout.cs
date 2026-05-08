@@ -118,6 +118,28 @@ public class FlexLayout
         }
 
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);
+
+        // 记录可滚动内容尺寸
+        if (isRow)
+        {
+            float totalChildWidth = 0;
+            foreach (var child in box.Children)
+            {
+                totalChildWidth += child.BoxModel.MarginBox.Width;
+            }
+            box.ScrollableContentWidth = totalChildWidth;
+            box.ScrollableContentHeight = maxCrossSize;
+        }
+        else
+        {
+            float totalChildHeight = 0;
+            foreach (var child in box.Children)
+            {
+                totalChildHeight += child.BoxModel.MarginBox.Height;
+            }
+            box.ScrollableContentWidth = maxCrossSize;
+            box.ScrollableContentHeight = totalChildHeight;
+        }
     }
 
     private void LayoutRowDirection(LayoutBox box, float contentX, float contentY,
@@ -135,14 +157,28 @@ public class FlexLayout
             float flexBasis;
             bool usedAutoSize = false;
 
-            // 确定 flex-basis
+            // 确定 flex-basis（统一转换为 outer size 以便正确计算剩余空间）
             if (!childStyle.FlexBasis.IsAuto)
             {
-                flexBasis = childStyle.FlexBasis.ToPixels(contentWidth);
+                float basisContentWidth = childStyle.FlexBasis.ToPixels(contentWidth);
+                float outerExtra = childStyle.MarginLeft.ToPixels(contentWidth)
+                    + childStyle.MarginRight.ToPixels(contentWidth)
+                    + childStyle.BorderLeftWidth.ToPixels(contentWidth)
+                    + childStyle.BorderRightWidth.ToPixels(contentWidth)
+                    + childStyle.PaddingLeft.ToPixels(contentWidth)
+                    + childStyle.PaddingRight.ToPixels(contentWidth);
+                flexBasis = basisContentWidth + outerExtra;
             }
             else if (!childStyle.Width.IsAuto)
             {
-                flexBasis = childStyle.Width.ToPixels(contentWidth);
+                float basisContentWidth = childStyle.Width.ToPixels(contentWidth);
+                float outerExtra = childStyle.MarginLeft.ToPixels(contentWidth)
+                    + childStyle.MarginRight.ToPixels(contentWidth)
+                    + childStyle.BorderLeftWidth.ToPixels(contentWidth)
+                    + childStyle.BorderRightWidth.ToPixels(contentWidth)
+                    + childStyle.PaddingLeft.ToPixels(contentWidth)
+                    + childStyle.PaddingRight.ToPixels(contentWidth);
+                flexBasis = basisContentWidth + outerExtra;
             }
             else
             {
@@ -216,19 +252,9 @@ public class FlexLayout
                 float childPaddingLeft = childStyle.PaddingLeft.ToPixels(contentWidth);
                 float childPaddingRight = childStyle.PaddingRight.ToPixels(contentWidth);
 
-                // 计算内容宽度
-                float childContentWidth;
-                if (info.UsedAutoSize)
-                {
-                    // 从 margin box 计算 content width
-                    childContentWidth = info.FinalSize - childMarginLeft - childMarginRight
-                        - childBorderLeftWidth - childBorderRightWidth - childPaddingLeft - childPaddingRight;
-                }
-                else
-                {
-                    // flex-basis/width 就是 content width
-                    childContentWidth = info.FinalSize;
-                }
+                // FinalSize 统一代表 outer (margin box) 尺寸，需要减去 margin/border/padding 得到 content width
+                float childContentWidth = info.FinalSize - childMarginLeft - childMarginRight
+                    - childBorderLeftWidth - childBorderRightWidth - childPaddingLeft - childPaddingRight;
                 childContentWidth = Math.Max(0, childContentWidth);
 
                 // 使用计算出的宽度约束重新布局
@@ -283,14 +309,28 @@ public class FlexLayout
             float flexBasis;
             bool usedAutoSize = false;
 
-            // 确定 flex-basis（列方向使用高度）
+            // 确定 flex-basis（列方向使用高度，统一转换为 outer size）
             if (!childStyle.FlexBasis.IsAuto)
             {
-                flexBasis = childStyle.FlexBasis.ToPixels(contentHeight);
+                float basisContentHeight = childStyle.FlexBasis.ToPixels(contentHeight);
+                float outerExtra = childStyle.MarginTop.ToPixels(contentWidth)
+                    + childStyle.MarginBottom.ToPixels(contentWidth)
+                    + childStyle.BorderTopWidth.ToPixels(contentWidth)
+                    + childStyle.BorderBottomWidth.ToPixels(contentWidth)
+                    + childStyle.PaddingTop.ToPixels(contentWidth)
+                    + childStyle.PaddingBottom.ToPixels(contentWidth);
+                flexBasis = basisContentHeight + outerExtra;
             }
             else if (!childStyle.Height.IsAuto)
             {
-                flexBasis = childStyle.Height.ToPixels(contentHeight);
+                float basisContentHeight = childStyle.Height.ToPixels(contentHeight);
+                float outerExtra = childStyle.MarginTop.ToPixels(contentWidth)
+                    + childStyle.MarginBottom.ToPixels(contentWidth)
+                    + childStyle.BorderTopWidth.ToPixels(contentWidth)
+                    + childStyle.BorderBottomWidth.ToPixels(contentWidth)
+                    + childStyle.PaddingTop.ToPixels(contentWidth)
+                    + childStyle.PaddingBottom.ToPixels(contentWidth);
+                flexBasis = basisContentHeight + outerExtra;
             }
             else
             {
@@ -365,19 +405,9 @@ public class FlexLayout
                 float childPaddingTop = childStyle.PaddingTop.ToPixels(contentWidth);
                 float childPaddingBottom = childStyle.PaddingBottom.ToPixels(contentWidth);
 
-                // 计算内容高度
-                float childContentHeight;
-                if (info.UsedAutoSize)
-                {
-                    // 从 margin box 计算 content height
-                    childContentHeight = info.FinalSize - childMarginTop - childMarginBottom
-                        - childBorderTopWidth - childBorderBottomWidth - childPaddingTop - childPaddingBottom;
-                }
-                else
-                {
-                    // flex-basis/height 就是 content height
-                    childContentHeight = info.FinalSize;
-                }
+                // FinalSize 统一代表 outer size，需要减去 margin/border/padding 得到 content height
+                float childContentHeight = info.FinalSize - childMarginTop - childMarginBottom
+                    - childBorderTopWidth - childBorderBottomWidth - childPaddingTop - childPaddingBottom;
                 childContentHeight = Math.Max(0, childContentHeight);
 
                 // 使用计算出的高度约束重新布局

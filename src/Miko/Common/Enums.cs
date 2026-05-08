@@ -127,3 +127,14 @@ public enum InputType
     Radio,
     Range
 }
+
+/// <summary>
+/// 溢出处理方式
+/// </summary>
+public enum Overflow
+{
+    Visible,
+    Hidden,
+    Scroll,
+    Auto
+}

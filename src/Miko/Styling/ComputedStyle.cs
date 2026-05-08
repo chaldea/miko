@@ -81,6 +81,9 @@ public class ComputedStyle : Style
     public new float Opacity { get; set; } = 1.0f;
     public new int ZIndex { get; set; } = 0;
 
+    public new Overflow OverflowX { get; set; } = Overflow.Visible;
+    public new Overflow OverflowY { get; set; } = Overflow.Visible;
+
     /// <summary>
     /// 从样式对象创建计算样式
     /// </summary>
@@ -200,6 +203,9 @@ public class ComputedStyle : Style
 
             if (style.Opacity.HasValue) computed.Opacity = style.Opacity.Value;
             if (style.ZIndex.HasValue) computed.ZIndex = style.ZIndex.Value;
+
+            if (style.OverflowX.HasValue) computed.OverflowX = style.OverflowX.Value;
+            if (style.OverflowY.HasValue) computed.OverflowY = style.OverflowY.Value;
         }
 
         return computed;

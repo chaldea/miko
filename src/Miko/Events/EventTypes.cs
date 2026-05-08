@@ -13,4 +13,5 @@ public static class EventTypes
     public const string Focus = "focus";
     public const string Blur = "blur";
     public const string Change = "change";
+    public const string Scroll = "scroll";
 }

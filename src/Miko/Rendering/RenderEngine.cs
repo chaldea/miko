@@ -83,13 +83,99 @@ public class RenderEngine
         // 特殊处理：SelectElement 在未展开时不渲染子元素（与浏览器行为一致）
         if (box.Element is SelectElement selectElement && !selectElement.IsOpen)
         {
-            // 下拉框关闭时，不渲染 OptionElement 子元素
             return;
         }
+
+        // 处理 overflow 裁剪和滚动
+        bool hasOverflow = box.ComputedStyle.OverflowX != Overflow.Visible ||
+                           box.ComputedStyle.OverflowY != Overflow.Visible;
+
+        if (hasOverflow && box.Children.Count > 0)
+        {
+            RenderChildrenWithOverflow(box);
+        }
+        else
+        {
+            foreach (var child in box.Children)
+            {
+                RenderBox(child);
+            }
+        }
+
+        // 5. 绘制滚动条（在裁剪区域之外）
+        RenderScrollbars(box);
+    }
+
+    /// <summary>
+    /// 带溢出裁剪的子元素渲染
+    /// </summary>
+    private void RenderChildrenWithOverflow(LayoutBox box)
+    {
+        if (_painter == null) return;
+
+        var paddingBox = box.BoxModel.PaddingBox;
+        float clipWidth = paddingBox.Width;
+        float clipHeight = paddingBox.Height;
+
+        // Classic 模式下，滚动条占用 padding box 空间
+        if (box.HasVerticalScrollbar)
+        {
+            clipWidth -= LayoutBox.ScrollbarThickness;
+        }
+        if (box.HasHorizontalScrollbar)
+        {
+            clipHeight -= LayoutBox.ScrollbarThickness;
+        }
+
+        var clipRect = new RectF(paddingBox.X, paddingBox.Y, clipWidth, clipHeight);
+
+        _painter.Save();
+        _painter.ClipRect(clipRect);
+        _painter.Translate(-box.ScrollLeft, -box.ScrollTop);
 
         foreach (var child in box.Children)
         {
             RenderBox(child);
+        }
+
+        _painter.Restore();
+    }
+
+    /// <summary>
+    /// 渲染滚动条
+    /// </summary>
+    private void RenderScrollbars(LayoutBox box)
+    {
+        if (_painter == null) return;
+
+        var paddingBox = box.BoxModel.PaddingBox;
+        bool hasVScrollbar = box.HasVerticalScrollbar;
+        bool hasHScrollbar = box.HasHorizontalScrollbar;
+
+        if (hasVScrollbar)
+        {
+            float trackX = paddingBox.Right - LayoutBox.ScrollbarThickness;
+            float trackHeight = paddingBox.Height - (hasHScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            var trackRect = new RectF(trackX, paddingBox.Y, LayoutBox.ScrollbarThickness, trackHeight);
+
+            _painter.DrawVerticalScrollbar(
+                trackRect,
+                box.ScrollTop,
+                box.ScrollableContentHeight,
+                trackHeight);
+        }
+
+        if (hasHScrollbar)
+        {
+            float trackY = paddingBox.Bottom - LayoutBox.ScrollbarThickness;
+            float trackWidth = paddingBox.Width - (hasVScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            var trackRect = new RectF(paddingBox.X, trackY, trackWidth, LayoutBox.ScrollbarThickness);
+
+            _painter.DrawHorizontalScrollbar(
+                trackRect,
+                box.ScrollLeft,
+                box.ScrollableContentWidth,
+                trackWidth);
         }
     }
 
@@ -137,7 +223,6 @@ public class RenderEngine
 
         var style = box.ComputedStyle;
 
-        // 检查是否有任何可见边框
         bool hasVisibleBorder =
             style.ComputedBorderTop.IsVisible ||
             style.ComputedBorderRight.IsVisible ||
@@ -249,7 +334,6 @@ public class RenderEngine
                 break;
 
             case InputType.Password:
-                // 绘制密码圆点
                 if (!string.IsNullOrEmpty(inputElement.Value))
                 {
                     _painter.DrawPasswordText(
@@ -261,7 +345,6 @@ public class RenderEngine
                 }
                 else if (!string.IsNullOrEmpty(inputElement.Placeholder))
                 {
-                    // 绘制占位符
                     _painter.DrawText(
                         inputElement.Placeholder,
                         contentRect,
@@ -276,7 +359,6 @@ public class RenderEngine
 
             case InputType.Text:
             default:
-                // 绘制文本或占位符
                 if (!string.IsNullOrEmpty(inputElement.Value))
                 {
                     _painter.DrawText(
@@ -315,7 +397,6 @@ public class RenderEngine
         var style = box.ComputedStyle;
         var borderBox = box.BoxModel.BorderBox;
 
-        // 绘制select控件（不绘制背景和边框，因为RenderBackground和RenderBorder已经处理）
         _painter.DrawSelect(
             borderBox,
             selectElement.GetDisplayText(),
@@ -323,11 +404,10 @@ public class RenderEngine
             style.BorderTopColor,
             style.BackgroundColor,
             style.Color,
-            Color.Gray,  // Arrow color
+            Color.Gray,
             style.FontSize.Value
         );
 
-        // 如果下拉框展开，绘制选项列表
         if (selectElement.IsOpen)
         {
             RenderSelectDropdown(box, selectElement);
@@ -344,7 +424,6 @@ public class RenderEngine
         var style = box.ComputedStyle;
         var borderBox = box.BoxModel.BorderBox;
 
-        // 构建选项列表
         var options = new List<(string text, bool isSelected, bool isDisabled, bool isGroupLabel)>();
         var allOptions = selectElement.GetAllOptions();
         int optionIndex = 0;
@@ -353,10 +432,8 @@ public class RenderEngine
         {
             if (child is OptGroupElement optGroup)
             {
-                // 添加分组标签
                 options.Add((optGroup.Label ?? string.Empty, false, false, true));
 
-                // 添加分组中的选项
                 foreach (var groupChild in optGroup.Children)
                 {
                     if (groupChild is OptionElement option)
@@ -377,7 +454,6 @@ public class RenderEngine
             }
         }
 
-        // 计算下拉列表位置和大小
         float optionHeight = style.FontSize.Value + 8;
         float dropdownHeight = options.Count * optionHeight;
         var dropdownRect = new RectF(
@@ -387,17 +463,16 @@ public class RenderEngine
             dropdownHeight
         );
 
-        // 绘制下拉列表
         _painter.DrawSelectDropdown(
             dropdownRect,
             options,
-            Color.White,           // Background
-            style.BorderTopColor,  // Border
-            style.Color,           // Text
-            new Color(0, 120, 215),  // Selected background (blue)
-            Color.White,           // Selected text
-            Color.Gray,            // Disabled text
-            Color.Gray,            // Group label color
+            Color.White,
+            style.BorderTopColor,
+            style.Color,
+            new Color(0, 120, 215),
+            Color.White,
+            Color.Gray,
+            Color.Gray,
             style.FontSize.Value
         );
     }

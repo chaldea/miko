@@ -100,3 +100,29 @@ public enum MouseButton
     Middle,
     Right
 }
+
+/// <summary>
+/// 滚动事件参数
+/// </summary>
+public class ScrollEventArgs : MikoEventArgs
+{
+    /// <summary>
+    /// 水平滚动增量（像素）
+    /// </summary>
+    public float DeltaX { get; init; }
+
+    /// <summary>
+    /// 垂直滚动增量（像素）
+    /// </summary>
+    public float DeltaY { get; init; }
+
+    /// <summary>
+    /// 当前滚动位置 X
+    /// </summary>
+    public float ScrollLeft { get; init; }
+
+    /// <summary>
+    /// 当前滚动位置 Y
+    /// </summary>
+    public float ScrollTop { get; init; }
+}

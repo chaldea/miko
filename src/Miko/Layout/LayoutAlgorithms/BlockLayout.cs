@@ -78,6 +78,11 @@ public class BlockLayout
             contentWidth = Math.Min(contentWidth, style.MaxWidth.ToPixels(containerWidth));
         }
 
+        // 判断是否需要为滚动条预留空间（Classic 模式占用布局）
+        bool needsVerticalScrollbar = style.OverflowY == Overflow.Scroll;
+        float scrollbarReservedWidth = needsVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0;
+        float childAvailableWidth = contentWidth - scrollbarReservedWidth;
+
         // 3. 计算内容区域的位置
         float contentX = x + box.BoxModel.Margin.Left + box.BoxModel.Border.Left + box.BoxModel.Padding.Left;
         float contentY = y + box.BoxModel.Margin.Top + box.BoxModel.Border.Top + box.BoxModel.Padding.Top;
@@ -116,7 +121,7 @@ public class BlockLayout
             else
             {
                 // Block 子元素垂直堆叠
-                var childConstraints = new LayoutConstraints(contentWidth, null);
+                var childConstraints = new LayoutConstraints(childAvailableWidth, null);
                 LayoutChild(child, childConstraints, contentX, currentY);
 
                 currentY = child.BoxModel.MarginBox.Bottom;
@@ -125,11 +130,24 @@ public class BlockLayout
             }
         }
 
+        // 记录子元素实际占用的总高度
+        float childrenTotalHeight = currentY - contentY;
+
         // 5. 计算 height
         float contentHeight;
         if (!style.Height.IsAuto)
         {
             contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0);
+        }
+        else if (constraints.AvailableHeight.HasValue &&
+                 (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
+        {
+            // 当有可用高度约束（如来自 flex 容器）且设置了 overflow 时，使用约束高度
+            contentHeight = constraints.AvailableHeight.Value
+                - box.BoxModel.Margin.Vertical
+                - box.BoxModel.Border.Vertical
+                - box.BoxModel.Padding.Vertical;
+            contentHeight = Math.Max(0, contentHeight);
         }
         else
         {
@@ -164,6 +182,62 @@ public class BlockLayout
 
         // 6. 设置内容区域
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);
+
+        // 7. 记录可滚动内容尺寸
+        box.ScrollableContentWidth = maxChildWidth;
+        box.ScrollableContentHeight = childrenTotalHeight;
+
+        // 8. 如果 overflow-y 是 auto 且内容溢出，需要为滚动条预留空间并重新布局
+        if (style.OverflowY == Overflow.Auto && !needsVerticalScrollbar &&
+            childrenTotalHeight > contentHeight && contentHeight > 0)
+        {
+            scrollbarReservedWidth = LayoutBox.ScrollbarThickness;
+            childAvailableWidth = contentWidth - scrollbarReservedWidth;
+            RelayoutChildren(box, childAvailableWidth, contentX, contentY);
+        }
+    }
+
+    private void RelayoutChildren(LayoutBox box, float childAvailableWidth, float contentX, float contentY)
+    {
+        float currentY = contentY;
+        float maxChildWidth = 0;
+
+        int i = 0;
+        while (i < box.Children.Count)
+        {
+            var child = box.Children[i];
+
+            if (IsInlineOrInlineBlock(child))
+            {
+                float lineX = contentX;
+                float lineHeight = 0;
+
+                while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i]))
+                {
+                    var inlineChild = box.Children[i];
+                    var childConstraints = new LayoutConstraints(null, null);
+                    LayoutChild(inlineChild, childConstraints, lineX, currentY);
+
+                    lineX = inlineChild.BoxModel.MarginBox.Right;
+                    lineHeight = Math.Max(lineHeight, inlineChild.BoxModel.MarginBox.Height);
+                    maxChildWidth = Math.Max(maxChildWidth, lineX - contentX);
+                    i++;
+                }
+                currentY += lineHeight;
+            }
+            else
+            {
+                var childConstraints = new LayoutConstraints(childAvailableWidth, null);
+                LayoutChild(child, childConstraints, contentX, currentY);
+
+                currentY = child.BoxModel.MarginBox.Bottom;
+                maxChildWidth = Math.Max(maxChildWidth, child.BoxModel.MarginBox.Width);
+                i++;
+            }
+        }
+
+        box.ScrollableContentWidth = maxChildWidth;
+        box.ScrollableContentHeight = currentY - contentY;
     }
 
     private void LayoutChild(LayoutBox child, LayoutConstraints constraints, float x, float y)

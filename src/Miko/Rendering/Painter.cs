@@ -637,4 +637,92 @@ public class Painter
         path.AddRoundRect(roundRect);
         return path;
     }
+
+    /// <summary>
+    /// 绘制垂直滚动条
+    /// </summary>
+    public void DrawVerticalScrollbar(RectF trackRect, float scrollTop, float contentHeight, float viewportHeight)
+    {
+        if (viewportHeight <= 0 || contentHeight <= viewportHeight) return;
+
+        // 绘制轨道
+        using var trackPaint = new SKPaint
+        {
+            Color = new SKColor(0xF1, 0xF1, 0xF1),
+            Style = SKPaintStyle.Fill
+        };
+        _canvas.DrawRect(trackRect.ToSKRect(), trackPaint);
+
+        // 计算滑块尺寸和位置
+        float thumbRatio = viewportHeight / contentHeight;
+        float thumbHeight = Math.Max(trackRect.Height * thumbRatio, 20f);
+        float scrollableTrack = trackRect.Height - thumbHeight;
+        float maxScroll = contentHeight - viewportHeight;
+        float thumbY = trackRect.Top + (maxScroll > 0 ? (scrollTop / maxScroll) * scrollableTrack : 0);
+
+        // 绘制滑块
+        var thumbRect = new SKRect(
+            trackRect.Left + 2,
+            thumbY + 2,
+            trackRect.Right - 2,
+            thumbY + thumbHeight - 2);
+
+        using var thumbPaint = new SKPaint
+        {
+            Color = new SKColor(0xC1, 0xC1, 0xC1),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+
+        float radius = (trackRect.Width - 4) / 2;
+        _canvas.DrawRoundRect(thumbRect, radius, radius, thumbPaint);
+    }
+
+    /// <summary>
+    /// 绘制水平滚动条
+    /// </summary>
+    public void DrawHorizontalScrollbar(RectF trackRect, float scrollLeft, float contentWidth, float viewportWidth)
+    {
+        if (viewportWidth <= 0 || contentWidth <= viewportWidth) return;
+
+        // 绘制轨道
+        using var trackPaint = new SKPaint
+        {
+            Color = new SKColor(0xF1, 0xF1, 0xF1),
+            Style = SKPaintStyle.Fill
+        };
+        _canvas.DrawRect(trackRect.ToSKRect(), trackPaint);
+
+        // 计算滑块尺寸和位置
+        float thumbRatio = viewportWidth / contentWidth;
+        float thumbWidth = Math.Max(trackRect.Width * thumbRatio, 20f);
+        float scrollableTrack = trackRect.Width - thumbWidth;
+        float maxScroll = contentWidth - viewportWidth;
+        float thumbX = trackRect.Left + (maxScroll > 0 ? (scrollLeft / maxScroll) * scrollableTrack : 0);
+
+        // 绘制滑块
+        var thumbRect = new SKRect(
+            thumbX + 2,
+            trackRect.Top + 2,
+            thumbX + thumbWidth - 2,
+            trackRect.Bottom - 2);
+
+        using var thumbPaint = new SKPaint
+        {
+            Color = new SKColor(0xC1, 0xC1, 0xC1),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+
+        float radius = (trackRect.Height - 4) / 2;
+        _canvas.DrawRoundRect(thumbRect, radius, radius, thumbPaint);
+    }
+
+    /// <summary>
+    /// 平移画布
+    /// </summary>
+    public void Translate(float dx, float dy)
+    {
+        _canvas.Translate(dx, dy);
+    }
 }

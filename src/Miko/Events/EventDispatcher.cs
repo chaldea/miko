@@ -98,6 +98,9 @@ public class EventDispatcher
             case EventTypes.Change when args is ChangeEventArgs changeArgs:
                 element.OnChange?.Invoke(changeArgs);
                 break;
+            case EventTypes.Scroll when args is ScrollEventArgs scrollArgs:
+                element.OnScroll?.Invoke(scrollArgs);
+                break;
         }
     }
 }

@@ -1,4 +1,4 @@
-using Miko.Components;
+﻿using Miko.Components;
 using Miko.Core;
 
 namespace Miko.Routing;
@@ -32,7 +32,8 @@ public class RouteView
             var layout = (LayoutComponentBase)Activator.CreateInstance(_defaultLayout)!;
             layout.NavigationManager = _navigationManager;
             layout.Body = content;
-            return layout.Build();
+            var s = layout.Build();
+            return s;
         }
 
         return content;
