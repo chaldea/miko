@@ -232,7 +232,8 @@ public class FlexLayout
                 childContentWidth = Math.Max(0, childContentWidth);
 
                 // 使用计算出的宽度约束重新布局
-                var childConstraints = new LayoutConstraints(childContentWidth, null);
+                float? childAvailableHeight = contentHeight > 0 ? contentHeight : null;
+                var childConstraints = new LayoutConstraints(childContentWidth, childAvailableHeight);
                 LayoutDispatcher.Dispatch(child, childConstraints, currentX, contentY);
 
                 // 强制设置宽度（覆盖子元素自己计算的宽度）
@@ -246,7 +247,8 @@ public class FlexLayout
             else
             {
                 // 使用自动尺寸，不需要强制调整
-                var childConstraints = new LayoutConstraints(null, null);
+                float? childAvailableHeight = contentHeight > 0 ? contentHeight : null;
+                var childConstraints = new LayoutConstraints(null, childAvailableHeight);
                 LayoutDispatcher.Dispatch(child, childConstraints, currentX, contentY);
             }
 

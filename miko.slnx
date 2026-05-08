@@ -9,5 +9,6 @@
     <Project Path="examples/MikoApp1/MikoApp1.csproj" />
     <Project Path="examples/MikoApp1.WinUI/MikoApp1.WinUI.csproj" />
     <Project Path="examples/MikoApp1.Droid/MikoApp1.Droid.csproj" />
+    <Project Path="examples/MikoApp1.Console/MikoApp1.Console.csproj" />
   </Folder>
 </Solution>

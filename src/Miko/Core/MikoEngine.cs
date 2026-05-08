@@ -30,6 +30,7 @@ public class MikoEngine
         _viewportWidth = viewportWidth;
         _viewportHeight = viewportHeight;
 
+        EnsureParentReferences(root);
         _renderEngine.SetCanvas(canvas);
 
         _logger.LogInformation("Engine initialized with viewport {Width}x{Height}", viewportWidth, viewportHeight);
@@ -112,4 +113,37 @@ public class MikoEngine
     /// 获取根元素
     /// </summary>
     public Element? GetRoot() => _root;
+
+    /// <summary>
+    /// 在指定坐标处进行命中测试，返回最深层的元素
+    /// </summary>
+    public Element? HitTest(float x, float y)
+    {
+        if (_currentLayout == null) return null;
+        return HitTestBox(_currentLayout, x, y);
+    }
+
+    private Element? HitTestBox(LayoutBox box, float x, float y)
+    {
+        var rect = box.BoxModel.BorderBox;
+        if (x < rect.Left || x > rect.Right || y < rect.Top || y > rect.Bottom)
+            return null;
+
+        for (int i = box.Children.Count - 1; i >= 0; i--)
+        {
+            var hit = HitTestBox(box.Children[i], x, y);
+            if (hit != null) return hit;
+        }
+
+        return box.Element;
+    }
+
+    private static void EnsureParentReferences(Element element)
+    {
+        foreach (var child in element.Children)
+        {
+            child.SetParent(element);
+            EnsureParentReferences(child);
+        }
+    }
 }

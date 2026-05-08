@@ -1,17 +1,15 @@
+using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
 
 namespace Miko.Examples.Bootstrap.Examples;
 
-/// <summary>
-/// Bootstrap-style list demonstration.
-/// </summary>
-public static class ListExample
+[Route("/list")]
+public partial class ListExample : ComponentBase
 {
-    public const string OutputFileName = "bootstrap-lists.png";
     public const string Title = "Bootstrap List Examples";
 
-    public static Element CreateDOM()
+    public override Element Build()
     {
         return new DivElement
         {

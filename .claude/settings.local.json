@@ -1,16 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet add package:*)",
-      "Bash(dotnet build:*)",
-      "Bash(dotnet test:*)",
-      "Bash(dir:*)",
-      "Bash(dotnet run:*)",
-      "WebFetch(domain:html.spec.whatwg.org)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(cd:*)",
-      "Bash(xxd:*)"
-    ]
+      "Bash(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Read(*)",
+      "WebSearch"
+    ],
+    "defaultMode": "acceptEdits"
   }
 }

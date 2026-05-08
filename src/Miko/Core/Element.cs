@@ -13,6 +13,11 @@ public abstract class Element
     public string? Class { get; set; }
     public List<Element> Children { get; set; } = new();
     public Element? Parent { get; private set; }
+
+    internal void SetParent(Element parent)
+    {
+        Parent = parent;
+    }
     public Style? Style { get; set; }
     public string? TextContent { get; set; }
 

@@ -1,17 +1,15 @@
+using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
 
 namespace Miko.Examples.Bootstrap.Examples;
 
-/// <summary>
-/// Bootstrap-style table demonstration.
-/// </summary>
-public static class TableExample
+[Route("/table")]
+public partial class TableExample : ComponentBase
 {
-    public const string OutputFileName = "bootstrap-tables.png";
     public const string Title = "Bootstrap Table Examples";
 
-    public static Element CreateDOM()
+    public override Element Build()
     {
         return new DivElement
         {
@@ -51,7 +49,7 @@ public static class TableExample
         };
     }
 
-    private static TableElement CreateBasicTable()
+    private TableElement CreateBasicTable()
     {
         return new TableElement
         {
@@ -114,7 +112,7 @@ public static class TableExample
         };
     }
 
-    private static TableElement CreateStripedTable()
+    private TableElement CreateStripedTable()
     {
         return new TableElement
         {
@@ -190,7 +188,7 @@ public static class TableExample
         };
     }
 
-    private static TableElement CreateBorderedTable()
+    private TableElement CreateBorderedTable()
     {
         return new TableElement
         {
@@ -253,7 +251,7 @@ public static class TableExample
         };
     }
 
-    private static TableElement CreateHoverTable()
+    private TableElement CreateHoverTable()
     {
         return new TableElement
         {
@@ -316,7 +314,7 @@ public static class TableExample
         };
     }
 
-    private static TableElement CreateSmallTable()
+    private TableElement CreateSmallTable()
     {
         return new TableElement
         {
@@ -379,7 +377,7 @@ public static class TableExample
         };
     }
 
-    private static TableElement CreateContextualTable()
+    private TableElement CreateContextualTable()
     {
         return new TableElement
         {
@@ -501,7 +499,7 @@ public static class TableExample
         };
     }
 
-    private static TableElement CreateDarkTable()
+    private TableElement CreateDarkTable()
     {
         return new TableElement
         {

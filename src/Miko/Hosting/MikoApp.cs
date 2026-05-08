@@ -1,6 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Core;
+using Miko.Events;
+using Miko.Fonts;
+using Miko.Routing;
+using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -14,11 +18,19 @@ public class MikoApp
     private readonly ILogger<MikoApp> _logger;
     private readonly MikoEngine _engine = new();
 
+    private Router? _router;
+    private NavigationManager? _navigationManager;
+    private RouteView? _routeView;
+
     private IWindow? _window;
+    private IInputContext? _inputContext;
+    private readonly EventDispatcher _eventDispatcher = new();
+    private System.Numerics.Vector2? _mouseDownPosition;
     private GL? _gl;
     private GRContext? _grContext;
     private int _width;
     private int _height;
+    private bool _needsRebuild;
 
     internal MikoApp(MikoAppConfiguration config)
     {
@@ -32,6 +44,29 @@ public class MikoApp
 
         _logger = loggerFactory.CreateLogger<MikoApp>();
         _engine.SetLogger(loggerFactory.CreateLogger<MikoEngine>());
+
+        RegisterFonts(config);
+
+        if (config.RouteAssemblies != null)
+        {
+            _router = new Router();
+            _router.ScanAssemblies(config.RouteAssemblies);
+            _navigationManager = new NavigationManager();
+            _routeView = new RouteView(_router, _navigationManager, config.DefaultLayout);
+            _navigationManager.LocationChanged += _ => _needsRebuild = true;
+        }
+    }
+
+    private static void RegisterFonts(MikoAppConfiguration config)
+    {
+        foreach (var font in config.Fonts)
+        {
+            using var stream = font.Assembly.GetManifestResourceStream(font.ResourceName);
+            if (stream == null)
+                throw new InvalidOperationException($"Embedded resource not found: {font.ResourceName}");
+
+            FontManager.Instance.RegisterFont(font.FamilyName, stream);
+        }
     }
 
     public static MikoAppBuilder CreateBuilder() => new();
@@ -70,15 +105,38 @@ public class MikoApp
         _grContext = GRContext.CreateGl(grInterface);
         _logger.LogInformation("OpenGL context initialized");
 
-        // Initial render with a temporary surface to satisfy Initialize signature
+        _inputContext = _window!.CreateInput();
+        foreach (var mouse in _inputContext.Mice)
+        {
+            mouse.MouseDown += OnMouseDown;
+            mouse.MouseUp += OnMouseUp;
+        }
+
         using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
-        var root = _config.RootComponentFactory?.Invoke() ?? throw new InvalidOperationException("No root component configured.");
+        var root = BuildRoot();
         _engine.Initialize(root, _config.StyleSheets, tempSurface.Canvas, _width, _height);
+    }
+
+    private Element BuildRoot()
+    {
+        if (_routeView != null && _navigationManager != null)
+            return _routeView.Render(_navigationManager.CurrentPath);
+
+        return _config.RootComponentFactory?.Invoke()
+            ?? throw new InvalidOperationException("No root component or router configured.");
     }
 
     private void OnRender(double _)
     {
         if (_grContext == null || _gl == null) return;
+
+        if (_needsRebuild)
+        {
+            _needsRebuild = false;
+            var root = BuildRoot();
+            using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
+            _engine.Initialize(root, _config.StyleSheets, tempSurface.Canvas, _width, _height);
+        }
 
         int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
         var fbInfo = new GRGlFramebufferInfo((uint)fboId, 0x8058); // GL_RGBA8
@@ -101,8 +159,38 @@ public class MikoApp
         _logger.LogDebug("Viewport resized to {Width}x{Height}", size.X, size.Y);
     }
 
+    private void OnMouseDown(IMouse mouse, Silk.NET.Input.MouseButton button)
+    {
+        if (button != Silk.NET.Input.MouseButton.Left) return;
+        _mouseDownPosition = mouse.Position;
+    }
+
+    private void OnMouseUp(IMouse mouse, Silk.NET.Input.MouseButton button)
+    {
+        if (button != Silk.NET.Input.MouseButton.Left) return;
+        if (_mouseDownPosition == null) return;
+
+        var position = _mouseDownPosition.Value;
+        _mouseDownPosition = null;
+
+        var target = _engine.HitTest(position.X, position.Y);
+        if (target == null) return;
+
+        var args = new MouseEventArgs
+        {
+            Target = target,
+            X = position.X,
+            Y = position.Y,
+            Button = Events.MouseButton.Left,
+            Bubbles = true
+        };
+
+        _eventDispatcher.Dispatch(target, EventTypes.Click, args);
+    }
+
     private void OnClose()
     {
+        _inputContext?.Dispose();
         _grContext?.Dispose();
         _gl?.Dispose();
     }

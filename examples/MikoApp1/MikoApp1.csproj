@@ -15,9 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Fonts\**\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <EmbeddedResource Include="Resources\Fonts\**\*" />
   </ItemGroup>
 
 </Project>
