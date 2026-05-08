@@ -1,6 +1,8 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Miko.Common;
 using Miko.Core;
+using Miko.Events;
 using Miko.Layout;
 using Miko.Rendering;
 using Miko.Styling;
@@ -13,6 +15,7 @@ public class MikoEngine
     private readonly LayoutEngine _layoutEngine = new();
     private readonly RenderEngine _renderEngine = new();
     private readonly DirtyRegionManager _dirtyManager = new();
+    private readonly EventDispatcher _eventDispatcher = new();
     private List<StyleSheet> _styleSheets = new();
     private ILogger _logger = NullLogger.Instance;
 
@@ -48,7 +51,9 @@ public class MikoEngine
         {
             var dirtyRegions = _dirtyManager.GetDirtyRegions();
             _logger.LogDebug("Incremental update, {Count} dirty regions", dirtyRegions.Count);
+            var oldLayout = _currentLayout;
             _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
+            RestoreScrollState(oldLayout, _currentLayout);
             _renderEngine.RenderDirty(_currentLayout, dirtyRegions);
         }
     }
@@ -58,8 +63,9 @@ public class MikoEngine
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
         _renderEngine.SetCanvas(canvas);
-        _logger.LogDebug("Full render pass");
+        var oldLayout = _currentLayout;
         _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
+        RestoreScrollState(oldLayout, _currentLayout);
         _renderEngine.Render(_currentLayout);
         _dirtyManager.Clear();
     }
@@ -145,5 +151,165 @@ public class MikoEngine
             child.SetParent(element);
             EnsureParentReferences(child);
         }
+    }
+
+    /// <summary>
+    /// 将旧布局树的滚动状态恢复到新布局树
+    /// </summary>
+    private static void RestoreScrollState(LayoutBox? oldRoot, LayoutBox? newRoot)
+    {
+        if (oldRoot == null || newRoot == null) return;
+        RestoreScrollStateRecursive(oldRoot, newRoot);
+    }
+
+    private static void RestoreScrollStateRecursive(LayoutBox oldBox, LayoutBox newBox)
+    {
+        if (oldBox.Element == newBox.Element)
+        {
+            newBox.ScrollTop = oldBox.ScrollTop;
+            newBox.ScrollLeft = oldBox.ScrollLeft;
+        }
+
+        foreach (var newChild in newBox.Children)
+        {
+            foreach (var oldChild in oldBox.Children)
+            {
+                if (oldChild.Element == newChild.Element)
+                {
+                    RestoreScrollStateRecursive(oldChild, newChild);
+                    break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 处理滚动事件，更新滚动位置
+    /// </summary>
+    public bool ScrollBy(float x, float y, float deltaX, float deltaY)
+    {
+        if (_currentLayout == null)
+        {
+            _logger.LogTrace("ScrollBy: no layout available");
+            return false;
+        }
+
+        var targetElement = HitTest(x, y);
+        if (targetElement == null)
+        {
+            _logger.LogTrace("ScrollBy: no element at ({X}, {Y})", x, y);
+            return false;
+        }
+
+        _logger.LogTrace("ScrollBy: hit element <{Tag} id=\"{Id}\" class=\"{Class}\"> at ({X}, {Y}), delta=({DeltaX}, {DeltaY})",
+            targetElement.TagName, targetElement.Id, targetElement.Class, x, y, deltaX, deltaY);
+
+        var scrollableBox = FindScrollableBox(targetElement, deltaX, deltaY);
+        if (scrollableBox == null)
+        {
+            _logger.LogTrace("ScrollBy: no scrollable ancestor found for <{Tag} id=\"{Id}\" class=\"{Class}\">",
+                targetElement.TagName, targetElement.Id, targetElement.Class);
+            return false;
+        }
+
+        _logger.LogTrace("ScrollBy: found scrollable <{Tag} id=\"{Id}\" class=\"{Class}\">, overflowY={OverflowY}, scrollableHeight={ScrollableH}, paddingBoxHeight={PaddingH}",
+            scrollableBox.Element.TagName, scrollableBox.Element.Id, scrollableBox.Element.Class,
+            scrollableBox.ComputedStyle.OverflowY, scrollableBox.ScrollableContentHeight, scrollableBox.BoxModel.PaddingBox.Height);
+
+        float oldScrollLeft = scrollableBox.ScrollLeft;
+        float oldScrollTop = scrollableBox.ScrollTop;
+
+        // 更新垂直滚动
+        if (Math.Abs(deltaY) > 0.01f && scrollableBox.HasVerticalScrollbar)
+        {
+            float maxScrollTop = scrollableBox.ScrollableContentHeight - scrollableBox.BoxModel.PaddingBox.Height
+                + (scrollableBox.HasHorizontalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            maxScrollTop = Math.Max(0, maxScrollTop);
+            scrollableBox.ScrollTop = Math.Clamp(scrollableBox.ScrollTop + deltaY, 0, maxScrollTop);
+            _logger.LogTrace("ScrollBy: vertical scroll {Old} -> {New} (max={Max})", oldScrollTop, scrollableBox.ScrollTop, maxScrollTop);
+        }
+
+        // 更新水平滚动
+        if (Math.Abs(deltaX) > 0.01f && scrollableBox.HasHorizontalScrollbar)
+        {
+            float maxScrollLeft = scrollableBox.ScrollableContentWidth - scrollableBox.BoxModel.PaddingBox.Width
+                + (scrollableBox.HasVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            maxScrollLeft = Math.Max(0, maxScrollLeft);
+            scrollableBox.ScrollLeft = Math.Clamp(scrollableBox.ScrollLeft + deltaX, 0, maxScrollLeft);
+            _logger.LogTrace("ScrollBy: horizontal scroll {Old} -> {New} (max={Max})", oldScrollLeft, scrollableBox.ScrollLeft, maxScrollLeft);
+        }
+
+        bool scrolled = Math.Abs(scrollableBox.ScrollLeft - oldScrollLeft) > 0.01f ||
+                        Math.Abs(scrollableBox.ScrollTop - oldScrollTop) > 0.01f;
+
+        if (scrolled)
+        {
+            // 分发滚动事件
+            var scrollArgs = new ScrollEventArgs
+            {
+                Target = scrollableBox.Element,
+                DeltaX = scrollableBox.ScrollLeft - oldScrollLeft,
+                DeltaY = scrollableBox.ScrollTop - oldScrollTop,
+                ScrollLeft = scrollableBox.ScrollLeft,
+                ScrollTop = scrollableBox.ScrollTop,
+                Bubbles = true
+            };
+            _eventDispatcher.Dispatch(scrollableBox.Element, EventTypes.Scroll, scrollArgs);
+
+            InvalidateElement(scrollableBox.Element);
+            _logger.LogTrace("ScrollBy: scrolled, new position=({ScrollLeft}, {ScrollTop})", scrollableBox.ScrollLeft, scrollableBox.ScrollTop);
+        }
+        else
+        {
+            _logger.LogTrace("ScrollBy: no actual scroll change (already at boundary)");
+        }
+
+        return scrolled;
+    }
+
+    /// <summary>
+    /// 从目标元素向上查找最近的可滚动容器
+    /// </summary>
+    private LayoutBox? FindScrollableBox(Element target, float deltaX, float deltaY)
+    {
+        if (_currentLayout == null) return null;
+
+        var current = target;
+        while (current != null)
+        {
+            var box = FindLayoutBoxForElement(_currentLayout, current);
+            if (box != null)
+            {
+                bool canScrollY = Math.Abs(deltaY) > 0.01f &&
+                    (box.ComputedStyle.OverflowY == Overflow.Auto || box.ComputedStyle.OverflowY == Overflow.Scroll) &&
+                    box.ScrollableContentHeight > box.BoxModel.PaddingBox.Height;
+
+                bool canScrollX = Math.Abs(deltaX) > 0.01f &&
+                    (box.ComputedStyle.OverflowX == Overflow.Auto || box.ComputedStyle.OverflowX == Overflow.Scroll) &&
+                    box.ScrollableContentWidth > box.BoxModel.PaddingBox.Width;
+
+                if (canScrollY || canScrollX)
+                    return box;
+            }
+            current = current.Parent;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 在布局树中查找对应元素的 LayoutBox
+    /// </summary>
+    private static LayoutBox? FindLayoutBoxForElement(LayoutBox box, Element element)
+    {
+        if (box.Element == element) return box;
+
+        foreach (var child in box.Children)
+        {
+            var found = FindLayoutBoxForElement(child, element);
+            if (found != null) return found;
+        }
+
+        return null;
     }
 }

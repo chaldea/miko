@@ -1,4 +1,4 @@
-using Miko.Core;
+﻿using Miko.Core;
 using Miko.Examples.Bootstrap;
 using Miko.Examples.Bootstrap.Examples;
 using Miko.Fonts;
@@ -7,7 +7,7 @@ using MikoApp1;
 using SkiaSharp;
 
 int width = 1024;
-int height = 768;
+int height = 700;
 
 // Register fonts from embedded resources
 using var fontStream = typeof(App).Assembly.GetManifestResourceStream("MikoApp1.Resources.Fonts.bootstrap-icons.woff2");

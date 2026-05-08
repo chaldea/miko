@@ -23,7 +23,11 @@ public static class App
         });
         builder.UseRouter(typeof(ButtonExample).Assembly);
         builder.UseDefaultLayout(typeof(MainLayout));
-        builder.UseLogging(logging => logging.AddConsole());
+        builder.UseLogging(logging =>
+        {
+            logging.AddConsole();
+            logging.SetMinimumLevel(LogLevel.Trace);
+        });
         return builder.Build();
     }
 }

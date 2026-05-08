@@ -229,6 +229,22 @@ public class Style
     public float? Opacity { get; set; }
     public int? ZIndex { get; set; }
 
+    // 溢出
+    public Overflow? OverflowX { get; set; }
+    public Overflow? OverflowY { get; set; }
+
+    /// <summary>
+    /// 溢出简写属性（同时设置 X 和 Y）
+    /// </summary>
+    public Overflow Overflow
+    {
+        set
+        {
+            OverflowX = value;
+            OverflowY = value;
+        }
+    }
+
     /// <summary>
     /// 合并样式（用于级联）
     /// </summary>
@@ -300,6 +316,9 @@ public class Style
 
         Opacity ??= other.Opacity;
         ZIndex ??= other.ZIndex;
+
+        OverflowX ??= other.OverflowX;
+        OverflowY ??= other.OverflowY;
     }
 
     /// <summary>

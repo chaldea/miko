@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
@@ -88,6 +88,7 @@ public class MainLayout : LayoutComponentBase
                     {
                         FlexGrow = 1,
                         Padding = Length.Px(16),
+                        OverflowY = Overflow.Scroll,
                     }
                 },
                 new()
