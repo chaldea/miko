@@ -13,7 +13,9 @@ public class RenderEngine
     private SKCanvas? _canvas;
     private Painter? _painter;
     private List<RectF>? _dirtyRegions;
-    private readonly List<(LayoutBox box, SelectElement select)> _pendingDropdowns = new();
+    private readonly List<(LayoutBox box, SelectElement select, float scrollOffsetX, float scrollOffsetY)> _pendingDropdowns = new();
+    private float _currentScrollOffsetX;
+    private float _currentScrollOffsetY;
 
     /// <summary>
     /// 设置画布
@@ -34,6 +36,8 @@ public class RenderEngine
 
         _dirtyRegions = null;
         _pendingDropdowns.Clear();
+        _currentScrollOffsetX = 0;
+        _currentScrollOffsetY = 0;
         RenderBox(layoutRoot);
         FlushDropdowns();
     }
@@ -45,6 +49,8 @@ public class RenderEngine
 
         _dirtyRegions = dirtyRegions;
         _pendingDropdowns.Clear();
+        _currentScrollOffsetX = 0;
+        _currentScrollOffsetY = 0;
 
         foreach (var region in dirtyRegions)
         {
@@ -60,8 +66,8 @@ public class RenderEngine
 
     private void FlushDropdowns()
     {
-        foreach (var (box, select) in _pendingDropdowns)
-            RenderSelectDropdown(box, select);
+        foreach (var (box, select, scrollX, scrollY) in _pendingDropdowns)
+            RenderSelectDropdown(box, select, scrollX, scrollY);
         _pendingDropdowns.Clear();
     }
 
@@ -121,7 +127,6 @@ public class RenderEngine
         float clipWidth = paddingBox.Width;
         float clipHeight = paddingBox.Height;
 
-        // Classic 模式下，滚动条占用 padding box 空间
         if (box.HasVerticalScrollbar)
         {
             clipWidth -= LayoutBox.ScrollbarThickness;
@@ -133,6 +138,11 @@ public class RenderEngine
 
         var clipRect = new RectF(paddingBox.X, paddingBox.Y, clipWidth, clipHeight);
 
+        float prevScrollX = _currentScrollOffsetX;
+        float prevScrollY = _currentScrollOffsetY;
+        _currentScrollOffsetX += box.ScrollLeft;
+        _currentScrollOffsetY += box.ScrollTop;
+
         _painter.Save();
         _painter.ClipRect(clipRect);
         _painter.Translate(-box.ScrollLeft, -box.ScrollTop);
@@ -143,6 +153,9 @@ public class RenderEngine
         }
 
         _painter.Restore();
+
+        _currentScrollOffsetX = prevScrollX;
+        _currentScrollOffsetY = prevScrollY;
     }
 
     /// <summary>
@@ -424,19 +437,22 @@ public class RenderEngine
 
         if (selectElement.IsOpen)
         {
-            _pendingDropdowns.Add((box, selectElement));
+            _pendingDropdowns.Add((box, selectElement, _currentScrollOffsetX, _currentScrollOffsetY));
         }
     }
 
     /// <summary>
     /// 渲染下拉选项列表
     /// </summary>
-    private void RenderSelectDropdown(LayoutBox box, SelectElement selectElement)
+    private void RenderSelectDropdown(LayoutBox box, SelectElement selectElement, float scrollOffsetX, float scrollOffsetY)
     {
         if (_painter == null) return;
 
         var style = box.ComputedStyle;
         var borderBox = box.BoxModel.BorderBox;
+
+        float screenLeft = borderBox.Left - scrollOffsetX;
+        float screenTop = borderBox.Bottom - scrollOffsetY;
 
         var options = new List<(string text, bool isSelected, bool isDisabled, bool isGroupLabel)>();
         var allOptions = selectElement.GetAllOptions();
@@ -471,8 +487,8 @@ public class RenderEngine
         float optionHeight = style.FontSize.Value + 8;
         float dropdownHeight = options.Count * optionHeight;
         var dropdownRect = new RectF(
-            borderBox.Left,
-            borderBox.Bottom,
+            screenLeft,
+            screenTop,
             borderBox.Width,
             dropdownHeight
         );
