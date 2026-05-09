@@ -37,6 +37,7 @@ public class MikoApp
     private Element? _focusedElement;
     private InputElement? _draggingRange;
     private bool _isDragging;
+    private MikoEngine.ScrollbarHitResult? _draggingScrollbar;
 
     internal MikoApp(MikoAppConfiguration config)
     {
@@ -178,6 +179,23 @@ public class MikoApp
         if (button != Silk.NET.Input.MouseButton.Left) return;
         _mouseDownPosition = mouse.Position;
 
+        // Check scrollbar hit first
+        var scrollbarHit = _engine.HitTestScrollbar(mouse.Position.X, mouse.Position.Y);
+        if (scrollbarHit != null)
+        {
+            _logger.LogTrace("Scrollbar hit: type={HitType}, element={Tag}#{Id}, thumbOffset={Offset}, pos=({X}, {Y})",
+                scrollbarHit.HitType, scrollbarHit.Box.Element.TagName, scrollbarHit.Box.Element.Id ?? "",
+                scrollbarHit.ThumbOffset, mouse.Position.X, mouse.Position.Y);
+            _draggingScrollbar = scrollbarHit;
+            _isDragging = true;
+            if (scrollbarHit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb ||
+                scrollbarHit.HitType == MikoEngine.ScrollbarHitType.HorizontalThumb)
+            {
+                _mouseDownPosition = null; // suppress click handling
+            }
+            return;
+        }
+
         var target = _engine.HitTest(mouse.Position.X, mouse.Position.Y);
         if (target is InputElement { Type: InputType.Range } rangeInput)
         {
@@ -194,6 +212,22 @@ public class MikoApp
         if (_isDragging)
         {
             _isDragging = false;
+
+            // Handle scrollbar track click (not thumb drag)
+            if (_draggingScrollbar != null)
+            {
+                var hit = _draggingScrollbar;
+                _draggingScrollbar = null;
+                if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalTrack ||
+                    hit.HitType == MikoEngine.ScrollbarHitType.HorizontalTrack)
+                {
+                    _logger.LogTrace("Scrollbar track click: type={HitType}, element={Tag}#{Id}, pos=({X}, {Y})",
+                        hit.HitType, hit.Box.Element.TagName, hit.Box.Element.Id ?? "",
+                        mouse.Position.X, mouse.Position.Y);
+                    _engine.ScrollTrackClick(hit.Box, hit.HitType, mouse.Position.X, mouse.Position.Y);
+                }
+            }
+
             _draggingRange = null;
             _mouseDownPosition = null;
             return;
@@ -216,6 +250,24 @@ public class MikoApp
 
     private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 position)
     {
+        if (_isDragging && _draggingScrollbar != null)
+        {
+            var hit = _draggingScrollbar;
+            if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb)
+            {
+                _logger.LogTrace("Scrollbar thumb drag: vertical, element={Tag}#{Id}, mouseY={Y}",
+                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", position.Y);
+                _engine.DragVerticalThumb(hit.Box, position.Y, hit.ThumbOffset);
+            }
+            else if (hit.HitType == MikoEngine.ScrollbarHitType.HorizontalThumb)
+            {
+                _logger.LogTrace("Scrollbar thumb drag: horizontal, element={Tag}#{Id}, mouseX={X}",
+                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", position.X);
+                _engine.DragHorizontalThumb(hit.Box, position.X, hit.ThumbOffset);
+            }
+            return;
+        }
+
         if (_isDragging && _draggingRange != null)
         {
             UpdateRangeValue(_draggingRange, position.X);
