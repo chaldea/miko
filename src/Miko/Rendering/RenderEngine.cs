@@ -298,6 +298,7 @@ public class RenderEngine
 
         var style = box.ComputedStyle;
         var contentRect = box.BoxModel.Content;
+        bool isFocused = inputElement.HasState(Miko.Core.ElementState.Focus);
 
         switch (inputElement.Type)
         {
@@ -343,7 +344,7 @@ public class RenderEngine
                         style.FontSize.Value
                     );
                 }
-                else if (!string.IsNullOrEmpty(inputElement.Placeholder))
+                else if (!string.IsNullOrEmpty(inputElement.Placeholder) && !isFocused)
                 {
                     _painter.DrawText(
                         inputElement.Placeholder,
@@ -354,6 +355,11 @@ public class RenderEngine
                         style.FontWeight,
                         TextAlign.Left
                     );
+                }
+                if (isFocused)
+                {
+                    var maskedText = new string('●', (inputElement.Value ?? string.Empty).Length);
+                    _painter.DrawTextCursor(contentRect, maskedText, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight);
                 }
                 break;
 
@@ -371,7 +377,7 @@ public class RenderEngine
                         TextAlign.Left
                     );
                 }
-                else if (!string.IsNullOrEmpty(inputElement.Placeholder))
+                else if (!string.IsNullOrEmpty(inputElement.Placeholder) && !isFocused)
                 {
                     _painter.DrawText(
                         inputElement.Placeholder,
@@ -382,6 +388,10 @@ public class RenderEngine
                         style.FontWeight,
                         TextAlign.Left
                     );
+                }
+                if (isFocused)
+                {
+                    _painter.DrawTextCursor(contentRect, inputElement.Value ?? string.Empty, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight);
                 }
                 break;
         }

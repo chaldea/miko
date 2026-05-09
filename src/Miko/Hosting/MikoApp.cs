@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Miko.Common;
 using Miko.Core;
+using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Fonts;
 using Miko.Routing;
@@ -31,6 +33,10 @@ public class MikoApp
     private int _width;
     private int _height;
     private bool _needsRebuild;
+
+    private Element? _focusedElement;
+    private InputElement? _draggingRange;
+    private bool _isDragging;
 
     internal MikoApp(MikoAppConfiguration config)
     {
@@ -110,7 +116,14 @@ public class MikoApp
         {
             mouse.MouseDown += OnMouseDown;
             mouse.MouseUp += OnMouseUp;
+            mouse.MouseMove += OnMouseMove;
             mouse.Scroll += OnMouseScroll;
+        }
+
+        foreach (var keyboard in _inputContext.Keyboards)
+        {
+            keyboard.KeyDown += OnKeyDown;
+            keyboard.KeyChar += OnKeyChar;
         }
 
         using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
@@ -164,29 +177,351 @@ public class MikoApp
     {
         if (button != Silk.NET.Input.MouseButton.Left) return;
         _mouseDownPosition = mouse.Position;
+
+        var target = _engine.HitTest(mouse.Position.X, mouse.Position.Y);
+        if (target is InputElement { Type: InputType.Range } rangeInput)
+        {
+            _isDragging = true;
+            _draggingRange = rangeInput;
+            UpdateRangeValue(rangeInput, mouse.Position.X);
+        }
     }
 
     private void OnMouseUp(IMouse mouse, Silk.NET.Input.MouseButton button)
     {
         if (button != Silk.NET.Input.MouseButton.Left) return;
+
+        if (_isDragging)
+        {
+            _isDragging = false;
+            _draggingRange = null;
+            _mouseDownPosition = null;
+            return;
+        }
+
         if (_mouseDownPosition == null) return;
 
         var position = _mouseDownPosition.Value;
         _mouseDownPosition = null;
 
         var target = _engine.HitTest(position.X, position.Y);
-        if (target == null) return;
+        if (target == null)
+        {
+            SetFocus(null);
+            return;
+        }
+
+        HandleClick(target, position.X, position.Y);
+    }
+
+    private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 position)
+    {
+        if (_isDragging && _draggingRange != null)
+        {
+            UpdateRangeValue(_draggingRange, position.X);
+        }
+    }
+
+    private void HandleClick(Element target, float x, float y)
+    {
+        // Check if click is on an open select's dropdown area first
+        var dropdownHit = HitTestSelectDropdown(x, y);
+        if (dropdownHit.HasValue)
+        {
+            var (selectElement, optionIndex) = dropdownHit.Value;
+            HandleOptionClick(selectElement, optionIndex);
+            return;
+        }
 
         var args = new MouseEventArgs
         {
             Target = target,
-            X = position.X,
-            Y = position.Y,
+            X = x,
+            Y = y,
             Button = Events.MouseButton.Left,
             Bubbles = true
         };
 
         _eventDispatcher.Dispatch(target, EventTypes.Click, args);
+
+        if (target is InputElement inputElement)
+        {
+            HandleInputClick(inputElement);
+        }
+        else if (target is SelectElement selectElement2)
+        {
+            HandleSelectClick(selectElement2);
+        }
+        else
+        {
+            CloseAllSelects();
+            SetFocus(null);
+        }
+    }
+
+    private void HandleInputClick(InputElement inputElement)
+    {
+        CloseAllSelects();
+
+        switch (inputElement.Type)
+        {
+            case InputType.Text:
+            case InputType.Password:
+                SetFocus(inputElement);
+                inputElement.MoveCursorToEnd();
+                break;
+            case InputType.Checkbox:
+                inputElement.Checked = !inputElement.Checked;
+                inputElement.IsDirty = true;
+                DispatchChange(inputElement);
+                break;
+            case InputType.Radio:
+                inputElement.Checked = true;
+                inputElement.IsDirty = true;
+                DispatchChange(inputElement);
+                break;
+        }
+    }
+
+    private void HandleSelectClick(SelectElement selectElement)
+    {
+        SetFocus(selectElement);
+        selectElement.Toggle();
+    }
+
+    private void HandleOptionClick(SelectElement selectElement, int optionIndex)
+    {
+        if (optionIndex >= 0)
+        {
+            bool changed = selectElement.SelectOption(optionIndex);
+            if (changed)
+            {
+                DispatchChange(selectElement);
+            }
+        }
+        else
+        {
+            selectElement.Close();
+        }
+    }
+
+    private (SelectElement select, int optionIndex)? HitTestSelectDropdown(float x, float y)
+    {
+        var root = _engine.GetRoot();
+        if (root == null) return null;
+        return HitTestSelectDropdownRecursive(root, x, y);
+    }
+
+    private (SelectElement select, int optionIndex)? HitTestSelectDropdownRecursive(Element element, float x, float y)
+    {
+        if (element is SelectElement { IsOpen: true } sel)
+        {
+            var layoutBox = FindLayoutBoxForElement(sel);
+            if (layoutBox != null)
+            {
+                var borderBox = layoutBox.BoxModel.BorderBox;
+                var options = sel.GetAllOptions();
+                float fontSize = layoutBox.ComputedStyle.FontSize.Value;
+                float optionHeight = fontSize + 8;
+                float dropdownTop = borderBox.Bottom;
+                float dropdownBottom = dropdownTop + options.Count * optionHeight;
+
+                if (x >= borderBox.Left && x <= borderBox.Right &&
+                    y >= dropdownTop && y <= dropdownBottom)
+                {
+                    int index = (int)((y - dropdownTop) / optionHeight);
+                    index = Math.Clamp(index, 0, options.Count - 1);
+                    return (sel, index);
+                }
+            }
+        }
+
+        foreach (var child in element.Children)
+        {
+            var result = HitTestSelectDropdownRecursive(child, x, y);
+            if (result != null) return result;
+        }
+        return null;
+    }
+
+    private void CloseAllSelects()
+    {
+        var root = _engine.GetRoot();
+        if (root == null) return;
+        CloseSelectsRecursive(root);
+    }
+
+    private static void CloseSelectsRecursive(Element element)
+    {
+        if (element is SelectElement { IsOpen: true } sel)
+        {
+            sel.Close();
+        }
+        foreach (var child in element.Children)
+        {
+            CloseSelectsRecursive(child);
+        }
+    }
+
+    private void SetFocus(Element? newFocus)
+    {
+        if (_focusedElement == newFocus) return;
+
+        var oldFocus = _focusedElement;
+
+        if (oldFocus != null)
+        {
+            oldFocus.ClearState(ElementState.Focus);
+            var blurArgs = new FocusEventArgs
+            {
+                Target = oldFocus,
+                RelatedTarget = newFocus,
+                Bubbles = false
+            };
+            _eventDispatcher.Dispatch(oldFocus, EventTypes.Blur, blurArgs);
+
+            if (oldFocus is SelectElement sel)
+                sel.HandleBlur();
+        }
+
+        _focusedElement = newFocus;
+
+        if (newFocus != null)
+        {
+            newFocus.SetState(ElementState.Focus);
+            var focusArgs = new FocusEventArgs
+            {
+                Target = newFocus,
+                RelatedTarget = oldFocus,
+                Bubbles = false
+            };
+            _eventDispatcher.Dispatch(newFocus, EventTypes.Focus, focusArgs);
+        }
+    }
+
+    private void OnKeyDown(IKeyboard keyboard, Key key, int scancode)
+    {
+        if (_focusedElement is not InputElement input) return;
+        if (input.Type != InputType.Text && input.Type != InputType.Password) return;
+
+        var keyName = key.ToString();
+        bool ctrl = keyboard.IsKeyPressed(Key.ControlLeft) || keyboard.IsKeyPressed(Key.ControlRight);
+
+        var keyArgs = new KeyboardEventArgs
+        {
+            Target = input,
+            Key = keyName,
+            CtrlKey = ctrl,
+            Bubbles = true
+        };
+        _eventDispatcher.Dispatch(input, EventTypes.KeyDown, keyArgs);
+
+        switch (key)
+        {
+            case Key.Backspace:
+                if (input.Backspace())
+                    DispatchInputEvent(input);
+                break;
+            case Key.Delete:
+                if (input.Delete())
+                    DispatchInputEvent(input);
+                break;
+            case Key.Left:
+                if (input.CursorPosition > 0)
+                {
+                    input.CursorPosition--;
+                    input.IsDirty = true;
+                }
+                break;
+            case Key.Right:
+                if (input.CursorPosition < (input.Value ?? string.Empty).Length)
+                {
+                    input.CursorPosition++;
+                    input.IsDirty = true;
+                }
+                break;
+            case Key.Home:
+                input.CursorPosition = 0;
+                input.IsDirty = true;
+                break;
+            case Key.End:
+                input.MoveCursorToEnd();
+                input.IsDirty = true;
+                break;
+        }
+    }
+
+    private void OnKeyChar(IKeyboard keyboard, char character)
+    {
+        if (_focusedElement is not InputElement input) return;
+        if (input.Type != InputType.Text && input.Type != InputType.Password) return;
+        if (char.IsControl(character)) return;
+
+        input.InsertText(character.ToString());
+        DispatchInputEvent(input);
+    }
+
+    private void DispatchInputEvent(InputElement input)
+    {
+        var inputArgs = new InputEventArgs
+        {
+            Target = input,
+            Data = input.Value ?? string.Empty,
+            Bubbles = true
+        };
+        _eventDispatcher.Dispatch(input, EventTypes.Input, inputArgs);
+    }
+
+    private void DispatchChange(Element element)
+    {
+        var changeArgs = new ChangeEventArgs
+        {
+            Target = element,
+            Bubbles = true
+        };
+        _eventDispatcher.Dispatch(element, EventTypes.Change, changeArgs);
+    }
+
+    private void UpdateRangeValue(InputElement rangeInput, float mouseX)
+    {
+        var layoutBox = FindLayoutBoxForElement(rangeInput);
+        if (layoutBox == null) return;
+
+        var contentRect = layoutBox.BoxModel.Content;
+        float thumbRadius = Math.Min(contentRect.Height / 2 - 2, 8);
+        float trackLeft = contentRect.Left + thumbRadius;
+        float trackRight = contentRect.Right - thumbRadius;
+        float trackWidth = trackRight - trackLeft;
+
+        if (trackWidth <= 0) return;
+
+        float percentage = Math.Clamp((mouseX - trackLeft) / trackWidth, 0f, 1f);
+        float newValue = rangeInput.Min + (rangeInput.Max - rangeInput.Min) * percentage;
+
+        if (Math.Abs(rangeInput.NumericValue - newValue) > 0.01f)
+        {
+            rangeInput.NumericValue = newValue;
+            rangeInput.IsDirty = true;
+            DispatchChange(rangeInput);
+        }
+    }
+
+    private Layout.LayoutBox? FindLayoutBoxForElement(Element element)
+    {
+        var layout = _engine.GetCurrentLayout();
+        if (layout == null) return null;
+        return FindLayoutBoxRecursive(layout, element);
+    }
+
+    private static Layout.LayoutBox? FindLayoutBoxRecursive(Layout.LayoutBox box, Element element)
+    {
+        if (box.Element == element) return box;
+        foreach (var child in box.Children)
+        {
+            var found = FindLayoutBoxRecursive(child, element);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     private void OnMouseScroll(IMouse mouse, ScrollWheel scrollWheel)

@@ -51,6 +51,63 @@ public class InputElement : Element
     /// 当前数值（用于 Range）
     /// </summary>
     public float NumericValue { get; set; } = 50;
+
+    /// <summary>
+    /// 光标位置（字符索引）
+    /// </summary>
+    public int CursorPosition { get; set; }
+
+    /// <summary>
+    /// 插入文本到当前光标位置
+    /// </summary>
+    public void InsertText(string text)
+    {
+        var current = Value ?? string.Empty;
+        var pos = Math.Clamp(CursorPosition, 0, current.Length);
+        Value = current.Insert(pos, text);
+        CursorPosition = pos + text.Length;
+        IsDirty = true;
+    }
+
+    /// <summary>
+    /// 删除光标前一个字符
+    /// </summary>
+    public bool Backspace()
+    {
+        var current = Value ?? string.Empty;
+        if (CursorPosition > 0 && current.Length > 0)
+        {
+            var pos = Math.Clamp(CursorPosition, 0, current.Length);
+            Value = current.Remove(pos - 1, 1);
+            CursorPosition = pos - 1;
+            IsDirty = true;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 删除光标后一个字符
+    /// </summary>
+    public bool Delete()
+    {
+        var current = Value ?? string.Empty;
+        if (CursorPosition < current.Length)
+        {
+            Value = current.Remove(CursorPosition, 1);
+            IsDirty = true;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 将光标移动到文本末尾
+    /// </summary>
+    public void MoveCursorToEnd()
+    {
+        CursorPosition = (Value ?? string.Empty).Length;
+    }
 }
 
 /// <summary>

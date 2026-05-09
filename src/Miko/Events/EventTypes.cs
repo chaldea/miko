@@ -10,8 +10,11 @@ public static class EventTypes
     public const string MouseLeave = "mouseleave";
     public const string MouseDown = "mousedown";
     public const string MouseUp = "mouseup";
+    public const string MouseMove = "mousemove";
     public const string Focus = "focus";
     public const string Blur = "blur";
     public const string Change = "change";
     public const string Scroll = "scroll";
+    public const string KeyDown = "keydown";
+    public const string Input = "input";
 }

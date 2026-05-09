@@ -102,6 +102,25 @@ public enum MouseButton
 }
 
 /// <summary>
+/// 键盘事件参数
+/// </summary>
+public class KeyboardEventArgs : MikoEventArgs
+{
+    public string Key { get; init; } = string.Empty;
+    public bool CtrlKey { get; init; }
+    public bool ShiftKey { get; init; }
+    public bool AltKey { get; init; }
+}
+
+/// <summary>
+/// 输入事件参数（文本输入）
+/// </summary>
+public class InputEventArgs : MikoEventArgs
+{
+    public string Data { get; init; } = string.Empty;
+}
+
+/// <summary>
 /// 滚动事件参数
 /// </summary>
 public class ScrollEventArgs : MikoEventArgs
