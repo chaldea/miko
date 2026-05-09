@@ -183,6 +183,9 @@ public class MikoApp
         var scrollbarHit = _engine.HitTestScrollbar(mouse.Position.X, mouse.Position.Y);
         if (scrollbarHit != null)
         {
+            _logger.LogTrace("Scrollbar hit: type={HitType}, element={Tag}#{Id}, thumbOffset={Offset}, pos=({X}, {Y})",
+                scrollbarHit.HitType, scrollbarHit.Box.Element.TagName, scrollbarHit.Box.Element.Id ?? "",
+                scrollbarHit.ThumbOffset, mouse.Position.X, mouse.Position.Y);
             _draggingScrollbar = scrollbarHit;
             _isDragging = true;
             if (scrollbarHit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb ||
@@ -218,6 +221,9 @@ public class MikoApp
                 if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalTrack ||
                     hit.HitType == MikoEngine.ScrollbarHitType.HorizontalTrack)
                 {
+                    _logger.LogTrace("Scrollbar track click: type={HitType}, element={Tag}#{Id}, pos=({X}, {Y})",
+                        hit.HitType, hit.Box.Element.TagName, hit.Box.Element.Id ?? "",
+                        mouse.Position.X, mouse.Position.Y);
                     _engine.ScrollTrackClick(hit.Box, hit.HitType, mouse.Position.X, mouse.Position.Y);
                 }
             }
@@ -248,9 +254,17 @@ public class MikoApp
         {
             var hit = _draggingScrollbar;
             if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb)
+            {
+                _logger.LogTrace("Scrollbar thumb drag: vertical, element={Tag}#{Id}, mouseY={Y}",
+                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", position.Y);
                 _engine.DragVerticalThumb(hit.Box, position.Y, hit.ThumbOffset);
+            }
             else if (hit.HitType == MikoEngine.ScrollbarHitType.HorizontalThumb)
+            {
+                _logger.LogTrace("Scrollbar thumb drag: horizontal, element={Tag}#{Id}, mouseX={X}",
+                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", position.X);
                 _engine.DragHorizontalThumb(hit.Box, position.X, hit.ThumbOffset);
+            }
             return;
         }
 
