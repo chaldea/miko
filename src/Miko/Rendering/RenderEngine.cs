@@ -90,8 +90,8 @@ public class RenderEngine
         RenderContent(box);
 
         // 4. 递归绘制子元素
-        // 特殊处理：SelectElement 在未展开时不渲染子元素（与浏览器行为一致）
-        if (box.Element is SelectElement selectElement && !selectElement.IsOpen)
+        // SelectElement 的子元素（Option）不参与正常树渲染，由 overlay pass 统一绘制下拉层
+        if (box.Element is SelectElement)
         {
             return;
         }

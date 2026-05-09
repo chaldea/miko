@@ -577,4 +577,92 @@ public class RenderEngineSelectTests : IDisposable
         wrongPositionPixel.ShouldBe(new SKColor(0, 0, 255),
             "Dropdown should NOT render at the un-adjusted layout position when container is scrolled");
     }
+
+    [Fact]
+    public void SelectElement_WhenOpen_OptionsShouldNotRenderInsideSelectArea()
+    {
+        // When the dropdown is open, option children must NOT be rendered as inline
+        // children overlapping the select element itself. Only the dropdown overlay
+        // (below the select) should show option content.
+        var selectElement = new SelectElement();
+        selectElement.AddChild(new OptionElement { TextContent = "First Option", Value = "1" });
+        selectElement.AddChild(new OptionElement { TextContent = "Second Option", Value = "2" });
+        selectElement.SelectedIndex = 0;
+        selectElement.IsOpen = true;
+
+        var root = new DivElement
+        {
+            Style = new Style
+            {
+                Display = Display.Block,
+                Width = Length.Px(400),
+                Height = Length.Px(300),
+            },
+            Children = { selectElement }
+        };
+
+        var styleSheet = new StyleSheet
+        {
+            Rules = new List<StyleRule>
+            {
+                new StyleRule
+                {
+                    Selector = new TagSelector("select"),
+                    Style = new Style
+                    {
+                        Display = Display.Block,
+                        Width = Length.Px(200),
+                        Height = Length.Px(40),
+                        BackgroundColor = new Color(0, 128, 0), // Dark green
+                        BorderWidth = Length.Px(1),
+                        BorderColor = Color.Gray,
+                        BorderStyle = BorderStyle.Solid,
+                        FontSize = Length.Px(14)
+                    }
+                },
+                new StyleRule
+                {
+                    Selector = new TagSelector("option"),
+                    Style = new Style
+                    {
+                        Width = Length.Px(200),
+                        Height = Length.Px(30),
+                        BackgroundColor = new Color(255, 0, 0) // Red - easy to detect
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(root, new List<StyleSheet> { styleSheet }, 400, 300);
+        _canvas.Clear(SKColors.White);
+
+        _renderEngine.Render(layoutRoot);
+
+        // The select element occupies y=0..42 (40 height + 1px border each side)
+        // If options are incorrectly rendered as inline children, their red background
+        // would appear inside the select area (y=1..41)
+        bool foundRedInsideSelect = false;
+        for (int y = 2; y < 40; y += 5)
+        {
+            for (int x = 5; x < 195; x += 20)
+            {
+                var pixel = _bitmap.GetPixel(x, y);
+                if (pixel.Red > 200 && pixel.Green < 50 && pixel.Blue < 50)
+                {
+                    foundRedInsideSelect = true;
+                    break;
+                }
+            }
+            if (foundRedInsideSelect) break;
+        }
+
+        foundRedInsideSelect.ShouldBeFalse(
+            "Option elements should NOT be rendered inside the select element area when the dropdown is open. " +
+            "Options should only appear in the dropdown overlay below the select.");
+
+        // Verify the select area still shows its own green background
+        var selectCenter = _bitmap.GetPixel(100, 20);
+        selectCenter.Green.ShouldBeGreaterThan((byte)100,
+            "The select element should show its own background, not be covered by option rendering");
+    }
 }
