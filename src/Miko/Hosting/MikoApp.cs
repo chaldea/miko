@@ -319,14 +319,19 @@ public class MikoApp
             var layoutBox = FindLayoutBoxForElement(sel);
             if (layoutBox != null)
             {
+                var scrollOffset = GetAccumulatedScrollOffset(sel);
                 var borderBox = layoutBox.BoxModel.BorderBox;
+                float left = borderBox.Left - scrollOffset.x;
+                float right = borderBox.Right - scrollOffset.x;
+                float bottom = borderBox.Bottom - scrollOffset.y;
+
                 var options = sel.GetAllOptions();
                 float fontSize = layoutBox.ComputedStyle.FontSize.Value;
                 float optionHeight = fontSize + 8;
-                float dropdownTop = borderBox.Bottom;
+                float dropdownTop = bottom;
                 float dropdownBottom = dropdownTop + options.Count * optionHeight;
 
-                if (x >= borderBox.Left && x <= borderBox.Right &&
+                if (x >= left && x <= right &&
                     y >= dropdownTop && y <= dropdownBottom)
                 {
                     int index = (int)((y - dropdownTop) / optionHeight);
@@ -487,10 +492,15 @@ public class MikoApp
         var layoutBox = FindLayoutBoxForElement(rangeInput);
         if (layoutBox == null) return;
 
+        var scrollOffset = GetAccumulatedScrollOffset(rangeInput);
         var contentRect = layoutBox.BoxModel.Content;
-        float thumbRadius = Math.Min(contentRect.Height / 2 - 2, 8);
-        float trackLeft = contentRect.Left + thumbRadius;
-        float trackRight = contentRect.Right - thumbRadius;
+        float adjustedLeft = contentRect.Left - scrollOffset.x;
+        float adjustedRight = contentRect.Right - scrollOffset.x;
+        float height = contentRect.Height;
+
+        float thumbRadius = Math.Min(height / 2 - 2, 8);
+        float trackLeft = adjustedLeft + thumbRadius;
+        float trackRight = adjustedRight - thumbRadius;
         float trackWidth = trackRight - trackLeft;
 
         if (trackWidth <= 0) return;
@@ -504,6 +514,23 @@ public class MikoApp
             rangeInput.IsDirty = true;
             DispatchChange(rangeInput);
         }
+    }
+
+    private (float x, float y) GetAccumulatedScrollOffset(Element element)
+    {
+        float scrollX = 0, scrollY = 0;
+        var current = element.Parent;
+        while (current != null)
+        {
+            var box = FindLayoutBoxForElement(current);
+            if (box != null)
+            {
+                scrollX += box.ScrollLeft;
+                scrollY += box.ScrollTop;
+            }
+            current = current.Parent;
+        }
+        return (scrollX, scrollY);
     }
 
     private Layout.LayoutBox? FindLayoutBoxForElement(Element element)
