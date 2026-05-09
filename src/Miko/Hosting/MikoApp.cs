@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Common;
@@ -38,6 +39,13 @@ public class MikoApp
     private InputElement? _draggingRange;
     private bool _isDragging;
     private MikoEngine.ScrollbarHitResult? _draggingScrollbar;
+
+    private Key? _heldKey;
+    private IKeyboard? _heldKeyboard;
+    private readonly Stopwatch _keyHoldTimer = new();
+    private bool _keyRepeatStarted;
+    private const long KeyRepeatDelayMs = 500;
+    private const long KeyRepeatIntervalMs = 33;
 
     internal MikoApp(MikoAppConfiguration config)
     {
@@ -89,6 +97,7 @@ public class MikoApp
 
         _window = Window.Create(options);
         _window.Load += OnLoad;
+        _window.Update += OnUpdate;
         _window.Render += OnRender;
         _window.Resize += OnResize;
         _window.Closing += OnClose;
@@ -124,6 +133,7 @@ public class MikoApp
         foreach (var keyboard in _inputContext.Keyboards)
         {
             keyboard.KeyDown += OnKeyDown;
+            keyboard.KeyUp += OnKeyUp;
             keyboard.KeyChar += OnKeyChar;
         }
 
@@ -139,6 +149,30 @@ public class MikoApp
 
         return _config.RootComponentFactory?.Invoke()
             ?? throw new InvalidOperationException("No root component or router configured.");
+    }
+
+    private void OnUpdate(double _)
+    {
+        if (_heldKey == null || _heldKeyboard == null) return;
+
+        var elapsed = _keyHoldTimer.ElapsedMilliseconds;
+        if (!_keyRepeatStarted)
+        {
+            if (elapsed >= KeyRepeatDelayMs)
+            {
+                _keyRepeatStarted = true;
+                _keyHoldTimer.Restart();
+                ProcessKeyAction(_heldKeyboard, _heldKey.Value);
+            }
+        }
+        else
+        {
+            if (elapsed >= KeyRepeatIntervalMs)
+            {
+                _keyHoldTimer.Restart();
+                ProcessKeyAction(_heldKeyboard, _heldKey.Value);
+            }
+        }
     }
 
     private void OnRender(double _)
@@ -472,6 +506,35 @@ public class MikoApp
             Bubbles = true
         };
         _eventDispatcher.Dispatch(input, EventTypes.KeyDown, keyArgs);
+
+        if (IsRepeatableKey(key))
+        {
+            _heldKey = key;
+            _heldKeyboard = keyboard;
+            _keyRepeatStarted = false;
+            _keyHoldTimer.Restart();
+        }
+
+        ProcessKeyAction(keyboard, key);
+    }
+
+    private void OnKeyUp(IKeyboard keyboard, Key key, int scancode)
+    {
+        if (_heldKey == key)
+        {
+            _heldKey = null;
+            _heldKeyboard = null;
+            _keyHoldTimer.Stop();
+        }
+    }
+
+    private static bool IsRepeatableKey(Key key) => key is
+        Key.Backspace or Key.Delete or Key.Left or Key.Right or Key.Home or Key.End;
+
+    private void ProcessKeyAction(IKeyboard keyboard, Key key)
+    {
+        if (_focusedElement is not InputElement input) return;
+        if (input.Type != InputType.Text && input.Type != InputType.Password) return;
 
         switch (key)
         {
