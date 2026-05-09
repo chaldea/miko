@@ -101,6 +101,12 @@ public class EventDispatcher
             case EventTypes.Scroll when args is ScrollEventArgs scrollArgs:
                 element.OnScroll?.Invoke(scrollArgs);
                 break;
+            case EventTypes.KeyDown when args is KeyboardEventArgs keyArgs:
+                element.OnKeyDown?.Invoke(keyArgs);
+                break;
+            case EventTypes.Input when args is InputEventArgs inputArgs:
+                element.OnInput?.Invoke(inputArgs);
+                break;
         }
     }
 }

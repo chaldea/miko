@@ -13,6 +13,9 @@ public class RenderEngine
     private SKCanvas? _canvas;
     private Painter? _painter;
     private List<RectF>? _dirtyRegions;
+    private readonly List<(LayoutBox box, SelectElement select, float scrollOffsetX, float scrollOffsetY)> _pendingDropdowns = new();
+    private float _currentScrollOffsetX;
+    private float _currentScrollOffsetY;
 
     /// <summary>
     /// 设置画布
@@ -29,27 +32,26 @@ public class RenderEngine
     public void Render(LayoutBox layoutRoot)
     {
         if (_canvas == null || _painter == null)
-        {
             throw new InvalidOperationException("Canvas not set. Call SetCanvas first.");
-        }
 
         _dirtyRegions = null;
+        _pendingDropdowns.Clear();
+        _currentScrollOffsetX = 0;
+        _currentScrollOffsetY = 0;
         RenderBox(layoutRoot);
+        FlushDropdowns();
     }
 
-    /// <summary>
-    /// 脏区域渲染
-    /// </summary>
     public void RenderDirty(LayoutBox layoutRoot, List<RectF> dirtyRegions)
     {
         if (_canvas == null || _painter == null)
-        {
             throw new InvalidOperationException("Canvas not set. Call SetCanvas first.");
-        }
 
         _dirtyRegions = dirtyRegions;
+        _pendingDropdowns.Clear();
+        _currentScrollOffsetX = 0;
+        _currentScrollOffsetY = 0;
 
-        // 对每个脏区域进行渲染
         foreach (var region in dirtyRegions)
         {
             _painter.Save();
@@ -58,7 +60,15 @@ public class RenderEngine
             _painter.Restore();
         }
 
+        FlushDropdowns();
         _dirtyRegions = null;
+    }
+
+    private void FlushDropdowns()
+    {
+        foreach (var (box, select, scrollX, scrollY) in _pendingDropdowns)
+            RenderSelectDropdown(box, select, scrollX, scrollY);
+        _pendingDropdowns.Clear();
     }
 
     /// <summary>
@@ -80,8 +90,8 @@ public class RenderEngine
         RenderContent(box);
 
         // 4. 递归绘制子元素
-        // 特殊处理：SelectElement 在未展开时不渲染子元素（与浏览器行为一致）
-        if (box.Element is SelectElement selectElement && !selectElement.IsOpen)
+        // SelectElement 的子元素（Option）不参与正常树渲染，由 overlay pass 统一绘制下拉层
+        if (box.Element is SelectElement)
         {
             return;
         }
@@ -117,7 +127,6 @@ public class RenderEngine
         float clipWidth = paddingBox.Width;
         float clipHeight = paddingBox.Height;
 
-        // Classic 模式下，滚动条占用 padding box 空间
         if (box.HasVerticalScrollbar)
         {
             clipWidth -= LayoutBox.ScrollbarThickness;
@@ -129,6 +138,11 @@ public class RenderEngine
 
         var clipRect = new RectF(paddingBox.X, paddingBox.Y, clipWidth, clipHeight);
 
+        float prevScrollX = _currentScrollOffsetX;
+        float prevScrollY = _currentScrollOffsetY;
+        _currentScrollOffsetX += box.ScrollLeft;
+        _currentScrollOffsetY += box.ScrollTop;
+
         _painter.Save();
         _painter.ClipRect(clipRect);
         _painter.Translate(-box.ScrollLeft, -box.ScrollTop);
@@ -139,6 +153,9 @@ public class RenderEngine
         }
 
         _painter.Restore();
+
+        _currentScrollOffsetX = prevScrollX;
+        _currentScrollOffsetY = prevScrollY;
     }
 
     /// <summary>
@@ -298,6 +315,7 @@ public class RenderEngine
 
         var style = box.ComputedStyle;
         var contentRect = box.BoxModel.Content;
+        bool isFocused = inputElement.HasState(Miko.Core.ElementState.Focus);
 
         switch (inputElement.Type)
         {
@@ -343,7 +361,7 @@ public class RenderEngine
                         style.FontSize.Value
                     );
                 }
-                else if (!string.IsNullOrEmpty(inputElement.Placeholder))
+                else if (!string.IsNullOrEmpty(inputElement.Placeholder) && !isFocused)
                 {
                     _painter.DrawText(
                         inputElement.Placeholder,
@@ -354,6 +372,11 @@ public class RenderEngine
                         style.FontWeight,
                         TextAlign.Left
                     );
+                }
+                if (isFocused)
+                {
+                    var maskedText = new string('●', (inputElement.Value ?? string.Empty).Length);
+                    _painter.DrawTextCursor(contentRect, maskedText, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight);
                 }
                 break;
 
@@ -371,7 +394,7 @@ public class RenderEngine
                         TextAlign.Left
                     );
                 }
-                else if (!string.IsNullOrEmpty(inputElement.Placeholder))
+                else if (!string.IsNullOrEmpty(inputElement.Placeholder) && !isFocused)
                 {
                     _painter.DrawText(
                         inputElement.Placeholder,
@@ -382,6 +405,10 @@ public class RenderEngine
                         style.FontWeight,
                         TextAlign.Left
                     );
+                }
+                if (isFocused)
+                {
+                    _painter.DrawTextCursor(contentRect, inputElement.Value ?? string.Empty, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight);
                 }
                 break;
         }
@@ -410,19 +437,22 @@ public class RenderEngine
 
         if (selectElement.IsOpen)
         {
-            RenderSelectDropdown(box, selectElement);
+            _pendingDropdowns.Add((box, selectElement, _currentScrollOffsetX, _currentScrollOffsetY));
         }
     }
 
     /// <summary>
     /// 渲染下拉选项列表
     /// </summary>
-    private void RenderSelectDropdown(LayoutBox box, SelectElement selectElement)
+    private void RenderSelectDropdown(LayoutBox box, SelectElement selectElement, float scrollOffsetX, float scrollOffsetY)
     {
         if (_painter == null) return;
 
         var style = box.ComputedStyle;
         var borderBox = box.BoxModel.BorderBox;
+
+        float screenLeft = borderBox.Left - scrollOffsetX;
+        float screenTop = borderBox.Bottom - scrollOffsetY;
 
         var options = new List<(string text, bool isSelected, bool isDisabled, bool isGroupLabel)>();
         var allOptions = selectElement.GetAllOptions();
@@ -457,8 +487,8 @@ public class RenderEngine
         float optionHeight = style.FontSize.Value + 8;
         float dropdownHeight = options.Count * optionHeight;
         var dropdownRect = new RectF(
-            borderBox.Left,
-            borderBox.Bottom,
+            screenLeft,
+            screenTop,
             borderBox.Width,
             dropdownHeight
         );

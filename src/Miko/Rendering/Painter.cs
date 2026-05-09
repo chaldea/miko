@@ -719,6 +719,40 @@ public class Painter
     }
 
     /// <summary>
+    /// 绘制文本光标
+    /// </summary>
+    public void DrawTextCursor(RectF contentRect, string text, int cursorPosition, string fontFamily, float fontSize, FontWeight fontWeight)
+    {
+        var fontManager = FontManager.Instance;
+        var textBeforeCursor = text.Substring(0, Math.Min(cursorPosition, text.Length));
+
+        float cursorX = contentRect.Left;
+        if (textBeforeCursor.Length > 0)
+        {
+            var fallbackResolver = new FontFallbackResolver(fontManager);
+            var runs = fallbackResolver.ResolveTextRuns(textBeforeCursor, fontFamily, fontWeight);
+            using var measurePaint = new SKPaint { IsAntialias = true };
+            foreach (var run in runs)
+            {
+                using var font = new SKFont(run.Typeface, fontSize);
+                cursorX += font.MeasureText(run.Text, measurePaint);
+            }
+        }
+
+        float cursorY = contentRect.Top + (contentRect.Height - fontSize) / 2;
+        float cursorHeight = fontSize;
+
+        using var paint = new SKPaint
+        {
+            Color = SKColors.Black,
+            StrokeWidth = 1,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+        _canvas.DrawLine(cursorX, cursorY, cursorX, cursorY + cursorHeight, paint);
+    }
+
+    /// <summary>
     /// 平移画布
     /// </summary>
     public void Translate(float dx, float dy)

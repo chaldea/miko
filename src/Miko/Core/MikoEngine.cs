@@ -129,15 +129,38 @@ public class MikoEngine
         return HitTestBox(_currentLayout, x, y);
     }
 
-    private Element? HitTestBox(LayoutBox box, float x, float y)
+    private Element? HitTestBox(LayoutBox box, float x, float y, float scrollOffsetX = 0, float scrollOffsetY = 0)
     {
         var rect = box.BoxModel.BorderBox;
-        if (x < rect.Left || x > rect.Right || y < rect.Top || y > rect.Bottom)
+        float adjustedLeft = rect.Left - scrollOffsetX;
+        float adjustedRight = rect.Right - scrollOffsetX;
+        float adjustedTop = rect.Top - scrollOffsetY;
+        float adjustedBottom = rect.Bottom - scrollOffsetY;
+
+        if (x < adjustedLeft || x > adjustedRight || y < adjustedTop || y > adjustedBottom)
             return null;
+
+        float childScrollOffsetX = scrollOffsetX + box.ScrollLeft;
+        float childScrollOffsetY = scrollOffsetY + box.ScrollTop;
 
         for (int i = box.Children.Count - 1; i >= 0; i--)
         {
-            var hit = HitTestBox(box.Children[i], x, y);
+            var child = box.Children[i];
+            var childRect = child.BoxModel.BorderBox;
+            float childScreenTop = childRect.Top - childScrollOffsetY;
+            float childScreenBottom = childRect.Bottom - childScrollOffsetY;
+            float childScreenLeft = childRect.Left - childScrollOffsetX;
+            float childScreenRight = childRect.Right - childScrollOffsetX;
+
+            bool isClipped = (box.ScrollTop > 0 || box.ScrollLeft > 0 ||
+                              box.ComputedStyle.OverflowY != Overflow.Visible ||
+                              box.ComputedStyle.OverflowX != Overflow.Visible) &&
+                             (childScreenBottom < adjustedTop || childScreenTop > adjustedBottom ||
+                              childScreenRight < adjustedLeft || childScreenLeft > adjustedRight);
+
+            if (isClipped) continue;
+
+            var hit = HitTestBox(child, x, y, childScrollOffsetX, childScrollOffsetY);
             if (hit != null) return hit;
         }
 
