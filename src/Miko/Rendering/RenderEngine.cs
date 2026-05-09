@@ -13,6 +13,7 @@ public class RenderEngine
     private SKCanvas? _canvas;
     private Painter? _painter;
     private List<RectF>? _dirtyRegions;
+    private readonly List<(LayoutBox box, SelectElement select)> _pendingDropdowns = new();
 
     /// <summary>
     /// 设置画布
@@ -29,27 +30,22 @@ public class RenderEngine
     public void Render(LayoutBox layoutRoot)
     {
         if (_canvas == null || _painter == null)
-        {
             throw new InvalidOperationException("Canvas not set. Call SetCanvas first.");
-        }
 
         _dirtyRegions = null;
+        _pendingDropdowns.Clear();
         RenderBox(layoutRoot);
+        FlushDropdowns();
     }
 
-    /// <summary>
-    /// 脏区域渲染
-    /// </summary>
     public void RenderDirty(LayoutBox layoutRoot, List<RectF> dirtyRegions)
     {
         if (_canvas == null || _painter == null)
-        {
             throw new InvalidOperationException("Canvas not set. Call SetCanvas first.");
-        }
 
         _dirtyRegions = dirtyRegions;
+        _pendingDropdowns.Clear();
 
-        // 对每个脏区域进行渲染
         foreach (var region in dirtyRegions)
         {
             _painter.Save();
@@ -58,7 +54,15 @@ public class RenderEngine
             _painter.Restore();
         }
 
+        FlushDropdowns();
         _dirtyRegions = null;
+    }
+
+    private void FlushDropdowns()
+    {
+        foreach (var (box, select) in _pendingDropdowns)
+            RenderSelectDropdown(box, select);
+        _pendingDropdowns.Clear();
     }
 
     /// <summary>
@@ -420,7 +424,7 @@ public class RenderEngine
 
         if (selectElement.IsOpen)
         {
-            RenderSelectDropdown(box, selectElement);
+            _pendingDropdowns.Add((box, selectElement));
         }
     }
 
