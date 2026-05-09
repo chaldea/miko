@@ -335,4 +335,186 @@ public class MikoEngine
 
         return null;
     }
+
+    public enum ScrollbarHitType { None, VerticalThumb, VerticalTrack, HorizontalThumb, HorizontalTrack }
+
+    public record ScrollbarHitResult(LayoutBox Box, ScrollbarHitType HitType, float ThumbOffset);
+
+    /// <summary>
+    /// 检测鼠标是否点击在某个滚动条上
+    /// </summary>
+    public ScrollbarHitResult? HitTestScrollbar(float x, float y)
+    {
+        if (_currentLayout == null) return null;
+        return HitTestScrollbarBox(_currentLayout, x, y, 0, 0);
+    }
+
+    private static ScrollbarHitResult? HitTestScrollbarBox(LayoutBox box, float x, float y, float scrollOffsetX, float scrollOffsetY)
+    {
+        var borderBox = box.BoxModel.BorderBox;
+        float adjustedLeft = borderBox.Left - scrollOffsetX;
+        float adjustedRight = borderBox.Right - scrollOffsetX;
+        float adjustedTop = borderBox.Top - scrollOffsetY;
+        float adjustedBottom = borderBox.Bottom - scrollOffsetY;
+
+        if (x < adjustedLeft || x > adjustedRight || y < adjustedTop || y > adjustedBottom)
+            return null;
+
+        var paddingBox = box.BoxModel.PaddingBox;
+        float pLeft = paddingBox.X - scrollOffsetX;
+        float pTop = paddingBox.Y - scrollOffsetY;
+        float pRight = pLeft + paddingBox.Width;
+        float pBottom = pTop + paddingBox.Height;
+
+        if (box.HasVerticalScrollbar)
+        {
+            float trackX = pRight - LayoutBox.ScrollbarThickness;
+            float trackHeight = paddingBox.Height - (box.HasHorizontalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+
+            if (x >= trackX && x <= pRight && y >= pTop && y <= pTop + trackHeight)
+            {
+                var (thumbTop, thumbHeight) = GetVerticalThumbGeometry(box, trackHeight);
+                float screenThumbTop = thumbTop - scrollOffsetY;
+                float screenThumbBottom = screenThumbTop + thumbHeight;
+                if (y >= screenThumbTop && y <= screenThumbBottom)
+                    return new ScrollbarHitResult(box, ScrollbarHitType.VerticalThumb, y - screenThumbTop);
+                return new ScrollbarHitResult(box, ScrollbarHitType.VerticalTrack, 0);
+            }
+        }
+
+        if (box.HasHorizontalScrollbar)
+        {
+            float trackY = pBottom - LayoutBox.ScrollbarThickness;
+            float trackWidth = paddingBox.Width - (box.HasVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+
+            if (x >= pLeft && x <= pLeft + trackWidth && y >= trackY && y <= pBottom)
+            {
+                var (thumbLeft, thumbWidth) = GetHorizontalThumbGeometry(box, trackWidth);
+                float screenThumbLeft = thumbLeft - scrollOffsetX;
+                float screenThumbRight = screenThumbLeft + thumbWidth;
+                if (x >= screenThumbLeft && x <= screenThumbRight)
+                    return new ScrollbarHitResult(box, ScrollbarHitType.HorizontalThumb, x - screenThumbLeft);
+                return new ScrollbarHitResult(box, ScrollbarHitType.HorizontalTrack, 0);
+            }
+        }
+
+        float childScrollOffsetX = scrollOffsetX + box.ScrollLeft;
+        float childScrollOffsetY = scrollOffsetY + box.ScrollTop;
+
+        foreach (var child in box.Children)
+        {
+            var hit = HitTestScrollbarBox(child, x, y, childScrollOffsetX, childScrollOffsetY);
+            if (hit != null) return hit;
+        }
+
+        return null;
+    }
+
+    private static (float thumbTop, float thumbHeight) GetVerticalThumbGeometry(LayoutBox box, float trackHeight)
+    {
+        float viewportH = box.BoxModel.PaddingBox.Height;
+        float contentH = box.ScrollableContentHeight;
+        float thumbHeight = Math.Max(trackHeight * (viewportH / contentH), 20f);
+        float scrollableTrack = trackHeight - thumbHeight;
+        float maxScroll = contentH - viewportH;
+        float thumbTop = box.BoxModel.PaddingBox.Y + (maxScroll > 0 ? (box.ScrollTop / maxScroll) * scrollableTrack : 0);
+        return (thumbTop, thumbHeight);
+    }
+
+    private static (float thumbLeft, float thumbWidth) GetHorizontalThumbGeometry(LayoutBox box, float trackWidth)
+    {
+        float viewportW = box.BoxModel.PaddingBox.Width;
+        float contentW = box.ScrollableContentWidth;
+        float thumbWidth = Math.Max(trackWidth * (viewportW / contentW), 20f);
+        float scrollableTrack = trackWidth - thumbWidth;
+        float maxScroll = contentW - viewportW;
+        float thumbLeft = box.BoxModel.PaddingBox.X + (maxScroll > 0 ? (box.ScrollLeft / maxScroll) * scrollableTrack : 0);
+        return (thumbLeft, thumbWidth);
+    }
+
+    /// <summary>
+    /// 拖拽垂直滑块到指定鼠标Y位置
+    /// </summary>
+    public bool DragVerticalThumb(LayoutBox box, float mouseY, float thumbOffset)
+    {
+        float trackHeight = box.BoxModel.PaddingBox.Height - (box.HasHorizontalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+        var (_, thumbHeight) = GetVerticalThumbGeometry(box, trackHeight);
+        float scrollableTrack = trackHeight - thumbHeight;
+        if (scrollableTrack <= 0) return false;
+
+        float thumbTop = mouseY - thumbOffset - box.BoxModel.PaddingBox.Y;
+        float ratio = Math.Clamp(thumbTop / scrollableTrack, 0f, 1f);
+
+        float viewportH = box.BoxModel.PaddingBox.Height;
+        float maxScroll = Math.Max(0, box.ScrollableContentHeight - viewportH);
+        float newScrollTop = ratio * maxScroll;
+
+        if (Math.Abs(box.ScrollTop - newScrollTop) < 0.01f) return false;
+        box.ScrollTop = newScrollTop;
+        InvalidateElement(box.Element);
+        return true;
+    }
+
+    /// <summary>
+    /// 拖拽水平滑块到指定鼠标X位置
+    /// </summary>
+    public bool DragHorizontalThumb(LayoutBox box, float mouseX, float thumbOffset)
+    {
+        float trackWidth = box.BoxModel.PaddingBox.Width - (box.HasVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+        var (_, thumbWidth) = GetHorizontalThumbGeometry(box, trackWidth);
+        float scrollableTrack = trackWidth - thumbWidth;
+        if (scrollableTrack <= 0) return false;
+
+        float thumbLeft = mouseX - thumbOffset - box.BoxModel.PaddingBox.X;
+        float ratio = Math.Clamp(thumbLeft / scrollableTrack, 0f, 1f);
+
+        float viewportW = box.BoxModel.PaddingBox.Width;
+        float maxScroll = Math.Max(0, box.ScrollableContentWidth - viewportW);
+        float newScrollLeft = ratio * maxScroll;
+
+        if (Math.Abs(box.ScrollLeft - newScrollLeft) < 0.01f) return false;
+        box.ScrollLeft = newScrollLeft;
+        InvalidateElement(box.Element);
+        return true;
+    }
+
+    /// <summary>
+    /// 点击滑轨，按页滚动（≈ clientSize * 0.875）
+    /// </summary>
+    public bool ScrollTrackClick(LayoutBox box, ScrollbarHitType hitType, float mouseX, float mouseY)
+    {
+        if (hitType == ScrollbarHitType.VerticalTrack)
+        {
+            float viewportH = box.BoxModel.PaddingBox.Height;
+            float pageSize = viewportH * 0.875f;
+            float trackHeight = viewportH - (box.HasHorizontalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            var (thumbTop, thumbHeight) = GetVerticalThumbGeometry(box, trackHeight);
+            float delta = mouseY < thumbTop ? -pageSize : pageSize;
+
+            float maxScroll = Math.Max(0, box.ScrollableContentHeight - viewportH);
+            float newScrollTop = Math.Clamp(box.ScrollTop + delta, 0, maxScroll);
+            if (Math.Abs(box.ScrollTop - newScrollTop) < 0.01f) return false;
+            box.ScrollTop = newScrollTop;
+            InvalidateElement(box.Element);
+            return true;
+        }
+
+        if (hitType == ScrollbarHitType.HorizontalTrack)
+        {
+            float viewportW = box.BoxModel.PaddingBox.Width;
+            float pageSize = viewportW * 0.875f;
+            float trackWidth = viewportW - (box.HasVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            var (thumbLeft, thumbWidth) = GetHorizontalThumbGeometry(box, trackWidth);
+            float delta = mouseX < thumbLeft ? -pageSize : pageSize;
+
+            float maxScroll = Math.Max(0, box.ScrollableContentWidth - viewportW);
+            float newScrollLeft = Math.Clamp(box.ScrollLeft + delta, 0, maxScroll);
+            if (Math.Abs(box.ScrollLeft - newScrollLeft) < 0.01f) return false;
+            box.ScrollLeft = newScrollLeft;
+            InvalidateElement(box.Element);
+            return true;
+        }
+
+        return false;
+    }
 }
