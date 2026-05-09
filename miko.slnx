@@ -5,6 +5,9 @@
   <Folder Name="/tests/">
     <Project Path="tests/Miko.Tests/Miko.Tests.csproj" />
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Miko.Benchmarks/Miko.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/examples/">
     <Project Path="examples/MikoApp1/MikoApp1.csproj" />
     <Project Path="examples/MikoApp1.WinUI/MikoApp1.WinUI.csproj" />
