@@ -21,7 +21,8 @@ public class LayoutEngine
     public LayoutBox Layout(Element root, List<StyleSheet> styleSheets, float viewportWidth, float viewportHeight)
     {
         // 1. 样式计算：为每个元素计算最终样式
-        ComputeStyles(root, styleSheets);
+        var viewport = new ViewportInfo(viewportWidth, viewportHeight);
+        ComputeStyles(root, styleSheets, viewport);
 
         // 2. 构建布局树：根据 display 属性过滤和组织
         var layoutRoot = BuildLayoutTree(root);
@@ -41,9 +42,9 @@ public class LayoutEngine
     /// <summary>
     /// 计算所有元素的样式
     /// </summary>
-    private void ComputeStyles(Element element, List<StyleSheet> styleSheets)
+    private void ComputeStyles(Element element, List<StyleSheet> styleSheets, ViewportInfo viewport)
     {
-        var computedStyle = _styleResolver.Resolve(element, styleSheets);
+        var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport);
 
         // 创建布局盒子并关联
         element.LayoutBox = new LayoutBox
@@ -55,7 +56,7 @@ public class LayoutEngine
         // 递归处理子元素
         foreach (var child in element.Children)
         {
-            ComputeStyles(child, styleSheets);
+            ComputeStyles(child, styleSheets, viewport);
         }
     }
 

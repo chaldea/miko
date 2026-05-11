@@ -12,7 +12,7 @@ public class StyleResolver
     /// <summary>
     /// 解析元素的最终样式
     /// </summary>
-    public ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets)
+    public ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets, ViewportInfo? viewport = null)
     {
         // 1. 收集所有匹配的规则（带有定义顺序索引）
         var matchedRules = new List<(StyleRule rule, int specificity, int index)>();
@@ -27,6 +27,24 @@ public class StyleResolver
                     matchedRules.Add((rule, rule.Selector.Specificity, ruleIndex));
                 }
                 ruleIndex++;
+            }
+
+            if (viewport != null)
+            {
+                foreach (var mediaRule in sheet.MediaRules)
+                {
+                    if (mediaRule.Condition.Matches(viewport))
+                    {
+                        foreach (var rule in mediaRule.Rules)
+                        {
+                            if (rule.Selector.Matches(element))
+                            {
+                                matchedRules.Add((rule, rule.Selector.Specificity, ruleIndex));
+                            }
+                            ruleIndex++;
+                        }
+                    }
+                }
             }
         }
 
