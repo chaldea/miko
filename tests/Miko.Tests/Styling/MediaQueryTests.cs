@@ -14,7 +14,7 @@ public class MediaQueryTests
     [Fact]
     public void MediaCondition_MinWidth_MatchesWhenViewportWiderOrEqual()
     {
-        var condition = new MediaCondition { MinWidth = 768 };
+        var condition = MediaCondition.MinWidth(768);
 
         condition.Matches(new ViewportInfo(1024, 600)).ShouldBeTrue();
         condition.Matches(new ViewportInfo(768, 600)).ShouldBeTrue();
@@ -24,7 +24,7 @@ public class MediaQueryTests
     [Fact]
     public void MediaCondition_MaxWidth_MatchesWhenViewportNarrowerOrEqual()
     {
-        var condition = new MediaCondition { MaxWidth = 768 };
+        var condition = MediaCondition.MaxWidth(768);
 
         condition.Matches(new ViewportInfo(500, 600)).ShouldBeTrue();
         condition.Matches(new ViewportInfo(768, 600)).ShouldBeTrue();
@@ -34,7 +34,7 @@ public class MediaQueryTests
     [Fact]
     public void MediaCondition_MinHeight_MatchesWhenViewportTallerOrEqual()
     {
-        var condition = new MediaCondition { MinHeight = 600 };
+        var condition = MediaCondition.MinHeight(600);
 
         condition.Matches(new ViewportInfo(800, 800)).ShouldBeTrue();
         condition.Matches(new ViewportInfo(800, 600)).ShouldBeTrue();
@@ -44,7 +44,7 @@ public class MediaQueryTests
     [Fact]
     public void MediaCondition_MaxHeight_MatchesWhenViewportShorterOrEqual()
     {
-        var condition = new MediaCondition { MaxHeight = 600 };
+        var condition = MediaCondition.MaxHeight(600);
 
         condition.Matches(new ViewportInfo(800, 400)).ShouldBeTrue();
         condition.Matches(new ViewportInfo(800, 600)).ShouldBeTrue();
@@ -52,9 +52,9 @@ public class MediaQueryTests
     }
 
     [Fact]
-    public void MediaCondition_CombinedMinMaxWidth_MatchesWithinRange()
+    public void MediaCondition_CombinedExpression_MatchesWithinRange()
     {
-        var condition = new MediaCondition { MinWidth = 768, MaxWidth = 1024 };
+        var condition = new MediaCondition(v => v.Width >= 768 && v.Width <= 1024);
 
         condition.Matches(new ViewportInfo(800, 600)).ShouldBeTrue();
         condition.Matches(new ViewportInfo(768, 600)).ShouldBeTrue();
@@ -64,12 +64,20 @@ public class MediaQueryTests
     }
 
     [Fact]
-    public void MediaCondition_NoConditions_AlwaysMatches()
+    public void MediaCondition_CustomExpression_SupportsArbitraryLogic()
     {
-        var condition = new MediaCondition();
+        var condition = new MediaCondition(v => v.Width > v.Height);
 
-        condition.Matches(new ViewportInfo(100, 100)).ShouldBeTrue();
-        condition.Matches(new ViewportInfo(5000, 5000)).ShouldBeTrue();
+        condition.Matches(new ViewportInfo(1024, 768)).ShouldBeTrue();
+        condition.Matches(new ViewportInfo(768, 1024)).ShouldBeFalse();
+        condition.Matches(new ViewportInfo(800, 800)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MediaCondition_ExpressionProperty_IsAccessible()
+    {
+        var condition = MediaCondition.MinWidth(768);
+        condition.Expression.ShouldNotBeNull();
     }
 
     #endregion
@@ -83,7 +91,7 @@ public class MediaQueryTests
         styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
         styleSheet.MediaRules.Add(new MediaRule
         {
-            Condition = new MediaCondition { MinWidth = 768 },
+            Condition = MediaCondition.MinWidth(768),
             Rules = new List<StyleRule>
             {
                 new StyleRule
@@ -108,7 +116,7 @@ public class MediaQueryTests
         styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
         styleSheet.MediaRules.Add(new MediaRule
         {
-            Condition = new MediaCondition { MinWidth = 768 },
+            Condition = MediaCondition.MinWidth(768),
             Rules = new List<StyleRule>
             {
                 new StyleRule
@@ -133,7 +141,7 @@ public class MediaQueryTests
         styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
         styleSheet.MediaRules.Add(new MediaRule
         {
-            Condition = new MediaCondition { MinWidth = 768 },
+            Condition = MediaCondition.MinWidth(768),
             Rules = new List<StyleRule>
             {
                 new StyleRule
@@ -158,7 +166,7 @@ public class MediaQueryTests
         styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
         styleSheet.MediaRules.Add(new MediaRule
         {
-            Condition = new MediaCondition { MinWidth = 768 },
+            Condition = MediaCondition.MinWidth(768),
             Rules = new List<StyleRule>
             {
                 new StyleRule
@@ -183,7 +191,7 @@ public class MediaQueryTests
         styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
         styleSheet.MediaRules.Add(new MediaRule
         {
-            Condition = new MediaCondition { MaxWidth = 480 },
+            Condition = MediaCondition.MaxWidth(480),
             Rules = new List<StyleRule>
             {
                 new StyleRule
@@ -195,7 +203,7 @@ public class MediaQueryTests
         });
         styleSheet.MediaRules.Add(new MediaRule
         {
-            Condition = new MediaCondition { MinWidth = 1024 },
+            Condition = MediaCondition.MinWidth(1024),
             Rules = new List<StyleRule>
             {
                 new StyleRule
@@ -209,15 +217,12 @@ public class MediaQueryTests
         var element = new DivElement { Class = "box" };
         var resolver = new StyleResolver();
 
-        // Viewport 320px: only max-width:480 matches
         var small = resolver.Resolve(element, new List<StyleSheet> { styleSheet }, new ViewportInfo(320, 600));
         small.Width.Value.ShouldBe(50);
 
-        // Viewport 800px: neither media rule matches
         var medium = resolver.Resolve(element, new List<StyleSheet> { styleSheet }, new ViewportInfo(800, 600));
         medium.Width.Value.ShouldBe(100);
 
-        // Viewport 1200px: only min-width:1024 matches
         var large = resolver.Resolve(element, new List<StyleSheet> { styleSheet }, new ViewportInfo(1200, 600));
         large.Width.Value.ShouldBe(400);
     }
@@ -230,7 +235,7 @@ public class MediaQueryTests
     public void AddMediaRule_SameCondition_GroupsRulesUnderSameMediaRule()
     {
         var styleSheet = new StyleSheet();
-        var condition = new MediaCondition { MinWidth = 768 };
+        var condition = MediaCondition.MinWidth(768);
 
         styleSheet.AddMediaRule(condition, new ClassSelector("a"), new Style { Width = Length.Px(100) });
         styleSheet.AddMediaRule(condition, new ClassSelector("b"), new Style { Width = Length.Px(200) });
@@ -244,8 +249,8 @@ public class MediaQueryTests
     {
         var styleSheet = new StyleSheet();
 
-        styleSheet.AddMediaRule(new MediaCondition { MinWidth = 768 }, new ClassSelector("a"), new Style { Width = Length.Px(100) });
-        styleSheet.AddMediaRule(new MediaCondition { MinWidth = 1024 }, new ClassSelector("b"), new Style { Width = Length.Px(200) });
+        styleSheet.AddMediaRule(MediaCondition.MinWidth(768), new ClassSelector("a"), new Style { Width = Length.Px(100) });
+        styleSheet.AddMediaRule(MediaCondition.MinWidth(1024), new ClassSelector("b"), new Style { Width = Length.Px(200) });
 
         styleSheet.MediaRules.Count.ShouldBe(2);
     }
@@ -265,7 +270,7 @@ public class MediaQueryTests
         });
         styleSheet.MediaRules.Add(new MediaRule
         {
-            Condition = new MediaCondition { MaxWidth = 600 },
+            Condition = MediaCondition.MaxWidth(600),
             Rules = new List<StyleRule>
             {
                 new StyleRule
@@ -302,7 +307,7 @@ public class MediaQueryTests
         });
         styleSheet.MediaRules.Add(new MediaRule
         {
-            Condition = new MediaCondition { MaxWidth = 768 },
+            Condition = MediaCondition.MaxWidth(768),
             Rules = new List<StyleRule>
             {
                 new StyleRule

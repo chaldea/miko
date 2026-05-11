@@ -1,18 +1,30 @@
+using System.Linq.Expressions;
+
 namespace Miko.Styling;
 
 public class MediaCondition
 {
-    public float? MinWidth { get; set; }
-    public float? MaxWidth { get; set; }
-    public float? MinHeight { get; set; }
-    public float? MaxHeight { get; set; }
+    private readonly Func<ViewportInfo, bool> _compiled;
 
-    public bool Matches(ViewportInfo viewport)
+    public Expression<Func<ViewportInfo, bool>> Expression { get; }
+
+    public MediaCondition(Expression<Func<ViewportInfo, bool>> expression)
     {
-        if (MinWidth.HasValue && viewport.Width < MinWidth.Value) return false;
-        if (MaxWidth.HasValue && viewport.Width > MaxWidth.Value) return false;
-        if (MinHeight.HasValue && viewport.Height < MinHeight.Value) return false;
-        if (MaxHeight.HasValue && viewport.Height > MaxHeight.Value) return false;
-        return true;
+        Expression = expression;
+        _compiled = expression.Compile();
     }
+
+    public bool Matches(ViewportInfo viewport) => _compiled(viewport);
+
+    public static MediaCondition MinWidth(float value) =>
+        new(v => v.Width >= value);
+
+    public static MediaCondition MaxWidth(float value) =>
+        new(v => v.Width <= value);
+
+    public static MediaCondition MinHeight(float value) =>
+        new(v => v.Height >= value);
+
+    public static MediaCondition MaxHeight(float value) =>
+        new(v => v.Height <= value);
 }
