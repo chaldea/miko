@@ -7,14 +7,14 @@
 dotnet new razorclasslib
 ```
 
-为新建的项目使用自定义的`Microsoft.CodeAnalysis.Razor.Compiler`编译器，在新建项目的.csproj中添加如下内容：
+为新建的项目使用自定义的`Miko.Razor.Compiler`编译器，在新建项目的.csproj中添加如下内容：
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
     <PropertyGroup>
       <!--使用自定义程序集目录，注意本地运行时需要依据工程所在目录进行修改-->
-      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Microsoft.CodeAnalysis.Razor.Compiler\bin\Debug\net9.0\</_CustomRazorGeneratorDir>
+      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\src\Miko.Razor.Compiler\bin\Debug\net9.0\</_CustomRazorGeneratorDir>
     </PropertyGroup>
     <ItemGroup>
       <!--清理SDK默认的Razor分析器-->
@@ -36,7 +36,7 @@ dotnet new razorclasslib
 ## Razor编译器说明
 
 ```
-Microsoft.CodeAnalysis.Razor.Compiler/
+Miko.Razor.Compiler/
 ├── Language         # Razor语言相关
 │   └── Components   # 和Razor组件相关
 │       └── ComponentsApi.cs  # 组件生成相关参数内容
