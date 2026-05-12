@@ -1,4 +1,4 @@
-using Miko.Examples.Bootstrap.Examples;
+﻿using Miko.Examples.Bootstrap.Examples;
 using Miko.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -25,8 +25,7 @@ public static class App
         builder.UseDefaultLayout(typeof(MainLayout));
         builder.UseLogging(logging =>
         {
-            logging.AddConsole();
-            logging.SetMinimumLevel(LogLevel.Trace);
+            logging.AddConsole().SetMinimumLevel(LogLevel.Trace);
         });
         return builder.Build();
     }

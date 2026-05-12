@@ -3,11 +3,15 @@ using Miko.Routing;
 
 namespace Miko.Components;
 
-public abstract class LayoutComponentBase
+public abstract class LayoutComponentBase : ComponentBase
 {
-    public NavigationManager? NavigationManager { get; internal set; }
+    public new NavigationManager? NavigationManager
+    {
+        get => base.NavigationManager;
+        internal set => base.NavigationManager = value;
+    }
 
-    public Element? Body { get; internal set; }
+    public RenderFragment? Body { get; internal set; }
 
-    public abstract Element Build();
+    public Element? BodyElement { get; internal set; }
 }

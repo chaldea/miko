@@ -1,0 +1,113 @@
+@page "/form"
+<div class="container">
+    <h1>Bootstrap Form Control Examples</h1>
+
+    <h2>Text Inputs</h2>
+    <div class="mb-3">
+        <label class="form-label" id="email">Email address</label>
+        <input class="form-control" id="email" />
+        <div class="form-text">We'll never share your email.</div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" id="password">Password</label>
+        <input class="form-control" id="password" />
+    </div>
+
+    <h2>Input Sizes</h2>
+    <div class="mb-3">
+        <label class="form-label">Large Input</label>
+        <input class="form-control form-control-lg" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Default Input</label>
+        <input class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Small Input</label>
+        <input class="form-control form-control-sm" />
+    </div>
+
+    <h2>Select Dropdowns</h2>
+    <div class="mb-3">
+        <label class="form-label">Select an option</label>
+        <select class="form-select">
+            <option>Open this select menu</option>
+            <option>One</option>
+            <option>Two</option>
+            <option>Three</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Large Select</label>
+        <select class="form-select form-select-lg">
+            <option>Large select</option>
+            <option>Option A</option>
+            <option>Option B</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Small Select</label>
+        <select class="form-select form-select-sm">
+            <option>Small select</option>
+            <option>Option X</option>
+            <option>Option Y</option>
+        </select>
+    </div>
+
+    <h2>Checkboxes</h2>
+    <div class="form-check">
+        <input class="form-check-input" id="check1" />
+        <label class="form-check-label" id="check1">Default checkbox</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" id="check2" />
+        <label class="form-check-label" id="check2">Checked checkbox</label>
+    </div>
+
+    <h2>Radio Buttons</h2>
+    <div class="form-check">
+        <input class="form-check-input" id="radio1" />
+        <label class="form-check-label" id="radio1">Default radio</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" id="radio2" />
+        <label class="form-check-label" id="radio2">Second radio</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" id="radio3" />
+        <label class="form-check-label" id="radio3">Third radio</label>
+    </div>
+
+    <h2>Range Input</h2>
+    <div class="mb-3">
+        <label class="form-label">Example range</label>
+        <input class="form-range" />
+    </div>
+
+    <h2>Validation States</h2>
+    <div class="mb-3">
+        <label class="form-label">Valid Input</label>
+        <input class="form-control is-valid" />
+        <div class="valid-feedback">Looks good!</div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Invalid Input</label>
+        <input class="form-control is-invalid" />
+        <div class="invalid-feedback">Please provide a valid value.</div>
+    </div>
+
+    <h2>Input Groups</h2>
+    <div class="input-group mb-3">
+        <span class="input-group-text">@@</span>
+        <input class="form-control" />
+    </div>
+    <div class="input-group mb-3">
+        <input class="form-control" />
+        <span class="input-group-text">.00</span>
+    </div>
+    <div class="input-group mb-3">
+        <span class="input-group-text">$</span>
+        <input class="form-control input-group-control" />
+        <span class="input-group-text">.00</span>
+    </div>
+</div>

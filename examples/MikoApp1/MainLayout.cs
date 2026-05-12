@@ -31,7 +31,7 @@ public class MainLayout : LayoutComponentBase
         var content = new DivElement
         {
             Class = "main-content",
-            Children = { Body! }
+            Children = { BodyElement! }
         };
 
         return new DivElement
