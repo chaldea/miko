@@ -7,5 +7,12 @@ public abstract class ComponentBase
 {
     public NavigationManager? NavigationManager { get; internal set; }
 
-    public abstract Element Build();
+    protected virtual void BuildRenderTree(RenderTreeBuilder builder) { }
+
+    public virtual Element Build()
+    {
+        var builder = new RenderTreeBuilder();
+        BuildRenderTree(builder);
+        return builder.Build();
+    }
 }

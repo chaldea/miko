@@ -9,14 +9,14 @@ namespace Microsoft.AspNetCore.Razor.Language.Components;
 // Keep these in sync with the actual definitions
 internal static class ComponentsApi
 {
-    public const string AssemblyName = "Microsoft.AspNetCore.Components";
+    public const string AssemblyName = "Miko";
 
     public const string AddMultipleAttributesTypeFullName = "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<string, object>>";
 
     public static class ComponentBase
     {
-        public const string Namespace = "Microsoft.AspNetCore.Components";
-        public const string FullTypeName = Namespace + ".ComponentBase";
+        public const string Namespace = "Miko.Components";
+        public const string FullTypeName = "Miko.Components.ComponentBase";
         public const string MetadataName = FullTypeName;
 
         public const string BuildRenderTree = nameof(BuildRenderTree);
@@ -24,23 +24,23 @@ internal static class ComponentsApi
 
     public static class ParameterAttribute
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.ParameterAttribute";
+        public const string FullTypeName = "Miko.Components.ParameterAttribute";
         public const string MetadataName = FullTypeName;
     }
 
     public static class LayoutAttribute
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.LayoutAttribute";
+        public const string FullTypeName = "Miko.Components.LayoutAttribute";
     }
 
     public static class InjectAttribute
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.InjectAttribute";
+        public const string FullTypeName = "Miko.Components.InjectAttribute";
     }
 
     public static class IComponent
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.IComponent";
+        public const string FullTypeName = "Miko.Components.IComponent";
 
         public const string MetadataName = FullTypeName;
     }
@@ -62,22 +62,22 @@ internal static class ComponentsApi
 
     public static class RenderFragment
     {
-        public const string Namespace = "Microsoft.AspNetCore.Components";
-        public const string FullTypeName = Namespace + ".RenderFragment";
+        public const string Namespace = "Miko.Components";
+        public const string FullTypeName = "Miko.Components.RenderFragment";
         public const string MetadataName = FullTypeName;
     }
 
     public static class RenderFragmentOfT
     {
-        public const string Namespace = "Microsoft.AspNetCore.Components";
-        public const string FullTypeName = Namespace + ".RenderFragment<>";
-        public const string MetadataName = Namespace + ".RenderFragment`1";
-        public const string DisplayName = Namespace + ".RenderFragment<TValue>";
+        public const string Namespace = "Miko.Components";
+        public const string FullTypeName = "Miko.Components.RenderFragment<>";
+        public const string MetadataName = "Miko.Components.RenderFragment`1";
+        public const string DisplayName = "Miko.Components.RenderFragment<TValue>";
     }
 
     public static class RenderTreeBuilder
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder";
+        public const string FullTypeName = "Miko.Components.RenderTreeBuilder";
 
         public const string BuilderParameter = "__builder";
 
@@ -128,41 +128,41 @@ internal static class ComponentsApi
 
     public static class RuntimeHelpers
     {
-        public const string TypeCheck = "global::Microsoft.AspNetCore.Components.CompilerServices.RuntimeHelpers.TypeCheck";
-        public const string CreateInferredEventCallback = "global::Microsoft.AspNetCore.Components.CompilerServices.RuntimeHelpers.CreateInferredEventCallback";
-        public const string CreateInferredBindSetter = "global::Microsoft.AspNetCore.Components.CompilerServices.RuntimeHelpers.CreateInferredBindSetter";
-        public const string InvokeSynchronousDelegate = "global::Microsoft.AspNetCore.Components.CompilerServices.RuntimeHelpers.InvokeSynchronousDelegate";
-        public const string InvokeAsynchronousDelegate = "global::Microsoft.AspNetCore.Components.CompilerServices.RuntimeHelpers.InvokeAsynchronousDelegate";
+        public const string TypeCheck = "global::Miko.Components.CompilerServices.RuntimeHelpers.TypeCheck";
+        public const string CreateInferredEventCallback = "global::Miko.Components.CompilerServices.RuntimeHelpers.CreateInferredEventCallback";
+        public const string CreateInferredBindSetter = "global::Miko.Components.CompilerServices.RuntimeHelpers.CreateInferredBindSetter";
+        public const string InvokeSynchronousDelegate = "global::Miko.Components.CompilerServices.RuntimeHelpers.InvokeSynchronousDelegate";
+        public const string InvokeAsynchronousDelegate = "global::Miko.Components.CompilerServices.RuntimeHelpers.InvokeAsynchronousDelegate";
     }
 
     public static class RouteAttribute
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.RouteAttribute";
+        public const string FullTypeName = "Miko.Components.RouteAttribute";
     }
 
     public static class BindElementAttribute
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.BindElementAttribute";
+        public const string FullTypeName = "Miko.Components.BindElementAttribute";
     }
 
     public static class BindInputElementAttribute
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.BindInputElementAttribute";
+        public const string FullTypeName = "Miko.Components.BindInputElementAttribute";
     }
 
     public static class EventHandlerAttribute
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.EventHandlerAttribute";
+        public const string FullTypeName = "Miko.Components.EventHandlerAttribute";
     }
 
     public static class ElementReference
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.ElementReference";
+        public const string FullTypeName = "Miko.Components.ElementReference";
     }
 
     public static class EventCallback
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.EventCallback";
+        public const string FullTypeName = "Miko.Components.EventCallback";
         public const string MetadataName = FullTypeName;
 
         public const string FactoryAccessor = FullTypeName + ".Factory";
@@ -170,8 +170,8 @@ internal static class ComponentsApi
 
     public static class EventCallbackOfT
     {
-        public const string MetadataName = "Microsoft.AspNetCore.Components.EventCallback`1";
-        public const string DisplayName = "Microsoft.AspNetCore.Components.EventCallback<TValue>";
+        public const string MetadataName = "Miko.Components.EventCallback`1";
+        public const string DisplayName = "Miko.Components.EventCallback<TValue>";
     }
 
     public static class EventCallbackFactory
@@ -182,12 +182,12 @@ internal static class ComponentsApi
 
     public static class BindConverter
     {
-        public const string FullTypeName = "Microsoft.AspNetCore.Components.BindConverter";
-        public const string FormatValue = "Microsoft.AspNetCore.Components.BindConverter.FormatValue";
+        public const string FullTypeName = "Miko.Components.BindConverter";
+        public const string FormatValue = "Miko.Components.BindConverter.FormatValue";
     }
 
     public static class CascadingTypeParameterAttribute
     {
-        public const string MetadataName = "Microsoft.AspNetCore.Components.CascadingTypeParameterAttribute";
+        public const string MetadataName = "Miko.Components.CascadingTypeParameterAttribute";
     }
 }

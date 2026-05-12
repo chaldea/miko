@@ -24,19 +24,9 @@ internal sealed class ComponentMarkupEncodingPass(RazorLanguageVersion version) 
         DocumentIntermediateNode documentNode,
         CancellationToken cancellationToken)
     {
-        if (!IsComponentDocument(documentNode))
-        {
-            return;
-        }
-
-        if (documentNode.Options.DesignTime)
-        {
-            // Nothing to do during design time.
-            return;
-        }
-
-        var rewriter = new Rewriter(_version);
-        rewriter.Visit(documentNode);
+        // Disabled: Miko handles all content rendering directly.
+        // No need to distinguish between AddContent and AddMarkupContent.
+        return;
     }
 
     private sealed class Rewriter(RazorLanguageVersion version) : IntermediateNodeWalker

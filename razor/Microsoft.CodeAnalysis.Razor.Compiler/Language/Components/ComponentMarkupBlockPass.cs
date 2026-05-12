@@ -35,89 +35,9 @@ internal sealed class ComponentMarkupBlockPass : ComponentIntermediateNodePassBa
         DocumentIntermediateNode documentNode,
         CancellationToken cancellationToken)
     {
-        if (!IsComponentDocument(documentNode))
-        {
-            return;
-        }
-
-        if (documentNode.Options.DesignTime)
-        {
-            // Nothing to do during design time.
-            return;
-        }
-
-        var findVisitor = new FindHtmlTreeVisitor(_version);
-        findVisitor.Visit(documentNode);
-
-        var trees = findVisitor.Trees;
-        var rewriteVisitor = new RewriteVisitor(trees);
-        while (trees.Count > 0)
-        {
-            // Walk backwards since we did a postorder traversal.
-            var reference = trees[trees.Count - 1];
-
-            // Forcibly remove a node to prevent infinite loops.
-            trees.RemoveAt(trees.Count - 1);
-
-            // We want to fold together siblings where possible. To do this, first we find
-            // the index of the node we're looking at now - then we need to walk backwards
-            // and identify a set of contiguous nodes we can merge.
-            var start = reference.Parent.Children.Count - 1;
-            for (; start >= 0; start--)
-            {
-                if (ReferenceEquals(reference.Node, reference.Parent.Children[start]))
-                {
-                    break;
-                }
-            }
-
-            // This is the current node. Check if the left sibling is always a candidate
-            // for rewriting. Due to the order we processed the nodes, we know that the
-            // left sibling is next in the list to process if it's a candidate.
-            var end = start;
-            while (start - 1 >= 0)
-            {
-                var candidate = reference.Parent.Children[start - 1];
-                if (trees.Count == 0 || !ReferenceEquals(trees[trees.Count - 1].Node, candidate))
-                {
-                    // This means the we're out of nodes, or the left sibling is not in the list.
-                    break;
-                }
-
-                // This means that the left sibling is valid to merge.
-                start--;
-
-                // Remove this since we're combining it.
-                trees.RemoveAt(trees.Count - 1);
-            }
-
-            // As a degenerate case, don't bother rewriting an single HtmlContent node
-            // It doesn't add any value.
-            if (end - start == 0 && reference.Node is HtmlContentIntermediateNode)
-            {
-                continue;
-            }
-
-            // Now we know the range of nodes to rewrite (end is inclusive)
-            var length = end + 1 - start;
-            while (length > 0)
-            {
-                // Keep using start since we're removing nodes.
-                var node = reference.Parent.Children[start];
-                reference.Parent.Children.RemoveAt(start);
-
-                rewriteVisitor.Visit(node);
-
-                length--;
-            }
-
-            reference.Parent.Children.Insert(start, new MarkupBlockIntermediateNode()
-            {
-                Content = rewriteVisitor.Builder.ToString(),
-            });
-
-            rewriteVisitor.Builder.Clear();
-        }
+        // Disabled: Miko requires all elements to be individually parsed.
+        // Do not collapse static HTML into MarkupBlock nodes.
+        return;
     }
 
     // Finds HTML-blocks using a postorder traversal. We store nodes in an

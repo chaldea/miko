@@ -31,7 +31,11 @@ public class RouteView
         {
             var layout = (LayoutComponentBase)Activator.CreateInstance(_defaultLayout)!;
             layout.NavigationManager = _navigationManager;
-            layout.Body = content;
+            layout.BodyElement = content;
+            layout.Body = builder =>
+            {
+                builder.AttachElement(content);
+            };
             var s = layout.Build();
             return s;
         }

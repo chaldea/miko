@@ -7,7 +7,7 @@
 dotnet new razorclasslib
 ```
 
-修改.csproj
+为新建的项目使用自定义的`Microsoft.CodeAnalysis.Razor.Compiler`编译器，在新建项目的.csproj中添加如下内容：
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Razor">

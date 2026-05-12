@@ -1,27 +1,26 @@
-﻿using Miko.Examples.Bootstrap.Examples;
+﻿using Microsoft.Extensions.Logging;
 using Miko.Hosting;
-using Microsoft.Extensions.Logging;
 
-namespace MikoApp1;
+namespace MikoApp1.Razor;
 
-public static class App
+public static class RazorApp
 {
     public static MikoApp Create()
     {
         var builder = MikoApp.CreateBuilder();
-        builder.UseTitle("Miko Demo App");
-        builder.UseSize(1024, 768);
+        builder.UseTitle("Miko Razor Demo");
         builder.UseStyleSheets([
-            Miko.Examples.Bootstrap.BootstrapStyles.CreateBootstrapStyleSheet(),
+            BootstrapStyles.CreateBootstrapStyleSheet(),
             MainLayout.CreateLayoutStyleSheet()
         ]);
+        builder.UseSize(1024, 768);
         builder.UseFonts(fonts =>
         {
             fonts.AddResource("bootstrap-icons",
-                typeof(App).Assembly,
-                "MikoApp1.Resources.Fonts.bootstrap-icons.woff2");
+                typeof(RazorApp).Assembly,
+                "MikoApp1.Razor.Resources.Fonts.bootstrap-icons.woff2");
         });
-        builder.UseRouter(typeof(ButtonExample).Assembly);
+        builder.UseRouter(typeof(RazorApp).Assembly);
         builder.UseDefaultLayout(typeof(MainLayout));
         builder.UseLogging(logging =>
         {
