@@ -1,0 +1,80 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <TargetFrameworks>net9.0</TargetFrameworks>
+    <Description>Razor is a markup syntax for adding server-side logic to web pages. This package contains the Razor compiler.</Description>
+    <ExcludeFromSourceOnlyBuild>false</ExcludeFromSourceOnlyBuild>
+    <IsPackable>true</IsPackable>
+    <IsShippingAssembly>true</IsShippingAssembly>
+    <IncludeSymbols>true</IncludeSymbols>
+
+    <!--
+      RS2008: Enable analyzer release tracking
+      RS1036: Specify analyzer banned API enforcement setting
+    -->
+    <NoWarn>$(NoWarn);RS2008;RS1036</NoWarn>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.AspNetCore.Razor.Utilities.Shared\Microsoft.AspNetCore.Razor.Utilities.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0-2.25461.22" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Analyzers\AnalyzerResources.resx">
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedClassName>AnalyzerResources</StronglyTypedClassName>
+      <StronglyTypedNamespace>Microsoft.CodeAnalysis.Razor.Compiler.Analyzers</StronglyTypedNamespace>
+      <ManifestResourceName>Microsoft.CodeAnalysis.Razor.Compiler.Analyzers.AnalyzerResources</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="CSharp\CodeAnalysisResources.resx">
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedClassName>CodeAnalysisResources</StronglyTypedClassName>
+      <StronglyTypedNamespace>Microsoft.CodeAnalysis.Razor</StronglyTypedNamespace>
+      <ManifestResourceName>Microsoft.CodeAnalysis.Razor.CodeAnalysisResources</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Language\ComponentResources.resx">
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedClassName>ComponentResources</StronglyTypedClassName>
+      <StronglyTypedNamespace>Microsoft.AspNetCore.Razor.Language</StronglyTypedNamespace>
+      <ManifestResourceName>Microsoft.AspNetCore.Razor.Language.ComponentResources</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Language\Resources.resx">
+      <ManifestResourceName>Microsoft.AspNetCore.Razor.Language.Resources</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Mvc\RazorExtensionsResources.resx">
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedClassName>RazorExtensionsResources</StronglyTypedClassName>
+      <StronglyTypedNamespace>Microsoft.AspNetCore.Mvc.Razor.Extensions</StronglyTypedNamespace>
+      <ManifestResourceName>Microsoft.AspNetCore.Mvc.Razor.Extensions.RazorExtensionsResources</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Mvc.Version1_X\Resources.resx">
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedClassName>Resources</StronglyTypedClassName>
+      <StronglyTypedNamespace>Microsoft.AspNetCore.Mvc.Razor.Extensions.Version1_X</StronglyTypedNamespace>
+      <ManifestResourceName>Microsoft.AspNetCore.Mvc.Razor.Extensions.Version1_X.Resources</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Mvc.Version2_X\Resources.resx">
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedClassName>Resources</StronglyTypedClassName>
+      <StronglyTypedNamespace>Microsoft.AspNetCore.Mvc.Razor.Extensions.Version2_X</StronglyTypedNamespace>
+      <ManifestResourceName>Microsoft.AspNetCore.Mvc.Razor.Extensions.Version2_X.Resources</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="SourceGenerators\Diagnostics\RazorSourceGeneratorResources.resx">
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedClassName>RazorSourceGeneratorResources</StronglyTypedClassName>
+      <StronglyTypedNamespace>Microsoft.NET.Sdk.Razor.SourceGenerators.Diagnostics</StronglyTypedNamespace>
+      <ManifestResourceName>Microsoft.NET.Sdk.Razor.SourceGenerators.Diagnostics.RazorSourceGeneratorResources</ManifestResourceName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="RazorSourceGenerator.razorencconfig" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
