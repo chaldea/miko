@@ -1,5 +1,8 @@
+using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Events;
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace Miko.Components;
@@ -63,6 +66,16 @@ public class RenderTreeBuilder
         {
             case "class": element.Class = value; break;
             case "id": element.Id = value; break;
+            case "type" when element is InputElement input:
+                input.Type = value?.ToLowerInvariant() switch
+                {
+                    "checkbox" => InputType.Checkbox,
+                    "radio" => InputType.Radio,
+                    "password" => InputType.Password,
+                    "range" => InputType.Range,
+                    _ => InputType.Text,
+                };
+                break;
         }
     }
 
@@ -70,6 +83,27 @@ public class RenderTreeBuilder
         AddAttribute(seq, name, value?.ToString());
 
     public void AddAttribute(int seq, string name, bool value) { }
+
+    public void AddAttribute<T>(int seq, string name, EventCallback<T> callback)
+        where T : MikoEventArgs
+    {
+        if (_stack.Count == 0 || callback.Handler is null) return;
+        var element = _stack.Peek();
+        switch (name)
+        {
+            case "onclick"      when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnClick = h; break;
+            case "onmouseenter" when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnMouseEnter = h; break;
+            case "onmouseleave" when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnMouseLeave = h; break;
+            case "onmousedown"  when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnMouseDown = h; break;
+            case "onmouseup"    when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnMouseUp = h; break;
+            case "onfocus"      when callback.Handler is MikoEventHandler<FocusEventArgs> h:    element.OnFocus = h; break;
+            case "onblur"       when callback.Handler is MikoEventHandler<FocusEventArgs> h:    element.OnBlur = h; break;
+            case "onchange"     when callback.Handler is MikoEventHandler<ChangeEventArgs> h:   element.OnChange = h; break;
+            case "onscroll"     when callback.Handler is MikoEventHandler<ScrollEventArgs> h:   element.OnScroll = h; break;
+            case "onkeydown"    when callback.Handler is MikoEventHandler<KeyboardEventArgs> h: element.OnKeyDown = h; break;
+            case "oninput"      when callback.Handler is MikoEventHandler<InputEventArgs> h:    element.OnInput = h; break;
+        }
+    }
 
     public void AddContent(int seq, object? text)
     {
@@ -81,7 +115,7 @@ public class RenderTreeBuilder
         }
         var str = text.ToString();
         if (string.IsNullOrWhiteSpace(str)) return;
-        _stack.Peek().TextContent = str;
+        _stack.Peek().TextContent = WebUtility.HtmlDecode(str);
     }
 
     public void AddMarkupContent(int seq, string? markup)
