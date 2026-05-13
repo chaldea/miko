@@ -2,20 +2,20 @@
 
 <div class="layout">
     <div class="sidebar">
-        <h2>Miko Demo</h2>
-        <div class="nav-item">
+        <h2 class="title">Miko Demo</h2>
+        <div class="nav-item" @onclick="NavigateToButton">
             <span>Button</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" @onclick="NavigateToForm">
             <span>Form</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" @onclick="NavigateToList">
             <span>List</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" @onclick="NavigateToIcon">
             <span>Icon</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" @onclick="NavigateToTable">
             <span>Table</span>
         </div>
     </div>
@@ -25,6 +25,33 @@
 </div>
 
 @code {
+
+    private void NavigateToButton()
+    {
+        NavigationManager?.NavigateTo("/button");
+    }
+
+    private void NavigateToForm()
+    {
+        NavigationManager?.NavigateTo("/form");
+    }
+
+    private void NavigateToList()
+    {
+        NavigationManager?.NavigateTo("/list");
+    }
+
+    private void NavigateToIcon()
+    {
+        NavigationManager?.NavigateTo("/icon");
+    }
+
+    private void NavigateToTable()
+    {
+        NavigationManager?.NavigateTo("/table");
+    }
+
+
     public static Miko.Styling.StyleSheet CreateLayoutStyleSheet()
     {
         return new Miko.Styling.StyleSheet
@@ -50,6 +77,14 @@
                         Height = Miko.Common.Length.Percent(100),
                         Padding = Miko.Common.Length.Px(16),
                         BackgroundColor = Miko.Common.Color.FromRgb(52, 58, 64),
+                        Color = Miko.Common.Color.White,
+                    }
+                },
+                new()
+                {
+                    Selector = new Miko.Styling.Selectors.ClassSelector("title"),
+                    Style = new Miko.Styling.Style
+                    {
                         Color = Miko.Common.Color.White,
                     }
                 },
