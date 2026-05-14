@@ -230,9 +230,27 @@ public class Style
     public Length? Left { get; set; }
 
     public TextDecoration? TextDecoration { get; set; }
+    public TextTransform? TextTransform { get; set; }
+    public FontStyle? FontStyle { get; set; }
+    public WhiteSpace? WhiteSpace { get; set; }
+    public Length? LetterSpacing { get; set; }
+    public VerticalAlign? VerticalAlign { get; set; }
 
     public float? Opacity { get; set; }
     public int? ZIndex { get; set; }
+    public Visibility? Visibility { get; set; }
+    public Cursor? Cursor { get; set; }
+    public UserSelect? UserSelect { get; set; }
+
+    // Flex extras
+    public FlexWrap? FlexWrap { get; set; }
+    public AlignSelf? AlignSelf { get; set; }
+    public AlignContent? AlignContent { get; set; }
+    public Length? Gap { get; set; }
+    public Length? RowGap { get; set; }
+    public Length? ColumnGap { get; set; }
+
+    public BoxShadow? BoxShadow { get; set; }
 
     // 溢出
     public Overflow? OverflowX { get; set; }
@@ -320,9 +338,26 @@ public class Style
         Left ??= other.Left;
 
         TextDecoration ??= other.TextDecoration;
+        TextTransform ??= other.TextTransform;
+        FontStyle ??= other.FontStyle;
+        WhiteSpace ??= other.WhiteSpace;
+        LetterSpacing ??= other.LetterSpacing;
+        VerticalAlign ??= other.VerticalAlign;
 
         Opacity ??= other.Opacity;
         ZIndex ??= other.ZIndex;
+        Visibility ??= other.Visibility;
+        Cursor ??= other.Cursor;
+        UserSelect ??= other.UserSelect;
+
+        FlexWrap ??= other.FlexWrap;
+        AlignSelf ??= other.AlignSelf;
+        AlignContent ??= other.AlignContent;
+        Gap ??= other.Gap;
+        RowGap ??= other.RowGap;
+        ColumnGap ??= other.ColumnGap;
+
+        BoxShadow ??= other.BoxShadow;
 
         OverflowX ??= other.OverflowX;
         OverflowY ??= other.OverflowY;

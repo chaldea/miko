@@ -28,6 +28,11 @@ public struct Color
     {
         hex = hex.TrimStart('#');
 
+        if (hex.Length == 3)
+            hex = $"{hex[0]}{hex[0]}{hex[1]}{hex[1]}{hex[2]}{hex[2]}";
+        else if (hex.Length == 4)
+            hex = $"{hex[0]}{hex[0]}{hex[1]}{hex[1]}{hex[2]}{hex[2]}{hex[3]}{hex[3]}";
+
         return hex.Length switch
         {
             6 => new Color(

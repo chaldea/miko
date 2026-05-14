@@ -13,6 +13,7 @@ public class MikoAppBuilder
     public MikoAppBuilder UseSize(int width, int height) { _config.Width = width; _config.Height = height; return this; }
     public MikoAppBuilder UseRootComponent(Func<Element> factory) { _config.RootComponentFactory = factory; return this; }
     public MikoAppBuilder UseStyleSheets(List<StyleSheet> styleSheets) { _config.StyleSheets = styleSheets; return this; }
+    public MikoAppBuilder AddStyleSheet(StyleSheet styleSheet) { _config.StyleSheets.Add(styleSheet); return this; }
     public MikoAppBuilder UseLogging(Action<ILoggingBuilder> configure) { _config.LoggingConfiguration = configure; return this; }
     public MikoAppBuilder UseRouter(params Assembly[] assemblies) { _config.RouteAssemblies = assemblies; return this; }
     public MikoAppBuilder UseDefaultLayout(Type layoutType) { _config.DefaultLayout = layoutType; return this; }
@@ -21,7 +22,7 @@ public class MikoAppBuilder
     {
         var fontBuilder = new FontBuilder();
         configure(fontBuilder);
-        _config.Fonts = fontBuilder.Registrations;
+        _config.Fonts.AddRange(fontBuilder.Registrations);
         return this;
     }
 
