@@ -2,7 +2,6 @@ using Miko.Common;
 using Miko.Core.DomElements;
 using Miko.Layout;
 using Miko.Styling;
-using Miko.Styling.Selectors;
 using Shouldly;
 
 namespace Miko.Tests.Styling;
@@ -76,8 +75,7 @@ public class MediaQueryTests
     [Fact]
     public void MediaCondition_ExpressionProperty_IsAccessible()
     {
-        var condition = MediaCondition.MinWidth(768);
-        condition.Expression.ShouldNotBeNull();
+        MediaCondition.MinWidth(768).Expression.ShouldNotBeNull();
     }
 
     #endregion
@@ -88,24 +86,12 @@ public class MediaQueryTests
     public void Resolve_MediaRuleMatchesViewport_AppliesStyles()
     {
         var styleSheet = new StyleSheet();
-        styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
-        styleSheet.MediaRules.Add(new MediaRule
-        {
-            Condition = MediaCondition.MinWidth(768),
-            Rules = new List<StyleRule>
-            {
-                new StyleRule
-                {
-                    Selector = new ClassSelector("box"),
-                    Style = new Style { Width = Length.Px(200) }
-                }
-            }
-        });
+        styleSheet.AddRule(Style.Class("box").Set(x => x.Width, Length.Px(100)));
+        var condition = MediaCondition.MinWidth(768);
+        styleSheet.AddMediaRule(condition, Style.Class("box").Set(x => x.Width, Length.Px(200)));
 
         var element = new DivElement { Class = "box" };
-        var resolver = new StyleResolver();
-
-        var computed = resolver.Resolve(element, new List<StyleSheet> { styleSheet }, new ViewportInfo(1024, 768));
+        var computed = new StyleResolver().Resolve(element, [styleSheet], new ViewportInfo(1024, 768));
         computed.Width.Value.ShouldBe(200);
     }
 
@@ -113,24 +99,12 @@ public class MediaQueryTests
     public void Resolve_MediaRuleDoesNotMatchViewport_DoesNotApplyStyles()
     {
         var styleSheet = new StyleSheet();
-        styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
-        styleSheet.MediaRules.Add(new MediaRule
-        {
-            Condition = MediaCondition.MinWidth(768),
-            Rules = new List<StyleRule>
-            {
-                new StyleRule
-                {
-                    Selector = new ClassSelector("box"),
-                    Style = new Style { Width = Length.Px(200) }
-                }
-            }
-        });
+        styleSheet.AddRule(Style.Class("box").Set(x => x.Width, Length.Px(100)));
+        var condition = MediaCondition.MinWidth(768);
+        styleSheet.AddMediaRule(condition, Style.Class("box").Set(x => x.Width, Length.Px(200)));
 
         var element = new DivElement { Class = "box" };
-        var resolver = new StyleResolver();
-
-        var computed = resolver.Resolve(element, new List<StyleSheet> { styleSheet }, new ViewportInfo(480, 768));
+        var computed = new StyleResolver().Resolve(element, [styleSheet], new ViewportInfo(480, 768));
         computed.Width.Value.ShouldBe(100);
     }
 
@@ -138,24 +112,12 @@ public class MediaQueryTests
     public void Resolve_NoViewportProvided_SkipsMediaRules()
     {
         var styleSheet = new StyleSheet();
-        styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
-        styleSheet.MediaRules.Add(new MediaRule
-        {
-            Condition = MediaCondition.MinWidth(768),
-            Rules = new List<StyleRule>
-            {
-                new StyleRule
-                {
-                    Selector = new ClassSelector("box"),
-                    Style = new Style { Width = Length.Px(200) }
-                }
-            }
-        });
+        styleSheet.AddRule(Style.Class("box").Set(x => x.Width, Length.Px(100)));
+        var condition = MediaCondition.MinWidth(768);
+        styleSheet.AddMediaRule(condition, Style.Class("box").Set(x => x.Width, Length.Px(200)));
 
         var element = new DivElement { Class = "box" };
-        var resolver = new StyleResolver();
-
-        var computed = resolver.Resolve(element, new List<StyleSheet> { styleSheet });
+        var computed = new StyleResolver().Resolve(element, [styleSheet]);
         computed.Width.Value.ShouldBe(100);
     }
 
@@ -163,24 +125,12 @@ public class MediaQueryTests
     public void Resolve_MediaRuleWithHigherSpecificity_WinsOverBaseRule()
     {
         var styleSheet = new StyleSheet();
-        styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
-        styleSheet.MediaRules.Add(new MediaRule
-        {
-            Condition = MediaCondition.MinWidth(768),
-            Rules = new List<StyleRule>
-            {
-                new StyleRule
-                {
-                    Selector = new IdSelector("main"),
-                    Style = new Style { Width = Length.Px(300) }
-                }
-            }
-        });
+        styleSheet.AddRule(Style.Class("box").Set(x => x.Width, Length.Px(100)));
+        var condition = MediaCondition.MinWidth(768);
+        styleSheet.AddMediaRule(condition, Style.Id("main").Set(x => x.Width, Length.Px(300)));
 
         var element = new DivElement { Id = "main", Class = "box" };
-        var resolver = new StyleResolver();
-
-        var computed = resolver.Resolve(element, new List<StyleSheet> { styleSheet }, new ViewportInfo(1024, 768));
+        var computed = new StyleResolver().Resolve(element, [styleSheet], new ViewportInfo(1024, 768));
         computed.Width.Value.ShouldBe(300);
     }
 
@@ -188,43 +138,16 @@ public class MediaQueryTests
     public void Resolve_MultipleMediaRules_OnlyMatchingOnesApply()
     {
         var styleSheet = new StyleSheet();
-        styleSheet.AddRule(new ClassSelector("box"), new Style { Width = Length.Px(100) });
-        styleSheet.MediaRules.Add(new MediaRule
-        {
-            Condition = MediaCondition.MaxWidth(480),
-            Rules = new List<StyleRule>
-            {
-                new StyleRule
-                {
-                    Selector = new ClassSelector("box"),
-                    Style = new Style { Width = Length.Px(50) }
-                }
-            }
-        });
-        styleSheet.MediaRules.Add(new MediaRule
-        {
-            Condition = MediaCondition.MinWidth(1024),
-            Rules = new List<StyleRule>
-            {
-                new StyleRule
-                {
-                    Selector = new ClassSelector("box"),
-                    Style = new Style { Width = Length.Px(400) }
-                }
-            }
-        });
+        styleSheet.AddRule(Style.Class("box").Set(x => x.Width, Length.Px(100)));
+        styleSheet.AddMediaRule(MediaCondition.MaxWidth(480), Style.Class("box").Set(x => x.Width, Length.Px(50)));
+        styleSheet.AddMediaRule(MediaCondition.MinWidth(1024), Style.Class("box").Set(x => x.Width, Length.Px(400)));
 
         var element = new DivElement { Class = "box" };
         var resolver = new StyleResolver();
 
-        var small = resolver.Resolve(element, new List<StyleSheet> { styleSheet }, new ViewportInfo(320, 600));
-        small.Width.Value.ShouldBe(50);
-
-        var medium = resolver.Resolve(element, new List<StyleSheet> { styleSheet }, new ViewportInfo(800, 600));
-        medium.Width.Value.ShouldBe(100);
-
-        var large = resolver.Resolve(element, new List<StyleSheet> { styleSheet }, new ViewportInfo(1200, 600));
-        large.Width.Value.ShouldBe(400);
+        resolver.Resolve(element, [styleSheet], new ViewportInfo(320, 600)).Width.Value.ShouldBe(50);
+        resolver.Resolve(element, [styleSheet], new ViewportInfo(800, 600)).Width.Value.ShouldBe(100);
+        resolver.Resolve(element, [styleSheet], new ViewportInfo(1200, 600)).Width.Value.ShouldBe(400);
     }
 
     #endregion
@@ -237,8 +160,8 @@ public class MediaQueryTests
         var styleSheet = new StyleSheet();
         var condition = MediaCondition.MinWidth(768);
 
-        styleSheet.AddMediaRule(condition, new ClassSelector("a"), new Style { Width = Length.Px(100) });
-        styleSheet.AddMediaRule(condition, new ClassSelector("b"), new Style { Width = Length.Px(200) });
+        styleSheet.AddMediaRule(condition, Style.Class("a").Set(x => x.Width, Length.Px(100)));
+        styleSheet.AddMediaRule(condition, Style.Class("b").Set(x => x.Width, Length.Px(200)));
 
         styleSheet.MediaRules.Count.ShouldBe(1);
         styleSheet.MediaRules[0].Rules.Count.ShouldBe(2);
@@ -249,8 +172,8 @@ public class MediaQueryTests
     {
         var styleSheet = new StyleSheet();
 
-        styleSheet.AddMediaRule(MediaCondition.MinWidth(768), new ClassSelector("a"), new Style { Width = Length.Px(100) });
-        styleSheet.AddMediaRule(MediaCondition.MinWidth(1024), new ClassSelector("b"), new Style { Width = Length.Px(200) });
+        styleSheet.AddMediaRule(MediaCondition.MinWidth(768), Style.Class("a").Set(x => x.Width, Length.Px(100)));
+        styleSheet.AddMediaRule(MediaCondition.MinWidth(1024), Style.Class("b").Set(x => x.Width, Length.Px(200)));
 
         styleSheet.MediaRules.Count.ShouldBe(2);
     }
@@ -263,23 +186,9 @@ public class MediaQueryTests
     public void LayoutEngine_MediaQueryChangesDisplay_AffectsLayout()
     {
         var styleSheet = new StyleSheet();
-        styleSheet.AddRule(new ClassSelector("sidebar"), new Style
-        {
-            Display = Display.Block,
-            Width = Length.Px(200)
-        });
-        styleSheet.MediaRules.Add(new MediaRule
-        {
-            Condition = MediaCondition.MaxWidth(600),
-            Rules = new List<StyleRule>
-            {
-                new StyleRule
-                {
-                    Selector = new ClassSelector("sidebar"),
-                    Style = new Style { Display = Display.None }
-                }
-            }
-        });
+        styleSheet.AddRule(Style.Class("sidebar").Set(x => x.Display, Display.Block));
+        styleSheet.AddRule(Style.Class("sidebar").Set(x => x.Width, Length.Px(200)));
+        styleSheet.AddMediaRule(MediaCondition.MaxWidth(600), Style.Class("sidebar").Set(x => x.Display, Display.None));
 
         var root = new DivElement { Class = "container" };
         var sidebar = new DivElement { Class = "sidebar" };
@@ -287,47 +196,23 @@ public class MediaQueryTests
 
         var layoutEngine = new LayoutEngine();
 
-        // Wide viewport: sidebar is visible
-        var wideLayout = layoutEngine.Layout(root, new List<StyleSheet> { styleSheet }, 1024, 768);
-        wideLayout.Children.Count.ShouldBe(1);
-
-        // Narrow viewport: sidebar is hidden (display: none)
-        var narrowLayout = layoutEngine.Layout(root, new List<StyleSheet> { styleSheet }, 480, 768);
-        narrowLayout.Children.Count.ShouldBe(0);
+        layoutEngine.Layout(root, [styleSheet], 1024, 768).Children.Count.ShouldBe(1);
+        layoutEngine.Layout(root, [styleSheet], 480, 768).Children.Count.ShouldBe(0);
     }
 
     [Fact]
     public void LayoutEngine_MediaQueryChangesWidth_AffectsBoxDimensions()
     {
         var styleSheet = new StyleSheet();
-        styleSheet.AddRule(new ClassSelector("content"), new Style
-        {
-            Display = Display.Block,
-            Width = Length.Px(600)
-        });
-        styleSheet.MediaRules.Add(new MediaRule
-        {
-            Condition = MediaCondition.MaxWidth(768),
-            Rules = new List<StyleRule>
-            {
-                new StyleRule
-                {
-                    Selector = new ClassSelector("content"),
-                    Style = new Style { Width = Length.Percent(100) }
-                }
-            }
-        });
+        styleSheet.AddRule(Style.Class("content").Set(x => x.Display, Display.Block));
+        styleSheet.AddRule(Style.Class("content").Set(x => x.Width, Length.Px(600)));
+        styleSheet.AddMediaRule(MediaCondition.MaxWidth(768), Style.Class("content").Set(x => x.Width, Length.Percent(100)));
 
         var root = new DivElement { Class = "content" };
         var layoutEngine = new LayoutEngine();
 
-        // Wide viewport: fixed 600px width
-        var wideLayout = layoutEngine.Layout(root, new List<StyleSheet> { styleSheet }, 1024, 768);
-        wideLayout.BoxModel.Content.Width.ShouldBe(600);
-
-        // Narrow viewport: 100% width = viewport width
-        var narrowLayout = layoutEngine.Layout(root, new List<StyleSheet> { styleSheet }, 480, 768);
-        narrowLayout.BoxModel.Content.Width.ShouldBe(480);
+        layoutEngine.Layout(root, [styleSheet], 1024, 768).BoxModel.Content.Width.ShouldBe(600);
+        layoutEngine.Layout(root, [styleSheet], 480, 768).BoxModel.Content.Width.ShouldBe(480);
     }
 
     #endregion

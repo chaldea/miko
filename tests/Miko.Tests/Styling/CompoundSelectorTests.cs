@@ -1,6 +1,7 @@
+using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
-using Miko.Styling.Selectors;
+using Miko.Styling;
 using Shouldly;
 
 namespace Miko.Tests.Styling;
@@ -8,255 +9,96 @@ namespace Miko.Tests.Styling;
 public class CompoundSelectorTests
 {
     [Fact]
-    public void CompoundSelector_ShouldMatchWhenAllSelectorsMatch()
+    public void ForWithHover_ShouldMatchWhenBothMatch()
     {
         var element = new ButtonElement();
         element.SetState(ElementState.Hover);
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Hover().Set(x => x.BackgroundColor, Color.Red));
 
-        var selector = new CompoundSelector(
-            new TagSelector("button"),
-            new HoverSelector()
-        );
-
-        selector.Matches(element).ShouldBeTrue();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 
     [Fact]
-    public void CompoundSelector_ShouldNotMatchWhenOneSelectorsDoesNotMatch()
+    public void ForWithHover_ShouldNotMatchWhenHoverMissing()
     {
         var element = new ButtonElement();
-        // 没有设置 Hover 状态
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Hover().Set(x => x.BackgroundColor, Color.Red));
 
-        var selector = new CompoundSelector(
-            new TagSelector("button"),
-            new HoverSelector()
-        );
-
-        selector.Matches(element).ShouldBeFalse();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Transparent);
     }
 
     [Fact]
-    public void CompoundSelector_ShouldNotMatchWhenTagDoesNotMatch()
+    public void ForWithHover_ShouldNotMatchWhenTagMismatch()
     {
         var element = new DivElement();
         element.SetState(ElementState.Hover);
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Hover().Set(x => x.BackgroundColor, Color.Red));
 
-        var selector = new CompoundSelector(
-            new TagSelector("button"),
-            new HoverSelector()
-        );
-
-        selector.Matches(element).ShouldBeFalse();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Transparent);
     }
 
     [Fact]
-    public void CompoundSelector_SpecificityShouldBeSumOfComponents()
+    public void ForWithHover_Specificity_ShouldBeSumOfComponents()
     {
-        var selector = new CompoundSelector(
-            new TagSelector("button"),    // 1
-            new HoverSelector()           // 10
-        );
-
-        selector.Specificity.ShouldBe(11);
-    }
-
-    [Fact]
-    public void CompoundSelector_WithClassAndPseudoClass_ShouldCalculateCorrectSpecificity()
-    {
-        var selector = new CompoundSelector(
-            new ClassSelector("btn"),     // 10
-            new HoverSelector(),          // 10
-            new ActiveSelector()          // 10
-        );
-
-        selector.Specificity.ShouldBe(30);
-    }
-
-    [Fact]
-    public void CompoundSelector_WithIdAndPseudoClass_ShouldCalculateCorrectSpecificity()
-    {
-        var selector = new CompoundSelector(
-            new IdSelector("main"),       // 100
-            new FocusSelector()           // 10
-        );
-
-        selector.Specificity.ShouldBe(110);
-    }
-
-    [Fact]
-    public void CompoundSelector_Empty_ShouldNotMatch()
-    {
-        var element = new ButtonElement();
-        var selector = new CompoundSelector();
-
-        selector.Matches(element).ShouldBeFalse();
-    }
-
-    [Fact]
-    public void CompoundSelector_WithSingleSelector_ShouldMatchLikeSingleSelector()
-    {
-        var element = new ButtonElement();
-        element.SetState(ElementState.Hover);
-
-        var selector = new CompoundSelector(new HoverSelector());
-
-        selector.Matches(element).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void CompoundSelector_WithClassSelector_ShouldMatch()
-    {
-        var element = new ButtonElement { Class = "btn primary" };
-        element.SetState(ElementState.Hover);
-
-        var selector = new CompoundSelector(
-            new ClassSelector("btn"),
-            new HoverSelector()
-        );
-
-        selector.Matches(element).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void CompoundSelector_Add_ShouldAddSelector()
-    {
-        var selector = new CompoundSelector();
-        selector.Add(new TagSelector("button"));
-        selector.Add(new HoverSelector());
-
-        selector.Selectors.Count.ShouldBe(2);
-        selector.Specificity.ShouldBe(11);
-    }
-
-    // SelectorParser 测试
-    [Fact]
-    public void SelectorParser_ShouldParseTagSelector()
-    {
-        var selector = SelectorParser.Parse("button");
-
-        selector.ShouldBeOfType<TagSelector>();
-        selector.Specificity.ShouldBe(1);
-    }
-
-    [Fact]
-    public void SelectorParser_ShouldParseClassSelector()
-    {
-        var selector = SelectorParser.Parse(".btn");
-
-        selector.ShouldBeOfType<ClassSelector>();
-        selector.Specificity.ShouldBe(10);
-    }
-
-    [Fact]
-    public void SelectorParser_ShouldParseIdSelector()
-    {
-        var selector = SelectorParser.Parse("#main");
-
-        selector.ShouldBeOfType<IdSelector>();
-        selector.Specificity.ShouldBe(100);
-    }
-
-    [Fact]
-    public void SelectorParser_ShouldParsePseudoClassSelector()
-    {
-        var selector = SelectorParser.Parse(":hover");
-
-        selector.ShouldBeOfType<HoverSelector>();
-        selector.Specificity.ShouldBe(10);
-    }
-
-    [Fact]
-    public void SelectorParser_ShouldParseTagWithPseudoClass()
-    {
-        var selector = SelectorParser.Parse("button:hover");
-
-        selector.ShouldBeOfType<CompoundSelector>();
-        selector.Specificity.ShouldBe(11);
-
-        var element = new ButtonElement();
-        element.SetState(ElementState.Hover);
-        selector.Matches(element).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void SelectorParser_ShouldParseClassWithPseudoClass()
-    {
-        var selector = SelectorParser.Parse(".btn:active");
-
-        selector.ShouldBeOfType<CompoundSelector>();
-        selector.Specificity.ShouldBe(20);
-
+        // button:hover = tag(1) + hover(10) = 11, class = 10 — button:hover wins
         var element = new ButtonElement { Class = "btn" };
-        element.SetState(ElementState.Active);
-        selector.Matches(element).ShouldBeTrue();
+        element.SetState(ElementState.Hover);
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.Class("btn").Set(x => x.BackgroundColor, Color.Green));
+        styleSheet.AddRule(Style.For<ButtonElement>().Hover().Set(x => x.BackgroundColor, Color.Red));
+
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 
     [Fact]
-    public void SelectorParser_ShouldParseIdWithPseudoClass()
+    public void ClassWithMultiplePseudoClasses_ShouldMatchAll()
     {
-        var selector = SelectorParser.Parse("#submit:focus");
+        var element = new ButtonElement { Class = "btn" };
+        element.SetState(ElementState.Hover);
+        element.SetState(ElementState.Active);
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.Class("btn").Hover().Active().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.ShouldBeOfType<CompoundSelector>();
-        selector.Specificity.ShouldBe(110);
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
+    }
 
+    [Fact]
+    public void ClassWithMultiplePseudoClasses_ShouldNotMatchWhenOneMissing()
+    {
+        var element = new ButtonElement { Class = "btn" };
+        element.SetState(ElementState.Hover);
+        // Active not set
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.Class("btn").Hover().Active().Set(x => x.BackgroundColor, Color.Red));
+
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Transparent);
+    }
+
+    [Fact]
+    public void IdWithFocus_ShouldMatchFocusedElementById()
+    {
         var element = new InputElement { Id = "submit" };
         element.SetState(ElementState.Focus);
-        selector.Matches(element).ShouldBeTrue();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.Id("submit").Focus().Set(x => x.BackgroundColor, Color.Blue));
+
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Blue);
     }
 
     [Fact]
-    public void SelectorParser_ShouldParseMultiplePseudoClasses()
+    public void WhereWithHover_ShouldMatchByPredicateAndState()
     {
-        var selector = SelectorParser.Parse("button:hover:active");
-
-        selector.ShouldBeOfType<CompoundSelector>();
-        selector.Specificity.ShouldBe(21); // tag(1) + hover(10) + active(10)
-
-        var element = new ButtonElement();
-        element.SetState(ElementState.Hover);
-        element.SetState(ElementState.Active);
-        selector.Matches(element).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void SelectorParser_ShouldParseDisabledPseudoClass()
-    {
-        var selector = SelectorParser.Parse("button:disabled");
-
-        selector.ShouldBeOfType<CompoundSelector>();
-
-        var element = new ButtonElement();
-        element.SetState(ElementState.Disabled);
-        selector.Matches(element).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void SelectorParser_ShouldParseEnabledPseudoClass()
-    {
-        var selector = SelectorParser.Parse("button:enabled");
-
-        selector.ShouldBeOfType<CompoundSelector>();
-
-        var element = new ButtonElement();
-        selector.Matches(element).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void SelectorParser_ShouldParseComplexSelector()
-    {
-        var selector = SelectorParser.Parse(".btn.primary:hover");
-
-        selector.ShouldBeOfType<CompoundSelector>();
-        selector.Specificity.ShouldBe(30); // class(10) + class(10) + hover(10)
-
         var element = new ButtonElement { Class = "btn primary" };
         element.SetState(ElementState.Hover);
-        selector.Matches(element).ShouldBeTrue();
-    }
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>()
+            .Where(x => x.HasClass("btn") && x.HasClass("primary"))
+            .Hover()
+            .Set(x => x.BackgroundColor, Color.Red));
 
-    [Fact]
-    public void SelectorParser_UnknownPseudoClass_ShouldThrow()
-    {
-        Should.Throw<ArgumentException>(() => SelectorParser.Parse(":unknown"));
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 }

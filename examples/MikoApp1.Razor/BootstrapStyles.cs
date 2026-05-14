@@ -1,79 +1,52 @@
-﻿using Miko.Styling;
-using Miko.Styling.Selectors;
 using Miko.Common;
+using Miko.Core.DomElements;
+using Miko.Styling;
 
 namespace MikoApp1.Razor;
 
-/// <summary>
-/// Provides Bootstrap-inspired styles for Miko elements.
-/// Based on Bootstrap 5 design system.
-/// </summary>
 public static class BootstrapStyles
 {
-    // Bootstrap 5 Color Palette
     public static class Colors
     {
-        public static readonly Color Primary = Color.FromRgb(0, 123, 255);      // #007BFF
-        public static readonly Color Secondary = Color.FromRgb(108, 117, 125);  // #6C757D
-        public static readonly Color Success = Color.FromRgb(40, 167, 69);      // #28A745
-        public static readonly Color Danger = Color.FromRgb(220, 53, 69);       // #DC3545
-        public static readonly Color Warning = Color.FromRgb(255, 193, 7);      // #FFC107
-        public static readonly Color Info = Color.FromRgb(23, 162, 184);        // #17A2B8
-        public static readonly Color Light = Color.FromRgb(248, 249, 250);      // #F8F9FA
-        public static readonly Color Dark = Color.FromRgb(52, 58, 64);          // #343A40
+        public static readonly Color Primary = Color.FromRgb(0, 123, 255);
+        public static readonly Color Secondary = Color.FromRgb(108, 117, 125);
+        public static readonly Color Success = Color.FromRgb(40, 167, 69);
+        public static readonly Color Danger = Color.FromRgb(220, 53, 69);
+        public static readonly Color Warning = Color.FromRgb(255, 193, 7);
+        public static readonly Color Info = Color.FromRgb(23, 162, 184);
+        public static readonly Color Light = Color.FromRgb(248, 249, 250);
+        public static readonly Color Dark = Color.FromRgb(52, 58, 64);
 
-        // Text colors
         public static readonly Color TextWhite = Color.White;
-        public static readonly Color TextDark = Color.FromRgb(33, 37, 41);      // #212529
+        public static readonly Color TextDark = Color.FromRgb(33, 37, 41);
     }
 
-    /// <summary>
-    /// Creates a complete Bootstrap-inspired stylesheet.
-    /// </summary>
     public static StyleSheet CreateBootstrapStyleSheet()
     {
         var styleSheet = new StyleSheet();
 
         // Container styles
-        styleSheet.AddRule(
-            new ClassSelector("container"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Column,
-                PaddingTop = Length.Px(40),
-                PaddingRight = Length.Px(40),
-                PaddingBottom = Length.Px(40),
-                PaddingLeft = Length.Px(40),
-                BackgroundColor = Color.White
-            }
-        );
+        styleSheet.AddRule(Style.Class("container")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexDirection, FlexDirection.Column)
+            .Set(x => x.Padding, new Padding(40))
+            .Set(x => x.BackgroundColor, Color.White));
 
-        // Row (flex container)
-        styleSheet.AddRule(
-            new ClassSelector("row"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Row,
-                MarginBottom = Length.Px(20)
-            }
-        );
+        // Row
+        styleSheet.AddRule(Style.Class("row")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexDirection, FlexDirection.Row)
+            .Set(x => x.MarginBottom, Length.Px(20)));
 
-        // Base button styles
-        styleSheet.AddRule(
-            new TagSelector("button"),
-            new Style
-            {
-                Display = Display.InlineBlock,
-                Padding = new Padding(6, 12),
-                Margin = new Margin(0, 10, 10, 0),
-                FontSize = 14,
-                FontWeight = FontWeight.Normal,
-                Border = new Border(1, BorderStyle.Solid, Color.Transparent),
-                BorderRadius = new BorderRadius(4),
-            }
-        );
+        // Base button
+        styleSheet.AddRule(Style.For<ButtonElement>()
+            .Set(x => x.Display, Display.InlineBlock)
+            .Set(x => x.Padding, new Padding(6, 12))
+            .Set(x => x.Margin, new Margin(0, 10, 10, 0))
+            .Set(x => x.FontSize, 14)
+            .Set(x => x.FontWeight, FontWeight.Normal)
+            .Set(x => x.Border, new Border(1, BorderStyle.Solid, Color.Transparent))
+            .Set(x => x.BorderRadius, new BorderRadius(4)));
 
         // Button color variants
         AddButtonVariant(styleSheet, "btn-primary", Colors.Primary, Colors.TextWhite);
@@ -105,423 +78,218 @@ public static class BootstrapStyles
         AddOutlineButtonVariant(styleSheet, "btn-outline-dark", Colors.Dark);
 
         // Button sizes
-        styleSheet.AddRule(
-            new ClassSelector("btn-sm"),
-            new Style
-            {
-                PaddingTop = Length.Px(4),
-                PaddingRight = Length.Px(8),
-                PaddingBottom = Length.Px(4),
-                PaddingLeft = Length.Px(8),
-                FontSize = Length.Px(12)
-            }
-        );
+        styleSheet.AddRule(Style.Class("btn-sm")
+            .Set(x => x.Padding, new Padding(4, 8))
+            .Set(x => x.FontSize, Length.Px(12)));
 
-        styleSheet.AddRule(
-            new ClassSelector("btn-lg"),
-            new Style
-            {
-                PaddingTop = Length.Px(10),
-                PaddingRight = Length.Px(16),
-                PaddingBottom = Length.Px(10),
-                PaddingLeft = Length.Px(16),
-                FontSize = Length.Px(16)
-            }
-        );
+        styleSheet.AddRule(Style.Class("btn-lg")
+            .Set(x => x.Padding, new Padding(10, 16))
+            .Set(x => x.FontSize, Length.Px(16)));
 
-        // Heading styles
-        styleSheet.AddRule(
-            new TagSelector("h1"),
-            new Style
-            {
-                FontSize = Length.Px(32),
-                FontWeight = FontWeight.Bold,
-                MarginBottom = Length.Px(20),
-                Color = Colors.Dark
-            }
-        );
+        // Headings
+        styleSheet.AddRule(Style.For<H1Element>()
+            .Set(x => x.FontSize, Length.Px(32))
+            .Set(x => x.FontWeight, FontWeight.Bold)
+            .Set(x => x.MarginBottom, Length.Px(20))
+            .Set(x => x.Color, Colors.Dark));
 
-        styleSheet.AddRule(
-            new TagSelector("h2"),
-            new Style
-            {
-                FontSize = Length.Px(24),
-                FontWeight = FontWeight.Bold,
-                MarginTop = Length.Px(20),
-                MarginBottom = Length.Px(15),
-                Color = Colors.Dark
-            }
-        );
+        styleSheet.AddRule(Style.For<H2Element>()
+            .Set(x => x.FontSize, Length.Px(24))
+            .Set(x => x.FontWeight, FontWeight.Bold)
+            .Set(x => x.MarginTop, Length.Px(20))
+            .Set(x => x.MarginBottom, Length.Px(15))
+            .Set(x => x.Color, Colors.Dark));
 
-        // Form control styles
         AddFormControlStyles(styleSheet);
-
-        // List styles
         AddListStyles(styleSheet);
-
-        // Table styles
         AddTableStyles(styleSheet);
-
-        // Icon styles
         AddIconStyles(styleSheet);
         return styleSheet;
     }
 
     private static void AddFormControlStyles(StyleSheet styleSheet)
     {
-        // Base form-control style (text inputs)
-        styleSheet.AddRule(
-            new ClassSelector("form-control"),
-            new Style
-            {
-                Display = Display.Block,
-                Width = Length.Percent(100),
-                Padding = new Padding(6, 12),
-                FontSize = Length.Px(14),
-                FontWeight = FontWeight.Normal,
-                Color = Colors.TextDark,
-                BackgroundColor = Color.White,
-                Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")),
-                BorderRadius = new BorderRadius(6)
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-control")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.Width, Length.Percent(100))
+            .Set(x => x.Padding, new Padding(6, 12))
+            .Set(x => x.FontSize, Length.Px(14))
+            .Set(x => x.FontWeight, FontWeight.Normal)
+            .Set(x => x.Color, Colors.TextDark)
+            .Set(x => x.BackgroundColor, Color.White)
+            .Set(x => x.Border, new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")))
+            .Set(x => x.BorderRadius, new BorderRadius(6)));
 
-        // Form control focus state
-        styleSheet.AddRule(
-            new CompoundSelector(new ClassSelector("form-control"), new FocusSelector()),
-            new Style
-            {
-                Color = Color.FromHex("212529"),
-                BackgroundColor = Color.White,
-                BorderColor = Color.FromHex("86b7fe"),
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-control").Focus()
+            .Set(x => x.Color, Color.FromHex("212529"))
+            .Set(x => x.BackgroundColor, Color.White)
+            .Set(x => x.BorderColor, Color.FromHex("86b7fe")));
 
-        // Form control sizes
-        styleSheet.AddRule(
-            new ClassSelector("form-control-lg"),
-            new Style
-            {
-                PaddingTop = Length.Px(8),
-                PaddingRight = Length.Px(16),
-                PaddingBottom = Length.Px(8),
-                PaddingLeft = Length.Px(16),
-                FontSize = Length.Px(18),
-                BorderRadius = new BorderRadius(6)
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-control-lg")
+            .Set(x => x.Padding, new Padding(8, 16))
+            .Set(x => x.FontSize, Length.Px(18))
+            .Set(x => x.BorderRadius, new BorderRadius(6)));
 
-        styleSheet.AddRule(
-            new ClassSelector("form-control-sm"),
-            new Style
-            {
-                PaddingTop = Length.Px(4),
-                PaddingRight = Length.Px(8),
-                PaddingBottom = Length.Px(4),
-                PaddingLeft = Length.Px(8),
-                FontSize = Length.Px(12),
-                BorderRadius = new BorderRadius(3)
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-control-sm")
+            .Set(x => x.Padding, new Padding(4, 8))
+            .Set(x => x.FontSize, Length.Px(12))
+            .Set(x => x.BorderRadius, new BorderRadius(3)));
 
-        // Form select (dropdown)
-        styleSheet.AddRule(
-            new ClassSelector("form-select"),
-            new Style
-            {
-                Display = Display.Block,
-                Width = Length.Percent(90),
-                PaddingTop = Length.Px(6),
-                PaddingRight = Length.Px(36),
-                PaddingBottom = Length.Px(6),
-                PaddingLeft = Length.Px(12),
-                FontSize = Length.Px(14),
-                Color = Colors.TextDark,
-                BackgroundColor = Color.White,
-                Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")),
-                BorderRadius = new BorderRadius(4)
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-select")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.Width, Length.Percent(90))
+            .Set(x => x.PaddingTop, Length.Px(6))
+            .Set(x => x.PaddingRight, Length.Px(36))
+            .Set(x => x.PaddingBottom, Length.Px(6))
+            .Set(x => x.PaddingLeft, Length.Px(12))
+            .Set(x => x.FontSize, Length.Px(14))
+            .Set(x => x.Color, Colors.TextDark)
+            .Set(x => x.BackgroundColor, Color.White)
+            .Set(x => x.Border, new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")))
+            .Set(x => x.BorderRadius, new BorderRadius(4)));
 
-        styleSheet.AddRule(
-            new ClassSelector("form-select-lg"),
-            new Style
-            {
-                PaddingTop = Length.Px(8),
-                PaddingRight = Length.Px(40),
-                PaddingBottom = Length.Px(8),
-                PaddingLeft = Length.Px(16),
-                FontSize = Length.Px(18),
-                BorderRadius = new BorderRadius(6)
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-select-lg")
+            .Set(x => x.PaddingTop, Length.Px(8))
+            .Set(x => x.PaddingRight, Length.Px(40))
+            .Set(x => x.PaddingBottom, Length.Px(8))
+            .Set(x => x.PaddingLeft, Length.Px(16))
+            .Set(x => x.FontSize, Length.Px(18))
+            .Set(x => x.BorderRadius, new BorderRadius(6)));
 
-        styleSheet.AddRule(
-            new ClassSelector("form-select-sm"),
-            new Style
-            {
-                PaddingTop = Length.Px(4),
-                PaddingRight = Length.Px(32),
-                PaddingBottom = Length.Px(4),
-                PaddingLeft = Length.Px(8),
-                FontSize = Length.Px(12),
-                BorderRadius = new BorderRadius(3)
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-select-sm")
+            .Set(x => x.PaddingTop, Length.Px(4))
+            .Set(x => x.PaddingRight, Length.Px(32))
+            .Set(x => x.PaddingBottom, Length.Px(4))
+            .Set(x => x.PaddingLeft, Length.Px(8))
+            .Set(x => x.FontSize, Length.Px(12))
+            .Set(x => x.BorderRadius, new BorderRadius(3)));
 
-        // Form label
-        styleSheet.AddRule(
-            new ClassSelector("form-label"),
-            new Style
-            {
-                Display = Display.InlineBlock,
-                MarginBottom = Length.Px(8),
-                FontSize = Length.Px(14),
-                FontWeight = FontWeight.Normal,
-                Color = Colors.TextDark
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-label")
+            .Set(x => x.Display, Display.InlineBlock)
+            .Set(x => x.MarginBottom, Length.Px(8))
+            .Set(x => x.FontSize, Length.Px(14))
+            .Set(x => x.FontWeight, FontWeight.Normal)
+            .Set(x => x.Color, Colors.TextDark));
 
-        // Form text (help text)
-        styleSheet.AddRule(
-            new ClassSelector("form-text"),
-            new Style
-            {
-                Display = Display.Block,
-                MarginTop = Length.Px(4),
-                FontSize = Length.Px(12),
-                Color = Colors.Secondary
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-text")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.MarginTop, Length.Px(4))
+            .Set(x => x.FontSize, Length.Px(12))
+            .Set(x => x.Color, Colors.Secondary));
 
-        // Form check (container for checkbox/radio)
-        styleSheet.AddRule(
-            new ClassSelector("form-check"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Row,
-                AlignItems = AlignItems.Center,
-                MarginBottom = Length.Px(8),
-                PaddingLeft = Length.Px(0)
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-check")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexDirection, FlexDirection.Row)
+            .Set(x => x.AlignItems, AlignItems.Center)
+            .Set(x => x.MarginBottom, Length.Px(8))
+            .Set(x => x.PaddingLeft, Length.Px(0)));
 
-        // Form check label
-        styleSheet.AddRule(
-            new ClassSelector("form-check-label"),
-            new Style
-            {
-                Display = Display.InlineBlock,
-                MarginLeft = Length.Px(8),
-                FontSize = Length.Px(14),
-                Color = Colors.TextDark
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-check-label")
+            .Set(x => x.Display, Display.InlineBlock)
+            .Set(x => x.MarginLeft, Length.Px(8))
+            .Set(x => x.FontSize, Length.Px(14))
+            .Set(x => x.Color, Colors.TextDark));
 
-        // Margin bottom utility (for form groups)
-        styleSheet.AddRule(
-            new ClassSelector("mb-3"),
-            new Style
-            {
-                MarginBottom = Length.Px(16)
-            }
-        );
+        styleSheet.AddRule(Style.Class("mb-3")
+            .Set(x => x.MarginBottom, Length.Px(16)));
 
-        styleSheet.AddRule(
-            new ClassSelector("mb-4"),
-            new Style
-            {
-                MarginBottom = Length.Px(24)
-            }
-        );
+        styleSheet.AddRule(Style.Class("mb-4")
+            .Set(x => x.MarginBottom, Length.Px(24)));
 
-        // Input validation states
-        styleSheet.AddRule(
-            new ClassSelector("is-valid"),
-            new Style
-            {
-                BorderColor = Colors.Success
-            }
-        );
+        styleSheet.AddRule(Style.Class("is-valid")
+            .Set(x => x.BorderColor, Colors.Success));
 
-        styleSheet.AddRule(
-            new ClassSelector("is-invalid"),
-            new Style
-            {
-                BorderColor = Colors.Danger
-            }
-        );
+        styleSheet.AddRule(Style.Class("is-invalid")
+            .Set(x => x.BorderColor, Colors.Danger));
 
-        // Valid/Invalid feedback text
-        styleSheet.AddRule(
-            new ClassSelector("valid-feedback"),
-            new Style
-            {
-                Display = Display.Block,
-                MarginTop = Length.Px(4),
-                FontSize = Length.Px(12),
-                Color = Colors.Success
-            }
-        );
+        styleSheet.AddRule(Style.Class("valid-feedback")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.MarginTop, Length.Px(4))
+            .Set(x => x.FontSize, Length.Px(12))
+            .Set(x => x.Color, Colors.Success));
 
-        styleSheet.AddRule(
-            new ClassSelector("invalid-feedback"),
-            new Style
-            {
-                Display = Display.Block,
-                MarginTop = Length.Px(4),
-                FontSize = Length.Px(12),
-                Color = Colors.Danger
-            }
-        );
+        styleSheet.AddRule(Style.Class("invalid-feedback")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.MarginTop, Length.Px(4))
+            .Set(x => x.FontSize, Length.Px(12))
+            .Set(x => x.Color, Colors.Danger));
 
-        // Input group
-        styleSheet.AddRule(
-            new ClassSelector("input-group"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Row,
-                AlignItems = AlignItems.Stretch,
-                Width = Length.Percent(100)
-            }
-        );
+        styleSheet.AddRule(Style.Class("input-group")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexDirection, FlexDirection.Row)
+            .Set(x => x.AlignItems, AlignItems.Stretch)
+            .Set(x => x.Width, Length.Percent(100)));
 
-        styleSheet.AddRule(
-            new ClassSelector("input-group-control"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexGrow = 1,
-                FlexShrink = 1,
-                FlexBasis = 0
-            }
-        );
+        styleSheet.AddRule(Style.Class("input-group-control")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexGrow, 1)
+            .Set(x => x.FlexShrink, 1)
+            .Set(x => x.FlexBasis, 0));
 
-        styleSheet.AddRule(
-            new ClassSelector("input-group-text"),
-            new Style
-            {
-                Display = Display.Flex,
-                AlignItems = AlignItems.Center,
-                Padding = new Padding(6, 12),
-                FontSize = Length.Px(14),
-                Color = Colors.TextDark,
-                TextAlign = TextAlign.Center,
-                BackgroundColor = Color.FromHex("e9ecef"),
-                Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")),
-                BorderRadius = new BorderRadius(6)
-            }
-        );
+        styleSheet.AddRule(Style.Class("input-group-text")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.AlignItems, AlignItems.Center)
+            .Set(x => x.Padding, new Padding(6, 12))
+            .Set(x => x.FontSize, Length.Px(14))
+            .Set(x => x.Color, Colors.TextDark)
+            .Set(x => x.TextAlign, TextAlign.Center)
+            .Set(x => x.BackgroundColor, Color.FromHex("e9ecef"))
+            .Set(x => x.Border, new Border(1, BorderStyle.Solid, Color.FromHex("ced4da")))
+            .Set(x => x.BorderRadius, new BorderRadius(6)));
 
-        // Range input style
-        styleSheet.AddRule(
-            new ClassSelector("form-range"),
-            new Style
-            {
-                Display = Display.Block,
-                Width = Length.Percent(100),
-                Height = Length.Px(24)
-            }
-        );
+        styleSheet.AddRule(Style.Class("form-range")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.Width, Length.Percent(100))
+            .Set(x => x.Height, Length.Px(24)));
 
-        // Disabled state
-        styleSheet.AddRule(
-            new ClassSelector("disabled"),
-            new Style
-            {
-                BackgroundColor = Color.FromHex("e9ecef"),
-                Color = Colors.Secondary
-            }
-        );
+        styleSheet.AddRule(Style.Class("disabled")
+            .Set(x => x.BackgroundColor, Color.FromHex("e9ecef"))
+            .Set(x => x.Color, Colors.Secondary));
     }
 
     private static void AddListStyles(StyleSheet styleSheet)
     {
-        // Column layout helper
-        styleSheet.AddRule(
-            new ClassSelector("col"),
-            new Style
-            {
-                Display = Display.Block,
-                FlexGrow = 1,
-                FlexShrink = 1,
-                FlexBasis = 0,
-                PaddingRight = Length.Px(15),
-                PaddingLeft = Length.Px(15)
-            }
-        );
+        styleSheet.AddRule(Style.Class("col")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.FlexGrow, 1)
+            .Set(x => x.FlexShrink, 1)
+            .Set(x => x.FlexBasis, 0)
+            .Set(x => x.PaddingRight, Length.Px(15))
+            .Set(x => x.PaddingLeft, Length.Px(15)));
 
-        // List group container
-        styleSheet.AddRule(
-            new ClassSelector("list-group"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Column,
-                PaddingLeft = Length.Px(0),
-                MarginTop = Length.Px(0),
-                MarginBottom = Length.Px(20),
-                BorderRadius = new BorderRadius(6)
-            }
-        );
+        styleSheet.AddRule(Style.Class("list-group")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexDirection, FlexDirection.Column)
+            .Set(x => x.PaddingLeft, Length.Px(0))
+            .Set(x => x.MarginTop, Length.Px(0))
+            .Set(x => x.MarginBottom, Length.Px(20))
+            .Set(x => x.BorderRadius, new BorderRadius(6)));
 
-        // List group item
-        styleSheet.AddRule(
-            new ClassSelector("list-group-item"),
-            new Style
-            {
-                Display = Display.Block,
-                PaddingTop = Length.Px(12),
-                PaddingRight = Length.Px(16),
-                PaddingBottom = Length.Px(12),
-                PaddingLeft = Length.Px(16),
-                Color = Colors.TextDark,
-                BackgroundColor = Color.White,
-                Border = new Border(1, BorderStyle.Solid, Color.FromHex("dee2e6")),
-                MarginTop = Length.Px(-1)  // Collapse borders
-            }
-        );
+        styleSheet.AddRule(Style.Class("list-group-item")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.PaddingTop, Length.Px(12))
+            .Set(x => x.PaddingRight, Length.Px(16))
+            .Set(x => x.PaddingBottom, Length.Px(12))
+            .Set(x => x.PaddingLeft, Length.Px(16))
+            .Set(x => x.Color, Colors.TextDark)
+            .Set(x => x.BackgroundColor, Color.White)
+            .Set(x => x.Border, new Border(1, BorderStyle.Solid, Color.FromHex("dee2e6")))
+            .Set(x => x.MarginTop, Length.Px(-1)));
 
-        // Active list group item
-        styleSheet.AddRule(
-            new ClassSelector("list-group-item-active"),
-            new Style
-            {
-                Color = Color.White,
-                BackgroundColor = Colors.Primary,
-                BorderColor = Colors.Primary
-            }
-        );
+        styleSheet.AddRule(Style.Class("list-group-item-active")
+            .Set(x => x.Color, Color.White)
+            .Set(x => x.BackgroundColor, Colors.Primary)
+            .Set(x => x.BorderColor, Colors.Primary));
 
-        // Disabled list group item
-        styleSheet.AddRule(
-            new ClassSelector("list-group-item-disabled"),
-            new Style
-            {
-                Color = Colors.Secondary,
-                BackgroundColor = Color.White
-            }
-        );
+        styleSheet.AddRule(Style.Class("list-group-item-disabled")
+            .Set(x => x.Color, Colors.Secondary)
+            .Set(x => x.BackgroundColor, Color.White));
 
-        // Flush list group (no borders on sides, no rounded corners)
-        styleSheet.AddRule(
-            new ClassSelector("list-group-flush"),
-            new Style
-            {
-                BorderRadius = new BorderRadius(0)
-            }
-        );
+        styleSheet.AddRule(Style.Class("list-group-flush")
+            .Set(x => x.BorderRadius, new BorderRadius(0)));
 
-        // Numbered list group
-        styleSheet.AddRule(
-            new ClassSelector("list-group-numbered"),
-            new Style
-            {
-                PaddingLeft = Length.Px(40)
-            }
-        );
+        styleSheet.AddRule(Style.Class("list-group-numbered")
+            .Set(x => x.PaddingLeft, Length.Px(40)));
 
         // Contextual list group item variants
         AddListGroupItemVariant(styleSheet, "list-group-item-primary",
@@ -544,170 +312,85 @@ public static class BootstrapStyles
 
     private static void AddListGroupItemVariant(StyleSheet styleSheet, string className, Color bgColor, Color textColor, Color borderColor)
     {
-        styleSheet.AddRule(
-            new ClassSelector(className),
-            new Style
-            {
-                BackgroundColor = bgColor,
-                Color = textColor,
-                BorderColor = borderColor
-            }
-        );
+        styleSheet.AddRule(Style.Class(className)
+            .Set(x => x.BackgroundColor, bgColor)
+            .Set(x => x.Color, textColor)
+            .Set(x => x.BorderColor, borderColor));
     }
 
     private static void AddButtonVariant(StyleSheet styleSheet, string className, Color bgColor, Color textColor)
     {
-        styleSheet.AddRule(
-            new ClassSelector(className),
-            new Style
-            {
-                BackgroundColor = bgColor,
-                Color = textColor,
-                BorderColor = bgColor
-            }
-        );
+        styleSheet.AddRule(Style.Class(className)
+            .Set(x => x.BackgroundColor, bgColor)
+            .Set(x => x.Color, textColor)
+            .Set(x => x.BorderColor, bgColor));
     }
 
     private static void AddButtonHover(StyleSheet styleSheet, string className, Color bgColor, Color borderColor)
     {
-        styleSheet.AddRule(
-            new CompoundSelector(new ClassSelector(className), new HoverSelector()),
-            new Style()
-            {
-                BackgroundColor = bgColor,
-                BorderColor = borderColor
-            });
+        styleSheet.AddRule(Style.Class(className).Hover()
+            .Set(x => x.BackgroundColor, bgColor)
+            .Set(x => x.BorderColor, borderColor));
     }
 
     private static void AddOutlineButtonVariant(StyleSheet styleSheet, string className, Color color)
     {
-        styleSheet.AddRule(
-            new ClassSelector(className),
-            new Style
-            {
-                BackgroundColor = Color.Transparent,
-                Color = color,
-                BorderColor = color
-            }
-        );
+        styleSheet.AddRule(Style.Class(className)
+            .Set(x => x.BackgroundColor, Color.Transparent)
+            .Set(x => x.Color, color)
+            .Set(x => x.BorderColor, color));
     }
 
     private static void AddTableStyles(StyleSheet styleSheet)
     {
-        // Base table style
-        styleSheet.AddRule(
-            new ClassSelector("table"),
-            new Style
-            {
-                Display = Display.Block,
-                Width = Length.Percent(100),
-                MarginBottom = Length.Px(16),
-                Color = Colors.TextDark,
-                BorderBottom = new BorderSide(1, BorderStyle.Solid, Color.FromHex("dee2e6"))
-            }
-        );
+        styleSheet.AddRule(Style.Class("table")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.Width, Length.Percent(100))
+            .Set(x => x.MarginBottom, Length.Px(16))
+            .Set(x => x.Color, Colors.TextDark)
+            .Set(x => x.BorderBottom, new BorderSide(1, BorderStyle.Solid, Color.FromHex("dee2e6"))));
 
-        // Table header
-        styleSheet.AddRule(
-            new TagSelector("thead"),
-            new Style
-            {
-                Display = Display.Block,
-                BorderBottom = new BorderSide(2, BorderStyle.Solid, Color.FromHex("dee2e6"))
-            }
-        );
+        styleSheet.AddRule(Style.For<TheadElement>()
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.BorderBottom, new BorderSide(2, BorderStyle.Solid, Color.FromHex("dee2e6"))));
 
-        // Table body
-        styleSheet.AddRule(
-            new TagSelector("tbody"),
-            new Style
-            {
-                Display = Display.Block
-            }
-        );
+        styleSheet.AddRule(Style.For<TbodyElement>()
+            .Set(x => x.Display, Display.Block));
 
-        // Table row
-        styleSheet.AddRule(
-            new TagSelector("tr"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Row,
-                BorderBottom = new BorderSide(1, BorderStyle.Solid, Color.FromHex("dee2e6"))
-            }
-        );
+        styleSheet.AddRule(Style.For<TrElement>()
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexDirection, FlexDirection.Row)
+            .Set(x => x.BorderBottom, new BorderSide(1, BorderStyle.Solid, Color.FromHex("dee2e6"))));
 
-        // Table header cell
-        styleSheet.AddRule(
-            new TagSelector("th"),
-            new Style
-            {
-                Display = Display.Block,
-                FlexGrow = 1,
-                FlexShrink = 1,
-                FlexBasis = 0,
-                PaddingTop = Length.Px(12),
-                PaddingRight = Length.Px(12),
-                PaddingBottom = Length.Px(12),
-                PaddingLeft = Length.Px(12),
-                FontWeight = FontWeight.Bold,
-                TextAlign = TextAlign.Left
-            }
-        );
+        styleSheet.AddRule(Style.For<ThElement>()
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.FlexGrow, 1)
+            .Set(x => x.FlexShrink, 1)
+            .Set(x => x.FlexBasis, 0)
+            .Set(x => x.Padding, new Padding(12))
+            .Set(x => x.FontWeight, FontWeight.Bold)
+            .Set(x => x.TextAlign, TextAlign.Left));
 
-        // Table data cell
-        styleSheet.AddRule(
-            new TagSelector("td"),
-            new Style
-            {
-                Display = Display.Block,
-                FlexGrow = 1,
-                FlexShrink = 1,
-                FlexBasis = 0,
-                PaddingTop = Length.Px(12),
-                PaddingRight = Length.Px(12),
-                PaddingBottom = Length.Px(12),
-                PaddingLeft = Length.Px(12)
-            }
-        );
+        styleSheet.AddRule(Style.For<TdElement>()
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.FlexGrow, 1)
+            .Set(x => x.FlexShrink, 1)
+            .Set(x => x.FlexBasis, 0)
+            .Set(x => x.Padding, new Padding(12)));
 
-        // Striped row
-        styleSheet.AddRule(
-            new ClassSelector("table-row-striped"),
-            new Style
-            {
-                BackgroundColor = Color.FromHex("f2f2f2")
-            }
-        );
+        styleSheet.AddRule(Style.Class("table-row-striped")
+            .Set(x => x.BackgroundColor, Color.FromHex("f2f2f2")));
 
-        // Bordered table
-        styleSheet.AddRule(
-            new ClassSelector("table-bordered"),
-            new Style
-            {
-                Border = new Border(1, BorderStyle.Solid, Color.FromHex("dee2e6"))
-            }
-        );
+        styleSheet.AddRule(Style.Class("table-bordered")
+            .Set(x => x.Border, new Border(1, BorderStyle.Solid, Color.FromHex("dee2e6"))));
 
-        // Small table
-        styleSheet.AddRule(
-            new ClassSelector("table-sm"),
-            new Style
-            {
-                FontSize = Length.Px(12)
-            }
-        );
+        styleSheet.AddRule(Style.Class("table-sm")
+            .Set(x => x.FontSize, Length.Px(12)));
 
-        // Dark table
-        styleSheet.AddRule(
-            new ClassSelector("table-dark"),
-            new Style
-            {
-                Color = Color.White,
-                BackgroundColor = Color.FromHex("212529"),
-                BorderColor = Color.FromHex("373b3e")
-            }
-        );
+        styleSheet.AddRule(Style.Class("table-dark")
+            .Set(x => x.Color, Color.White)
+            .Set(x => x.BackgroundColor, Color.FromHex("212529"))
+            .Set(x => x.BorderColor, Color.FromHex("373b3e")));
 
         // Contextual table row variants
         AddTableRowVariant(styleSheet, "table-primary", Color.FromHex("cfe2ff"), Color.FromHex("084298"));
@@ -722,161 +405,73 @@ public static class BootstrapStyles
 
     private static void AddTableRowVariant(StyleSheet styleSheet, string className, Color bgColor, Color textColor)
     {
-        styleSheet.AddRule(
-            new ClassSelector(className),
-            new Style
-            {
-                BackgroundColor = bgColor,
-                Color = textColor
-            }
-        );
+        styleSheet.AddRule(Style.Class(className)
+            .Set(x => x.BackgroundColor, bgColor)
+            .Set(x => x.Color, textColor));
     }
 
     private static void AddIconStyles(StyleSheet styleSheet)
     {
-        // Icon row container
-        styleSheet.AddRule(
-            new ClassSelector("icon-row"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Row,
-                MarginBottom = Length.Px(20),
-                AlignItems = AlignItems.FlexEnd
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-row")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexDirection, FlexDirection.Row)
+            .Set(x => x.MarginBottom, Length.Px(20))
+            .Set(x => x.AlignItems, AlignItems.FlexEnd));
 
-        // Icon item container
-        styleSheet.AddRule(
-            new ClassSelector("icon-item"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Column,
-                AlignItems = AlignItems.Center,
-                Margin = new Margin(0, 20, 10, 0),
-                Width = Length.Px(80)
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-item")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexDirection, FlexDirection.Column)
+            .Set(x => x.AlignItems, AlignItems.Center)
+            .Set(x => x.Margin, new Margin(0, 20, 10, 0))
+            .Set(x => x.Width, Length.Px(80)));
 
-        // Base icon style (bootstrap-icons font)
-        styleSheet.AddRule(
-            new ClassSelector("bi"),
-            new Style
-            {
-                FontFamily = "bootstrap-icons, Arial",
-                FontSize = Length.Px(24),
-                Color = Colors.TextDark,
-                MarginBottom = Length.Px(8)
-            }
-        );
+        styleSheet.AddRule(Style.Class("bi")
+            .Set(x => x.FontFamily, "bootstrap-icons, Arial")
+            .Set(x => x.FontSize, Length.Px(24))
+            .Set(x => x.Color, Colors.TextDark)
+            .Set(x => x.MarginBottom, Length.Px(8)));
 
-        // Icon label
-        styleSheet.AddRule(
-            new ClassSelector("icon-label"),
-            new Style
-            {
-                FontSize = Length.Px(12),
-                Color = Colors.Secondary
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-label")
+            .Set(x => x.FontSize, Length.Px(12))
+            .Set(x => x.Color, Colors.Secondary));
 
-        // Icon sizes
-        styleSheet.AddRule(
-            new ClassSelector("icon-sm"),
-            new Style
-            {
-                FontSize = Length.Px(16)
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-sm")
+            .Set(x => x.FontSize, Length.Px(16)));
 
-        styleSheet.AddRule(
-            new ClassSelector("icon-md"),
-            new Style
-            {
-                FontSize = Length.Px(24)
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-md")
+            .Set(x => x.FontSize, Length.Px(24)));
 
-        styleSheet.AddRule(
-            new ClassSelector("icon-lg"),
-            new Style
-            {
-                FontSize = Length.Px(32)
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-lg")
+            .Set(x => x.FontSize, Length.Px(32)));
 
-        styleSheet.AddRule(
-            new ClassSelector("icon-xl"),
-            new Style
-            {
-                FontSize = Length.Px(48)
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-xl")
+            .Set(x => x.FontSize, Length.Px(48)));
 
-        // Icon colors
-        styleSheet.AddRule(
-            new ClassSelector("icon-primary"),
-            new Style
-            {
-                Color = Colors.Primary
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-primary")
+            .Set(x => x.Color, Colors.Primary));
 
-        styleSheet.AddRule(
-            new ClassSelector("icon-success"),
-            new Style
-            {
-                Color = Colors.Success
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-success")
+            .Set(x => x.Color, Colors.Success));
 
-        styleSheet.AddRule(
-            new ClassSelector("icon-danger"),
-            new Style
-            {
-                Color = Colors.Danger
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-danger")
+            .Set(x => x.Color, Colors.Danger));
 
-        styleSheet.AddRule(
-            new ClassSelector("icon-warning"),
-            new Style
-            {
-                Color = Colors.Warning
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-warning")
+            .Set(x => x.Color, Colors.Warning));
 
-        styleSheet.AddRule(
-            new ClassSelector("icon-info"),
-            new Style
-            {
-                Color = Colors.Info
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-info")
+            .Set(x => x.Color, Colors.Info));
 
-        // Icon button style
-        styleSheet.AddRule(
-            new ClassSelector("icon-btn"),
-            new Style
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Row,
-                AlignItems = AlignItems.Center,
-                Width = Length.Px(100)
-            }
-        );
+        styleSheet.AddRule(Style.Class("icon-btn")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.FlexDirection, FlexDirection.Row)
+            .Set(x => x.AlignItems, AlignItems.Center)
+            .Set(x => x.Width, Length.Px(100)));
 
-        // Icon inside button
-        styleSheet.AddRule(
-            new ClassSelector("btn-icon"),
-            new Style
-            {
-                FontSize = Length.Px(16),
-                MarginRight = Length.Px(6),
-                MarginBottom = Length.Px(0),
-                Color = Colors.TextWhite
-            }
-        );
+        styleSheet.AddRule(Style.Class("btn-icon")
+            .Set(x => x.FontSize, Length.Px(16))
+            .Set(x => x.MarginRight, Length.Px(6))
+            .Set(x => x.MarginBottom, Length.Px(0))
+            .Set(x => x.Color, Colors.TextWhite));
     }
 }

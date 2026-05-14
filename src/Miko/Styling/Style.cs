@@ -1,4 +1,7 @@
-﻿using Miko.Common;
+﻿using System.Collections.Concurrent;
+using Miko.Common;
+using Miko.Core;
+using Miko.Styling.Selectors;
 
 namespace Miko.Styling;
 
@@ -332,4 +335,18 @@ public class Style
     {
         return (Style)MemberwiseClone();
     }
+
+    private static readonly ConcurrentDictionary<Type, string> _tagNameCache = new();
+
+    public static TypedStyleBuilder<T> For<T>() where T : Element, new()
+    {
+        var tagName = _tagNameCache.GetOrAdd(typeof(T), _ => new T().TagName);
+        return new TypedStyleBuilder<T>(new TagSelector(tagName));
+    }
+
+    public static TypedStyleBuilder<Element> Class(string className)
+        => new TypedStyleBuilder<Element>(new ClassSelector(className));
+
+    public static TypedStyleBuilder<Element> Id(string id)
+        => new TypedStyleBuilder<Element>(new IdSelector(id));
 }

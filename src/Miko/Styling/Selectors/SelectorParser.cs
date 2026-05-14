@@ -3,6 +3,7 @@ namespace Miko.Styling.Selectors;
 /// <summary>
 /// 选择器字符串解析器
 /// </summary>
+[Obsolete("Use Style.For<T>(), Style.Class(), or Style.Id() fluent API instead.")]
 public static class SelectorParser
 {
     /// <summary>
