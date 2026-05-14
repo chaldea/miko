@@ -138,3 +138,14 @@ public enum Overflow
     Scroll,
     Auto
 }
+
+/// <summary>
+/// 文本装饰
+/// </summary>
+public enum TextDecoration
+{
+    None,
+    Underline,
+    Overline,
+    LineThrough
+}

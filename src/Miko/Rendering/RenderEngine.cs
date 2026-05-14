@@ -297,6 +297,20 @@ public class RenderEngine
                 style.FontWeight,
                 style.TextAlign
             );
+
+            if (style.TextDecoration != Common.TextDecoration.None)
+            {
+                _painter.DrawTextDecoration(
+                    element.TextContent,
+                    box.BoxModel.Content,
+                    style.Color,
+                    style.FontFamily,
+                    style.FontSize.Value,
+                    style.FontWeight,
+                    style.TextAlign,
+                    style.TextDecoration
+                );
+            }
         }
 
         // 渲染图片

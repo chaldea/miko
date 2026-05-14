@@ -78,6 +78,8 @@ public class ComputedStyle : Style
     public new Length Bottom { get; set; } = Length.Auto;
     public new Length Left { get; set; } = Length.Auto;
 
+    public new TextDecoration TextDecoration { get; set; } = Common.TextDecoration.None;
+
     public new float Opacity { get; set; } = 1.0f;
     public new int ZIndex { get; set; } = 0;
 
@@ -200,6 +202,8 @@ public class ComputedStyle : Style
             if (style.Right.HasValue) computed.Right = style.Right.Value;
             if (style.Bottom.HasValue) computed.Bottom = style.Bottom.Value;
             if (style.Left.HasValue) computed.Left = style.Left.Value;
+
+            if (style.TextDecoration.HasValue) computed.TextDecoration = style.TextDecoration.Value;
 
             if (style.Opacity.HasValue) computed.Opacity = style.Opacity.Value;
             if (style.ZIndex.HasValue) computed.ZIndex = style.ZIndex.Value;

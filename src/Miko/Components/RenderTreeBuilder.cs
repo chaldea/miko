@@ -14,6 +14,7 @@ public class RenderTreeBuilder
 
     private static readonly Dictionary<string, Func<Element>> _tagMap = new(StringComparer.OrdinalIgnoreCase)
     {
+        ["a"] = () => new AnchorElement(),
         ["div"] = () => new DivElement(),
         ["span"] = () => new SpanElement(),
         ["p"] = () => new ParagraphElement(),
@@ -66,6 +67,12 @@ public class RenderTreeBuilder
         {
             case "class": element.Class = value; break;
             case "id": element.Id = value; break;
+            case "href" when element is AnchorElement anchor:
+                anchor.Href = value; break;
+            case "target" when element is AnchorElement anchor:
+                anchor.Target = value; break;
+            case "rel" when element is AnchorElement anchor:
+                anchor.Rel = value; break;
             case "type" when element is InputElement input:
                 input.Type = value?.ToLowerInvariant() switch
                 {

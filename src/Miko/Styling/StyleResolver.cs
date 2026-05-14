@@ -275,6 +275,14 @@ public class StyleResolver
                 style.Display ??= Common.Display.Inline;
                 break;
 
+            case "a":
+                // Browser default: display: inline, color: blue, text-decoration: underline
+                // Cursor: pointer (not implemented)
+                style.Display ??= Common.Display.Inline;
+                style.Color ??= new Common.Color(0, 0, 238);  // Browser default link blue
+                style.TextDecoration ??= Common.TextDecoration.Underline;
+                break;
+
             case "ul":
                 // Browser default: display: block, margin: 1em 0, padding-left: 40px
                 // list-style-type: disc (not implemented - visual bullets would need Painter support)

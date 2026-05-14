@@ -226,6 +226,8 @@ public class Style
     public Length? Bottom { get; set; }
     public Length? Left { get; set; }
 
+    public TextDecoration? TextDecoration { get; set; }
+
     public float? Opacity { get; set; }
     public int? ZIndex { get; set; }
 
@@ -313,6 +315,8 @@ public class Style
         Right ??= other.Right;
         Bottom ??= other.Bottom;
         Left ??= other.Left;
+
+        TextDecoration ??= other.TextDecoration;
 
         Opacity ??= other.Opacity;
         ZIndex ??= other.ZIndex;
