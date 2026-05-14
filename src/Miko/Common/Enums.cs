@@ -76,8 +76,15 @@ public enum BorderStyle
 /// </summary>
 public enum FontWeight
 {
+    Thin = 100,
+    ExtraLight = 200,
+    Light = 300,
     Normal = 400,
+    Medium = 500,
+    SemiBold = 600,
     Bold = 700,
+    ExtraBold = 800,
+    Black = 900,
     Lighter = 300,
     Bolder = 900
 }
@@ -149,3 +156,14 @@ public enum TextDecoration
     Overline,
     LineThrough
 }
+
+public enum TextTransform { None, Uppercase, Lowercase, Capitalize }
+public enum FontStyle { Normal, Italic, Oblique }
+public enum WhiteSpace { Normal, Nowrap, Pre, PreWrap, PreLine }
+public enum Cursor { Default, Pointer, Text, Wait, NotAllowed, Move, Help }
+public enum Visibility { Visible, Hidden, Collapse }
+public enum FlexWrap { Nowrap, Wrap, WrapReverse }
+public enum AlignSelf { Auto, FlexStart, FlexEnd, Center, Stretch, Baseline }
+public enum AlignContent { FlexStart, FlexEnd, Center, SpaceBetween, SpaceAround, Stretch }
+public enum UserSelect { Auto, None, Text, All }
+public enum VerticalAlign { Baseline, Top, Middle, Bottom, TextTop, TextBottom }

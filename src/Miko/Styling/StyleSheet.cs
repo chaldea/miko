@@ -1,3 +1,4 @@
+using Miko.Core;
 using Miko.Styling.Selectors;
 
 namespace Miko.Styling;
@@ -13,6 +14,18 @@ public class StyleSheet
     public void AddRule(Selector selector, Style style)
     {
         Rules.Add(new StyleRule { Selector = selector, Style = style });
+    }
+
+    public void AddRule<T>(TypedStyleBuilder<T> builder) where T : Element
+    {
+        var (selector, style) = builder.Build();
+        Rules.Add(new StyleRule { Selector = selector, Style = style });
+    }
+
+    public void AddMediaRule<T>(MediaCondition condition, TypedStyleBuilder<T> builder) where T : Element
+    {
+        var (selector, style) = builder.Build();
+        AddMediaRule(condition, selector, style);
     }
 
     public void AddMediaRule(MediaCondition condition, Selector selector, Style style)

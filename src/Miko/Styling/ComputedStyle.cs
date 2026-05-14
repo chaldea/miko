@@ -79,6 +79,13 @@ public class ComputedStyle : Style
     public new Length Left { get; set; } = Length.Auto;
 
     public new TextDecoration TextDecoration { get; set; } = Common.TextDecoration.None;
+    public new TextTransform TextTransform { get; set; } = Common.TextTransform.None;
+    public new FontStyle FontStyle { get; set; } = Common.FontStyle.Normal;
+    public new WhiteSpace WhiteSpace { get; set; } = Common.WhiteSpace.Normal;
+    public new Visibility Visibility { get; set; } = Common.Visibility.Visible;
+    public new FlexWrap FlexWrap { get; set; } = Common.FlexWrap.Nowrap;
+    public new AlignSelf AlignSelf { get; set; } = Common.AlignSelf.Auto;
+    public new AlignContent AlignContent { get; set; } = Common.AlignContent.FlexStart;
 
     public new float Opacity { get; set; } = 1.0f;
     public new int ZIndex { get; set; } = 0;
@@ -204,6 +211,13 @@ public class ComputedStyle : Style
             if (style.Left.HasValue) computed.Left = style.Left.Value;
 
             if (style.TextDecoration.HasValue) computed.TextDecoration = style.TextDecoration.Value;
+            if (style.TextTransform.HasValue) computed.TextTransform = style.TextTransform.Value;
+            if (style.FontStyle.HasValue) computed.FontStyle = style.FontStyle.Value;
+            if (style.WhiteSpace.HasValue) computed.WhiteSpace = style.WhiteSpace.Value;
+            if (style.Visibility.HasValue) computed.Visibility = style.Visibility.Value;
+            if (style.FlexWrap.HasValue) computed.FlexWrap = style.FlexWrap.Value;
+            if (style.AlignSelf.HasValue) computed.AlignSelf = style.AlignSelf.Value;
+            if (style.AlignContent.HasValue) computed.AlignContent = style.AlignContent.Value;
 
             if (style.Opacity.HasValue) computed.Opacity = style.Opacity.Value;
             if (style.ZIndex.HasValue) computed.ZIndex = style.ZIndex.Value;

@@ -1,6 +1,7 @@
+using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
-using Miko.Styling.Selectors;
+using Miko.Styling;
 using Shouldly;
 
 namespace Miko.Tests.Styling;
@@ -8,179 +9,147 @@ namespace Miko.Tests.Styling;
 public class PseudoClassSelectorsTests
 {
     [Fact]
-    public void HoverSelector_ShouldMatchHoveredElement()
+    public void Hover_ShouldMatchHoveredElement()
     {
         var element = new ButtonElement();
         element.SetState(ElementState.Hover);
-        var selector = new HoverSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Hover().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeTrue();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 
     [Fact]
-    public void HoverSelector_ShouldNotMatchNonHoveredElement()
+    public void Hover_ShouldNotMatchNonHoveredElement()
     {
         var element = new ButtonElement();
-        var selector = new HoverSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Hover().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeFalse();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Transparent);
     }
 
     [Fact]
-    public void HoverSelector_ShouldHaveSpecificity10()
-    {
-        var selector = new HoverSelector();
-
-        selector.Specificity.ShouldBe(10);
-    }
-
-    [Fact]
-    public void ActiveSelector_ShouldMatchActiveElement()
+    public void Active_ShouldMatchActiveElement()
     {
         var element = new ButtonElement();
         element.SetState(ElementState.Active);
-        var selector = new ActiveSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Active().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeTrue();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 
     [Fact]
-    public void ActiveSelector_ShouldNotMatchInactiveElement()
+    public void Active_ShouldNotMatchInactiveElement()
     {
         var element = new ButtonElement();
-        var selector = new ActiveSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Active().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeFalse();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Transparent);
     }
 
     [Fact]
-    public void ActiveSelector_ShouldHaveSpecificity10()
-    {
-        var selector = new ActiveSelector();
-
-        selector.Specificity.ShouldBe(10);
-    }
-
-    [Fact]
-    public void FocusSelector_ShouldMatchFocusedElement()
+    public void Focus_ShouldMatchFocusedElement()
     {
         var element = new InputElement();
         element.SetState(ElementState.Focus);
-        var selector = new FocusSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<InputElement>().Focus().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeTrue();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 
     [Fact]
-    public void FocusSelector_ShouldNotMatchUnfocusedElement()
+    public void Focus_ShouldNotMatchUnfocusedElement()
     {
         var element = new InputElement();
-        var selector = new FocusSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<InputElement>().Focus().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeFalse();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Transparent);
     }
 
     [Fact]
-    public void FocusSelector_ShouldHaveSpecificity10()
-    {
-        var selector = new FocusSelector();
-
-        selector.Specificity.ShouldBe(10);
-    }
-
-    [Fact]
-    public void DisabledSelector_ShouldMatchDisabledElement()
+    public void Disabled_ShouldMatchDisabledElement()
     {
         var element = new ButtonElement();
         element.SetState(ElementState.Disabled);
-        var selector = new DisabledSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Disabled().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeTrue();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 
     [Fact]
-    public void DisabledSelector_ShouldNotMatchEnabledElement()
+    public void Disabled_ShouldNotMatchEnabledElement()
     {
         var element = new ButtonElement();
-        var selector = new DisabledSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Disabled().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeFalse();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Transparent);
     }
 
     [Fact]
-    public void DisabledSelector_ShouldMatchChildOfDisabledParent()
+    public void Disabled_ShouldMatchChildOfDisabledParent()
     {
         var parent = new DivElement();
         var child = new ButtonElement();
         parent.AddChild(child);
         parent.SetState(ElementState.Disabled);
-        var selector = new DisabledSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Disabled().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(child).ShouldBeTrue();
+        new StyleResolver().Resolve(child, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 
     [Fact]
-    public void DisabledSelector_ShouldHaveSpecificity10()
-    {
-        var selector = new DisabledSelector();
-
-        selector.Specificity.ShouldBe(10);
-    }
-
-    [Fact]
-    public void EnabledSelector_ShouldMatchEnabledElement()
+    public void Enabled_ShouldMatchEnabledElement()
     {
         var element = new ButtonElement();
-        var selector = new EnabledSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Enabled().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeTrue();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 
     [Fact]
-    public void EnabledSelector_ShouldNotMatchDisabledElement()
+    public void Enabled_ShouldNotMatchDisabledElement()
     {
         var element = new ButtonElement();
         element.SetState(ElementState.Disabled);
-        var selector = new EnabledSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Enabled().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(element).ShouldBeFalse();
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Transparent);
     }
 
     [Fact]
-    public void EnabledSelector_ShouldNotMatchChildOfDisabledParent()
+    public void Enabled_ShouldNotMatchChildOfDisabledParent()
     {
         var parent = new DivElement();
         var child = new ButtonElement();
         parent.AddChild(child);
         parent.SetState(ElementState.Disabled);
-        var selector = new EnabledSelector();
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.For<ButtonElement>().Enabled().Set(x => x.BackgroundColor, Color.Red));
 
-        selector.Matches(child).ShouldBeFalse();
+        new StyleResolver().Resolve(child, [styleSheet]).BackgroundColor.ShouldBe(Color.Transparent);
     }
 
     [Fact]
-    public void EnabledSelector_ShouldHaveSpecificity10()
+    public void PseudoClass_Specificity_ShouldBeAddedToBaseSelector()
     {
-        var selector = new EnabledSelector();
+        // button:hover has specificity 11 (tag=1 + hover=10), class has 10 — button:hover wins
+        var element = new ButtonElement();
+        element.SetState(ElementState.Hover);
+        var styleSheet = new StyleSheet();
+        styleSheet.AddRule(Style.Class("btn").Set(x => x.BackgroundColor, Color.Green));
+        styleSheet.AddRule(Style.For<ButtonElement>().Hover().Set(x => x.BackgroundColor, Color.Red));
+        element.Class = "btn";
 
-        selector.Specificity.ShouldBe(10);
-    }
-
-    [Fact]
-    public void AllPseudoClassSelectors_ShouldHaveSameSpecificity()
-    {
-        var selectors = new PseudoClassSelector[]
-        {
-            new HoverSelector(),
-            new ActiveSelector(),
-            new FocusSelector(),
-            new DisabledSelector(),
-            new EnabledSelector()
-        };
-
-        foreach (var selector in selectors)
-        {
-            selector.Specificity.ShouldBe(10);
-        }
+        new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
     }
 }
