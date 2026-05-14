@@ -753,6 +753,56 @@ public class Painter
     }
 
     /// <summary>
+    /// 绘制文本装饰（下划线、上划线、删除线）
+    /// </summary>
+    public void DrawTextDecoration(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, TextDecoration decoration)
+    {
+        if (decoration == TextDecoration.None || string.IsNullOrEmpty(text) || color.A == 0) return;
+
+        var fontManager = FontManager.Instance;
+        var fallbackResolver = new FontFallbackResolver(fontManager);
+        var textRuns = fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight);
+
+        if (textRuns.Count == 0) return;
+
+        using var measurePaint = new SKPaint { IsAntialias = true };
+
+        float totalWidth = 0;
+        foreach (var run in textRuns)
+        {
+            using var font = new SKFont(run.Typeface, fontSize);
+            totalWidth += font.MeasureText(run.Text, measurePaint);
+        }
+
+        float x = textAlign switch
+        {
+            TextAlign.Left => rect.Left,
+            TextAlign.Right => rect.Right - totalWidth,
+            TextAlign.Center => rect.Left + (rect.Width - totalWidth) / 2,
+            _ => rect.Left
+        };
+
+        float baselineY = rect.Top + (rect.Height + fontSize) / 2;
+        float lineY = decoration switch
+        {
+            TextDecoration.Underline => baselineY + fontSize * 0.15f,
+            TextDecoration.Overline => baselineY - fontSize,
+            TextDecoration.LineThrough => baselineY - fontSize * 0.35f,
+            _ => baselineY
+        };
+
+        using var paint = new SKPaint
+        {
+            Color = color.ToSKColor(),
+            StrokeWidth = Math.Max(1f, fontSize / 14f),
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+
+        _canvas.DrawLine(x, lineY, x + totalWidth, lineY, paint);
+    }
+
+    /// <summary>
     /// 平移画布
     /// </summary>
     public void Translate(float dx, float dy)

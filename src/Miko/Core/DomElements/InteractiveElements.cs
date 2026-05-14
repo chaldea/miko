@@ -3,6 +3,29 @@ using Miko.Common;
 namespace Miko.Core.DomElements;
 
 /// <summary>
+/// 锚点（超链接）元素
+/// </summary>
+public class AnchorElement : Element
+{
+    public override string TagName => "a";
+
+    /// <summary>
+    /// 链接目标 URL
+    /// </summary>
+    public string? Href { get; set; }
+
+    /// <summary>
+    /// 链接打开方式（_self, _blank, _parent, _top）
+    /// </summary>
+    public string? Target { get; set; }
+
+    /// <summary>
+    /// 链接与目标之间的关系（如 noopener, noreferrer）
+    /// </summary>
+    public string? Rel { get; set; }
+}
+
+/// <summary>
 /// 按钮元素
 /// </summary>
 public class ButtonElement : Element
