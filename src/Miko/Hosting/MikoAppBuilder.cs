@@ -1,32 +1,97 @@
-using System.Reflection;
+﻿using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Miko.Animation;
 using Miko.Core;
+using Miko.Events;
+using Miko.Layout;
+using Miko.Rendering;
+using Miko.Routing;
 using Miko.Styling;
 
 namespace Miko.Hosting;
 
 public class MikoAppBuilder
 {
-    private readonly MikoAppConfiguration _config = new();
+    public IServiceCollection Services { get; } = new ServiceCollection();
 
-    public MikoAppBuilder UseTitle(string title) { _config.Title = title; return this; }
-    public MikoAppBuilder UseSize(int width, int height) { _config.Width = width; _config.Height = height; return this; }
-    public MikoAppBuilder UseRootComponent(Func<Element> factory) { _config.RootComponentFactory = factory; return this; }
-    public MikoAppBuilder UseStyleSheets(List<StyleSheet> styleSheets) { _config.StyleSheets = styleSheets; return this; }
-    public MikoAppBuilder AddStyleSheet(StyleSheet styleSheet) { _config.StyleSheets.Add(styleSheet); return this; }
-    public MikoAppBuilder UseLogging(Action<ILoggingBuilder> configure) { _config.LoggingConfiguration = configure; return this; }
-    public MikoAppBuilder UseRouter(params Assembly[] assemblies) { _config.RouteAssemblies = assemblies; return this; }
-    public MikoAppBuilder UseDefaultLayout(Type layoutType) { _config.DefaultLayout = layoutType; return this; }
+    public static MikoAppBuilder CreateDefault()
+    {
+        var builder = new MikoAppBuilder();
+        builder.Services.AddLogging();
+        builder.Services.AddOptions<MikoAppOptions>();
+        builder.Services.AddSingleton<AnimationManager>();
+        builder.Services.AddSingleton<NavigationManager>();
+        builder.Services.AddSingleton<LayoutEngine>();
+        builder.Services.AddSingleton<RenderEngine>();
+        builder.Services.AddSingleton<DirtyRegionManager>();
+        builder.Services.AddSingleton<EventDispatcher>();
+        builder.Services.AddSingleton<MikoEngine>();
+        return builder;
+    }
+
+    public MikoAppBuilder UseTitle(string title)
+    {
+        Services.Configure<MikoAppOptions>(o => o.Title = title);
+        return this;
+    }
+
+    public MikoAppBuilder UseSize(int width, int height)
+    {
+        Services.Configure<MikoAppOptions>(o => { o.Width = width; o.Height = height; });
+        return this;
+    }
+
+    public MikoAppBuilder UseRootComponent(Func<Element> factory)
+    {
+        Services.Configure<MikoAppOptions>(o => o.RootComponentFactory = factory);
+        return this;
+    }
+
+    public MikoAppBuilder UseStyleSheets(List<StyleSheet> styleSheets)
+    {
+        Services.Configure<MikoAppOptions>(o => o.StyleSheets = styleSheets);
+        return this;
+    }
+
+    public MikoAppBuilder AddStyleSheet(StyleSheet styleSheet)
+    {
+        Services.Configure<MikoAppOptions>(o => o.StyleSheets.Add(styleSheet));
+        return this;
+    }
+
+    public MikoAppBuilder UseLogging(Action<ILoggingBuilder> configure)
+    {
+        Services.AddLogging(configure);
+        return this;
+    }
+
+    public MikoAppBuilder UseRouter(params Assembly[] assemblies)
+    {
+        Services.Configure<MikoAppOptions>(o => o.RouteAssemblies = assemblies);
+        return this;
+    }
+
+    public MikoAppBuilder UseDefaultLayout(Type layoutType)
+    {
+        Services.Configure<MikoAppOptions>(o => o.DefaultLayout = layoutType);
+        return this;
+    }
 
     public MikoAppBuilder UseFonts(Action<FontBuilder> configure)
     {
         var fontBuilder = new FontBuilder();
         configure(fontBuilder);
-        _config.Fonts.AddRange(fontBuilder.Registrations);
+        Services.Configure<MikoAppOptions>(o => o.Fonts.AddRange(fontBuilder.Registrations));
         return this;
     }
 
-    public MikoApp Build() => new(_config);
+    public MikoApp Build()
+    {
+        Services.AddSingleton<MikoApp>();
+        var serviceProvider = Services.BuildServiceProvider();
+        return serviceProvider.GetRequiredService<MikoApp>();
+    }
 }
 
 public class FontBuilder
