@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Animation;
 using Miko.Common;
-using Miko.Core;
 using Miko.Events;
 using Miko.Layout;
 using Miko.Rendering;
@@ -13,13 +12,31 @@ namespace Miko.Core;
 
 public class MikoEngine
 {
-    private readonly LayoutEngine _layoutEngine = new();
-    private readonly RenderEngine _renderEngine = new();
-    private readonly DirtyRegionManager _dirtyManager = new();
-    private readonly EventDispatcher _eventDispatcher = new();
-    private readonly AnimationManager _animationManager = new();
+    private readonly LayoutEngine _layoutEngine;
+    private readonly RenderEngine _renderEngine;
+    private readonly DirtyRegionManager _dirtyManager;
+    private readonly EventDispatcher _eventDispatcher;
+    private readonly AnimationManager _animationManager;
     private List<StyleSheet> _styleSheets = new();
     private ILogger _logger = NullLogger.Instance;
+
+    public MikoEngine(
+        LayoutEngine layoutEngine,
+        RenderEngine renderEngine,
+        DirtyRegionManager dirtyManager,
+        EventDispatcher eventDispatcher,
+        AnimationManager animationManager,
+        ILogger<MikoEngine>? logger = null)
+    {
+        _layoutEngine = layoutEngine;
+        _renderEngine = renderEngine;
+        _dirtyManager = dirtyManager;
+        _eventDispatcher = eventDispatcher;
+        _animationManager = animationManager;
+        if (logger != null) _logger = logger;
+    }
+
+    public MikoEngine() : this(new(), new(), new(), new(), new()) { }
 
     public void SetLogger(ILogger logger)
     {

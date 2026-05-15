@@ -1,4 +1,5 @@
 using Android.Content;
+using Microsoft.Extensions.DependencyInjection;
 using Miko.Core;
 using Miko.Examples.Bootstrap;
 using Miko.Examples.Bootstrap.Examples;
@@ -33,10 +34,11 @@ public class MikoGLView : SKGLSurfaceView
             if (fontStream != null)
                 FontManager.Instance.RegisterFont("bootstrap-icons", fontStream);
 
+            var services = new ServiceCollection().BuildServiceProvider();
             var router = new Router();
             router.ScanAssemblies(typeof(ButtonExample).Assembly);
             var navManager = new NavigationManager();
-            var routeView = new RouteView(router, navManager, typeof(MikoApp1.MainLayout));
+            var routeView = new RouteView(router, navManager, typeof(MikoApp1.MainLayout), services);
             var root = routeView.Render("/");
             var styleSheets = new List<Miko.Styling.StyleSheet>
             {

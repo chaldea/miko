@@ -49,6 +49,10 @@ public class AnimationManager
     private readonly Dictionary<Element, Dictionary<string, Color>> _previousColors = new();
     private ILogger _logger = NullLogger.Instance;
 
+    public AnimationManager() { }
+
+    public AnimationManager(ILogger<AnimationManager> logger) => _logger = logger;
+
     public void SetLogger(ILogger logger) => _logger = logger;
 
     public bool HasActiveAnimations => _transitions.Count > 0 || _animations.Count > 0;

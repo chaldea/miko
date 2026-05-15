@@ -8,7 +8,7 @@ public static class App
 {
     public static MikoApp Create()
     {
-        var builder = MikoApp.CreateBuilder();
+        var builder = MikoAppBuilder.CreateDefault();
         builder.UseTitle("Miko Demo App");
         builder.UseSize(1024, 768);
         builder.UseStyleSheets([

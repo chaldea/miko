@@ -1,6 +1,7 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
@@ -17,9 +18,10 @@ namespace Miko.Hosting;
 
 public class MikoApp
 {
-    private readonly MikoAppConfiguration _config;
+    private readonly MikoAppOptions _options;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MikoApp> _logger;
-    private readonly MikoEngine _engine = new();
+    private readonly MikoEngine _engine;
 
     private Router? _router;
     private NavigationManager? _navigationManager;
@@ -50,34 +52,30 @@ public class MikoApp
     private readonly Stopwatch _frameTimer = new();
     private float _lastFrameTime;
 
-    internal MikoApp(MikoAppConfiguration config)
+    public MikoApp(IOptions<MikoAppOptions> options, IServiceProvider serviceProvider, MikoEngine engine, ILogger<MikoApp> logger)
     {
-        _config = config;
-        _width = config.Width;
-        _height = config.Height;
+        _options = options.Value;
+        _serviceProvider = serviceProvider;
+        _engine = engine;
+        _logger = logger;
+        _width = _options.Width;
+        _height = _options.Height;
 
-        ILoggerFactory loggerFactory = config.LoggingConfiguration != null
-            ? LoggerFactory.Create(config.LoggingConfiguration)
-            : NullLoggerFactory.Instance;
+        RegisterFonts(_options);
 
-        _logger = loggerFactory.CreateLogger<MikoApp>();
-        _engine.SetLogger(loggerFactory.CreateLogger<MikoEngine>());
-
-        RegisterFonts(config);
-
-        if (config.RouteAssemblies != null)
+        if (_options.RouteAssemblies != null)
         {
             _router = new Router();
-            _router.ScanAssemblies(config.RouteAssemblies);
-            _navigationManager = new NavigationManager();
-            _routeView = new RouteView(_router, _navigationManager, config.DefaultLayout);
+            _router.ScanAssemblies(_options.RouteAssemblies);
+            _navigationManager = serviceProvider.GetRequiredService<NavigationManager>();
+            _routeView = new RouteView(_router, _navigationManager, _options.DefaultLayout, _serviceProvider);
             _navigationManager.LocationChanged += _ => _needsRebuild = true;
         }
     }
 
-    private static void RegisterFonts(MikoAppConfiguration config)
+    private static void RegisterFonts(MikoAppOptions options)
     {
-        foreach (var font in config.Fonts)
+        foreach (var font in options.Fonts)
         {
             using var stream = font.Assembly.GetManifestResourceStream(font.ResourceName);
             if (stream == null)
@@ -87,14 +85,12 @@ public class MikoApp
         }
     }
 
-    public static MikoAppBuilder CreateBuilder() => new();
-
     public void Run()
     {
         var options = WindowOptions.Default with
         {
-            Title = _config.Title,
-            Size = new Vector2D<int>(_config.Width, _config.Height),
+            Title = _options.Title,
+            Size = new Vector2D<int>(_options.Width, _options.Height),
             API = GraphicsAPI.Default
         };
 
@@ -105,7 +101,7 @@ public class MikoApp
         _window.Resize += OnResize;
         _window.Closing += OnClose;
 
-        _logger.LogInformation("Starting Miko application: {Title}", _config.Title);
+        _logger.LogInformation("Starting Miko application: {Title}", _options.Title);
         _window.Run();
         _window.Dispose();
     }
@@ -142,7 +138,7 @@ public class MikoApp
 
         using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
         var root = BuildRoot();
-        _engine.Initialize(root, _config.StyleSheets, tempSurface.Canvas, _width, _height);
+        _engine.Initialize(root, _options.StyleSheets, tempSurface.Canvas, _width, _height);
         _frameTimer.Start();
     }
 
@@ -151,7 +147,7 @@ public class MikoApp
         if (_routeView != null && _navigationManager != null)
             return _routeView.Render(_navigationManager.CurrentPath);
 
-        return _config.RootComponentFactory?.Invoke()
+        return _options.RootComponentFactory?.Invoke()
             ?? throw new InvalidOperationException("No root component or router configured.");
     }
 
@@ -192,7 +188,7 @@ public class MikoApp
             _needsRebuild = false;
             var root = BuildRoot();
             using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
-            _engine.Initialize(root, _config.StyleSheets, tempSurface.Canvas, _width, _height);
+            _engine.Initialize(root, _options.StyleSheets, tempSurface.Canvas, _width, _height);
         }
 
         _engine.AnimationManager.Update(deltaTime);

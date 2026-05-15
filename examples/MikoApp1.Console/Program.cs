@@ -1,4 +1,5 @@
-﻿using Miko.Core;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Miko.Core;
 using Miko.Examples.Bootstrap;
 using Miko.Examples.Bootstrap.Examples;
 using Miko.Fonts;
@@ -14,10 +15,11 @@ using var fontStream = typeof(App).Assembly.GetManifestResourceStream("MikoApp1.
 if (fontStream != null)
     FontManager.Instance.RegisterFont("bootstrap-icons", fontStream);
 
+var services = new ServiceCollection().BuildServiceProvider();
 var router = new Router();
 router.ScanAssemblies(typeof(ButtonExample).Assembly);
 var navManager = new NavigationManager();
-var routeView = new RouteView(router, navManager, typeof(MainLayout));
+var routeView = new RouteView(router, navManager, typeof(MainLayout), services);
 
 var root = routeView.Render("/");
 

@@ -8,7 +8,7 @@ public static class RazorApp
 {
     public static MikoApp Create()
     {
-        var builder = MikoApp.CreateBuilder();
+        var builder = MikoAppBuilder.CreateDefault();
         builder.UseTitle("Miko Razor Demo");
         builder.AddBootstrap();
         builder.AddStyleSheet(GlobalStyles.Create());
