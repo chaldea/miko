@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Miko.Animation;
 using Miko.Common;
 using Miko.Core;
 using Miko.Events;
@@ -16,10 +17,15 @@ public class MikoEngine
     private readonly RenderEngine _renderEngine = new();
     private readonly DirtyRegionManager _dirtyManager = new();
     private readonly EventDispatcher _eventDispatcher = new();
+    private readonly AnimationManager _animationManager = new();
     private List<StyleSheet> _styleSheets = new();
     private ILogger _logger = NullLogger.Instance;
 
-    public void SetLogger(ILogger logger) => _logger = logger;
+    public void SetLogger(ILogger logger)
+    {
+        _logger = logger;
+        _animationManager.SetLogger(logger);
+    }
 
     private Element? _root;
     private LayoutBox? _currentLayout;
@@ -33,12 +39,15 @@ public class MikoEngine
         _viewportWidth = viewportWidth;
         _viewportHeight = viewportHeight;
 
+        _animationManager.Clear();
         EnsureParentReferences(root);
         _renderEngine.SetCanvas(canvas);
 
         _logger.LogInformation("Engine initialized with viewport {Width}x{Height}", viewportWidth, viewportHeight);
         _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight);
         _renderEngine.Render(_currentLayout);
+
+        ScanAndStartAnimations(root);
     }
 
     public void Update(SKCanvas canvas)
@@ -76,6 +85,51 @@ public class MikoEngine
     public void InvalidateElement(Element element)
     {
         _dirtyManager.MarkDirty(element);
+    }
+
+    public AnimationManager AnimationManager => _animationManager;
+
+    public void RegisterAnimation(KeyframeAnimation animation)
+    {
+        _logger.LogDebug("MikoEngine.RegisterAnimation: \"{Name}\"", animation.Name);
+        _animationManager.RegisterAnimation(animation);
+    }
+
+    public void StartAnimation(Element element, string animationName)
+    {
+        _logger.LogDebug("MikoEngine.StartAnimation: \"{Name}\" on <{Tag} id=\"{Id}\">",
+            animationName, element.TagName, element.Id ?? "");
+        _animationManager.StartAnimation(element, animationName);
+    }
+
+    public void StartAnimation(Element element, KeyframeAnimation animation)
+    {
+        _logger.LogDebug("MikoEngine.StartAnimation: \"{Name}\" on <{Tag} id=\"{Id}\">",
+            animation.Name, element.TagName, element.Id ?? "");
+        _animationManager.StartAnimation(element, animation);
+    }
+
+    public void StopAnimation(Element element, string? animationName = null)
+    {
+        _logger.LogDebug("MikoEngine.StopAnimation: \"{Name}\" on <{Tag} id=\"{Id}\">",
+            animationName ?? "(all)", element.TagName, element.Id ?? "");
+        _animationManager.StopAnimation(element, animationName);
+    }
+
+    public void Tick(float deltaTime, SKCanvas canvas)
+    {
+        if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
+
+        if (!_animationManager.HasActiveAnimations && !_dirtyManager.HasDirtyRegions())
+        {
+            _logger.LogTrace("Tick: no active animations or dirty regions, skipping");
+            return;
+        }
+
+        _logger.LogTrace("Tick: deltaTime={DeltaTime}s, activeAnimations={HasAnim}, dirtyRegions={HasDirty}",
+            deltaTime, _animationManager.HasActiveAnimations, _dirtyManager.HasDirtyRegions());
+        _animationManager.Update(deltaTime);
+        Render(canvas);
     }
 
     /// <summary>
@@ -173,6 +227,24 @@ public class MikoEngine
         {
             child.SetParent(element);
             EnsureParentReferences(child);
+        }
+    }
+
+    private void ScanAndStartAnimations(Element element)
+    {
+        if (element.Style?.Animations != null)
+        {
+            foreach (var animation in element.Style.Animations)
+            {
+                _logger.LogDebug("ScanAndStartAnimations: found animation \"{Name}\" on <{Tag} id=\"{Id}\">",
+                    animation.Name, element.TagName, element.Id ?? "");
+                _animationManager.StartAnimation(element, animation);
+            }
+        }
+
+        foreach (var child in element.Children)
+        {
+            ScanAndStartAnimations(child);
         }
     }
 

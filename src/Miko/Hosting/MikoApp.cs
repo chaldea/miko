@@ -47,6 +47,9 @@ public class MikoApp
     private const long KeyRepeatDelayMs = 500;
     private const long KeyRepeatIntervalMs = 33;
 
+    private readonly Stopwatch _frameTimer = new();
+    private float _lastFrameTime;
+
     internal MikoApp(MikoAppConfiguration config)
     {
         _config = config;
@@ -140,6 +143,7 @@ public class MikoApp
         using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
         var root = BuildRoot();
         _engine.Initialize(root, _config.StyleSheets, tempSurface.Canvas, _width, _height);
+        _frameTimer.Start();
     }
 
     private Element BuildRoot()
@@ -179,6 +183,10 @@ public class MikoApp
     {
         if (_grContext == null || _gl == null) return;
 
+        float currentTime = (float)_frameTimer.Elapsed.TotalSeconds;
+        float deltaTime = currentTime - _lastFrameTime;
+        _lastFrameTime = currentTime;
+
         if (_needsRebuild)
         {
             _needsRebuild = false;
@@ -186,6 +194,8 @@ public class MikoApp
             using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
             _engine.Initialize(root, _config.StyleSheets, tempSurface.Canvas, _width, _height);
         }
+
+        _engine.AnimationManager.Update(deltaTime);
 
         int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
         var fbInfo = new GRGlFramebufferInfo((uint)fboId, 0x8058); // GL_RGBA8

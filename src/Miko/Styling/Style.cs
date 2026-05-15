@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Miko.Animation;
 using Miko.Common;
 using Miko.Core;
 using Miko.Styling.Selectors;
@@ -256,6 +257,12 @@ public class Style
     public Overflow? OverflowX { get; set; }
     public Overflow? OverflowY { get; set; }
 
+    // 动画与过渡
+    public Transform? Transform { get; set; }
+    public TransformOrigin? TransformOrigin { get; set; }
+    public List<Transition>? Transitions { get; set; }
+    public List<KeyframeAnimation>? Animations { get; set; }
+
     /// <summary>
     /// 溢出简写属性（同时设置 X 和 Y）
     /// </summary>
@@ -361,6 +368,11 @@ public class Style
 
         OverflowX ??= other.OverflowX;
         OverflowY ??= other.OverflowY;
+
+        Transform ??= other.Transform;
+        TransformOrigin ??= other.TransformOrigin;
+        Transitions ??= other.Transitions;
+        Animations ??= other.Animations;
     }
 
     /// <summary>

@@ -80,6 +80,14 @@ public class RenderEngine
 
         if (!ShouldRender(box)) return;
 
+        float opacity = box.ComputedStyle.Opacity;
+        bool hasOpacity = opacity < 1f;
+        if (hasOpacity)
+        {
+            byte alpha = (byte)(opacity * 255);
+            _painter.SaveLayerAlpha(alpha);
+        }
+
         // 1. 绘制背景
         RenderBackground(box);
 
@@ -93,6 +101,7 @@ public class RenderEngine
         // SelectElement 的子元素（Option）不参与正常树渲染，由 overlay pass 统一绘制下拉层
         if (box.Element is SelectElement)
         {
+            if (hasOpacity) _painter.Restore();
             return;
         }
 
@@ -114,6 +123,8 @@ public class RenderEngine
 
         // 5. 绘制滚动条（在裁剪区域之外）
         RenderScrollbars(box);
+
+        if (hasOpacity) _painter.Restore();
     }
 
     /// <summary>
