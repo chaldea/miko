@@ -25,6 +25,7 @@ public class MainLayout : LayoutComponentBase
                 CreateNavItem("List", "/list"),
                 CreateNavItem("Icon", "/icon"),
                 CreateNavItem("Table", "/table"),
+                CreateNavItem("Animation", "/animation"),
             }
         };
 

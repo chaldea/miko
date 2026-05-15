@@ -1,3 +1,4 @@
+using Miko.Animation;
 using Miko.Common;
 
 namespace Miko.Styling;
@@ -92,6 +93,11 @@ public class ComputedStyle : Style
 
     public new Overflow OverflowX { get; set; } = Overflow.Visible;
     public new Overflow OverflowY { get; set; } = Overflow.Visible;
+
+    public new Transform Transform { get; set; } = Transform.None;
+    public new TransformOrigin TransformOrigin { get; set; } = TransformOrigin.Center;
+    public new List<Transition> Transitions { get; set; } = new();
+    public new List<KeyframeAnimation> Animations { get; set; } = new();
 
     /// <summary>
     /// 从样式对象创建计算样式
@@ -224,6 +230,11 @@ public class ComputedStyle : Style
 
             if (style.OverflowX.HasValue) computed.OverflowX = style.OverflowX.Value;
             if (style.OverflowY.HasValue) computed.OverflowY = style.OverflowY.Value;
+
+            if (style.Transform != null) computed.Transform = style.Transform;
+            if (style.TransformOrigin.HasValue) computed.TransformOrigin = style.TransformOrigin.Value;
+            if (style.Transitions != null) computed.Transitions = style.Transitions;
+            if (style.Animations != null) computed.Animations = style.Animations;
         }
 
         return computed;

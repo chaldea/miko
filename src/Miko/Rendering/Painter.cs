@@ -343,6 +343,8 @@ public class Painter
     /// </summary>
     public int Save() => _canvas.Save();
 
+    public int SaveLayerAlpha(byte alpha) => _canvas.SaveLayer(new SKPaint { Color = new SKColor(255, 255, 255, alpha) });
+
     /// <summary>
     /// 恢复画布状态
     /// </summary>
