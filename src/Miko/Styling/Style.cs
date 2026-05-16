@@ -396,4 +396,28 @@ public class Style
 
     public static TypedStyleBuilder<Element> Id(string id)
         => new TypedStyleBuilder<Element>(new IdSelector(id));
+
+    /// <summary>
+    /// 后代选择器 (ancestor descendant)
+    /// </summary>
+    public static CombinatorStyleBuilder<Element> Descendant(Selector ancestor, Selector descendant)
+        => new(new DescendantSelector(ancestor, descendant));
+
+    /// <summary>
+    /// 子选择器 (parent > child)
+    /// </summary>
+    public static CombinatorStyleBuilder<Element> Child(Selector parent, Selector child)
+        => new(new ChildSelector(parent, child));
+
+    /// <summary>
+    /// 相邻兄弟选择器 (previous + target)
+    /// </summary>
+    public static CombinatorStyleBuilder<Element> Adjacent(Selector previous, Selector target)
+        => new(new AdjacentSiblingSelector(previous, target));
+
+    /// <summary>
+    /// 通用兄弟选择器 (previous ~ target)
+    /// </summary>
+    public static CombinatorStyleBuilder<Element> Sibling(Selector previous, Selector target)
+        => new(new GeneralSiblingSelector(previous, target));
 }

@@ -22,6 +22,12 @@ public class StyleSheet
         Rules.Add(new StyleRule { Selector = selector, Style = style });
     }
 
+    public void AddRule<T>(CombinatorStyleBuilder<T> builder) where T : Element
+    {
+        var (selector, style) = builder.Build();
+        Rules.Add(new StyleRule { Selector = selector, Style = style });
+    }
+
     public void AddMediaRule<T>(MediaCondition condition, TypedStyleBuilder<T> builder) where T : Element
     {
         var (selector, style) = builder.Build();
