@@ -18,6 +18,9 @@
         <div class="nav-item" @onclick="NavigateToTable">
             <span>Table</span>
         </div>
+        <div class="nav-item" @onclick="NavigateToAccordion">
+            <span>Accordion</span>
+        </div>
     </div>
     <div class="main-content">
         @Body
@@ -49,5 +52,10 @@
     private void NavigateToTable()
     {
         NavigationManager?.NavigateTo("/table");
+    }
+
+    private void NavigateToAccordion()
+    {
+        NavigationManager?.NavigateTo("/accordion");
     }
 }
