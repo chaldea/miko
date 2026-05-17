@@ -1,0 +1,49 @@
+<div class="accordion-item">
+    <h2 class="accordion-header">
+        <button class="accordion-button" style="@ButtonStyle" @onclick="Toggle">
+            @Title
+            <span class="accordion-icon" style="@IconStyle">❯</span>
+        </button>
+    </h2>
+    <div class="accordion-collapse" style="@CollapseStyle">
+        <div class="accordion-body">
+            @if (Content != null)
+            {
+                @Content
+            }
+            else
+            {
+                @ChildContent
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public RenderFragment? Content { get; set; }
+
+    public bool IsExpanded { get; set; }
+
+    private Style ButtonStyle => new Style
+    {
+        BackgroundColor = IsExpanded ? Color.FromHex("cfe2ff") : Color.White,
+        Color = IsExpanded ? Color.FromHex("052c65") : Color.FromHex("212529")
+    };
+
+    private Style IconStyle => new Style
+    {
+        Transform = IsExpanded ? Transform.FromRotate(90) : Transform.FromRotate(0)
+    };
+
+    private Style CollapseStyle => new Style
+    {
+        Display = IsExpanded ? Display.Block : Display.None
+    };
+
+    private void Toggle()
+    {
+        IsExpanded = !IsExpanded;
+        StateHasChanged();
+    }
+}

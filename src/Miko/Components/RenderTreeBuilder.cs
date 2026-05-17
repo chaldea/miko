@@ -100,6 +100,15 @@ public class RenderTreeBuilder
             AddComponentParameter(seq, name, value);
             return;
         }
+        if (_stack.Count == 0) return;
+        var element = _stack.Peek();
+
+        if (name is "style" or "Style" && value is Styling.Style style)
+        {
+            element.Style = style;
+            return;
+        }
+
         AddAttribute(seq, name, value?.ToString());
     }
 
