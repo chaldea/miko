@@ -3,6 +3,7 @@ using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
 using System.Net;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace Miko.Components;
@@ -10,6 +11,7 @@ namespace Miko.Components;
 public class RenderTreeBuilder
 {
     private readonly Stack<Element> _stack = new();
+    private readonly Stack<ComponentBase> _componentStack = new();
     private Element? _root;
 
     private static readonly Dictionary<string, Func<Element>> _tagMap = new(StringComparer.OrdinalIgnoreCase)
@@ -61,6 +63,11 @@ public class RenderTreeBuilder
 
     public void AddAttribute(int seq, string name, string? value)
     {
+        if (_componentStack.Count > 0)
+        {
+            AddComponentParameter(seq, name, value);
+            return;
+        }
         if (_stack.Count == 0) return;
         var element = _stack.Peek();
         switch (name)
@@ -86,8 +93,24 @@ public class RenderTreeBuilder
         }
     }
 
-    public void AddAttribute(int seq, string name, object? value) =>
+    public void AddAttribute(int seq, string name, object? value)
+    {
+        if (_componentStack.Count > 0)
+        {
+            AddComponentParameter(seq, name, value);
+            return;
+        }
+        if (_stack.Count == 0) return;
+        var element = _stack.Peek();
+
+        if (name is "style" or "Style" && value is Styling.Style style)
+        {
+            element.Style = style;
+            return;
+        }
+
         AddAttribute(seq, name, value?.ToString());
+    }
 
     public void AddAttribute(int seq, string name, bool value) { }
 
@@ -133,11 +156,32 @@ public class RenderTreeBuilder
 
     public void OpenComponent<T>(int seq) where T : ComponentBase, new()
     {
-        var component = new T();
-        _stack.Push(component.Build());
+        _componentStack.Push(new T());
     }
 
-    public void CloseComponent() => CloseElement();
+    public void AddComponentParameter(int seq, string name, object? value)
+    {
+        if (_componentStack.Count == 0) return;
+        var component = _componentStack.Peek();
+        var prop = component.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+        prop?.SetValue(component, value);
+    }
+
+    public void CloseComponent()
+    {
+        if (_componentStack.Count == 0) return;
+        var component = _componentStack.Pop();
+        var element = component.Build();
+        if (_stack.Count > 0)
+            _stack.Peek().AddChild(element);
+        else if (_componentStack.Count > 0)
+        {
+            // nested component scenario — shouldn't happen normally
+            AttachToTree(element);
+        }
+        else
+            AttachToTree(element);
+    }
 
     public void SetKey(object? key) { }
 

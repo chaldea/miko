@@ -19,6 +19,7 @@ public static class BootstrapStyleSheetFactory
         BadgeStyles.Apply(sheet, theme);
         NavStyles.Apply(sheet, theme);
         ListGroupStyles.Apply(sheet, theme);
+        AccordionStyles.Apply(sheet, theme);
         UtilityStyles.Apply(sheet, theme);
         IconStyles.Apply(sheet, theme);
 
