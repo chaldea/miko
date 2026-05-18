@@ -240,6 +240,11 @@ public class RenderEngine
                 style.BorderBottomLeftRadius.Value
             );
         }
+
+        if (style.BackgroundImage?.Bitmap != null)
+        {
+            _painter.DrawImage(style.BackgroundImage.Bitmap, box.BoxModel.PaddingBox);
+        }
     }
 
     /// <summary>

@@ -117,6 +117,18 @@ public class TypedStyleBuilder<T> where T : Element
     public CombinatorStyleBuilder<TTarget> Sibling<TTarget>() where TTarget : Element, new()
         => Sibling<TTarget>(new TagSelector(new TTarget().TagName));
 
+    /// <summary>
+    /// ::before 伪元素
+    /// </summary>
+    public PseudoElementStyleBuilder<T> Before()
+        => new(BuildSelector(), PseudoElementType.Before);
+
+    /// <summary>
+    /// ::after 伪元素
+    /// </summary>
+    public PseudoElementStyleBuilder<T> After()
+        => new(BuildSelector(), PseudoElementType.After);
+
     private Selector BuildSelector()
         => _selectors.Count == 1 ? _selectors[0] : new CompoundSelector(_selectors);
 
@@ -174,4 +186,58 @@ public class CombinatorStyleBuilder<T> where T : Element
     }
 
     internal (Selector selector, Style style) Build() => (_selector, _style);
+}
+
+/// <summary>
+/// 伪元素样式构建器
+/// </summary>
+public class PseudoElementStyleBuilder<T> where T : Element
+{
+    private readonly Selector _selector;
+    private readonly PseudoElementType _type;
+    private readonly Style _style = new();
+
+    internal PseudoElementStyleBuilder(Selector selector, PseudoElementType type)
+    {
+        _selector = selector;
+        _type = type;
+    }
+
+    public PseudoElementStyleBuilder<T> Set<TValue>(Expression<Func<Style, TValue?>> prop, TValue value)
+    {
+        ((PropertyInfo)((MemberExpression)prop.Body).Member).SetValue(_style, value);
+        return this;
+    }
+
+    public PseudoElementStyleBuilder<T> Set(Expression<Func<Style, Padding>> prop, Padding value)
+    {
+        ((PropertyInfo)((MemberExpression)prop.Body).Member).SetValue(_style, value);
+        return this;
+    }
+
+    public PseudoElementStyleBuilder<T> Set(Expression<Func<Style, Margin>> prop, Margin value)
+    {
+        ((PropertyInfo)((MemberExpression)prop.Body).Member).SetValue(_style, value);
+        return this;
+    }
+
+    public PseudoElementStyleBuilder<T> Set(Expression<Func<Style, Border>> prop, Border value)
+    {
+        ((PropertyInfo)((MemberExpression)prop.Body).Member).SetValue(_style, value);
+        return this;
+    }
+
+    public PseudoElementStyleBuilder<T> Set(Expression<Func<Style, BorderSide>> prop, BorderSide value)
+    {
+        ((PropertyInfo)((MemberExpression)prop.Body).Member).SetValue(_style, value);
+        return this;
+    }
+
+    public PseudoElementStyleBuilder<T> Set(Expression<Func<Style, BorderRadius>> prop, BorderRadius value)
+    {
+        ((PropertyInfo)((MemberExpression)prop.Body).Member).SetValue(_style, value);
+        return this;
+    }
+
+    internal (Selector selector, PseudoElementType type, Style style) Build() => (_selector, _type, _style);
 }

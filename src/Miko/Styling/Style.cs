@@ -216,6 +216,7 @@ public class Style
 
     // 视觉属性
     public Color? BackgroundColor { get; set; }
+    public BackgroundImage? BackgroundImage { get; set; }
     public Color? Color { get; set; }
     public string? FontFamily { get; set; }
     public Length? FontSize { get; set; }
@@ -262,6 +263,9 @@ public class Style
     public TransformOrigin? TransformOrigin { get; set; }
     public List<Transition>? Transitions { get; set; }
     public List<KeyframeAnimation>? Animations { get; set; }
+
+    // 伪元素
+    public string? Content { get; set; }
 
     /// <summary>
     /// 溢出简写属性（同时设置 X 和 Y）
@@ -331,6 +335,7 @@ public class Style
         BorderBottomLeftRadius ??= other.BorderBottomLeftRadius;
 
         BackgroundColor ??= other.BackgroundColor;
+        BackgroundImage ??= other.BackgroundImage;
         Color ??= other.Color;
         FontFamily ??= other.FontFamily;
         FontSize ??= other.FontSize;
@@ -373,6 +378,8 @@ public class Style
         TransformOrigin ??= other.TransformOrigin;
         Transitions ??= other.Transitions;
         Animations ??= other.Animations;
+
+        Content ??= other.Content;
     }
 
     /// <summary>

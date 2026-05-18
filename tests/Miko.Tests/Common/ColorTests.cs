@@ -84,4 +84,33 @@ public class ColorTests
 
         str.ShouldBe("rgba(255, 128, 64, 200)");
     }
+
+    [Theory]
+    [InlineData(0f, 0)]
+    [InlineData(0.25f, 64)]
+    [InlineData(0.5f, 128)]
+    [InlineData(1f, 255)]
+    public void FromRgba_FloatAlpha_ShouldConvertToByteAlpha(float alpha, byte expected)
+    {
+        var color = Color.FromRgba(13, 110, 253, alpha);
+
+        color.R.ShouldBe((byte)13);
+        color.G.ShouldBe((byte)110);
+        color.B.ShouldBe((byte)253);
+        color.A.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void FromRgba_FloatAlpha_ShouldClampAboveOne()
+    {
+        var color = Color.FromRgba(0, 0, 0, 1.5f);
+        color.A.ShouldBe((byte)255);
+    }
+
+    [Fact]
+    public void FromRgba_FloatAlpha_ShouldClampBelowZero()
+    {
+        var color = Color.FromRgba(0, 0, 0, -0.5f);
+        color.A.ShouldBe((byte)0);
+    }
 }

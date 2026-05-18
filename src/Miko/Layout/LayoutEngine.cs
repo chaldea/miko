@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Core;
+using Miko.Core.DomElements;
 using Miko.Layout.LayoutAlgorithms;
 using Miko.Styling;
 
@@ -25,7 +26,7 @@ public class LayoutEngine
         ComputeStyles(root, styleSheets, viewport);
 
         // 2. 构建布局树：根据 display 属性过滤和组织
-        var layoutRoot = BuildLayoutTree(root);
+        var layoutRoot = BuildLayoutTree(root, styleSheets);
 
         if (layoutRoot == null)
         {
@@ -63,7 +64,7 @@ public class LayoutEngine
     /// <summary>
     /// 构建布局树
     /// </summary>
-    private LayoutBox? BuildLayoutTree(Element element)
+    private LayoutBox? BuildLayoutTree(Element element, List<StyleSheet> styleSheets)
     {
         if (element.LayoutBox == null)
         {
@@ -89,17 +90,74 @@ public class LayoutEngine
             return null;
         }
 
+        // 注入 ::before 伪元素
+        var beforeBox = CreatePseudoElementBox(element, styleSheets, PseudoElementType.Before);
+        if (beforeBox != null)
+        {
+            layoutBox.Children.Add(beforeBox);
+        }
+
         // 递归构建子元素的布局树
         foreach (var child in element.Children)
         {
-            var childLayoutBox = BuildLayoutTree(child);
+            var childLayoutBox = BuildLayoutTree(child, styleSheets);
             if (childLayoutBox != null)
             {
                 layoutBox.Children.Add(childLayoutBox);
             }
         }
 
+        // 注入 ::after 伪元素
+        var afterBox = CreatePseudoElementBox(element, styleSheets, PseudoElementType.After);
+        if (afterBox != null)
+        {
+            layoutBox.Children.Add(afterBox);
+        }
+
         return layoutBox;
+    }
+
+    private LayoutBox? CreatePseudoElementBox(Element element, List<StyleSheet> styleSheets, PseudoElementType type)
+    {
+        Style? matchedStyle = null;
+
+        foreach (var sheet in styleSheets)
+        {
+            foreach (var rule in sheet.PseudoElementRules)
+            {
+                if (rule.Type == type && rule.Selector.Matches(element))
+                {
+                    matchedStyle ??= new Style();
+                    matchedStyle.Merge(rule.Style);
+                }
+            }
+        }
+
+        if (matchedStyle == null) return null;
+
+        var pseudoElement = new PseudoElement { TextContent = matchedStyle.Content };
+        var computedStyle = ComputedStyle.FromStyle(matchedStyle);
+
+        pseudoElement.LayoutBox = new LayoutBox
+        {
+            Element = pseudoElement,
+            ComputedStyle = computedStyle
+        };
+
+        var box = pseudoElement.LayoutBox;
+        box.Type = computedStyle.Display switch
+        {
+            Display.Block => LayoutType.Block,
+            Display.Inline => LayoutType.Inline,
+            Display.InlineBlock => LayoutType.InlineBlock,
+            Display.Flex => LayoutType.Flex,
+            Display.None => LayoutType.Block,
+            _ => LayoutType.Inline
+        };
+
+        if (computedStyle.Display == Display.None) return null;
+
+        return box;
     }
 
     /// <summary>

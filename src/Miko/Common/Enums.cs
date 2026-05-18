@@ -120,7 +120,8 @@ public enum LengthUnit
 {
     Px,
     Percent,
-    Auto
+    Auto,
+    Rem
 }
 
 /// <summary>
