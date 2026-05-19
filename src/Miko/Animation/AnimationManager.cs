@@ -413,25 +413,25 @@ public class AnimationManager
     {
         return property switch
         {
-            "opacity" => (e, v) => { e.Style ??= new Style(); e.Style.Opacity = v; },
-            "width" => (e, v) => { e.Style ??= new Style(); e.Style.Width = Length.Px(v); },
-            "height" => (e, v) => { e.Style ??= new Style(); e.Style.Height = Length.Px(v); },
-            "margin-top" => (e, v) => { e.Style ??= new Style(); e.Style.MarginTop = Length.Px(v); },
-            "margin-right" => (e, v) => { e.Style ??= new Style(); e.Style.MarginRight = Length.Px(v); },
-            "margin-bottom" => (e, v) => { e.Style ??= new Style(); e.Style.MarginBottom = Length.Px(v); },
-            "margin-left" => (e, v) => { e.Style ??= new Style(); e.Style.MarginLeft = Length.Px(v); },
-            "padding-top" => (e, v) => { e.Style ??= new Style(); e.Style.PaddingTop = Length.Px(v); },
-            "padding-right" => (e, v) => { e.Style ??= new Style(); e.Style.PaddingRight = Length.Px(v); },
-            "padding-bottom" => (e, v) => { e.Style ??= new Style(); e.Style.PaddingBottom = Length.Px(v); },
-            "padding-left" => (e, v) => { e.Style ??= new Style(); e.Style.PaddingLeft = Length.Px(v); },
-            "top" => (e, v) => { e.Style ??= new Style(); e.Style.Top = Length.Px(v); },
-            "right" => (e, v) => { e.Style ??= new Style(); e.Style.Right = Length.Px(v); },
-            "bottom" => (e, v) => { e.Style ??= new Style(); e.Style.Bottom = Length.Px(v); },
-            "left" => (e, v) => { e.Style ??= new Style(); e.Style.Left = Length.Px(v); },
-            "font-size" => (e, v) => { e.Style ??= new Style(); e.Style.FontSize = Length.Px(v); },
-            "border-width" => (e, v) => { e.Style ??= new Style(); e.Style.BorderWidth = Length.Px(v); },
-            "flex-grow" => (e, v) => { e.Style ??= new Style(); e.Style.FlexGrow = v; },
-            "flex-shrink" => (e, v) => { e.Style ??= new Style(); e.Style.FlexShrink = v; },
+            nameof(Style.Opacity) => (e, v) => { e.Style ??= new Style(); e.Style.Opacity = v; },
+            nameof(Style.Width) => (e, v) => { e.Style ??= new Style(); e.Style.Width = Length.Px(v); },
+            nameof(Style.Height) => (e, v) => { e.Style ??= new Style(); e.Style.Height = Length.Px(v); },
+            nameof(Style.MarginTop) => (e, v) => { e.Style ??= new Style(); e.Style.MarginTop = Length.Px(v); },
+            nameof(Style.MarginRight) => (e, v) => { e.Style ??= new Style(); e.Style.MarginRight = Length.Px(v); },
+            nameof(Style.MarginBottom) => (e, v) => { e.Style ??= new Style(); e.Style.MarginBottom = Length.Px(v); },
+            nameof(Style.MarginLeft) => (e, v) => { e.Style ??= new Style(); e.Style.MarginLeft = Length.Px(v); },
+            nameof(Style.PaddingTop) => (e, v) => { e.Style ??= new Style(); e.Style.PaddingTop = Length.Px(v); },
+            nameof(Style.PaddingRight) => (e, v) => { e.Style ??= new Style(); e.Style.PaddingRight = Length.Px(v); },
+            nameof(Style.PaddingBottom) => (e, v) => { e.Style ??= new Style(); e.Style.PaddingBottom = Length.Px(v); },
+            nameof(Style.PaddingLeft) => (e, v) => { e.Style ??= new Style(); e.Style.PaddingLeft = Length.Px(v); },
+            nameof(Style.Top) => (e, v) => { e.Style ??= new Style(); e.Style.Top = Length.Px(v); },
+            nameof(Style.Right) => (e, v) => { e.Style ??= new Style(); e.Style.Right = Length.Px(v); },
+            nameof(Style.Bottom) => (e, v) => { e.Style ??= new Style(); e.Style.Bottom = Length.Px(v); },
+            nameof(Style.Left) => (e, v) => { e.Style ??= new Style(); e.Style.Left = Length.Px(v); },
+            nameof(Style.FontSize) => (e, v) => { e.Style ??= new Style(); e.Style.FontSize = Length.Px(v); },
+            nameof(Style.BorderWidth) => (e, v) => { e.Style ??= new Style(); e.Style.BorderWidth = Length.Px(v); },
+            nameof(Style.FlexGrow) => (e, v) => { e.Style ??= new Style(); e.Style.FlexGrow = v; },
+            nameof(Style.FlexShrink) => (e, v) => { e.Style ??= new Style(); e.Style.FlexShrink = v; },
             _ => null
         };
     }
@@ -440,9 +440,9 @@ public class AnimationManager
     {
         return property switch
         {
-            "background-color" => (e, c) => { e.Style ??= new Style(); e.Style.BackgroundColor = c; },
-            "color" => (e, c) => { e.Style ??= new Style(); e.Style.Color = c; },
-            "border-color" => (e, c) => { e.Style ??= new Style(); e.Style.BorderColor = c; },
+            nameof(Style.BackgroundColor) => (e, c) => { e.Style ??= new Style(); e.Style.BackgroundColor = c; },
+            nameof(Style.Color) => (e, c) => { e.Style ??= new Style(); e.Style.Color = c; },
+            nameof(Style.BorderColor) => (e, c) => { e.Style ??= new Style(); e.Style.BorderColor = c; },
             _ => null
         };
     }

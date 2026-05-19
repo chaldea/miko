@@ -1,3 +1,6 @@
+using System.Linq.Expressions;
+using Miko.Styling;
+
 namespace Miko.Animation;
 
 public record struct CubicBezierParams(float X1, float Y1, float X2, float Y2);
@@ -25,4 +28,7 @@ public class Transition
 
     public static Transition For(string property, float duration, TimingFunction timingFunction = TimingFunction.Ease, float delay = 0)
         => new(property, duration, timingFunction, delay);
+
+    public static TransitionBuilder For<T>(Expression<Func<Style, T>> propertyExpr)
+        => new(TransitionPropertyMapper.GetPropertyName(propertyExpr));
 }
