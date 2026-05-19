@@ -24,6 +24,7 @@ public struct Color
 
     public static Color FromRgb(byte r, byte g, byte b) => new Color(r, g, b);
     public static Color FromRgba(byte r, byte g, byte b, byte a) => new Color(r, g, b, a);
+    public static Color FromRgba(byte r, byte g, byte b, float alpha) => new Color(r, g, b, (byte)Math.Round(Math.Clamp(alpha, 0f, 1f) * 255));
     public static Color FromHex(string hex)
     {
         hex = hex.TrimStart('#');

@@ -66,6 +66,7 @@ public class ComputedStyle : Style
     public new Length BorderBottomLeftRadius { get; set; } = Length.Px(0);
 
     public new Color BackgroundColor { get; set; } = Color.Transparent;
+    public new BackgroundImage? BackgroundImage { get; set; }
     public new Color Color { get; set; } = Color.Black;
     public new string FontFamily { get; set; } = "Arial";
     public new Length FontSize { get; set; } = Length.Px(16);
@@ -98,6 +99,8 @@ public class ComputedStyle : Style
     public new TransformOrigin TransformOrigin { get; set; } = TransformOrigin.Center;
     public new List<Transition> Transitions { get; set; } = new();
     public new List<KeyframeAnimation> Animations { get; set; } = new();
+
+    public new string? Content { get; set; }
 
     /// <summary>
     /// 从样式对象创建计算样式
@@ -203,6 +206,7 @@ public class ComputedStyle : Style
             if (style.BorderBottomLeftRadius.HasValue) computed.BorderBottomLeftRadius = style.BorderBottomLeftRadius.Value;
 
             if (style.BackgroundColor.HasValue) computed.BackgroundColor = style.BackgroundColor.Value;
+            if (style.BackgroundImage != null) computed.BackgroundImage = style.BackgroundImage;
             if (style.Color.HasValue) computed.Color = style.Color.Value;
             if (style.FontFamily != null) computed.FontFamily = style.FontFamily;
             if (style.FontSize.HasValue) computed.FontSize = style.FontSize.Value;
@@ -235,6 +239,8 @@ public class ComputedStyle : Style
             if (style.TransformOrigin.HasValue) computed.TransformOrigin = style.TransformOrigin.Value;
             if (style.Transitions != null) computed.Transitions = style.Transitions;
             if (style.Animations != null) computed.Animations = style.Animations;
+
+            if (style.Content != null) computed.Content = style.Content;
         }
 
         return computed;

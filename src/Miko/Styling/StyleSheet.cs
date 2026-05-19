@@ -9,6 +9,7 @@ namespace Miko.Styling;
 public class StyleSheet
 {
     public List<StyleRule> Rules { get; set; } = new();
+    public List<PseudoElementRule> PseudoElementRules { get; set; } = new();
     public List<MediaRule> MediaRules { get; set; } = new();
 
     public void AddRule(Selector selector, Style style)
@@ -26,6 +27,12 @@ public class StyleSheet
     {
         var (selector, style) = builder.Build();
         Rules.Add(new StyleRule { Selector = selector, Style = style });
+    }
+
+    public void AddRule<T>(PseudoElementStyleBuilder<T> builder) where T : Element
+    {
+        var (selector, type, style) = builder.Build();
+        PseudoElementRules.Add(new PseudoElementRule { Selector = selector, Type = type, Style = style });
     }
 
     public void AddMediaRule<T>(MediaCondition condition, TypedStyleBuilder<T> builder) where T : Element

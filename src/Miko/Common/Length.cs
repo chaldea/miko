@@ -1,10 +1,12 @@
 ﻿namespace Miko.Common;
 
 /// <summary>
-/// 长度值（支持像素、百分比、auto）
+/// 长度值（支持像素、百分比、rem、auto）
 /// </summary>
 public struct Length
 {
+    public static float RootFontSize { get; set; } = 16f;
+
     public float Value { get; set; }
     public LengthUnit Unit { get; set; }
 
@@ -16,6 +18,7 @@ public struct Length
 
     public static Length Px(float value) => new Length(value, LengthUnit.Px);
     public static Length Percent(float value) => new Length(value, LengthUnit.Percent);
+    public static Length Rem(float value) => new Length(value, LengthUnit.Rem);
     public static Length Auto => new Length(0, LengthUnit.Auto);
 
     /// <summary>
@@ -28,6 +31,7 @@ public struct Length
         {
             LengthUnit.Px => Value,
             LengthUnit.Percent => containerSize * Value / 100f,
+            LengthUnit.Rem => Value * RootFontSize,
             LengthUnit.Auto => 0,
             _ => 0
         };
@@ -43,6 +47,7 @@ public struct Length
         {
             LengthUnit.Px => $"{Value}px",
             LengthUnit.Percent => $"{Value}%",
+            LengthUnit.Rem => $"{Value}rem",
             LengthUnit.Auto => "auto",
             _ => Value.ToString()
         };
