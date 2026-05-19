@@ -21,9 +21,9 @@ public class AnimationManagerTests
     public void TrackPropertyChange_ShouldCreateTransition()
     {
         var element = new DivElement { Style = new Style { Opacity = 1f } };
-        var transition = Transition.For("opacity", 1f, TimingFunction.Linear);
+        var transition = Transition.For(nameof(Style.Opacity), 1f, TimingFunction.Linear);
 
-        _manager.TrackPropertyChange(element, "opacity", 1f, 0f, transition);
+        _manager.TrackPropertyChange(element, nameof(Style.Opacity), 1f, 0f, transition);
 
         _manager.HasActiveAnimations.ShouldBeTrue();
     }
@@ -32,9 +32,9 @@ public class AnimationManagerTests
     public void Update_ShouldInterpolatePropertyOverTime()
     {
         var element = new DivElement { Style = new Style { Opacity = 1f } };
-        var transition = Transition.For("opacity", 1f, TimingFunction.Linear);
+        var transition = Transition.For(nameof(Style.Opacity), 1f, TimingFunction.Linear);
 
-        _manager.TrackPropertyChange(element, "opacity", 1f, 0f, transition);
+        _manager.TrackPropertyChange(element, nameof(Style.Opacity), 1f, 0f, transition);
 
         _manager.Update(0.5f);
         element.Style!.Opacity!.Value.ShouldBe(0.5f, 0.01f);
@@ -47,9 +47,9 @@ public class AnimationManagerTests
     public void Update_ShouldRespectDelay()
     {
         var element = new DivElement { Style = new Style { Opacity = 1f } };
-        var transition = Transition.For("opacity", 1f, TimingFunction.Linear, delay: 0.5f);
+        var transition = Transition.For(nameof(Style.Opacity), 1f, TimingFunction.Linear, delay: 0.5f);
 
-        _manager.TrackPropertyChange(element, "opacity", 1f, 0f, transition);
+        _manager.TrackPropertyChange(element, nameof(Style.Opacity), 1f, 0f, transition);
 
         _manager.Update(0.3f);
         element.Style!.Opacity!.Value.ShouldBe(1f);
@@ -62,9 +62,9 @@ public class AnimationManagerTests
     public void TrackColorChange_ShouldInterpolateColor()
     {
         var element = new DivElement { Style = new Style { BackgroundColor = Color.Black } };
-        var transition = Transition.For("background-color", 1f, TimingFunction.Linear);
+        var transition = Transition.For(nameof(Style.BackgroundColor), 1f, TimingFunction.Linear);
 
-        _manager.TrackColorChange(element, "background-color", Color.Black, Color.White, transition);
+        _manager.TrackColorChange(element, nameof(Style.BackgroundColor), Color.Black, Color.White, transition);
 
         _manager.Update(0.5f);
         element.Style!.BackgroundColor!.Value.R.ShouldBeInRange((byte)120, (byte)135);
@@ -76,9 +76,9 @@ public class AnimationManagerTests
     public void Transition_ShouldCompleteAndRemove()
     {
         var element = new DivElement { Style = new Style { Opacity = 1f } };
-        var transition = Transition.For("opacity", 0.5f, TimingFunction.Linear);
+        var transition = Transition.For(nameof(Style.Opacity), 0.5f, TimingFunction.Linear);
 
-        _manager.TrackPropertyChange(element, "opacity", 1f, 0f, transition);
+        _manager.TrackPropertyChange(element, nameof(Style.Opacity), 1f, 0f, transition);
         _manager.Update(1f);
 
         element.Style!.Opacity!.Value.ShouldBe(0f, 0.01f);
@@ -214,10 +214,10 @@ public class AnimationManagerTests
     public void TrackPropertyChange_ShouldReplaceExistingTransition()
     {
         var element = new DivElement { Style = new Style { Opacity = 1f } };
-        var transition = Transition.For("opacity", 1f, TimingFunction.Linear);
+        var transition = Transition.For(nameof(Style.Opacity), 1f, TimingFunction.Linear);
 
-        _manager.TrackPropertyChange(element, "opacity", 1f, 0.5f, transition);
-        _manager.TrackPropertyChange(element, "opacity", 0.5f, 0f, transition);
+        _manager.TrackPropertyChange(element, nameof(Style.Opacity), 1f, 0.5f, transition);
+        _manager.TrackPropertyChange(element, nameof(Style.Opacity), 0.5f, 0f, transition);
 
         _manager.Update(1f);
         element.Style!.Opacity!.Value.ShouldBe(0f, 0.01f);
