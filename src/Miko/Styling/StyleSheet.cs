@@ -1,4 +1,4 @@
-using Miko.Core;
+﻿using Miko.Core;
 using Miko.Styling.Selectors;
 
 namespace Miko.Styling;
@@ -12,23 +12,31 @@ public class StyleSheet
     public List<PseudoElementRule> PseudoElementRules { get; set; } = new();
     public List<MediaRule> MediaRules { get; set; } = new();
 
+    public void Add(CssObject css)
+    {
+        CssObjectResolver.Resolve(css, this);
+    }
+
     public void AddRule(Selector selector, Style style)
     {
         Rules.Add(new StyleRule { Selector = selector, Style = style });
     }
 
+    [Obsolete("Use StyleSheet.Register(CssObject) instead.")]
     public void AddRule<T>(TypedStyleBuilder<T> builder) where T : Element
     {
         var (selector, style) = builder.Build();
         Rules.Add(new StyleRule { Selector = selector, Style = style });
     }
 
+    [Obsolete("Use StyleSheet.Register(CssObject) instead.")]
     public void AddRule<T>(CombinatorStyleBuilder<T> builder) where T : Element
     {
         var (selector, style) = builder.Build();
         Rules.Add(new StyleRule { Selector = selector, Style = style });
     }
 
+    [Obsolete("Use StyleSheet.Register(CssObject) instead.")]
     public void AddRule<T>(PseudoElementStyleBuilder<T> builder) where T : Element
     {
         var (selector, type, style) = builder.Build();
