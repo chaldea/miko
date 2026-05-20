@@ -23,6 +23,7 @@ public class Style
     public Length? FlexBasis { get; set; }
 
     // 盒子模型
+    public BoxSizing? BoxSizing { get; set; }
     public Length? Width { get; set; }
     public Length? Height { get; set; }
     public Length? MinWidth { get; set; }
@@ -293,6 +294,7 @@ public class Style
         FlexShrink ??= other.FlexShrink;
         FlexBasis ??= other.FlexBasis;
 
+        BoxSizing ??= other.BoxSizing;
         Width ??= other.Width;
         Height ??= other.Height;
         MinWidth ??= other.MinWidth;

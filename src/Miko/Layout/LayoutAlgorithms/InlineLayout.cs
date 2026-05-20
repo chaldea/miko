@@ -62,6 +62,11 @@ public class InlineLayout
         if (!style.Width.IsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth);
+            if (style.BoxSizing == BoxSizing.BorderBox)
+            {
+                contentWidth -= box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
+                contentWidth = Math.Max(0, contentWidth);
+            }
         }
         else if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
         {
@@ -81,6 +86,11 @@ public class InlineLayout
         if (!style.Height.IsAuto)
         {
             contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0);
+            if (style.BoxSizing == BoxSizing.BorderBox)
+            {
+                contentHeight -= box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
+                contentHeight = Math.Max(0, contentHeight);
+            }
         }
         else if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
         {

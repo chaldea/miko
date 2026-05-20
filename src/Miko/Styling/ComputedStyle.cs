@@ -10,6 +10,7 @@ public class ComputedStyle : Style
 {
     // 使用非空的默认值
     public new Display Display { get; set; } = Common.Display.Block;
+    public new BoxSizing BoxSizing { get; set; } = Common.BoxSizing.ContentBox;
     public new FlexDirection FlexDirection { get; set; } = Common.FlexDirection.Row;
     public new JustifyContent JustifyContent { get; set; } = Common.JustifyContent.FlexStart;
     public new AlignItems AlignItems { get; set; } = Common.AlignItems.FlexStart;
@@ -112,6 +113,7 @@ public class ComputedStyle : Style
         if (style != null)
         {
             if (style.Display.HasValue) computed.Display = style.Display.Value;
+            if (style.BoxSizing.HasValue) computed.BoxSizing = style.BoxSizing.Value;
             if (style.FlexDirection.HasValue) computed.FlexDirection = style.FlexDirection.Value;
             if (style.JustifyContent.HasValue) computed.JustifyContent = style.JustifyContent.Value;
             if (style.AlignItems.HasValue) computed.AlignItems = style.AlignItems.Value;

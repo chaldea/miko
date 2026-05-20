@@ -41,6 +41,11 @@ public class FlexLayout
         if (!style.Width.IsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth);
+            if (style.BoxSizing == BoxSizing.BorderBox)
+            {
+                contentWidth -= box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
+                contentWidth = Math.Max(0, contentWidth);
+            }
         }
         else if (constraints.IsInfiniteWidth || containerWidth <= 0)
         {
@@ -73,6 +78,11 @@ public class FlexLayout
         if (!style.Height.IsAuto)
         {
             contentHeight = style.Height.ToPixels(containerHeight);
+            if (style.BoxSizing == BoxSizing.BorderBox)
+            {
+                contentHeight -= box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
+                contentHeight = Math.Max(0, contentHeight);
+            }
         }
         else
         {
@@ -113,6 +123,17 @@ public class FlexLayout
                 {
                     totalChildHeight += child.BoxModel.MarginBox.Height;
                 }
+
+                if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
+                {
+                    var (_, textHeight) = TextMeasurer.MeasureText(
+                        box.Element.TextContent,
+                        style.FontFamily,
+                        style.FontSize.Value,
+                        style.FontWeight);
+                    totalChildHeight = textHeight;
+                }
+
                 contentHeight = totalChildHeight;
             }
         }
@@ -161,23 +182,41 @@ public class FlexLayout
             if (!childStyle.FlexBasis.IsAuto)
             {
                 float basisContentWidth = childStyle.FlexBasis.ToPixels(contentWidth);
-                float outerExtra = childStyle.MarginLeft.ToPixels(contentWidth)
-                    + childStyle.MarginRight.ToPixels(contentWidth)
-                    + childStyle.BorderLeftWidth.ToPixels(contentWidth)
-                    + childStyle.BorderRightWidth.ToPixels(contentWidth)
-                    + childStyle.PaddingLeft.ToPixels(contentWidth)
-                    + childStyle.PaddingRight.ToPixels(contentWidth);
+                float outerExtra;
+                if (childStyle.BoxSizing == BoxSizing.BorderBox)
+                {
+                    outerExtra = childStyle.MarginLeft.ToPixels(contentWidth)
+                        + childStyle.MarginRight.ToPixels(contentWidth);
+                }
+                else
+                {
+                    outerExtra = childStyle.MarginLeft.ToPixels(contentWidth)
+                        + childStyle.MarginRight.ToPixels(contentWidth)
+                        + childStyle.BorderLeftWidth.ToPixels(contentWidth)
+                        + childStyle.BorderRightWidth.ToPixels(contentWidth)
+                        + childStyle.PaddingLeft.ToPixels(contentWidth)
+                        + childStyle.PaddingRight.ToPixels(contentWidth);
+                }
                 flexBasis = basisContentWidth + outerExtra;
             }
             else if (!childStyle.Width.IsAuto)
             {
                 float basisContentWidth = childStyle.Width.ToPixels(contentWidth);
-                float outerExtra = childStyle.MarginLeft.ToPixels(contentWidth)
-                    + childStyle.MarginRight.ToPixels(contentWidth)
-                    + childStyle.BorderLeftWidth.ToPixels(contentWidth)
-                    + childStyle.BorderRightWidth.ToPixels(contentWidth)
-                    + childStyle.PaddingLeft.ToPixels(contentWidth)
-                    + childStyle.PaddingRight.ToPixels(contentWidth);
+                float outerExtra;
+                if (childStyle.BoxSizing == BoxSizing.BorderBox)
+                {
+                    outerExtra = childStyle.MarginLeft.ToPixels(contentWidth)
+                        + childStyle.MarginRight.ToPixels(contentWidth);
+                }
+                else
+                {
+                    outerExtra = childStyle.MarginLeft.ToPixels(contentWidth)
+                        + childStyle.MarginRight.ToPixels(contentWidth)
+                        + childStyle.BorderLeftWidth.ToPixels(contentWidth)
+                        + childStyle.BorderRightWidth.ToPixels(contentWidth)
+                        + childStyle.PaddingLeft.ToPixels(contentWidth)
+                        + childStyle.PaddingRight.ToPixels(contentWidth);
+                }
                 flexBasis = basisContentWidth + outerExtra;
             }
             else
@@ -280,6 +319,18 @@ public class FlexLayout
 
             currentX = child.BoxModel.MarginBox.Right;
             maxCrossSize = Math.Max(maxCrossSize, child.BoxModel.MarginBox.Height);
+        }
+
+        // 没有子元素但有文本内容时，根据文本计算尺寸
+        if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
+        {
+            var style = box.ComputedStyle;
+            var (textWidth, textHeight) = TextMeasurer.MeasureText(
+                box.Element.TextContent,
+                style.FontFamily,
+                style.FontSize.Value,
+                style.FontWeight);
+            maxCrossSize = Math.Max(maxCrossSize, textHeight);
         }
 
         float totalWidth = currentX - contentX;
@@ -431,6 +482,19 @@ public class FlexLayout
 
             currentY = child.BoxModel.MarginBox.Bottom;
             maxCrossSize = Math.Max(maxCrossSize, child.BoxModel.MarginBox.Width);
+        }
+
+        // 没有子元素但有文本内容时，根据文本计算尺寸
+        if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
+        {
+            var style = box.ComputedStyle;
+            var (textWidth, textHeight) = TextMeasurer.MeasureText(
+                box.Element.TextContent,
+                style.FontFamily,
+                style.FontSize.Value,
+                style.FontWeight);
+            currentY += textHeight;
+            maxCrossSize = Math.Max(maxCrossSize, textWidth);
         }
 
         float totalHeight = currentY - contentY;
