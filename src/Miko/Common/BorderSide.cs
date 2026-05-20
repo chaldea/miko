@@ -29,6 +29,13 @@ public struct BorderSide
         Color = color;
     }
 
+    public BorderSide(Length width, BorderStyle style)
+    {
+        Width = width;
+        Style = style;
+        Color = Color.Black;
+    }
+
     /// <summary>
     /// Creates a solid black border side with specified width
     /// </summary>

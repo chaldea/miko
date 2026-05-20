@@ -68,6 +68,11 @@ public class TypedStyleBuilder<T> where T : Element
     public TypedStyleBuilder<T> Focus()    { _selectors.Add(new FocusSelector());    return this; }
     public TypedStyleBuilder<T> Disabled() { _selectors.Add(new DisabledSelector()); return this; }
     public TypedStyleBuilder<T> Enabled()  { _selectors.Add(new EnabledSelector());  return this; }
+    public TypedStyleBuilder<T> FirstChild()  { _selectors.Add(new FirstChildSelector());  return this; }
+    public TypedStyleBuilder<T> LastChild()   { _selectors.Add(new LastChildSelector());   return this; }
+    public TypedStyleBuilder<T> FirstOfType() { _selectors.Add(new FirstOfTypeSelector()); return this; }
+    public TypedStyleBuilder<T> LastOfType()  { _selectors.Add(new LastOfTypeSelector());  return this; }
+    public TypedStyleBuilder<T> Not(Selector inner) { _selectors.Add(new NotSelector(inner)); return this; }
 
     /// <summary>
     /// 后代选择器 (A B) - 当前选择器作为祖先，匹配后代元素
@@ -148,6 +153,12 @@ public class CombinatorStyleBuilder<T> where T : Element
     private readonly Style _style = new();
 
     internal CombinatorStyleBuilder(Selector selector) => _selector = selector;
+
+    public CombinatorStyleBuilder<Element> Child(Selector child)
+        => new(new ChildSelector(_selector, child));
+
+    public CombinatorStyleBuilder<Element> Descendant(Selector descendant)
+        => new(new DescendantSelector(_selector, descendant));
 
     public CombinatorStyleBuilder<T> Set<TValue>(Expression<Func<Style, TValue?>> prop, TValue value)
     {

@@ -64,3 +64,64 @@ public class EnabledSelector : PseudoClassSelector
         return !element.IsDisabled;
     }
 }
+
+/// <summary>
+/// :first-child 伪类选择器
+/// </summary>
+public class FirstChildSelector : PseudoClassSelector
+{
+    public override bool Matches(Element element)
+    {
+        return element.Parent?.Children.FirstOrDefault() == element;
+    }
+}
+
+/// <summary>
+/// :last-child 伪类选择器
+/// </summary>
+public class LastChildSelector : PseudoClassSelector
+{
+    public override bool Matches(Element element)
+    {
+        return element.Parent?.Children.LastOrDefault() == element;
+    }
+}
+
+/// <summary>
+/// :first-of-type 伪类选择器
+/// </summary>
+public class FirstOfTypeSelector : PseudoClassSelector
+{
+    public override bool Matches(Element element)
+    {
+        if (element.Parent == null) return false;
+        return element.Parent.Children.FirstOrDefault(e => e.TagName == element.TagName) == element;
+    }
+}
+
+/// <summary>
+/// :last-of-type 伪类选择器
+/// </summary>
+public class LastOfTypeSelector : PseudoClassSelector
+{
+    public override bool Matches(Element element)
+    {
+        if (element.Parent == null) return false;
+        return element.Parent.Children.LastOrDefault(e => e.TagName == element.TagName) == element;
+    }
+}
+
+/// <summary>
+/// :not() 伪类选择器
+/// </summary>
+public class NotSelector : PseudoClassSelector
+{
+    private readonly Selector _inner;
+
+    public NotSelector(Selector inner) => _inner = inner;
+
+    public Selector Inner => _inner;
+
+    public override bool Matches(Element element) => !_inner.Matches(element);
+    public override int Specificity => _inner.Specificity;
+}

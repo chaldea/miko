@@ -404,6 +404,9 @@ public class Style
     public static TypedStyleBuilder<Element> Id(string id)
         => new TypedStyleBuilder<Element>(new IdSelector(id));
 
+    public static CombinatorStyleBuilder<Element> Group(params Selector[] selectors)
+        => new(new GroupSelector(selectors));
+
     /// <summary>
     /// 后代选择器 (ancestor descendant)
     /// </summary>
