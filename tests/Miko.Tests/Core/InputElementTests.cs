@@ -69,19 +69,11 @@ public class InputElementTests
         // Act
         var layoutRoot = _layoutEngine.Layout(input, new List<StyleSheet>(), 800, 600);
 
-        // Assert: 布局后内容区域应为 173x21px (浏览器默认尺寸)
-        layoutRoot.BoxModel.Content.Width.ShouldBe(173,
-            "Text input content width should be 173px (browser default)");
-        layoutRoot.BoxModel.Content.Height.ShouldBe(21,
-            "Text input content height should be 21px (browser default)");
-
-        // BorderBox includes padding (1px top/bottom, 2px left/right) and border (1px)
-        // Width: 173 + 2 + 2 + 1 + 1 = 179
-        // Height: 21 + 1 + 1 + 1 + 1 = 25
-        layoutRoot.BoxModel.BorderBox.Width.ShouldBe(179,
-            "Text input border box width should include padding and border");
-        layoutRoot.BoxModel.BorderBox.Height.ShouldBeInRange(23, 27,
-            "Text input border box height should be around browser default");
+        // Assert: input 使用 border-box，UA 设置 Width=173, Height=21 为 border-box 尺寸
+        layoutRoot.BoxModel.BorderBox.Width.ShouldBe(173,
+            "Text input border-box width should be 173px (browser default)");
+        layoutRoot.BoxModel.BorderBox.Height.ShouldBe(21,
+            "Text input border-box height should be 21px (browser default)");
     }
 
     #endregion

@@ -211,6 +211,7 @@ public class StyleResolver
                 // Browser default: display: inline-block, padding: 2px 6px
                 // Note: Border appearance simplified (browsers use 'outset' style)
                 style.Display ??= Common.Display.InlineBlock;
+                style.BoxSizing ??= Common.BoxSizing.BorderBox;
                 style.PaddingTop ??= Common.Length.Px(2);
                 style.PaddingRight ??= Common.Length.Px(6);
                 style.PaddingBottom ??= Common.Length.Px(2);
@@ -236,6 +237,7 @@ public class StyleResolver
                 // Browser default: display: inline-block, border: 1px solid
                 // Padding for text and dropdown arrow
                 style.Display ??= Common.Display.InlineBlock;
+                style.BoxSizing ??= Common.BoxSizing.BorderBox;
                 style.PaddingTop ??= Common.Length.Px(1);
                 style.PaddingRight ??= Common.Length.Px(20);  // Extra space for dropdown arrow
                 style.PaddingBottom ??= Common.Length.Px(1);
@@ -321,6 +323,7 @@ public class StyleResolver
                 // Browser default: display: table (using block for now), border-collapse: separate
                 // border-spacing: 2px, border-color: gray
                 style.Display ??= Common.Display.Block;
+                style.BoxSizing ??= Common.BoxSizing.BorderBox;
                 style.BorderWidth ??= Common.Length.Px(0);
                 style.BorderStyle ??= Common.BorderStyle.None;
                 // Note: border-collapse and border-spacing not yet implemented
@@ -395,6 +398,7 @@ public class StyleResolver
     {
         // Common style for all input types
         style.Display ??= Display.InlineBlock;
+        style.BoxSizing ??= BoxSizing.BorderBox;
 
         // Check if it's an InputElement to get the type
         if (element is InputElement inputElement)

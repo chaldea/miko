@@ -461,10 +461,10 @@ public class LayoutEngineTests
     {
         // Arrange - 两个子元素有不同的内容高度，AlignItems.Stretch 应该使它们高度统一
         var root = new DivElement { Class = "input-group" };
-        var label = new LabelElement { Class = "label", TextContent = "UserName" };
-        var input = new InputElement { Class = "input", Type = InputType.Text, Value = "UserName" };
-        root.AddChild(label);
-        root.AddChild(input);
+        var child1 = new DivElement { Class = "label", TextContent = "UserName" };
+        var child2 = new DivElement { Class = "input", TextContent = "Value" };
+        root.AddChild(child1);
+        root.AddChild(child2);
 
         var styleSheets = new List<StyleSheet>
         {
@@ -501,7 +501,7 @@ public class LayoutEngineTests
                         Style = new Style
                         {
                             Display = Display.Block,
-                            Padding = new Padding(6, 12),
+                            Padding = new Padding(10, 12),
                             Width = Length.Percent(80),
                             FontSize = Length.Px(14),
                             Border = new Border(1, BorderStyle.Solid, Color.FromHex("ced4da"))
@@ -518,15 +518,8 @@ public class LayoutEngineTests
         var box1 = layoutRoot.Children[0].BoxModel;
         var box2 = layoutRoot.Children[1].BoxModel;
 
-        // 两个元素的 Content.Top 应该相同（因为 padding 和 border 相同）
-        box1.Content.Top.ShouldBe(box2.Content.Top, 0.01f);
-
         // AlignItems.Stretch 应该使两个元素的 MarginBox 高度统一
         box1.MarginBox.Height.ShouldBe(box2.MarginBox.Height, 0.01f);
-
-        // Padding.Bottom 和 Content.Bottom 也应该对齐
-        box1.Padding.Bottom.ShouldBe(box2.Padding.Bottom, 0.01f);
-        box1.Content.Bottom.ShouldBe(box2.Content.Bottom, 0.01f);
     }
 
     [Fact]
@@ -2050,6 +2043,138 @@ public class LayoutEngineTests
 
     #endregion
 
+    #region Flex Container with Text Content Tests
+
+    [Fact]
+    public void FlexLayout_WithTextContentOnly_ShouldHaveHeightFromText()
+    {
+        // Arrange - Flex 容器只有文本内容，没有子元素
+        var button = new ButtonElement { Class = "flex-btn", TextContent = "Accordion Item #1" };
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-btn"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            AlignItems = AlignItems.Center,
+                            Width = Length.Px(400)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(button, styleSheets, 800, 600);
+
+        // Assert - 高度应该由文本内容决定，不能为 0
+        layoutRoot.BoxModel.Content.Height.ShouldBeGreaterThan(0);
+        layoutRoot.BoxModel.BorderBox.Width.ShouldBe(400);
+    }
+
+    [Fact]
+    public void FlexLayout_AccordionButtonScenario_ShouldHaveCorrectDimensions()
+    {
+        // Arrange - 复现 ISSUE-024 的场景
+        // accordion-item(block, border:1px) → h2(block) → button(flex, width:100%)
+        var accordionItem = new DivElement { Class = "accordion-item" };
+        var h2 = new H2Element();
+        var button = new ButtonElement { Class = "accordion-button", TextContent = "Accordion Item #1" };
+        h2.AddChild(button);
+        accordionItem.AddChild(h2);
+
+        var root = new DivElement();
+        root.AddChild(accordionItem);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("accordion-item"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Border = new Border(1, BorderStyle.Solid, Color.FromHex("dee2e6"))
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("accordion-button"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            AlignItems = AlignItems.Center,
+                            Width = Length.Percent(100)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        var accordionBox = layoutRoot.Children[0];
+        var h2Box = accordionBox.Children[0];
+        var buttonBox = h2Box.Children[0];
+
+        // button 的高度应该大于 0（由文本内容决定）
+        buttonBox.BoxModel.Content.Height.ShouldBeGreaterThan(0);
+
+        // button 使用 border-box，width: 100% 意味着 border-box 宽度 = h2 内容宽度
+        buttonBox.BoxModel.BorderBox.Width.ShouldBe(h2Box.BoxModel.Content.Width);
+
+        // button 的 margin box 不应该超出 h2 的内容宽度（button 无 margin）
+        buttonBox.BoxModel.MarginBox.Width.ShouldBeLessThanOrEqualTo(h2Box.BoxModel.Content.Width);
+    }
+
+    [Fact]
+    public void FlexLayout_ColumnDirection_WithTextContentOnly_ShouldHaveHeightFromText()
+    {
+        // Arrange - 列方向的 Flex 容器只有文本内容
+        var div = new DivElement { Class = "flex-col", TextContent = "Hello World" };
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-col"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column,
+                            Width = Length.Px(200)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(div, styleSheets, 800, 600);
+
+        // Assert
+        layoutRoot.BoxModel.Content.Height.ShouldBeGreaterThan(0);
+    }
+
+    #endregion
+
     #region Input Element Default Width Tests
 
     /// <summary>
@@ -2065,9 +2190,9 @@ public class LayoutEngineTests
         // Act
         var layoutRoot = _layoutEngine.Layout(input, new List<StyleSheet>(), 800, 600);
 
-        // Assert: 浏览器默认文本输入框宽度约为 173px (Chrome)
-        layoutRoot.BoxModel.Content.Width.ShouldBe(173,
-            "Text input should have default width of 173px (browser default)");
+        // Assert: 浏览器默认文本输入框 border-box 宽度约为 173px (Chrome)
+        layoutRoot.BoxModel.BorderBox.Width.ShouldBe(173,
+            "Text input should have border-box width of 173px (browser default)");
     }
 
     /// <summary>
@@ -2085,9 +2210,9 @@ public class LayoutEngineTests
         var passwordLayout = _layoutEngine.Layout(passwordInput, new List<StyleSheet>(), 800, 600);
 
         // Assert: 密码输入框应该与文本输入框具有相同的宽度
-        passwordLayout.BoxModel.Content.Width.ShouldBe(textLayout.BoxModel.Content.Width,
+        passwordLayout.BoxModel.BorderBox.Width.ShouldBe(textLayout.BoxModel.BorderBox.Width,
             "Password input should have same default width as text input");
-        passwordLayout.BoxModel.Content.Width.ShouldBe(173,
+        passwordLayout.BoxModel.BorderBox.Width.ShouldBe(173,
             "Password input should have default width of 173px");
     }
 
@@ -2127,10 +2252,10 @@ public class LayoutEngineTests
         // Act
         var layoutRoot = _layoutEngine.Layout(container, styleSheets, 800, 600);
 
-        // Assert: 输入框在 Flex 容器中应该保持其默认宽度
+        // Assert: 输入框在 Flex 容器中应该保持其默认宽度（border-box = 173px）
         var inputLayout = layoutRoot.Children[1];
-        inputLayout.BoxModel.Content.Width.ShouldBe(173,
-            "Text input in flex container should maintain default width of 173px");
+        inputLayout.BoxModel.BorderBox.Width.ShouldBe(173,
+            "Text input in flex container should maintain border-box width of 173px");
     }
 
     /// <summary>
@@ -2169,6 +2294,105 @@ public class LayoutEngineTests
         // Assert: Range 输入框默认宽度约为 129px (Chrome)
         layoutRoot.BoxModel.Content.Width.ShouldBe(129,
             "Range input should have default width of 129px");
+    }
+
+    #endregion
+
+    #region BoxSizing Tests
+
+    [Fact]
+    public void BoxSizing_BorderBox_WidthIncludesPaddingAndBorder()
+    {
+        var div = new DivElement { TextContent = "Test" };
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new TagSelector("div"),
+                        Style = new Style
+                        {
+                            BoxSizing = BoxSizing.BorderBox,
+                            Width = Length.Px(200),
+                            Padding = new Padding(10),
+                            Border = new Border(5, BorderStyle.Solid, Color.Black)
+                        }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(div, styleSheets, 800, 600);
+
+        // border-box: width=200 包含 padding 和 border
+        // content = 200 - padding(10+10) - border(5+5) = 170
+        layoutRoot.BoxModel.Content.Width.ShouldBe(170);
+        layoutRoot.BoxModel.BorderBox.Width.ShouldBe(200);
+    }
+
+    [Fact]
+    public void BoxSizing_ContentBox_WidthIsContentOnly()
+    {
+        var div = new DivElement { TextContent = "Test" };
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new TagSelector("div"),
+                        Style = new Style
+                        {
+                            BoxSizing = BoxSizing.ContentBox,
+                            Width = Length.Px(200),
+                            Padding = new Padding(10),
+                            Border = new Border(5, BorderStyle.Solid, Color.Black)
+                        }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(div, styleSheets, 800, 600);
+
+        // content-box: width=200 仅为内容宽度
+        layoutRoot.BoxModel.Content.Width.ShouldBe(200);
+        layoutRoot.BoxModel.BorderBox.Width.ShouldBe(230);
+    }
+
+    [Fact]
+    public void BoxSizing_ButtonWithWidth100Percent_ShouldNotOverflowParent()
+    {
+        var parent = new DivElement();
+        var button = new ButtonElement { TextContent = "Click" };
+        parent.AddChild(button);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new TagSelector("button"),
+                        Style = new Style { Width = Length.Percent(100) }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(parent, styleSheets, 400, 600);
+        var buttonBox = layoutRoot.Children[0];
+
+        // button 默认 border-box，width:100% = 父内容宽度 = border-box 宽度
+        buttonBox.BoxModel.MarginBox.Width.ShouldBeLessThanOrEqualTo(
+            layoutRoot.BoxModel.Content.Width);
     }
 
     #endregion

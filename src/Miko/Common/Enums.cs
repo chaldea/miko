@@ -168,3 +168,4 @@ public enum AlignSelf { Auto, FlexStart, FlexEnd, Center, Stretch, Baseline }
 public enum AlignContent { FlexStart, FlexEnd, Center, SpaceBetween, SpaceAround, Stretch }
 public enum UserSelect { Auto, None, Text, All }
 public enum VerticalAlign { Baseline, Top, Middle, Bottom, TextTop, TextBottom }
+public enum BoxSizing { ContentBox, BorderBox }
