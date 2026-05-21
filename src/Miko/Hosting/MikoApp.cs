@@ -63,10 +63,12 @@ public class MikoApp
 
         RegisterFonts(_options);
 
-        if (_options.RouteAssemblies != null)
+        if (_options.RouteAssemblies != null || _options.RouteConfigurator != null)
         {
             _router = new Router();
-            _router.ScanAssemblies(_options.RouteAssemblies);
+            if (_options.RouteAssemblies != null)
+                _router.ScanAssemblies(_options.RouteAssemblies);
+            _options.RouteConfigurator?.Invoke(_router);
             _navigationManager = serviceProvider.GetRequiredService<NavigationManager>();
             _routeView = new RouteView(_router, _navigationManager, _options.DefaultLayout, _serviceProvider);
             _navigationManager.LocationChanged += _ => _needsRebuild = true;

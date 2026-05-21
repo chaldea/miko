@@ -2,6 +2,7 @@ using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -154,11 +155,12 @@ public class RenderTreeBuilder
         ParseMarkup(markup);
     }
 
-    public void OpenComponent<T>(int seq) where T : ComponentBase, new()
+    public void OpenComponent<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] T>(int seq) where T : ComponentBase, new()
     {
         _componentStack.Push(new T());
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Component types are preserved via DynamicallyAccessedMembers on OpenComponent<T>")]
     public void AddComponentParameter(int seq, string name, object? value)
     {
         if (_componentStack.Count == 0) return;

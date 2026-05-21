@@ -1,5 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Miko.Core;
+using Miko.Routing;
 using Miko.Styling;
 
 namespace Miko.Hosting;
@@ -12,7 +14,11 @@ public class MikoAppOptions
     public Func<Element>? RootComponentFactory { get; set; }
     public List<StyleSheet> StyleSheets { get; set; } = new();
     public Assembly[]? RouteAssemblies { get; set; }
+    public Action<Router>? RouteConfigurator { get; set; }
+
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
     public Type? DefaultLayout { get; set; }
+
     public List<FontRegistration> Fonts { get; set; } = new();
 }
 

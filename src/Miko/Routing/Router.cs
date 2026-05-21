@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Miko.Components;
 
@@ -9,6 +10,25 @@ public class Router
 
     public IReadOnlyList<RouteData> Routes => _routes;
 
+    public void MapRoute<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] TComponent>(string template) where TComponent : class
+    {
+        _routes.Add(new RouteData
+        {
+            Template = template,
+            ComponentType = typeof(TComponent)
+        });
+    }
+
+    public void MapRoute(string template, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type componentType)
+    {
+        _routes.Add(new RouteData
+        {
+            Template = template,
+            ComponentType = componentType
+        });
+    }
+
+    [RequiresUnreferencedCode("Assembly scanning uses reflection and is not compatible with trimming. Use MapRoute<T>() for AOT-safe route registration.")]
     public void ScanAssemblies(params Assembly[] assemblies)
     {
         foreach (var assembly in assemblies)
@@ -28,6 +48,7 @@ public class Router
         }
     }
 
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
     public Type? Resolve(string path)
     {
         var route = _routes.FirstOrDefault(r =>
