@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Miko.Components;
 using Miko.Core;
@@ -8,10 +9,17 @@ public class RouteView
 {
     private readonly Router _router;
     private readonly NavigationManager _navigationManager;
+
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
     private readonly Type? _defaultLayout;
+
     private readonly IServiceProvider _serviceProvider;
 
-    public RouteView(Router router, NavigationManager navigationManager, Type? defaultLayout, IServiceProvider serviceProvider)
+    public RouteView(
+        Router router,
+        NavigationManager navigationManager,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type? defaultLayout,
+        IServiceProvider serviceProvider)
     {
         _router = router;
         _navigationManager = navigationManager;
@@ -39,24 +47,28 @@ public class RouteView
         return content;
     }
 
-    private ComponentBase CreateComponent(Type componentType)
+    private ComponentBase CreateComponent(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type componentType)
     {
         var component = (ComponentBase)ActivatorUtilities.CreateInstance(_serviceProvider, componentType);
-        InjectServices(component);
+        InjectServices(component, componentType, _serviceProvider);
         component.NavigationManager = _navigationManager;
         return component;
     }
 
-    private void InjectServices(ComponentBase component)
+    private static void InjectServices(
+        ComponentBase component,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type componentType,
+        IServiceProvider serviceProvider)
     {
-        var properties = component.GetType().GetProperties(
+        var properties = componentType.GetProperties(
             System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
         foreach (var prop in properties)
         {
             if (prop.GetCustomAttributes(typeof(InjectAttribute), true).Length > 0 && prop.CanWrite)
             {
-                var service = _serviceProvider.GetService(prop.PropertyType);
+                var service = serviceProvider.GetService(prop.PropertyType);
                 if (service != null)
                     prop.SetValue(component, service);
             }

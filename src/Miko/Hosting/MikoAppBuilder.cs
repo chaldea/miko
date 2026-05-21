@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Miko.Animation;
@@ -72,7 +73,20 @@ public class MikoAppBuilder
         return this;
     }
 
-    public MikoAppBuilder UseDefaultLayout(Type layoutType)
+    public MikoAppBuilder UseRouter(Action<Router> configure)
+    {
+        Services.Configure<MikoAppOptions>(o => o.RouteConfigurator = configure);
+        return this;
+    }
+
+    public MikoAppBuilder UseDefaultLayout<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] TLayout>() where TLayout : class
+    {
+        Services.Configure<MikoAppOptions>(o => o.DefaultLayout = typeof(TLayout));
+        return this;
+    }
+
+    public MikoAppBuilder UseDefaultLayout(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type layoutType)
     {
         Services.Configure<MikoAppOptions>(o => o.DefaultLayout = layoutType);
         return this;

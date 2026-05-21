@@ -69,9 +69,21 @@ public static class CssSelectorParser
             else if (input[i] == ':')
             {
                 i++;
+                // 检查是否是伪元素 (::)
+                bool isPseudoElement = false;
+                if (i < input.Length && input[i] == ':')
+                {
+                    isPseudoElement = true;
+                    i++;
+                }
+
                 var pseudo = ReadIdentifier(input, ref i);
 
-                if (pseudo == "not" && i < input.Length && input[i] == '(')
+                if (isPseudoElement)
+                {
+                    parts.Add(ParsePseudoElement(pseudo));
+                }
+                else if (pseudo == "not" && i < input.Length && input[i] == '(')
                 {
                     i++; // skip (
                     var inner = ReadUntilClose(input, ref i);
@@ -110,6 +122,13 @@ public static class CssSelectorParser
         "first-of-type" => new FirstOfTypeSelector(),
         "last-of-type" => new LastOfTypeSelector(),
         _ => throw new ArgumentException($"Unknown pseudo-class: :{name}")
+    };
+
+    private static Selector ParsePseudoElement(string name) => name switch
+    {
+        "before" => new BeforePseudoElement(),
+        "after" => new AfterPseudoElement(),
+        _ => throw new ArgumentException($"Unknown pseudo-element: ::{name}")
     };
 
     private static string ReadIdentifier(string input, ref int i)
