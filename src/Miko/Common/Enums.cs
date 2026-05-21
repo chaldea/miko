@@ -169,3 +169,6 @@ public enum AlignContent { FlexStart, FlexEnd, Center, SpaceBetween, SpaceAround
 public enum UserSelect { Auto, None, Text, All }
 public enum VerticalAlign { Baseline, Top, Middle, Bottom, TextTop, TextBottom }
 public enum BoxSizing { ContentBox, BorderBox }
+public enum BackgroundRepeat { Repeat, RepeatX, RepeatY, NoRepeat }
+public enum BackgroundSizeMode { Auto, Cover, Contain, Explicit }
+public enum BackgroundPosition { LeftTop, CenterTop, RightTop, LeftCenter, Center, RightCenter, LeftBottom, CenterBottom, RightBottom }

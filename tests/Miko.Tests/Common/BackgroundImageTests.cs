@@ -72,6 +72,54 @@ public class BackgroundImageTests
     }
 
     [Fact]
+    public void FromSvgStream_ShouldLoadSvg()
+    {
+        var svgContent = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='m2 5 6 6 6-6'/></svg>";
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(svgContent));
+
+        var bg = BackgroundImage.FromSvgStream(stream);
+
+        bg.Bitmap.ShouldNotBeNull();
+        bg.OriginalWidth.ShouldBe(16);
+        bg.OriginalHeight.ShouldBe(16);
+    }
+
+    [Fact]
+    public void FromSvgStream_RenderAtSize_ShouldScaleSvg()
+    {
+        var svgContent = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='red'/></svg>";
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(svgContent));
+
+        var bg = BackgroundImage.FromSvgStream(stream);
+        var scaled = bg.RenderAtSize(32, 32);
+
+        scaled.ShouldNotBeNull();
+        scaled!.Width.ShouldBe(32);
+        scaled.Height.ShouldBe(32);
+    }
+
+    [Fact]
+    public void OriginalWidth_ShouldReturnBitmapDimensions()
+    {
+        var bitmap = CreateTestBitmap(24, 18);
+        var bg = BackgroundImage.FromBitmap(bitmap);
+
+        bg.OriginalWidth.ShouldBe(24);
+        bg.OriginalHeight.ShouldBe(18);
+    }
+
+    [Fact]
+    public void DefaultProperties_ShouldMatchBrowserDefaults()
+    {
+        var bitmap = CreateTestBitmap(4, 4);
+        var bg = BackgroundImage.FromBitmap(bitmap);
+
+        bg.Repeat.ShouldBe(BackgroundRepeat.Repeat);
+        bg.Size.ShouldBe(BackgroundSize.Auto);
+        bg.Position.ShouldBe(BackgroundPosition.LeftTop);
+    }
+
+    [Fact]
     public void Style_BackgroundImage_ShouldBeNullByDefault()
     {
         var style = new Style();
@@ -106,6 +154,66 @@ public class BackgroundImageTests
         style1.Merge(style2);
 
         style1.BackgroundImage.ShouldBe(bg1);
+    }
+
+    [Fact]
+    public void Style_BackgroundRepeat_ShouldMerge()
+    {
+        var style1 = new Style();
+        var style2 = new Style { BackgroundRepeat = BackgroundRepeat.NoRepeat };
+
+        style1.Merge(style2);
+
+        style1.BackgroundRepeat.ShouldBe(BackgroundRepeat.NoRepeat);
+    }
+
+    [Fact]
+    public void Style_BackgroundSize_ShouldMerge()
+    {
+        var style1 = new Style();
+        var style2 = new Style { BackgroundSize = BackgroundSize.Cover };
+
+        style1.Merge(style2);
+
+        style1.BackgroundSize.ShouldBe(BackgroundSize.Cover);
+    }
+
+    [Fact]
+    public void Style_BackgroundPosition_ShouldMerge()
+    {
+        var style1 = new Style();
+        var style2 = new Style { BackgroundPosition = BackgroundPosition.Center };
+
+        style1.Merge(style2);
+
+        style1.BackgroundPosition.ShouldBe(BackgroundPosition.Center);
+    }
+
+    [Fact]
+    public void ComputedStyle_BackgroundDefaults()
+    {
+        var computed = ComputedStyle.FromStyle(new Style());
+
+        computed.BackgroundRepeat.ShouldBe(BackgroundRepeat.Repeat);
+        computed.BackgroundSize.ShouldBe(BackgroundSize.Auto);
+        computed.BackgroundPosition.ShouldBe(BackgroundPosition.LeftTop);
+    }
+
+    [Fact]
+    public void ComputedStyle_BackgroundProperties_FromStyle()
+    {
+        var style = new Style
+        {
+            BackgroundRepeat = BackgroundRepeat.NoRepeat,
+            BackgroundSize = BackgroundSize.Contain,
+            BackgroundPosition = BackgroundPosition.Center
+        };
+
+        var computed = ComputedStyle.FromStyle(style);
+
+        computed.BackgroundRepeat.ShouldBe(BackgroundRepeat.NoRepeat);
+        computed.BackgroundSize.ShouldBe(BackgroundSize.Contain);
+        computed.BackgroundPosition.ShouldBe(BackgroundPosition.Center);
     }
 
     private static SKBitmap CreateTestBitmap(int width, int height)

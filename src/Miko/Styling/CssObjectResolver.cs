@@ -71,6 +71,8 @@ internal static class CssObjectResolver
                style.BorderTopLeftRadius != null || style.BorderTopRightRadius != null ||
                style.BorderBottomRightRadius != null || style.BorderBottomLeftRadius != null ||
                style.BackgroundColor != null || style.BackgroundImage != null ||
+               style.BackgroundRepeat != null || style.BackgroundSize != null ||
+               style.BackgroundPosition != null ||
                style.Color != null || style.FontFamily != null || style.FontSize != null ||
                style.FontWeight != null || style.TextAlign != null || style.LineHeight != null ||
                style.Position != null || style.Top != null || style.Right != null ||
