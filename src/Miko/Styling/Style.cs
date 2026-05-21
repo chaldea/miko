@@ -218,6 +218,9 @@ public class Style
     // 视觉属性
     public Color? BackgroundColor { get; set; }
     public BackgroundImage? BackgroundImage { get; set; }
+    public BackgroundRepeat? BackgroundRepeat { get; set; }
+    public BackgroundSize? BackgroundSize { get; set; }
+    public BackgroundPosition? BackgroundPosition { get; set; }
     public Color? Color { get; set; }
     public string? FontFamily { get; set; }
     public Length? FontSize { get; set; }
@@ -338,6 +341,9 @@ public class Style
 
         BackgroundColor ??= other.BackgroundColor;
         BackgroundImage ??= other.BackgroundImage;
+        BackgroundRepeat ??= other.BackgroundRepeat;
+        BackgroundSize ??= other.BackgroundSize;
+        BackgroundPosition ??= other.BackgroundPosition;
         Color ??= other.Color;
         FontFamily ??= other.FontFamily;
         FontSize ??= other.FontSize;

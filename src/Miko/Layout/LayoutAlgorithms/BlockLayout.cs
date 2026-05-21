@@ -15,6 +15,9 @@ public class BlockLayout
         // 1. 计算 margin, border, padding
         float containerWidth = constraints.AvailableWidth ?? 0;
 
+        bool marginLeftAuto = style.MarginLeft.IsAuto;
+        bool marginRightAuto = style.MarginRight.IsAuto;
+
         box.BoxModel.Margin = new EdgeSizes(
             style.MarginTop.ToPixels(containerWidth),
             style.MarginRight.ToPixels(containerWidth),
@@ -81,6 +84,39 @@ public class BlockLayout
         if (!style.MaxWidth.IsAuto)
         {
             contentWidth = Math.Min(contentWidth, style.MaxWidth.ToPixels(containerWidth));
+        }
+
+        // 解析 margin auto：当元素有明确宽度时，auto margin 占据剩余空间
+        if ((marginLeftAuto || marginRightAuto) && !style.Width.IsAuto && containerWidth > 0)
+        {
+            float usedWidth = contentWidth + box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
+            float remainingSpace = Math.Max(0, containerWidth - usedWidth
+                - (marginLeftAuto ? 0 : box.BoxModel.Margin.Left)
+                - (marginRightAuto ? 0 : box.BoxModel.Margin.Right));
+
+            float newMarginLeft = box.BoxModel.Margin.Left;
+            float newMarginRight = box.BoxModel.Margin.Right;
+
+            if (marginLeftAuto && marginRightAuto)
+            {
+                newMarginLeft = remainingSpace / 2f;
+                newMarginRight = remainingSpace / 2f;
+            }
+            else if (marginLeftAuto)
+            {
+                newMarginLeft = remainingSpace;
+            }
+            else
+            {
+                newMarginRight = remainingSpace;
+            }
+
+            box.BoxModel.Margin = new EdgeSizes(
+                box.BoxModel.Margin.Top,
+                newMarginRight,
+                box.BoxModel.Margin.Bottom,
+                newMarginLeft
+            );
         }
 
         // 判断是否需要为滚动条预留空间（Classic 模式占用布局）

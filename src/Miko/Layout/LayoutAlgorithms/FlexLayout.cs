@@ -247,29 +247,42 @@ public class FlexLayout
         // 计算剩余空间
         float freeSpace = contentWidth - totalFlexBasisSize;
 
-        // 分配空间（grow 或 shrink）
-        bool anyAdjustment = false;
-        if (freeSpace > 0 && totalFlexGrow > 0)
+        // 检查是否有 auto margin（主轴方向：left/right）
+        int autoMarginCount = 0;
+        foreach (var info in childInfos)
         {
-            // 有剩余空间且有元素可以增长
-            anyAdjustment = true;
-            foreach (var info in childInfos)
-            {
-                float growRatio = info.FlexGrow / totalFlexGrow;
-                info.FinalSize = info.FlexBasis + freeSpace * growRatio;
-            }
+            var childStyle = info.Child.ComputedStyle;
+            if (childStyle.MarginLeft.IsAuto) autoMarginCount++;
+            if (childStyle.MarginRight.IsAuto) autoMarginCount++;
         }
-        else if (freeSpace < 0 && totalFlexShrinkWeighted > 0)
+
+        // 如果有 auto margin 且有剩余空间，auto margin 消耗剩余空间（优先于 flex-grow）
+        bool hasAutoMargins = autoMarginCount > 0 && freeSpace > 0;
+        float autoMarginSize = hasAutoMargins ? Math.Max(0, freeSpace) / autoMarginCount : 0;
+
+        // 分配空间（grow 或 shrink）— 仅在没有 auto margin 时生效
+        bool anyAdjustment = false;
+        if (!hasAutoMargins)
         {
-            // 空间不足且有元素可以收缩
-            anyAdjustment = true;
-            float shrinkAmount = -freeSpace;
-            foreach (var info in childInfos)
+            if (freeSpace > 0 && totalFlexGrow > 0)
             {
-                float shrinkRatio = (info.FlexShrink * info.FlexBasis) / totalFlexShrinkWeighted;
-                info.FinalSize = info.FlexBasis - shrinkAmount * shrinkRatio;
-                // 确保不会收缩到负值
-                info.FinalSize = Math.Max(0, info.FinalSize);
+                anyAdjustment = true;
+                foreach (var info in childInfos)
+                {
+                    float growRatio = info.FlexGrow / totalFlexGrow;
+                    info.FinalSize = info.FlexBasis + freeSpace * growRatio;
+                }
+            }
+            else if (freeSpace < 0 && totalFlexShrinkWeighted > 0)
+            {
+                anyAdjustment = true;
+                float shrinkAmount = -freeSpace;
+                foreach (var info in childInfos)
+                {
+                    float shrinkRatio = (info.FlexShrink * info.FlexBasis) / totalFlexShrinkWeighted;
+                    info.FinalSize = info.FlexBasis - shrinkAmount * shrinkRatio;
+                    info.FinalSize = Math.Max(0, info.FinalSize);
+                }
             }
         }
 
@@ -279,13 +292,24 @@ public class FlexLayout
         {
             var child = info.Child;
             var childStyle = child.ComputedStyle;
+
+            // 处理主轴 auto margin
+            float extraMarginLeft = 0;
+            float extraMarginRight = 0;
+            if (hasAutoMargins)
+            {
+                if (childStyle.MarginLeft.IsAuto) extraMarginLeft = autoMarginSize;
+                if (childStyle.MarginRight.IsAuto) extraMarginRight = autoMarginSize;
+                currentX += extraMarginLeft;
+            }
+
             bool needsResize = anyAdjustment && Math.Abs(info.FinalSize - info.FlexBasis) > 0.01f;
 
             if (needsResize || !info.UsedAutoSize)
             {
                 // 需要调整大小，或者使用了显式的 flex-basis/width
-                float childMarginLeft = childStyle.MarginLeft.ToPixels(contentWidth);
-                float childMarginRight = childStyle.MarginRight.ToPixels(contentWidth);
+                float childMarginLeft = childStyle.MarginLeft.IsAuto ? 0 : childStyle.MarginLeft.ToPixels(contentWidth);
+                float childMarginRight = childStyle.MarginRight.IsAuto ? 0 : childStyle.MarginRight.ToPixels(contentWidth);
                 float childBorderLeftWidth = childStyle.BorderLeftWidth.ToPixels(contentWidth);
                 float childBorderRightWidth = childStyle.BorderRightWidth.ToPixels(contentWidth);
                 float childPaddingLeft = childStyle.PaddingLeft.ToPixels(contentWidth);
@@ -317,7 +341,7 @@ public class FlexLayout
                 LayoutDispatcher.Dispatch(child, childConstraints, currentX, contentY);
             }
 
-            currentX = child.BoxModel.MarginBox.Right;
+            currentX = child.BoxModel.MarginBox.Right + extraMarginRight;
             maxCrossSize = Math.Max(maxCrossSize, child.BoxModel.MarginBox.Height);
         }
 
@@ -341,8 +365,9 @@ public class FlexLayout
             ApplyJustifyContent(box, contentX, contentWidth, totalWidth, true);
         }
 
-        // 交叉轴对齐 (align-items)
-        ApplyAlignItems(box, contentY, maxCrossSize, true);
+        // 交叉轴对齐 (align-items) — 使用容器高度（如果明确）或最大子元素高度
+        float crossSize = contentHeight > 0 ? Math.Max(contentHeight, maxCrossSize) : maxCrossSize;
+        ApplyAlignItems(box, contentY, crossSize, true);
     }
 
     private void LayoutColumnDirection(LayoutBox box, float contentX, float contentY,
@@ -412,29 +437,42 @@ public class FlexLayout
         bool hasDefiniteHeight = contentHeight > 0;
         float freeSpace = hasDefiniteHeight ? contentHeight - totalFlexBasisSize : 0;
 
-        // 分配空间（grow 或 shrink）
-        bool anyAdjustment = false;
-        if (freeSpace > 0 && totalFlexGrow > 0)
+        // 检查是否有 auto margin（主轴方向：top/bottom）
+        int autoMarginCount = 0;
+        foreach (var info in childInfos)
         {
-            // 有剩余空间且有元素可以增长
-            anyAdjustment = true;
-            foreach (var info in childInfos)
-            {
-                float growRatio = info.FlexGrow / totalFlexGrow;
-                info.FinalSize = info.FlexBasis + freeSpace * growRatio;
-            }
+            var childStyle = info.Child.ComputedStyle;
+            if (childStyle.MarginTop.IsAuto) autoMarginCount++;
+            if (childStyle.MarginBottom.IsAuto) autoMarginCount++;
         }
-        else if (freeSpace < 0 && totalFlexShrinkWeighted > 0)
+
+        // 如果有 auto margin 且有剩余空间，auto margin 消耗剩余空间（优先于 flex-grow）
+        bool hasAutoMargins = autoMarginCount > 0 && freeSpace > 0;
+        float autoMarginSize = hasAutoMargins ? Math.Max(0, freeSpace) / autoMarginCount : 0;
+
+        // 分配空间（grow 或 shrink）— 仅在没有 auto margin 时生效
+        bool anyAdjustment = false;
+        if (!hasAutoMargins)
         {
-            // 空间不足且有元素可以收缩
-            anyAdjustment = true;
-            float shrinkAmount = -freeSpace;
-            foreach (var info in childInfos)
+            if (freeSpace > 0 && totalFlexGrow > 0)
             {
-                float shrinkRatio = (info.FlexShrink * info.FlexBasis) / totalFlexShrinkWeighted;
-                info.FinalSize = info.FlexBasis - shrinkAmount * shrinkRatio;
-                // 确保不会收缩到负值
-                info.FinalSize = Math.Max(0, info.FinalSize);
+                anyAdjustment = true;
+                foreach (var info in childInfos)
+                {
+                    float growRatio = info.FlexGrow / totalFlexGrow;
+                    info.FinalSize = info.FlexBasis + freeSpace * growRatio;
+                }
+            }
+            else if (freeSpace < 0 && totalFlexShrinkWeighted > 0)
+            {
+                anyAdjustment = true;
+                float shrinkAmount = -freeSpace;
+                foreach (var info in childInfos)
+                {
+                    float shrinkRatio = (info.FlexShrink * info.FlexBasis) / totalFlexShrinkWeighted;
+                    info.FinalSize = info.FlexBasis - shrinkAmount * shrinkRatio;
+                    info.FinalSize = Math.Max(0, info.FinalSize);
+                }
             }
         }
 
@@ -444,13 +482,24 @@ public class FlexLayout
         {
             var child = info.Child;
             var childStyle = child.ComputedStyle;
+
+            // 处理主轴 auto margin
+            float extraMarginTop = 0;
+            float extraMarginBottom = 0;
+            if (hasAutoMargins)
+            {
+                if (childStyle.MarginTop.IsAuto) extraMarginTop = autoMarginSize;
+                if (childStyle.MarginBottom.IsAuto) extraMarginBottom = autoMarginSize;
+                currentY += extraMarginTop;
+            }
+
             bool needsResize = anyAdjustment && Math.Abs(info.FinalSize - info.FlexBasis) > 0.01f;
 
             if (needsResize || !info.UsedAutoSize)
             {
                 // 需要调整大小，或者使用了显式的 flex-basis/height
-                float childMarginTop = childStyle.MarginTop.ToPixels(contentWidth);
-                float childMarginBottom = childStyle.MarginBottom.ToPixels(contentWidth);
+                float childMarginTop = childStyle.MarginTop.IsAuto ? 0 : childStyle.MarginTop.ToPixels(contentWidth);
+                float childMarginBottom = childStyle.MarginBottom.IsAuto ? 0 : childStyle.MarginBottom.ToPixels(contentWidth);
                 float childBorderTopWidth = childStyle.BorderTopWidth.ToPixels(contentWidth);
                 float childBorderBottomWidth = childStyle.BorderBottomWidth.ToPixels(contentWidth);
                 float childPaddingTop = childStyle.PaddingTop.ToPixels(contentWidth);
@@ -480,7 +529,7 @@ public class FlexLayout
                 LayoutDispatcher.Dispatch(child, childConstraints, contentX, currentY);
             }
 
-            currentY = child.BoxModel.MarginBox.Bottom;
+            currentY = child.BoxModel.MarginBox.Bottom + extraMarginBottom;
             maxCrossSize = Math.Max(maxCrossSize, child.BoxModel.MarginBox.Width);
         }
 
@@ -505,8 +554,9 @@ public class FlexLayout
             ApplyJustifyContent(box, contentY, contentHeight, totalHeight, false);
         }
 
-        // 交叉轴对齐 (align-items)
-        ApplyAlignItems(box, contentX, maxCrossSize, false);
+        // 交叉轴对齐 (align-items) — 使用容器宽度（如果明确）或最大子元素宽度
+        float crossSize = contentWidth > 0 ? Math.Max(contentWidth, maxCrossSize) : maxCrossSize;
+        ApplyAlignItems(box, contentX, crossSize, false);
     }
 
     private void ApplyJustifyContent(LayoutBox box, float start, float containerSize, float contentSize, bool isRow)

@@ -176,4 +176,151 @@ public class PseudoElementTests
 
         style1.Content.ShouldBe("first");
     }
+
+    [Fact]
+    public void FlexContainer_AlignItemsCenter_ShouldApplyToPseudoElement()
+    {
+        var root = new DivElement { Class = "btn" };
+
+        var sheet = new StyleSheet();
+        sheet.AddRule(Style.Class("btn")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.AlignItems, AlignItems.Center)
+            .Set(x => x.Width, Length.Px(500))
+            .Set(x => x.Height, Length.Px(100)));
+        sheet.AddRule(Style.Class("btn")
+            .After()
+            .Set(x => x.Content, "X")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.Width, Length.Px(20))
+            .Set(x => x.Height, Length.Px(20)));
+
+        var engine = new LayoutEngine();
+        var layoutRoot = engine.Layout(root, [sheet], 800, 600);
+
+        layoutRoot.Children.Count.ShouldBe(1);
+        var pseudoBox = layoutRoot.Children[0];
+        pseudoBox.Element.ShouldBeOfType<PseudoElement>();
+
+        // align-items: center 应该让伪元素垂直居中: (100 - 20) / 2 = 40
+        pseudoBox.BoxModel.Content.Y.ShouldBe(40);
+        pseudoBox.BoxModel.Content.Width.ShouldBe(20);
+        pseudoBox.BoxModel.Content.Height.ShouldBe(20);
+    }
+
+    [Fact]
+    public void FlexContainer_MarginLeftAuto_ShouldApplyToPseudoElement()
+    {
+        var root = new DivElement { Class = "btn" };
+
+        var sheet = new StyleSheet();
+        sheet.AddRule(Style.Class("btn")
+            .Set(x => x.Display, Display.Flex)
+            .Set(x => x.Width, Length.Px(500))
+            .Set(x => x.Height, Length.Px(100)));
+        sheet.AddRule(Style.Class("btn")
+            .After()
+            .Set(x => x.Content, "X")
+            .Set(x => x.Display, Display.Block)
+            .Set(x => x.Width, Length.Px(20))
+            .Set(x => x.Height, Length.Px(20))
+            .Set(x => x.MarginLeft, Length.Auto));
+
+        var engine = new LayoutEngine();
+        var layoutRoot = engine.Layout(root, [sheet], 800, 600);
+
+        layoutRoot.Children.Count.ShouldBe(1);
+        var pseudoBox = layoutRoot.Children[0];
+        pseudoBox.Element.ShouldBeOfType<PseudoElement>();
+
+        // margin-left: auto 应该把伪元素推到右侧: 500 - 20 = 480
+        pseudoBox.BoxModel.Content.X.ShouldBe(480);
+        pseudoBox.BoxModel.Content.Width.ShouldBe(20);
+    }
+
+    [Fact]
+    public void CssObject_ShouldRegisterPseudoElementRules()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".btn::after"] = new CssObject
+            {
+                Content = "",
+                Display = Display.Block,
+                Width = Length.Px(20),
+                Height = Length.Px(20)
+            }
+        });
+
+        sheet.PseudoElementRules.Count.ShouldBe(1);
+        sheet.PseudoElementRules[0].Type.ShouldBe(PseudoElementType.After);
+        sheet.PseudoElementRules[0].Style.Width.ShouldBe(Length.Px(20));
+    }
+
+    [Fact]
+    public void CssObject_NestedPseudoElement_ShouldRegisterPseudoElementRules()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".btn"] = new CssObject
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                Width = Length.Px(500),
+                Height = Length.Px(100),
+                ["&::after"] = new CssObject
+                {
+                    Content = "X",
+                    Display = Display.Block,
+                    Width = Length.Px(20),
+                    Height = Length.Px(20),
+                    MarginLeft = Length.Auto
+                }
+            }
+        });
+
+        sheet.PseudoElementRules.Count.ShouldBe(1);
+        sheet.PseudoElementRules[0].Type.ShouldBe(PseudoElementType.After);
+        sheet.PseudoElementRules[0].Style.MarginLeft.ShouldBe(Length.Auto);
+    }
+
+    [Fact]
+    public void CssObject_PseudoElement_MarginLeftAutoAndAlignCenter_ShouldWork()
+    {
+        var root = new DivElement { Class = "btn" };
+
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".btn"] = new CssObject
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                Width = Length.Px(500),
+                Height = Length.Px(100),
+                ["&::after"] = new CssObject
+                {
+                    Content = "X",
+                    Display = Display.Block,
+                    Width = Length.Px(20),
+                    Height = Length.Px(20),
+                    MarginLeft = Length.Auto
+                }
+            }
+        });
+
+        var engine = new LayoutEngine();
+        var layoutRoot = engine.Layout(root, [sheet], 800, 600);
+
+        layoutRoot.Children.Count.ShouldBe(1);
+        var pseudoBox = layoutRoot.Children[0];
+        pseudoBox.Element.ShouldBeOfType<PseudoElement>();
+
+        // margin-left: auto 应该把伪元素推到右侧: 500 - 20 = 480
+        pseudoBox.BoxModel.Content.X.ShouldBe(480);
+        // align-items: center 应该让伪元素垂直居中: (100 - 20) / 2 = 40
+        pseudoBox.BoxModel.Content.Y.ShouldBe(40);
+    }
 }

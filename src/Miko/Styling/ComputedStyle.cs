@@ -68,6 +68,9 @@ public class ComputedStyle : Style
 
     public new Color BackgroundColor { get; set; } = Color.Transparent;
     public new BackgroundImage? BackgroundImage { get; set; }
+    public new BackgroundRepeat BackgroundRepeat { get; set; } = Common.BackgroundRepeat.Repeat;
+    public new BackgroundSize BackgroundSize { get; set; } = Common.BackgroundSize.Auto;
+    public new BackgroundPosition BackgroundPosition { get; set; } = Common.BackgroundPosition.LeftTop;
     public new Color Color { get; set; } = Color.Black;
     public new string FontFamily { get; set; } = "Arial";
     public new Length FontSize { get; set; } = Length.Px(16);
@@ -209,6 +212,9 @@ public class ComputedStyle : Style
 
             if (style.BackgroundColor.HasValue) computed.BackgroundColor = style.BackgroundColor.Value;
             if (style.BackgroundImage != null) computed.BackgroundImage = style.BackgroundImage;
+            if (style.BackgroundRepeat.HasValue) computed.BackgroundRepeat = style.BackgroundRepeat.Value;
+            if (style.BackgroundSize.HasValue) computed.BackgroundSize = style.BackgroundSize.Value;
+            if (style.BackgroundPosition.HasValue) computed.BackgroundPosition = style.BackgroundPosition.Value;
             if (style.Color.HasValue) computed.Color = style.Color.Value;
             if (style.FontFamily != null) computed.FontFamily = style.FontFamily;
             if (style.FontSize.HasValue) computed.FontSize = style.FontSize.Value;

@@ -358,6 +358,12 @@ public class Painter
         _canvas.ClipRect(rect.ToSKRect());
     }
 
+    public void SaveClip(RectF rect)
+    {
+        _canvas.Save();
+        _canvas.ClipRect(rect.ToSKRect());
+    }
+
     /// <summary>
     /// 清空画布
     /// </summary>

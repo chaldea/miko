@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core.DomElements;
 using Miko.Layout;
+using Miko.Styling;
 using SkiaSharp;
 
 namespace Miko.Rendering;
@@ -243,7 +244,115 @@ public class RenderEngine
 
         if (style.BackgroundImage?.Bitmap != null)
         {
-            _painter.DrawImage(style.BackgroundImage.Bitmap, box.BoxModel.PaddingBox);
+            RenderBackgroundImage(style, box.BoxModel.PaddingBox);
+        }
+    }
+
+    private void RenderBackgroundImage(ComputedStyle style, RectF area)
+    {
+        var bgImage = style.BackgroundImage!;
+        var bitmap = bgImage.Bitmap!;
+        var imgWidth = bgImage.OriginalWidth;
+        var imgHeight = bgImage.OriginalHeight;
+
+        float drawWidth, drawHeight;
+        switch (style.BackgroundSize.Mode)
+        {
+            case BackgroundSizeMode.Cover:
+                var coverScale = Math.Max(area.Width / imgWidth, area.Height / imgHeight);
+                drawWidth = imgWidth * coverScale;
+                drawHeight = imgHeight * coverScale;
+                break;
+            case BackgroundSizeMode.Contain:
+                var containScale = Math.Min(area.Width / imgWidth, area.Height / imgHeight);
+                drawWidth = imgWidth * containScale;
+                drawHeight = imgHeight * containScale;
+                break;
+            case BackgroundSizeMode.Explicit:
+                drawWidth = style.BackgroundSize.ResolveWidth(area.Width, imgWidth);
+                drawHeight = style.BackgroundSize.ResolveHeight(area.Height, imgHeight);
+                break;
+            default:
+                drawWidth = imgWidth;
+                drawHeight = imgHeight;
+                break;
+        }
+
+        float startX = area.X, startY = area.Y;
+        switch (style.BackgroundPosition)
+        {
+            case BackgroundPosition.CenterTop:
+            case BackgroundPosition.Center:
+            case BackgroundPosition.CenterBottom:
+                startX = area.X + (area.Width - drawWidth) / 2;
+                break;
+            case BackgroundPosition.RightTop:
+            case BackgroundPosition.RightCenter:
+            case BackgroundPosition.RightBottom:
+                startX = area.X + area.Width - drawWidth;
+                break;
+        }
+        switch (style.BackgroundPosition)
+        {
+            case BackgroundPosition.LeftCenter:
+            case BackgroundPosition.Center:
+            case BackgroundPosition.RightCenter:
+                startY = area.Y + (area.Height - drawHeight) / 2;
+                break;
+            case BackgroundPosition.LeftBottom:
+            case BackgroundPosition.CenterBottom:
+            case BackgroundPosition.RightBottom:
+                startY = area.Y + area.Height - drawHeight;
+                break;
+        }
+
+        var renderBitmap = (drawWidth != imgWidth || drawHeight != imgHeight)
+            ? bgImage.RenderAtSize((int)drawWidth, (int)drawHeight) ?? bitmap
+            : bitmap;
+
+        _painter!.SaveClip(area);
+
+        switch (style.BackgroundRepeat)
+        {
+            case BackgroundRepeat.Repeat:
+                TileImage(renderBitmap, area, startX, startY, drawWidth, drawHeight, true, true);
+                break;
+            case BackgroundRepeat.RepeatX:
+                TileImage(renderBitmap, area, startX, startY, drawWidth, drawHeight, true, false);
+                break;
+            case BackgroundRepeat.RepeatY:
+                TileImage(renderBitmap, area, startX, startY, drawWidth, drawHeight, false, true);
+                break;
+            case BackgroundRepeat.NoRepeat:
+                _painter.DrawImage(renderBitmap, new RectF(startX, startY, drawWidth, drawHeight));
+                break;
+        }
+
+        _painter.Restore();
+    }
+
+    private void TileImage(SKBitmap bitmap, RectF area, float startX, float startY, float tileW, float tileH, bool repeatX, bool repeatY)
+    {
+        float originX = startX;
+        if (repeatX)
+        {
+            while (originX > area.X) originX -= tileW;
+        }
+        float originY = startY;
+        if (repeatY)
+        {
+            while (originY > area.Y) originY -= tileH;
+        }
+
+        float endX = repeatX ? area.Right : originX + tileW;
+        float endY = repeatY ? area.Bottom : originY + tileH;
+
+        for (float y = originY; y < endY; y += tileH)
+        {
+            for (float x = originX; x < endX; x += tileW)
+            {
+                _painter!.DrawImage(bitmap, new RectF(x, y, tileW, tileH));
+            }
         }
     }
 
