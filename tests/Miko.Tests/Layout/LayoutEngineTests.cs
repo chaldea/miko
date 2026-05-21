@@ -211,6 +211,140 @@ public class LayoutEngineTests
         layoutChild.BoxModel.Content.Y.ShouldBe(10);
     }
 
+    [Fact]
+    public void BlockLayout_MarginLeftAuto_ShouldPushElementToRight()
+    {
+        // Arrange
+        var root = new DivElement { Class = "root" };
+        var child = new DivElement { Class = "child" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style { Display = Display.Block }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Width = Length.Px(200),
+                            MarginLeft = Length.Auto
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        var layoutChild = layoutRoot.Children[0];
+        // margin-left: auto 应该占据剩余空间 (800 - 200 = 600)
+        layoutChild.BoxModel.Margin.Left.ShouldBe(600);
+        layoutChild.BoxModel.Content.X.ShouldBe(600);
+        layoutChild.BoxModel.Content.Width.ShouldBe(200);
+    }
+
+    [Fact]
+    public void BlockLayout_MarginLeftAndRightAuto_ShouldCenterElement()
+    {
+        // Arrange
+        var root = new DivElement { Class = "root" };
+        var child = new DivElement { Class = "child" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style { Display = Display.Block }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Width = Length.Px(200),
+                            MarginLeft = Length.Auto,
+                            MarginRight = Length.Auto
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        var layoutChild = layoutRoot.Children[0];
+        // margin-left: auto; margin-right: auto 应该居中 (800 - 200) / 2 = 300
+        layoutChild.BoxModel.Margin.Left.ShouldBe(300);
+        layoutChild.BoxModel.Margin.Right.ShouldBe(300);
+        layoutChild.BoxModel.Content.X.ShouldBe(300);
+        layoutChild.BoxModel.Content.Width.ShouldBe(200);
+    }
+
+    [Fact]
+    public void BlockLayout_MarginRightAuto_ShouldKeepElementOnLeft()
+    {
+        // Arrange
+        var root = new DivElement { Class = "root" };
+        var child = new DivElement { Class = "child" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style { Display = Display.Block }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Width = Length.Px(200),
+                            MarginRight = Length.Auto
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        var layoutChild = layoutRoot.Children[0];
+        // margin-right: auto 应该占据剩余空间，元素保持在左侧
+        layoutChild.BoxModel.Margin.Right.ShouldBe(600);
+        layoutChild.BoxModel.Content.X.ShouldBe(0);
+        layoutChild.BoxModel.Content.Width.ShouldBe(200);
+    }
+
     #endregion
 
     #region Display.Flex Tests
@@ -676,6 +810,223 @@ public class LayoutEngineTests
         // btn-lg: padding-left=16, padding-right=16, total horizontal padding=32
         box1.BorderBox.Width.ShouldBeLessThan(box2.BorderBox.Width);
         box2.BorderBox.Width.ShouldBeLessThan(box3.BorderBox.Width);
+    }
+
+    [Fact]
+    public void FlexLayout_Row_AlignItemsCenter_ShouldCenterChildVertically()
+    {
+        // Arrange
+        var root = new DivElement { Class = "container" };
+        var child = new DivElement { Class = "item" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            AlignItems = AlignItems.Center,
+                            Width = Length.Px(500),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(20),
+                            Height = Length.Px(20)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        var layoutChild = layoutRoot.Children[0];
+        // 子元素应该垂直居中: (100 - 20) / 2 = 40
+        layoutChild.BoxModel.Content.Y.ShouldBe(40);
+        layoutChild.BoxModel.Content.Height.ShouldBe(20);
+    }
+
+    [Fact]
+    public void FlexLayout_Row_MarginLeftAuto_ShouldPushItemToRight()
+    {
+        // Arrange
+        var root = new DivElement { Class = "container" };
+        var child1 = new DivElement { Class = "item1" };
+        var child2 = new DivElement { Class = "item2" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(800)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item1"),
+                        Style = new Style { Width = Length.Px(100) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item2"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(100),
+                            MarginLeft = Length.Auto
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+
+        // item1 应该在左侧
+        layoutChild1.BoxModel.Content.X.ShouldBe(0);
+        layoutChild1.BoxModel.Content.Width.ShouldBe(100);
+
+        // item2 应该被推到右侧 (800 - 100 - 100 = 600 的 margin-left)
+        layoutChild2.BoxModel.Content.X.ShouldBe(700);
+        layoutChild2.BoxModel.Content.Width.ShouldBe(100);
+    }
+
+    [Fact]
+    public void FlexLayout_Row_MarginLeftAndRightAuto_ShouldCenterItem()
+    {
+        // Arrange
+        var root = new DivElement { Class = "container" };
+        var child = new DivElement { Class = "item" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(800)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(200),
+                            MarginLeft = Length.Auto,
+                            MarginRight = Length.Auto
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        var layoutChild = layoutRoot.Children[0];
+
+        // item 应该居中 (800 - 200) / 2 = 300
+        layoutChild.BoxModel.Content.X.ShouldBe(300);
+        layoutChild.BoxModel.Content.Width.ShouldBe(200);
+    }
+
+    [Fact]
+    public void FlexLayout_Column_MarginTopAuto_ShouldPushItemToBottom()
+    {
+        // Arrange
+        var root = new DivElement { Class = "container" };
+        var child1 = new DivElement { Class = "item1" };
+        var child2 = new DivElement { Class = "item2" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column,
+                            Height = Length.Px(600)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item1"),
+                        Style = new Style { Height = Length.Px(100) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item2"),
+                        Style = new Style
+                        {
+                            Height = Length.Px(100),
+                            MarginTop = Length.Auto
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert
+        var layoutChild1 = layoutRoot.Children[0];
+        var layoutChild2 = layoutRoot.Children[1];
+
+        // item1 应该在顶部
+        layoutChild1.BoxModel.Content.Y.ShouldBe(0);
+        layoutChild1.BoxModel.Content.Height.ShouldBe(100);
+
+        // item2 应该被推到底部 (600 - 100 - 100 = 400 的 margin-top)
+        layoutChild2.BoxModel.Content.Y.ShouldBe(500);
+        layoutChild2.BoxModel.Content.Height.ShouldBe(100);
     }
 
     #endregion
