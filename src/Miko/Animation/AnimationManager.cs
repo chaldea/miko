@@ -47,6 +47,7 @@ public class AnimationManager
     private readonly Dictionary<string, KeyframeAnimation> _registeredAnimations = new();
     private readonly Dictionary<Element, Dictionary<string, float>> _previousValues = new();
     private readonly Dictionary<Element, Dictionary<string, Color>> _previousColors = new();
+    private readonly HashSet<(Element, string)> _recentlyCompleted = new();
     private ILogger _logger = NullLogger.Instance;
 
     public AnimationManager() { }
@@ -56,6 +57,8 @@ public class AnimationManager
     public void SetLogger(ILogger logger) => _logger = logger;
 
     public bool HasActiveAnimations => _transitions.Count > 0 || _animations.Count > 0;
+
+    public int ActiveTransitionCount => _transitions.Count;
 
     public void Clear()
     {
@@ -113,12 +116,19 @@ public class AnimationManager
         }
     }
 
+    public bool HasActiveTransition(Element element, string property)
+    {
+        if (_recentlyCompleted.Contains((element, property))) return true;
+        return _transitions.Any(t => t.Element == element && t.Property.PropertyName == property);
+    }
+
     public void TrackPropertyChange(Element element, string property, float oldValue, float newValue, Transition transition)
     {
         if (MathF.Abs(oldValue - newValue) < 1e-6f) return;
 
         _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == property);
 
+        var applier = GetFloatApplier(property);
         var activeTransition = new ActiveTransition
         {
             Element = element,
@@ -133,10 +143,14 @@ public class AnimationManager
             TimingFunction = transition.TimingFunction,
             CubicBezier = transition.CubicBezier,
             ElapsedTime = 0,
-            ApplyFloat = GetFloatApplier(property)
+            ApplyFloat = applier
         };
 
         _transitions.Add(activeTransition);
+
+        // 立即应用起始值，避免首帧渲染目标值导致闪烁
+        applier?.Invoke(element, oldValue);
+
         _logger.LogDebug("Transition started: \"{Property}\" {OldValue} -> {NewValue} on <{Tag} id=\"{Id}\">, duration={Duration}s, delay={Delay}s",
             property, oldValue, newValue, element.TagName, element.Id ?? "", transition.Duration, transition.Delay);
     }
@@ -148,6 +162,7 @@ public class AnimationManager
 
         _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == property);
 
+        var applier = GetColorApplier(property);
         var activeTransition = new ActiveTransition
         {
             Element = element,
@@ -162,18 +177,20 @@ public class AnimationManager
             TimingFunction = transition.TimingFunction,
             CubicBezier = transition.CubicBezier,
             ElapsedTime = 0,
-            ApplyColor = GetColorApplier(property)
+            ApplyColor = applier
         };
 
         _transitions.Add(activeTransition);
+
+        applier?.Invoke(element, oldColor);
+
         _logger.LogDebug("Color transition started: \"{Property}\" {OldColor} -> {NewColor} on <{Tag} id=\"{Id}\">, duration={Duration}s",
             property, oldColor, newColor, element.TagName, element.Id ?? "", transition.Duration);
     }
 
     public void Update(float deltaTime)
     {
-        // _logger.LogTrace("AnimationManager.Update: deltaTime={DeltaTime}s, transitions={TransitionCount}, animations={AnimationCount}",
-        //     deltaTime, _transitions.Count, _animations.Count);
+        _recentlyCompleted.Clear();
         UpdateTransitions(deltaTime);
         UpdateAnimations(deltaTime);
     }
@@ -206,6 +223,7 @@ public class AnimationManager
 
             if (transition.IsComplete)
             {
+                _recentlyCompleted.Add((transition.Element, transition.Property.PropertyName));
                 _transitions.RemoveAt(i);
                 _logger.LogDebug("Transition completed: \"{Property}\" on <{Tag} id=\"{Id}\">",
                     transition.Property.PropertyName, transition.Element.TagName, transition.Element.Id ?? "");
@@ -416,6 +434,10 @@ public class AnimationManager
             nameof(Style.Opacity) => (e, v) => { e.Style ??= new Style(); e.Style.Opacity = v; },
             nameof(Style.Width) => (e, v) => { e.Style ??= new Style(); e.Style.Width = Length.Px(v); },
             nameof(Style.Height) => (e, v) => { e.Style ??= new Style(); e.Style.Height = Length.Px(v); },
+            nameof(Style.MaxWidth) => (e, v) => { e.Style ??= new Style(); e.Style.MaxWidth = Length.Px(v); },
+            nameof(Style.MaxHeight) => (e, v) => { e.Style ??= new Style(); e.Style.MaxHeight = Length.Px(v); },
+            nameof(Style.MinWidth) => (e, v) => { e.Style ??= new Style(); e.Style.MinWidth = Length.Px(v); },
+            nameof(Style.MinHeight) => (e, v) => { e.Style ??= new Style(); e.Style.MinHeight = Length.Px(v); },
             nameof(Style.MarginTop) => (e, v) => { e.Style ??= new Style(); e.Style.MarginTop = Length.Px(v); },
             nameof(Style.MarginRight) => (e, v) => { e.Style ??= new Style(); e.Style.MarginRight = Length.Px(v); },
             nameof(Style.MarginBottom) => (e, v) => { e.Style ??= new Style(); e.Style.MarginBottom = Length.Px(v); },
@@ -432,6 +454,10 @@ public class AnimationManager
             nameof(Style.BorderWidth) => (e, v) => { e.Style ??= new Style(); e.Style.BorderWidth = Length.Px(v); },
             nameof(Style.FlexGrow) => (e, v) => { e.Style ??= new Style(); e.Style.FlexGrow = v; },
             nameof(Style.FlexShrink) => (e, v) => { e.Style ??= new Style(); e.Style.FlexShrink = v; },
+            nameof(Style.BorderTopLeftRadius) => (e, v) => { e.Style ??= new Style(); e.Style.BorderTopLeftRadius = Length.Px(v); },
+            nameof(Style.BorderTopRightRadius) => (e, v) => { e.Style ??= new Style(); e.Style.BorderTopRightRadius = Length.Px(v); },
+            nameof(Style.BorderBottomRightRadius) => (e, v) => { e.Style ??= new Style(); e.Style.BorderBottomRightRadius = Length.Px(v); },
+            nameof(Style.BorderBottomLeftRadius) => (e, v) => { e.Style ??= new Style(); e.Style.BorderBottomLeftRadius = Length.Px(v); },
             _ => null
         };
     }

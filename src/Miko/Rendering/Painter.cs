@@ -72,14 +72,23 @@ public class Painter
                 break;
         }
 
+        // 将绘制矩形向内收缩半个边框宽度，使描边完全在 BorderBox 内部
+        float halfWidth = width / 2;
+        var insetRect = new SKRect(
+            rect.Left + halfWidth,
+            rect.Top + halfWidth,
+            rect.Right - halfWidth,
+            rect.Bottom - halfWidth
+        );
+
         if (topLeftRadius > 0 || topRightRadius > 0 || bottomRightRadius > 0 || bottomLeftRadius > 0)
         {
-            using var path = CreateRoundRectPath(rect.ToSKRect(), topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius);
+            using var path = CreateRoundRectPath(insetRect, topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius);
             _canvas.DrawPath(path, paint);
         }
         else
         {
-            _canvas.DrawRect(rect.ToSKRect(), paint);
+            _canvas.DrawRect(insetRect, paint);
         }
     }
 
@@ -100,11 +109,11 @@ public class Painter
             return;
         }
 
-        // 分别绘制每条边
-        DrawTopBorder(rect, top, topLeftRadius, topRightRadius);
-        DrawRightBorder(rect, right, topRightRadius, bottomRightRadius);
-        DrawBottomBorder(rect, bottom, bottomRightRadius, bottomLeftRadius);
-        DrawLeftBorder(rect, left, bottomLeftRadius, topLeftRadius);
+        // 分别绘制每条边（含圆角弧线）
+        DrawTopBorder(rect, top, left, right, topLeftRadius, topRightRadius);
+        DrawRightBorder(rect, right, top, bottom, topRightRadius, bottomRightRadius);
+        DrawBottomBorder(rect, bottom, right, left, bottomRightRadius, bottomLeftRadius);
+        DrawLeftBorder(rect, left, bottom, top, bottomLeftRadius, topLeftRadius);
     }
 
     /// <summary>
@@ -126,30 +135,40 @@ public class Painter
     /// <summary>
     /// 绘制上边框
     /// </summary>
-    private void DrawTopBorder(RectF rect, BorderSide border, float leftRadius, float rightRadius)
+    private void DrawTopBorder(RectF rect, BorderSide border, BorderSide leftBorder, BorderSide rightBorder, float leftRadius, float rightRadius)
     {
         if (!border.IsVisible) return;
 
         using var paint = CreateBorderPaint(border);
         float halfWidth = border.Width.Value / 2;
 
+        float insetTop = rect.Top + halfWidth;
+        float insetLeft = rect.Left + halfWidth;
+        float insetRight = rect.Right - halfWidth;
+
         using var path = new SKPath();
+
         if (leftRadius > 0)
         {
-            path.MoveTo(rect.Left + leftRadius, rect.Top + halfWidth);
+            float arcRadius = Math.Max(0, leftRadius - halfWidth);
+            path.MoveTo(insetLeft + arcRadius, insetTop);
         }
         else
         {
-            path.MoveTo(rect.Left + halfWidth, rect.Top + halfWidth);
+            path.MoveTo(insetLeft, insetTop);
         }
 
         if (rightRadius > 0)
         {
-            path.LineTo(rect.Right - rightRadius, rect.Top + halfWidth);
+            float arcRadius = Math.Max(0, rightRadius - halfWidth);
+            path.LineTo(insetRight - arcRadius, insetTop);
+            path.ArcTo(
+                new SKRect(insetRight - arcRadius * 2, insetTop, insetRight, insetTop + arcRadius * 2),
+                270, 90, false);
         }
         else
         {
-            path.LineTo(rect.Right - halfWidth, rect.Top + halfWidth);
+            path.LineTo(insetRight, insetTop);
         }
 
         _canvas.DrawPath(path, paint);
@@ -158,30 +177,40 @@ public class Painter
     /// <summary>
     /// 绘制右边框
     /// </summary>
-    private void DrawRightBorder(RectF rect, BorderSide border, float topRadius, float bottomRadius)
+    private void DrawRightBorder(RectF rect, BorderSide border, BorderSide topBorder, BorderSide bottomBorder, float topRadius, float bottomRadius)
     {
         if (!border.IsVisible) return;
 
         using var paint = CreateBorderPaint(border);
         float halfWidth = border.Width.Value / 2;
 
+        float insetRight = rect.Right - halfWidth;
+        float insetTop = rect.Top + halfWidth;
+        float insetBottom = rect.Bottom - halfWidth;
+
         using var path = new SKPath();
+
         if (topRadius > 0)
         {
-            path.MoveTo(rect.Right - halfWidth, rect.Top + topRadius);
+            float arcRadius = Math.Max(0, topRadius - halfWidth);
+            path.MoveTo(insetRight, insetTop + arcRadius);
         }
         else
         {
-            path.MoveTo(rect.Right - halfWidth, rect.Top + halfWidth);
+            path.MoveTo(insetRight, insetTop);
         }
 
         if (bottomRadius > 0)
         {
-            path.LineTo(rect.Right - halfWidth, rect.Bottom - bottomRadius);
+            float arcRadius = Math.Max(0, bottomRadius - halfWidth);
+            path.LineTo(insetRight, insetBottom - arcRadius);
+            path.ArcTo(
+                new SKRect(insetRight - arcRadius * 2, insetBottom - arcRadius * 2, insetRight, insetBottom),
+                0, 90, false);
         }
         else
         {
-            path.LineTo(rect.Right - halfWidth, rect.Bottom - halfWidth);
+            path.LineTo(insetRight, insetBottom);
         }
 
         _canvas.DrawPath(path, paint);
@@ -190,30 +219,40 @@ public class Painter
     /// <summary>
     /// 绘制下边框
     /// </summary>
-    private void DrawBottomBorder(RectF rect, BorderSide border, float rightRadius, float leftRadius)
+    private void DrawBottomBorder(RectF rect, BorderSide border, BorderSide rightBorder, BorderSide leftBorder, float rightRadius, float leftRadius)
     {
         if (!border.IsVisible) return;
 
         using var paint = CreateBorderPaint(border);
         float halfWidth = border.Width.Value / 2;
 
+        float insetBottom = rect.Bottom - halfWidth;
+        float insetLeft = rect.Left + halfWidth;
+        float insetRight = rect.Right - halfWidth;
+
         using var path = new SKPath();
+
         if (rightRadius > 0)
         {
-            path.MoveTo(rect.Right - rightRadius, rect.Bottom - halfWidth);
+            float arcRadius = Math.Max(0, rightRadius - halfWidth);
+            path.MoveTo(insetRight - arcRadius, insetBottom);
         }
         else
         {
-            path.MoveTo(rect.Right - halfWidth, rect.Bottom - halfWidth);
+            path.MoveTo(insetRight, insetBottom);
         }
 
         if (leftRadius > 0)
         {
-            path.LineTo(rect.Left + leftRadius, rect.Bottom - halfWidth);
+            float arcRadius = Math.Max(0, leftRadius - halfWidth);
+            path.LineTo(insetLeft + arcRadius, insetBottom);
+            path.ArcTo(
+                new SKRect(insetLeft, insetBottom - arcRadius * 2, insetLeft + arcRadius * 2, insetBottom),
+                90, 90, false);
         }
         else
         {
-            path.LineTo(rect.Left + halfWidth, rect.Bottom - halfWidth);
+            path.LineTo(insetLeft, insetBottom);
         }
 
         _canvas.DrawPath(path, paint);
@@ -222,30 +261,40 @@ public class Painter
     /// <summary>
     /// 绘制左边框
     /// </summary>
-    private void DrawLeftBorder(RectF rect, BorderSide border, float bottomRadius, float topRadius)
+    private void DrawLeftBorder(RectF rect, BorderSide border, BorderSide bottomBorder, BorderSide topBorder, float bottomRadius, float topRadius)
     {
         if (!border.IsVisible) return;
 
         using var paint = CreateBorderPaint(border);
         float halfWidth = border.Width.Value / 2;
 
+        float insetLeft = rect.Left + halfWidth;
+        float insetTop = rect.Top + halfWidth;
+        float insetBottom = rect.Bottom - halfWidth;
+
         using var path = new SKPath();
+
         if (bottomRadius > 0)
         {
-            path.MoveTo(rect.Left + halfWidth, rect.Bottom - bottomRadius);
+            float arcRadius = Math.Max(0, bottomRadius - halfWidth);
+            path.MoveTo(insetLeft, insetBottom - arcRadius);
         }
         else
         {
-            path.MoveTo(rect.Left + halfWidth, rect.Bottom - halfWidth);
+            path.MoveTo(insetLeft, insetBottom);
         }
 
         if (topRadius > 0)
         {
-            path.LineTo(rect.Left + halfWidth, rect.Top + topRadius);
+            float arcRadius = Math.Max(0, topRadius - halfWidth);
+            path.LineTo(insetLeft, insetTop + arcRadius);
+            path.ArcTo(
+                new SKRect(insetLeft, insetTop, insetLeft + arcRadius * 2, insetTop + arcRadius * 2),
+                180, 90, false);
         }
         else
         {
-            path.LineTo(rect.Left + halfWidth, rect.Top + halfWidth);
+            path.LineTo(insetLeft, insetTop);
         }
 
         _canvas.DrawPath(path, paint);
