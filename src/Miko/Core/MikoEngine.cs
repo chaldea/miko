@@ -89,8 +89,18 @@ public class MikoEngine
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
         _renderEngine.SetCanvas(canvas);
+
+        var oldStyles = CaptureTransitionableStyles(_root);
         var oldLayout = _currentLayout;
         _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
+
+        bool transitionsTriggered = DetectAndTriggerTransitions(_root, oldStyles);
+        if (transitionsTriggered)
+        {
+            // 重新布局，使用 transition 起始值（已写入 inline style）
+            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
+        }
+
         RestoreScrollState(oldLayout, _currentLayout);
         _renderEngine.Render(_currentLayout);
         _dirtyManager.Clear();
@@ -236,6 +246,149 @@ public class MikoEngine
         }
 
         return box.Element;
+    }
+
+    private record struct StyleSnapshot(
+        float MaxWidth, float MaxHeight,
+        float Width, float Height,
+        float PaddingTop, float PaddingRight, float PaddingBottom, float PaddingLeft,
+        float MarginTop, float MarginRight, float MarginBottom, float MarginLeft,
+        float Opacity, float FontSize, float BorderWidth,
+        float BorderTopLeftRadius, float BorderTopRightRadius, float BorderBottomRightRadius, float BorderBottomLeftRadius,
+        Color BackgroundColor, Color Color, Color BorderColor);
+
+    private Dictionary<Element, (StyleSnapshot snapshot, List<Transition> transitions)> CaptureTransitionableStyles(Element root)
+    {
+        var result = new Dictionary<Element, (StyleSnapshot, List<Transition>)>();
+        CaptureRecursive(root, result);
+        return result;
+    }
+
+    private static void CaptureRecursive(Element element, Dictionary<Element, (StyleSnapshot, List<Transition>)> result)
+    {
+        var layoutBox = element.LayoutBox;
+        if (layoutBox != null && layoutBox.ComputedStyle.Transitions.Count > 0)
+        {
+            var cs = layoutBox.ComputedStyle;
+            var snapshot = new StyleSnapshot(
+                cs.MaxWidth.IsAuto ? float.MaxValue : cs.MaxWidth.Value,
+                cs.MaxHeight.IsAuto ? float.MaxValue : cs.MaxHeight.Value,
+                cs.Width.IsAuto ? float.NaN : cs.Width.Value,
+                cs.Height.IsAuto ? float.NaN : cs.Height.Value,
+                cs.PaddingTop.Value, cs.PaddingRight.Value, cs.PaddingBottom.Value, cs.PaddingLeft.Value,
+                cs.MarginTop.Value, cs.MarginRight.Value, cs.MarginBottom.Value, cs.MarginLeft.Value,
+                cs.Opacity, cs.FontSize.Value, cs.BorderTopWidth.Value,
+                cs.BorderTopLeftRadius.Value, cs.BorderTopRightRadius.Value,
+                cs.BorderBottomRightRadius.Value, cs.BorderBottomLeftRadius.Value,
+                cs.BackgroundColor, cs.Color, cs.BorderTopColor);
+            result[element] = (snapshot, cs.Transitions);
+        }
+
+        foreach (var child in element.Children)
+            CaptureRecursive(child, result);
+    }
+
+    private bool DetectAndTriggerTransitions(Element root, Dictionary<Element, (StyleSnapshot snapshot, List<Transition> transitions)> oldStyles)
+    {
+        if (oldStyles.Count == 0) return false;
+        int before = _animationManager.ActiveTransitionCount;
+        DetectTransitionsRecursive(root, oldStyles);
+        return _animationManager.ActiveTransitionCount > before;
+    }
+
+    private void DetectTransitionsRecursive(Element element, Dictionary<Element, (StyleSnapshot snapshot, List<Transition> transitions)> oldStyles)
+    {
+        if (oldStyles.TryGetValue(element, out var old) && element.LayoutBox != null)
+        {
+            var cs = element.LayoutBox.ComputedStyle;
+            var newSnapshot = new StyleSnapshot(
+                cs.MaxWidth.IsAuto ? float.MaxValue : cs.MaxWidth.Value,
+                cs.MaxHeight.IsAuto ? float.MaxValue : cs.MaxHeight.Value,
+                cs.Width.IsAuto ? float.NaN : cs.Width.Value,
+                cs.Height.IsAuto ? float.NaN : cs.Height.Value,
+                cs.PaddingTop.Value, cs.PaddingRight.Value, cs.PaddingBottom.Value, cs.PaddingLeft.Value,
+                cs.MarginTop.Value, cs.MarginRight.Value, cs.MarginBottom.Value, cs.MarginLeft.Value,
+                cs.Opacity, cs.FontSize.Value, cs.BorderTopWidth.Value,
+                cs.BorderTopLeftRadius.Value, cs.BorderTopRightRadius.Value,
+                cs.BorderBottomRightRadius.Value, cs.BorderBottomLeftRadius.Value,
+                cs.BackgroundColor, cs.Color, cs.BorderTopColor);
+
+            foreach (var transition in old.transitions)
+            {
+                TriggerPropertyTransitions(element, transition, old.snapshot, newSnapshot);
+            }
+        }
+
+        foreach (var child in element.Children)
+            DetectTransitionsRecursive(child, oldStyles);
+    }
+
+    private void TriggerPropertyTransitions(Element element, Transition transition, StyleSnapshot oldSnap, StyleSnapshot newSnap)
+    {
+        var prop = transition.Property;
+
+        if (prop == "all" || prop == nameof(Style.MaxHeight))
+            TryTrackFloat(element, nameof(Style.MaxHeight), oldSnap.MaxHeight, newSnap.MaxHeight, transition);
+        if (prop == "all" || prop == nameof(Style.MaxWidth))
+            TryTrackFloat(element, nameof(Style.MaxWidth), oldSnap.MaxWidth, newSnap.MaxWidth, transition);
+        if (prop == "all" || prop == nameof(Style.Width))
+            TryTrackFloat(element, nameof(Style.Width), oldSnap.Width, newSnap.Width, transition);
+        if (prop == "all" || prop == nameof(Style.Height))
+            TryTrackFloat(element, nameof(Style.Height), oldSnap.Height, newSnap.Height, transition);
+        if (prop == "all" || prop == nameof(Style.Opacity))
+            TryTrackFloat(element, nameof(Style.Opacity), oldSnap.Opacity, newSnap.Opacity, transition);
+        if (prop == "all" || prop == nameof(Style.FontSize))
+            TryTrackFloat(element, nameof(Style.FontSize), oldSnap.FontSize, newSnap.FontSize, transition);
+        if (prop == "all" || prop == nameof(Style.BorderWidth))
+            TryTrackFloat(element, nameof(Style.BorderWidth), oldSnap.BorderWidth, newSnap.BorderWidth, transition);
+
+        if (prop == "all" || prop == nameof(Style.PaddingTop) || prop == nameof(Style.Padding))
+            TryTrackFloat(element, nameof(Style.PaddingTop), oldSnap.PaddingTop, newSnap.PaddingTop, transition);
+        if (prop == "all" || prop == nameof(Style.PaddingRight) || prop == nameof(Style.Padding))
+            TryTrackFloat(element, nameof(Style.PaddingRight), oldSnap.PaddingRight, newSnap.PaddingRight, transition);
+        if (prop == "all" || prop == nameof(Style.PaddingBottom) || prop == nameof(Style.Padding))
+            TryTrackFloat(element, nameof(Style.PaddingBottom), oldSnap.PaddingBottom, newSnap.PaddingBottom, transition);
+        if (prop == "all" || prop == nameof(Style.PaddingLeft) || prop == nameof(Style.Padding))
+            TryTrackFloat(element, nameof(Style.PaddingLeft), oldSnap.PaddingLeft, newSnap.PaddingLeft, transition);
+
+        if (prop == "all" || prop == nameof(Style.MarginTop) || prop == nameof(Style.Margin))
+            TryTrackFloat(element, nameof(Style.MarginTop), oldSnap.MarginTop, newSnap.MarginTop, transition);
+        if (prop == "all" || prop == nameof(Style.MarginRight) || prop == nameof(Style.Margin))
+            TryTrackFloat(element, nameof(Style.MarginRight), oldSnap.MarginRight, newSnap.MarginRight, transition);
+        if (prop == "all" || prop == nameof(Style.MarginBottom) || prop == nameof(Style.Margin))
+            TryTrackFloat(element, nameof(Style.MarginBottom), oldSnap.MarginBottom, newSnap.MarginBottom, transition);
+        if (prop == "all" || prop == nameof(Style.MarginLeft) || prop == nameof(Style.Margin))
+            TryTrackFloat(element, nameof(Style.MarginLeft), oldSnap.MarginLeft, newSnap.MarginLeft, transition);
+
+        if (prop == "all" || prop == nameof(Style.BorderTopLeftRadius))
+            TryTrackFloat(element, nameof(Style.BorderTopLeftRadius), oldSnap.BorderTopLeftRadius, newSnap.BorderTopLeftRadius, transition);
+        if (prop == "all" || prop == nameof(Style.BorderTopRightRadius))
+            TryTrackFloat(element, nameof(Style.BorderTopRightRadius), oldSnap.BorderTopRightRadius, newSnap.BorderTopRightRadius, transition);
+        if (prop == "all" || prop == nameof(Style.BorderBottomRightRadius))
+            TryTrackFloat(element, nameof(Style.BorderBottomRightRadius), oldSnap.BorderBottomRightRadius, newSnap.BorderBottomRightRadius, transition);
+        if (prop == "all" || prop == nameof(Style.BorderBottomLeftRadius))
+            TryTrackFloat(element, nameof(Style.BorderBottomLeftRadius), oldSnap.BorderBottomLeftRadius, newSnap.BorderBottomLeftRadius, transition);
+
+        if (prop == "all" || prop == nameof(Style.BackgroundColor))
+            TryTrackColor(element, nameof(Style.BackgroundColor), oldSnap.BackgroundColor, newSnap.BackgroundColor, transition);
+        if (prop == "all" || prop == nameof(Style.Color))
+            TryTrackColor(element, nameof(Style.Color), oldSnap.Color, newSnap.Color, transition);
+        if (prop == "all" || prop == nameof(Style.BorderColor))
+            TryTrackColor(element, nameof(Style.BorderColor), oldSnap.BorderColor, newSnap.BorderColor, transition);
+    }
+
+    private void TryTrackColor(Element element, string property, Color oldColor, Color newColor, Transition transition)
+    {
+        if (_animationManager.HasActiveTransition(element, property)) return;
+        _animationManager.TrackColorChange(element, property, oldColor, newColor, transition);
+    }
+
+    private void TryTrackFloat(Element element, string property, float oldValue, float newValue, Transition transition)
+    {
+        if (float.IsNaN(oldValue) || float.IsNaN(newValue)) return;
+        if (oldValue == float.MaxValue && newValue == float.MaxValue) return;
+        if (_animationManager.HasActiveTransition(element, property)) return;
+        _animationManager.TrackPropertyChange(element, property, oldValue, newValue, transition);
     }
 
     private static void EnsureParentReferences(Element element)
