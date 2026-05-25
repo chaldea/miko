@@ -866,4 +866,26 @@ public class Painter
     {
         _canvas.Translate(dx, dy);
     }
+
+    public void Rotate(float degrees)
+    {
+        _canvas.RotateDegrees(degrees);
+    }
+
+    public void Scale(float sx, float sy)
+    {
+        _canvas.Scale(sx, sy);
+    }
+
+    public void Skew(float degreesX, float degreesY)
+    {
+        float tanX = MathF.Tan(degreesX * MathF.PI / 180f);
+        float tanY = MathF.Tan(degreesY * MathF.PI / 180f);
+        _canvas.Skew(tanX, tanY);
+    }
+
+    public void Concat(SKMatrix matrix)
+    {
+        _canvas.Concat(ref matrix);
+    }
 }

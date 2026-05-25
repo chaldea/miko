@@ -29,6 +29,7 @@ internal class ActiveTransition
     public bool IsComplete => ElapsedTime >= Duration + Delay;
     public Action<Element, float>? ApplyFloat { get; set; }
     public Action<Element, Color>? ApplyColor { get; set; }
+    public Action<Element, Transform>? ApplyTransform { get; set; }
 }
 
 internal class ActiveAnimation
@@ -188,6 +189,118 @@ public class AnimationManager
             property, oldColor, newColor, element.TagName, element.Id ?? "", transition.Duration);
     }
 
+    public void TrackTransformChange(Element element, Transform oldTransform, Transform newTransform, Transition transition)
+    {
+        if (oldTransform == newTransform) return;
+
+        _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == nameof(Style.Transform));
+
+        var activeTransition = new ActiveTransition
+        {
+            Element = element,
+            Property = new AnimatedProperty
+            {
+                PropertyName = nameof(Style.Transform),
+                StartTransform = oldTransform,
+                EndTransform = newTransform
+            },
+            Duration = transition.Duration,
+            Delay = transition.Delay,
+            TimingFunction = transition.TimingFunction,
+            CubicBezier = transition.CubicBezier,
+            ElapsedTime = 0,
+            ApplyTransform = (e, t) => { e.Style ??= new Style(); e.Style.Transform = t; }
+        };
+
+        _transitions.Add(activeTransition);
+        activeTransition.ApplyTransform?.Invoke(element, oldTransform);
+
+        _logger.LogDebug("Transform transition started on <{Tag} id=\"{Id}\">, duration={Duration}s",
+            element.TagName, element.Id ?? "", transition.Duration);
+    }
+
+    public void TrackPropertyChangeWithApplier(Element element, string property, float oldValue, float newValue, Transition transition, Action<Element, float> applier)
+    {
+        if (MathF.Abs(oldValue - newValue) < 1e-6f) return;
+
+        _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == property);
+
+        var activeTransition = new ActiveTransition
+        {
+            Element = element,
+            Property = new AnimatedProperty
+            {
+                PropertyName = property,
+                StartValue = oldValue,
+                EndValue = newValue
+            },
+            Duration = transition.Duration,
+            Delay = transition.Delay,
+            TimingFunction = transition.TimingFunction,
+            CubicBezier = transition.CubicBezier,
+            ElapsedTime = 0,
+            ApplyFloat = applier
+        };
+
+        _transitions.Add(activeTransition);
+        applier(element, oldValue);
+    }
+
+    public void TrackColorChangeWithApplier(Element element, string property, Color oldColor, Color newColor, Transition transition, Action<Element, Color> applier)
+    {
+        if (oldColor.R == newColor.R && oldColor.G == newColor.G &&
+            oldColor.B == newColor.B && oldColor.A == newColor.A) return;
+
+        _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == property);
+
+        var activeTransition = new ActiveTransition
+        {
+            Element = element,
+            Property = new AnimatedProperty
+            {
+                PropertyName = property,
+                StartColor = oldColor,
+                EndColor = newColor
+            },
+            Duration = transition.Duration,
+            Delay = transition.Delay,
+            TimingFunction = transition.TimingFunction,
+            CubicBezier = transition.CubicBezier,
+            ElapsedTime = 0,
+            ApplyColor = applier
+        };
+
+        _transitions.Add(activeTransition);
+        applier(element, oldColor);
+    }
+
+    public void TrackTransformChangeWithApplier(Element element, string property, Transform oldTransform, Transform newTransform, Transition transition, Action<Element, Transform> applier)
+    {
+        if (oldTransform == newTransform) return;
+
+        _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == property);
+
+        var activeTransition = new ActiveTransition
+        {
+            Element = element,
+            Property = new AnimatedProperty
+            {
+                PropertyName = property,
+                StartTransform = oldTransform,
+                EndTransform = newTransform
+            },
+            Duration = transition.Duration,
+            Delay = transition.Delay,
+            TimingFunction = transition.TimingFunction,
+            CubicBezier = transition.CubicBezier,
+            ElapsedTime = 0,
+            ApplyTransform = applier
+        };
+
+        _transitions.Add(activeTransition);
+        applier(element, oldTransform);
+    }
+
     public void Update(float deltaTime)
     {
         _recentlyCompleted.Clear();
@@ -217,6 +330,11 @@ public class AnimationManager
             {
                 var color = LerpColor(transition.Property.StartColor.Value, transition.Property.EndColor.Value, easedProgress);
                 transition.ApplyColor(transition.Element, color);
+            }
+            else if (transition.ApplyTransform != null && transition.Property.StartTransform != null && transition.Property.EndTransform != null)
+            {
+                var transform = LerpTransform(transition.Property.StartTransform, transition.Property.EndTransform, easedProgress);
+                transition.ApplyTransform(transition.Element, transform);
             }
 
             transition.Element.IsDirty = true;
@@ -404,6 +522,13 @@ public class AnimationManager
             var toColor = to.BorderColor ?? Color.Transparent;
             element.Style.BorderColor = LerpColor(fromColor, toColor, progress);
         }
+
+        if (from.Transform != null || to.Transform != null)
+        {
+            var fromTransform = from.Transform ?? Transform.None;
+            var toTransform = to.Transform ?? Transform.None;
+            element.Style.Transform = LerpTransform(fromTransform, toTransform, progress);
+        }
     }
 
     private static void InterpolateLengthProperty(Element element, Length? from, Length? to, float progress, Action<Style, Length> setter)
@@ -425,6 +550,76 @@ public class AnimationManager
             (byte)(a.B + (b.B - a.B) * t),
             (byte)(a.A + (b.A - a.A) * t)
         );
+    }
+
+    internal static Transform LerpTransform(Transform from, Transform to, float t)
+    {
+        var result = new Transform();
+        int count = Math.Max(from.Functions.Count, to.Functions.Count);
+
+        for (int i = 0; i < count; i++)
+        {
+            var fromFn = i < from.Functions.Count ? from.Functions[i] : GetIdentity(to.Functions[i]);
+            var toFn = i < to.Functions.Count ? to.Functions[i] : GetIdentity(from.Functions[i]);
+            result.Functions.Add(LerpFunction(fromFn, toFn, t));
+        }
+
+        return result;
+    }
+
+    private static TransformFunction GetIdentity(TransformFunction reference)
+    {
+        return reference switch
+        {
+            TransformFunction.Translate tr => new TransformFunction.Translate(
+                new Length(0, tr.X.Unit), new Length(0, tr.Y.Unit)),
+            TransformFunction.TranslateX tx => new TransformFunction.TranslateX(
+                new Length(0, tx.X.Unit)),
+            TransformFunction.TranslateY ty => new TransformFunction.TranslateY(
+                new Length(0, ty.Y.Unit)),
+            TransformFunction.Scale => new TransformFunction.Scale(1f, 1f),
+            TransformFunction.ScaleX => new TransformFunction.ScaleX(1f),
+            TransformFunction.ScaleY => new TransformFunction.ScaleY(1f),
+            TransformFunction.Rotate => new TransformFunction.Rotate(0f),
+            TransformFunction.SkewX => new TransformFunction.SkewX(0f),
+            TransformFunction.SkewY => new TransformFunction.SkewY(0f),
+            TransformFunction.Skew => new TransformFunction.Skew(0f, 0f),
+            TransformFunction.Matrix => new TransformFunction.Matrix(1, 0, 0, 1, 0, 0),
+            _ => new TransformFunction.Rotate(0f)
+        };
+    }
+
+    private static TransformFunction LerpFunction(TransformFunction from, TransformFunction to, float t)
+    {
+        return (from, to) switch
+        {
+            (TransformFunction.Rotate a, TransformFunction.Rotate b) =>
+                new TransformFunction.Rotate(Lerp(a.Degrees, b.Degrees, t)),
+            (TransformFunction.Scale a, TransformFunction.Scale b) =>
+                new TransformFunction.Scale(Lerp(a.X, b.X, t), Lerp(a.Y, b.Y, t)),
+            (TransformFunction.ScaleX a, TransformFunction.ScaleX b) =>
+                new TransformFunction.ScaleX(Lerp(a.X, b.X, t)),
+            (TransformFunction.ScaleY a, TransformFunction.ScaleY b) =>
+                new TransformFunction.ScaleY(Lerp(a.Y, b.Y, t)),
+            (TransformFunction.Translate a, TransformFunction.Translate b)
+                when a.X.Unit == b.X.Unit && a.Y.Unit == b.Y.Unit =>
+                new TransformFunction.Translate(
+                    new Length(Lerp(a.X.Value, b.X.Value, t), a.X.Unit),
+                    new Length(Lerp(a.Y.Value, b.Y.Value, t), a.Y.Unit)),
+            (TransformFunction.TranslateX a, TransformFunction.TranslateX b)
+                when a.X.Unit == b.X.Unit =>
+                new TransformFunction.TranslateX(new Length(Lerp(a.X.Value, b.X.Value, t), a.X.Unit)),
+            (TransformFunction.TranslateY a, TransformFunction.TranslateY b)
+                when a.Y.Unit == b.Y.Unit =>
+                new TransformFunction.TranslateY(new Length(Lerp(a.Y.Value, b.Y.Value, t), a.Y.Unit)),
+            (TransformFunction.SkewX a, TransformFunction.SkewX b) =>
+                new TransformFunction.SkewX(Lerp(a.Degrees, b.Degrees, t)),
+            (TransformFunction.SkewY a, TransformFunction.SkewY b) =>
+                new TransformFunction.SkewY(Lerp(a.Degrees, b.Degrees, t)),
+            (TransformFunction.Skew a, TransformFunction.Skew b) =>
+                new TransformFunction.Skew(Lerp(a.DegreesX, b.DegreesX, t), Lerp(a.DegreesY, b.DegreesY, t)),
+            _ => t < 0.5f ? from : to
+        };
     }
 
     private static Action<Element, float>? GetFloatApplier(string property)

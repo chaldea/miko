@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Animation;
 using Miko.Common;
+using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Layout;
 using Miko.Rendering;
@@ -51,6 +52,12 @@ public class MikoEngine
 
     public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight)
     {
+        // Transfer old LayoutBox references to new elements for transition detection
+        if (_root != null)
+        {
+            MapElementIdentityRecursive(_root, root);
+        }
+
         _root = root;
         _styleSheets = styleSheets;
         _viewportWidth = viewportWidth;
@@ -61,10 +68,37 @@ public class MikoEngine
         _renderEngine.SetCanvas(canvas);
 
         _logger.LogInformation("Engine initialized with viewport {Width}x{Height}", viewportWidth, viewportHeight);
-        _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight);
-        _renderEngine.Render(_currentLayout);
 
+        // Capture old styles from transferred LayoutBoxes (before layout replaces them)
+        var oldStyles = CaptureTransitionableStyles(root);
+
+        _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight);
+
+        if (oldStyles.Elements.Count > 0 || oldStyles.PseudoElements.Count > 0)
+        {
+            bool transitionsTriggered = DetectAndTriggerTransitions(root, oldStyles);
+            if (transitionsTriggered)
+            {
+                _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight);
+            }
+        }
+
+        _renderEngine.Render(_currentLayout);
         ScanAndStartAnimations(root);
+    }
+
+    private static void MapElementIdentityRecursive(Element oldElement, Element newElement)
+    {
+        if (oldElement.LayoutBox != null)
+        {
+            newElement.LayoutBox = oldElement.LayoutBox;
+        }
+
+        int count = Math.Min(oldElement.Children.Count, newElement.Children.Count);
+        for (int i = 0; i < count; i++)
+        {
+            MapElementIdentityRecursive(oldElement.Children[i], newElement.Children[i]);
+        }
     }
 
     public void Update(SKCanvas canvas)
@@ -255,67 +289,94 @@ public class MikoEngine
         float MarginTop, float MarginRight, float MarginBottom, float MarginLeft,
         float Opacity, float FontSize, float BorderWidth,
         float BorderTopLeftRadius, float BorderTopRightRadius, float BorderBottomRightRadius, float BorderBottomLeftRadius,
-        Color BackgroundColor, Color Color, Color BorderColor);
+        Color BackgroundColor, Color Color, Color BorderColor,
+        Transform Transform);
 
-    private Dictionary<Element, (StyleSnapshot snapshot, List<Transition> transitions)> CaptureTransitionableStyles(Element root)
+    private record TransitionCapture(
+        Dictionary<Element, (StyleSnapshot snapshot, List<Transition> transitions)> Elements,
+        Dictionary<(Element parent, PseudoElementType type), (StyleSnapshot snapshot, List<Transition> transitions)> PseudoElements);
+
+    private TransitionCapture CaptureTransitionableStyles(Element root)
     {
-        var result = new Dictionary<Element, (StyleSnapshot, List<Transition>)>();
-        CaptureRecursive(root, result);
-        return result;
+        var elements = new Dictionary<Element, (StyleSnapshot, List<Transition>)>();
+        var pseudos = new Dictionary<(Element, PseudoElementType), (StyleSnapshot, List<Transition>)>();
+        CaptureRecursive(root, elements, pseudos);
+        return new TransitionCapture(elements, pseudos);
     }
 
-    private static void CaptureRecursive(Element element, Dictionary<Element, (StyleSnapshot, List<Transition>)> result)
+    private static void CaptureRecursive(Element element,
+        Dictionary<Element, (StyleSnapshot, List<Transition>)> elements,
+        Dictionary<(Element, PseudoElementType), (StyleSnapshot, List<Transition>)> pseudos)
     {
         var layoutBox = element.LayoutBox;
         if (layoutBox != null && layoutBox.ComputedStyle.Transitions.Count > 0)
         {
-            var cs = layoutBox.ComputedStyle;
-            var snapshot = new StyleSnapshot(
-                cs.MaxWidth.IsAuto ? float.MaxValue : cs.MaxWidth.Value,
-                cs.MaxHeight.IsAuto ? float.MaxValue : cs.MaxHeight.Value,
-                cs.Width.IsAuto ? float.NaN : cs.Width.Value,
-                cs.Height.IsAuto ? float.NaN : cs.Height.Value,
-                cs.PaddingTop.Value, cs.PaddingRight.Value, cs.PaddingBottom.Value, cs.PaddingLeft.Value,
-                cs.MarginTop.Value, cs.MarginRight.Value, cs.MarginBottom.Value, cs.MarginLeft.Value,
-                cs.Opacity, cs.FontSize.Value, cs.BorderTopWidth.Value,
-                cs.BorderTopLeftRadius.Value, cs.BorderTopRightRadius.Value,
-                cs.BorderBottomRightRadius.Value, cs.BorderBottomLeftRadius.Value,
-                cs.BackgroundColor, cs.Color, cs.BorderTopColor);
-            result[element] = (snapshot, cs.Transitions);
+            elements[element] = (CaptureSnapshot(layoutBox.ComputedStyle), layoutBox.ComputedStyle.Transitions);
+        }
+
+        if (layoutBox != null)
+        {
+            foreach (var child in layoutBox.Children)
+            {
+                if (child.Element is PseudoElement pseudo && child.ComputedStyle.Transitions.Count > 0)
+                {
+                    pseudos[(element, pseudo.Type)] = (CaptureSnapshot(child.ComputedStyle), child.ComputedStyle.Transitions);
+                }
+            }
         }
 
         foreach (var child in element.Children)
-            CaptureRecursive(child, result);
+            CaptureRecursive(child, elements, pseudos);
     }
 
-    private bool DetectAndTriggerTransitions(Element root, Dictionary<Element, (StyleSnapshot snapshot, List<Transition> transitions)> oldStyles)
+    private static StyleSnapshot CaptureSnapshot(ComputedStyle cs)
     {
-        if (oldStyles.Count == 0) return false;
+        return new StyleSnapshot(
+            cs.MaxWidth.IsAuto ? float.MaxValue : cs.MaxWidth.Value,
+            cs.MaxHeight.IsAuto ? float.MaxValue : cs.MaxHeight.Value,
+            cs.Width.IsAuto ? float.NaN : cs.Width.Value,
+            cs.Height.IsAuto ? float.NaN : cs.Height.Value,
+            cs.PaddingTop.Value, cs.PaddingRight.Value, cs.PaddingBottom.Value, cs.PaddingLeft.Value,
+            cs.MarginTop.Value, cs.MarginRight.Value, cs.MarginBottom.Value, cs.MarginLeft.Value,
+            cs.Opacity, cs.FontSize.Value, cs.BorderTopWidth.Value,
+            cs.BorderTopLeftRadius.Value, cs.BorderTopRightRadius.Value,
+            cs.BorderBottomRightRadius.Value, cs.BorderBottomLeftRadius.Value,
+            cs.BackgroundColor, cs.Color, cs.BorderTopColor,
+            cs.Transform);
+    }
+
+    private bool DetectAndTriggerTransitions(Element root, TransitionCapture oldStyles)
+    {
+        if (oldStyles.Elements.Count == 0 && oldStyles.PseudoElements.Count == 0) return false;
         int before = _animationManager.ActiveTransitionCount;
         DetectTransitionsRecursive(root, oldStyles);
         return _animationManager.ActiveTransitionCount > before;
     }
 
-    private void DetectTransitionsRecursive(Element element, Dictionary<Element, (StyleSnapshot snapshot, List<Transition> transitions)> oldStyles)
+    private void DetectTransitionsRecursive(Element element, TransitionCapture oldStyles)
     {
-        if (oldStyles.TryGetValue(element, out var old) && element.LayoutBox != null)
+        if (oldStyles.Elements.TryGetValue(element, out var old) && element.LayoutBox != null)
         {
-            var cs = element.LayoutBox.ComputedStyle;
-            var newSnapshot = new StyleSnapshot(
-                cs.MaxWidth.IsAuto ? float.MaxValue : cs.MaxWidth.Value,
-                cs.MaxHeight.IsAuto ? float.MaxValue : cs.MaxHeight.Value,
-                cs.Width.IsAuto ? float.NaN : cs.Width.Value,
-                cs.Height.IsAuto ? float.NaN : cs.Height.Value,
-                cs.PaddingTop.Value, cs.PaddingRight.Value, cs.PaddingBottom.Value, cs.PaddingLeft.Value,
-                cs.MarginTop.Value, cs.MarginRight.Value, cs.MarginBottom.Value, cs.MarginLeft.Value,
-                cs.Opacity, cs.FontSize.Value, cs.BorderTopWidth.Value,
-                cs.BorderTopLeftRadius.Value, cs.BorderTopRightRadius.Value,
-                cs.BorderBottomRightRadius.Value, cs.BorderBottomLeftRadius.Value,
-                cs.BackgroundColor, cs.Color, cs.BorderTopColor);
-
+            var newSnapshot = CaptureSnapshot(element.LayoutBox.ComputedStyle);
             foreach (var transition in old.transitions)
             {
                 TriggerPropertyTransitions(element, transition, old.snapshot, newSnapshot);
+            }
+        }
+
+        if (element.LayoutBox != null)
+        {
+            foreach (var child in element.LayoutBox.Children)
+            {
+                if (child.Element is PseudoElement pseudo &&
+                    oldStyles.PseudoElements.TryGetValue((element, pseudo.Type), out var oldPseudo))
+                {
+                    var newSnapshot = CaptureSnapshot(child.ComputedStyle);
+                    foreach (var transition in oldPseudo.transitions)
+                    {
+                        TriggerPseudoElementTransitions(element, pseudo.Type, transition, oldPseudo.snapshot, newSnapshot);
+                    }
+                }
             }
         }
 
@@ -375,6 +436,103 @@ public class MikoEngine
             TryTrackColor(element, nameof(Style.Color), oldSnap.Color, newSnap.Color, transition);
         if (prop == "all" || prop == nameof(Style.BorderColor))
             TryTrackColor(element, nameof(Style.BorderColor), oldSnap.BorderColor, newSnap.BorderColor, transition);
+
+        if (prop == "all" || prop == nameof(Style.Transform))
+            TryTrackTransform(element, oldSnap.Transform, newSnap.Transform, transition);
+    }
+
+    private void TriggerPseudoElementTransitions(Element parent, PseudoElementType pseudoType, Transition transition, StyleSnapshot oldSnap, StyleSnapshot newSnap)
+    {
+        var prop = transition.Property;
+
+        if (prop == "all" || prop == nameof(Style.Transform))
+        {
+            if (!TransformEquals(oldSnap.Transform, newSnap.Transform))
+            {
+                string key = $"::pseudo({pseudoType}).Transform";
+                if (!_animationManager.HasActiveTransition(parent, key))
+                {
+                    _animationManager.TrackTransformChangeWithApplier(
+                        parent, key, oldSnap.Transform, newSnap.Transform, transition,
+                        (e, t) =>
+                        {
+                            e.PseudoElementStyles ??= new();
+                            if (!e.PseudoElementStyles.TryGetValue(pseudoType, out var s))
+                            {
+                                s = new Style();
+                                e.PseudoElementStyles[pseudoType] = s;
+                            }
+                            s.Transform = t;
+                        });
+                }
+            }
+        }
+
+        if (prop == "all" || prop == nameof(Style.Opacity))
+        {
+            TryTrackPseudoFloat(parent, pseudoType, nameof(Style.Opacity), oldSnap.Opacity, newSnap.Opacity, transition,
+                (s, v) => s.Opacity = v);
+        }
+
+        if (prop == "all" || prop == nameof(Style.BackgroundColor))
+        {
+            TryTrackPseudoColor(parent, pseudoType, nameof(Style.BackgroundColor), oldSnap.BackgroundColor, newSnap.BackgroundColor, transition,
+                (s, c) => s.BackgroundColor = c);
+        }
+
+        if (prop == "all" || prop == nameof(Style.Color))
+        {
+            TryTrackPseudoColor(parent, pseudoType, nameof(Style.Color), oldSnap.Color, newSnap.Color, transition,
+                (s, c) => s.Color = c);
+        }
+    }
+
+    private void TryTrackPseudoFloat(Element parent, PseudoElementType pseudoType, string property, float oldValue, float newValue, Transition transition, Action<Style, float> setter)
+    {
+        if (float.IsNaN(oldValue) || float.IsNaN(newValue)) return;
+        if (MathF.Abs(oldValue - newValue) < 1e-6f) return;
+
+        string key = $"::pseudo({pseudoType}).{property}";
+        if (_animationManager.HasActiveTransition(parent, key)) return;
+
+        _animationManager.TrackPropertyChangeWithApplier(parent, key, oldValue, newValue, transition,
+            (e, v) =>
+            {
+                e.PseudoElementStyles ??= new();
+                if (!e.PseudoElementStyles.TryGetValue(pseudoType, out var s))
+                {
+                    s = new Style();
+                    e.PseudoElementStyles[pseudoType] = s;
+                }
+                setter(s, v);
+            });
+    }
+
+    private void TryTrackPseudoColor(Element parent, PseudoElementType pseudoType, string property, Color oldColor, Color newColor, Transition transition, Action<Style, Color> setter)
+    {
+        if (oldColor.R == newColor.R && oldColor.G == newColor.G &&
+            oldColor.B == newColor.B && oldColor.A == newColor.A) return;
+
+        string key = $"::pseudo({pseudoType}).{property}";
+        if (_animationManager.HasActiveTransition(parent, key)) return;
+
+        _animationManager.TrackColorChangeWithApplier(parent, key, oldColor, newColor, transition,
+            (e, c) =>
+            {
+                e.PseudoElementStyles ??= new();
+                if (!e.PseudoElementStyles.TryGetValue(pseudoType, out var s))
+                {
+                    s = new Style();
+                    e.PseudoElementStyles[pseudoType] = s;
+                }
+                setter(s, c);
+            });
+    }
+
+    private void TryTrackTransform(Element element, Transform oldTransform, Transform newTransform, Transition transition)
+    {
+        if (_animationManager.HasActiveTransition(element, nameof(Style.Transform))) return;
+        _animationManager.TrackTransformChange(element, oldTransform, newTransform, transition);
     }
 
     private void TryTrackColor(Element element, string property, Color oldColor, Color newColor, Transition transition)
@@ -389,6 +547,17 @@ public class MikoEngine
         if (oldValue == float.MaxValue && newValue == float.MaxValue) return;
         if (_animationManager.HasActiveTransition(element, property)) return;
         _animationManager.TrackPropertyChange(element, property, oldValue, newValue, transition);
+    }
+
+    private static bool TransformEquals(Transform a, Transform b)
+    {
+        if (ReferenceEquals(a, b)) return true;
+        if (a.Functions.Count != b.Functions.Count) return false;
+        for (int i = 0; i < a.Functions.Count; i++)
+        {
+            if (!a.Functions[i].Equals(b.Functions[i])) return false;
+        }
+        return true;
     }
 
     private static void EnsureParentReferences(Element element)

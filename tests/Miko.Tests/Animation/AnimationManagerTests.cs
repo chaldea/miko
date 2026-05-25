@@ -260,4 +260,104 @@ public class AnimationManagerTests
         element.Style!.BackgroundColor!.Value.R.ShouldBeInRange((byte)120, (byte)135);
         element.Style!.BackgroundColor!.Value.B.ShouldBeInRange((byte)120, (byte)135);
     }
+
+    [Fact]
+    public void TrackTransformChange_ShouldCreateTransition()
+    {
+        var element = new DivElement { Style = new Style() };
+        var transition = Transition.For(nameof(Style.Transform), 1f, TimingFunction.Linear);
+        var from = Transform.None;
+        var to = Transform.FromRotate(180f);
+
+        _manager.TrackTransformChange(element, from, to, transition);
+
+        _manager.HasActiveAnimations.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void TrackTransformChange_ShouldInterpolateRotation()
+    {
+        var element = new DivElement { Style = new Style() };
+        var transition = Transition.For(nameof(Style.Transform), 1f, TimingFunction.Linear);
+        var from = Transform.FromRotate(0f);
+        var to = Transform.FromRotate(180f);
+
+        _manager.TrackTransformChange(element, from, to, transition);
+
+        _manager.Update(0.5f);
+
+        var transform = element.Style!.Transform!;
+        transform.Functions.Count.ShouldBe(1);
+        var rotate = transform.Functions[0].ShouldBeOfType<TransformFunction.Rotate>();
+        rotate.Degrees.ShouldBe(90f, 1f);
+    }
+
+    [Fact]
+    public void TrackTransformChange_ShouldCompleteAtEndValue()
+    {
+        var element = new DivElement { Style = new Style() };
+        var transition = Transition.For(nameof(Style.Transform), 1f, TimingFunction.Linear);
+        var from = Transform.FromRotate(0f);
+        var to = Transform.FromRotate(-180f);
+
+        _manager.TrackTransformChange(element, from, to, transition);
+
+        _manager.Update(1f);
+
+        var transform = element.Style!.Transform!;
+        var rotate = transform.Functions[0].ShouldBeOfType<TransformFunction.Rotate>();
+        rotate.Degrees.ShouldBe(-180f, 0.1f);
+        _manager.HasActiveAnimations.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void LerpTransform_ShouldInterpolateScale()
+    {
+        var from = Transform.FromScale(1f, 1f);
+        var to = Transform.FromScale(2f, 3f);
+
+        var result = AnimationManager.LerpTransform(from, to, 0.5f);
+
+        result.Functions.Count.ShouldBe(1);
+        var scale = result.Functions[0].ShouldBeOfType<TransformFunction.Scale>();
+        scale.X.ShouldBe(1.5f, 0.01f);
+        scale.Y.ShouldBe(2f, 0.01f);
+    }
+
+    [Fact]
+    public void LerpTransform_FromNone_ShouldInterpolateFromIdentity()
+    {
+        var from = Transform.None;
+        var to = Transform.FromRotate(-180f);
+
+        var result = AnimationManager.LerpTransform(from, to, 0.5f);
+
+        result.Functions.Count.ShouldBe(1);
+        var rotate = result.Functions[0].ShouldBeOfType<TransformFunction.Rotate>();
+        rotate.Degrees.ShouldBe(-90f, 0.01f);
+    }
+
+    [Fact]
+    public void TrackTransformChangeWithApplier_ShouldInterpolate()
+    {
+        var element = new DivElement { Style = new Style() };
+        var transition = Transition.For("Transform", 1f, TimingFunction.Linear);
+        var from = Transform.None;
+        var to = Transform.FromRotate(-180f);
+
+        Transform? applied = null;
+        _manager.TrackTransformChangeWithApplier(element, "test.Transform", from, to, transition,
+            (e, t) => { applied = t; });
+
+        // Initial apply should be the start value
+        applied.ShouldNotBeNull();
+        applied!.Functions.Count.ShouldBe(0);
+
+        _manager.Update(0.5f);
+
+        applied.ShouldNotBeNull();
+        applied!.Functions.Count.ShouldBe(1);
+        var rotate = applied.Functions[0].ShouldBeOfType<TransformFunction.Rotate>();
+        rotate.Degrees.ShouldBe(-90f, 1f);
+    }
 }
