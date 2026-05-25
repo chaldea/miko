@@ -135,7 +135,15 @@ public class LayoutEngine
 
         if (matchedStyle == null) return null;
 
-        var pseudoElement = new PseudoElement { TextContent = matchedStyle.Content };
+        if (element.PseudoElementStyles != null &&
+            element.PseudoElementStyles.TryGetValue(type, out var overrideStyle))
+        {
+            var merged = overrideStyle.Clone();
+            merged.Merge(matchedStyle);
+            matchedStyle = merged;
+        }
+
+        var pseudoElement = new PseudoElement { TextContent = matchedStyle.Content, Type = type };
         var computedStyle = ComputedStyle.FromStyle(matchedStyle);
 
         pseudoElement.LayoutBox = new LayoutBox

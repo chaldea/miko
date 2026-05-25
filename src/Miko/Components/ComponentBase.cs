@@ -79,7 +79,8 @@ public abstract class ComponentBase : IComponent
             newElement.LayoutBox = new LayoutBox
             {
                 Element = newElement,
-                ComputedStyle = oldElement.LayoutBox.ComputedStyle
+                ComputedStyle = oldElement.LayoutBox.ComputedStyle,
+                Children = oldElement.LayoutBox.Children
             };
         }
 

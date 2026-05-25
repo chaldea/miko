@@ -21,6 +21,8 @@ public abstract class Element
     public Style? Style { get; set; }
     public string? TextContent { get; set; }
 
+    internal Dictionary<PseudoElementType, Style>? PseudoElementStyles { get; set; }
+
     // 布局后的盒子模型引用
     internal LayoutBox? LayoutBox { get; set; }
 

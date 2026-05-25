@@ -1,3 +1,4 @@
+using Miko.Animation;
 using Miko.Common;
 using Miko.Core.DomElements;
 using Miko.Layout;
@@ -89,6 +90,13 @@ public class RenderEngine
             _painter.SaveLayerAlpha(alpha);
         }
 
+        bool hasTransform = box.ComputedStyle.Transform.Functions.Count > 0;
+        if (hasTransform)
+        {
+            _painter.Save();
+            ApplyTransform(box);
+        }
+
         // 1. 绘制背景
         RenderBackground(box);
 
@@ -102,6 +110,7 @@ public class RenderEngine
         // SelectElement 的子元素（Option）不参与正常树渲染，由 overlay pass 统一绘制下拉层
         if (box.Element is SelectElement)
         {
+            if (hasTransform) _painter.Restore();
             if (hasOpacity) _painter.Restore();
             return;
         }
@@ -125,7 +134,79 @@ public class RenderEngine
         // 5. 绘制滚动条（在裁剪区域之外）
         RenderScrollbars(box);
 
+        if (hasTransform) _painter.Restore();
         if (hasOpacity) _painter.Restore();
+    }
+
+    private void ApplyTransform(LayoutBox box)
+    {
+        if (_painter == null) return;
+
+        var borderBox = box.BoxModel.BorderBox;
+        var origin = box.ComputedStyle.TransformOrigin;
+
+        float originX = origin.X.Unit == LengthUnit.Percent
+            ? borderBox.X + borderBox.Width * origin.X.Value / 100f
+            : borderBox.X + origin.X.Value;
+        float originY = origin.Y.Unit == LengthUnit.Percent
+            ? borderBox.Y + borderBox.Height * origin.Y.Value / 100f
+            : borderBox.Y + origin.Y.Value;
+
+        _painter.Translate(originX, originY);
+
+        foreach (var fn in box.ComputedStyle.Transform.Functions)
+        {
+            switch (fn)
+            {
+                case TransformFunction.Translate t:
+                    float tx = t.X.Unit == LengthUnit.Percent
+                        ? borderBox.Width * t.X.Value / 100f : t.X.Value;
+                    float ty = t.Y.Unit == LengthUnit.Percent
+                        ? borderBox.Height * t.Y.Value / 100f : t.Y.Value;
+                    _painter.Translate(tx, ty);
+                    break;
+                case TransformFunction.TranslateX t:
+                    float txVal = t.X.Unit == LengthUnit.Percent
+                        ? borderBox.Width * t.X.Value / 100f : t.X.Value;
+                    _painter.Translate(txVal, 0);
+                    break;
+                case TransformFunction.TranslateY t:
+                    float tyVal = t.Y.Unit == LengthUnit.Percent
+                        ? borderBox.Height * t.Y.Value / 100f : t.Y.Value;
+                    _painter.Translate(0, tyVal);
+                    break;
+                case TransformFunction.Rotate r:
+                    _painter.Rotate(r.Degrees);
+                    break;
+                case TransformFunction.Scale s:
+                    _painter.Scale(s.X, s.Y);
+                    break;
+                case TransformFunction.ScaleX s:
+                    _painter.Scale(s.X, 1f);
+                    break;
+                case TransformFunction.ScaleY s:
+                    _painter.Scale(1f, s.Y);
+                    break;
+                case TransformFunction.SkewX s:
+                    _painter.Skew(s.Degrees, 0);
+                    break;
+                case TransformFunction.SkewY s:
+                    _painter.Skew(0, s.Degrees);
+                    break;
+                case TransformFunction.Skew s:
+                    _painter.Skew(s.DegreesX, s.DegreesY);
+                    break;
+                case TransformFunction.Matrix m:
+                    var matrix = new SKMatrix(
+                        m.A, m.C, m.Tx,
+                        m.B, m.D, m.Ty,
+                        0, 0, 1);
+                    _painter.Concat(matrix);
+                    break;
+            }
+        }
+
+        _painter.Translate(-originX, -originY);
     }
 
     /// <summary>
