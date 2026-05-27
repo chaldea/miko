@@ -11,11 +11,30 @@ public abstract class ComponentBase : IComponent
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private Element? _rootElement;
+    private bool _initialized;
 
     protected virtual void BuildRenderTree(RenderTreeBuilder builder) { }
 
+    /// <summary>
+    /// Method invoked when the component is ready to start, having received its initial parameters.
+    /// </summary>
+    protected virtual void OnInitialized() { }
+
+    /// <summary>
+    /// Method invoked when the component has received parameters from its parent.
+    /// </summary>
+    protected virtual void OnParametersSet() { }
+
     public virtual Element Build()
     {
+        if (!_initialized)
+        {
+            OnInitialized();
+            _initialized = true;
+        }
+
+        OnParametersSet();
+
         var builder = new RenderTreeBuilder();
         BuildRenderTree(builder);
         _rootElement = builder.Build();

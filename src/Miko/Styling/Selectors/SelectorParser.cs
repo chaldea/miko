@@ -82,6 +82,11 @@ public static class SelectorParser
         "focus" => new FocusSelector(),
         "disabled" => new DisabledSelector(),
         "enabled" => new EnabledSelector(),
+        "first-child" => new FirstChildSelector(),
+        "last-child" => new LastChildSelector(),
+        "first-of-type" => new FirstOfTypeSelector(),
+        "last-of-type" => new LastOfTypeSelector(),
+        "empty" => new EmptySelector(),
         _ => throw new ArgumentException($"Unknown pseudo-class: {name}")
     };
 }

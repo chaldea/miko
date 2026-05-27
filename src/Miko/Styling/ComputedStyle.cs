@@ -217,7 +217,7 @@ public class ComputedStyle : Style
             if (style.BackgroundPosition.HasValue) computed.BackgroundPosition = style.BackgroundPosition.Value;
             if (style.Color.HasValue) computed.Color = style.Color.Value;
             if (style.FontFamily != null) computed.FontFamily = style.FontFamily;
-            if (style.FontSize.HasValue) computed.FontSize = style.FontSize.Value;
+            if (style.FontSize.HasValue) computed.FontSize = Length.Px(style.FontSize.Value.ToPixels(0));
             if (style.FontWeight.HasValue) computed.FontWeight = style.FontWeight.Value;
             if (style.TextAlign.HasValue) computed.TextAlign = style.TextAlign.Value;
             if (style.LineHeight.HasValue) computed.LineHeight = style.LineHeight.Value;

@@ -285,6 +285,13 @@ public class StyleResolver
                 style.TextDecoration ??= Common.TextDecoration.Underline;
                 break;
 
+            case "strong":
+            case "b":
+                // Browser default: display: inline, font-weight: bold
+                style.Display ??= Common.Display.Inline;
+                style.FontWeight ??= Common.FontWeight.Bold;
+                break;
+
             case "ul":
                 // Browser default: display: block, margin: 1em 0, padding-left: 40px
                 // list-style-type: disc (not implemented - visual bullets would need Painter support)

@@ -44,6 +44,8 @@ public class RenderTreeBuilder
         ["tr"] = () => new TrElement(),
         ["th"] = () => new ThElement(),
         ["td"] = () => new TdElement(),
+        ["nav"] = () => new NavElement(),
+        ["strong"] = () => new StrongElement(),
     };
 
     public void OpenElement(int seq, string tagName)
