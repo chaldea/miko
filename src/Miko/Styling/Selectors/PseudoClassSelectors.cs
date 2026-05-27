@@ -125,3 +125,14 @@ public class NotSelector : PseudoClassSelector
     public override bool Matches(Element element) => !_inner.Matches(element);
     public override int Specificity => _inner.Specificity;
 }
+
+/// <summary>
+/// :empty 伪类选择器 - 匹配没有子元素且没有文本内容的元素
+/// </summary>
+public class EmptySelector : PseudoClassSelector
+{
+    public override bool Matches(Element element)
+    {
+        return element.Children.Count == 0 && string.IsNullOrEmpty(element.TextContent);
+    }
+}

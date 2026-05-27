@@ -155,6 +155,115 @@ internal sealed class ComponentWhitespacePass : ComponentIntermediateNodePassBas
         Backwards
     }
 
+    private static void TrimEdgeWhitespace(IntermediateNodeCollection nodes)
+    {
+        if (nodes.Count == 0)
+        {
+            return;
+        }
+
+        // Trim leading whitespace from the first content token
+        for (var i = 0; i < nodes.Count; i++)
+        {
+            if (TrimLeadingWhitespaceInNode(nodes[i]))
+            {
+                break;
+            }
+        }
+
+        // Trim trailing whitespace from the last content token
+        for (var i = nodes.Count - 1; i >= 0; i--)
+        {
+            if (TrimTrailingWhitespaceInNode(nodes[i]))
+            {
+                break;
+            }
+        }
+    }
+
+    private static bool TrimLeadingWhitespaceInNode(IntermediateNode node)
+    {
+        if (node is HtmlContentIntermediateNode htmlContent)
+        {
+            for (var i = 0; i < htmlContent.Children.Count; i++)
+            {
+                if (htmlContent.Children[i] is IntermediateToken token && token.Content != null)
+                {
+                    var trimmed = token.Content.TrimStart();
+                    if (trimmed.Length == 0)
+                    {
+                        htmlContent.Children.RemoveAt(i);
+                        i--;
+                        continue;
+                    }
+
+                    if (trimmed.Length != token.Content.Length)
+                    {
+                        token.UpdateContent(trimmed);
+                    }
+                    return true;
+                }
+            }
+
+            return htmlContent.Children.Count == 0;
+        }
+
+        if (node is IntermediateToken directToken && directToken.Content != null)
+        {
+            var trimmed = directToken.Content.TrimStart();
+            if (trimmed.Length == 0)
+            {
+                return false;
+            }
+
+            directToken.UpdateContent(trimmed);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TrimTrailingWhitespaceInNode(IntermediateNode node)
+    {
+        if (node is HtmlContentIntermediateNode htmlContent)
+        {
+            for (var i = htmlContent.Children.Count - 1; i >= 0; i--)
+            {
+                if (htmlContent.Children[i] is IntermediateToken token && token.Content != null)
+                {
+                    var trimmed = token.Content.TrimEnd();
+                    if (trimmed.Length == 0)
+                    {
+                        htmlContent.Children.RemoveAt(i);
+                        continue;
+                    }
+
+                    if (trimmed.Length != token.Content.Length)
+                    {
+                        token.UpdateContent(trimmed);
+                    }
+                    return true;
+                }
+            }
+
+            return htmlContent.Children.Count == 0;
+        }
+
+        if (node is IntermediateToken directToken && directToken.Content != null)
+        {
+            var trimmed = directToken.Content.TrimEnd();
+            if (trimmed.Length == 0)
+            {
+                return false;
+            }
+
+            directToken.UpdateContent(trimmed);
+            return true;
+        }
+
+        return false;
+    }
+
     class Visitor : IntermediateNodeWalker
     {
         public override void VisitMethodDeclaration(MethodDeclarationIntermediateNode node)
@@ -168,15 +277,15 @@ internal sealed class ComponentWhitespacePass : ComponentIntermediateNodePassBas
         {
             RemoveContiguousWhitespace(node.Children, TraversalDirection.Forwards);
             RemoveContiguousWhitespace(node.Children, TraversalDirection.Backwards);
+            TrimEdgeWhitespace(node.Children);
             VisitDefault(node);
         }
 
         public override void VisitTagHelperBody(TagHelperBodyIntermediateNode node)
         {
-            // The goal here is to remove leading/trailing whitespace inside component child content. However,
-            // at the time this whitespace pass runs, ComponentChildContent is still TagHelperBody in the tree.
             RemoveContiguousWhitespace(node.Children, TraversalDirection.Forwards);
             RemoveContiguousWhitespace(node.Children, TraversalDirection.Backwards);
+            TrimEdgeWhitespace(node.Children);
             VisitDefault(node);
         }
 
