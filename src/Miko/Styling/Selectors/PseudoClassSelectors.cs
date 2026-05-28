@@ -1,4 +1,5 @@
 using Miko.Core;
+using Miko.Core.DomElements;
 
 namespace Miko.Styling.Selectors;
 
@@ -134,5 +135,16 @@ public class EmptySelector : PseudoClassSelector
     public override bool Matches(Element element)
     {
         return element.Children.Count == 0 && string.IsNullOrEmpty(element.TextContent);
+    }
+}
+
+/// <summary>
+/// :checked 伪类选择器 - 匹配选中的 checkbox 或 radio 元素
+/// </summary>
+public class CheckedSelector : PseudoClassSelector
+{
+    public override bool Matches(Element element)
+    {
+        return element is InputElement input && input.Checked;
     }
 }

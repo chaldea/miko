@@ -122,6 +122,7 @@ public static class CssSelectorParser
         "first-of-type" => new FirstOfTypeSelector(),
         "last-of-type" => new LastOfTypeSelector(),
         "empty" => new EmptySelector(),
+        "checked" => new CheckedSelector(),
         _ => throw new ArgumentException($"Unknown pseudo-class: :{name}")
     };
 
