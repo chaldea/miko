@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace Miko.Common;
 
@@ -48,6 +48,9 @@ public struct Color
             _ => throw new ArgumentException("Invalid hex color format")
         };
     }
+    public static Color From(Color color, float alpha) => new Color(color.R, color.G, color.A, (byte)Math.Round(Math.Clamp(alpha, 0f, 1f) * 255));
+
+    public static implicit operator Color(string value) => FromHex(value);
 
     // 预定义颜色
     public static Color Transparent => new Color(0, 0, 0, 0);
