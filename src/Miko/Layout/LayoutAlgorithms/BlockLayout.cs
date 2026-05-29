@@ -128,6 +128,25 @@ public class BlockLayout
         float contentX = x + box.BoxModel.Margin.Left + box.BoxModel.Border.Left + box.BoxModel.Padding.Left;
         float contentY = y + box.BoxModel.Margin.Top + box.BoxModel.Border.Top + box.BoxModel.Padding.Top;
 
+        // 计算确定性高度，用于子元素百分比高度解析
+        float? childAvailableHeight = null;
+        if (!style.Height.IsAuto)
+        {
+            float h = style.Height.ToPixels(constraints.AvailableHeight ?? 0);
+            if (style.BoxSizing == BoxSizing.BorderBox)
+                h -= box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
+            childAvailableHeight = Math.Max(0, h);
+        }
+        else if (constraints.AvailableHeight.HasValue &&
+                 (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
+        {
+            float h = constraints.AvailableHeight.Value
+                - box.BoxModel.Margin.Vertical
+                - box.BoxModel.Border.Vertical
+                - box.BoxModel.Padding.Vertical;
+            childAvailableHeight = Math.Max(0, h);
+        }
+
         // 4. 布局子元素
         // Block 子元素垂直堆叠，Inline/InlineBlock 子元素水平排列
         float currentY = contentY;
@@ -162,7 +181,7 @@ public class BlockLayout
             else
             {
                 // Block 子元素垂直堆叠
-                var childConstraints = new LayoutConstraints(childAvailableWidth, null);
+                var childConstraints = new LayoutConstraints(childAvailableWidth, childAvailableHeight);
                 LayoutChild(child, childConstraints, contentX, currentY);
 
                 currentY = child.BoxModel.MarginBox.Bottom;

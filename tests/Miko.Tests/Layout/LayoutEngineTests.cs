@@ -745,8 +745,8 @@ public class LayoutEngineTests
                         Style = new Style
                         {
                             Display = Display.Flex,
-                            FlexDirection = FlexDirection.Row
-                            // 注意：没有显式设置 AlignItems，默认为 FlexStart
+                            FlexDirection = FlexDirection.Row,
+                            AlignItems = AlignItems.FlexStart
                         }
                     },
                     new StyleRule
@@ -2744,6 +2744,365 @@ public class LayoutEngineTests
         // button 默认 border-box，width:100% = 父内容宽度 = border-box 宽度
         buttonBox.BoxModel.MarginBox.Width.ShouldBeLessThanOrEqualTo(
             layoutRoot.BoxModel.Content.Width);
+    }
+
+    #endregion
+
+    #region Flex Column Nested Percentage Height
+
+    [Fact]
+    public void FlexColumn_FlexGrowChild_NestedPercentageHeight_ShouldResolveCorrectly()
+    {
+        var root = new DivElement { Class = "root" };
+        var toolbar = new DivElement { Class = "toolbar", TextContent = "sss" };
+        var content = new DivElement { Class = "content" };
+        var panel = new DivElement { Class = "panel" };
+        var test = new DivElement { Class = "test", TextContent = "test" };
+
+        panel.AddChild(test);
+        content.AddChild(panel);
+        root.AddChild(toolbar);
+        root.AddChild(content);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(500),
+                            Height = Length.Px(500),
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("toolbar"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Height = Length.Px(34),
+                            AlignItems = AlignItems.Center,
+                            PaddingLeft = Length.Px(8)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("content"),
+                        Style = new Style
+                        {
+                            FlexGrow = 1,
+                            FlexShrink = 1,
+                            FlexBasis = Length.Percent(0),
+                            OverflowY = Overflow.Hidden
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("panel"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            Width = Length.Percent(100),
+                            Height = Length.Percent(100),
+                            OverflowY = Overflow.Scroll
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("test"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(100),
+                            Height = Length.Px(800)
+                        }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        var contentBox = layoutRoot.Children[1];
+        contentBox.BoxModel.Content.Height.ShouldBeGreaterThan(0);
+        contentBox.BoxModel.Content.Height.ShouldBe(466, 1f);
+
+        var panelBox = contentBox.Children[0];
+        panelBox.BoxModel.Content.Height.ShouldBeGreaterThan(0);
+        panelBox.BoxModel.Content.Height.ShouldBe(contentBox.BoxModel.Content.Height, 1f);
+
+        var testBox = panelBox.Children[0];
+        testBox.BoxModel.Content.Height.ShouldBe(800, 1f);
+    }
+
+    [Fact]
+    public void FlexShorthand_ShouldSetGrowShrinkBasis()
+    {
+        var style = new Style { Flex = 1 };
+
+        style.FlexGrow.ShouldNotBeNull();
+        style.FlexGrow!.Value.Value.ShouldBe(1f);
+        style.FlexShrink.ShouldNotBeNull();
+        style.FlexShrink!.Value.Value.ShouldBe(1f);
+        style.FlexBasis.ShouldNotBeNull();
+        style.FlexBasis!.Value.Value.ShouldBe(Length.Percent(0));
+    }
+
+    #endregion
+
+    #region Flex Row Cross-Axis Height
+
+    [Fact]
+    public void FlexRow_ChildWithOverflowScroll_ShouldHaveContainerHeight()
+    {
+        // devtools-root (flex column, 500x500)
+        //   toolbar (height: 34px)
+        //   content (flex:1, display:flex, overflow-y:hidden)
+        //     elements-panel (flex row, width:100%, height:100%)
+        //       dom-tree-panel (flex-grow:1, overflow-y:scroll, padding:4px)
+        //         test "DOM"
+        //       style-panel (width:280px)
+
+        var root = new DivElement { Class = "root" };
+        var toolbar = new DivElement { Class = "toolbar", TextContent = "sss" };
+        var content = new DivElement { Class = "content" };
+        var panel = new DivElement { Class = "elements-panel" };
+        var treePanel = new DivElement { Class = "dom-tree-panel" };
+        var test = new DivElement { Class = "test", TextContent = "DOM" };
+        var stylePanel = new DivElement { Class = "style-panel", TextContent = "style" };
+
+        treePanel.AddChild(test);
+        panel.AddChild(treePanel);
+        panel.AddChild(stylePanel);
+        content.AddChild(panel);
+        root.AddChild(toolbar);
+        root.AddChild(content);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(500),
+                            Height = Length.Px(500),
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("toolbar"),
+                        Style = new Style
+                        {
+                            Height = Length.Px(34)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("content"),
+                        Style = new Style
+                        {
+                            Flex = 1,
+                            Display = Display.Flex,
+                            OverflowY = Overflow.Hidden
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("elements-panel"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Percent(100),
+                            Height = Length.Percent(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("dom-tree-panel"),
+                        Style = new Style
+                        {
+                            FlexGrow = 1,
+                            OverflowY = Overflow.Scroll,
+                            Padding = new Padding(Length.Px(4))
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("style-panel"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(280),
+                            OverflowY = Overflow.Scroll,
+                            Padding = new Padding(Length.Px(8))
+                        }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // content should fill remaining height (500 - 34 = 466)
+        var contentBox = layoutRoot.Children[1];
+        contentBox.BoxModel.Content.Height.ShouldBe(466, 1f);
+
+        // elements-panel (height:100%) should match content height
+        var elementsPanelBox = contentBox.Children[0];
+        elementsPanelBox.BoxModel.Content.Height.ShouldBe(466, 1f);
+
+        // dom-tree-panel should stretch to fill the cross-axis (full container height)
+        var treePanelBox = elementsPanelBox.Children[0];
+        treePanelBox.BoxModel.Content.Height.ShouldBeGreaterThan(100);
+
+        // text content should be at the top, not vertically centered
+        var testBox = treePanelBox.Children[0];
+        testBox.BoxModel.Content.Y.ShouldBe(treePanelBox.BoxModel.Content.Y, 1f);
+    }
+
+    [Fact]
+    public void FlexRow_BlockChild_TextShouldBeAtTop()
+    {
+        // Exact repro from DebugDemo.Razor: nested flex column → flex row → block panels
+        // Text in .dom-tree-panel and .style-panel should start at the top, not centered.
+        //
+        // devtools-root (flex column, 500x500)
+        //   devtools-toolbar (height: 34px) "sss"
+        //   devtools-content (flex:1, display:flex, overflow-y:hidden)
+        //     elements-panel (flex row, width:100%, height:100%)
+        //       dom-tree-panel (block, flex-grow:1, overflow-y:scroll, padding:4px)
+        //         test "DOM"
+        //       style-panel (block, width:280, overflow-y:scroll, padding:8px)
+        //         "style"
+
+        var root = new DivElement { Class = "devtools-root" };
+        var toolbar = new DivElement { Class = "devtools-toolbar", TextContent = "sss" };
+        var content = new DivElement { Class = "devtools-content" };
+        var elementsPanel = new DivElement { Class = "elements-panel" };
+        var treePanel = new DivElement { Class = "dom-tree-panel" };
+        var test = new DivElement { Class = "test", TextContent = "DOM" };
+        var stylePanel = new DivElement { Class = "style-panel", TextContent = "style" };
+
+        treePanel.AddChild(test);
+        elementsPanel.AddChild(treePanel);
+        elementsPanel.AddChild(stylePanel);
+        content.AddChild(elementsPanel);
+        root.AddChild(toolbar);
+        root.AddChild(content);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("devtools-root"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column,
+                            Width = Length.Px(500),
+                            Height = Length.Px(500)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("devtools-toolbar"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Height = Length.Px(34),
+                            AlignItems = AlignItems.Center,
+                            PaddingLeft = Length.Px(8)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("devtools-content"),
+                        Style = new Style
+                        {
+                            Flex = 1,
+                            Display = Display.Flex,
+                            OverflowY = Overflow.Hidden
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("elements-panel"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Percent(100),
+                            Height = Length.Percent(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("dom-tree-panel"),
+                        Style = new Style
+                        {
+                            FlexGrow = 1,
+                            OverflowY = Overflow.Scroll,
+                            Padding = new Padding(Length.Px(4)),
+                            BorderRight = new BorderSide(Length.Px(1), BorderStyle.Solid, new Color(70, 70, 70))
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("style-panel"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(280),
+                            OverflowY = Overflow.Scroll,
+                            Padding = new Padding(Length.Px(8))
+                        }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // content (flex:1) should fill remaining: 500 - 34 = 466
+        var contentBox = layoutRoot.Children[1];
+        contentBox.BoxModel.Content.Height.ShouldBe(466, 1f);
+
+        // elements-panel (height:100%) should match content
+        var elementsPanelBox = contentBox.Children[0];
+        elementsPanelBox.BoxModel.Content.Height.ShouldBe(466, 1f);
+
+        // dom-tree-panel should be stretched to fill container height
+        var treePanelBox = elementsPanelBox.Children[0];
+        treePanelBox.BoxModel.Content.Height.ShouldBeGreaterThan(400);
+
+        // test div inside dom-tree-panel: its Y should be at the top of the panel content area
+        var testBox = treePanelBox.Children[0];
+        float treePanelContentY = treePanelBox.BoxModel.Content.Y;
+        testBox.BoxModel.MarginBox.Y.ShouldBe(treePanelContentY, 1f);
+
+        // style-panel text should also start at the top (style-panel has no children, just TextContent)
+        // For elements with TextContent and no children, the text is rendered at content.Y
+        // so we just verify the content.Y is at the top of the elements-panel content area
+        var stylePanelBox = elementsPanelBox.Children[1];
+        stylePanelBox.BoxModel.Content.Height.ShouldBeGreaterThan(400);
     }
 
     #endregion

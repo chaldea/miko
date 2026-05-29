@@ -22,6 +22,19 @@ public class Style
     public StyleProperty<float>? FlexShrink { get; set; }
     public StyleProperty<Length>? FlexBasis { get; set; }
 
+    /// <summary>
+    /// flex 简写属性 (flex: N → flex-grow: N; flex-shrink: 1; flex-basis: 0%)
+    /// </summary>
+    public float Flex
+    {
+        set
+        {
+            FlexGrow = value;
+            FlexShrink = 1;
+            FlexBasis = Length.Percent(0);
+        }
+    }
+
     // 盒子模型
     public StyleProperty<BoxSizing>? BoxSizing { get; set; }
     public StyleProperty<Length>? Width { get; set; }

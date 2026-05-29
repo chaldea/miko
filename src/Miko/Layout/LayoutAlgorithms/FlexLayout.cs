@@ -84,6 +84,15 @@ public class FlexLayout
                 contentHeight = Math.Max(0, contentHeight);
             }
         }
+        else if (constraints.AvailableHeight.HasValue &&
+                 (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
+        {
+            contentHeight = constraints.AvailableHeight.Value
+                - box.BoxModel.Margin.Vertical
+                - box.BoxModel.Border.Vertical
+                - box.BoxModel.Padding.Vertical;
+            contentHeight = Math.Max(0, contentHeight);
+        }
         else
         {
             contentHeight = 0; // 稍后根据子元素计算

@@ -141,6 +141,10 @@ public class MikoApp
         using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
         var root = BuildRoot();
         _engine.Initialize(root, _options.StyleSheets, tempSurface.Canvas, _width, _height);
+
+        foreach (var hook in _options.PostInitHooks)
+            hook(_serviceProvider);
+
         _frameTimer.Start();
     }
 
@@ -500,6 +504,11 @@ public class MikoApp
 
     private void OnKeyDown(IKeyboard keyboard, Key key, int scancode)
     {
+        foreach (var handler in _options.GlobalKeyDownHandlers)
+        {
+            if (handler(key)) return;
+        }
+
         if (_focusedElement is not InputElement input) return;
         if (input.Type != InputType.Text && input.Type != InputType.Password) return;
 
