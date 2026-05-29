@@ -1,0 +1,14 @@
+@namespace Miko.Bootstrap.Components
+<div class="popover">
+    @if (Title != null)
+    {
+        <div class="popover-header">@Title</div>
+    }
+    <div class="popover-body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+}

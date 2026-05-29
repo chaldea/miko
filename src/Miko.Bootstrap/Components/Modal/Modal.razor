@@ -1,0 +1,39 @@
+@namespace Miko.Bootstrap.Components
+@if (Visible)
+{
+    <div class="modal-backdrop"></div>
+    <div class="modal show">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                @if (Title != null)
+                {
+                    <div class="modal-header">
+                        <h5>@Title</h5>
+                        <button class="btn-close" @onclick="Close"></button>
+                    </div>
+                }
+                <div class="modal-body">
+                    @ChildContent
+                </div>
+                @if (Footer != null)
+                {
+                    <div class="modal-footer">
+                        @Footer
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+    [Parameter] public Action? OnClose { get; set; }
+
+    private void Close()
+    {
+        OnClose?.Invoke();
+    }
+}

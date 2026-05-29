@@ -1,0 +1,17 @@
+@namespace Miko.Bootstrap.Components
+<div class="@_cssClass">
+    <span class="visually-hidden">@Label</span>
+</div>
+
+@code {
+    private string _cssClass = "spinner-border";
+    [Parameter] public string Type { get; set; } = "border";
+    [Parameter] public bool Small { get; set; }
+    [Parameter] public string Label { get; set; } = "Loading...";
+
+    protected override void OnParametersSet()
+    {
+        var baseClass = Type == "grow" ? "spinner-grow" : "spinner-border";
+        _cssClass = Small ? $"{baseClass} {baseClass}-sm" : baseClass;
+    }
+}

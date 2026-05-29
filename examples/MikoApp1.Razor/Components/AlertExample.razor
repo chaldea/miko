@@ -1,0 +1,55 @@
+@page "/alert"
+@namespace MikoApp1.Razor.Components
+
+<div class="container">
+    <h1>Alert Examples</h1>
+
+    <h2>Basic Alerts</h2>
+    <Alert Variant="primary">
+        A simple primary alert—check it out!
+    </Alert>
+
+    <Alert Variant="secondary">
+        A simple secondary alert—check it out!
+    </Alert>
+
+    <Alert Variant="success">
+        A simple success alert—check it out!
+    </Alert>
+
+    <Alert Variant="danger">
+        A simple danger alert—check it out!
+    </Alert>
+
+    <Alert Variant="warning">
+        A simple warning alert—check it out!
+    </Alert>
+
+    <Alert Variant="info">
+        A simple info alert—check it out!
+    </Alert>
+
+    <Alert Variant="light">
+        A simple light alert—check it out!
+    </Alert>
+
+    <Alert Variant="dark">
+        A simple dark alert—check it out!
+    </Alert>
+
+    <h2>Alert with Heading</h2>
+    <Alert Variant="success" Heading="Well done!">
+        <p>You successfully read this important alert message.</p>
+    </Alert>
+
+    <h2>Dismissible Alert</h2>
+    <Alert Variant="warning" Dismissible="true" OnDismissed="HandleDismiss">
+        <strong>Warning!</strong> This alert can be dismissed.
+    </Alert>
+</div>
+
+@code {
+    private void HandleDismiss()
+    {
+    }
+}

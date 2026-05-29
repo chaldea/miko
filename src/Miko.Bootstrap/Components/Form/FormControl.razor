@@ -1,0 +1,21 @@
+@namespace Miko.Bootstrap.Components
+<input class="@_cssClass" disabled="@Disabled" />
+
+@code {
+    private string _cssClass = "form-control";
+
+    [Parameter] public string Size { get; set; } = "";
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? ValidationState { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        var classes = new List<string> { "form-control" };
+        if (!string.IsNullOrEmpty(Size))
+            classes.Add($"form-control-{Size}");
+        if (!string.IsNullOrEmpty(ValidationState))
+            classes.Add($"is-{ValidationState}");
+        _cssClass = string.Join(" ", classes);
+    }
+}

@@ -1,0 +1,20 @@
+@namespace Miko.Bootstrap.Components
+<div class="dropdown">
+    <button class="btn btn-secondary dropdown-toggle" @onclick="Toggle">
+        @Title
+    </button>
+    <div class="@_menuClass">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    private string _menuClass = "dropdown-menu";
+    [Parameter] public string? Title { get; set; }
+
+    private void Toggle()
+    {
+        _menuClass = _menuClass.Contains("show") ? "dropdown-menu" : "dropdown-menu show";
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,66 @@
+@page "/components"
+@namespace MikoApp1.Razor.Components
+
+<div class="container">
+    <h1>Component Showcase</h1>
+
+    <h2>Breadcrumb</h2>
+    <Breadcrumb>
+        <BreadcrumbItem Text="Home" Href="/" />
+        <BreadcrumbItem Text="Library" Href="/library" />
+        <BreadcrumbItem Text="Data" Active="true" />
+    </Breadcrumb>
+
+    <h2>Card</h2>
+    <Card>
+        <CardHeader>Featured</CardHeader>
+        <CardBody Title="Card title" Subtitle="Card subtitle">
+            <p class="card-text">Some quick example text to build on the card title.</p>
+        </CardBody>
+        <CardFooter>2 days ago</CardFooter>
+    </Card>
+
+    <h2>Dropdown</h2>
+    <Dropdown Title="Dropdown button">
+        <DropdownItem>Action</DropdownItem>
+        <DropdownItem>Another action</DropdownItem>
+        <DropdownItem Active="true">Active item</DropdownItem>
+    </Dropdown>
+
+    <h2>List Group</h2>
+    <ListGroup>
+        <ListGroupItem Active="true">Active item</ListGroupItem>
+        <ListGroupItem>A second item</ListGroupItem>
+        <ListGroupItem>A third item</ListGroupItem>
+        <ListGroupItem Disabled="true">A disabled item</ListGroupItem>
+    </ListGroup>
+
+    <h2>Pagination</h2>
+    <Pagination>
+        <PaginationItem Disabled="true">Previous</PaginationItem>
+        <PaginationItem Active="true">1</PaginationItem>
+        <PaginationItem>2</PaginationItem>
+        <PaginationItem>3</PaginationItem>
+        <PaginationItem>Next</PaginationItem>
+    </Pagination>
+
+    <h2>Progress</h2>
+    <Progress Value="25" />
+    <Progress Value="50" ShowLabel="true" />
+    <Progress Value="75" />
+
+    <h2>Spinner</h2>
+    <div class="d-flex">
+        <Spinner />
+        <Spinner Type="grow" />
+        <Spinner Small="true" />
+    </div>
+
+    <h2>Toast</h2>
+    <Toast Title="Bootstrap" Visible="true">
+        Hello, world! This is a toast message.
+    </Toast>
+
+    <h2>Tooltip</h2>
+    <Tooltip>Tooltip text</Tooltip>
+</div>

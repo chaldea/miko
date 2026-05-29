@@ -1,0 +1,13 @@
+@namespace Miko.Bootstrap.Components
+<div>
+    <ul class="nav nav-tabs">
+        @HeaderContent
+    </ul>
+    <div class="tab-content">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? HeaderContent { get; set; }
+}

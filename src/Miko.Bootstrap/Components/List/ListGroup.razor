@@ -1,0 +1,14 @@
+@namespace Miko.Bootstrap.Components
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    private string _cssClass = "list-group";
+    [Parameter] public bool Flush { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = Flush ? "list-group list-group-flush" : "list-group";
+    }
+}

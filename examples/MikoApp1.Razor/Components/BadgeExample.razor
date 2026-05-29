@@ -1,0 +1,33 @@
+@page "/badge"
+@namespace MikoApp1.Razor.Components
+
+<div class="container">
+    <h1>Badge Examples</h1>
+
+    <h2>Basic Badges</h2>
+    <div>
+        <Badge Variant="primary">Primary</Badge>
+        <Badge Variant="secondary">Secondary</Badge>
+        <Badge Variant="success">Success</Badge>
+        <Badge Variant="danger">Danger</Badge>
+        <Badge Variant="warning">Warning</Badge>
+        <Badge Variant="info">Info</Badge>
+        <Badge Variant="light">Light</Badge>
+        <Badge Variant="dark">Dark</Badge>
+    </div>
+
+    <h2>Badges in Headings</h2>
+    <h1>Example heading <Badge Variant="secondary">New</Badge></h1>
+    <h2>Example heading <Badge Variant="secondary">New</Badge></h2>
+    <h3>Example heading <Badge Variant="secondary">New</Badge></h3>
+    <h4>Example heading <Badge Variant="secondary">New</Badge></h4>
+
+    <h2>Notification Badges</h2>
+    <Button Variant="primary">
+        Notifications <Badge Variant="light">4</Badge>
+    </Button>
+
+    <Button Variant="secondary">
+        Messages <Badge Variant="danger">99+</Badge>
+    </Button>
+</div>

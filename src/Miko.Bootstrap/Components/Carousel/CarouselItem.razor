@@ -1,0 +1,14 @@
+@namespace Miko.Bootstrap.Components
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    private string _cssClass = "carousel-item";
+    [Parameter] public bool Active { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = Active ? "carousel-item active" : "carousel-item";
+    }
+}

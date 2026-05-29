@@ -6,14 +6,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RazorLangVersion>Latest</RazorLangVersion>
+    <PublishAot>true</PublishAot>
     <StartupObject>MikoApp1.Razor.Program</StartupObject>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Miko\Miko.csproj" />
+    <TrimmerRootAssembly Include="Silk.NET.Windowing.Glfw" />
+    <TrimmerRootAssembly Include="Silk.NET.Input.Glfw" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Miko.Bootstrap\Miko.Bootstrap.csproj" />
+    <ProjectReference Include="..\..\src\Miko\Miko.csproj" />
   </ItemGroup>
 
   <ItemGroup>

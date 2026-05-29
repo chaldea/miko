@@ -1,0 +1,38 @@
+@namespace Miko.Bootstrap.Components
+<div class="accordion-item">
+    <h2 class="accordion-header">
+        <button class="@_btn" @onclick="Toggle">
+            @Title
+        </button>
+    </h2>
+    <div class="@_collapse">
+        <div class="accordion-body">
+            @if (Content != null)
+            {
+                @Content
+            }
+            else
+            {
+                @ChildContent
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _collapse = "accordion-collapse collapse";
+    private string _btn = "accordion-button collapsed";
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public RenderFragment? Content { get; set; }
+
+    public bool IsExpanded { get; set; }
+
+    private void Toggle()
+    {
+        IsExpanded = !IsExpanded;
+        _collapse = IsExpanded ? "accordion-collapse collapse show" : "accordion-collapse collapse";
+        _btn = IsExpanded ? "accordion-button" : "accordion-button collapsed";
+        StateHasChanged();
+    }
+}
