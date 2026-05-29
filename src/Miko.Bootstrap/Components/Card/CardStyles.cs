@@ -83,8 +83,8 @@ internal static class CardStyles
 
                 ["&:first-child"] = new()
                 {
-                    BorderTopLeftRadius = t.CardInnerBorderRadius,
-                    BorderTopRightRadius = t.CardInnerBorderRadius
+                    BorderTopLeftRadius = Length.Px(t.CardInnerBorderRadius),
+                    BorderTopRightRadius = Length.Px(t.CardInnerBorderRadius)
                 }
             },
 
@@ -96,8 +96,8 @@ internal static class CardStyles
 
                 ["&:last-child"] = new()
                 {
-                    BorderBottomLeftRadius = t.CardInnerBorderRadius,
-                    BorderBottomRightRadius = t.CardInnerBorderRadius
+                    BorderBottomLeftRadius = Length.Px(t.CardInnerBorderRadius),
+                    BorderBottomRightRadius = Length.Px(t.CardInnerBorderRadius)
                 }
             },
 
@@ -108,14 +108,14 @@ internal static class CardStyles
 
             [".card-img, .card-img-top"] = new()
             {
-                BorderTopLeftRadius = t.CardInnerBorderRadius,
-                BorderTopRightRadius = t.CardInnerBorderRadius
+                BorderTopLeftRadius = Length.Px(t.CardInnerBorderRadius),
+                BorderTopRightRadius = Length.Px(t.CardInnerBorderRadius)
             },
 
             [".card-img, .card-img-bottom"] = new()
             {
-                BorderBottomLeftRadius = t.CardInnerBorderRadius,
-                BorderBottomRightRadius = t.CardInnerBorderRadius
+                BorderBottomLeftRadius = Length.Px(t.CardInnerBorderRadius),
+                BorderBottomRightRadius = Length.Px(t.CardInnerBorderRadius)
             }
         };
     }

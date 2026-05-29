@@ -71,8 +71,8 @@ internal static class TabStyles
             {
                 MarginBottom = Length.Px(-t.NavTabsBorderWidth),
                 Border = new Border(Length.Px(t.NavTabsBorderWidth), BorderStyle.Solid, Color.Transparent),
-                BorderTopLeftRadius = t.NavTabsBorderRadius,
-                BorderTopRightRadius = t.NavTabsBorderRadius
+                BorderTopLeftRadius = Length.Px(t.NavTabsBorderRadius),
+                BorderTopRightRadius = Length.Px(t.NavTabsBorderRadius)
             },
 
             [".nav-tabs .nav-link.active"] = new()

@@ -55,7 +55,7 @@ public class TransitionTests
     [Fact]
     public void FluentApi_ShouldCreateTransitionWithExpression()
     {
-        Transition transition = Transition.For<float?>(x => x.Opacity).Duration(0.5f).Linear().Delay(0.1f);
+        Transition transition = Transition.For<StyleProperty<float>?>(x => x.Opacity).Duration(0.5f).Linear().Delay(0.1f);
 
         transition.Property.ShouldBe(nameof(Style.Opacity));
         transition.Duration.ShouldBe(0.5f);
@@ -66,7 +66,7 @@ public class TransitionTests
     [Fact]
     public void FluentApi_ShouldSupportColorProperty()
     {
-        Transition transition = Transition.For<Color?>(x => x.BackgroundColor).Duration(1f).EaseInOut();
+        Transition transition = Transition.For<StyleProperty<Color>?>(x => x.BackgroundColor).Duration(1f).EaseInOut();
 
         transition.Property.ShouldBe(nameof(Style.BackgroundColor));
         transition.TimingFunction.ShouldBe(TimingFunction.EaseInOut);
@@ -75,7 +75,7 @@ public class TransitionTests
     [Fact]
     public void FluentApi_ShouldSupportCubicBezier()
     {
-        Transition transition = Transition.For<float?>(x => x.Opacity).Duration(0.3f).CubicBezier(0.25f, 0.1f, 0.25f, 1f);
+        Transition transition = Transition.For<StyleProperty<float>?>(x => x.Opacity).Duration(0.3f).CubicBezier(0.25f, 0.1f, 0.25f, 1f);
 
         transition.TimingFunction.ShouldBe(TimingFunction.CubicBezier);
         transition.CubicBezier.ShouldNotBeNull();
@@ -85,7 +85,7 @@ public class TransitionTests
     [Fact]
     public void FluentApi_ShouldSupportImplicitConversion()
     {
-        Transition transition = Transition.For<Length?>(x => x.Width).Duration(0.5f);
+        Transition transition = Transition.For<StyleProperty<Length>?>(x => x.Width).Duration(0.5f);
 
         transition.Property.ShouldBe(nameof(Style.Width));
         transition.Duration.ShouldBe(0.5f);

@@ -124,7 +124,7 @@ internal static class FormStyles
                 Width = Length.Percent(100),
                 Padding = new Padding(t.InputPaddingY, t.InputPaddingX),
                 FontSize = t.InputFontSize,
-                LineHeight = t.InputLineHeight,
+                LineHeight = Length.Px(t.InputLineHeight),
                 Color = t.InputColor,
                 BackgroundColor = t.InputBg,
                 Border = new Border(Length.Px(t.InputBorderWidth), BorderStyle.Solid, t.InputBorderColor),
@@ -165,7 +165,7 @@ internal static class FormStyles
                 Width = Length.Percent(100),
                 Padding = new Padding(t.InputPaddingY, Length.Rem(2.25f), t.InputPaddingY, t.InputPaddingX),
                 FontSize = t.InputFontSize,
-                LineHeight = t.InputLineHeight,
+                LineHeight = Length.Px(t.InputLineHeight),
                 Color = t.InputColor,
                 BackgroundColor = t.InputBg,
                 Border = new Border(Length.Px(t.InputBorderWidth), BorderStyle.Solid, t.InputBorderColor),
@@ -259,7 +259,7 @@ internal static class FormStyles
                 {
                     Position = Position.Relative,
                     FlexGrow = 1,
-                    FlexBasis = 0,
+                    FlexBasis = Length.Px(0),
                     MinWidth = Length.Px(0)
                 },
 
@@ -267,7 +267,7 @@ internal static class FormStyles
                 {
                     Position = Position.Relative,
                     FlexGrow = 1,
-                    FlexBasis = 0,
+                    FlexBasis = Length.Px(0),
                     MinWidth = Length.Px(0)
                 }
             },

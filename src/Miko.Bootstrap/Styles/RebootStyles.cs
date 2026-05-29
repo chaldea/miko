@@ -33,7 +33,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(40),
                 FontWeight = FontWeight.Medium,
-                LineHeight = 1.2f,
+                LineHeight = Length.Px(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -42,7 +42,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(32),
                 FontWeight = FontWeight.Medium,
-                LineHeight = 1.2f,
+                LineHeight = Length.Px(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -51,7 +51,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(28),
                 FontWeight = FontWeight.Medium,
-                LineHeight = 1.2f,
+                LineHeight = Length.Px(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -60,7 +60,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(24),
                 FontWeight = FontWeight.Medium,
-                LineHeight = 1.2f,
+                LineHeight = Length.Px(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -69,7 +69,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(20),
                 FontWeight = FontWeight.Medium,
-                LineHeight = 1.2f,
+                LineHeight = Length.Px(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -78,7 +78,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(16),
                 FontWeight = FontWeight.Medium,
-                LineHeight = 1.2f,
+                LineHeight = Length.Px(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -162,7 +162,7 @@ internal static class RebootStyles
             ["input, button, select, textarea"] = new()
             {
                 Margin = new Margin(0),
-                LineHeight = 1.5f
+                LineHeight = Length.Px(1.5f)
             },
         };
     }

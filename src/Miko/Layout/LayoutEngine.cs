@@ -43,9 +43,10 @@ public class LayoutEngine
     /// <summary>
     /// 计算所有元素的样式
     /// </summary>
-    private void ComputeStyles(Element element, List<StyleSheet> styleSheets, ViewportInfo viewport)
+    private void ComputeStyles(Element element, List<StyleSheet> styleSheets, ViewportInfo viewport,
+        CustomPropertyScope? parentScope = null)
     {
-        var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport);
+        var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport, parentScope);
 
         // 创建布局盒子并关联
         element.LayoutBox = new LayoutBox
@@ -54,10 +55,11 @@ public class LayoutEngine
             ComputedStyle = computedStyle
         };
 
-        // 递归处理子元素
+        // 递归处理子元素，传递当前元素的自定义属性作用域
+        var childScope = computedStyle.CustomPropertyScope;
         foreach (var child in element.Children)
         {
-            ComputeStyles(child, styleSheets, viewport);
+            ComputeStyles(child, styleSheets, viewport, childScope);
         }
     }
 

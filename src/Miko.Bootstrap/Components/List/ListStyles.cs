@@ -61,14 +61,14 @@ internal static class ListStyles
 
                 ["&:first-child"] = new()
                 {
-                    BorderTopLeftRadius = t.ListGroupBorderRadius,
-                    BorderTopRightRadius = t.ListGroupBorderRadius
+                    BorderTopLeftRadius = Length.Px(t.ListGroupBorderRadius),
+                    BorderTopRightRadius = Length.Px(t.ListGroupBorderRadius)
                 },
 
                 ["&:last-child"] = new()
                 {
-                    BorderBottomLeftRadius = t.ListGroupBorderRadius,
-                    BorderBottomRightRadius = t.ListGroupBorderRadius
+                    BorderBottomLeftRadius = Length.Px(t.ListGroupBorderRadius),
+                    BorderBottomRightRadius = Length.Px(t.ListGroupBorderRadius)
                 }
             },
 

@@ -163,7 +163,7 @@ internal static class ButtonStyles
                 Padding = new Padding(t.BtnPaddingY, t.BtnPaddingX),
                 FontSize = t.BtnFontSize,
                 FontWeight = t.BtnFontWeight,
-                LineHeight = t.BtnLineHeight,
+                LineHeight = Length.Px(t.BtnLineHeight),
                 Color = t.BtnColor,
                 TextAlign = TextAlign.Center,
                 // NOTE: white-space, vertical-align, cursor, user-select not supported

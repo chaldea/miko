@@ -456,28 +456,15 @@ public class AnimationManager
     {
         element.Style ??= new Style();
 
-        if (from.Opacity.HasValue || to.Opacity.HasValue)
+        if (from.Opacity != null || to.Opacity != null)
         {
-            float fromVal = from.Opacity ?? 1f;
-            float toVal = to.Opacity ?? 1f;
+            float fromVal = from.Opacity?.Value ?? 1f;
+            float toVal = to.Opacity?.Value ?? 1f;
             element.Style.Opacity = Lerp(fromVal, toVal, progress);
         }
 
-        if (from.Width.HasValue || to.Width.HasValue)
-        {
-            var fromVal = from.Width ?? Length.Px(0);
-            var toVal = to.Width ?? Length.Px(0);
-            if (fromVal.Unit == toVal.Unit && !fromVal.IsAuto && !toVal.IsAuto)
-                element.Style.Width = new Length(Lerp(fromVal.Value, toVal.Value, progress), fromVal.Unit);
-        }
-
-        if (from.Height.HasValue || to.Height.HasValue)
-        {
-            var fromVal = from.Height ?? Length.Px(0);
-            var toVal = to.Height ?? Length.Px(0);
-            if (fromVal.Unit == toVal.Unit && !fromVal.IsAuto && !toVal.IsAuto)
-                element.Style.Height = new Length(Lerp(fromVal.Value, toVal.Value, progress), fromVal.Unit);
-        }
+        InterpolateLengthProperty(element, from.Width, to.Width, progress, (s, v) => s.Width = v);
+        InterpolateLengthProperty(element, from.Height, to.Height, progress, (s, v) => s.Height = v);
 
         InterpolateLengthProperty(element, from.MarginTop, to.MarginTop, progress, (s, v) => s.MarginTop = v);
         InterpolateLengthProperty(element, from.MarginRight, to.MarginRight, progress, (s, v) => s.MarginRight = v);
@@ -502,24 +489,24 @@ public class AnimationManager
         InterpolateLengthProperty(element, from.BorderBottomRightRadius, to.BorderBottomRightRadius, progress, (s, v) => s.BorderBottomRightRadius = v);
         InterpolateLengthProperty(element, from.BorderBottomLeftRadius, to.BorderBottomLeftRadius, progress, (s, v) => s.BorderBottomLeftRadius = v);
 
-        if (from.BackgroundColor.HasValue || to.BackgroundColor.HasValue)
+        if (from.BackgroundColor != null || to.BackgroundColor != null)
         {
-            var fromColor = from.BackgroundColor ?? Color.Transparent;
-            var toColor = to.BackgroundColor ?? Color.Transparent;
+            var fromColor = from.BackgroundColor?.Value ?? Color.Transparent;
+            var toColor = to.BackgroundColor?.Value ?? Color.Transparent;
             element.Style.BackgroundColor = LerpColor(fromColor, toColor, progress);
         }
 
-        if (from.Color.HasValue || to.Color.HasValue)
+        if (from.Color != null || to.Color != null)
         {
-            var fromColor = from.Color ?? Color.Black;
-            var toColor = to.Color ?? Color.Black;
+            var fromColor = from.Color?.Value ?? Color.Black;
+            var toColor = to.Color?.Value ?? Color.Black;
             element.Style.Color = LerpColor(fromColor, toColor, progress);
         }
 
-        if (from.BorderColor.HasValue || to.BorderColor.HasValue)
+        if (from.BorderColor != null || to.BorderColor != null)
         {
-            var fromColor = from.BorderColor ?? Color.Transparent;
-            var toColor = to.BorderColor ?? Color.Transparent;
+            var fromColor = from.BorderColor?.Value ?? Color.Transparent;
+            var toColor = to.BorderColor?.Value ?? Color.Transparent;
             element.Style.BorderColor = LerpColor(fromColor, toColor, progress);
         }
 
@@ -531,11 +518,11 @@ public class AnimationManager
         }
     }
 
-    private static void InterpolateLengthProperty(Element element, Length? from, Length? to, float progress, Action<Style, Length> setter)
+    private static void InterpolateLengthProperty(Element element, StyleProperty<Length>? from, StyleProperty<Length>? to, float progress, Action<Style, Length> setter)
     {
-        if (!from.HasValue && !to.HasValue) return;
-        var fromVal = from ?? Length.Px(0);
-        var toVal = to ?? Length.Px(0);
+        if (from == null && to == null) return;
+        var fromVal = from?.Value ?? Length.Px(0);
+        var toVal = to?.Value ?? Length.Px(0);
         if (fromVal.Unit != toVal.Unit || fromVal.IsAuto || toVal.IsAuto) return;
         setter(element.Style!, new Length(Lerp(fromVal.Value, toVal.Value, progress), fromVal.Unit));
     }
