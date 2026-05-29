@@ -12,7 +12,8 @@ public class StyleResolver
     /// <summary>
     /// 解析元素的最终样式
     /// </summary>
-    public ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets, ViewportInfo? viewport = null)
+    public ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets, ViewportInfo? viewport = null,
+        CustomPropertyScope? parentScope = null)
     {
         // 1. 收集所有匹配的规则（带有定义顺序索引）
         var matchedRules = new List<(StyleRule rule, int specificity, int index)>();
@@ -70,6 +71,12 @@ public class StyleResolver
             baseStyle.Merge(rule.Style);
         }
 
+        // 5.5 构建自定义属性作用域
+        var scope = BuildCustomPropertyScope(baseStyle, parentScope);
+
+        // 5.6 解析变量引用
+        ResolveVarBindings(baseStyle, scope);
+
         // 6. 从父元素继承可继承属性
         if (element.Parent != null && element.Parent.LayoutBox?.ComputedStyle != null)
         {
@@ -80,7 +87,9 @@ public class StyleResolver
         ApplyDefaultStyles(element, baseStyle);
 
         // 8. 转换为计算样式
-        return ComputedStyle.FromStyle(baseStyle);
+        var computed = ComputedStyle.FromStyle(baseStyle);
+        computed.CustomPropertyScope = scope;
+        return computed;
     }
 
     /// <summary>
@@ -89,12 +98,12 @@ public class StyleResolver
     private void InheritFromParent(Style style, ComputedStyle parentStyle)
     {
         // 可继承的属性
-        style.Color ??= parentStyle.Color;
+        style.Color ??= (StyleProperty<Color>)parentStyle.Color;
         style.FontFamily ??= parentStyle.FontFamily;
-        style.FontSize ??= parentStyle.FontSize;
-        style.FontWeight ??= parentStyle.FontWeight;
-        style.TextAlign ??= parentStyle.TextAlign;
-        style.LineHeight ??= parentStyle.LineHeight;
+        style.FontSize ??= (StyleProperty<Length>)parentStyle.FontSize;
+        style.FontWeight ??= (StyleProperty<FontWeight>)parentStyle.FontWeight;
+        style.TextAlign ??= (StyleProperty<TextAlign>)parentStyle.TextAlign;
+        style.LineHeight ??= (StyleProperty<Length>)parentStyle.LineHeight;
     }
 
     /// <summary>
@@ -293,10 +302,8 @@ public class StyleResolver
                 break;
 
             case "ul":
-                // Browser default: display: block, margin: 1em 0, padding-left: 40px
-                // list-style-type: disc (not implemented - visual bullets would need Painter support)
                 style.Display ??= Common.Display.Block;
-                style.MarginTop ??= Common.Length.Px(16);     // 1em at 16px
+                style.MarginTop ??= Common.Length.Px(16);
                 style.MarginBottom ??= Common.Length.Px(16);
                 style.MarginLeft ??= Common.Length.Px(0);
                 style.MarginRight ??= Common.Length.Px(0);
@@ -307,10 +314,8 @@ public class StyleResolver
                 break;
 
             case "ol":
-                // Browser default: display: block, margin: 1em 0, padding-left: 40px
-                // list-style-type: decimal (not implemented - numbers would need Painter support)
                 style.Display ??= Common.Display.Block;
-                style.MarginTop ??= Common.Length.Px(16);     // 1em at 16px
+                style.MarginTop ??= Common.Length.Px(16);
                 style.MarginBottom ??= Common.Length.Px(16);
                 style.MarginLeft ??= Common.Length.Px(0);
                 style.MarginRight ??= Common.Length.Px(0);
@@ -321,23 +326,17 @@ public class StyleResolver
                 break;
 
             case "li":
-                // Browser default: display: list-item (using block as list-item not supported)
-                // List markers (bullets/numbers) would need separate Painter implementation
                 style.Display ??= Common.Display.Block;
                 break;
 
             case "table":
-                // Browser default: display: table (using block for now), border-collapse: separate
-                // border-spacing: 2px, border-color: gray
                 style.Display ??= Common.Display.Block;
                 style.BoxSizing ??= Common.BoxSizing.BorderBox;
                 style.BorderWidth ??= Common.Length.Px(0);
                 style.BorderStyle ??= Common.BorderStyle.None;
-                // Note: border-collapse and border-spacing not yet implemented
                 break;
 
             case "caption":
-                // Browser default: display: table-caption (using block), text-align: center
                 style.Display ??= Common.Display.Block;
                 style.TextAlign ??= Common.TextAlign.Center;
                 style.PaddingTop ??= Common.Length.Px(2);
@@ -347,28 +346,19 @@ public class StyleResolver
             case "thead":
             case "tbody":
             case "tfoot":
-                // Browser default: display: table-row-group (using block for now)
-                // vertical-align: middle, border-color: inherit
                 style.Display ??= Common.Display.Block;
                 break;
 
             case "colgroup":
             case "col":
-                // Browser default: display: table-column-group / table-column
-                // These are typically not rendered but affect table layout
                 style.Display ??= Common.Display.None;
                 break;
 
             case "tr":
-                // Browser default: display: table-row (using block for now)
-                // vertical-align: inherit, border-color: inherit
                 style.Display ??= Common.Display.Block;
                 break;
 
             case "th":
-                // Browser default: display: table-cell (using inline-block for now)
-                // font-weight: bold, text-align: center, vertical-align: inherit
-                // padding: 1px
                 style.Display ??= Common.Display.InlineBlock;
                 style.FontWeight ??= Common.FontWeight.Bold;
                 style.TextAlign ??= Common.TextAlign.Center;
@@ -379,9 +369,6 @@ public class StyleResolver
                 break;
 
             case "td":
-                // Browser default: display: table-cell (using inline-block for now)
-                // vertical-align: inherit, text-align: left
-                // padding: 1px
                 style.Display ??= Common.Display.InlineBlock;
                 style.TextAlign ??= Common.TextAlign.Left;
                 style.PaddingTop ??= Common.Length.Px(1);
@@ -395,27 +382,17 @@ public class StyleResolver
     /// <summary>
     /// 应用输入框元素的默认样式（根据 InputType 不同设置不同的样式）
     /// </summary>
-    /// <remarks>
-    /// Based on browser default behavior:
-    /// - Text/Password: Similar to input fields with padding, border, and default dimensions
-    /// - Checkbox/Radio: Fixed 13x13px size (browser default), no padding/border in layout
-    /// - Range: Fixed height with default width
-    /// </remarks>
     private void ApplyInputDefaultStyles(Element element, Style style)
     {
-        // Common style for all input types
         style.Display ??= Display.InlineBlock;
         style.BoxSizing ??= BoxSizing.BorderBox;
 
-        // Check if it's an InputElement to get the type
         if (element is InputElement inputElement)
         {
             switch (inputElement.Type)
             {
                 case InputType.Checkbox:
                 case InputType.Radio:
-                    // Browser default: checkbox/radio are 13x13px
-                    // No padding or border in layout (visuals are drawn separately)
                     style.Width ??= Length.Px(13);
                     style.Height ??= Length.Px(13);
                     style.PaddingTop ??= Length.Px(0);
@@ -423,11 +400,10 @@ public class StyleResolver
                     style.PaddingBottom ??= Length.Px(0);
                     style.PaddingLeft ??= Length.Px(0);
                     style.BorderWidth ??= Length.Px(0);
-                    style.BorderStyle ??= BorderStyle.None;
+                    style.BorderStyle ??= Common.BorderStyle.None;
                     break;
 
                 case InputType.Range:
-                    // Browser default: Range has fixed height ~21px and width ~129px (Chrome)
                     style.Width ??= Length.Px(129);
                     style.Height ??= Length.Px(21);
                     style.PaddingTop ??= Length.Px(0);
@@ -435,14 +411,12 @@ public class StyleResolver
                     style.PaddingBottom ??= Length.Px(0);
                     style.PaddingLeft ??= Length.Px(0);
                     style.BorderWidth ??= Length.Px(0);
-                    style.BorderStyle ??= BorderStyle.None;
+                    style.BorderStyle ??= Common.BorderStyle.None;
                     break;
 
                 case InputType.Text:
                 case InputType.Password:
                 default:
-                    // Browser default: text input has padding, border, and default dimensions
-                    // Default width: ~173px (Chrome), height: ~21px (including padding/border)
                     style.Width ??= Length.Px(173);
                     style.Height ??= Length.Px(21);
                     style.PaddingTop ??= Length.Px(1);
@@ -450,14 +424,13 @@ public class StyleResolver
                     style.PaddingBottom ??= Length.Px(1);
                     style.PaddingLeft ??= Length.Px(2);
                     style.BorderWidth ??= Length.Px(1);
-                    style.BorderStyle ??= BorderStyle.Solid;
+                    style.BorderStyle ??= Common.BorderStyle.Solid;
                     style.BorderColor ??= Color.Gray;
                     break;
             }
         }
         else
         {
-            // Fallback for generic input elements (treat as text input)
             style.Width ??= Length.Px(173);
             style.Height ??= Length.Px(21);
             style.PaddingTop ??= Length.Px(1);
@@ -465,8 +438,128 @@ public class StyleResolver
             style.PaddingBottom ??= Length.Px(1);
             style.PaddingLeft ??= Length.Px(2);
             style.BorderWidth ??= Length.Px(1);
-            style.BorderStyle ??= BorderStyle.Solid;
+            style.BorderStyle ??= Common.BorderStyle.Solid;
             style.BorderColor ??= Color.Gray;
         }
+    }
+
+    private static CustomPropertyScope BuildCustomPropertyScope(Style mergedStyle, CustomPropertyScope? parentScope)
+    {
+        if (mergedStyle.CustomProperties == null || mergedStyle.CustomProperties.Count == 0)
+            return parentScope ?? new CustomPropertyScope();
+
+        var scope = parentScope?.CreateChild() ?? new CustomPropertyScope();
+        foreach (var (name, value) in mergedStyle.CustomProperties)
+            scope.Set(name, value);
+        return scope;
+    }
+
+    private static StyleProperty<T>? ResolveVar<T>(StyleProperty<T>? prop, CustomPropertyScope scope) where T : struct
+    {
+        if (prop is { IsVar: true } sp)
+        {
+            var resolved = scope.Get<T>(sp.Var.Name);
+            if (resolved.HasValue)
+                return new StyleProperty<T>(resolved.Value);
+            if (sp.Var.Fallback is T fallback)
+                return new StyleProperty<T>(fallback);
+            return null;
+        }
+        return prop;
+    }
+
+    private static void ResolveVarBindings(Style style, CustomPropertyScope scope)
+    {
+        style.Display = ResolveVar(style.Display, scope);
+        style.FlexDirection = ResolveVar(style.FlexDirection, scope);
+        style.JustifyContent = ResolveVar(style.JustifyContent, scope);
+        style.AlignItems = ResolveVar(style.AlignItems, scope);
+
+        style.FlexGrow = ResolveVar(style.FlexGrow, scope);
+        style.FlexShrink = ResolveVar(style.FlexShrink, scope);
+        style.FlexBasis = ResolveVar(style.FlexBasis, scope);
+
+        style.BoxSizing = ResolveVar(style.BoxSizing, scope);
+        style.Width = ResolveVar(style.Width, scope);
+        style.Height = ResolveVar(style.Height, scope);
+        style.MinWidth = ResolveVar(style.MinWidth, scope);
+        style.MinHeight = ResolveVar(style.MinHeight, scope);
+        style.MaxWidth = ResolveVar(style.MaxWidth, scope);
+        style.MaxHeight = ResolveVar(style.MaxHeight, scope);
+
+        style.PaddingTop = ResolveVar(style.PaddingTop, scope);
+        style.PaddingRight = ResolveVar(style.PaddingRight, scope);
+        style.PaddingBottom = ResolveVar(style.PaddingBottom, scope);
+        style.PaddingLeft = ResolveVar(style.PaddingLeft, scope);
+
+        style.MarginTop = ResolveVar(style.MarginTop, scope);
+        style.MarginRight = ResolveVar(style.MarginRight, scope);
+        style.MarginBottom = ResolveVar(style.MarginBottom, scope);
+        style.MarginLeft = ResolveVar(style.MarginLeft, scope);
+
+        style.BorderWidth = ResolveVar(style.BorderWidth, scope);
+        style.BorderColor = ResolveVar(style.BorderColor, scope);
+        style.BorderStyle = ResolveVar(style.BorderStyle, scope);
+
+        style.BorderTopWidth = ResolveVar(style.BorderTopWidth, scope);
+        style.BorderRightWidth = ResolveVar(style.BorderRightWidth, scope);
+        style.BorderBottomWidth = ResolveVar(style.BorderBottomWidth, scope);
+        style.BorderLeftWidth = ResolveVar(style.BorderLeftWidth, scope);
+
+        style.BorderTopColor = ResolveVar(style.BorderTopColor, scope);
+        style.BorderRightColor = ResolveVar(style.BorderRightColor, scope);
+        style.BorderBottomColor = ResolveVar(style.BorderBottomColor, scope);
+        style.BorderLeftColor = ResolveVar(style.BorderLeftColor, scope);
+
+        style.BorderTopStyle = ResolveVar(style.BorderTopStyle, scope);
+        style.BorderRightStyle = ResolveVar(style.BorderRightStyle, scope);
+        style.BorderBottomStyle = ResolveVar(style.BorderBottomStyle, scope);
+        style.BorderLeftStyle = ResolveVar(style.BorderLeftStyle, scope);
+
+        style.BorderTopLeftRadius = ResolveVar(style.BorderTopLeftRadius, scope);
+        style.BorderTopRightRadius = ResolveVar(style.BorderTopRightRadius, scope);
+        style.BorderBottomRightRadius = ResolveVar(style.BorderBottomRightRadius, scope);
+        style.BorderBottomLeftRadius = ResolveVar(style.BorderBottomLeftRadius, scope);
+
+        style.BackgroundColor = ResolveVar(style.BackgroundColor, scope);
+        style.BackgroundRepeat = ResolveVar(style.BackgroundRepeat, scope);
+        style.BackgroundSize = ResolveVar(style.BackgroundSize, scope);
+        style.BackgroundPosition = ResolveVar(style.BackgroundPosition, scope);
+        style.Color = ResolveVar(style.Color, scope);
+        style.FontSize = ResolveVar(style.FontSize, scope);
+        style.FontWeight = ResolveVar(style.FontWeight, scope);
+        style.TextAlign = ResolveVar(style.TextAlign, scope);
+        style.LineHeight = ResolveVar(style.LineHeight, scope);
+
+        style.Position = ResolveVar(style.Position, scope);
+        style.Top = ResolveVar(style.Top, scope);
+        style.Right = ResolveVar(style.Right, scope);
+        style.Bottom = ResolveVar(style.Bottom, scope);
+        style.Left = ResolveVar(style.Left, scope);
+
+        style.TextDecoration = ResolveVar(style.TextDecoration, scope);
+        style.TextTransform = ResolveVar(style.TextTransform, scope);
+        style.FontStyle = ResolveVar(style.FontStyle, scope);
+        style.WhiteSpace = ResolveVar(style.WhiteSpace, scope);
+        style.LetterSpacing = ResolveVar(style.LetterSpacing, scope);
+        style.VerticalAlign = ResolveVar(style.VerticalAlign, scope);
+
+        style.Opacity = ResolveVar(style.Opacity, scope);
+        style.ZIndex = ResolveVar(style.ZIndex, scope);
+        style.Visibility = ResolveVar(style.Visibility, scope);
+        style.Cursor = ResolveVar(style.Cursor, scope);
+        style.UserSelect = ResolveVar(style.UserSelect, scope);
+
+        style.FlexWrap = ResolveVar(style.FlexWrap, scope);
+        style.AlignSelf = ResolveVar(style.AlignSelf, scope);
+        style.AlignContent = ResolveVar(style.AlignContent, scope);
+        style.Gap = ResolveVar(style.Gap, scope);
+        style.RowGap = ResolveVar(style.RowGap, scope);
+        style.ColumnGap = ResolveVar(style.ColumnGap, scope);
+
+        style.OverflowX = ResolveVar(style.OverflowX, scope);
+        style.OverflowY = ResolveVar(style.OverflowY, scope);
+
+        style.TransformOrigin = ResolveVar(style.TransformOrigin, scope);
     }
 }

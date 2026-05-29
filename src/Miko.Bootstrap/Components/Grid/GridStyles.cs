@@ -50,7 +50,7 @@ internal static class GridStyles
             [".col"] = new()
             {
                 FlexGrow = 1,
-                FlexBasis = 0,
+                FlexBasis = Length.Px(0),
                 MaxWidth = Length.Percent(100),
                 PaddingRight = t.ContainerPaddingX,
                 PaddingLeft = t.ContainerPaddingX

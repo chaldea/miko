@@ -106,6 +106,8 @@ public class ComputedStyle : Style
 
     public new string? Content { get; set; }
 
+    internal CustomPropertyScope? CustomPropertyScope { get; set; }
+
     /// <summary>
     /// 从样式对象创建计算样式
     /// </summary>
@@ -115,136 +117,136 @@ public class ComputedStyle : Style
 
         if (style != null)
         {
-            if (style.Display.HasValue) computed.Display = style.Display.Value;
-            if (style.BoxSizing.HasValue) computed.BoxSizing = style.BoxSizing.Value;
-            if (style.FlexDirection.HasValue) computed.FlexDirection = style.FlexDirection.Value;
-            if (style.JustifyContent.HasValue) computed.JustifyContent = style.JustifyContent.Value;
-            if (style.AlignItems.HasValue) computed.AlignItems = style.AlignItems.Value;
+            if (style.Display?.TryGetValue(out var display) == true) computed.Display = display;
+            if (style.BoxSizing?.TryGetValue(out var boxSizing) == true) computed.BoxSizing = boxSizing;
+            if (style.FlexDirection?.TryGetValue(out var flexDirection) == true) computed.FlexDirection = flexDirection;
+            if (style.JustifyContent?.TryGetValue(out var justifyContent) == true) computed.JustifyContent = justifyContent;
+            if (style.AlignItems?.TryGetValue(out var alignItems) == true) computed.AlignItems = alignItems;
 
-            if (style.FlexGrow.HasValue) computed.FlexGrow = style.FlexGrow.Value;
-            if (style.FlexShrink.HasValue) computed.FlexShrink = style.FlexShrink.Value;
-            if (style.FlexBasis.HasValue) computed.FlexBasis = style.FlexBasis.Value;
+            if (style.FlexGrow?.TryGetValue(out var flexGrow) == true) computed.FlexGrow = flexGrow;
+            if (style.FlexShrink?.TryGetValue(out var flexShrink) == true) computed.FlexShrink = flexShrink;
+            if (style.FlexBasis?.TryGetValue(out var flexBasis) == true) computed.FlexBasis = flexBasis;
 
-            if (style.Width.HasValue) computed.Width = style.Width.Value;
-            if (style.Height.HasValue) computed.Height = style.Height.Value;
-            if (style.MinWidth.HasValue) computed.MinWidth = style.MinWidth.Value;
-            if (style.MinHeight.HasValue) computed.MinHeight = style.MinHeight.Value;
-            if (style.MaxWidth.HasValue) computed.MaxWidth = style.MaxWidth.Value;
-            if (style.MaxHeight.HasValue) computed.MaxHeight = style.MaxHeight.Value;
+            if (style.Width?.TryGetValue(out var width) == true) computed.Width = width;
+            if (style.Height?.TryGetValue(out var height) == true) computed.Height = height;
+            if (style.MinWidth?.TryGetValue(out var minWidth) == true) computed.MinWidth = minWidth;
+            if (style.MinHeight?.TryGetValue(out var minHeight) == true) computed.MinHeight = minHeight;
+            if (style.MaxWidth?.TryGetValue(out var maxWidth) == true) computed.MaxWidth = maxWidth;
+            if (style.MaxHeight?.TryGetValue(out var maxHeight) == true) computed.MaxHeight = maxHeight;
 
-            if (style.PaddingTop.HasValue) computed.PaddingTop = style.PaddingTop.Value;
-            if (style.PaddingRight.HasValue) computed.PaddingRight = style.PaddingRight.Value;
-            if (style.PaddingBottom.HasValue) computed.PaddingBottom = style.PaddingBottom.Value;
-            if (style.PaddingLeft.HasValue) computed.PaddingLeft = style.PaddingLeft.Value;
+            if (style.PaddingTop?.TryGetValue(out var paddingTop) == true) computed.PaddingTop = paddingTop;
+            if (style.PaddingRight?.TryGetValue(out var paddingRight) == true) computed.PaddingRight = paddingRight;
+            if (style.PaddingBottom?.TryGetValue(out var paddingBottom) == true) computed.PaddingBottom = paddingBottom;
+            if (style.PaddingLeft?.TryGetValue(out var paddingLeft) == true) computed.PaddingLeft = paddingLeft;
 
-            if (style.MarginTop.HasValue) computed.MarginTop = style.MarginTop.Value;
-            if (style.MarginRight.HasValue) computed.MarginRight = style.MarginRight.Value;
-            if (style.MarginBottom.HasValue) computed.MarginBottom = style.MarginBottom.Value;
-            if (style.MarginLeft.HasValue) computed.MarginLeft = style.MarginLeft.Value;
+            if (style.MarginTop?.TryGetValue(out var marginTop) == true) computed.MarginTop = marginTop;
+            if (style.MarginRight?.TryGetValue(out var marginRight) == true) computed.MarginRight = marginRight;
+            if (style.MarginBottom?.TryGetValue(out var marginBottom) == true) computed.MarginBottom = marginBottom;
+            if (style.MarginLeft?.TryGetValue(out var marginLeft) == true) computed.MarginLeft = marginLeft;
 
             // 边框宽度：单边属性 > 统一属性 > 默认值
-            if (style.BorderTopWidth.HasValue)
-                computed.BorderTopWidth = style.BorderTopWidth.Value;
-            else if (style.BorderWidth.HasValue)
-                computed.BorderTopWidth = style.BorderWidth.Value;
+            if (style.BorderTopWidth?.TryGetValue(out var borderTopWidth) == true)
+                computed.BorderTopWidth = borderTopWidth;
+            else if (style.BorderWidth?.TryGetValue(out var bwTop) == true)
+                computed.BorderTopWidth = bwTop;
 
-            if (style.BorderRightWidth.HasValue)
-                computed.BorderRightWidth = style.BorderRightWidth.Value;
-            else if (style.BorderWidth.HasValue)
-                computed.BorderRightWidth = style.BorderWidth.Value;
+            if (style.BorderRightWidth?.TryGetValue(out var borderRightWidth) == true)
+                computed.BorderRightWidth = borderRightWidth;
+            else if (style.BorderWidth?.TryGetValue(out var bwRight) == true)
+                computed.BorderRightWidth = bwRight;
 
-            if (style.BorderBottomWidth.HasValue)
-                computed.BorderBottomWidth = style.BorderBottomWidth.Value;
-            else if (style.BorderWidth.HasValue)
-                computed.BorderBottomWidth = style.BorderWidth.Value;
+            if (style.BorderBottomWidth?.TryGetValue(out var borderBottomWidth) == true)
+                computed.BorderBottomWidth = borderBottomWidth;
+            else if (style.BorderWidth?.TryGetValue(out var bwBottom) == true)
+                computed.BorderBottomWidth = bwBottom;
 
-            if (style.BorderLeftWidth.HasValue)
-                computed.BorderLeftWidth = style.BorderLeftWidth.Value;
-            else if (style.BorderWidth.HasValue)
-                computed.BorderLeftWidth = style.BorderWidth.Value;
+            if (style.BorderLeftWidth?.TryGetValue(out var borderLeftWidth) == true)
+                computed.BorderLeftWidth = borderLeftWidth;
+            else if (style.BorderWidth?.TryGetValue(out var bwLeft) == true)
+                computed.BorderLeftWidth = bwLeft;
 
             // 边框颜色：单边属性 > 统一属性 > 默认值
-            if (style.BorderTopColor.HasValue)
-                computed.BorderTopColor = style.BorderTopColor.Value;
-            else if (style.BorderColor.HasValue)
-                computed.BorderTopColor = style.BorderColor.Value;
+            if (style.BorderTopColor?.TryGetValue(out var borderTopColor) == true)
+                computed.BorderTopColor = borderTopColor;
+            else if (style.BorderColor?.TryGetValue(out var bcTop) == true)
+                computed.BorderTopColor = bcTop;
 
-            if (style.BorderRightColor.HasValue)
-                computed.BorderRightColor = style.BorderRightColor.Value;
-            else if (style.BorderColor.HasValue)
-                computed.BorderRightColor = style.BorderColor.Value;
+            if (style.BorderRightColor?.TryGetValue(out var borderRightColor) == true)
+                computed.BorderRightColor = borderRightColor;
+            else if (style.BorderColor?.TryGetValue(out var bcRight) == true)
+                computed.BorderRightColor = bcRight;
 
-            if (style.BorderBottomColor.HasValue)
-                computed.BorderBottomColor = style.BorderBottomColor.Value;
-            else if (style.BorderColor.HasValue)
-                computed.BorderBottomColor = style.BorderColor.Value;
+            if (style.BorderBottomColor?.TryGetValue(out var borderBottomColor) == true)
+                computed.BorderBottomColor = borderBottomColor;
+            else if (style.BorderColor?.TryGetValue(out var bcBottom) == true)
+                computed.BorderBottomColor = bcBottom;
 
-            if (style.BorderLeftColor.HasValue)
-                computed.BorderLeftColor = style.BorderLeftColor.Value;
-            else if (style.BorderColor.HasValue)
-                computed.BorderLeftColor = style.BorderColor.Value;
+            if (style.BorderLeftColor?.TryGetValue(out var borderLeftColor) == true)
+                computed.BorderLeftColor = borderLeftColor;
+            else if (style.BorderColor?.TryGetValue(out var bcLeft) == true)
+                computed.BorderLeftColor = bcLeft;
 
             // 边框样式：单边属性 > 统一属性 > 默认值
-            if (style.BorderTopStyle.HasValue)
-                computed.BorderTopStyle = style.BorderTopStyle.Value;
-            else if (style.BorderStyle.HasValue)
-                computed.BorderTopStyle = style.BorderStyle.Value;
+            if (style.BorderTopStyle?.TryGetValue(out var borderTopStyle) == true)
+                computed.BorderTopStyle = borderTopStyle;
+            else if (style.BorderStyle?.TryGetValue(out var bsTop) == true)
+                computed.BorderTopStyle = bsTop;
 
-            if (style.BorderRightStyle.HasValue)
-                computed.BorderRightStyle = style.BorderRightStyle.Value;
-            else if (style.BorderStyle.HasValue)
-                computed.BorderRightStyle = style.BorderStyle.Value;
+            if (style.BorderRightStyle?.TryGetValue(out var borderRightStyle) == true)
+                computed.BorderRightStyle = borderRightStyle;
+            else if (style.BorderStyle?.TryGetValue(out var bsRight) == true)
+                computed.BorderRightStyle = bsRight;
 
-            if (style.BorderBottomStyle.HasValue)
-                computed.BorderBottomStyle = style.BorderBottomStyle.Value;
-            else if (style.BorderStyle.HasValue)
-                computed.BorderBottomStyle = style.BorderStyle.Value;
+            if (style.BorderBottomStyle?.TryGetValue(out var borderBottomStyle) == true)
+                computed.BorderBottomStyle = borderBottomStyle;
+            else if (style.BorderStyle?.TryGetValue(out var bsBottom) == true)
+                computed.BorderBottomStyle = bsBottom;
 
-            if (style.BorderLeftStyle.HasValue)
-                computed.BorderLeftStyle = style.BorderLeftStyle.Value;
-            else if (style.BorderStyle.HasValue)
-                computed.BorderLeftStyle = style.BorderStyle.Value;
+            if (style.BorderLeftStyle?.TryGetValue(out var borderLeftStyle) == true)
+                computed.BorderLeftStyle = borderLeftStyle;
+            else if (style.BorderStyle?.TryGetValue(out var bsLeft) == true)
+                computed.BorderLeftStyle = bsLeft;
 
-            if (style.BorderTopLeftRadius.HasValue) computed.BorderTopLeftRadius = style.BorderTopLeftRadius.Value;
-            if (style.BorderTopRightRadius.HasValue) computed.BorderTopRightRadius = style.BorderTopRightRadius.Value;
-            if (style.BorderBottomRightRadius.HasValue) computed.BorderBottomRightRadius = style.BorderBottomRightRadius.Value;
-            if (style.BorderBottomLeftRadius.HasValue) computed.BorderBottomLeftRadius = style.BorderBottomLeftRadius.Value;
+            if (style.BorderTopLeftRadius?.TryGetValue(out var btlr) == true) computed.BorderTopLeftRadius = btlr;
+            if (style.BorderTopRightRadius?.TryGetValue(out var btrr) == true) computed.BorderTopRightRadius = btrr;
+            if (style.BorderBottomRightRadius?.TryGetValue(out var bbrr) == true) computed.BorderBottomRightRadius = bbrr;
+            if (style.BorderBottomLeftRadius?.TryGetValue(out var bblr) == true) computed.BorderBottomLeftRadius = bblr;
 
-            if (style.BackgroundColor.HasValue) computed.BackgroundColor = style.BackgroundColor.Value;
+            if (style.BackgroundColor?.TryGetValue(out var bgColor) == true) computed.BackgroundColor = bgColor;
             if (style.BackgroundImage != null) computed.BackgroundImage = style.BackgroundImage;
-            if (style.BackgroundRepeat.HasValue) computed.BackgroundRepeat = style.BackgroundRepeat.Value;
-            if (style.BackgroundSize.HasValue) computed.BackgroundSize = style.BackgroundSize.Value;
-            if (style.BackgroundPosition.HasValue) computed.BackgroundPosition = style.BackgroundPosition.Value;
-            if (style.Color.HasValue) computed.Color = style.Color.Value;
+            if (style.BackgroundRepeat?.TryGetValue(out var bgRepeat) == true) computed.BackgroundRepeat = bgRepeat;
+            if (style.BackgroundSize?.TryGetValue(out var bgSize) == true) computed.BackgroundSize = bgSize;
+            if (style.BackgroundPosition?.TryGetValue(out var bgPos) == true) computed.BackgroundPosition = bgPos;
+            if (style.Color?.TryGetValue(out var color) == true) computed.Color = color;
             if (style.FontFamily != null) computed.FontFamily = style.FontFamily;
-            if (style.FontSize.HasValue) computed.FontSize = Length.Px(style.FontSize.Value.ToPixels(0));
-            if (style.FontWeight.HasValue) computed.FontWeight = style.FontWeight.Value;
-            if (style.TextAlign.HasValue) computed.TextAlign = style.TextAlign.Value;
-            if (style.LineHeight.HasValue) computed.LineHeight = style.LineHeight.Value;
+            if (style.FontSize?.TryGetValue(out var fontSize) == true) computed.FontSize = Length.Px(fontSize.ToPixels(0));
+            if (style.FontWeight?.TryGetValue(out var fontWeight) == true) computed.FontWeight = fontWeight;
+            if (style.TextAlign?.TryGetValue(out var textAlign) == true) computed.TextAlign = textAlign;
+            if (style.LineHeight?.TryGetValue(out var lineHeight) == true) computed.LineHeight = lineHeight;
 
-            if (style.Position.HasValue) computed.Position = style.Position.Value;
-            if (style.Top.HasValue) computed.Top = style.Top.Value;
-            if (style.Right.HasValue) computed.Right = style.Right.Value;
-            if (style.Bottom.HasValue) computed.Bottom = style.Bottom.Value;
-            if (style.Left.HasValue) computed.Left = style.Left.Value;
+            if (style.Position?.TryGetValue(out var position) == true) computed.Position = position;
+            if (style.Top?.TryGetValue(out var top) == true) computed.Top = top;
+            if (style.Right?.TryGetValue(out var right) == true) computed.Right = right;
+            if (style.Bottom?.TryGetValue(out var bottom) == true) computed.Bottom = bottom;
+            if (style.Left?.TryGetValue(out var left) == true) computed.Left = left;
 
-            if (style.TextDecoration.HasValue) computed.TextDecoration = style.TextDecoration.Value;
-            if (style.TextTransform.HasValue) computed.TextTransform = style.TextTransform.Value;
-            if (style.FontStyle.HasValue) computed.FontStyle = style.FontStyle.Value;
-            if (style.WhiteSpace.HasValue) computed.WhiteSpace = style.WhiteSpace.Value;
-            if (style.Visibility.HasValue) computed.Visibility = style.Visibility.Value;
-            if (style.FlexWrap.HasValue) computed.FlexWrap = style.FlexWrap.Value;
-            if (style.AlignSelf.HasValue) computed.AlignSelf = style.AlignSelf.Value;
-            if (style.AlignContent.HasValue) computed.AlignContent = style.AlignContent.Value;
+            if (style.TextDecoration?.TryGetValue(out var textDecoration) == true) computed.TextDecoration = textDecoration;
+            if (style.TextTransform?.TryGetValue(out var textTransform) == true) computed.TextTransform = textTransform;
+            if (style.FontStyle?.TryGetValue(out var fontStyle) == true) computed.FontStyle = fontStyle;
+            if (style.WhiteSpace?.TryGetValue(out var whiteSpace) == true) computed.WhiteSpace = whiteSpace;
+            if (style.Visibility?.TryGetValue(out var visibility) == true) computed.Visibility = visibility;
+            if (style.FlexWrap?.TryGetValue(out var flexWrap) == true) computed.FlexWrap = flexWrap;
+            if (style.AlignSelf?.TryGetValue(out var alignSelf) == true) computed.AlignSelf = alignSelf;
+            if (style.AlignContent?.TryGetValue(out var alignContent) == true) computed.AlignContent = alignContent;
 
-            if (style.Opacity.HasValue) computed.Opacity = style.Opacity.Value;
-            if (style.ZIndex.HasValue) computed.ZIndex = style.ZIndex.Value;
+            if (style.Opacity?.TryGetValue(out var opacity) == true) computed.Opacity = opacity;
+            if (style.ZIndex?.TryGetValue(out var zIndex) == true) computed.ZIndex = zIndex;
 
-            if (style.OverflowX.HasValue) computed.OverflowX = style.OverflowX.Value;
-            if (style.OverflowY.HasValue) computed.OverflowY = style.OverflowY.Value;
+            if (style.OverflowX?.TryGetValue(out var overflowX) == true) computed.OverflowX = overflowX;
+            if (style.OverflowY?.TryGetValue(out var overflowY) == true) computed.OverflowY = overflowY;
 
             if (style.Transform != null) computed.Transform = style.Transform;
-            if (style.TransformOrigin.HasValue) computed.TransformOrigin = style.TransformOrigin.Value;
+            if (style.TransformOrigin?.TryGetValue(out var transformOrigin) == true) computed.TransformOrigin = transformOrigin;
             if (style.Transitions != null) computed.Transitions = style.Transitions;
             if (style.Animations != null) computed.Animations = style.Animations;
 

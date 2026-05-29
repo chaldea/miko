@@ -209,10 +209,10 @@ internal static class UtilitiesStyle
             [".fw-bolder"] = new() { FontWeight = FontWeight.Bolder },
 
             // Line height
-            [".lh-1"] = new() { LineHeight = 1f },
-            [".lh-sm"] = new() { LineHeight = 1.25f },
-            [".lh-base"] = new() { LineHeight = 1.5f },
-            [".lh-lg"] = new() { LineHeight = 2f },
+            [".lh-1"] = new() { LineHeight = Length.Px(1f) },
+            [".lh-sm"] = new() { LineHeight = Length.Px(1.25f) },
+            [".lh-base"] = new() { LineHeight = Length.Px(1.5f) },
+            [".lh-lg"] = new() { LineHeight = Length.Px(2f) },
 
             // Text color
             [".text-primary"] = new() { Color = t.Primary },
@@ -274,31 +274,31 @@ internal static class UtilitiesStyle
             [".rounded-pill"] = new() { BorderRadius = t.BorderRadiusPill },
             [".rounded-top"] = new()
             {
-                BorderTopLeftRadius = t.BorderRadius,
-                BorderTopRightRadius = t.BorderRadius,
-                BorderBottomLeftRadius = 0,
-                BorderBottomRightRadius = 0
+                BorderTopLeftRadius = Length.Px(t.BorderRadius),
+                BorderTopRightRadius = Length.Px(t.BorderRadius),
+                BorderBottomLeftRadius = Length.Px(0),
+                BorderBottomRightRadius = Length.Px(0)
             },
             [".rounded-end"] = new()
             {
-                BorderTopRightRadius = t.BorderRadius,
-                BorderBottomRightRadius = t.BorderRadius,
-                BorderTopLeftRadius = 0,
-                BorderBottomLeftRadius = 0
+                BorderTopRightRadius = Length.Px(t.BorderRadius),
+                BorderBottomRightRadius = Length.Px(t.BorderRadius),
+                BorderTopLeftRadius = Length.Px(0),
+                BorderBottomLeftRadius = Length.Px(0)
             },
             [".rounded-bottom"] = new()
             {
-                BorderBottomLeftRadius = t.BorderRadius,
-                BorderBottomRightRadius = t.BorderRadius,
-                BorderTopLeftRadius = 0,
-                BorderTopRightRadius = 0
+                BorderBottomLeftRadius = Length.Px(t.BorderRadius),
+                BorderBottomRightRadius = Length.Px(t.BorderRadius),
+                BorderTopLeftRadius = Length.Px(0),
+                BorderTopRightRadius = Length.Px(0)
             },
             [".rounded-start"] = new()
             {
-                BorderTopLeftRadius = t.BorderRadius,
-                BorderBottomLeftRadius = t.BorderRadius,
-                BorderTopRightRadius = 0,
-                BorderBottomRightRadius = 0
+                BorderTopLeftRadius = Length.Px(t.BorderRadius),
+                BorderBottomLeftRadius = Length.Px(t.BorderRadius),
+                BorderTopRightRadius = Length.Px(0),
+                BorderBottomRightRadius = Length.Px(0)
             },
 
             // User select

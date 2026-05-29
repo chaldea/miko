@@ -68,7 +68,7 @@ public static class BootstrapStyles
                 Display = Display.InlineBlock,
                 Padding = new Padding(6, 12),
                 Margin = new Margin(0, 10, 10, 0),
-                FontSize = 14,
+                FontSize = Length.Px(14),
                 FontWeight = FontWeight.Normal,
                 Border = new Border(1, BorderStyle.Solid, Color.Transparent),
                 BorderRadius = new BorderRadius(4),
@@ -395,7 +395,7 @@ public static class BootstrapStyles
                 Display = Display.Flex,
                 FlexGrow = 1,
                 FlexShrink = 1,
-                FlexBasis = 0
+                FlexBasis = Length.Px(0)
             }
         );
 
@@ -447,7 +447,7 @@ public static class BootstrapStyles
                 Display = Display.Block,
                 FlexGrow = 1,
                 FlexShrink = 1,
-                FlexBasis = 0,
+                FlexBasis = Length.Px(0),
                 PaddingRight = Length.Px(15),
                 PaddingLeft = Length.Px(15)
             }
@@ -645,7 +645,7 @@ public static class BootstrapStyles
                 Display = Display.Block,
                 FlexGrow = 1,
                 FlexShrink = 1,
-                FlexBasis = 0,
+                FlexBasis = Length.Px(0),
                 PaddingTop = Length.Px(12),
                 PaddingRight = Length.Px(12),
                 PaddingBottom = Length.Px(12),
@@ -663,7 +663,7 @@ public static class BootstrapStyles
                 Display = Display.Block,
                 FlexGrow = 1,
                 FlexShrink = 1,
-                FlexBasis = 0,
+                FlexBasis = Length.Px(0),
                 PaddingTop = Length.Px(12),
                 PaddingRight = Length.Px(12),
                 PaddingBottom = Length.Px(12),

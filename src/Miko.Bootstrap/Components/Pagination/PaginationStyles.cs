@@ -84,14 +84,14 @@ internal static class PaginationStyles
 
             [".page-item:first-child .page-link"] = new()
             {
-                BorderTopLeftRadius = t.PaginationBorderRadius,
-                BorderBottomLeftRadius = t.PaginationBorderRadius
+                BorderTopLeftRadius = Length.Px(t.PaginationBorderRadius),
+                BorderBottomLeftRadius = Length.Px(t.PaginationBorderRadius)
             },
 
             [".page-item:last-child .page-link"] = new()
             {
-                BorderTopRightRadius = t.PaginationBorderRadius,
-                BorderBottomRightRadius = t.PaginationBorderRadius
+                BorderTopRightRadius = Length.Px(t.PaginationBorderRadius),
+                BorderBottomRightRadius = Length.Px(t.PaginationBorderRadius)
             }
         };
     }

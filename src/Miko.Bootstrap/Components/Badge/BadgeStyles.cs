@@ -54,7 +54,7 @@ internal static class BadgeStyles
                 Padding = new Padding(t.BadgePaddingY, t.BadgePaddingX),
                 FontSize = t.BadgeFontSize,
                 FontWeight = t.BadgeFontWeight,
-                LineHeight = 1,
+                LineHeight = Length.Px(1),
                 Color = t.BadgeColor,
                 TextAlign = TextAlign.Center,
                 // NOTE: white-space: nowrap not supported in CssObject
