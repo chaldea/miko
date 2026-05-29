@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Fonts\**\*" />
+    <EmbeddedResource Include="Resources\**\*" />
   </ItemGroup>
 
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">

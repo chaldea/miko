@@ -1,0 +1,28 @@
+@namespace Miko.Bootstrap.Components
+<table class="@_cssClass">
+    @ChildContent
+</table>
+
+@code {
+    private string _cssClass = "table";
+
+    [Parameter] public bool Striped { get; set; }
+    [Parameter] public bool Bordered { get; set; }
+    [Parameter] public bool Borderless { get; set; }
+    [Parameter] public bool Hover { get; set; }
+    [Parameter] public bool Small { get; set; }
+    [Parameter] public string Variant { get; set; } = "";
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        var classes = new List<string> { "table" };
+        if (Striped) classes.Add("table-striped");
+        if (Bordered) classes.Add("table-bordered");
+        if (Borderless) classes.Add("table-borderless");
+        if (Hover) classes.Add("table-hover");
+        if (Small) classes.Add("table-sm");
+        if (!string.IsNullOrEmpty(Variant)) classes.Add($"table-{Variant}");
+        _cssClass = string.Join(" ", classes);
+    }
+}

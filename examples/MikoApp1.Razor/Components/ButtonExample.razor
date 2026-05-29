@@ -1,42 +1,46 @@
-@page "/"
 @page "/button"
+@namespace MikoApp1.Razor.Components
+
 <div class="container">
-    <h1>Bootstrap Button Examples</h1>
+    <h1>Button Examples</h1>
 
     <h2>Standard Buttons</h2>
+
     <div class="row">
-        <button class="btn-primary">Primary</button>
-        <button class="btn-secondary">Secondary</button>
-        <button class="btn-success">Success</button>
-        <button class="btn-danger">Danger</button>
-        <button class="btn-warning">Warning</button>
-        <button class="btn-info">Info</button>
-        <button class="btn-light">Light</button>
-        <button class="btn-dark">Dark</button>
+        <Button Variant="primary">Primary</Button>
+        <Button Variant="secondary">Secondary</Button>
+        <Button Variant="success">Success</Button>
+        <Button Variant="danger">Danger</Button>
+        <Button Variant="warning">Warning</Button>
+        <Button Variant="info">Info</Button>
+        <Button Variant="light">Light</Button>
+        <Button Variant="dark">Dark</Button>
     </div>
 
-    <h2>Outline Buttons</h2>
+    <h2>Disabled Buttons</h2>
     <div class="row">
-        <button class="btn-outline-primary">Primary</button>
-        <button class="btn-outline-secondary">Secondary</button>
-        <button class="btn-outline-success">Success</button>
-        <button class="btn-outline-danger">Danger</button>
-        <button class="btn-outline-warning">Warning</button>
-        <button class="btn-outline-info">Info</button>
-        <button class="btn-outline-dark">Dark</button>
+        <Button Variant="primary" Disabled="true">Disabled Primary</Button>
+        <Button Variant="secondary" Disabled="true">Disabled Secondary</Button>
     </div>
 
-    <h2>Button Sizes</h2>
+    <h2>Interactive Buttons</h2>
     <div class="row">
-        <button class="btn-primary btn-sm">Small Button</button>
-        <button class="btn-primary">Medium Button</button>
-        <button class="btn-primary btn-lg">Large Button</button>
+        <Button Variant="success" OnClick="HandleClick">Click Me!</Button>
+        <Button Variant="danger" OnClick="HandleClick">Delete</Button>
     </div>
-    
-    <h2>Mixed Examples</h2>
-    <div class="row">
-        <button class="btn-success btn-sm">Small Success</button>
-        <button class="btn-danger btn-lg">Large Danger</button>
-        <button class="btn-outline-info btn-sm">Small Outline</button>
-    </div>
+
+    @if (_clickCount > 0)
+    {
+        <p>Button clicked @_clickCount times</p>
+    }
 </div>
+
+@code {
+    private int _clickCount = 0;
+
+    private void HandleClick()
+    {
+        _clickCount++;
+    }
+}
+

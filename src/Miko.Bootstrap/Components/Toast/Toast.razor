@@ -1,0 +1,34 @@
+@namespace Miko.Bootstrap.Components
+<div class="@_cssClass">
+    @if (Title != null)
+    {
+        <div class="toast-header">
+            <strong>@Title</strong>
+            @if (Dismissible)
+            {
+                <button class="btn-close" @onclick="Close"></button>
+            }
+        </div>
+    }
+    <div class="toast-body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    private string _cssClass = "toast show";
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool Visible { get; set; } = true;
+    [Parameter] public bool Dismissible { get; set; } = true;
+    [Parameter] public Action? OnClose { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = Visible ? "toast show" : "toast";
+    }
+
+    private void Close()
+    {
+        OnClose?.Invoke();
+    }
+}

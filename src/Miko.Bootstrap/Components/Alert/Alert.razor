@@ -1,0 +1,58 @@
+@namespace Miko.Bootstrap.Components
+<div class="@_cssClass">
+    @if (Heading != null)
+    {
+        <h4 class="alert-heading">@Heading</h4>
+    }
+    @ChildContent
+    @if (Dismissible)
+    {
+        <button class="btn-close" @onclick="OnDismiss"></button>
+    }
+</div>
+
+@code {
+    private string _cssClass = "alert";
+
+    /// <summary>
+    /// Alert variant type (primary, secondary, success, danger, warning, info, light, dark)
+    /// </summary>
+    [Parameter] public string Variant { get; set; } = "primary";
+
+    /// <summary>
+    /// Optional heading text for the alert
+    /// </summary>
+    [Parameter] public string? Heading { get; set; }
+
+    /// <summary>
+    /// Whether the alert can be dismissed
+    /// </summary>
+    [Parameter] public bool Dismissible { get; set; }
+
+    /// <summary>
+    /// Callback when alert is dismissed
+    /// </summary>
+    [Parameter] public Action? OnDismissed { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        UpdateCssClass();
+    }
+
+    private void UpdateCssClass()
+    {
+        var classes = new List<string> { "alert", $"alert-{Variant}" };
+        if (Dismissible)
+        {
+            classes.Add("alert-dismissible");
+        }
+        _cssClass = string.Join(" ", classes);
+    }
+
+    private void OnDismiss()
+    {
+        OnDismissed?.Invoke();
+        StateHasChanged();
+    }
+}

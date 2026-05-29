@@ -1,0 +1,18 @@
+@namespace Miko.Bootstrap.Components
+<span class="bi" Style="@SizeStyle">@Name</span>
+
+@code {
+    [Parameter] public string Name { get; set; } = "";
+    [Parameter] public IconSize Size { get; set; } = IconSize.Default;
+
+    private Style? SizeStyle => Size != IconSize.Default
+        ? new Style { FontSize = Length.Px(Size switch
+            {
+                IconSize.x2 => 32f,
+                IconSize.x3 => 48f,
+                IconSize.x4 => 64f,
+                IconSize.x5 => 80f,
+                _ => 16f
+            }) }
+        : null;
+}

@@ -1,0 +1,28 @@
+@namespace Miko.Bootstrap.Components
+<li class="@_cssClass">
+    @if (Active)
+    {
+        @Text
+    }
+    else if (Href != null)
+    {
+        <a href="@Href">@Text</a>
+    }
+    else
+    {
+        @Text
+    }
+</li>
+
+@code {
+    private string _cssClass = "breadcrumb-item";
+
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public bool Active { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = Active ? "breadcrumb-item active" : "breadcrumb-item";
+    }
+}

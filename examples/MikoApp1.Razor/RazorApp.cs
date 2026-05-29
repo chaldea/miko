@@ -13,8 +13,8 @@ public static class RazorApp
         builder.AddBootstrap();
         builder.AddStyleSheet(GlobalStyles.Create());
         builder.UseSize(1024, 768);
-        builder.UseRouter(typeof(RazorApp).Assembly);
-        builder.UseDefaultLayout(typeof(MainLayout));
+        builder.UseGeneratedRoutes();
+        builder.UseDefaultLayout<MainLayout>();
         builder.UseLogging(logging =>
         {
             logging.AddConsole().SetMinimumLevel(LogLevel.Trace);

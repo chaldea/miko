@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 
 namespace Miko.Bootstrap.Themes;
 
@@ -88,7 +88,6 @@ public static class LightTheme
         BorderRadiusXxl = 32f,
         BorderRadiusPill = 800f,
 
-        Spacer = 16f,
         HeadingColor = Color.FromHex("212529"),
 
         FormValidColor = Color.FromHex("198754"),

@@ -1,0 +1,17 @@
+@namespace Miko.Bootstrap.Components
+<span class="@_cssClass">@ChildContent</span>
+
+@code {
+    private string _cssClass = "badge";
+
+    /// <summary>
+    /// Badge background variant (primary, secondary, success, danger, warning, info, light, dark)
+    /// </summary>
+    [Parameter] public string Variant { get; set; } = "primary";
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        _cssClass = $"badge bg-{Variant}";
+    }
+}

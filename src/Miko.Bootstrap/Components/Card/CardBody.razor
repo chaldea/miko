@@ -1,0 +1,17 @@
+@namespace Miko.Bootstrap.Components
+<div class="card-body">
+    @if (Title != null)
+    {
+        <h5 class="card-title">@Title</h5>
+    }
+    @if (Subtitle != null)
+    {
+        <h6 class="card-subtitle">@Subtitle</h6>
+    }
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+}

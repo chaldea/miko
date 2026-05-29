@@ -1,0 +1,37 @@
+@namespace Miko.Bootstrap.Components
+<button class="@_cssClass" disabled="@Disabled" @onclick="HandleClick">
+    @ChildContent
+</button>
+
+@code {
+    private string _cssClass = "btn";
+
+    /// <summary>
+    /// Button variant (primary, secondary, success, danger, warning, info, light, dark)
+    /// </summary>
+    [Parameter] public string Variant { get; set; } = "primary";
+
+    /// <summary>
+    /// Whether the button is disabled
+    /// </summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Click event callback
+    /// </summary>
+    [Parameter] public Action? OnClick { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        _cssClass = $"btn btn-{Variant}";
+    }
+
+    private void HandleClick()
+    {
+        if (!Disabled)
+        {
+            OnClick?.Invoke();
+        }
+    }
+}

@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 
 namespace Miko.Bootstrap.Themes;
 
@@ -88,7 +88,6 @@ public static class DarkTheme
         BorderRadiusXxl = 32f,
         BorderRadiusPill = 800f,
 
-        Spacer = 16f,
         HeadingColor = Color.FromHex("dee2e6"),
 
         FormValidColor = Color.FromHex("75b798"),

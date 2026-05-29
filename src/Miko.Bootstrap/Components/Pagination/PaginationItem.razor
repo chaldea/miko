@@ -1,0 +1,30 @@
+@namespace Miko.Bootstrap.Components
+<li class="@_liClass">
+    <button class="@_linkClass" @onclick="HandleClick" disabled="@Disabled">@ChildContent</button>
+</li>
+
+@code {
+    private string _liClass = "page-item";
+    private string _linkClass = "page-link";
+    [Parameter] public bool Active { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public Action? OnClick { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        var liClasses = new List<string> { "page-item" };
+        if (Active) liClasses.Add("active");
+        if (Disabled) liClasses.Add("disabled");
+        _liClass = string.Join(" ", liClasses);
+
+        var linkClasses = new List<string> { "page-link" };
+        if (Active) linkClasses.Add("active");
+        if (Disabled) linkClasses.Add("disabled");
+        _linkClass = string.Join(" ", linkClasses);
+    }
+
+    private void HandleClick()
+    {
+        if (!Disabled) OnClick?.Invoke();
+    }
+}

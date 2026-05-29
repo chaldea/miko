@@ -1,73 +1,169 @@
-using Miko.Common;
-using Miko.Core.DomElements;
+﻿using Miko.Common;
 using Miko.Styling;
 
 namespace Miko.Bootstrap.Styles;
 
 internal static class RebootStyles
 {
-    internal static void Apply(StyleSheet sheet, Theme t)
+    internal static CssObject GenStyle(Theme t)
     {
-        // headings
-        sheet.AddRule(Style.For<H1Element>()
-            .Set(x => x.FontSize, Length.Px(40))
-            .Set(x => x.FontWeight, FontWeight.Medium)
-            .Set(x => x.LineHeight, Length.Px(48))
-            .Set(x => x.MarginTop, Length.Px(0))
-            .Set(x => x.MarginBottom, Length.Px(8))
-            .Set(x => x.Color, t.HeadingColor));
-
-        sheet.AddRule(Style.For<H2Element>()
-            .Set(x => x.FontSize, Length.Px(32))
-            .Set(x => x.FontWeight, FontWeight.Medium)
-            .Set(x => x.LineHeight, Length.Px(38))
-            .Set(x => x.MarginTop, Length.Px(24))
-            .Set(x => x.MarginBottom, Length.Px(8))
-            .Set(x => x.Color, t.HeadingColor));
-
-        sheet.AddRule(Style.For<H3Element>()
-            .Set(x => x.FontSize, Length.Px(28))
-            .Set(x => x.FontWeight, FontWeight.Medium)
-            .Set(x => x.LineHeight, Length.Px(34))
-            .Set(x => x.MarginTop, Length.Px(0))
-            .Set(x => x.MarginBottom, Length.Px(8))
-            .Set(x => x.Color, t.HeadingColor));
-
-        sheet.AddRule(Style.For<H4Element>()
-            .Set(x => x.FontSize, Length.Px(24))
-            .Set(x => x.FontWeight, FontWeight.Medium)
-            .Set(x => x.LineHeight, Length.Px(29))
-            .Set(x => x.MarginTop, Length.Px(0))
-            .Set(x => x.MarginBottom, Length.Px(8))
-            .Set(x => x.Color, t.HeadingColor));
-
-        sheet.AddRule(Style.For<H5Element>()
-            .Set(x => x.FontSize, Length.Px(20))
-            .Set(x => x.FontWeight, FontWeight.Medium)
-            .Set(x => x.LineHeight, Length.Px(24))
-            .Set(x => x.MarginTop, Length.Px(0))
-            .Set(x => x.MarginBottom, Length.Px(8))
-            .Set(x => x.Color, t.HeadingColor));
-
-        sheet.AddRule(Style.For<H6Element>()
-            .Set(x => x.FontSize, Length.Px(16))
-            .Set(x => x.FontWeight, FontWeight.Medium)
-            .Set(x => x.LineHeight, Length.Px(19))
-            .Set(x => x.MarginTop, Length.Px(0))
-            .Set(x => x.MarginBottom, Length.Px(8))
-            .Set(x => x.Color, t.HeadingColor));
-
-        // paragraph
-        sheet.AddRule(Style.For<ParagraphElement>()
-            .Set(x => x.MarginTop, Length.Px(0))
-            .Set(x => x.MarginBottom, Length.Px(16)));
-
-        // anchor
-        sheet.AddRule(Style.For<AnchorElement>()
-            .Set(x => x.Color, t.LinkColor)
-            .Set(x => x.TextDecoration, TextDecoration.Underline));
-
-        sheet.AddRule(Style.For<AnchorElement>().Hover()
-            .Set(x => x.Color, t.LinkHoverColor));
+        return new CssObject
+        {
+            ["*"] = new()
+            {
+                BoxSizing = BoxSizing.BorderBox
+            },
+            // ["body"] = new()
+            // {
+            //     Margin = new Margin(0),
+            //     FontSize = Length.Px(t.BodyFontSize),
+            //     FontWeight = (FontWeight)t.BodyFontWeight,
+            //     LineHeight = t.BodyLineHeight,
+            //     Color = t.BodyColor,
+            //     BackgroundColor = t.BodyBg
+            // },
+            ["hr"] = new()
+            {
+                Margin = new Margin(Length.Rem(1), 0),
+                Border = new Border(0),
+                BorderTop = new BorderSide(Length.Px(t.BorderWidth), BorderStyle.Solid),
+                Opacity = 0.25f
+            },
+            ["h1"] = new()
+            {
+                FontSize = Length.Px(40),
+                FontWeight = FontWeight.Medium,
+                LineHeight = 1.2f,
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Rem(0.5f),
+                Color = t.HeadingColor
+            },
+            ["h2"] = new()
+            {
+                FontSize = Length.Px(32),
+                FontWeight = FontWeight.Medium,
+                LineHeight = 1.2f,
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Rem(0.5f),
+                Color = t.HeadingColor
+            },
+            ["h3"] = new()
+            {
+                FontSize = Length.Px(28),
+                FontWeight = FontWeight.Medium,
+                LineHeight = 1.2f,
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Rem(0.5f),
+                Color = t.HeadingColor
+            },
+            ["h4"] = new()
+            {
+                FontSize = Length.Px(24),
+                FontWeight = FontWeight.Medium,
+                LineHeight = 1.2f,
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Rem(0.5f),
+                Color = t.HeadingColor
+            },
+            ["h5"] = new()
+            {
+                FontSize = Length.Px(20),
+                FontWeight = FontWeight.Medium,
+                LineHeight = 1.2f,
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Rem(0.5f),
+                Color = t.HeadingColor
+            },
+            ["h6"] = new()
+            {
+                FontSize = Length.Px(16),
+                FontWeight = FontWeight.Medium,
+                LineHeight = 1.2f,
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Rem(0.5f),
+                Color = t.HeadingColor
+            },
+            ["p"] = new()
+            {
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Rem(1)
+            },
+            ["b, strong"] = new()
+            {
+                FontWeight = FontWeight.Bolder
+            },
+            ["small"] = new()
+            {
+                FontSize = Length.Rem(0.875f)
+            },
+            ["ol, ul"] = new()
+            {
+                PaddingLeft = Length.Rem(2)
+            },
+            ["ol, ul, dl"] = new()
+            {
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Rem(1)
+            },
+            ["dt"] = new()
+            {
+                FontWeight = FontWeight.Bold
+            },
+            ["dd"] = new()
+            {
+                MarginBottom = Length.Rem(0.5f),
+                MarginLeft = Length.Px(0)
+            },
+            ["blockquote"] = new()
+            {
+                Margin = new Margin(0, 0, Length.Rem(1), 0)
+            },
+            ["figure"] = new()
+            {
+                Margin = new Margin(0, 0, Length.Rem(1), 0)
+            },
+            ["a"] = new()
+            {
+                Color = t.LinkColor,
+                TextDecoration = t.LinkDecoration,
+                ["&:hover"] = new() { Color = t.LinkHoverColor }
+            },
+            ["pre"] = new()
+            {
+                Display = Display.Block,
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Rem(1),
+                FontSize = Length.Rem(0.875f),
+                OverflowX = Overflow.Auto
+            },
+            ["code"] = new()
+            {
+                FontSize = Length.Rem(0.875f),
+                Color = t.CodeColor
+            },
+            ["table"] = new()
+            {
+                // NOTE: caption-side, border-collapse not supported in CssObject
+                BorderWidth = Length.Px(0),
+                BorderStyle = BorderStyle.Solid
+            },
+            ["th"] = new()
+            {
+                FontWeight = FontWeight.Normal
+            },
+            ["label"] = new()
+            {
+                Display = Display.InlineBlock
+            },
+            ["button"] = new()
+            {
+                BorderRadius = 0
+            },
+            ["input, button, select, textarea"] = new()
+            {
+                Margin = new Margin(0),
+                LineHeight = 1.5f
+            },
+        };
     }
 }

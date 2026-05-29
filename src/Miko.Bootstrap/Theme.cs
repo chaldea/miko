@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 
 namespace Miko.Bootstrap;
 
@@ -15,6 +15,19 @@ public class Theme
     public Color Green { get; set; }
     public Color Teal { get; set; }
     public Color Cyan { get; set; }
+    public Color Black { get; set; }
+    public Color White { get; set; }
+    public Color Gray { get; set; }
+    public Color GrayDark { get; set; }
+    public Color Gray100 { get; set; }
+    public Color Gray200 { get; set; }
+    public Color Gray300 { get; set; }
+    public Color Gray400 { get; set; }
+    public Color Gray500 { get; set; }
+    public Color Gray600 { get; set; }
+    public Color Gray700 { get; set; }
+    public Color Gray800 { get; set; }
+    public Color Gray900 { get; set; }
 
     // Semantic colors
     public Color Primary { get; set; }
@@ -25,17 +38,6 @@ public class Theme
     public Color Danger { get; set; }
     public Color Light { get; set; }
     public Color Dark { get; set; }
-
-    // Grays
-    public Color Gray100 { get; set; }
-    public Color Gray200 { get; set; }
-    public Color Gray300 { get; set; }
-    public Color Gray400 { get; set; }
-    public Color Gray500 { get; set; }
-    public Color Gray600 { get; set; }
-    public Color Gray700 { get; set; }
-    public Color Gray800 { get; set; }
-    public Color Gray900 { get; set; }
 
     // Text emphasis
     public Color PrimaryTextEmphasis { get; set; }
@@ -76,31 +78,48 @@ public class Theme
     public float BodyLineHeight { get; set; } = 1.5f;
 
     // Secondary/Tertiary
+    public Color EmphasisColor { get; set; }
     public Color SecondaryColor { get; set; }
     public Color SecondaryBg { get; set; }
     public Color TertiaryColor { get; set; }
     public Color TertiaryBg { get; set; }
-    public Color EmphasisColor { get; set; }
+
+    // Heading
+    public Color HeadingColor { get; set; }
 
     // Links
     public Color LinkColor { get; set; }
+    public TextDecoration LinkDecoration { get; set; } = TextDecoration.Underline;
     public Color LinkHoverColor { get; set; }
+
+    // Code
+    public Color CodeColor { get; set; }
+    public Color HighlightColor { get; set; }
+    public Color HighlightBg { get; set; }
 
     // Borders
     public float BorderWidth { get; set; } = 1f;
+    public BorderStyle BorderStyle { get; set; } = BorderStyle.Solid;
     public Color BorderColor { get; set; }
+    public Color BorderColorTranslucent { get; set; }
     public float BorderRadius { get; set; } = 6f;
     public float BorderRadiusSm { get; set; } = 4f;
     public float BorderRadiusLg { get; set; } = 8f;
     public float BorderRadiusXl { get; set; } = 16f;
     public float BorderRadiusXxl { get; set; } = 32f;
+    public float BorderRadius2xl { get; set; } = 32f;
     public float BorderRadiusPill { get; set; } = 800f;
 
-    // Spacing base (1rem = 16px)
-    public float Spacer { get; set; } = 16f;
+    // Box Shadow
+    public BoxShadow BoxShadow { get; set; }
+    public BoxShadow BoxShadowSm { get; set; }
+    public BoxShadow BoxShadowLg { get; set; }
+    public BoxShadow BoxShadowInset { get; set; }
 
-    // Heading
-    public Color HeadingColor { get; set; }
+    // Focus
+    public float FocusRingWidth { get; set; }
+    public float FocusRingOpacity { get; set; }
+    public float FocusRingColor { get; set; }
 
     // Form validation
     public Color FormValidColor { get; set; }

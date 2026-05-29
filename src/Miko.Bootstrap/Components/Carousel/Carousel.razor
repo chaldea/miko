@@ -1,0 +1,22 @@
+@namespace Miko.Bootstrap.Components
+<div class="carousel">
+    <div class="carousel-inner">
+        @ChildContent
+    </div>
+    @if (ShowControls)
+    {
+        <button class="carousel-control-prev" @onclick="Prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" @onclick="Next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public bool ShowControls { get; set; } = true;
+
+    private void Prev() { }
+    private void Next() { }
+}

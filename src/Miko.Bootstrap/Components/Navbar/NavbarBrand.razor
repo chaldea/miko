@@ -1,0 +1,6 @@
+@namespace Miko.Bootstrap.Components
+<a class="navbar-brand" href="@Href">@ChildContent</a>
+
+@code {
+    [Parameter] public string Href { get; set; } = "#";
+}
