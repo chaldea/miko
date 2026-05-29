@@ -9,6 +9,7 @@ using Miko.Layout;
 using Miko.Rendering;
 using Miko.Routing;
 using Miko.Styling;
+using Silk.NET.Input;
 
 namespace Miko.Hosting;
 
@@ -89,6 +90,12 @@ public class MikoAppBuilder
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type layoutType)
     {
         Services.Configure<MikoAppOptions>(o => o.DefaultLayout = layoutType);
+        return this;
+    }
+
+    public MikoAppBuilder AddGlobalKeyHandler(Func<Key, bool> handler)
+    {
+        Services.Configure<MikoAppOptions>(o => o.GlobalKeyDownHandlers.Add(handler));
         return this;
     }
 

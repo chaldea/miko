@@ -19,6 +19,8 @@ public class RenderEngine
     private float _currentScrollOffsetX;
     private float _currentScrollOffsetY;
 
+    public Action<SKCanvas>? OverlayCallback { get; set; }
+
     /// <summary>
     /// 设置画布
     /// </summary>
@@ -42,6 +44,7 @@ public class RenderEngine
         _currentScrollOffsetY = 0;
         RenderBox(layoutRoot);
         FlushDropdowns();
+        OverlayCallback?.Invoke(_canvas!);
     }
 
     public void RenderDirty(LayoutBox layoutRoot, List<RectF> dirtyRegions)

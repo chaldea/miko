@@ -13,7 +13,7 @@ public class ComputedStyle : Style
     public new BoxSizing BoxSizing { get; set; } = Common.BoxSizing.ContentBox;
     public new FlexDirection FlexDirection { get; set; } = Common.FlexDirection.Row;
     public new JustifyContent JustifyContent { get; set; } = Common.JustifyContent.FlexStart;
-    public new AlignItems AlignItems { get; set; } = Common.AlignItems.FlexStart;
+    public new AlignItems AlignItems { get; set; } = Common.AlignItems.Stretch;
 
     // Flex 子元素属性（CSS 默认值）
     public new float FlexGrow { get; set; } = 0f;

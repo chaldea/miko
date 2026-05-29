@@ -365,8 +365,9 @@ public class Painter
             _ => rect.Left
         };
 
-        // 垂直居中
-        float y = rect.Top + (rect.Height + fontSize) / 2;
+        // 文本基线：顶部对齐（baseline ≈ top + ascent）
+        using var baselineFont = new SKFont(textRuns[0].Typeface, fontSize);
+        float y = rect.Top - baselineFont.Metrics.Ascent;
 
         // 绘制每个文本段
         foreach (var run in textRuns)
@@ -839,7 +840,8 @@ public class Painter
             _ => rect.Left
         };
 
-        float baselineY = rect.Top + (rect.Height + fontSize) / 2;
+        using var baselineFont = new SKFont(textRuns[0].Typeface, fontSize);
+        float baselineY = rect.Top - baselineFont.Metrics.Ascent;
         float lineY = decoration switch
         {
             TextDecoration.Underline => baselineY + fontSize * 0.15f,

@@ -3,6 +3,7 @@ using System.Reflection;
 using Miko.Core;
 using Miko.Routing;
 using Miko.Styling;
+using Silk.NET.Input;
 
 namespace Miko.Hosting;
 
@@ -20,6 +21,8 @@ public class MikoAppOptions
     public Type? DefaultLayout { get; set; }
 
     public List<FontRegistration> Fonts { get; set; } = new();
+    public List<Func<Key, bool>> GlobalKeyDownHandlers { get; set; } = new();
+    public List<Action<IServiceProvider>> PostInitHooks { get; set; } = new();
 }
 
 public class FontRegistration

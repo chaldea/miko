@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Miko.Bootstrap\Miko.Bootstrap.csproj" />
+    <ProjectReference Include="..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
     <ProjectReference Include="..\..\src\Miko\Miko.csproj" />
   </ItemGroup>
 
