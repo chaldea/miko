@@ -110,11 +110,23 @@ public class MikoEngine
         if (_dirtyManager.HasDirtyRegions())
         {
             var dirtyRegions = _dirtyManager.GetDirtyRegions();
-            _logger.LogDebug("Incremental update, {Count} dirty regions", dirtyRegions.Count);
             var oldLayout = _currentLayout;
             _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
             RestoreScrollState(oldLayout, _currentLayout);
-            _renderEngine.RenderDirty(_currentLayout, dirtyRegions);
+
+            // 脏区域过多时，增量渲染会退化为多次全树遍历，成本超过一次全量渲染，
+            // 此时回退到全量渲染（见基准报告 §2 拐点）。
+            if (dirtyRegions.Count > _renderEngine.MaxIncrementalDirtyRegions)
+            {
+                _logger.LogDebug("Full update fallback, {Count} dirty regions exceed threshold {Threshold}",
+                    dirtyRegions.Count, _renderEngine.MaxIncrementalDirtyRegions);
+                _renderEngine.Render(_currentLayout);
+            }
+            else
+            {
+                _logger.LogDebug("Incremental update, {Count} dirty regions", dirtyRegions.Count);
+                _renderEngine.RenderDirty(_currentLayout, dirtyRegions);
+            }
         }
     }
 

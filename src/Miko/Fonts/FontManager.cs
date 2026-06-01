@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Miko.Common;
+using Miko.Utils;
 using SkiaSharp;
 
 namespace Miko.Fonts;
@@ -45,6 +46,8 @@ public class FontManager : IDisposable
 
     private readonly ConcurrentDictionary<string, List<RegisteredFont>> _fontFamilies = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, SKTypeface> _typefaceCache = new();
+    // 字形包含查询缓存：typeface 在 FontManager 内长生命周期、引用稳定，可安全作为 key。
+    private static readonly ConcurrentDictionary<(SKTypeface Typeface, int Codepoint), bool> _glyphCache = new();
     private readonly Woff2Decoder _woff2Decoder = new();
     private readonly object _registrationLock = new();
     private bool _disposed;
@@ -238,6 +241,9 @@ public class FontManager : IDisposable
     public void ClearCache()
     {
         _typefaceCache.Clear();
+        _glyphCache.Clear();
+        // 字体变化使旧的文本测量结果失效
+        TextMeasurer.ClearCache();
     }
 
     /// <summary>
@@ -263,9 +269,7 @@ public class FontManager : IDisposable
     /// </summary>
     public static bool ContainsGlyph(SKTypeface typeface, char character)
     {
-        using var font = new SKFont(typeface);
-        ushort glyphId = font.GetGlyph(character);
-        return glyphId != 0;
+        return ContainsGlyph(typeface, (int)character);
     }
 
     /// <summary>
@@ -273,9 +277,16 @@ public class FontManager : IDisposable
     /// </summary>
     public static bool ContainsGlyph(SKTypeface typeface, int codepoint)
     {
+        var key = (typeface, codepoint);
+        if (_glyphCache.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
         using var font = new SKFont(typeface);
-        ushort glyphId = font.GetGlyph(codepoint);
-        return glyphId != 0;
+        bool contains = font.GetGlyph(codepoint) != 0;
+        _glyphCache[key] = contains;
+        return contains;
     }
 
     private void ClearCacheForFamily(string familyName)
@@ -288,6 +299,10 @@ public class FontManager : IDisposable
         {
             _typefaceCache.TryRemove(key, out _);
         }
+
+        // 字体注册/注销会改变回退链的解析结果，使旧的字形/测量缓存失效。
+        _glyphCache.Clear();
+        TextMeasurer.ClearCache();
     }
 
     private static FontFormat DetectFontFormat(byte[] data)
@@ -493,6 +508,8 @@ public class FontManager : IDisposable
             }
             _fontFamilies.Clear();
             _typefaceCache.Clear();
+            _glyphCache.Clear();
+            TextMeasurer.ClearCache();
             _disposed = true;
         }
     }
