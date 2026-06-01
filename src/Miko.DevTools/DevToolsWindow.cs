@@ -302,10 +302,34 @@ internal class DevToolsWindow
 
     private void RebuildUI()
     {
+        // 保存当前滚动位置
+        float domTreeScrollTop = 0;
+        float stylePanelScrollTop = 0;
+        var currentLayout = _engine.GetCurrentLayout();
+        if (currentLayout != null)
+        {
+            var domTreeBox = FindLayoutBoxByClass(currentLayout, "dom-tree-panel");
+            if (domTreeBox != null) domTreeScrollTop = domTreeBox.ScrollTop;
+
+            var stylePanelBox = FindLayoutBoxByClass(currentLayout, "style-panel");
+            if (stylePanelBox != null) stylePanelScrollTop = stylePanelBox.ScrollTop;
+        }
+
         var root = BuildUI();
         var styleSheets = new List<Styling.StyleSheet> { DevToolsStyleSheet.Create() };
         using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
         _engine.Initialize(root, styleSheets, tempSurface.Canvas, _width, _height);
+
+        // 恢复滚动位置
+        var newLayout = _engine.GetCurrentLayout();
+        if (newLayout != null)
+        {
+            var newDomTreeBox = FindLayoutBoxByClass(newLayout, "dom-tree-panel");
+            if (newDomTreeBox != null) newDomTreeBox.ScrollTop = domTreeScrollTop;
+
+            var newStylePanelBox = FindLayoutBoxByClass(newLayout, "style-panel");
+            if (newStylePanelBox != null) newStylePanelBox.ScrollTop = stylePanelScrollTop;
+        }
     }
 
     private Element BuildUI()

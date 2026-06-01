@@ -3106,4 +3106,85 @@ public class LayoutEngineTests
     }
 
     #endregion
+
+    #region Text Content + Children Coexistence
+
+    [Fact]
+    public void BlockLayout_TextContentAndChildren_ShouldNotOverlap()
+    {
+        // <div> content1 <div>content2</div> </div>
+        // When a block element has both TextContent and block children,
+        // the text occupies a line at the top and children flow below it.
+        var root = new DivElement { Class = "outer", TextContent = "content1" };
+        var child = new DivElement { Class = "inner", TextContent = "content2" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("outer"),
+                        Style = new Style { Width = Length.Px(300) }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        var childBox = layoutRoot.Children[0];
+
+        // The child block must be positioned below the parent's own text line,
+        // not at the very top (which would overlap the text).
+        float parentContentTop = layoutRoot.BoxModel.Content.Y;
+        childBox.BoxModel.MarginBox.Y.ShouldBeGreaterThan(parentContentTop);
+
+        // The parent's content height must include both the text line and the child.
+        layoutRoot.BoxModel.Content.Height.ShouldBeGreaterThan(childBox.BoxModel.MarginBox.Height);
+    }
+
+    [Fact]
+    public void BlockLayout_TextContentAndInlineChildren_ShouldFlowOnSameLine()
+    {
+        // <div> content1 <span>content2</span> </div>
+        // TextContent acts like an anonymous inline box and should flow
+        // on the same line with inline/inline-block children.
+        var root = new DivElement { Class = "outer", TextContent = "content1 " };
+        var span = new SpanElement { Class = "inner", TextContent = "content2" };
+        root.AddChild(span);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("outer"),
+                        Style = new Style { Width = Length.Px(300) }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        var spanBox = layoutRoot.Children[0];
+
+        // The span should be on the same line as the parent's text,
+        // positioned horizontally after the text width, not below it.
+        float parentContentTop = layoutRoot.BoxModel.Content.Y;
+        spanBox.BoxModel.MarginBox.Y.ShouldBe(parentContentTop, 1f);
+
+        // The span's X position should be after the text "content1 "
+        float parentContentLeft = layoutRoot.BoxModel.Content.X;
+        spanBox.BoxModel.MarginBox.X.ShouldBeGreaterThan(parentContentLeft);
+    }
+
+    #endregion
 }
