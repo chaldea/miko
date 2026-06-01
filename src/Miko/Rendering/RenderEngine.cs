@@ -12,6 +12,12 @@ namespace Miko.Rendering;
 /// </summary>
 public class RenderEngine
 {
+    /// <summary>
+    /// 增量渲染脏区域数量阈值。脏区域超过该数量时，多次全树遍历的成本会超过一次全量渲染
+    /// （见基准报告 §2 拐点 30–50），此时应回退到全量渲染。
+    /// </summary>
+    public int MaxIncrementalDirtyRegions { get; set; } = 30;
+
     private SKCanvas? _canvas;
     private Painter? _painter;
     private List<RectF>? _dirtyRegions;
