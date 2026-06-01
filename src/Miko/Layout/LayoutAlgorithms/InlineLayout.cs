@@ -40,9 +40,26 @@ public class InlineLayout
         float contentX = x + box.BoxModel.Margin.Left + box.BoxModel.Border.Left + box.BoxModel.Padding.Left;
         float contentY = y + box.BoxModel.Margin.Top + box.BoxModel.Border.Top + box.BoxModel.Padding.Top;
 
-        float currentX = contentX;
-        float lineHeight = 0;
-        float maxWidth = 0;
+        // 当元素同时拥有 TextContent 和子元素时，文本作为匿名 inline 盒
+        // 排在子元素之前，子元素从文本宽度之后开始排列（与 BlockLayout 保持一致）。
+        float ownTextWidth = 0;
+        float ownTextHeight = 0;
+        bool hasOwnText = !string.IsNullOrEmpty(box.Element.TextContent);
+
+        if (hasOwnText)
+        {
+            var (textWidth, textHeight) = TextMeasurer.MeasureText(
+                box.Element.TextContent,
+                style.FontFamily,
+                style.FontSize.Value,
+                style.FontWeight);
+            ownTextWidth = textWidth;
+            ownTextHeight = textHeight;
+        }
+
+        float currentX = contentX + ownTextWidth;
+        float lineHeight = ownTextHeight;
+        float maxWidth = ownTextWidth;
 
         // 简化实现：单行布局，不处理换行
         foreach (var child in box.Children)
@@ -68,18 +85,14 @@ public class InlineLayout
                 contentWidth = Math.Max(0, contentWidth);
             }
         }
-        else if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
+        else if (box.Children.Count == 0 && hasOwnText)
         {
-            // 如果没有子元素但有文本内容，则根据文本计算宽度
-            var (textWidth, _) = TextMeasurer.MeasureText(
-                box.Element.TextContent,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight);
-            contentWidth = textWidth;
+            // 只有文本内容、没有子元素：宽度即文本宽度
+            contentWidth = ownTextWidth;
         }
         else
         {
+            // 有子元素（可能同时有文本）：maxWidth 已包含文本宽度作为起始偏移
             contentWidth = maxWidth;
         }
 
@@ -92,18 +105,14 @@ public class InlineLayout
                 contentHeight = Math.Max(0, contentHeight);
             }
         }
-        else if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
+        else if (box.Children.Count == 0 && hasOwnText)
         {
-            // 如果没有子元素但有文本内容，则根据文本计算高度
-            var (_, textHeight) = TextMeasurer.MeasureText(
-                box.Element.TextContent,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight);
-            contentHeight = textHeight;
+            // 只有文本内容、没有子元素：高度即文本高度
+            contentHeight = ownTextHeight;
         }
         else
         {
+            // 有子元素时，lineHeight 已取文本高度与子元素高度的较大值
             contentHeight = lineHeight;
         }
 
