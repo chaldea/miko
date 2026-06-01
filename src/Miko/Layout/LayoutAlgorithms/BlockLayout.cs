@@ -152,6 +152,32 @@ public class BlockLayout
         float currentY = contentY;
         float maxChildWidth = 0;
 
+        // 当元素同时拥有 TextContent 和子元素时：
+        // - 如果第一个子元素是 block，文本作为独立行盒占据顶部，block 子元素从下方开始
+        // - 如果第一个子元素是 inline/inline-block，文本作为匿名 inline 盒与 inline 子元素同行排列
+        float ownTextWidth = 0;
+        float ownTextHeight = 0;
+        bool hasOwnText = box.Children.Count > 0 && !string.IsNullOrEmpty(box.Element.TextContent);
+        bool firstChildIsBlock = hasOwnText && !IsInlineOrInlineBlock(box.Children[0]);
+
+        if (hasOwnText)
+        {
+            var (textWidth, textHeight) = TextMeasurer.MeasureText(
+                box.Element.TextContent,
+                style.FontFamily,
+                style.FontSize.Value,
+                style.FontWeight);
+            ownTextWidth = textWidth;
+            ownTextHeight = textHeight;
+
+            // 仅当第一个子元素是 block 时，文本独占一行，currentY 下移
+            if (firstChildIsBlock)
+            {
+                currentY += ownTextHeight;
+                maxChildWidth = Math.Max(maxChildWidth, ownTextWidth);
+            }
+        }
+
         int i = 0;
         while (i < box.Children.Count)
         {
@@ -160,8 +186,14 @@ public class BlockLayout
             if (IsInlineOrInlineBlock(child))
             {
                 // 收集连续的 Inline/InlineBlock 子元素并水平布局
+                // 如果这是第一组 inline 子元素且父元素有文本内容，文本宽度作为起始 X
                 float lineX = contentX;
-                float lineHeight = 0;
+                if (i == 0 && hasOwnText && !firstChildIsBlock)
+                {
+                    lineX += ownTextWidth;
+                }
+
+                float lineHeight = hasOwnText && i == 0 && !firstChildIsBlock ? ownTextHeight : 0;
 
                 while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i]))
                 {
@@ -264,8 +296,32 @@ public class BlockLayout
 
     private void RelayoutChildren(LayoutBox box, float childAvailableWidth, float contentX, float contentY)
     {
+        var style = box.ComputedStyle;
         float currentY = contentY;
         float maxChildWidth = 0;
+
+        // 与主布局逻辑保持一致地处理 TextContent 与子元素共存的情况
+        float ownTextWidth = 0;
+        float ownTextHeight = 0;
+        bool hasOwnText = box.Children.Count > 0 && !string.IsNullOrEmpty(box.Element.TextContent);
+        bool firstChildIsBlock = hasOwnText && !IsInlineOrInlineBlock(box.Children[0]);
+
+        if (hasOwnText)
+        {
+            var (textWidth, textHeight) = TextMeasurer.MeasureText(
+                box.Element.TextContent,
+                style.FontFamily,
+                style.FontSize.Value,
+                style.FontWeight);
+            ownTextWidth = textWidth;
+            ownTextHeight = textHeight;
+
+            if (firstChildIsBlock)
+            {
+                currentY += ownTextHeight;
+                maxChildWidth = Math.Max(maxChildWidth, ownTextWidth);
+            }
+        }
 
         int i = 0;
         while (i < box.Children.Count)
@@ -275,7 +331,12 @@ public class BlockLayout
             if (IsInlineOrInlineBlock(child))
             {
                 float lineX = contentX;
-                float lineHeight = 0;
+                if (i == 0 && hasOwnText && !firstChildIsBlock)
+                {
+                    lineX += ownTextWidth;
+                }
+
+                float lineHeight = hasOwnText && i == 0 && !firstChildIsBlock ? ownTextHeight : 0;
 
                 while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i]))
                 {

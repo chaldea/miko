@@ -91,12 +91,12 @@ internal static class DomTreeBuilder
 
         line.AddChild(new SpanElement { Class = "tree-node-tag", TextContent = ">" });
 
-        if (!string.IsNullOrEmpty(element.TextContent) && element.Children.Count == 0)
+        bool hasText = !string.IsNullOrEmpty(element.TextContent);
+
+        // 无子元素且有文本：文本和闭合标签显示在同一行
+        if (hasText && !hasChildren)
         {
-            var textPreview = element.TextContent.Length > 40
-                ? element.TextContent[..40] + "..."
-                : element.TextContent;
-            line.AddChild(new SpanElement { Class = "tree-node-text", TextContent = textPreview });
+            line.AddChild(new SpanElement { Class = "tree-node-text", TextContent = TextPreview(element.TextContent!) });
             line.AddChild(new SpanElement { Class = "tree-node-tag", TextContent = $"</{element.TagName}>" });
         }
 
@@ -111,6 +111,24 @@ internal static class DomTreeBuilder
 
         if (hasChildren && !isCollapsed)
         {
+            // 元素同时拥有文本内容时，将文本作为独立的文本节点行显示在子元素之前
+            if (hasText)
+            {
+                var textNode = new DivElement
+                {
+                    Class = "tree-node",
+                    Style = new Styling.Style { PaddingLeft = Length.Px((depth + 1) * 16 + 4) }
+                };
+                var textLine = new DivElement
+                {
+                    Style = new Styling.Style { Display = Display.Flex, FlexDirection = FlexDirection.Row }
+                };
+                textLine.AddChild(new SpanElement { Class = "tree-toggle", TextContent = " " });
+                textLine.AddChild(new SpanElement { Class = "tree-node-text", TextContent = TextPreview(element.TextContent!) });
+                textNode.AddChild(textLine);
+                parent.AddChild(textNode);
+            }
+
             foreach (var child in element.Children)
             {
                 BuildTreeNode(parent, child, bridge, depth + 1);
@@ -134,5 +152,11 @@ internal static class DomTreeBuilder
             closingTag.AddChild(closingLine);
             parent.AddChild(closingTag);
         }
+    }
+
+    private static string TextPreview(string text)
+    {
+        var trimmed = text.Trim();
+        return trimmed.Length > 40 ? trimmed[..40] + "..." : trimmed;
     }
 }
