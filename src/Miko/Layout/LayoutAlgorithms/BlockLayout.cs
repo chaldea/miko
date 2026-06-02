@@ -183,6 +183,17 @@ public class BlockLayout
         {
             var child = box.Children[i];
 
+            // 脱离文档流的子元素（absolute/fixed）不参与常规流：
+            // 仍进行布局以获得尺寸，但不推进流光标、不计入父元素内容尺寸。
+            // 最终位置由 LayoutEngine 的定位阶段修正。
+            if (IsOutOfFlow(child))
+            {
+                var childConstraints = new LayoutConstraints(childAvailableWidth, childAvailableHeight);
+                LayoutChild(child, childConstraints, contentX, currentY);
+                i++;
+                continue;
+            }
+
             if (IsInlineOrInlineBlock(child))
             {
                 // 收集连续的 Inline/InlineBlock 子元素并水平布局
@@ -195,7 +206,8 @@ public class BlockLayout
 
                 float lineHeight = hasOwnText && i == 0 && !firstChildIsBlock ? ownTextHeight : 0;
 
-                while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i]))
+                while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i])
+                       && !IsOutOfFlow(box.Children[i]))
                 {
                     var inlineChild = box.Children[i];
                     var childConstraints = new LayoutConstraints(null, null);
@@ -281,8 +293,11 @@ public class BlockLayout
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);
 
         // 7. 记录可滚动内容尺寸
-        box.ScrollableContentWidth = maxChildWidth;
-        box.ScrollableContentHeight = childrenTotalHeight;
+        // 滚动区域（scrollHeight/scrollWidth）应包含盒子的内边距：
+        // CSS 中可滚动区域是内容延伸范围加上 padding box 的内边距，
+        // 否则滚动到底部时无法看到内容底部的 bottom padding（以及内容的下边缘）。
+        box.ScrollableContentWidth = maxChildWidth + box.BoxModel.Padding.Horizontal;
+        box.ScrollableContentHeight = childrenTotalHeight + box.BoxModel.Padding.Vertical;
 
         // 8. 如果 overflow-y 是 auto 且内容溢出，需要为滚动条预留空间并重新布局
         if (style.OverflowY == Overflow.Auto && !needsVerticalScrollbar &&
@@ -328,6 +343,15 @@ public class BlockLayout
         {
             var child = box.Children[i];
 
+            // 脱离文档流的子元素不参与常规流（见主布局逻辑说明）
+            if (IsOutOfFlow(child))
+            {
+                var childConstraints = new LayoutConstraints(childAvailableWidth, null);
+                LayoutChild(child, childConstraints, contentX, currentY);
+                i++;
+                continue;
+            }
+
             if (IsInlineOrInlineBlock(child))
             {
                 float lineX = contentX;
@@ -338,7 +362,8 @@ public class BlockLayout
 
                 float lineHeight = hasOwnText && i == 0 && !firstChildIsBlock ? ownTextHeight : 0;
 
-                while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i]))
+                while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i])
+                       && !IsOutOfFlow(box.Children[i]))
                 {
                     var inlineChild = box.Children[i];
                     var childConstraints = new LayoutConstraints(null, null);
@@ -362,8 +387,8 @@ public class BlockLayout
             }
         }
 
-        box.ScrollableContentWidth = maxChildWidth;
-        box.ScrollableContentHeight = currentY - contentY;
+        box.ScrollableContentWidth = maxChildWidth + box.BoxModel.Padding.Horizontal;
+        box.ScrollableContentHeight = (currentY - contentY) + box.BoxModel.Padding.Vertical;
     }
 
     private void LayoutChild(LayoutBox child, LayoutConstraints constraints, float x, float y)
@@ -374,5 +399,15 @@ public class BlockLayout
     private static bool IsInlineOrInlineBlock(LayoutBox child)
     {
         return child.Type == LayoutType.Inline || child.Type == LayoutType.InlineBlock;
+    }
+
+    /// <summary>
+    /// 子元素是否脱离常规文档流（absolute / fixed 定位）。
+    /// 脱离文档流的元素不占据常规流空间，也不计入父元素的内容尺寸。
+    /// </summary>
+    internal static bool IsOutOfFlow(LayoutBox child)
+    {
+        var position = child.ComputedStyle.Position;
+        return position == Common.Position.Absolute || position == Common.Position.Fixed;
     }
 }

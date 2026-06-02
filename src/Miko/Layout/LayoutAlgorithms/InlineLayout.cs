@@ -64,6 +64,15 @@ public class InlineLayout
         // 简化实现：单行布局，不处理换行
         foreach (var child in box.Children)
         {
+            // 脱离文档流的子元素仍布局以获得尺寸，但不推进行光标、不计入内容宽度。
+            // 最终位置由 LayoutEngine 的定位阶段修正。
+            if (BlockLayout.IsOutOfFlow(child))
+            {
+                var outOfFlowConstraints = new LayoutConstraints(null, null);
+                LayoutChild(child, outOfFlowConstraints, currentX, contentY);
+                continue;
+            }
+
             var childConstraints = new LayoutConstraints(null, null);
             LayoutChild(child, childConstraints, currentX, contentY);
 

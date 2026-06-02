@@ -108,6 +108,20 @@ public class FlexLayout
 
         float maxCrossSize = 0;
 
+        // 脱离文档流的子元素（absolute/fixed）不是 flex 项目：
+        // 单独布局以获得尺寸，不参与主轴/交叉轴的排列与尺寸计算。
+        // 最终位置由 LayoutEngine 的定位阶段修正。
+        foreach (var child in box.Children)
+        {
+            if (BlockLayout.IsOutOfFlow(child))
+            {
+                float? childAvailableHeight = contentHeight > 0 ? contentHeight : null;
+                var childConstraints = new LayoutConstraints(
+                    contentWidth > 0 ? contentWidth : (float?)null, childAvailableHeight);
+                LayoutDispatcher.Dispatch(child, childConstraints, contentX, contentY);
+            }
+        }
+
         if (isRow)
         {
             LayoutRowDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize);
@@ -130,6 +144,7 @@ public class FlexLayout
                 float totalChildHeight = 0;
                 foreach (var child in box.Children)
                 {
+                    if (BlockLayout.IsOutOfFlow(child)) continue;
                     totalChildHeight += child.BoxModel.MarginBox.Height;
                 }
 
@@ -150,25 +165,30 @@ public class FlexLayout
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);
 
         // 记录可滚动内容尺寸
+        // 滚动区域包含盒子的内边距（见 BlockLayout 中的说明）
+        float padH = box.BoxModel.Padding.Horizontal;
+        float padV = box.BoxModel.Padding.Vertical;
         if (isRow)
         {
             float totalChildWidth = 0;
             foreach (var child in box.Children)
             {
+                if (BlockLayout.IsOutOfFlow(child)) continue;
                 totalChildWidth += child.BoxModel.MarginBox.Width;
             }
-            box.ScrollableContentWidth = totalChildWidth;
-            box.ScrollableContentHeight = maxCrossSize;
+            box.ScrollableContentWidth = totalChildWidth + padH;
+            box.ScrollableContentHeight = maxCrossSize + padV;
         }
         else
         {
             float totalChildHeight = 0;
             foreach (var child in box.Children)
             {
+                if (BlockLayout.IsOutOfFlow(child)) continue;
                 totalChildHeight += child.BoxModel.MarginBox.Height;
             }
-            box.ScrollableContentWidth = maxCrossSize;
-            box.ScrollableContentHeight = totalChildHeight;
+            box.ScrollableContentWidth = maxCrossSize + padH;
+            box.ScrollableContentHeight = totalChildHeight + padV;
         }
     }
 
@@ -183,6 +203,8 @@ public class FlexLayout
 
         foreach (var child in box.Children)
         {
+            if (BlockLayout.IsOutOfFlow(child)) continue;
+
             var childStyle = child.ComputedStyle;
             float flexBasis;
             bool usedAutoSize = false;
@@ -390,6 +412,8 @@ public class FlexLayout
 
         foreach (var child in box.Children)
         {
+            if (BlockLayout.IsOutOfFlow(child)) continue;
+
             var childStyle = child.ComputedStyle;
             float flexBasis;
             bool usedAutoSize = false;
@@ -611,6 +635,7 @@ public class FlexLayout
         for (int i = 0; i < box.Children.Count; i++)
         {
             var child = box.Children[i];
+            if (BlockLayout.IsOutOfFlow(child)) continue;
             float itemOffset = offset + spacing * i;
 
             if (isRow)
@@ -638,6 +663,8 @@ public class FlexLayout
     {
         foreach (var child in box.Children)
         {
+            if (BlockLayout.IsOutOfFlow(child)) continue;
+
             float childCrossSize = isRow ? child.BoxModel.MarginBox.Height : child.BoxModel.MarginBox.Width;
             float offset = 0;
 

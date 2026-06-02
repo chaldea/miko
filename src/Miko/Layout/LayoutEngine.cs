@@ -37,7 +37,115 @@ public class LayoutEngine
         var constraints = new LayoutConstraints(viewportWidth, viewportHeight);
         CalculateLayout(layoutRoot, constraints, 0, 0);
 
+        // 4. 定位调整：处理 relative/absolute 定位的偏移
+        // 根元素的初始包含块为视口
+        var viewportBlock = new RectF(0, 0, viewportWidth, viewportHeight);
+        ApplyPositioning(layoutRoot, viewportBlock);
+
         return layoutRoot;
+    }
+
+    /// <summary>
+    /// 应用定位偏移（relative / absolute）。
+    /// 在常规流布局完成后，根据 position 和 top/right/bottom/left 调整盒子位置。
+    /// </summary>
+    /// <param name="box">当前盒子</param>
+    /// <param name="containingBlock">最近的定位包含块（绝对定位参照的 padding box）</param>
+    private void ApplyPositioning(LayoutBox box, RectF containingBlock)
+    {
+        var style = box.ComputedStyle;
+        var position = style.Position;
+
+        // relative/absolute 元素本身成为后代绝对定位元素的包含块。
+        // 包含块使用元素的 padding box（CSS 规范：绝对定位相对于包含块的 padding 边缘）。
+        RectF childContainingBlock = containingBlock;
+
+        if (position == Position.Relative)
+        {
+            // relative：相对于自身在常规流中的位置偏移
+            float dx = 0f;
+            float dy = 0f;
+
+            if (!style.Left.IsAuto)
+                dx = style.Left.ToPixels(containingBlock.Width);
+            else if (!style.Right.IsAuto)
+                dx = -style.Right.ToPixels(containingBlock.Width);
+
+            if (!style.Top.IsAuto)
+                dy = style.Top.ToPixels(containingBlock.Height);
+            else if (!style.Bottom.IsAuto)
+                dy = -style.Bottom.ToPixels(containingBlock.Height);
+
+            if (dx != 0f || dy != 0f)
+            {
+                OffsetSubtree(box, dx, dy);
+            }
+
+            childContainingBlock = box.BoxModel.PaddingBox;
+        }
+        else if (position == Position.Absolute || position == Position.Fixed)
+        {
+            // absolute/fixed：相对于包含块定位
+            var marginBox = box.BoxModel.MarginBox;
+
+            // 水平方向
+            float targetX = marginBox.Left;
+            if (!style.Left.IsAuto)
+            {
+                targetX = containingBlock.Left + style.Left.ToPixels(containingBlock.Width);
+            }
+            else if (!style.Right.IsAuto)
+            {
+                targetX = containingBlock.Right - style.Right.ToPixels(containingBlock.Width) - marginBox.Width;
+            }
+
+            // 垂直方向
+            float targetY = marginBox.Top;
+            if (!style.Top.IsAuto)
+            {
+                targetY = containingBlock.Top + style.Top.ToPixels(containingBlock.Height);
+            }
+            else if (!style.Bottom.IsAuto)
+            {
+                targetY = containingBlock.Bottom - style.Bottom.ToPixels(containingBlock.Height) - marginBox.Height;
+            }
+
+            float dx = targetX - marginBox.Left;
+            float dy = targetY - marginBox.Top;
+
+            if (dx != 0f || dy != 0f)
+            {
+                OffsetSubtree(box, dx, dy);
+            }
+
+            childContainingBlock = box.BoxModel.PaddingBox;
+        }
+        else if (position == Position.Static)
+        {
+            // static 元素不建立包含块，沿用祖先的包含块
+            childContainingBlock = containingBlock;
+        }
+
+        // 递归处理子元素
+        foreach (var child in box.Children)
+        {
+            ApplyPositioning(child, childContainingBlock);
+        }
+    }
+
+    /// <summary>
+    /// 将盒子及其所有后代的位置整体平移 (dx, dy)。
+    /// 渲染与命中测试均从 BoxModel.Content 派生，因此只需平移每个盒子的 Content 矩形。
+    /// </summary>
+    private static void OffsetSubtree(LayoutBox box, float dx, float dy)
+    {
+        var content = box.BoxModel.Content;
+        box.BoxModel.Content = new RectF(content.X + dx, content.Y + dy, content.Width, content.Height);
+
+        foreach (var child in box.Children)
+        {
+            OffsetSubtree(child, dx, dy);
+        }
     }
 
     /// <summary>

@@ -11,6 +11,7 @@ public static class BootstrapStyleSheetFactory
         var sheet = new StyleSheet();
         sheet.Add(RebootStyles.GenStyle(theme));
         sheet.Add(UtilitiesStyle.GenStyle(theme));
+        sheet.Add(BtnCloseStyle.GenStyle(theme));
         sheet.Add(GridStyles.GenStyle(new GridToken(theme)));
         sheet.Add(AccordionStyles.GenStyle(new AccordionToken(theme)));
         sheet.Add(AlertStyles.GenStyle(new AlertToken(theme)));
