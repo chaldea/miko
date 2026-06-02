@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Styling;
 
 namespace Miko.Bootstrap.Components;
@@ -109,6 +109,11 @@ internal static class FormStyles
             {
                 MarginBottom = t.FormLabelMarginBottom,
                 Color = t.FormLabelColor
+            },
+
+            [".col-form-label"] = new()
+            {
+
             },
 
             [".form-text"] = new()

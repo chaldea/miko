@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
@@ -302,6 +302,9 @@ internal class DevToolsWindow
 
     private void RebuildUI()
     {
+        // 窗口被最小化
+        if (_width == 0 || _height == 0) return;
+
         // 保存当前滚动位置
         float domTreeScrollTop = 0;
         float stylePanelScrollTop = 0;

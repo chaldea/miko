@@ -11,7 +11,7 @@ internal static class DevToolsStyleSheet
     private static readonly Color BgLight = new(60, 60, 60);
     private static readonly Color BgSelected = new(38, 79, 120);
     private static readonly Color TextPrimary = new(212, 212, 212);
-    private static readonly Color TextSecondary = new(150, 150, 150);
+    private static readonly Color TextSecondary = new(250, 250, 250);
     private static readonly Color TextTag = new(86, 156, 214);
     private static readonly Color TextAttr = new(156, 220, 254);
     private static readonly Color TextString = new(206, 145, 120);
@@ -249,6 +249,9 @@ internal static class DevToolsStyleSheet
             FlexDirection = FlexDirection.Row,
             AlignItems = AlignItems.Center,
             Height = Length.Px(30),
+            FlexGrow = 0,
+            FlexShrink = 0,
+            FlexBasis = Length.Px(30),
             PaddingLeft = Length.Px(8),
             PaddingRight = Length.Px(8),
             BackgroundColor = BgMedium,
@@ -282,6 +285,7 @@ internal static class DevToolsStyleSheet
         sheet.AddRule(new ClassSelector("console-output"), new Style
         {
             FlexGrow = 1,
+            MinHeight = Length.Px(0),
             OverflowY = Overflow.Scroll,
             PaddingTop = Length.Px(4),
             PaddingBottom = Length.Px(4),

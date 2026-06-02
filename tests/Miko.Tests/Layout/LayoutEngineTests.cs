@@ -3187,4 +3187,622 @@ public class LayoutEngineTests
     }
 
     #endregion
+
+    #region Positioning (relative / absolute) Tests
+
+    [Fact]
+    public void AbsolutePositioning_TopRight_ShouldPositionRelativeToRelativeParent()
+    {
+        // 复现 ISSUE-037 问题1：
+        // 父元素 position: relative，子元素 position: absolute; top: 0; right: 0
+        // 子元素应该相对于父元素的内边距盒（padding box）定位到右上角。
+        var parent = new DivElement { Class = "parent" };
+        var child = new DivElement { Class = "child" };
+        parent.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("parent"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Relative,
+                            Width = Length.Px(400),
+                            Height = Length.Px(300)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Absolute,
+                            Top = Length.Px(0),
+                            Right = Length.Px(0),
+                            Width = Length.Px(50),
+                            Height = Length.Px(50)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(parent, styleSheets, 800, 600);
+
+        // Assert
+        var childBox = layoutRoot.Children[0];
+        var parentPaddingBox = layoutRoot.BoxModel.PaddingBox;
+
+        // top: 0 → 子元素 border box 顶部对齐父元素 padding box 顶部
+        childBox.BoxModel.BorderBox.Top.ShouldBe(parentPaddingBox.Top);
+        // right: 0 → 子元素 border box 右边对齐父元素 padding box 右边
+        childBox.BoxModel.BorderBox.Right.ShouldBe(parentPaddingBox.Right);
+    }
+
+    [Fact]
+    public void AbsolutePositioning_TopLeft_ShouldOffsetFromContainingBlock()
+    {
+        // position: absolute; top: 10; left: 20 应相对于定位父元素的 padding box 偏移
+        var parent = new DivElement { Class = "parent" };
+        var child = new DivElement { Class = "child" };
+        parent.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("parent"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Relative,
+                            Width = Length.Px(400),
+                            Height = Length.Px(300),
+                            PaddingTop = Length.Px(5),
+                            PaddingLeft = Length.Px(5),
+                            PaddingRight = Length.Px(5),
+                            PaddingBottom = Length.Px(5)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Absolute,
+                            Top = Length.Px(10),
+                            Left = Length.Px(20),
+                            Width = Length.Px(50),
+                            Height = Length.Px(50)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(parent, styleSheets, 800, 600);
+
+        // Assert
+        var childBox = layoutRoot.Children[0];
+        var parentPaddingBox = layoutRoot.BoxModel.PaddingBox;
+
+        childBox.BoxModel.BorderBox.Left.ShouldBe(parentPaddingBox.Left + 20);
+        childBox.BoxModel.BorderBox.Top.ShouldBe(parentPaddingBox.Top + 10);
+    }
+
+    [Fact]
+    public void AbsolutePositioning_NoPositionedAncestor_ShouldUseViewport()
+    {
+        // 没有定位祖先时，绝对定位相对于初始包含块（视口）。
+        var root = new DivElement { Class = "root" };
+        var child = new DivElement { Class = "child" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style { Display = Display.Block, Width = Length.Px(400), Height = Length.Px(300) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Absolute,
+                            Top = Length.Px(15),
+                            Left = Length.Px(25),
+                            Width = Length.Px(50),
+                            Height = Length.Px(50)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - 相对于视口 (0,0)
+        var childBox = layoutRoot.Children[0];
+        childBox.BoxModel.BorderBox.Left.ShouldBe(25);
+        childBox.BoxModel.BorderBox.Top.ShouldBe(15);
+    }
+
+    [Fact]
+    public void RelativePositioning_TopLeft_ShouldOffsetFromNormalPosition()
+    {
+        // position: relative; top: 10; left: 20 应相对于常规流中的位置偏移
+        var root = new DivElement { Class = "root" };
+        var child = new DivElement { Class = "child" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style { Display = Display.Block, Width = Length.Px(400), Height = Length.Px(300) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Relative,
+                            Top = Length.Px(10),
+                            Left = Length.Px(20),
+                            Height = Length.Px(50)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - 子元素从常规流位置 (0,0) 偏移 (20,10)
+        var childBox = layoutRoot.Children[0];
+        childBox.BoxModel.BorderBox.Left.ShouldBe(20);
+        childBox.BoxModel.BorderBox.Top.ShouldBe(10);
+    }
+
+    [Fact]
+    public void RelativePositioning_ShouldMoveDescendantsToo()
+    {
+        // relative 偏移应整体平移子树（后代也一起移动）。
+        var root = new DivElement { Class = "root" };
+        var rel = new DivElement { Class = "rel" };
+        var inner = new DivElement { Class = "inner" };
+        root.AddChild(rel);
+        rel.AddChild(inner);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style { Display = Display.Block, Width = Length.Px(400) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("rel"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Relative,
+                            Left = Length.Px(30),
+                            Top = Length.Px(40),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("inner"),
+                        Style = new Style { Display = Display.Block, Height = Length.Px(20) }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - inner 也应随 rel 一起偏移 (30, 40)
+        var innerBox = layoutRoot.Children[0].Children[0];
+        innerBox.BoxModel.Content.X.ShouldBe(30);
+        innerBox.BoxModel.Content.Y.ShouldBe(40);
+    }
+
+    [Fact]
+    public void AbsolutePositioning_ContainingBlockIsNearestPositionedAncestor()
+    {
+        // absolute 应相对于最近的"定位"祖先（position != static），跳过 static 祖先。
+        var root = new DivElement { Class = "root" };       // relative，定位包含块
+        var middle = new DivElement { Class = "middle" };   // static，应被跳过
+        var child = new DivElement { Class = "child" };     // absolute
+        root.AddChild(middle);
+        middle.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Relative,
+                            Width = Length.Px(400),
+                            Height = Length.Px(300)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("middle"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            MarginTop = Length.Px(50),
+                            MarginLeft = Length.Px(50),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Absolute,
+                            Top = Length.Px(0),
+                            Left = Length.Px(0),
+                            Width = Length.Px(30),
+                            Height = Length.Px(30)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - child 相对于 root（padding box 原点 0,0），而非 static 的 middle
+        var childBox = layoutRoot.Children[0].Children[0];
+        childBox.BoxModel.BorderBox.Left.ShouldBe(0);
+        childBox.BoxModel.BorderBox.Top.ShouldBe(0);
+    }
+
+    [Fact]
+    public void AbsoluteChild_ShouldNotContributeToParentContentHeight()
+    {
+        // 复现 ISSUE-037 问题2：
+        // 绝对定位子元素脱离文档流，父元素（高度自适应）的内容高度
+        // 应只由常规流子元素决定，不包含绝对定位子元素。
+        var parent = new DivElement { Class = "parent" };
+        var flow = new DivElement { Class = "flow" };       // 常规流子元素，高度 40
+        var abs = new DivElement { Class = "abs" };          // 绝对定位，高度 500
+        parent.AddChild(flow);
+        parent.AddChild(abs);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("parent"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Relative,
+                            Width = Length.Px(400)
+                            // 高度自适应（auto）
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flow"),
+                        Style = new Style { Display = Display.Block, Height = Length.Px(40) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("abs"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Absolute,
+                            Top = Length.Px(0),
+                            Left = Length.Px(0),
+                            Width = Length.Px(100),
+                            Height = Length.Px(500)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(parent, styleSheets, 800, 600);
+
+        // Assert - 父元素内容高度应为 40（仅常规流子元素），而非 540 或 500
+        layoutRoot.BoxModel.Content.Height.ShouldBe(40);
+    }
+
+    [Fact]
+    public void AbsoluteChild_ShouldNotPushFollowingSibling()
+    {
+        // 绝对定位子元素不占据常规流空间，后续兄弟元素不应被其推开。
+        var parent = new DivElement { Class = "parent" };
+        var abs = new DivElement { Class = "abs" };          // 绝对定位，高度 200
+        var after = new DivElement { Class = "after" };      // 常规流，应紧跟父内容顶部
+        parent.AddChild(abs);
+        parent.AddChild(after);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("parent"),
+                        Style = new Style { Display = Display.Block, Position = Position.Relative, Width = Length.Px(400) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("abs"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Position = Position.Absolute,
+                            Top = Length.Px(0),
+                            Left = Length.Px(0),
+                            Height = Length.Px(200)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("after"),
+                        Style = new Style { Display = Display.Block, Height = Length.Px(30) }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(parent, styleSheets, 800, 600);
+
+        // Assert - after 应位于父元素内容顶部（Y=0），不被绝对定位元素推开
+        var afterBox = layoutRoot.Children[1];
+        afterBox.BoxModel.Content.Y.ShouldBe(0);
+        // 父内容高度仅由 after 决定
+        layoutRoot.BoxModel.Content.Height.ShouldBe(30);
+    }
+
+    [Fact]
+    public void FlexContainer_AbsoluteChild_ShouldNotAffectMainSize()
+    {
+        // flex 容器中的绝对定位子元素不是 flex 项目，不影响主轴尺寸与排列。
+        var parent = new DivElement { Class = "flex" };
+        var item = new DivElement { Class = "item" };        // flex 项目，宽 100
+        var abs = new DivElement { Class = "abs" };          // 绝对定位，宽 300
+        parent.AddChild(item);
+        parent.AddChild(abs);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Position = Position.Relative,
+                            Width = Length.Px(400),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
+                        Style = new Style { Width = Length.Px(100), Height = Length.Px(50) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("abs"),
+                        Style = new Style
+                        {
+                            Position = Position.Absolute,
+                            Top = Length.Px(0),
+                            Right = Length.Px(0),
+                            Width = Length.Px(300),
+                            Height = Length.Px(80)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(parent, styleSheets, 800, 600);
+
+        // Assert
+        var itemBox = layoutRoot.Children[0];
+        var absBox = layoutRoot.Children[1];
+
+        // flex 项目从主轴起点开始，不被绝对定位元素占位影响
+        itemBox.BoxModel.Content.X.ShouldBe(0);
+        // 绝对定位元素按 right:0 定位到容器右边
+        absBox.BoxModel.BorderBox.Right.ShouldBe(layoutRoot.BoxModel.PaddingBox.Right);
+    }
+
+    #endregion
+
+    #region Scrollable Content with Padding Tests
+
+    [Fact]
+    public void ScrollContainer_WithPadding_ScrollableHeightShouldIncludeBottomPadding()
+    {
+        // 复现 ISSUE-037 问题3：
+        // 滚动容器设置了 padding，内容超出时，可滚动高度应包含上下内边距，
+        // 否则无法滚动到内容底部（看不到内容下边框和容器的 bottom padding）。
+        var root = new DivElement { Class = "root" };
+        var main = new DivElement { Class = "main-content" };
+        var content = new DivElement { Class = "content" };
+        root.AddChild(main);
+        main.AddChild(content);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style { Display = Display.Block, Width = Length.Px(600), Height = Length.Px(600) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("main-content"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Width = Length.Percent(100),
+                            Height = Length.Percent(100),
+                            OverflowY = Overflow.Scroll,
+                            PaddingTop = Length.Px(16),
+                            PaddingRight = Length.Px(16),
+                            PaddingBottom = Length.Px(16),
+                            PaddingLeft = Length.Px(16)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("content"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Width = Length.Px(500),
+                            Height = Length.Px(700)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 600, 600);
+        var mainBox = layoutRoot.Children[0];
+
+        // Assert
+        // content 高度 700，main-content padding 16（上下共 32）
+        // 可滚动高度（scrollHeight）应为 700 + 32 = 732（包含上下 padding），而非 700。
+        mainBox.ScrollableContentHeight.ShouldBe(732);
+
+        // main-content height:100% 解析为内容高度 600，padding box 视口高度 = 600 + 32 = 632。
+        // 最大可滚动距离 = scrollHeight - clientHeight = 732 - 632 = 100。
+        // 修复前 ScrollableContentHeight 为 700，maxScroll = 700 - 632 = 68，
+        // 缺少 32px（上下 padding），导致无法滚动到 content 底部与容器 bottom padding。
+        float viewportHeight = mainBox.BoxModel.PaddingBox.Height;
+        viewportHeight.ShouldBe(632);
+        float maxScroll = mainBox.ScrollableContentHeight - viewportHeight;
+        maxScroll.ShouldBe(100);
+    }
+
+    [Fact]
+    public void ScrollContainer_WithoutPadding_ScrollableHeightUnchanged()
+    {
+        // 无 padding 时可滚动高度即内容高度（回归保护：原本正常的情况不受影响）。
+        var root = new DivElement { Class = "root" };
+        var main = new DivElement { Class = "main-content" };
+        var content = new DivElement { Class = "content" };
+        root.AddChild(main);
+        main.AddChild(content);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style { Display = Display.Block, Width = Length.Px(600), Height = Length.Px(600) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("main-content"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Width = Length.Percent(100),
+                            Height = Length.Percent(100),
+                            OverflowY = Overflow.Scroll
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("content"),
+                        Style = new Style { Display = Display.Block, Width = Length.Px(500), Height = Length.Px(700) }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 600, 600);
+        var mainBox = layoutRoot.Children[0];
+
+        // Assert - 无 padding，可滚动高度 = content 高度 700
+        mainBox.ScrollableContentHeight.ShouldBe(700);
+    }
+
+    #endregion
 }
