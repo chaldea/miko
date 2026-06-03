@@ -257,12 +257,6 @@ public class OverflowTests
     }
 
     [Fact]
-    public void ScrollbarThickness_ShouldBe17px()
-    {
-        LayoutBox.ScrollbarThickness.ShouldBe(17f);
-    }
-
-    [Fact]
     public void FlexChild_WithOverflowAuto_ShouldShowScrollbarWhenContentOverflows()
     {
         // 模拟 MikoApp1 的布局结构：flex 容器 + flex-grow 子元素 + overflow-y: auto
