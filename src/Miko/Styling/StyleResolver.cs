@@ -465,7 +465,40 @@ public class StyleResolver
                 return new StyleProperty<T>(fallback);
             return null;
         }
+
+        if (prop is { IsCalc: true } cp)
+        {
+            return ResolveCalc<T>(cp.Calc, scope);
+        }
+
         return prop;
+    }
+
+    /// <summary>
+    /// 求值 calc 表达式。仅支持 Length / float / int 数值类型，其它类型（枚举/Color）返回 null（忽略）。
+    /// </summary>
+    private static StyleProperty<T>? ResolveCalc<T>(Func<CustomPropertyScope, CalcExpr> calc, CustomPropertyScope scope)
+        where T : struct
+    {
+        var expr = calc(scope);
+
+        if (typeof(T) == typeof(Length))
+        {
+            Length result = expr.ToLength(scope);
+            return new StyleProperty<T>((T)(object)result);
+        }
+        if (typeof(T) == typeof(float))
+        {
+            float result = expr.ToFloat(scope);
+            return new StyleProperty<T>((T)(object)result);
+        }
+        if (typeof(T) == typeof(int))
+        {
+            int result = expr.ToInt(scope);
+            return new StyleProperty<T>((T)(object)result);
+        }
+
+        return null;
     }
 
     private static void ResolveVarBindings(Style style, CustomPropertyScope scope)
