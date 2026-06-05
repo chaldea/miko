@@ -273,8 +273,15 @@ public class BlockLayout
             // 高度由内容决定
             float childrenHeight = currentY - contentY;
 
+            // 单行文本表单控件（input、select）：以一行文本（行高/字体度量）撑起内容高度。
+            // select 的 option 子元素由下拉层叠加渲染，不计入闭合态高度，因此即便存在子元素
+            // 也优先采用单行高度，避免被 option 撑高或塌缩为 0（参见 ISSUE-040）。
+            if (GetTextFormControlContentHeight(box) is float formControlHeight)
+            {
+                contentHeight = formControlHeight;
+            }
             // 如果没有子元素但有文本内容，则根据文本计算高度
-            if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
+            else if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
             {
                 var (_, textHeight) = TextMeasurer.MeasureText(
                     box.Element.TextContent,
@@ -282,12 +289,6 @@ public class BlockLayout
                     style.FontSize.Value,
                     style.FontWeight);
                 contentHeight = textHeight;
-            }
-            // 文本类表单控件（input）无内容时，以一行文本（行高/字体度量）撑起内容高度，
-            // 而非塌缩为 0（参见 ISSUE-040）。
-            else if (box.Children.Count == 0 && GetTextFormControlContentHeight(box) is float formControlHeight)
-            {
-                contentHeight = formControlHeight;
             }
             else
             {
@@ -436,13 +437,22 @@ public class BlockLayout
     }
 
     /// <summary>
-    /// 文本类表单控件（如 input[text/password]）在没有子元素、自动高度时，
+    /// 是否为“单行文本表单控件”：其盒子高度应由一行文本撑起，且其子元素不在常规流中
+    /// 参与盒子高度（如 select 的 option 由下拉层叠加渲染，不计入闭合态的高度）。
+    /// 目前包括 input（文本类）与 select。
+    /// </summary>
+    internal static bool IsTextFormControl(LayoutBox box)
+        => box.Element is Miko.Core.DomElements.InputElement
+        || box.Element is Miko.Core.DomElements.SelectElement;
+
+    /// <summary>
+    /// 单行文本表单控件（input[text/password]、select）在自动高度时，
     /// 其内容高度应由一行文本占据：优先取显式行高（line-height），否则取字体度量高度。
     /// 返回 null 表示该盒子不适用此规则（应回退到常规的内容高度计算）。
     /// </summary>
     internal static float? GetTextFormControlContentHeight(LayoutBox box)
     {
-        if (box.Element is not Miko.Core.DomElements.InputElement)
+        if (!IsTextFormControl(box))
             return null;
 
         var style = box.ComputedStyle;

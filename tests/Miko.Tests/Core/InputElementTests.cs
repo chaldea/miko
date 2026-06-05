@@ -435,4 +435,70 @@ public class InputElementTests
     }
 
     #endregion
+
+    #region Select Default Styles
+
+    /// <summary>
+    /// select 默认不写死高度（height: auto），由行高/字体度量加 padding、border 撑开
+    /// （与 input 同类问题，参见 ISSUE-040），不应被固定为 22px。
+    /// </summary>
+    [Fact]
+    public void Select_DefaultHeight_ShouldBeAuto()
+    {
+        var select = new SelectElement();
+
+        var computed = _styleResolver.Resolve(select, new List<StyleSheet>());
+
+        computed.Height.IsAuto.ShouldBeTrue(
+            "Select height should remain auto and be derived from content during layout");
+    }
+
+    /// <summary>
+    /// select 布局后的高度应由一行文本（字体度量）加 padding、border 撑开，
+    /// 且其 option 子元素由下拉层渲染、不计入闭合态高度。
+    /// </summary>
+    [Fact]
+    public void Select_Layout_DefaultHeight_ShouldBeDerivedFromFont()
+    {
+        var select = new SelectElement();
+        select.AddChild(new OptionElement { TextContent = "Option 1" });
+        select.AddChild(new OptionElement { TextContent = "Option 2" });
+
+        var layoutRoot = _layoutEngine.Layout(select, new List<StyleSheet>(), 800, 600);
+
+        // 内容高度为一行文本高度（>0），而非塌缩为 0，也不会被 option 撑高
+        layoutRoot.BoxModel.Content.Height.ShouldBeGreaterThan(0,
+            "Select content height should be one line of text derived from font metrics");
+
+        // border-box = 内容高度 + padding(1+1) + border(1+1) = 内容 + 4
+        layoutRoot.BoxModel.BorderBox.Height.ShouldBe(layoutRoot.BoxModel.Content.Height + 4);
+
+        // 不应是旧的固定 22px 写死值
+        layoutRoot.BoxModel.BorderBox.Height.ShouldNotBe(22);
+    }
+
+    /// <summary>
+    /// 当显式设置高度时，select 仍应遵循设置值（行为不变）。
+    /// </summary>
+    [Fact]
+    public void Select_ExplicitHeight_ShouldBeRespected()
+    {
+        var select = new SelectElement();
+        select.Class = "sized";
+        select.AddChild(new OptionElement { TextContent = "Option 1" });
+
+        var sheet = new StyleSheet();
+        sheet.AddRule(new Miko.Styling.Selectors.ClassSelector("sized"), new Style
+        {
+            Height = Length.Px(40),
+            BoxSizing = BoxSizing.BorderBox,
+        });
+
+        var layoutRoot = _layoutEngine.Layout(select, new List<StyleSheet> { sheet }, 800, 600);
+
+        layoutRoot.BoxModel.BorderBox.Height.ShouldBe(40,
+            "Explicit select height should be honored");
+    }
+
+    #endregion
 }

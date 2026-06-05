@@ -251,7 +251,9 @@ public class StyleResolver
                 style.BorderColor ??= Common.Color.Gray;
                 style.BackgroundColor ??= Common.Color.White;
                 style.MinWidth ??= Common.Length.Px(100);
-                style.Height ??= Common.Length.Px(22);
+                // 不写死高度：select 高度应由行高/字体度量加 padding、border 撑开（height: auto）。
+                // 固定像素会导致内容高度被钳制（border-box 下尤甚），与字体综合计算的实际高度不符
+                // （与 input 同类问题，参见 ISSUE-040）。
                 break;
 
             case "option":

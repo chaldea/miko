@@ -116,17 +116,17 @@ public class InlineLayout
                 contentHeight = Math.Max(0, contentHeight);
             }
         }
+        else if (BlockLayout.GetTextFormControlContentHeight(box) is float formControlHeight)
+        {
+            // 单行文本表单控件（input、select）：以一行文本（行高/字体度量）撑起内容高度。
+            // select 的 option 子元素由下拉层叠加渲染，不计入闭合态高度，因此即便存在子元素
+            // 也优先采用单行高度，避免被 option 撑高或塌缩为 0（参见 ISSUE-040）。
+            contentHeight = formControlHeight;
+        }
         else if (box.Children.Count == 0 && hasOwnText)
         {
             // 只有文本内容、没有子元素：高度即文本高度
             contentHeight = ownTextHeight;
-        }
-        else if (box.Children.Count == 0 &&
-                 BlockLayout.GetTextFormControlContentHeight(box) is float formControlHeight)
-        {
-            // 文本类表单控件（input）无内容时，以一行文本（行高/字体度量）撑起内容高度，
-            // 而非塌缩为 0（参见 ISSUE-040）。
-            contentHeight = formControlHeight;
         }
         else
         {
