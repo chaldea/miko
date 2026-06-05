@@ -588,7 +588,8 @@ public class RenderEngine
                     inputElement.Max,
                     trackStyle,
                     progressStyle,
-                    thumbStyle
+                    thumbStyle,
+                    style.FontSize.Value  // Pass fontSize for em/rem resolution
                 );
                 break;
 

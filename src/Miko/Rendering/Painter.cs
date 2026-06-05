@@ -550,19 +550,23 @@ public class Painter
     /// 绘制滑块（Range），支持伪元素样式
     /// </summary>
     public void DrawRange(RectF rect, float value, float min, float max,
-        Style? trackStyle, Style? progressStyle, Style? thumbStyle)
+        Style? trackStyle, Style? progressStyle, Style? thumbStyle, float fontSize)
     {
         // 默认值（当没有伪元素样式时使用）
-        float trackHeight = trackStyle?.Height?.Value ?? 4;
+        // 使用 ToPixels() 正确解析 rem/em/percent 等单位
+        float trackHeight = trackStyle?.Height?.ToPixels(rect.Height, fontSize) ?? 4;
         Color trackColor = trackStyle?.BackgroundColor ?? Color.LightGray;
-        float trackBorderRadius = trackStyle?.BorderTopLeftRadius?.Value ?? 2;
+        float trackBorderRadius = trackStyle?.BorderTopLeftRadius?.ToPixels(trackHeight, fontSize) ?? 2;
 
         Color progressColor = progressStyle?.BackgroundColor ?? Color.Gray;
 
-        float thumbSize = thumbStyle?.Width?.Value ?? thumbStyle?.Height?.Value ?? 16;
+        // thumb 尺寸 - 使用 rect.Width 作为容器尺寸（用于百分比）
+        float thumbWidth = thumbStyle?.Width?.ToPixels(rect.Width, fontSize) ?? 16;
+        float thumbHeight = thumbStyle?.Height?.ToPixels(rect.Height, fontSize) ?? 16;
+        float thumbSize = Math.Max(thumbWidth, thumbHeight); // 使用较大值作为尺寸
         Color thumbColor = thumbStyle?.BackgroundColor ?? Color.Gray;
-        float thumbBorderRadius = thumbStyle?.BorderTopLeftRadius?.Value ?? thumbSize / 2;
-        float thumbBorderWidth = thumbStyle?.BorderWidth?.Value ?? 0;
+        float thumbBorderRadius = thumbStyle?.BorderTopLeftRadius?.ToPixels(thumbSize, fontSize) ?? thumbSize / 2;
+        float thumbBorderWidth = thumbStyle?.BorderWidth?.ToPixels(thumbSize, fontSize) ?? 0;
         Color? thumbBorderColor = thumbStyle?.BorderTopColor;
 
         // 计算滑块轨道的位置
