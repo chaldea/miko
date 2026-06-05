@@ -367,6 +367,80 @@ public class InputElementTests
             "Range input should have a default height");
     }
 
+    /// <summary>
+    /// Range 滑块应支持百分比宽度（相对父容器）
+    /// </summary>
+    [Fact]
+    public void Range_PercentWidth_ShouldResolveAgainstParent()
+    {
+        // Arrange: 父容器 500px，range 设置 100% 宽度
+        var root = new DivElement();
+        var range = new InputElement { Type = InputType.Range };
+        range.Class = "full-width";
+        root.AddChild(range);
+
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            ["div"] = new()
+            {
+                Width = Length.Px(500),
+                Height = Length.Px(200),
+            },
+            [".full-width"] = new()
+            {
+                Width = Length.Percent(100),
+            }
+        });
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, new List<StyleSheet> { sheet }, 800, 600);
+        var rangeBox = layoutRoot.Children[0];
+
+        // Assert: range 的 border-box 宽度应为父内容区宽度的 100%（即 500px）
+        rangeBox.BoxModel.BorderBox.Width.ShouldBe(500,
+            "Range with width: 100% should fill parent content width");
+    }
+
+    /// <summary>
+    /// Range 滑块应支持百分比宽度，即使设置了 box-sizing: border-box
+    /// </summary>
+    [Fact]
+    public void Range_PercentWidth_WithBorderBox_ShouldWork()
+    {
+        // Arrange
+        var root = new DivElement();
+        var range = new InputElement { Type = InputType.Range };
+        range.Class = "full-width";
+        root.AddChild(range);
+
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            ["*"] = new()
+            {
+                BoxSizing = BoxSizing.BorderBox,
+            },
+            ["div"] = new()
+            {
+                Width = Length.Px(500),
+                Height = Length.Px(200),
+            },
+            [".full-width"] = new()
+            {
+                Width = Length.Percent(100),
+            }
+        });
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, new List<StyleSheet> { sheet }, 800, 600);
+        var rangeBox = layoutRoot.Children[0];
+
+        // Assert: border-box 宽度 = 父容器宽度 100% = 500px
+        rangeBox.BoxModel.BorderBox.Width.ShouldBe(500,
+            "Range with width: 100% and border-box should fill parent content width");
+    }
+
     #endregion
 
     #region Password Input Default Styles

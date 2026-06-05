@@ -220,7 +220,9 @@ public class BlockLayout
                        && !IsOutOfFlow(box.Children[i]))
                 {
                     var inlineChild = box.Children[i];
-                    var childConstraints = new LayoutConstraints(null, null);
+                    // 传入父内容宽度作为可用宽度，使 inline-block 子元素的百分比宽度
+                    // 能相对包含块解析（auto 宽度仍由内容决定，不受影响）。
+                    var childConstraints = new LayoutConstraints(childAvailableWidth, childAvailableHeight);
                     LayoutChild(inlineChild, childConstraints, lineX, currentY);
 
                     lineX = inlineChild.BoxModel.MarginBox.Right;
@@ -391,7 +393,8 @@ public class BlockLayout
                        && !IsOutOfFlow(box.Children[i]))
                 {
                     var inlineChild = box.Children[i];
-                    var childConstraints = new LayoutConstraints(null, null);
+                    // 传入父内容宽度，使 inline-block 子元素的百分比宽度能相对包含块解析。
+                    var childConstraints = new LayoutConstraints(childAvailableWidth, null);
                     LayoutChild(inlineChild, childConstraints, lineX, currentY);
 
                     lineX = inlineChild.BoxModel.MarginBox.Right;
