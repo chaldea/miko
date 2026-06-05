@@ -18,11 +18,12 @@ public class InputElementTests
     #region Text Input Default Styles
 
     /// <summary>
-    /// 文本输入框应该具有与浏览器一致的默认高度
-    /// 浏览器默认文本输入框高度约为 20-22px（包含 padding 和 border）
+    /// 文本输入框默认不设固定高度（height: auto）。
+    /// 其高度由行高 / 字体度量加上 padding、border 在布局阶段撑开，
+    /// 而非在样式解析阶段写死像素值（参见 ISSUE-040）。
     /// </summary>
     [Fact]
-    public void TextInput_DefaultHeight_ShouldMatchBrowserBehavior()
+    public void TextInput_DefaultHeight_ShouldBeAuto()
     {
         // Arrange
         var input = new InputElement { Type = InputType.Text };
@@ -30,12 +31,31 @@ public class InputElementTests
         // Act
         var computed = _styleResolver.Resolve(input, new List<StyleSheet>());
 
-        // Assert: 浏览器默认文本输入框高度约为 21px (1em + padding + border)
-        // Height 应该被设置为一个合理的默认值
-        computed.Height.Value.ShouldBeGreaterThan(0,
-            "Text input should have a default height like browser behavior");
-        computed.Height.Value.ShouldBeInRange(18, 24,
-            "Text input default height should be around 20-22px (browser default)");
+        // Assert: 高度未被写死，保持 auto，留给布局按内容计算
+        computed.Height.IsAuto.ShouldBeTrue(
+            "Text input height should remain auto and be derived from content during layout");
+    }
+
+    /// <summary>
+    /// 文本输入框布局后的高度应由字体度量（一行文本）加 padding、border 撑开，
+    /// 而不是塌缩为内容 0、整体仅剩 padding+border。
+    /// </summary>
+    [Fact]
+    public void TextInput_Layout_DefaultHeight_ShouldBeDerivedFromFont()
+    {
+        // Arrange
+        var input = new InputElement { Type = InputType.Text };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(input, new List<StyleSheet>(), 800, 600);
+
+        // Assert: 内容高度应为一行文本的字体度量高度（>0），而非 0
+        layoutRoot.BoxModel.Content.Height.ShouldBeGreaterThan(0,
+            "Text input content height should be derived from font metrics, not collapse to 0");
+
+        // border-box = 内容高度 + padding(1+1) + border(1+1) = 字体高度 + 4
+        var expectedBorderBox = layoutRoot.BoxModel.Content.Height + 4;
+        layoutRoot.BoxModel.BorderBox.Height.ShouldBe(expectedBorderBox);
     }
 
     /// <summary>
@@ -58,7 +78,8 @@ public class InputElementTests
     }
 
     /// <summary>
-    /// 文本输入框布局后应该具有正确的尺寸
+    /// 文本输入框布局后应该具有正确的尺寸：
+    /// 宽度沿用 UA 默认的 border-box 173px；高度由内容（字体度量）撑开。
     /// </summary>
     [Fact]
     public void TextInput_Layout_ShouldHaveCorrectDimensions()
@@ -69,11 +90,63 @@ public class InputElementTests
         // Act
         var layoutRoot = _layoutEngine.Layout(input, new List<StyleSheet>(), 800, 600);
 
-        // Assert: input 使用 border-box，UA 设置 Width=173, Height=21 为 border-box 尺寸
+        // Assert: input 使用 border-box，UA 设置 Width=173 为 border-box 宽度
         layoutRoot.BoxModel.BorderBox.Width.ShouldBe(173,
             "Text input border-box width should be 173px (browser default)");
-        layoutRoot.BoxModel.BorderBox.Height.ShouldBe(21,
-            "Text input border-box height should be 21px (browser default)");
+
+        // 高度不再写死，应大于仅 padding+border（4px），即内容高度 > 0
+        layoutRoot.BoxModel.BorderBox.Height.ShouldBeGreaterThan(4,
+            "Text input height should be derived from content, not a fixed pixel value");
+    }
+
+    /// <summary>
+    /// ISSUE-040 回归测试：
+    /// 一个应用了 Bootstrap form-control 风格样式的 input（block 显示、font-size 16px、
+    /// line-height 24px、padding 6px、border 1px、border-box），其内容高度应为 24px、
+    /// 整体（border-box）高度应为 38px，而不是被固定为 21px / 内容塌缩为 7px。
+    /// </summary>
+    [Fact]
+    public void TextInput_WithFormControlStyle_ShouldComputeHeightFromLineHeight()
+    {
+        // Arrange：复现 DebugDemo 中 .root > input.form-control 的结构与样式
+        var root = new Miko.Core.DomElements.DivElement { Class = "root" };
+        var input = new InputElement { Type = InputType.Text };
+        input.Class = "form-control";
+        root.AddChild(input);
+
+        var sheet = new StyleSheet();
+        sheet.AddRule(new Miko.Styling.Selectors.ClassSelector("root"), new Style
+        {
+            Width = Length.Px(500),
+            Height = Length.Px(500),
+        });
+        sheet.AddRule(new Miko.Styling.Selectors.ClassSelector("form-control"), new Style
+        {
+            Display = Display.Block,
+            Width = Length.Percent(100),
+            BoxSizing = BoxSizing.BorderBox,
+            PaddingTop = Length.Px(6),
+            PaddingRight = Length.Px(6),
+            PaddingBottom = Length.Px(6),
+            PaddingLeft = Length.Px(6),
+            FontSize = Length.Px(16),
+            LineHeight = Length.Px(24),
+            BorderWidth = Length.Px(1),
+            BorderStyle = Miko.Common.BorderStyle.Solid,
+            BorderColor = Color.Gray,
+        });
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, new List<StyleSheet> { sheet }, 800, 600);
+        var inputBox = layoutRoot.Children[0];
+
+        // Assert: 内容高度 = line-height = 24px
+        inputBox.BoxModel.Content.Height.ShouldBe(24,
+            "Input content height should equal the 24px line-height, not collapse to 7px");
+
+        // border-box = 内容 24 + padding(6+6) + border(1+1) = 38px
+        inputBox.BoxModel.BorderBox.Height.ShouldBe(38,
+            "Input overall (border-box) height should be 38px, not fixed at 21px");
     }
 
     #endregion
@@ -276,8 +349,20 @@ public class InputElementTests
             $"{inputType} input should have InlineBlock display");
         computed.Width.Value.ShouldBeGreaterThan(0,
             $"{inputType} input should have positive width");
-        computed.Height.Value.ShouldBeGreaterThan(0,
-            $"{inputType} input should have positive height");
+
+        // 高度规则因类型而异：
+        // - Checkbox/Radio/Range 为本征尺寸控件，保留固定默认高度；
+        // - Text/Password 高度为 auto，由内容（行高/字体）在布局阶段撑开（ISSUE-040）。
+        if (inputType is InputType.Text or InputType.Password)
+        {
+            computed.Height.IsAuto.ShouldBeTrue(
+                $"{inputType} input height should be auto and derived from content");
+        }
+        else
+        {
+            computed.Height.Value.ShouldBeGreaterThan(0,
+                $"{inputType} input should have positive height");
+        }
     }
 
     #endregion

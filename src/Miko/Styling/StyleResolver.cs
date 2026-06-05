@@ -408,8 +408,11 @@ public class StyleResolver
                 case InputType.Text:
                 case InputType.Password:
                 default:
+                    // 文本类输入框高度不设固定默认值：浏览器中其高度由
+                    // 行高（line-height）/ 字体度量加上 padding、border 撑开（height: auto）。
+                    // 固定为像素会导致内容高度被钳制（如 BoxSizing.BorderBox 下内容仅剩 7px），
+                    // 与字体/行高综合计算得到的实际高度不符（参见 ISSUE-040）。
                     style.Width ??= Length.Px(173);
-                    style.Height ??= Length.Px(21);
                     style.PaddingTop ??= Length.Px(1);
                     style.PaddingRight ??= Length.Px(2);
                     style.PaddingBottom ??= Length.Px(1);
@@ -422,8 +425,8 @@ public class StyleResolver
         }
         else
         {
+            // 未知 input 元素：同样以内容（行高/字体）决定高度，不设固定默认高度。
             style.Width ??= Length.Px(173);
-            style.Height ??= Length.Px(21);
             style.PaddingTop ??= Length.Px(1);
             style.PaddingRight ??= Length.Px(2);
             style.PaddingBottom ??= Length.Px(1);

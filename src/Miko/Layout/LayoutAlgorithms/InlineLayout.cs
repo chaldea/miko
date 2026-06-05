@@ -119,6 +119,13 @@ public class InlineLayout
             // 只有文本内容、没有子元素：高度即文本高度
             contentHeight = ownTextHeight;
         }
+        else if (box.Children.Count == 0 &&
+                 BlockLayout.GetTextFormControlContentHeight(box) is float formControlHeight)
+        {
+            // 文本类表单控件（input）无内容时，以一行文本（行高/字体度量）撑起内容高度，
+            // 而非塌缩为 0（参见 ISSUE-040）。
+            contentHeight = formControlHeight;
+        }
         else
         {
             // 有子元素时，lineHeight 已取文本高度与子元素高度的较大值

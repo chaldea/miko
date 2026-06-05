@@ -273,6 +273,12 @@ public class BlockLayout
                     style.FontWeight);
                 contentHeight = textHeight;
             }
+            // 文本类表单控件（input）无内容时，以一行文本（行高/字体度量）撑起内容高度，
+            // 而非塌缩为 0（参见 ISSUE-040）。
+            else if (box.Children.Count == 0 && GetTextFormControlContentHeight(box) is float formControlHeight)
+            {
+                contentHeight = formControlHeight;
+            }
             else
             {
                 contentHeight = childrenHeight;
@@ -409,5 +415,28 @@ public class BlockLayout
     {
         var position = child.ComputedStyle.Position;
         return position == Common.Position.Absolute || position == Common.Position.Fixed;
+    }
+
+    /// <summary>
+    /// 文本类表单控件（如 input[text/password]）在没有子元素、自动高度时，
+    /// 其内容高度应由一行文本占据：优先取显式行高（line-height），否则取字体度量高度。
+    /// 返回 null 表示该盒子不适用此规则（应回退到常规的内容高度计算）。
+    /// </summary>
+    internal static float? GetTextFormControlContentHeight(LayoutBox box)
+    {
+        if (box.Element is not Miko.Core.DomElements.InputElement)
+            return null;
+
+        var style = box.ComputedStyle;
+
+        // 显式设置了行高（>0 表示非 normal），直接作为单行内容高度
+        if (!style.LineHeight.IsAuto && style.LineHeight.Value > 0)
+            return style.LineHeight.ToPixels(0);
+
+        // 否则按字体度量得到一行文本的自然高度
+        return TextMeasurer.MeasureTextHeight(
+            style.FontFamily,
+            style.FontSize.Value,
+            style.FontWeight);
     }
 }
