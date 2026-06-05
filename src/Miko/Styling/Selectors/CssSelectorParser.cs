@@ -99,6 +99,12 @@ public static class CssSelectorParser
                 parts.Add(new UniversalSelector());
                 i++;
             }
+            else if (input[i] == '[')
+            {
+                i++; // skip [
+                var attrSelector = ParseAttributeSelector(input, ref i);
+                parts.Add(attrSelector);
+            }
             else
             {
                 var name = ReadIdentifier(input, ref i);
@@ -132,6 +138,97 @@ public static class CssSelectorParser
         "after" => new AfterPseudoElement(),
         _ => throw new ArgumentException($"Unknown pseudo-element: ::{name}")
     };
+
+    /// <summary>
+    /// 解析属性选择器 [attr], [attr="value"], [attr~="value"], 等。
+    /// 调用时 i 指向 [ 之后的第一个字符。
+    /// </summary>
+    private static AttributeSelector ParseAttributeSelector(string input, ref int i)
+    {
+        // 跳过前导空格
+        while (i < input.Length && char.IsWhiteSpace(input[i])) i++;
+
+        // 读取属性名
+        int start = i;
+        while (i < input.Length && IsIdentifierChar(input[i])) i++;
+        if (i == start)
+            throw new ArgumentException($"Expected attribute name in attribute selector at position {i}");
+        string attrName = input.Substring(start, i - start);
+
+        // 跳过空格
+        while (i < input.Length && char.IsWhiteSpace(input[i])) i++;
+
+        // 检查操作符
+        AttributeMatchOperator op = AttributeMatchOperator.Exists;
+        string? value = null;
+
+        if (i < input.Length && input[i] != ']')
+        {
+            // 读取操作符: =, ~=, |=, ^=, $=, *=
+            if (input[i] == '=')
+            {
+                op = AttributeMatchOperator.Equals;
+                i++;
+            }
+            else if (i + 1 < input.Length && input[i + 1] == '=')
+            {
+                op = input[i] switch
+                {
+                    '~' => AttributeMatchOperator.Includes,
+                    '|' => AttributeMatchOperator.DashMatch,
+                    '^' => AttributeMatchOperator.Prefix,
+                    '$' => AttributeMatchOperator.Suffix,
+                    '*' => AttributeMatchOperator.Substring,
+                    _ => throw new ArgumentException($"Unknown attribute operator '{input[i]}=' at position {i}")
+                };
+                i += 2;
+            }
+            else
+            {
+                throw new ArgumentException($"Expected attribute operator at position {i}, got '{input[i]}'");
+            }
+
+            // 跳过空格
+            while (i < input.Length && char.IsWhiteSpace(input[i])) i++;
+
+            // 读取值（带引号或不带）
+            if (i >= input.Length)
+                throw new ArgumentException($"Expected attribute value after operator at position {i}");
+
+            if (input[i] == '"' || input[i] == '\'')
+            {
+                char quote = input[i];
+                i++;
+                start = i;
+                while (i < input.Length && input[i] != quote)
+                    i++;
+                if (i >= input.Length)
+                    throw new ArgumentException($"Unclosed string in attribute selector starting at {start - 1}");
+                value = input.Substring(start, i - start);
+                i++; // skip closing quote
+            }
+            else
+            {
+                // 无引号标识符
+                start = i;
+                while (i < input.Length && IsIdentifierChar(input[i])) i++;
+                value = input.Substring(start, i - start);
+            }
+
+            // 跳过空格
+            while (i < input.Length && char.IsWhiteSpace(input[i])) i++;
+        }
+
+        // 期望 ]
+        if (i >= input.Length || input[i] != ']')
+            throw new ArgumentException($"Expected ']' to close attribute selector at position {i}");
+        i++; // skip ]
+
+        return new AttributeSelector(attrName, op, value);
+    }
+
+    private static bool IsIdentifierChar(char c)
+        => char.IsLetterOrDigit(c) || c == '_' || c == '-';
 
     private static string ReadIdentifier(string input, ref int i)
     {
@@ -197,6 +294,30 @@ public static class CssSelectorParser
                     else if (input[i] == ')') depth--;
                     i++;
                 }
+                current += input[start..i];
+            }
+            else if (input[i] == '[')
+            {
+                // 属性选择器：跳过 [...] 内的所有内容（包括空格），避免将其误判为组合器
+                var start = i;
+                i++; // skip [
+                while (i < input.Length && input[i] != ']')
+                {
+                    // 处理引号内的字符（可能包含 ] 字符）
+                    if (input[i] == '"' || input[i] == '\'')
+                    {
+                        char quote = input[i];
+                        i++;
+                        while (i < input.Length && input[i] != quote)
+                            i++;
+                        if (i < input.Length) i++; // skip closing quote
+                    }
+                    else
+                    {
+                        i++;
+                    }
+                }
+                if (i < input.Length) i++; // skip ]
                 current += input[start..i];
             }
             else if (input[i] == '>' || input[i] == '+' || input[i] == '~')
