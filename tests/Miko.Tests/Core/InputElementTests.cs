@@ -149,6 +149,75 @@ public class InputElementTests
             "Input overall (border-box) height should be 38px, not fixed at 21px");
     }
 
+    /// <summary>
+    /// ISSUE-040 后续（DebugDemo 三输入框）回归测试：
+    /// 复现 lg / normal / sm 三种 form-control 尺寸，验证两点：
+    /// (1) em 相对元素自身字体大小解析（lg=1.25rem=20px → 1.5em=30；sm=0.875rem=14px → 1.5em=21）；
+    /// (2) box-sizing:border-box（经 * 选择器设置）对 min-height 生效。
+    /// 期望 border-box 高度：lg=48、normal=38、sm=31（与浏览器一致）。
+    /// </summary>
+    [Fact]
+    public void FormControlSizes_ResolveEmAgainstOwnFontSizeUnderBorderBox()
+    {
+        var root = new Miko.Core.DomElements.DivElement { Class = "root" };
+        var lg = new InputElement { Type = InputType.Text }; lg.Class = "form-control form-control-lg";
+        var normal = new InputElement { Type = InputType.Text }; normal.Class = "form-control";
+        var sm = new InputElement { Type = InputType.Text }; sm.Class = "form-control form-control-sm";
+        root.AddChild(lg);
+        root.AddChild(normal);
+        root.AddChild(sm);
+
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            ["*"] = new() { BoxSizing = BoxSizing.BorderBox },
+            [".root"] = new() { Width = Length.Px(500), Height = Length.Px(500) },
+        });
+        sheet.Add(new CssObject
+        {
+            [".form-control"] = new()
+            {
+                Display = Display.Block,
+                Width = Length.Percent(100),
+                Padding = new Padding(Length.Rem(0.375f), Length.Rem(0.375f)),
+                FontSize = Length.Rem(1f),                  // 16px
+                LineHeight = Length.Number(1.5f),           // 无单位：1.5 × 字体大小
+                BorderWidth = Length.Px(1),
+                BorderStyle = Miko.Common.BorderStyle.Solid,
+                BorderColor = Color.Gray,
+            },
+            [".form-control-lg"] = new()
+            {
+                MinHeight = Length.Em(1.5f) + Length.Rem(1f) + Length.Px(1) * 2,
+                Padding = new Padding(Length.Rem(0.5f), Length.Rem(1f)),
+                FontSize = Length.Rem(1.25f),               // 20px
+            },
+            [".form-control-sm"] = new()
+            {
+                MinHeight = Length.Em(1.5f) + Length.Rem(0.5f) + Length.Px(1) * 2,
+                Padding = new Padding(Length.Rem(0.25f), Length.Rem(0.5f)),
+                FontSize = Length.Rem(0.875f),              // 14px
+            },
+        });
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, new List<StyleSheet> { sheet }, 800, 600);
+        var lgBox = layoutRoot.Children[0];
+        var normalBox = layoutRoot.Children[1];
+        var smBox = layoutRoot.Children[2];
+
+        // border-box 高度（浏览器期望）
+        lgBox.BoxModel.BorderBox.Height.ShouldBe(48,
+            "lg: min-height 1.5em(=30 at 20px)+1rem(16)+2 = 48px");
+        normalBox.BoxModel.BorderBox.Height.ShouldBe(38,
+            "normal: line-height 1.5*16=24 内容 + padding(6+6) + border(1+1) = 38px");
+        smBox.BoxModel.BorderBox.Height.ShouldBe(31,
+            "sm: min-height 1.5em(=21 at 14px)+0.5rem(8)+2 = 31px");
+
+        // 同一 1.5em 项随各自字体大小变化，证明 em 未用 root(16) 提前折算
+        lgBox.BoxModel.BorderBox.Height.ShouldNotBe(smBox.BoxModel.BorderBox.Height);
+    }
+
     #endregion
 
     #region Checkbox Default Styles

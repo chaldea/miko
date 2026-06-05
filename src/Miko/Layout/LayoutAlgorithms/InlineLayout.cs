@@ -14,26 +14,28 @@ public class InlineLayout
 
         // 1. 计算 margin, border, padding
         float containerWidth = constraints.AvailableWidth ?? 0;
+        // 元素自身字体大小（px），用于解析长度中的 em 分量。
+        float fs = style.FontSize.Value;
 
         box.BoxModel.Margin = new EdgeSizes(
-            style.MarginTop.ToPixels(containerWidth),
-            style.MarginRight.ToPixels(containerWidth),
-            style.MarginBottom.ToPixels(containerWidth),
-            style.MarginLeft.ToPixels(containerWidth)
+            style.MarginTop.ToPixels(containerWidth, fs),
+            style.MarginRight.ToPixels(containerWidth, fs),
+            style.MarginBottom.ToPixels(containerWidth, fs),
+            style.MarginLeft.ToPixels(containerWidth, fs)
         );
 
         box.BoxModel.Border = new EdgeSizes(
-            style.BorderTopWidth.ToPixels(containerWidth),
-            style.BorderRightWidth.ToPixels(containerWidth),
-            style.BorderBottomWidth.ToPixels(containerWidth),
-            style.BorderLeftWidth.ToPixels(containerWidth)
+            style.BorderTopWidth.ToPixels(containerWidth, fs),
+            style.BorderRightWidth.ToPixels(containerWidth, fs),
+            style.BorderBottomWidth.ToPixels(containerWidth, fs),
+            style.BorderLeftWidth.ToPixels(containerWidth, fs)
         );
 
         box.BoxModel.Padding = new EdgeSizes(
-            style.PaddingTop.ToPixels(containerWidth),
-            style.PaddingRight.ToPixels(containerWidth),
-            style.PaddingBottom.ToPixels(containerWidth),
-            style.PaddingLeft.ToPixels(containerWidth)
+            style.PaddingTop.ToPixels(containerWidth, fs),
+            style.PaddingRight.ToPixels(containerWidth, fs),
+            style.PaddingBottom.ToPixels(containerWidth, fs),
+            style.PaddingLeft.ToPixels(containerWidth, fs)
         );
 
         // 2. 创建行盒子（line box）并水平排列行内元素
@@ -87,7 +89,7 @@ public class InlineLayout
 
         if (!style.Width.IsAuto)
         {
-            contentWidth = style.Width.ToPixels(containerWidth);
+            contentWidth = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
             {
                 contentWidth -= box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
@@ -107,7 +109,7 @@ public class InlineLayout
 
         if (!style.Height.IsAuto)
         {
-            contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0);
+            contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
             {
                 contentHeight -= box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;

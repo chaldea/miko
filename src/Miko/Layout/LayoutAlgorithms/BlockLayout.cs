@@ -14,36 +14,38 @@ public class BlockLayout
 
         // 1. 计算 margin, border, padding
         float containerWidth = constraints.AvailableWidth ?? 0;
+        // 元素自身字体大小（px），用于解析长度中的 em 分量。
+        float fs = style.FontSize.Value;
 
         bool marginLeftAuto = style.MarginLeft.IsAuto;
         bool marginRightAuto = style.MarginRight.IsAuto;
 
         box.BoxModel.Margin = new EdgeSizes(
-            style.MarginTop.ToPixels(containerWidth),
-            style.MarginRight.ToPixels(containerWidth),
-            style.MarginBottom.ToPixels(containerWidth),
-            style.MarginLeft.ToPixels(containerWidth)
+            style.MarginTop.ToPixels(containerWidth, fs),
+            style.MarginRight.ToPixels(containerWidth, fs),
+            style.MarginBottom.ToPixels(containerWidth, fs),
+            style.MarginLeft.ToPixels(containerWidth, fs)
         );
 
         box.BoxModel.Border = new EdgeSizes(
-            style.BorderTopWidth.ToPixels(containerWidth),
-            style.BorderRightWidth.ToPixels(containerWidth),
-            style.BorderBottomWidth.ToPixels(containerWidth),
-            style.BorderLeftWidth.ToPixels(containerWidth)
+            style.BorderTopWidth.ToPixels(containerWidth, fs),
+            style.BorderRightWidth.ToPixels(containerWidth, fs),
+            style.BorderBottomWidth.ToPixels(containerWidth, fs),
+            style.BorderLeftWidth.ToPixels(containerWidth, fs)
         );
 
         box.BoxModel.Padding = new EdgeSizes(
-            style.PaddingTop.ToPixels(containerWidth),
-            style.PaddingRight.ToPixels(containerWidth),
-            style.PaddingBottom.ToPixels(containerWidth),
-            style.PaddingLeft.ToPixels(containerWidth)
+            style.PaddingTop.ToPixels(containerWidth, fs),
+            style.PaddingRight.ToPixels(containerWidth, fs),
+            style.PaddingBottom.ToPixels(containerWidth, fs),
+            style.PaddingLeft.ToPixels(containerWidth, fs)
         );
 
         // 2. 计算 width
         float contentWidth;
         if (!style.Width.IsAuto)
         {
-            contentWidth = style.Width.ToPixels(containerWidth);
+            contentWidth = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
             {
                 contentWidth -= box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
@@ -77,13 +79,21 @@ public class BlockLayout
         }
 
         // 应用 min/max 约束
+        // border-box 下，min/max-width 约束的是 border-box 宽度，需先扣除水平 padding+border
+        // 再与内容宽度比较（与上面 Width 的 border-box 处理保持一致）。
+        bool isBorderBoxW = style.BoxSizing == BoxSizing.BorderBox;
+        float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
         if (!style.MinWidth.IsAuto)
         {
-            contentWidth = Math.Max(contentWidth, style.MinWidth.ToPixels(containerWidth));
+            float min = style.MinWidth.ToPixels(containerWidth, fs);
+            if (isBorderBoxW) min = Math.Max(0, min - horizontalExtra);
+            contentWidth = Math.Max(contentWidth, min);
         }
         if (!style.MaxWidth.IsAuto)
         {
-            contentWidth = Math.Min(contentWidth, style.MaxWidth.ToPixels(containerWidth));
+            float max = style.MaxWidth.ToPixels(containerWidth, fs);
+            if (isBorderBoxW) max = Math.Max(0, max - horizontalExtra);
+            contentWidth = Math.Min(contentWidth, max);
         }
 
         // 解析 margin auto：当元素有明确宽度时，auto margin 占据剩余空间
@@ -132,7 +142,7 @@ public class BlockLayout
         float? childAvailableHeight = null;
         if (!style.Height.IsAuto)
         {
-            float h = style.Height.ToPixels(constraints.AvailableHeight ?? 0);
+            float h = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
                 h -= box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
             childAvailableHeight = Math.Max(0, h);
@@ -241,7 +251,7 @@ public class BlockLayout
         float contentHeight;
         if (!style.Height.IsAuto)
         {
-            contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0);
+            contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
             {
                 contentHeight -= box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
@@ -286,13 +296,21 @@ public class BlockLayout
         }
 
         // 应用 min/max 约束
+        // border-box 下，min/max-height 约束的是 border-box 高度，需先扣除垂直 padding+border
+        // 再与内容高度比较（与上面 Height 的 border-box 处理保持一致，参见 ISSUE-040 后续）。
+        bool isBorderBoxH = style.BoxSizing == BoxSizing.BorderBox;
+        float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
         if (!style.MinHeight.IsAuto)
         {
-            contentHeight = Math.Max(contentHeight, style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0));
+            float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+            if (isBorderBoxH) min = Math.Max(0, min - verticalExtra);
+            contentHeight = Math.Max(contentHeight, min);
         }
         if (!style.MaxHeight.IsAuto)
         {
-            contentHeight = Math.Min(contentHeight, style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0));
+            float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+            if (isBorderBoxH) max = Math.Max(0, max - verticalExtra);
+            contentHeight = Math.Min(contentHeight, max);
         }
 
         // 6. 设置内容区域
@@ -429,9 +447,10 @@ public class BlockLayout
 
         var style = box.ComputedStyle;
 
-        // 显式设置了行高（>0 表示非 normal），直接作为单行内容高度
+        // 显式设置了行高（>0 表示非 normal），直接作为单行内容高度。
+        // line-height 可能是 rem/em，按元素自身字体大小解析其中的 em 分量。
         if (!style.LineHeight.IsAuto && style.LineHeight.Value > 0)
-            return style.LineHeight.ToPixels(0);
+            return style.LineHeight.ToPixels(0, style.FontSize.Value);
 
         // 否则按字体度量得到一行文本的自然高度
         return TextMeasurer.MeasureTextHeight(
