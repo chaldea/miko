@@ -136,6 +136,9 @@ public static class CssSelectorParser
     {
         "before" => new BeforePseudoElement(),
         "after" => new AfterPseudoElement(),
+        "range-thumb" => new RangeThumbPseudoElement(),
+        "range-track" => new RangeTrackPseudoElement(),
+        "range-progress" => new RangeProgressPseudoElement(),
         _ => throw new ArgumentException($"Unknown pseudo-element: ::{name}")
     };
 

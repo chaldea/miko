@@ -5,7 +5,10 @@ namespace Miko.Styling;
 public enum PseudoElementType
 {
     Before,
-    After
+    After,
+    RangeThumb,
+    RangeTrack,
+    RangeProgress
 }
 
 public class PseudoElementRule
