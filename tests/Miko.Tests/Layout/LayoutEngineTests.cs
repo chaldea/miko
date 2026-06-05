@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Core.DomElements;
 using Miko.Layout;
 using Miko.Styling;
@@ -2848,11 +2848,11 @@ public class LayoutEngineTests
         var style = new Style { Flex = 1 };
 
         style.FlexGrow.ShouldNotBeNull();
-        style.FlexGrow!.Value.Value.ShouldBe(1f);
+        style.FlexGrow!.Value.ShouldBe(1f);
         style.FlexShrink.ShouldNotBeNull();
-        style.FlexShrink!.Value.Value.ShouldBe(1f);
+        style.FlexShrink!.Value.ShouldBe(1f);
         style.FlexBasis.ShouldNotBeNull();
-        style.FlexBasis!.Value.Value.ShouldBe(Length.Percent(0));
+        style.FlexBasis!.Value.ShouldBe(Length.Percent(0));
     }
 
     #endregion

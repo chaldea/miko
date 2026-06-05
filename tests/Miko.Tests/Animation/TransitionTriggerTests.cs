@@ -1,4 +1,4 @@
-using Miko.Animation;
+﻿using Miko.Animation;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
@@ -101,7 +101,7 @@ public class TransitionTriggerTests : IDisposable
 
         // MaxHeight 应该在中间值附近
         box.Style.ShouldNotBeNull();
-        box.Style!.MaxHeight!.Value.Value.Value.ShouldBe(100f, 1f);
+        box.Style!.MaxHeight!.Value.Value.ShouldBe(100f, 1f);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public class TransitionTriggerTests : IDisposable
         engine.AnimationManager.Update(0.6f);
 
         engine.AnimationManager.HasActiveAnimations.ShouldBeFalse();
-        box.Style!.MaxHeight!.Value.Value.Value.ShouldBe(200f, 1f);
+        box.Style!.MaxHeight!.Value.Value.ShouldBe(200f, 1f);
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public class TransitionTriggerTests : IDisposable
         engine.AnimationManager.Update(0.5f);
 
         // PaddingTop 应该在中间值
-        box.Style!.PaddingTop!.Value.Value.Value.ShouldBe(8f, 1f);
+        box.Style!.PaddingTop!.Value.Value.ShouldBe(8f, 1f);
     }
 
     [Fact]
@@ -215,14 +215,14 @@ public class TransitionTriggerTests : IDisposable
 
         // 模拟 0.3 秒
         engine.AnimationManager.Update(0.3f);
-        float valueAt03 = box.Style!.MaxHeight!.Value.Value.Value;
+        float valueAt03 = box.Style!.MaxHeight!.Value.Value;
 
         // 再次 Render 不应重新触发 transition
         engine.Render(_canvas);
         engine.AnimationManager.Update(0.1f);
 
         // 值应该继续从 0.3s 的位置前进，而不是重新从 0 开始
-        float valueAt04 = box.Style!.MaxHeight!.Value.Value.Value;
+        float valueAt04 = box.Style!.MaxHeight!.Value.Value;
         valueAt04.ShouldBeGreaterThan(valueAt03);
     }
 
@@ -307,6 +307,6 @@ public class TransitionTriggerTests : IDisposable
 
         // 首帧 inline style 应该是起始值 300，不是目标值 0
         box.Style.ShouldNotBeNull();
-        box.Style!.MaxHeight!.Value.Value.Value.ShouldBe(300f, 1f);
+        box.Style!.MaxHeight!.Value.Value.ShouldBe(300f, 1f);
     }
 }

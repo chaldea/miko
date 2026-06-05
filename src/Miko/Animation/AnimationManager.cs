@@ -458,8 +458,8 @@ public class AnimationManager
 
         if (from.Opacity != null || to.Opacity != null)
         {
-            float fromVal = from.Opacity?.Value ?? 1f;
-            float toVal = to.Opacity?.Value ?? 1f;
+            float fromVal = from.Opacity ?? 1f;
+            float toVal = to.Opacity ?? 1f;
             element.Style.Opacity = Lerp(fromVal, toVal, progress);
         }
 
@@ -491,22 +491,22 @@ public class AnimationManager
 
         if (from.BackgroundColor != null || to.BackgroundColor != null)
         {
-            var fromColor = from.BackgroundColor?.Value ?? Color.Transparent;
-            var toColor = to.BackgroundColor?.Value ?? Color.Transparent;
+            var fromColor = from.BackgroundColor ?? Color.Transparent;
+            var toColor = to.BackgroundColor ?? Color.Transparent;
             element.Style.BackgroundColor = LerpColor(fromColor, toColor, progress);
         }
 
         if (from.Color != null || to.Color != null)
         {
-            var fromColor = from.Color?.Value ?? Color.Black;
-            var toColor = to.Color?.Value ?? Color.Black;
+            var fromColor = from.Color ?? Color.Black;
+            var toColor = to.Color ?? Color.Black;
             element.Style.Color = LerpColor(fromColor, toColor, progress);
         }
 
         if (from.BorderColor != null || to.BorderColor != null)
         {
-            var fromColor = from.BorderColor?.Value ?? Color.Transparent;
-            var toColor = to.BorderColor?.Value ?? Color.Transparent;
+            var fromColor = from.BorderColor ?? Color.Transparent;
+            var toColor = to.BorderColor ?? Color.Transparent;
             element.Style.BorderColor = LerpColor(fromColor, toColor, progress);
         }
 
@@ -518,7 +518,7 @@ public class AnimationManager
         }
     }
 
-    private static void InterpolateLengthProperty(Element element, StyleProperty<Length>? from, StyleProperty<Length>? to, float progress, Action<Style, Length> setter)
+    private static void InterpolateLengthProperty(Element element, Length? from, Length? to, float progress, Action<Style, Length> setter)
     {
         if (from == null && to == null) return;
         var fromVal = from?.Value ?? Length.Px(0);
