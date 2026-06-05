@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Fonts;
+using Miko.Styling;
 using SkiaSharp;
 
 namespace Miko.Rendering;
@@ -543,6 +544,98 @@ public class Painter
             IsAntialias = true
         };
         _canvas.DrawCircle(thumbX, rect.Top + rect.Height / 2, thumbRadius, thumbBorderPaint);
+    }
+
+    /// <summary>
+    /// 绘制滑块（Range），支持伪元素样式
+    /// </summary>
+    public void DrawRange(RectF rect, float value, float min, float max,
+        Style? trackStyle, Style? progressStyle, Style? thumbStyle)
+    {
+        // 默认值（当没有伪元素样式时使用）
+        float trackHeight = trackStyle?.Height?.Value ?? 4;
+        Color trackColor = trackStyle?.BackgroundColor ?? Color.LightGray;
+        float trackBorderRadius = trackStyle?.BorderTopLeftRadius?.Value ?? 2;
+
+        Color progressColor = progressStyle?.BackgroundColor ?? Color.Gray;
+
+        float thumbSize = thumbStyle?.Width?.Value ?? thumbStyle?.Height?.Value ?? 16;
+        Color thumbColor = thumbStyle?.BackgroundColor ?? Color.Gray;
+        float thumbBorderRadius = thumbStyle?.BorderTopLeftRadius?.Value ?? thumbSize / 2;
+        float thumbBorderWidth = thumbStyle?.BorderWidth?.Value ?? 0;
+        Color? thumbBorderColor = thumbStyle?.BorderTopColor;
+
+        // 计算滑块轨道的位置
+        float trackY = rect.Top + (rect.Height - trackHeight) / 2;
+        float thumbRadius = thumbSize / 2;
+
+        // 计算当前值的位置
+        float percentage = max > min ? (value - min) / (max - min) : 0;
+        percentage = Math.Clamp(percentage, 0, 1);
+        float thumbX = rect.Left + thumbRadius + (rect.Width - thumbRadius * 2) * percentage;
+
+        // 绘制轨道背景（::range-track）
+        var trackRect = new RectF(rect.Left, trackY, rect.Width, trackHeight);
+        DrawBackground(trackRect, trackColor, trackBorderRadius, trackBorderRadius, trackBorderRadius, trackBorderRadius);
+
+        // 绘制已填充部分（::range-progress）
+        if (percentage > 0)
+        {
+            var fillRect = new RectF(rect.Left, trackY, thumbX - rect.Left, trackHeight);
+            DrawBackground(fillRect, progressColor, trackBorderRadius, 0, 0, trackBorderRadius);
+        }
+
+        // 绘制滑块（::range-thumb）
+        using var thumbPaint = new SKPaint
+        {
+            Color = thumbColor.ToSKColor(),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+
+        float thumbCenterY = rect.Top + rect.Height / 2;
+
+        if (thumbBorderRadius >= thumbRadius - 0.5f)
+        {
+            // 圆形滑块
+            _canvas.DrawCircle(thumbX, thumbCenterY, thumbRadius, thumbPaint);
+        }
+        else
+        {
+            // 圆角矩形滑块
+            var thumbRect = new SKRect(
+                thumbX - thumbRadius,
+                thumbCenterY - thumbRadius,
+                thumbX + thumbRadius,
+                thumbCenterY + thumbRadius);
+            _canvas.DrawRoundRect(thumbRect, thumbBorderRadius, thumbBorderRadius, thumbPaint);
+        }
+
+        // 绘制滑块边框
+        if (thumbBorderWidth > 0 && thumbBorderColor.HasValue)
+        {
+            using var thumbBorderPaint = new SKPaint
+            {
+                Color = thumbBorderColor.Value.ToSKColor(),
+                StrokeWidth = thumbBorderWidth,
+                Style = SKPaintStyle.Stroke,
+                IsAntialias = true
+            };
+
+            if (thumbBorderRadius >= thumbRadius - 0.5f)
+            {
+                _canvas.DrawCircle(thumbX, thumbCenterY, thumbRadius - thumbBorderWidth / 2, thumbBorderPaint);
+            }
+            else
+            {
+                var thumbRect = new SKRect(
+                    thumbX - thumbRadius + thumbBorderWidth / 2,
+                    thumbCenterY - thumbRadius + thumbBorderWidth / 2,
+                    thumbX + thumbRadius - thumbBorderWidth / 2,
+                    thumbCenterY + thumbRadius - thumbBorderWidth / 2);
+                _canvas.DrawRoundRect(thumbRect, thumbBorderRadius, thumbBorderRadius, thumbBorderPaint);
+            }
+        }
     }
 
     /// <summary>
