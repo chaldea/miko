@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Layout.LayoutAlgorithms;
@@ -151,10 +151,9 @@ public class LayoutEngine
     /// <summary>
     /// 计算所有元素的样式
     /// </summary>
-    private void ComputeStyles(Element element, List<StyleSheet> styleSheets, ViewportInfo viewport,
-        CustomPropertyScope? parentScope = null)
+    private void ComputeStyles(Element element, List<StyleSheet> styleSheets, ViewportInfo viewport)
     {
-        var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport, parentScope);
+        var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport);
 
         // 创建布局盒子并关联
         element.LayoutBox = new LayoutBox
@@ -164,10 +163,9 @@ public class LayoutEngine
         };
 
         // 递归处理子元素，传递当前元素的自定义属性作用域
-        var childScope = computedStyle.CustomPropertyScope;
         foreach (var child in element.Children)
         {
-            ComputeStyles(child, styleSheets, viewport, childScope);
+            ComputeStyles(child, styleSheets, viewport);
         }
     }
 

@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 
@@ -12,8 +12,7 @@ public class StyleResolver
     /// <summary>
     /// 解析元素的最终样式
     /// </summary>
-    public ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets, ViewportInfo? viewport = null,
-        CustomPropertyScope? parentScope = null)
+    public ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets, ViewportInfo? viewport = null)
     {
         // 1. 收集所有匹配的规则（带有定义顺序索引）
         var matchedRules = new List<(StyleRule rule, int specificity, int index)>();
@@ -71,12 +70,6 @@ public class StyleResolver
             baseStyle.Merge(rule.Style);
         }
 
-        // 5.5 构建自定义属性作用域
-        var scope = BuildCustomPropertyScope(baseStyle, parentScope);
-
-        // 5.6 解析变量引用
-        ResolveVarBindings(baseStyle, scope);
-
         // 6. 从父元素继承可继承属性
         if (element.Parent != null && element.Parent.LayoutBox?.ComputedStyle != null)
         {
@@ -87,9 +80,7 @@ public class StyleResolver
         ApplyDefaultStyles(element, baseStyle);
 
         // 8. 转换为计算样式
-        var computed = ComputedStyle.FromStyle(baseStyle);
-        computed.CustomPropertyScope = scope;
-        return computed;
+        return ComputedStyle.FromStyle(baseStyle);
     }
 
     /// <summary>
@@ -98,12 +89,12 @@ public class StyleResolver
     private void InheritFromParent(Style style, ComputedStyle parentStyle)
     {
         // 可继承的属性
-        style.Color ??= (StyleProperty<Color>)parentStyle.Color;
+        style.Color ??= parentStyle.Color;
         style.FontFamily ??= parentStyle.FontFamily;
-        style.FontSize ??= (StyleProperty<Length>)parentStyle.FontSize;
-        style.FontWeight ??= (StyleProperty<FontWeight>)parentStyle.FontWeight;
-        style.TextAlign ??= (StyleProperty<TextAlign>)parentStyle.TextAlign;
-        style.LineHeight ??= (StyleProperty<Length>)parentStyle.LineHeight;
+        style.FontSize ??= parentStyle.FontSize;
+        style.FontWeight ??= parentStyle.FontWeight;
+        style.TextAlign ??= parentStyle.TextAlign;
+        style.LineHeight ??= parentStyle.LineHeight;
     }
 
     /// <summary>
@@ -441,158 +432,5 @@ public class StyleResolver
             style.BorderStyle ??= Common.BorderStyle.Solid;
             style.BorderColor ??= Color.Gray;
         }
-    }
-
-    private static CustomPropertyScope BuildCustomPropertyScope(Style mergedStyle, CustomPropertyScope? parentScope)
-    {
-        if (mergedStyle.CustomProperties == null || mergedStyle.CustomProperties.Count == 0)
-            return parentScope ?? new CustomPropertyScope();
-
-        var scope = parentScope?.CreateChild() ?? new CustomPropertyScope();
-        foreach (var (name, value) in mergedStyle.CustomProperties)
-            scope.Set(name, value);
-        return scope;
-    }
-
-    private static StyleProperty<T>? ResolveVar<T>(StyleProperty<T>? prop, CustomPropertyScope scope) where T : struct
-    {
-        if (prop is { IsVar: true } sp)
-        {
-            var resolved = scope.Get<T>(sp.Var.Name);
-            if (resolved.HasValue)
-                return new StyleProperty<T>(resolved.Value);
-            if (sp.Var.Fallback is T fallback)
-                return new StyleProperty<T>(fallback);
-            return null;
-        }
-
-        if (prop is { IsCalc: true } cp)
-        {
-            return ResolveCalc<T>(cp.Calc, scope);
-        }
-
-        return prop;
-    }
-
-    /// <summary>
-    /// 求值 calc 表达式。仅支持 Length / float / int 数值类型，其它类型（枚举/Color）返回 null（忽略）。
-    /// </summary>
-    private static StyleProperty<T>? ResolveCalc<T>(Func<CustomPropertyScope, CalcExpr> calc, CustomPropertyScope scope)
-        where T : struct
-    {
-        var expr = calc(scope);
-
-        if (typeof(T) == typeof(Length))
-        {
-            Length result = expr.ToLength(scope);
-            return new StyleProperty<T>((T)(object)result);
-        }
-        if (typeof(T) == typeof(float))
-        {
-            float result = expr.ToFloat(scope);
-            return new StyleProperty<T>((T)(object)result);
-        }
-        if (typeof(T) == typeof(int))
-        {
-            int result = expr.ToInt(scope);
-            return new StyleProperty<T>((T)(object)result);
-        }
-
-        return null;
-    }
-
-    private static void ResolveVarBindings(Style style, CustomPropertyScope scope)
-    {
-        style.Display = ResolveVar(style.Display, scope);
-        style.FlexDirection = ResolveVar(style.FlexDirection, scope);
-        style.JustifyContent = ResolveVar(style.JustifyContent, scope);
-        style.AlignItems = ResolveVar(style.AlignItems, scope);
-
-        style.FlexGrow = ResolveVar(style.FlexGrow, scope);
-        style.FlexShrink = ResolveVar(style.FlexShrink, scope);
-        style.FlexBasis = ResolveVar(style.FlexBasis, scope);
-
-        style.BoxSizing = ResolveVar(style.BoxSizing, scope);
-        style.Width = ResolveVar(style.Width, scope);
-        style.Height = ResolveVar(style.Height, scope);
-        style.MinWidth = ResolveVar(style.MinWidth, scope);
-        style.MinHeight = ResolveVar(style.MinHeight, scope);
-        style.MaxWidth = ResolveVar(style.MaxWidth, scope);
-        style.MaxHeight = ResolveVar(style.MaxHeight, scope);
-
-        style.PaddingTop = ResolveVar(style.PaddingTop, scope);
-        style.PaddingRight = ResolveVar(style.PaddingRight, scope);
-        style.PaddingBottom = ResolveVar(style.PaddingBottom, scope);
-        style.PaddingLeft = ResolveVar(style.PaddingLeft, scope);
-
-        style.MarginTop = ResolveVar(style.MarginTop, scope);
-        style.MarginRight = ResolveVar(style.MarginRight, scope);
-        style.MarginBottom = ResolveVar(style.MarginBottom, scope);
-        style.MarginLeft = ResolveVar(style.MarginLeft, scope);
-
-        style.BorderWidth = ResolveVar(style.BorderWidth, scope);
-        style.BorderColor = ResolveVar(style.BorderColor, scope);
-        style.BorderStyle = ResolveVar(style.BorderStyle, scope);
-
-        style.BorderTopWidth = ResolveVar(style.BorderTopWidth, scope);
-        style.BorderRightWidth = ResolveVar(style.BorderRightWidth, scope);
-        style.BorderBottomWidth = ResolveVar(style.BorderBottomWidth, scope);
-        style.BorderLeftWidth = ResolveVar(style.BorderLeftWidth, scope);
-
-        style.BorderTopColor = ResolveVar(style.BorderTopColor, scope);
-        style.BorderRightColor = ResolveVar(style.BorderRightColor, scope);
-        style.BorderBottomColor = ResolveVar(style.BorderBottomColor, scope);
-        style.BorderLeftColor = ResolveVar(style.BorderLeftColor, scope);
-
-        style.BorderTopStyle = ResolveVar(style.BorderTopStyle, scope);
-        style.BorderRightStyle = ResolveVar(style.BorderRightStyle, scope);
-        style.BorderBottomStyle = ResolveVar(style.BorderBottomStyle, scope);
-        style.BorderLeftStyle = ResolveVar(style.BorderLeftStyle, scope);
-
-        style.BorderTopLeftRadius = ResolveVar(style.BorderTopLeftRadius, scope);
-        style.BorderTopRightRadius = ResolveVar(style.BorderTopRightRadius, scope);
-        style.BorderBottomRightRadius = ResolveVar(style.BorderBottomRightRadius, scope);
-        style.BorderBottomLeftRadius = ResolveVar(style.BorderBottomLeftRadius, scope);
-
-        style.BackgroundColor = ResolveVar(style.BackgroundColor, scope);
-        style.BackgroundRepeat = ResolveVar(style.BackgroundRepeat, scope);
-        style.BackgroundSize = ResolveVar(style.BackgroundSize, scope);
-        style.BackgroundPosition = ResolveVar(style.BackgroundPosition, scope);
-        style.Color = ResolveVar(style.Color, scope);
-        style.FontSize = ResolveVar(style.FontSize, scope);
-        style.FontWeight = ResolveVar(style.FontWeight, scope);
-        style.TextAlign = ResolveVar(style.TextAlign, scope);
-        style.LineHeight = ResolveVar(style.LineHeight, scope);
-
-        style.Position = ResolveVar(style.Position, scope);
-        style.Top = ResolveVar(style.Top, scope);
-        style.Right = ResolveVar(style.Right, scope);
-        style.Bottom = ResolveVar(style.Bottom, scope);
-        style.Left = ResolveVar(style.Left, scope);
-
-        style.TextDecoration = ResolveVar(style.TextDecoration, scope);
-        style.TextTransform = ResolveVar(style.TextTransform, scope);
-        style.FontStyle = ResolveVar(style.FontStyle, scope);
-        style.WhiteSpace = ResolveVar(style.WhiteSpace, scope);
-        style.LetterSpacing = ResolveVar(style.LetterSpacing, scope);
-        style.VerticalAlign = ResolveVar(style.VerticalAlign, scope);
-
-        style.Opacity = ResolveVar(style.Opacity, scope);
-        style.ZIndex = ResolveVar(style.ZIndex, scope);
-        style.Visibility = ResolveVar(style.Visibility, scope);
-        style.Cursor = ResolveVar(style.Cursor, scope);
-        style.UserSelect = ResolveVar(style.UserSelect, scope);
-
-        style.FlexWrap = ResolveVar(style.FlexWrap, scope);
-        style.AlignSelf = ResolveVar(style.AlignSelf, scope);
-        style.AlignContent = ResolveVar(style.AlignContent, scope);
-        style.Gap = ResolveVar(style.Gap, scope);
-        style.RowGap = ResolveVar(style.RowGap, scope);
-        style.ColumnGap = ResolveVar(style.ColumnGap, scope);
-
-        style.OverflowX = ResolveVar(style.OverflowX, scope);
-        style.OverflowY = ResolveVar(style.OverflowY, scope);
-
-        style.TransformOrigin = ResolveVar(style.TransformOrigin, scope);
     }
 }

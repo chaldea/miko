@@ -1,8 +1,8 @@
-using System.Collections.Concurrent;
-using Miko.Animation;
+﻿using Miko.Animation;
 using Miko.Common;
 using Miko.Core;
 using Miko.Styling.Selectors;
+using System.Collections.Concurrent;
 
 namespace Miko.Styling;
 
@@ -12,15 +12,15 @@ namespace Miko.Styling;
 public class Style
 {
     // 布局属性
-    public StyleProperty<Display>? Display { get; set; }
-    public StyleProperty<FlexDirection>? FlexDirection { get; set; }
-    public StyleProperty<JustifyContent>? JustifyContent { get; set; }
-    public StyleProperty<AlignItems>? AlignItems { get; set; }
+    public Display? Display { get; set; }
+    public FlexDirection? FlexDirection { get; set; }
+    public JustifyContent? JustifyContent { get; set; }
+    public AlignItems? AlignItems { get; set; }
 
     // Flex 子元素属性
-    public StyleProperty<float>? FlexGrow { get; set; }
-    public StyleProperty<float>? FlexShrink { get; set; }
-    public StyleProperty<Length>? FlexBasis { get; set; }
+    public float? FlexGrow { get; set; }
+    public float? FlexShrink { get; set; }
+    public Length? FlexBasis { get; set; }
 
     /// <summary>
     /// flex 简写属性 (flex: N → flex-grow: N; flex-shrink: 1; flex-basis: 0%)
@@ -36,19 +36,19 @@ public class Style
     }
 
     // 盒子模型
-    public StyleProperty<BoxSizing>? BoxSizing { get; set; }
-    public StyleProperty<Length>? Width { get; set; }
-    public StyleProperty<Length>? Height { get; set; }
-    public StyleProperty<Length>? MinWidth { get; set; }
-    public StyleProperty<Length>? MinHeight { get; set; }
-    public StyleProperty<Length>? MaxWidth { get; set; }
-    public StyleProperty<Length>? MaxHeight { get; set; }
+    public BoxSizing? BoxSizing { get; set; }
+    public Length? Width { get; set; }
+    public Length? Height { get; set; }
+    public Length? MinWidth { get; set; }
+    public Length? MinHeight { get; set; }
+    public Length? MaxWidth { get; set; }
+    public Length? MaxHeight { get; set; }
 
-    // 内边距
-    public StyleProperty<Length>? PaddingTop { get; set; }
-    public StyleProperty<Length>? PaddingRight { get; set; }
-    public StyleProperty<Length>? PaddingBottom { get; set; }
-    public StyleProperty<Length>? PaddingLeft { get; set; }
+    // 内边
+    public Length? PaddingTop { get; set; }
+    public Length? PaddingRight { get; set; }
+    public Length? PaddingBottom { get; set; }
+    public Length? PaddingLeft { get; set; }
 
     /// <summary>
     /// 内边距简写属性
@@ -56,10 +56,10 @@ public class Style
     public Padding Padding
     {
         get => new Padding(
-            PaddingTop?.Value ?? Length.Px(0),
-            PaddingRight?.Value ?? Length.Px(0),
-            PaddingBottom?.Value ?? Length.Px(0),
-            PaddingLeft?.Value ?? Length.Px(0));
+            PaddingTop ?? Length.Px(0),
+            PaddingRight ?? Length.Px(0),
+            PaddingBottom ?? Length.Px(0),
+            PaddingLeft ?? Length.Px(0));
         set
         {
             PaddingTop = value.Top;
@@ -70,10 +70,10 @@ public class Style
     }
 
     // 外边距
-    public StyleProperty<Length>? MarginTop { get; set; }
-    public StyleProperty<Length>? MarginRight { get; set; }
-    public StyleProperty<Length>? MarginBottom { get; set; }
-    public StyleProperty<Length>? MarginLeft { get; set; }
+    public Length? MarginTop { get; set; }
+    public Length? MarginRight { get; set; }
+    public Length? MarginBottom { get; set; }
+    public Length? MarginLeft { get; set; }
 
     /// <summary>
     /// 外边距简写属性
@@ -81,10 +81,10 @@ public class Style
     public Margin Margin
     {
         get => new Margin(
-            MarginTop?.Value ?? Length.Px(0),
-            MarginRight?.Value ?? Length.Px(0),
-            MarginBottom?.Value ?? Length.Px(0),
-            MarginLeft?.Value ?? Length.Px(0));
+            MarginTop ?? Length.Px(0),
+            MarginRight ?? Length.Px(0),
+            MarginBottom ?? Length.Px(0),
+            MarginLeft ?? Length.Px(0));
         set
         {
             MarginTop = value.Top;
@@ -95,27 +95,27 @@ public class Style
     }
 
     // 边框（统一属性，作为各边的后备值）
-    public StyleProperty<Length>? BorderWidth { get; set; }
-    public StyleProperty<Color>? BorderColor { get; set; }
-    public StyleProperty<BorderStyle>? BorderStyle { get; set; }
+    public Length? BorderWidth { get; set; }
+    public Color? BorderColor { get; set; }
+    public BorderStyle? BorderStyle { get; set; }
 
     // 边框宽度（每边单独设置）
-    public StyleProperty<Length>? BorderTopWidth { get; set; }
-    public StyleProperty<Length>? BorderRightWidth { get; set; }
-    public StyleProperty<Length>? BorderBottomWidth { get; set; }
-    public StyleProperty<Length>? BorderLeftWidth { get; set; }
+    public Length? BorderTopWidth { get; set; }
+    public Length? BorderRightWidth { get; set; }
+    public Length? BorderBottomWidth { get; set; }
+    public Length? BorderLeftWidth { get; set; }
 
     // 边框颜色（每边单独设置）
-    public StyleProperty<Color>? BorderTopColor { get; set; }
-    public StyleProperty<Color>? BorderRightColor { get; set; }
-    public StyleProperty<Color>? BorderBottomColor { get; set; }
-    public StyleProperty<Color>? BorderLeftColor { get; set; }
+    public Color? BorderTopColor { get; set; }
+    public Color? BorderRightColor { get; set; }
+    public Color? BorderBottomColor { get; set; }
+    public Color? BorderLeftColor { get; set; }
 
     // 边框样式（每边单独设置）
-    public StyleProperty<BorderStyle>? BorderTopStyle { get; set; }
-    public StyleProperty<BorderStyle>? BorderRightStyle { get; set; }
-    public StyleProperty<BorderStyle>? BorderBottomStyle { get; set; }
-    public StyleProperty<BorderStyle>? BorderLeftStyle { get; set; }
+    public BorderStyle? BorderTopStyle { get; set; }
+    public BorderStyle? BorderRightStyle { get; set; }
+    public BorderStyle? BorderBottomStyle { get; set; }
+    public BorderStyle? BorderLeftStyle { get; set; }
 
     /// <summary>
     /// 边框简写属性（设置所有边）
@@ -123,9 +123,9 @@ public class Style
     public Border Border
     {
         get => new Border(
-            BorderWidth?.Value ?? Length.Px(0),
-            BorderStyle?.Value ?? Common.BorderStyle.None,
-            BorderColor?.Value ?? Common.Color.Transparent);
+            BorderWidth ?? Length.Px(0),
+            BorderStyle ?? Common.BorderStyle.None,
+            BorderColor ?? Common.Color.Transparent);
         set
         {
             BorderWidth = value.Width;
@@ -143,9 +143,9 @@ public class Style
     public BorderSide BorderTop
     {
         get => new BorderSide(
-            BorderTopWidth?.Value ?? BorderWidth?.Value ?? Length.Px(0),
-            BorderTopStyle?.Value ?? BorderStyle?.Value ?? Common.BorderStyle.None,
-            BorderTopColor?.Value ?? BorderColor?.Value ?? Common.Color.Transparent);
+            BorderTopWidth ?? BorderWidth ?? Length.Px(0),
+            BorderTopStyle ?? BorderStyle ?? Common.BorderStyle.None,
+            BorderTopColor ?? BorderColor ?? Common.Color.Transparent);
         set
         {
             BorderTopWidth = value.Width;
@@ -160,9 +160,9 @@ public class Style
     public BorderSide BorderRight
     {
         get => new BorderSide(
-            BorderRightWidth?.Value ?? BorderWidth?.Value ?? Length.Px(0),
-            BorderRightStyle?.Value ?? BorderStyle?.Value ?? Common.BorderStyle.None,
-            BorderRightColor?.Value ?? BorderColor?.Value ?? Common.Color.Transparent);
+            BorderRightWidth ?? BorderWidth ?? Length.Px(0),
+            BorderRightStyle ?? BorderStyle ?? Common.BorderStyle.None,
+            BorderRightColor ?? BorderColor ?? Common.Color.Transparent);
         set
         {
             BorderRightWidth = value.Width;
@@ -177,9 +177,9 @@ public class Style
     public BorderSide BorderBottom
     {
         get => new BorderSide(
-            BorderBottomWidth?.Value ?? BorderWidth?.Value ?? Length.Px(0),
-            BorderBottomStyle?.Value ?? BorderStyle?.Value ?? Common.BorderStyle.None,
-            BorderBottomColor?.Value ?? BorderColor?.Value ?? Common.Color.Transparent);
+            BorderBottomWidth ?? BorderWidth ?? Length.Px(0),
+            BorderBottomStyle ?? BorderStyle ?? Common.BorderStyle.None,
+            BorderBottomColor ?? BorderColor ?? Common.Color.Transparent);
         set
         {
             BorderBottomWidth = value.Width;
@@ -194,9 +194,9 @@ public class Style
     public BorderSide BorderLeft
     {
         get => new BorderSide(
-            BorderLeftWidth?.Value ?? BorderWidth?.Value ?? Length.Px(0),
-            BorderLeftStyle?.Value ?? BorderStyle?.Value ?? Common.BorderStyle.None,
-            BorderLeftColor?.Value ?? BorderColor?.Value ?? Common.Color.Transparent);
+            BorderLeftWidth ?? BorderWidth ?? Length.Px(0),
+            BorderLeftStyle ?? BorderStyle ?? Common.BorderStyle.None,
+            BorderLeftColor ?? BorderColor ?? Common.Color.Transparent);
         set
         {
             BorderLeftWidth = value.Width;
@@ -206,18 +206,18 @@ public class Style
     }
 
     // 圆角
-    public StyleProperty<Length>? BorderTopLeftRadius { get; set; }
-    public StyleProperty<Length>? BorderTopRightRadius { get; set; }
-    public StyleProperty<Length>? BorderBottomRightRadius { get; set; }
-    public StyleProperty<Length>? BorderBottomLeftRadius { get; set; }
+    public Length? BorderTopLeftRadius { get; set; }
+    public Length? BorderTopRightRadius { get; set; }
+    public Length? BorderBottomRightRadius { get; set; }
+    public Length? BorderBottomLeftRadius { get; set; }
 
     public BorderRadius BorderRadius
     {
         get => new BorderRadius(
-            BorderTopLeftRadius?.Value ?? 0,
-            BorderTopRightRadius?.Value ?? 0,
-            BorderBottomLeftRadius?.Value ?? 0,
-            BorderBottomRightRadius?.Value ?? 0);
+            BorderTopLeftRadius ?? 0,
+            BorderTopRightRadius ?? 0,
+            BorderBottomLeftRadius ?? 0,
+            BorderBottomRightRadius ?? 0);
         set
         {
             BorderTopLeftRadius = value.TopLeft;
@@ -228,63 +228,60 @@ public class Style
     }
 
     // 视觉属性
-    public StyleProperty<Color>? BackgroundColor { get; set; }
+    public Color? BackgroundColor { get; set; }
     public BackgroundImage? BackgroundImage { get; set; }
-    public StyleProperty<BackgroundRepeat>? BackgroundRepeat { get; set; }
-    public StyleProperty<BackgroundSize>? BackgroundSize { get; set; }
-    public StyleProperty<BackgroundPosition>? BackgroundPosition { get; set; }
-    public StyleProperty<Color>? Color { get; set; }
+    public BackgroundRepeat? BackgroundRepeat { get; set; }
+    public BackgroundSize? BackgroundSize { get; set; }
+    public BackgroundPosition? BackgroundPosition { get; set; }
+    public Color? Color { get; set; }
     public string? FontFamily { get; set; }
-    public StyleProperty<Length>? FontSize { get; set; }
-    public StyleProperty<FontWeight>? FontWeight { get; set; }
-    public StyleProperty<TextAlign>? TextAlign { get; set; }
-    public StyleProperty<Length>? LineHeight { get; set; }
+    public Length? FontSize { get; set; }
+    public FontWeight? FontWeight { get; set; }
+    public TextAlign? TextAlign { get; set; }
+    public Length? LineHeight { get; set; }
 
     // 定位
-    public StyleProperty<Position>? Position { get; set; }
-    public StyleProperty<Length>? Top { get; set; }
-    public StyleProperty<Length>? Right { get; set; }
-    public StyleProperty<Length>? Bottom { get; set; }
-    public StyleProperty<Length>? Left { get; set; }
+    public Position? Position { get; set; }
+    public Length? Top { get; set; }
+    public Length? Right { get; set; }
+    public Length? Bottom { get; set; }
+    public Length? Left { get; set; }
 
-    public StyleProperty<TextDecoration>? TextDecoration { get; set; }
-    public StyleProperty<TextTransform>? TextTransform { get; set; }
-    public StyleProperty<FontStyle>? FontStyle { get; set; }
-    public StyleProperty<WhiteSpace>? WhiteSpace { get; set; }
-    public StyleProperty<Length>? LetterSpacing { get; set; }
-    public StyleProperty<VerticalAlign>? VerticalAlign { get; set; }
+    public TextDecoration? TextDecoration { get; set; }
+    public TextTransform? TextTransform { get; set; }
+    public FontStyle? FontStyle { get; set; }
+    public WhiteSpace? WhiteSpace { get; set; }
+    public Length? LetterSpacing { get; set; }
+    public VerticalAlign? VerticalAlign { get; set; }
 
-    public StyleProperty<float>? Opacity { get; set; }
-    public StyleProperty<int>? ZIndex { get; set; }
-    public StyleProperty<Visibility>? Visibility { get; set; }
-    public StyleProperty<Cursor>? Cursor { get; set; }
-    public StyleProperty<UserSelect>? UserSelect { get; set; }
+    public float? Opacity { get; set; }
+    public int? ZIndex { get; set; }
+    public Visibility? Visibility { get; set; }
+    public Cursor? Cursor { get; set; }
+    public UserSelect? UserSelect { get; set; }
 
     // Flex extras
-    public StyleProperty<FlexWrap>? FlexWrap { get; set; }
-    public StyleProperty<AlignSelf>? AlignSelf { get; set; }
-    public StyleProperty<AlignContent>? AlignContent { get; set; }
-    public StyleProperty<Length>? Gap { get; set; }
-    public StyleProperty<Length>? RowGap { get; set; }
-    public StyleProperty<Length>? ColumnGap { get; set; }
+    public FlexWrap? FlexWrap { get; set; }
+    public AlignSelf? AlignSelf { get; set; }
+    public AlignContent? AlignContent { get; set; }
+    public Length? Gap { get; set; }
+    public Length? RowGap { get; set; }
+    public Length? ColumnGap { get; set; }
 
     public BoxShadow? BoxShadow { get; set; }
 
     // 溢出
-    public StyleProperty<Overflow>? OverflowX { get; set; }
-    public StyleProperty<Overflow>? OverflowY { get; set; }
+    public Overflow? OverflowX { get; set; }
+    public Overflow? OverflowY { get; set; }
 
     // 动画与过渡
     public Transform? Transform { get; set; }
-    public StyleProperty<TransformOrigin>? TransformOrigin { get; set; }
+    public TransformOrigin? TransformOrigin { get; set; }
     public List<Transition>? Transitions { get; set; }
     public List<KeyframeAnimation>? Animations { get; set; }
 
     // 伪元素
     public string? Content { get; set; }
-
-    // 自定义属性（CSS 变量定义）
-    public Dictionary<string, StyleValue>? CustomProperties { get; set; }
 
     /// <summary>
     /// 溢出简写属性（同时设置 X 和 Y）
@@ -403,13 +400,6 @@ public class Style
         Animations ??= other.Animations;
 
         Content ??= other.Content;
-
-        if (other.CustomProperties != null)
-        {
-            CustomProperties ??= new();
-            foreach (var (key, value) in other.CustomProperties)
-                CustomProperties.TryAdd(key, value);
-        }
     }
 
     /// <summary>
@@ -417,10 +407,7 @@ public class Style
     /// </summary>
     public Style Clone()
     {
-        var clone = (Style)MemberwiseClone();
-        if (CustomProperties != null)
-            clone.CustomProperties = new Dictionary<string, StyleValue>(CustomProperties);
-        return clone;
+        return (Style)MemberwiseClone();
     }
 
     private static readonly ConcurrentDictionary<Type, string> _tagNameCache = new();

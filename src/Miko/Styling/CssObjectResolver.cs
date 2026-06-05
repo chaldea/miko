@@ -1,4 +1,4 @@
-using Miko.Styling.Selectors;
+﻿using Miko.Styling.Selectors;
 
 namespace Miko.Styling;
 
@@ -167,7 +167,6 @@ internal static class CssObjectResolver
                style.AlignContent != null || style.Gap != null || style.RowGap != null ||
                style.ColumnGap != null || style.BoxShadow != null || style.OverflowX != null ||
                style.OverflowY != null || style.Transform != null || style.TransformOrigin != null ||
-               style.Transitions != null || style.Animations != null || style.Content != null ||
-               style.CustomProperties?.Count > 0;
+               style.Transitions != null || style.Animations != null || style.Content != null;
     }
 }
