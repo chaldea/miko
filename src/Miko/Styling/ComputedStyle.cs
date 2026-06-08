@@ -109,7 +109,12 @@ public class ComputedStyle : Style
     /// <summary>
     /// 从样式对象创建计算样式
     /// </summary>
-    public static ComputedStyle FromStyle(Style? style)
+    /// <param name="style">级联后的样式。</param>
+    /// <param name="parentFontSizePx">
+    /// 父元素的计算字体大小（px），用于解析本元素 font-size 中的 em 分量
+    /// （CSS 中 font-size 的 em 相对于父元素字体大小）。null 时回退到 RootFontSize。
+    /// </param>
+    public static ComputedStyle FromStyle(Style? style, float? parentFontSizePx = null)
     {
         var computed = new ComputedStyle();
 
@@ -217,7 +222,8 @@ public class ComputedStyle : Style
             if (style.BackgroundPosition.HasValue) computed.BackgroundPosition = style.BackgroundPosition.Value;
             if (style.Color.HasValue) computed.Color = style.Color.Value;
             if (style.FontFamily != null) computed.FontFamily = style.FontFamily;
-            if (style.FontSize.HasValue) computed.FontSize = Length.Px(style.FontSize.Value.ToPixels(0));
+            // font-size 中的 em 相对于父元素字体大小解析；rem 相对于根字体大小。
+            if (style.FontSize.HasValue) computed.FontSize = Length.Px(style.FontSize.Value.ToPixels(0, parentFontSizePx));
             if (style.FontWeight.HasValue) computed.FontWeight = style.FontWeight.Value;
             if (style.TextAlign.HasValue) computed.TextAlign = style.TextAlign.Value;
             if (style.LineHeight.HasValue) computed.LineHeight = style.LineHeight.Value;

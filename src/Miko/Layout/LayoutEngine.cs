@@ -55,6 +55,8 @@ public class LayoutEngine
     {
         var style = box.ComputedStyle;
         var position = style.Position;
+        // 元素自身字体大小（px），用于解析 top/right/bottom/left 中的 em 分量。
+        float fs = style.FontSize.Value;
 
         // relative/absolute 元素本身成为后代绝对定位元素的包含块。
         // 包含块使用元素的 padding box（CSS 规范：绝对定位相对于包含块的 padding 边缘）。
@@ -67,14 +69,14 @@ public class LayoutEngine
             float dy = 0f;
 
             if (!style.Left.IsAuto)
-                dx = style.Left.ToPixels(containingBlock.Width);
+                dx = style.Left.ToPixels(containingBlock.Width, fs);
             else if (!style.Right.IsAuto)
-                dx = -style.Right.ToPixels(containingBlock.Width);
+                dx = -style.Right.ToPixels(containingBlock.Width, fs);
 
             if (!style.Top.IsAuto)
-                dy = style.Top.ToPixels(containingBlock.Height);
+                dy = style.Top.ToPixels(containingBlock.Height, fs);
             else if (!style.Bottom.IsAuto)
-                dy = -style.Bottom.ToPixels(containingBlock.Height);
+                dy = -style.Bottom.ToPixels(containingBlock.Height, fs);
 
             if (dx != 0f || dy != 0f)
             {
@@ -92,22 +94,22 @@ public class LayoutEngine
             float targetX = marginBox.Left;
             if (!style.Left.IsAuto)
             {
-                targetX = containingBlock.Left + style.Left.ToPixels(containingBlock.Width);
+                targetX = containingBlock.Left + style.Left.ToPixels(containingBlock.Width, fs);
             }
             else if (!style.Right.IsAuto)
             {
-                targetX = containingBlock.Right - style.Right.ToPixels(containingBlock.Width) - marginBox.Width;
+                targetX = containingBlock.Right - style.Right.ToPixels(containingBlock.Width, fs) - marginBox.Width;
             }
 
             // 垂直方向
             float targetY = marginBox.Top;
             if (!style.Top.IsAuto)
             {
-                targetY = containingBlock.Top + style.Top.ToPixels(containingBlock.Height);
+                targetY = containingBlock.Top + style.Top.ToPixels(containingBlock.Height, fs);
             }
             else if (!style.Bottom.IsAuto)
             {
-                targetY = containingBlock.Bottom - style.Bottom.ToPixels(containingBlock.Height) - marginBox.Height;
+                targetY = containingBlock.Bottom - style.Bottom.ToPixels(containingBlock.Height, fs) - marginBox.Height;
             }
 
             float dx = targetX - marginBox.Left;
@@ -162,10 +164,42 @@ public class LayoutEngine
             ComputedStyle = computedStyle
         };
 
+        // 应用伪元素样式（::range-thumb, ::range-track, ::range-progress 等）
+        ApplyPseudoElementStyles(element, styleSheets);
+
         // 递归处理子元素，传递当前元素的自定义属性作用域
         foreach (var child in element.Children)
         {
             ComputeStyles(child, styleSheets, viewport);
+        }
+    }
+
+    /// <summary>
+    /// 应用伪元素样式到元素
+    /// </summary>
+    private void ApplyPseudoElementStyles(Element element, List<StyleSheet> styleSheets)
+    {
+        foreach (var sheet in styleSheets)
+        {
+            foreach (var rule in sheet.PseudoElementRules)
+            {
+                // 检查选择器是否匹配元素
+                if (rule.Selector.Matches(element))
+                {
+                    // 初始化伪元素样式字典（如果需要）
+                    element.PseudoElementStyles ??= new Dictionary<PseudoElementType, Style>();
+
+                    // 获取或创建该伪元素类型的样式
+                    if (!element.PseudoElementStyles.TryGetValue(rule.Type, out var existingStyle))
+                    {
+                        existingStyle = new Style();
+                        element.PseudoElementStyles[rule.Type] = existingStyle;
+                    }
+
+                    // 合并样式规则
+                    existingStyle.Merge(rule.Style);
+                }
+            }
         }
     }
 

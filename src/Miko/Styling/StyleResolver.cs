@@ -71,16 +71,20 @@ public class StyleResolver
         }
 
         // 6. 从父元素继承可继承属性
+        float? parentFontSizePx = null;
         if (element.Parent != null && element.Parent.LayoutBox?.ComputedStyle != null)
         {
-            InheritFromParent(baseStyle, element.Parent.LayoutBox.ComputedStyle);
+            var parentComputed = element.Parent.LayoutBox.ComputedStyle;
+            InheritFromParent(baseStyle, parentComputed);
+            // 父元素的计算字体大小（始终为 px），作为本元素 font-size 中 em 的解析基准。
+            parentFontSizePx = parentComputed.FontSize.Value;
         }
 
         // 7. 应用标签默认样式（最低优先级）
         ApplyDefaultStyles(element, baseStyle);
 
-        // 8. 转换为计算样式
-        return ComputedStyle.FromStyle(baseStyle);
+        // 8. 转换为计算样式（传入父字体大小以正确解析 font-size 中的 em）
+        return ComputedStyle.FromStyle(baseStyle, parentFontSizePx);
     }
 
     /// <summary>
@@ -247,7 +251,9 @@ public class StyleResolver
                 style.BorderColor ??= Common.Color.Gray;
                 style.BackgroundColor ??= Common.Color.White;
                 style.MinWidth ??= Common.Length.Px(100);
-                style.Height ??= Common.Length.Px(22);
+                // 不写死高度：select 高度应由行高/字体度量加 padding、border 撑开（height: auto）。
+                // 固定像素会导致内容高度被钳制（border-box 下尤甚），与字体综合计算的实际高度不符
+                // （与 input 同类问题，参见 ISSUE-040）。
                 break;
 
             case "option":
@@ -408,8 +414,11 @@ public class StyleResolver
                 case InputType.Text:
                 case InputType.Password:
                 default:
+                    // 文本类输入框高度不设固定默认值：浏览器中其高度由
+                    // 行高（line-height）/ 字体度量加上 padding、border 撑开（height: auto）。
+                    // 固定为像素会导致内容高度被钳制（如 BoxSizing.BorderBox 下内容仅剩 7px），
+                    // 与字体/行高综合计算得到的实际高度不符（参见 ISSUE-040）。
                     style.Width ??= Length.Px(173);
-                    style.Height ??= Length.Px(21);
                     style.PaddingTop ??= Length.Px(1);
                     style.PaddingRight ??= Length.Px(2);
                     style.PaddingBottom ??= Length.Px(1);
@@ -422,8 +431,8 @@ public class StyleResolver
         }
         else
         {
+            // 未知 input 元素：同样以内容（行高/字体）决定高度，不设固定默认高度。
             style.Width ??= Length.Px(173);
-            style.Height ??= Length.Px(21);
             style.PaddingTop ??= Length.Px(1);
             style.PaddingRight ??= Length.Px(2);
             style.PaddingBottom ??= Length.Px(1);

@@ -569,14 +569,27 @@ public class RenderEngine
                 break;
 
             case InputType.Range:
+                // 获取 range 伪元素样式
+                Style? trackStyle = null;
+                Style? progressStyle = null;
+                Style? thumbStyle = null;
+
+                if (inputElement.PseudoElementStyles != null)
+                {
+                    inputElement.PseudoElementStyles.TryGetValue(PseudoElementType.RangeTrack, out trackStyle);
+                    inputElement.PseudoElementStyles.TryGetValue(PseudoElementType.RangeProgress, out progressStyle);
+                    inputElement.PseudoElementStyles.TryGetValue(PseudoElementType.RangeThumb, out thumbStyle);
+                }
+
                 _painter.DrawRange(
                     contentRect,
                     inputElement.NumericValue,
                     inputElement.Min,
                     inputElement.Max,
-                    Color.LightGray,
-                    style.Color,
-                    style.Color
+                    trackStyle,
+                    progressStyle,
+                    thumbStyle,
+                    style.FontSize.Value  // Pass fontSize for em/rem resolution
                 );
                 break;
 

@@ -121,7 +121,10 @@ public enum LengthUnit
     Px,
     Percent,
     Auto,
-    Rem
+    Rem,
+    Em,
+    /// <summary>无单位数值。用于无单位 line-height：实际像素 = 该系数 × 字体大小。</summary>
+    Number
 }
 
 /// <summary>

@@ -30,3 +30,24 @@ public class BeforePseudoElement : PseudoElementSelector
 public class AfterPseudoElement : PseudoElementSelector
 {
 }
+
+/// <summary>
+/// ::range-thumb 伪元素选择器（input[type="range"] 滑块）
+/// </summary>
+public class RangeThumbPseudoElement : PseudoElementSelector
+{
+}
+
+/// <summary>
+/// ::range-track 伪元素选择器（input[type="range"] 滑轨）
+/// </summary>
+public class RangeTrackPseudoElement : PseudoElementSelector
+{
+}
+
+/// <summary>
+/// ::range-progress 伪元素选择器（input[type="range"] 已填充进度）
+/// </summary>
+public class RangeProgressPseudoElement : PseudoElementSelector
+{
+}
