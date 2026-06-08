@@ -503,6 +503,11 @@ public class RenderEngine
         if (!string.IsNullOrEmpty(element.TextContent))
         {
             var style = box.ComputedStyle;
+            // button 元素的文本应垂直居中（与浏览器行为一致）
+            var verticalAlign = element is Miko.Core.DomElements.ButtonElement
+                ? VerticalAlign.Middle
+                : VerticalAlign.Top;
+
             _painter.DrawText(
                 element.TextContent,
                 box.BoxModel.Content,
@@ -510,7 +515,8 @@ public class RenderEngine
                 style.FontFamily,
                 style.FontSize.Value,
                 style.FontWeight,
-                style.TextAlign
+                style.TextAlign,
+                verticalAlign
             );
 
             if (style.TextDecoration != Common.TextDecoration.None)
