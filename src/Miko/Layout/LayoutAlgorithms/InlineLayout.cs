@@ -50,13 +50,14 @@ public class InlineLayout
 
         if (hasOwnText)
         {
-            var (textWidth, textHeight) = TextMeasurer.MeasureText(
+            var (textWidth, _) = TextMeasurer.MeasureText(
                 box.Element.TextContent,
                 style.FontFamily,
                 style.FontSize.Value,
                 style.FontWeight);
             ownTextWidth = textWidth;
-            ownTextHeight = textHeight;
+            // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
+            ownTextHeight = BlockLayout.ResolveLineHeight(style);
         }
 
         float currentX = contentX + ownTextWidth;

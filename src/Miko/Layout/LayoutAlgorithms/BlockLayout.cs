@@ -172,13 +172,14 @@ public class BlockLayout
 
         if (hasOwnText)
         {
-            var (textWidth, textHeight) = TextMeasurer.MeasureText(
+            var (textWidth, _) = TextMeasurer.MeasureText(
                 box.Element.TextContent,
                 style.FontFamily,
                 style.FontSize.Value,
                 style.FontWeight);
             ownTextWidth = textWidth;
-            ownTextHeight = textHeight;
+            // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
+            ownTextHeight = ResolveLineHeight(style);
 
             // 仅当第一个子元素是 block 时，文本独占一行，currentY 下移
             if (firstChildIsBlock)
@@ -285,12 +286,8 @@ public class BlockLayout
             // 如果没有子元素但有文本内容，则根据文本计算高度
             else if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
             {
-                var (_, textHeight) = TextMeasurer.MeasureText(
-                    box.Element.TextContent,
-                    style.FontFamily,
-                    style.FontSize.Value,
-                    style.FontWeight);
-                contentHeight = textHeight;
+                // 行高优先使用显式 line-height，否则取字体自然度量。
+                contentHeight = ResolveLineHeight(style);
             }
             else
             {
@@ -350,13 +347,14 @@ public class BlockLayout
 
         if (hasOwnText)
         {
-            var (textWidth, textHeight) = TextMeasurer.MeasureText(
+            var (textWidth, _) = TextMeasurer.MeasureText(
                 box.Element.TextContent,
                 style.FontFamily,
                 style.FontSize.Value,
                 style.FontWeight);
             ownTextWidth = textWidth;
-            ownTextHeight = textHeight;
+            // 行高优先使用显式 line-height，否则取字体自然度量（与主布局一致）。
+            ownTextHeight = ResolveLineHeight(style);
 
             if (firstChildIsBlock)
             {
@@ -458,14 +456,23 @@ public class BlockLayout
         if (!IsTextFormControl(box))
             return null;
 
-        var style = box.ComputedStyle;
+        return ResolveLineHeight(box.ComputedStyle);
+    }
 
-        // 显式设置了行高（>0 表示非 normal），直接作为单行内容高度。
-        // line-height 可能是 rem/em，按元素自身字体大小解析其中的 em 分量。
+    /// <summary>
+    /// 解析元素一行文本的有效高度（line box 高度）：
+    /// - 若显式设置了 line-height（非 auto 且 &gt;0），按元素自身字体大小解析其中的 em / number 分量
+    ///   后返回（如 <c>line-height: 1.5</c> 在 16px 字号下返回 24px）；
+    /// - 否则回退到字体度量得到的自然行高（ascent + descent）。
+    /// 用于布局阶段确定带文本元素自身的内容行高（参见 ISSUE-041）。
+    /// </summary>
+    internal static float ResolveLineHeight(Styling.ComputedStyle style)
+    {
+        // 显式 line-height（>0 表示非 normal），按元素自身字体大小解析。
         if (!style.LineHeight.IsAuto && style.LineHeight.Value > 0)
             return style.LineHeight.ToPixels(0, style.FontSize.Value);
 
-        // 否则按字体度量得到一行文本的自然高度
+        // 默认按字体度量得到一行文本的自然高度
         return TextMeasurer.MeasureTextHeight(
             style.FontFamily,
             style.FontSize.Value,

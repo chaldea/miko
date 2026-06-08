@@ -152,12 +152,8 @@ public class FlexLayout
 
                 if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
                 {
-                    var (_, textHeight) = TextMeasurer.MeasureText(
-                        box.Element.TextContent,
-                        style.FontFamily,
-                        style.FontSize.Value,
-                        style.FontWeight);
-                    totalChildHeight = textHeight;
+                    // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
+                    totalChildHeight = BlockLayout.ResolveLineHeight(style);
                 }
 
                 contentHeight = totalChildHeight;
@@ -384,11 +380,8 @@ public class FlexLayout
         if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
         {
             var style = box.ComputedStyle;
-            var (textWidth, textHeight) = TextMeasurer.MeasureText(
-                box.Element.TextContent,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight);
+            // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
+            float textHeight = BlockLayout.ResolveLineHeight(style);
             maxCrossSize = Math.Max(maxCrossSize, textHeight);
         }
 
@@ -576,11 +569,13 @@ public class FlexLayout
         if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
         {
             var style = box.ComputedStyle;
-            var (textWidth, textHeight) = TextMeasurer.MeasureText(
+            float textWidth = TextMeasurer.MeasureTextWidth(
                 box.Element.TextContent,
                 style.FontFamily,
                 style.FontSize.Value,
                 style.FontWeight);
+            // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
+            float textHeight = BlockLayout.ResolveLineHeight(style);
             currentY += textHeight;
             maxCrossSize = Math.Max(maxCrossSize, textWidth);
         }

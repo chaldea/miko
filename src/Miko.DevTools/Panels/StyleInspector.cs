@@ -111,6 +111,7 @@ internal static class StyleInspector
         AddRow(container, "font-family", cs.FontFamily);
         AddRow(container, "font-size", FormatLength(cs.FontSize));
         AddRow(container, "font-weight", cs.FontWeight.ToString().ToLower());
+        AddRow(container, "line-height", FormatLineHeight(cs.LineHeight));
         AddRow(container, "text-align", cs.TextAlign.ToString().ToLower());
 
         if (cs.Display == Common.Display.Flex)
@@ -148,6 +149,16 @@ internal static class StyleInspector
     private static string FormatLength(Common.Length length)
     {
         return length.ToString();
+    }
+
+    /// <summary>
+    /// 格式化 line-height：未设置（值 0）显示为 "normal"，否则使用 Length 默认格式。
+    /// </summary>
+    private static string FormatLineHeight(Common.Length lineHeight)
+    {
+        if (lineHeight.IsAuto || lineHeight.Value == 0)
+            return "normal";
+        return lineHeight.ToString();
     }
 
     private static string FormatColor(Common.Color color)
