@@ -333,7 +333,7 @@ public class Painter
     /// <summary>
     /// 绘制文本
     /// </summary>
-    public void DrawText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign)
+    public void DrawText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, VerticalAlign verticalAlign = VerticalAlign.Top)
     {
         if (string.IsNullOrEmpty(text) || color.A == 0) return;
 
@@ -366,9 +366,21 @@ public class Painter
             _ => rect.Left
         };
 
-        // 文本基线：顶部对齐（baseline ≈ top + ascent）
+        // 计算文本基线Y位置
         using var baselineFont = new SKFont(textRuns[0].Typeface, fontSize);
-        float y = rect.Top - baselineFont.Metrics.Ascent;
+        float y;
+        if (verticalAlign == VerticalAlign.Middle)
+        {
+            // 垂直居中：将文本行居中于 rect 高度内
+            float textHeight = baselineFont.Metrics.Descent - baselineFont.Metrics.Ascent;
+            float centeredTop = rect.Top + (rect.Height - textHeight) / 2;
+            y = centeredTop - baselineFont.Metrics.Ascent;
+        }
+        else
+        {
+            // 默认顶部对齐（baseline ≈ top + ascent）
+            y = rect.Top - baselineFont.Metrics.Ascent;
+        }
 
         // 绘制每个文本段
         foreach (var run in textRuns)

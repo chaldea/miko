@@ -612,7 +612,8 @@ public class RenderEngine
                         style.FontFamily,
                         style.FontSize.Value,
                         style.FontWeight,
-                        TextAlign.Left
+                        TextAlign.Left,
+                        VerticalAlign.Middle
                     );
                 }
                 if (isFocused)
@@ -633,7 +634,8 @@ public class RenderEngine
                         style.FontFamily,
                         style.FontSize.Value,
                         style.FontWeight,
-                        TextAlign.Left
+                        TextAlign.Left,
+                        VerticalAlign.Middle
                     );
                 }
                 else if (!string.IsNullOrEmpty(inputElement.Placeholder) && !isFocused)
@@ -645,7 +647,8 @@ public class RenderEngine
                         style.FontFamily,
                         style.FontSize.Value,
                         style.FontWeight,
-                        TextAlign.Left
+                        TextAlign.Left,
+                        VerticalAlign.Middle
                     );
                 }
                 if (isFocused)
