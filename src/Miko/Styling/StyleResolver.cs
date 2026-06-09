@@ -70,7 +70,12 @@ public class StyleResolver
             baseStyle.Merge(rule.Style);
         }
 
-        // 6. 从父元素继承可继承属性
+        // 6. 应用标签默认样式（UA stylesheet）。
+        //    必须在父元素继承之前：否则父元素的可继承属性（如 FontWeight=Normal）会先填入，
+        //    导致 UA 规则（如 th { font-weight: bold }）失效。
+        ApplyDefaultStyles(element, baseStyle);
+
+        // 7. 从父元素继承可继承属性（仅填补 UA 也未提供的属性）
         float? parentFontSizePx = null;
         if (element.Parent != null && element.Parent.LayoutBox?.ComputedStyle != null)
         {
@@ -79,9 +84,6 @@ public class StyleResolver
             // 父元素的计算字体大小（始终为 px），作为本元素 font-size 中 em 的解析基准。
             parentFontSizePx = parentComputed.FontSize.Value;
         }
-
-        // 7. 应用标签默认样式（最低优先级）
-        ApplyDefaultStyles(element, baseStyle);
 
         // 8. 转换为计算样式（传入父字体大小以正确解析 font-size 中的 em）
         return ComputedStyle.FromStyle(baseStyle, parentFontSizePx);
@@ -110,8 +112,9 @@ public class StyleResolver
     /// </remarks>
     private void ApplyDefaultStyles(Element element, Style style)
     {
-        // Note: All elements get line-height: normal (0 = auto calculation)
-        style.LineHeight ??= Common.Length.Px(0);
+        // Note: line-height defaults to "normal" via ComputedStyle. We do NOT set it here
+        // because that would block inheritance — line-height is inheritable in CSS, and
+        // the parent's value should fill in before falling back to ComputedStyle's default.
 
         // 根据标签名应用默认样式
         switch (element.TagName.ToLower())
@@ -327,7 +330,7 @@ public class StyleResolver
                 break;
 
             case "table":
-                style.Display ??= Common.Display.Block;
+                style.Display ??= Common.Display.Table;
                 style.BoxSizing ??= Common.BoxSizing.BorderBox;
                 style.BorderWidth ??= Common.Length.Px(0);
                 style.BorderStyle ??= Common.BorderStyle.None;
@@ -352,11 +355,11 @@ public class StyleResolver
                 break;
 
             case "tr":
-                style.Display ??= Common.Display.Block;
+                style.Display ??= Common.Display.TableRow;
                 break;
 
             case "th":
-                style.Display ??= Common.Display.InlineBlock;
+                style.Display ??= Common.Display.TableCell;
                 style.FontWeight ??= Common.FontWeight.Bold;
                 style.TextAlign ??= Common.TextAlign.Center;
                 style.PaddingTop ??= Common.Length.Px(1);
@@ -366,7 +369,7 @@ public class StyleResolver
                 break;
 
             case "td":
-                style.Display ??= Common.Display.InlineBlock;
+                style.Display ??= Common.Display.TableCell;
                 style.TextAlign ??= Common.TextAlign.Left;
                 style.PaddingTop ??= Common.Length.Px(1);
                 style.PaddingRight ??= Common.Length.Px(1);

@@ -15,6 +15,7 @@ public class LayoutEngine
     private readonly BlockLayout _blockLayout = new();
     private readonly InlineLayout _inlineLayout = new();
     private readonly FlexLayout _flexLayout = new();
+    private readonly TableLayout _tableLayout = new();
 
     /// <summary>
     /// 执行布局计算
@@ -222,6 +223,9 @@ public class LayoutEngine
             Display.Inline => LayoutType.Inline,
             Display.InlineBlock => LayoutType.InlineBlock,
             Display.Flex => LayoutType.Flex,
+            Display.Table => LayoutType.Table,
+            Display.TableRow => LayoutType.TableRow,
+            Display.TableCell => LayoutType.TableCell,
             Display.None => LayoutType.Block, // 不会被添加到树中
             _ => LayoutType.Block
         };
@@ -301,6 +305,9 @@ public class LayoutEngine
             Display.Inline => LayoutType.Inline,
             Display.InlineBlock => LayoutType.InlineBlock,
             Display.Flex => LayoutType.Flex,
+            Display.Table => LayoutType.Table,
+            Display.TableRow => LayoutType.TableRow,
+            Display.TableCell => LayoutType.TableCell,
             Display.None => LayoutType.Block,
             _ => LayoutType.Inline
         };
@@ -328,6 +335,17 @@ public class LayoutEngine
 
             case LayoutType.Flex:
                 _flexLayout.Layout(box, constraints, x, y);
+                break;
+
+            case LayoutType.Table:
+                _tableLayout.Layout(box, constraints, x, y);
+                break;
+
+            case LayoutType.TableRow:
+            case LayoutType.TableCell:
+                // TableRow 和 TableCell 由 TableLayout 直接布局
+                // 如果单独调用，使用 Block 布局作为后备
+                _blockLayout.Layout(box, constraints, x, y);
                 break;
         }
     }

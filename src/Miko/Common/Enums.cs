@@ -9,7 +9,10 @@ public enum Display
     Inline,
     InlineBlock,
     Flex,
-    None
+    None,
+    Table,
+    TableRow,
+    TableCell
 }
 
 /// <summary>
@@ -110,7 +113,10 @@ public enum LayoutType
     InlineBlock,
     Flex,
     FlexItem,
-    Anonymous
+    Anonymous,
+    Table,
+    TableRow,
+    TableCell
 }
 
 /// <summary>
@@ -175,3 +181,14 @@ public enum BoxSizing { ContentBox, BorderBox }
 public enum BackgroundRepeat { Repeat, RepeatX, RepeatY, NoRepeat }
 public enum BackgroundSizeMode { Auto, Cover, Contain, Explicit }
 public enum BackgroundPosition { LeftTop, CenterTop, RightTop, LeftCenter, Center, RightCenter, LeftBottom, CenterBottom, RightBottom }
+
+/// <summary>
+/// 表格布局算法（CSS table-layout 属性）
+/// </summary>
+public enum TableLayoutAlgorithm
+{
+    /// <summary>自动布局（默认）：根据内容计算列宽。</summary>
+    Auto,
+    /// <summary>固定布局：根据表格首行/colgroup 平均分配列宽，性能更好。</summary>
+    Fixed
+}

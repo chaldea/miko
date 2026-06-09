@@ -24,7 +24,7 @@ public struct Color
 
     public static Color FromRgb(byte r, byte g, byte b) => new Color(r, g, b);
     public static Color FromRgba(byte r, byte g, byte b, byte a) => new Color(r, g, b, a);
-    public static Color FromRgba(byte r, byte g, byte b, float alpha) => new Color(r, g, b, (byte)Math.Round(Math.Clamp(alpha, 0f, 1f) * 255));
+    public static Color FromRgba(byte r, byte g, byte b, float a) => new Color(r, g, b, (byte)Math.Round(Math.Clamp(a, 0f, 1f) * 255));
     public static Color FromHex(string hex)
     {
         hex = hex.TrimStart('#');
@@ -48,7 +48,10 @@ public struct Color
             _ => throw new ArgumentException("Invalid hex color format")
         };
     }
-    public static Color From(Color color, float alpha) => new Color(color.R, color.G, color.A, (byte)Math.Round(Math.Clamp(alpha, 0f, 1f) * 255));
+
+    public static Color From(Color color, float a) => FromRgba(color.R, color.G, color.A, a);
+    public static Color Rgb(byte r, byte g, byte b) => FromRgb(r, g, b);
+    public static Color Rgba(byte r, byte g, byte b, float a) => FromRgba(r, g, b, a);
 
     public static implicit operator Color(string value) => FromHex(value);
 
