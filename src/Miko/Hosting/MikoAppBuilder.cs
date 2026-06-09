@@ -29,6 +29,7 @@ public class MikoAppBuilder
         builder.Services.AddSingleton<DirtyRegionManager>();
         builder.Services.AddSingleton<EventDispatcher>();
         builder.Services.AddSingleton<MikoEngine>();
+        builder.Services.AddSingleton<HotReloadService>();
         return builder;
     }
 
@@ -104,6 +105,12 @@ public class MikoAppBuilder
         var fontBuilder = new FontBuilder();
         configure(fontBuilder);
         Services.Configure<MikoAppOptions>(o => o.Fonts.AddRange(fontBuilder.Registrations));
+        return this;
+    }
+
+    public MikoAppBuilder EnableHotReload()
+    {
+        Services.Configure<MikoAppOptions>(o => o.EnableHotReload = true);
         return this;
     }
 

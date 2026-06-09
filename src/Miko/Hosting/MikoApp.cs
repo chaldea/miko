@@ -22,6 +22,7 @@ public class MikoApp
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MikoApp> _logger;
     private readonly MikoEngine _engine;
+    private readonly HotReloadService _hotReloadService;
 
     private Router? _router;
     private NavigationManager? _navigationManager;
@@ -35,7 +36,10 @@ public class MikoApp
     private GRContext? _grContext;
     private int _width;
     private int _height;
-    private bool _needsRebuild;
+    // volatile because hot reload (UpdateApplication) sets this from a background thread,
+    // while the render loop reads it on the render thread. Without volatile the render
+    // thread may never observe the change due to CPU caching.
+    private volatile bool _needsRebuild;
 
     private Element? _focusedElement;
     private InputElement? _draggingRange;
@@ -52,11 +56,13 @@ public class MikoApp
     private readonly Stopwatch _frameTimer = new();
     private float _lastFrameTime;
 
-    public MikoApp(IOptions<MikoAppOptions> options, IServiceProvider serviceProvider, MikoEngine engine, ILogger<MikoApp> logger)
+    public MikoApp(IOptions<MikoAppOptions> options, IServiceProvider serviceProvider, MikoEngine engine,
+        HotReloadService hotReloadService, ILogger<MikoApp> logger)
     {
         _options = options.Value;
         _serviceProvider = serviceProvider;
         _engine = engine;
+        _hotReloadService = hotReloadService;
         _logger = logger;
         _width = _options.Width;
         _height = _options.Height;
@@ -73,7 +79,24 @@ public class MikoApp
             _routeView = new RouteView(_router, _navigationManager, _options.DefaultLayout, _serviceProvider);
             _navigationManager.LocationChanged += _ => _needsRebuild = true;
         }
+
+        // Set up hot reload if enabled
+        if (_options.EnableHotReload)
+        {
+            _logger.LogInformation("[HotReload] Hot reload enabled, registering rebuild callback");
+            _hotReloadService.OnReload(() =>
+            {
+                _logger.LogInformation("[HotReload] Rebuild callback invoked - setting _needsRebuild flag");
+                _needsRebuild = true;
+            });
+        }
     }
+
+    /// <summary>
+    /// Gets the hot reload service for this application.
+    /// Used by application-specific hot reload handlers.
+    /// </summary>
+    public HotReloadService GetHotReloadService() => _hotReloadService;
 
     private static void RegisterFonts(MikoAppOptions options)
     {
@@ -189,22 +212,24 @@ public class MikoApp
         float deltaTime = currentTime - _lastFrameTime;
         _lastFrameTime = currentTime;
 
-        if (_needsRebuild)
-        {
-            _needsRebuild = false;
-            var root = BuildRoot();
-            using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
-            _engine.Initialize(root, _options.StyleSheets, tempSurface.Canvas, _width, _height);
-        }
-
-        _engine.AnimationManager.Update(deltaTime);
-
         int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
         var fbInfo = new GRGlFramebufferInfo((uint)fboId, 0x8058); // GL_RGBA8
         var target = new GRBackendRenderTarget(_width, _height, 0, 8, fbInfo);
 
         using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
         var canvas = surface.Canvas;
+
+        if (_needsRebuild)
+        {
+            _logger.LogInformation("[HotReload] Render loop detected _needsRebuild flag, rebuilding DOM tree");
+            _needsRebuild = false;
+            var root = BuildRoot();
+            _engine.Initialize(root, _options.StyleSheets, canvas, _width, _height);
+            _logger.LogInformation("[HotReload] DOM rebuilt and initialized, next frame will render new content");
+        }
+
+        _engine.AnimationManager.Update(deltaTime);
+
         canvas.Clear(SKColors.White);
         _engine.Render(canvas);
         canvas.Flush();

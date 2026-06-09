@@ -23,6 +23,7 @@ public class MikoAppOptions
     public List<FontRegistration> Fonts { get; set; } = new();
     public List<Func<Key, bool>> GlobalKeyDownHandlers { get; set; } = new();
     public List<Action<IServiceProvider>> PostInitHooks { get; set; } = new();
+    public bool EnableHotReload { get; set; } = false;
 }
 
 public class FontRegistration
