@@ -17,6 +17,7 @@ public static class RazorApp
         builder.UseSize(1024, 768);
         builder.UseGeneratedRoutes();
         builder.UseDefaultLayout<MainLayout>();
+        builder.EnableHotReload();
         builder.UseLogging(logging =>
         {
             logging.AddConsole().SetMinimumLevel(LogLevel.Trace);
