@@ -99,6 +99,11 @@ public class ComputedStyle : Style
     public new Overflow OverflowX { get; set; } = Overflow.Visible;
     public new Overflow OverflowY { get; set; } = Overflow.Visible;
 
+    /// <summary>
+    /// 表格布局算法（默认 auto，与浏览器行为一致）。
+    /// </summary>
+    public new TableLayoutAlgorithm TableLayout { get; set; } = TableLayoutAlgorithm.Auto;
+
     public new Transform Transform { get; set; } = Transform.None;
     public new TransformOrigin TransformOrigin { get; set; } = TransformOrigin.Center;
     public new List<Transition> Transitions { get; set; } = new();
@@ -248,6 +253,8 @@ public class ComputedStyle : Style
 
             if (style.OverflowX.HasValue) computed.OverflowX = style.OverflowX.Value;
             if (style.OverflowY.HasValue) computed.OverflowY = style.OverflowY.Value;
+
+            if (style.TableLayout.HasValue) computed.TableLayout = style.TableLayout.Value;
 
             if (style.Transform != null) computed.Transform = style.Transform;
             if (style.TransformOrigin.HasValue) computed.TransformOrigin = style.TransformOrigin.Value;

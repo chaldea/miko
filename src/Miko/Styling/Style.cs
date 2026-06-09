@@ -254,6 +254,9 @@ public class Style
     public Length? LetterSpacing { get; set; }
     public VerticalAlign? VerticalAlign { get; set; }
 
+    // 表格布局算法（仅对 Display.Table 生效）
+    public TableLayoutAlgorithm? TableLayout { get; set; }
+
     public float? Opacity { get; set; }
     public int? ZIndex { get; set; }
     public Visibility? Visibility { get; set; }
@@ -375,6 +378,7 @@ public class Style
         WhiteSpace ??= other.WhiteSpace;
         LetterSpacing ??= other.LetterSpacing;
         VerticalAlign ??= other.VerticalAlign;
+        TableLayout ??= other.TableLayout;
 
         Opacity ??= other.Opacity;
         ZIndex ??= other.ZIndex;
