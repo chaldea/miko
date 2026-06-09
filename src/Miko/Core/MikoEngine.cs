@@ -89,6 +89,12 @@ public class MikoEngine
 
     private static void MapElementIdentityRecursive(Element oldElement, Element newElement)
     {
+        // 仅在新旧元素表示"同一个"元素时才迁移 LayoutBox。
+        // 否则旧元素的 LayoutBox（携带其 transition 定义与计算样式）会被错误地挂到
+        // 结构位置相同但语义不同的新元素上，导致旧页面的 transition 在新页面上被触发
+        // （见 ISSUE-043：切换页面时 .btn 的背景色动画在 /form 页面上播放）。
+        if (!IsSameElementIdentity(oldElement, newElement)) return;
+
         if (oldElement.LayoutBox != null)
         {
             newElement.LayoutBox = oldElement.LayoutBox;
@@ -99,6 +105,19 @@ public class MikoEngine
         {
             MapElementIdentityRecursive(oldElement.Children[i], newElement.Children[i]);
         }
+    }
+
+    /// <summary>
+    /// 判断两个元素是否表示"同一个"元素，用于跨重建（导航/重新渲染）的身份保持。
+    /// 以标签名为身份依据：
+    /// - 切换页面时结构位置相同但标签不同的元素（如 button.btn ↔ input.form-control）不会被误配，
+    ///   避免旧页面的 transition 状态被错误迁移（见 ISSUE-043）。
+    /// - 同一元素仅 class 变化（如 div "panel" ↔ "panel open"）仍视为同一元素，
+    ///   从而保留 Razor 重新渲染时基于状态变化触发 transition 的能力。
+    /// </summary>
+    private static bool IsSameElementIdentity(Element a, Element b)
+    {
+        return a.TagName == b.TagName;
     }
 
     public void Update(SKCanvas canvas)
