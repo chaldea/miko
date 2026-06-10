@@ -1,0 +1,58 @@
+name: Publish NuGet
+
+# Publishes NuGet packages when changes land on main (e.g. after a PR is merged).
+# Development versioning: 0.0.<run_number>.
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Pack and push
+    runs-on: ubuntu-latest
+    env:
+      VERSION: 0.0.${{ github.run_number }}
+      CONFIGURATION: Release
+      ARTIFACTS: ${{ github.workspace }}/artifacts
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Pack library packages
+        run: |
+          for proj in \
+            src/Miko/Miko.csproj \
+            src/Miko.Bootstrap/Miko.Bootstrap.csproj \
+            src/Miko.DevTools/Miko.DevTools.csproj \
+            src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj
+          do
+            dotnet pack "$proj" -c $CONFIGURATION -p:Version=$VERSION -o "$ARTIFACTS"
+          done
+
+      - name: Pin template dependency versions to current build
+        run: |
+          sed -i -E 's#(Include="Miko(\.[A-Za-z.]+)?" Version=")[^"]+(")#\1'"$VERSION"'\3#g' \
+            templates/MikoRazorApp/MikoRazorApp.csproj
+          echo "----- templates/MikoRazorApp/MikoRazorApp.csproj after substitution -----"
+          grep -E 'PackageReference Include="Miko' templates/MikoRazorApp/MikoRazorApp.csproj
+
+      - name: Pack template package
+        run: dotnet pack templates/Miko.Templates.csproj -c $CONFIGURATION -p:Version=$VERSION -o "$ARTIFACTS"
+
+      - name: Push to NuGet feed
+        run: |
+          dotnet nuget push "$ARTIFACTS/*.nupkg" \
+            --source "${{ secrets.NUGET_SOURCE }}" \
+            --api-key "${{ secrets.NUGET_KEY }}" \
+            --skip-duplicate

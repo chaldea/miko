@@ -8,10 +8,27 @@
     <RazorLangVersion>Latest</RazorLangVersion>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>Miko.Bootstrap</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Miko</Authors>
+    <Description>Bootstrap-style component library and styles for Miko, the lightweight DOM rendering engine.</Description>
+    <PackageTags>miko;bootstrap;components;ui;razor</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Miko\Miko.csproj" />
+    <!-- Build-order only: ensures Miko.Razor.Compiler is built before this project so
+         the generator DLLs exist at the path used by _OverrideRazorSourceGenerator below.
+         The compiler targets net9.0 and is consumed only as analyzer DLLs by path, so its
+         output assembly is not referenced into this net10.0 project. -->
+    <ProjectReference Include="..\Miko.Razor.Compiler\Miko.Razor.Compiler.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      Private="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,7 +37,7 @@
 
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
     <PropertyGroup>
-      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\Debug\net9.0\</_CustomRazorGeneratorDir>
+      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\$(Configuration)\net9.0\</_CustomRazorGeneratorDir>
     </PropertyGroup>
     <ItemGroup>
       <Analyzer Remove="@(_RazorAnalyzer)" />

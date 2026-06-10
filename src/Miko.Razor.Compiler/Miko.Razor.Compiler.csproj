@@ -10,7 +10,16 @@
     <IsShippingAssembly>true</IsShippingAssembly>
     <IncludeSymbols>true</IncludeSymbols>
     <PackageId>Miko.Razor.Compiler</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Miko</Authors>
+    <PackageTags>miko;razor;compiler;source-generator</PackageTags>
     <AssemblyName>Microsoft.CodeAnalysis.Razor.Compiler</AssemblyName>
+
+    <!-- Pack as a tools-only package: skip the normal lib/ output and dependencies. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
 
     <!--
       RS2008: Enable analyzer release tracking
@@ -21,7 +30,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0-2.25461.22" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0-2.final" />
     <PackageReference Include="Miko.Razor.Utilities.Shared" Version="1.0.0" />
   </ItemGroup>
 
@@ -76,4 +85,30 @@
   <ItemGroup>
     <None Update="RazorSourceGenerator.razorencconfig" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <!--
+    Pack the compiled DLLs into a `tools/` folder inside the NuGet package, alongside
+    a `build/Miko.Razor.Compiler.props` that wires them up as Razor source generators
+    in the consuming project. Consumers only need a PackageReference; no manual MSBuild
+    target is required.
+  -->
+  <ItemGroup>
+    <None Include="build\Miko.Razor.Compiler.props" Pack="true" PackagePath="build\" />
+  </ItemGroup>
+
+  <Target Name="_AddCompilerOutputToPackage" BeforeTargets="_GetPackageFiles" DependsOnTargets="Build">
+    <PropertyGroup>
+      <_MikoRazorCompilerOutDir>$(MSBuildThisFileDirectory)bin\$(Configuration)\net9.0\</_MikoRazorCompilerOutDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" Pack="true" PackagePath="tools\net9.0\" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.pdb" Pack="true" PackagePath="tools\net9.0\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.pdb')" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.AspNetCore.Razor.Utilities.Shared.dll" Pack="true" PackagePath="tools\net9.0\" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.Extensions.ObjectPool.dll" Pack="true" PackagePath="tools\net9.0\" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.dll" Pack="true" PackagePath="tools\net9.0\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.dll')" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.CSharp.dll" Pack="true" PackagePath="tools\net9.0\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.CSharp.dll')" />
+      <None Include="$(_MikoRazorCompilerOutDir)RazorSourceGenerator.razorencconfig" Pack="true" PackagePath="tools\net9.0\" Condition="Exists('$(_MikoRazorCompilerOutDir)RazorSourceGenerator.razorencconfig')" />
+      <None Include="$(_MikoRazorCompilerOutDir)**\*.resources.dll" Pack="true" PackagePath="tools\net9.0\%(RecursiveDir)" />
+    </ItemGroup>
+  </Target>
 </Project>
