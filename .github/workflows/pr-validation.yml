@@ -1,0 +1,44 @@
+name: PR Validation
+
+# Validate that pull requests targeting main compile successfully.
+# Configure this workflow as a required status check in branch protection
+# so failures block merging.
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      # Build the publishable projects and tests. The whole solution also contains a
+      # net10.0-android example that requires the Android workload, which is not part
+      # of what we ship, so it is excluded from CI validation.
+      - name: Build library projects (Release)
+        run: |
+          for proj in \
+            src/Miko/Miko.csproj \
+            src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj \
+            src/Miko.Bootstrap/Miko.Bootstrap.csproj \
+            src/Miko.DevTools/Miko.DevTools.csproj
+          do
+            dotnet build "$proj" -c Release
+          done
+
+      - name: Build and run tests
+        run: dotnet test tests/Miko.Tests/Miko.Tests.csproj -c Release

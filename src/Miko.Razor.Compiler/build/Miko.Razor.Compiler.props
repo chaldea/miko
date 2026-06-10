@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+    When this NuGet package is referenced, replace the default Razor source generator
+    with the bundled Miko.Razor.Compiler one. The DLLs live in `tools/net9.0/` inside
+    the package; `$(MSBuildThisFileDirectory)` resolves to `<package>/build/` at restore
+    time, so we walk up one level to reach `tools/net9.0/`.
+  -->
+  <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
+    <PropertyGroup>
+      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\tools\net9.0\</_CustomRazorGeneratorDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <Analyzer Remove="@(_RazorAnalyzer)" />
+      <_RazorAnalyzer Remove="@(_RazorAnalyzer)" />
+    </ItemGroup>
+    <ItemGroup>
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" />
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.AspNetCore.Razor.Utilities.Shared.dll" />
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.Extensions.ObjectPool.dll" />
+      <Analyzer Include="@(_RazorAnalyzer)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

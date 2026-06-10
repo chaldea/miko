@@ -4,6 +4,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>Miko</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Miko</Authors>
+    <Description>Miko is a lightweight DOM rendering engine written in C# that uses SkiaSharp for graphics rendering.</Description>
+    <PackageTags>miko;dom;rendering;skiasharp;ui</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>

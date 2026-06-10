@@ -5,6 +5,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Miko.DevTools</RootNamespace>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>Miko.DevTools</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Miko</Authors>
+    <Description>Developer tools for Miko, the lightweight DOM rendering engine.</Description>
+    <PackageTags>miko;devtools;debugging;ui</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
