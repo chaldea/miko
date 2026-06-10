@@ -288,6 +288,16 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
 
         // Text node
         var content = GetHtmlContent(node);
+
+        // Miko renders to a box-model layout that does not collapse HTML whitespace the
+        // way a browser does, so emitting empty or whitespace-only text (the newlines and
+        // indentation between markup) would add spurious layout content. Skip it entirely
+        // — and don't consume a sequence number, keeping the generated code clean.
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return;
+        }
+
         var renderApi = ComponentsApi.RenderTreeBuilder.AddContent;
         if (node.HasEncodedContent)
         {
