@@ -16,7 +16,7 @@ internal static class IconStyles
                 FontStyle = FontStyle.Normal,
                 FontWeight = FontWeight.Normal,
                 FontSize = Length.Px(16),
-                LineHeight = Length.Px(1)
+                LineHeight = Number(1)
             },
             [".icon-sm"] = new() { FontSize = Length.Px(16) },
             [".icon-md"] = new() { FontSize = Length.Px(24) },
