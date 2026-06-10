@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Styling;
 
 namespace Miko.Bootstrap.Components;
@@ -13,6 +13,7 @@ public class TableToken
         TableCellPaddingXSm = Length.Rem(0.25f);
         TableColor = theme.EmphasisColor;
         TableBg = theme.BodyBg;
+        TableAccentBg = Transparent;
         TableBorderColor = theme.BorderColor;
         TableBorderWidth = theme.BorderWidth;
         TableStripedBg = Color.FromRgba(0, 0, 0, 0.05f);
@@ -37,6 +38,7 @@ public class TableToken
     public Length TableCellPaddingXSm { get; set; }
     public Color TableColor { get; set; }
     public Color TableBg { get; set; }
+    public Color TableAccentBg { get; set; }
     public Color TableBorderColor { get; set; }
     public float TableBorderWidth { get; set; }
     public Color TableStripedBg { get; set; }
@@ -59,30 +61,29 @@ internal static class TableStyles
 {
     internal static CssObject GenStyle(TableToken t)
     {
+        VariantToken token = new(t.TableCellPaddingY, t.TableCellPaddingX, t.TableColor, t.TableBg, t.TableBorderWidth, t.TableAccentBg);
+
         return new CssObject
         {
             [".table"] = new()
             {
-                Width = Length.Percent(100),
-                MarginBottom = Length.Rem(1),
+                Width = Percent(100),
+                MarginBottom = Rem(1),
+                VerticalAlign = VerticalAlign.Top,
+                BorderColor = t.TableBorderColor,
                 Color = t.TableColor,
-                BackgroundColor = t.TableBg,
-                // NOTE: caption-side, border-collapse not supported
-                BorderWidth = Length.Px(0),
 
-                ["th"] = new()
+                ["> :not(caption) > * > *"] = GenVariantTable(token),
+
+                ["> tbody"] = new()
                 {
-                    Padding = new Padding(t.TableCellPaddingY, t.TableCellPaddingX),
-                    BorderBottom = new BorderSide(Length.Px(t.TableBorderWidth), BorderStyle.Solid, t.TableBorderColor),
-                    VerticalAlign = VerticalAlign.Bottom
+                    // VerticalAlign = 
                 },
 
-                ["td"] = new()
+                ["> thead"] = new()
                 {
-                    Padding = new Padding(t.TableCellPaddingY, t.TableCellPaddingX),
-                    BorderBottom = new BorderSide(Length.Px(t.TableBorderWidth), BorderStyle.Solid, t.TableBorderColor),
-                    VerticalAlign = VerticalAlign.Top
-                }
+                    VerticalAlign = VerticalAlign.Bottom,
+                },
             },
 
             [".table-sm"] = new()
@@ -153,7 +154,7 @@ internal static class TableStyles
 
             [".table-primary"] = new()
             {
-                BackgroundColor = t.TablePrimaryBg
+                ["> *"] = GenVariantTable(token with{ TableColor = "#000" }),
             },
 
             [".table-secondary"] = new()
@@ -216,6 +217,26 @@ internal static class TableStyles
             {
                 OverflowX = Overflow.Auto
             }
+        };
+    }
+
+    private record struct VariantToken(
+        Length TableCellPaddingY,
+        Length TableCellPaddingX,
+        Color TableColor,
+        Color TableBg,
+        Length TableBorderWidth,
+        Color TableAccentBg);
+
+    private static CssObject GenVariantTable(VariantToken t)
+    {
+        return new()
+        {
+            Padding = new Padding(t.TableCellPaddingY, t.TableCellPaddingX),
+            Color = t.TableColor,
+            BackgroundColor = t.TableBg,
+            BorderBottomWidth = t.TableBorderWidth,
+            BoxShadow = new BoxShadow(0, 0, 0, Px(9999), t.TableAccentBg)
         };
     }
 }

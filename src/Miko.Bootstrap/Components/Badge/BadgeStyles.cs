@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Styling;
 
 namespace Miko.Bootstrap.Components;
@@ -54,7 +54,7 @@ internal static class BadgeStyles
                 Padding = new Padding(t.BadgePaddingY, t.BadgePaddingX),
                 FontSize = t.BadgeFontSize,
                 FontWeight = t.BadgeFontWeight,
-                LineHeight = Length.Px(1),
+                LineHeight = Number(1f),
                 Color = t.BadgeColor,
                 TextAlign = TextAlign.Center,
                 // NOTE: white-space: nowrap not supported in CssObject

@@ -14,6 +14,7 @@ public class ButtonToken
         BtnFontWeight = FontWeight.Normal;
         BtnLineHeight = 1.5f;
         BtnColor = theme.BodyColor;
+        BtnBg = Transparent;
         BtnBorderWidth = theme.BorderWidth;
         BtnBorderRadius = theme.BorderRadius;
         BtnDisabledOpacity = 0.65f;
@@ -88,6 +89,7 @@ public class ButtonToken
     public FontWeight BtnFontWeight { get; set; }
     public float BtnLineHeight { get; set; }
     public Color BtnColor { get; set; }
+    public Color BtnBg { get; set; }
     public Length BtnBorderWidth { get; set; }
     public Length BtnBorderRadius { get; set; }
     public float BtnDisabledOpacity { get; set; }
@@ -163,12 +165,15 @@ internal static class ButtonStyles
                 Padding = new Padding(t.BtnPaddingY, t.BtnPaddingX),
                 FontSize = t.BtnFontSize,
                 FontWeight = t.BtnFontWeight,
-                LineHeight = Length.Px(t.BtnLineHeight),
+                LineHeight = Number(t.BtnLineHeight),
                 Color = t.BtnColor,
                 TextAlign = TextAlign.Center,
-                // NOTE: white-space, vertical-align, cursor, user-select not supported
+                TextDecoration = TextDecoration.None,
+                WhiteSpace = WhiteSpace.Nowrap,
+                VerticalAlign = VerticalAlign.Middle,
                 Border = new Border(t.BtnBorderWidth, BorderStyle.Solid, Color.Transparent),
                 BorderRadius = t.BtnBorderRadius,
+                BackgroundColor = t.BtnBg,
                 Transitions = t.BtnTransition
             },
 

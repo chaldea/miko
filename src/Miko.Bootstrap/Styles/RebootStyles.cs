@@ -13,15 +13,6 @@ internal static class RebootStyles
             {
                 BoxSizing = BoxSizing.BorderBox
             },
-            // ["body"] = new()
-            // {
-            //     Margin = new Margin(0),
-            //     FontSize = Length.Px(t.BodyFontSize),
-            //     FontWeight = (FontWeight)t.BodyFontWeight,
-            //     LineHeight = t.BodyLineHeight,
-            //     Color = t.BodyColor,
-            //     BackgroundColor = t.BodyBg
-            // },
             ["hr"] = new()
             {
                 Margin = new Margin(Length.Rem(1), 0),
@@ -33,7 +24,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(40),
                 FontWeight = FontWeight.Medium,
-                LineHeight = Length.Px(1.2f),
+                LineHeight = Number(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -42,7 +33,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(32),
                 FontWeight = FontWeight.Medium,
-                LineHeight = Length.Px(1.2f),
+                LineHeight = Number(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -51,7 +42,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(28),
                 FontWeight = FontWeight.Medium,
-                LineHeight = Length.Px(1.2f),
+                LineHeight = Number(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -60,7 +51,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(24),
                 FontWeight = FontWeight.Medium,
-                LineHeight = Length.Px(1.2f),
+                LineHeight = Number(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -69,7 +60,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(20),
                 FontWeight = FontWeight.Medium,
-                LineHeight = Length.Px(1.2f),
+                LineHeight = Number(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -78,7 +69,7 @@ internal static class RebootStyles
             {
                 FontSize = Length.Px(16),
                 FontWeight = FontWeight.Medium,
-                LineHeight = Length.Px(1.2f),
+                LineHeight = Number(1.2f),
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Rem(0.5f),
                 Color = t.HeadingColor
@@ -143,13 +134,18 @@ internal static class RebootStyles
             },
             ["table"] = new()
             {
-                // NOTE: caption-side, border-collapse not supported in CssObject
                 BorderWidth = Length.Px(0),
                 BorderStyle = BorderStyle.Solid
             },
             ["th"] = new()
             {
-                FontWeight = FontWeight.Normal
+                TextAlign = TextAlign.Left,
+            },
+            ["thead,tbody,tfoot,tr,td,th"] = new()
+            {
+                BorderColor = t.BorderColor,
+                BorderStyle = BorderStyle.Solid,
+                BorderWidth = 0,
             },
             ["label"] = new()
             {
