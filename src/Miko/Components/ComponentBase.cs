@@ -41,6 +41,13 @@ public abstract class ComponentBase : IComponent
         return _rootElement;
     }
 
+    /// <summary>
+    /// Triggers a re-render. Invoked automatically after an event handler raised
+    /// through an <see cref="EventCallback{T}"/> completes, so handlers usually do
+    /// not need to call <see cref="StateHasChanged"/> themselves.
+    /// </summary>
+    internal void NotifyStateChanged() => StateHasChanged();
+
     protected void StateHasChanged()
     {
         if (_rootElement == null) return;
