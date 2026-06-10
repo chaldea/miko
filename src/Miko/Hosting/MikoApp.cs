@@ -32,6 +32,7 @@ public class MikoApp
     private IInputContext? _inputContext;
     private readonly EventDispatcher _eventDispatcher = new();
     private System.Numerics.Vector2? _mouseDownPosition;
+    private StandardCursor _currentCursor = StandardCursor.Default;
     private GL? _gl;
     private GRContext? _grContext;
     private int _width;
@@ -342,8 +343,54 @@ public class MikoApp
         if (_isDragging && _draggingRange != null)
         {
             UpdateRangeValue(_draggingRange, position.X);
+            return;
         }
+
+        UpdateCursor(mouse, position.X, position.Y);
     }
+
+    /// <summary>
+    /// Resolves the CSS cursor of the element under the pointer and applies it to
+    /// the window, so styles such as <c>Cursor = Cursor.Pointer</c> take effect.
+    /// </summary>
+    private void UpdateCursor(IMouse mouse, float x, float y)
+    {
+        var target = _engine.HitTest(x, y);
+        var cursor = ResolveCursor(target);
+        var standardCursor = ToStandardCursor(cursor);
+
+        if (standardCursor == _currentCursor) return;
+        _currentCursor = standardCursor;
+
+        mouse.Cursor.Type = CursorType.Standard;
+        mouse.Cursor.StandardCursor = standardCursor;
+    }
+
+    /// <summary>
+    /// Walks up from the hovered element to the first one with an explicit (non-default)
+    /// cursor, approximating CSS cursor inheritance. Falls back to <see cref="Cursor.Default"/>.
+    /// </summary>
+    private static Cursor ResolveCursor(Element? element)
+    {
+        for (var current = element; current != null; current = current.Parent)
+        {
+            var computed = current.LayoutBox?.ComputedStyle;
+            if (computed != null && computed.Cursor != Cursor.Default)
+                return computed.Cursor;
+        }
+        return Cursor.Default;
+    }
+
+    private static StandardCursor ToStandardCursor(Cursor cursor) => cursor switch
+    {
+        Cursor.Pointer => StandardCursor.Hand,
+        Cursor.Text => StandardCursor.IBeam,
+        Cursor.Wait => StandardCursor.Wait,
+        Cursor.NotAllowed => StandardCursor.NotAllowed,
+        Cursor.Move => StandardCursor.ResizeAll,
+        Cursor.Help => StandardCursor.Arrow,
+        _ => StandardCursor.Default,
+    };
 
     private void HandleClick(Element target, float x, float y)
     {
