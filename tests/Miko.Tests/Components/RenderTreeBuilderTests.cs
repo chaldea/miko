@@ -39,6 +39,33 @@ public class RenderTreeBuilderTests
     }
 
     [Fact]
+    public void AddContent_MultipleFragments_ConcatenatesTextContent()
+    {
+        // Razor compiles `Clicked @_count times` into three AddContent calls.
+        var builder = new RenderTreeBuilder();
+        builder.OpenElement(0, "button");
+        builder.AddContent(1, "Clicked ");
+        builder.AddContent(2, 5);
+        builder.AddContent(3, " times");
+        builder.CloseElement();
+
+        builder.Build().TextContent.ShouldBe("Clicked 5 times");
+    }
+
+    [Fact]
+    public void AddContent_WhitespaceOnlyFragmentBetweenValues_IsPreserved()
+    {
+        var builder = new RenderTreeBuilder();
+        builder.OpenElement(0, "span");
+        builder.AddContent(1, "a");
+        builder.AddContent(2, " ");
+        builder.AddContent(3, "b");
+        builder.CloseElement();
+
+        builder.Build().TextContent.ShouldBe("a b");
+    }
+
+    [Fact]
     public void NestedElements_BuildsParentChildRelationship()
     {
         var builder = new RenderTreeBuilder();
