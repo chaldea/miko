@@ -1,12 +1,44 @@
 using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Events;
 using Shouldly;
 
 namespace Miko.Tests.Components;
 
 public class StateHasChangedTests
 {
+    // Mirrors the compiler output for `<button @onclick="Increment">Count: @_count</button>`:
+    // the handler only mutates state and never calls StateHasChanged itself.
+    private class AutoUpdateCounterComponent : ComponentBase
+    {
+        private int _count;
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "button");
+            builder.AddAttribute(1, "onclick",
+                EventCallback.Factory.Create<MouseEventArgs>(this, Increment));
+            builder.AddContent(2, $"Count: {_count}");
+            builder.CloseElement();
+        }
+
+        private void Increment() => _count++;
+    }
+
+    [Fact]
+    public void EventCallback_AfterHandler_AutoUpdatesWithoutManualStateHasChanged()
+    {
+        var component = new AutoUpdateCounterComponent();
+        var element = component.Build();
+        element.TextContent.ShouldBe("Count: 0");
+
+        // Simulate a click dispatching to the wired-up handler.
+        element.OnClick!.Invoke(new MouseEventArgs { Target = element });
+
+        element.TextContent.ShouldBe("Count: 1");
+    }
+
     private class CounterComponent : ComponentBase
     {
         public int Count { get; set; }
