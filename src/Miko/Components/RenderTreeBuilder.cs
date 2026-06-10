@@ -147,8 +147,13 @@ public class RenderTreeBuilder
             return;
         }
         var str = text.ToString();
-        if (string.IsNullOrWhiteSpace(str)) return;
-        _stack.Peek().TextContent = WebUtility.HtmlDecode(str);
+        if (string.IsNullOrEmpty(str)) return;
+        var decoded = WebUtility.HtmlDecode(str);
+        var element = _stack.Peek();
+        // Razor emits one AddContent call per content fragment (literal text and
+        // expressions). Append so consecutive fragments concatenate instead of
+        // overwriting each other (e.g. "Clicked " + _count + " times").
+        element.TextContent = element.TextContent is null ? decoded : element.TextContent + decoded;
     }
 
     public void AddMarkupContent(int seq, string? markup)
