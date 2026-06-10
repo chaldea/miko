@@ -7,6 +7,11 @@
     <Authors>Miko</Authors>
     <Description>dotnet new templates for building Miko desktop apps with Razor components.</Description>
     <PackageTags>miko;razor;template;dotnet-new</PackageTags>
+    <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
     <TargetFramework>net10.0</TargetFramework>
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -25,6 +30,7 @@
     <Content Include="MikoRazorApp\**\*"
              Exclude="MikoRazorApp\**\bin\**;MikoRazorApp\**\obj\**;MikoRazorApp\nuget.config;MikoRazorApp\**\*.user"
              PackagePath="content\MikoRazorApp" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <!-- This is a content-only package; nothing here should be compiled. -->

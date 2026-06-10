@@ -12,9 +12,18 @@
     <Authors>Miko</Authors>
     <Description>Developer tools for Miko, the lightweight DOM rendering engine.</Description>
     <PackageTags>miko;devtools;debugging;ui</PackageTags>
+    <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Miko\Miko.csproj" />
