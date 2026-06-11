@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>Miko.Windowing</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Miko</Authors>
+    <Description>Desktop (Windows/Linux/macOS) windowing and input host for Miko, built on Silk.NET.</Description>
+    <PackageTags>miko;windowing;desktop;silk.net;skiasharp;ui</PackageTags>
+    <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Miko\Miko.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
+    <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
+    <PackageReference Include="SkiaSharp" Version="3.119.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

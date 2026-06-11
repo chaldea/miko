@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MikoApp1\MikoApp1.csproj" />
-    <PackageReference Include="SkiaSharp.Views" Version="3.119.1" />
+    <ProjectReference Include="..\..\src\Miko.Android\Miko.Android.csproj" />
   </ItemGroup>
 
 </Project>

@@ -22,7 +22,7 @@ Razor components  ─►  Miko source generator  ─►  native SkiaSharp render
   bundled Chromium, no Node, no WebView. Binaries are a fraction of an Electron app's.
 - ⚡ **Native rendering** — pixels are drawn directly on a GPU-backed Skia surface, not
   inside a web engine.
-- 🖥️ **Cross-platform** — one codebase runs on Windows, macOS, Linux, and Android,
+- 🖥️ **Cross-platform** — one codebase runs on Windows, macOS, Linux, Android, and iOS,
   wherever SkiaSharp does.
 - 🚀 **Trimming & AOT-aware** — the routing and rendering paths are designed for
   trimmed / Native AOT publishing for fast startup and small, self-contained binaries.
@@ -80,7 +80,7 @@ Razor components  ─►  Miko source generator  ─►  native SkiaSharp render
 - 🅱️ **Bootstrap-style component library** — ready-made buttons, cards, alerts,
   accordions, and more.
 - 🛠️ **Dev tools** — inspect the DOM and layout tree at runtime.
-- 🖥️ **Cross-platform & AOT-aware** — one codebase on Windows, macOS, Linux, and Android,
+- 🖥️ **Cross-platform & AOT-aware** — one codebase on Windows, macOS, Linux, Android, and iOS,
   built for trimmed / Native AOT publishing.
 
 ---
@@ -102,7 +102,7 @@ Razor components  ─►  Miko source generator  ─►  native SkiaSharp render
 ### Requirements
 
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/) or later
-- A platform supported by SkiaSharp (Windows, macOS, Linux, or Android)
+- A platform supported by SkiaSharp (Windows, macOS, Linux, Android, or iOS)
 
 ### Create an app from the template
 
@@ -120,6 +120,17 @@ dotnet run
 
 A window opens showing the home page (`Pages/Home.razor`). Add a page by dropping a new
 `.razor` file with a `@page` directive into `Pages/` — routes are discovered automatically.
+
+For a cross-platform app (Desktop + Android + iOS), use the multiplatform template instead:
+
+```bash
+# Scaffold a shared app plus Desktop / Android / iOS startup projects
+dotnet new miko-multiplatform -o MyApp
+cd MyApp
+
+# Run on the desktop
+dotnet run --project MyApp.Desktop
+```
 
 ```razor
 @page "/about"

@@ -5,7 +5,7 @@
     <PackageId>Miko.Templates</PackageId>
     <Version>1.0.0</Version>
     <Authors>Miko</Authors>
-    <Description>dotnet new templates for building Miko desktop apps with Razor components.</Description>
+    <Description>dotnet new templates for building Miko apps with Razor components — desktop and cross-platform (Desktop/Android/iOS).</Description>
     <PackageTags>miko;razor;template;dotnet-new</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
@@ -23,13 +23,16 @@
   </PropertyGroup>
 
   <!--
-    Pack the template source as package content. The local-feed nuget.config and any
+    Pack the template sources as package content. Local-feed nuget.config files and any
     build artifacts are excluded so they never ship inside the template package.
   -->
   <ItemGroup>
     <Content Include="MikoRazorApp\**\*"
              Exclude="MikoRazorApp\**\bin\**;MikoRazorApp\**\obj\**;MikoRazorApp\nuget.config;MikoRazorApp\**\*.user"
              PackagePath="content\MikoRazorApp" />
+    <Content Include="MikoMultiplatformApp\**\*"
+             Exclude="MikoMultiplatformApp\**\bin\**;MikoMultiplatformApp\**\obj\**;MikoMultiplatformApp\nuget.config;MikoMultiplatformApp\**\*.user"
+             PackagePath="content\MikoMultiplatformApp" />
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 

@@ -1,4 +1,3 @@
-﻿using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -6,37 +5,38 @@ using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
-using Miko.Fonts;
+using Miko.Hosting;
+using Miko.Layout;
 using Miko.Routing;
-using Silk.NET.Input;
-using Silk.NET.Maths;
-using Silk.NET.OpenGL;
-using Silk.NET.Windowing;
 using SkiaSharp;
 
-namespace Miko.Hosting;
+namespace Miko.Platform;
 
-public class MikoApp
+/// <summary>
+/// 平台无关的交互控制器。封装了所有与具体窗口/输入框架无关的交互逻辑：
+/// 命中测试、焦点管理、点击/选择/下拉、滚动条与滑块拖拽、文本输入编辑、
+/// 事件分发、光标解析、路由重建与热重载标记。
+/// <para>
+/// 各平台实现层（桌面 Silk.NET、Android、iOS）只负责拥有窗口/GL/原生输入，
+/// 并将归一化后的指针/键盘事件转发到本控制器。
+/// </para>
+/// </summary>
+public sealed class MikoInteractionController
 {
     private readonly MikoAppOptions _options;
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<MikoApp> _logger;
     private readonly MikoEngine _engine;
     private readonly HotReloadService _hotReloadService;
+    private readonly ILogger<MikoInteractionController> _logger;
+    private readonly EventDispatcher _eventDispatcher;
 
     private Router? _router;
     private NavigationManager? _navigationManager;
     private RouteView? _routeView;
 
-    private IWindow? _window;
-    private IInputContext? _inputContext;
-    private readonly EventDispatcher _eventDispatcher = new();
     private System.Numerics.Vector2? _mouseDownPosition;
-    private StandardCursor _currentCursor = StandardCursor.Default;
-    private GL? _gl;
-    private GRContext? _grContext;
-    private int _width;
-    private int _height;
+    private Cursor _currentCursor = Cursor.Default;
+
     // volatile because hot reload (UpdateApplication) sets this from a background thread,
     // while the render loop reads it on the render thread. Without volatile the render
     // thread may never observe the change due to CPU caching.
@@ -47,28 +47,20 @@ public class MikoApp
     private bool _isDragging;
     private MikoEngine.ScrollbarHitResult? _draggingScrollbar;
 
-    private Key? _heldKey;
-    private IKeyboard? _heldKeyboard;
-    private readonly Stopwatch _keyHoldTimer = new();
-    private bool _keyRepeatStarted;
-    private const long KeyRepeatDelayMs = 500;
-    private const long KeyRepeatIntervalMs = 33;
-
-    private readonly Stopwatch _frameTimer = new();
-    private float _lastFrameTime;
-
-    public MikoApp(IOptions<MikoAppOptions> options, IServiceProvider serviceProvider, MikoEngine engine,
-        HotReloadService hotReloadService, ILogger<MikoApp> logger)
+    public MikoInteractionController(
+        IOptions<MikoAppOptions> options,
+        IServiceProvider serviceProvider,
+        MikoEngine engine,
+        EventDispatcher eventDispatcher,
+        HotReloadService hotReloadService,
+        ILogger<MikoInteractionController> logger)
     {
         _options = options.Value;
         _serviceProvider = serviceProvider;
         _engine = engine;
+        _eventDispatcher = eventDispatcher;
         _hotReloadService = hotReloadService;
         _logger = logger;
-        _width = _options.Width;
-        _height = _options.Height;
-
-        RegisterFonts(_options);
 
         if (_options.RouteAssemblies != null || _options.RouteConfigurator != null)
         {
@@ -93,86 +85,21 @@ public class MikoApp
         }
     }
 
-    /// <summary>
-    /// Gets the hot reload service for this application.
-    /// Used by application-specific hot reload handlers.
-    /// </summary>
-    public HotReloadService GetHotReloadService() => _hotReloadService;
+    /// <summary>底层引擎，平台实现层用其进行渲染。</summary>
+    public MikoEngine Engine => _engine;
 
-    private static void RegisterFonts(MikoAppOptions options)
-    {
-        foreach (var font in options.Fonts)
-        {
-            using var stream = font.Assembly.GetManifestResourceStream(font.ResourceName);
-            if (stream == null)
-                throw new InvalidOperationException($"Embedded resource not found: {font.ResourceName}");
+    /// <summary>当前光标解析结果发生变化时触发，平台实现层据此应用原生光标。</summary>
+    public event Action<Cursor>? CursorChanged;
 
-            FontManager.Instance.RegisterFont(font.FamilyName, stream);
-        }
-    }
+    /// <summary>热重载/路由变更后是否需要重建 DOM 树。</summary>
+    public bool NeedsRebuild => _needsRebuild;
 
-    public void Run()
-    {
-        var options = WindowOptions.Default with
-        {
-            Title = _options.Title,
-            Size = new Vector2D<int>(_options.Width, _options.Height),
-            API = GraphicsAPI.Default
-        };
+    // ---------------------------------------------------------------------
+    // 生命周期
+    // ---------------------------------------------------------------------
 
-        _window = Window.Create(options);
-        _window.Load += OnLoad;
-        _window.Update += OnUpdate;
-        _window.Render += OnRender;
-        _window.Resize += OnResize;
-        _window.Closing += OnClose;
-
-        _logger.LogInformation("Starting Miko application: {Title}", _options.Title);
-        _window.Run();
-        _window.Dispose();
-    }
-
-    private void OnLoad()
-    {
-        _gl = _window!.CreateOpenGL();
-
-        var grInterface = GRGlInterface.Create(name =>
-        {
-            if (_window!.GLContext!.TryGetProcAddress(name, out var addr))
-                return addr;
-            return IntPtr.Zero;
-        });
-
-        _grContext = GRContext.CreateGl(grInterface);
-        _logger.LogInformation("OpenGL context initialized");
-
-        _inputContext = _window!.CreateInput();
-        foreach (var mouse in _inputContext.Mice)
-        {
-            mouse.MouseDown += OnMouseDown;
-            mouse.MouseUp += OnMouseUp;
-            mouse.MouseMove += OnMouseMove;
-            mouse.Scroll += OnMouseScroll;
-        }
-
-        foreach (var keyboard in _inputContext.Keyboards)
-        {
-            keyboard.KeyDown += OnKeyDown;
-            keyboard.KeyUp += OnKeyUp;
-            keyboard.KeyChar += OnKeyChar;
-        }
-
-        using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
-        var root = BuildRoot();
-        _engine.Initialize(root, _options.StyleSheets, tempSurface.Canvas, _width, _height);
-
-        foreach (var hook in _options.PostInitHooks)
-            hook(_serviceProvider);
-
-        _frameTimer.Start();
-    }
-
-    private Element BuildRoot()
+    /// <summary>构建根元素（路由优先，否则使用根组件工厂）。</summary>
+    public Element BuildRoot()
     {
         if (_routeView != null && _navigationManager != null)
             return _routeView.Render(_navigationManager.CurrentPath);
@@ -181,83 +108,58 @@ public class MikoApp
             ?? throw new InvalidOperationException("No root component or router configured.");
     }
 
-    private void OnUpdate(double _)
+    /// <summary>初始化引擎并构建首帧 DOM 树。</summary>
+    public void Initialize(SKCanvas canvas, float width, float height)
     {
-        if (_heldKey == null || _heldKeyboard == null) return;
-
-        var elapsed = _keyHoldTimer.ElapsedMilliseconds;
-        if (!_keyRepeatStarted)
-        {
-            if (elapsed >= KeyRepeatDelayMs)
-            {
-                _keyRepeatStarted = true;
-                _keyHoldTimer.Restart();
-                ProcessKeyAction(_heldKeyboard, _heldKey.Value);
-            }
-        }
-        else
-        {
-            if (elapsed >= KeyRepeatIntervalMs)
-            {
-                _keyHoldTimer.Restart();
-                ProcessKeyAction(_heldKeyboard, _heldKey.Value);
-            }
-        }
+        var root = BuildRoot();
+        _engine.Initialize(root, _options.StyleSheets, canvas, width, height);
     }
 
-    private void OnRender(double _)
+    /// <summary>执行所有 PostInit 钩子（如 DevTools 桥接初始化）。</summary>
+    public void RunPostInitHooks()
     {
-        if (_grContext == null || _gl == null) return;
+        foreach (var hook in _options.PostInitHooks)
+            hook(_serviceProvider);
+    }
 
-        float currentTime = (float)_frameTimer.Elapsed.TotalSeconds;
-        float deltaTime = currentTime - _lastFrameTime;
-        _lastFrameTime = currentTime;
+    /// <summary>当 <see cref="NeedsRebuild"/> 为真时重建 DOM 树。</summary>
+    public void Rebuild(SKCanvas canvas, float width, float height)
+    {
+        _logger.LogInformation("[HotReload] Render loop detected _needsRebuild flag, rebuilding DOM tree");
+        _needsRebuild = false;
+        var root = BuildRoot();
+        _engine.Initialize(root, _options.StyleSheets, canvas, width, height);
+        _logger.LogInformation("[HotReload] DOM rebuilt and initialized, next frame will render new content");
+    }
 
-        int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
-        var fbInfo = new GRGlFramebufferInfo((uint)fboId, 0x8058); // GL_RGBA8
-        var target = new GRBackendRenderTarget(_width, _height, 0, 8, fbInfo);
-
-        using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
-        var canvas = surface.Canvas;
-
-        if (_needsRebuild)
-        {
-            _logger.LogInformation("[HotReload] Render loop detected _needsRebuild flag, rebuilding DOM tree");
-            _needsRebuild = false;
-            var root = BuildRoot();
-            _engine.Initialize(root, _options.StyleSheets, canvas, _width, _height);
-            _logger.LogInformation("[HotReload] DOM rebuilt and initialized, next frame will render new content");
-        }
-
+    /// <summary>推进动画（每帧调用）。</summary>
+    public void Update(float deltaTime)
+    {
         _engine.AnimationManager.Update(deltaTime);
-
-        canvas.Clear(SKColors.White);
-        _engine.Render(canvas);
-        canvas.Flush();
-        _grContext.Flush();
     }
 
-    private void OnResize(Vector2D<int> size)
+    /// <summary>视口尺寸变化。</summary>
+    public void SetViewportSize(float width, float height)
     {
-        _width = size.X;
-        _height = size.Y;
-        _gl?.Viewport(size);
-        _engine.SetViewportSize(size.X, size.Y);
-        _logger.LogDebug("Viewport resized to {Width}x{Height}", size.X, size.Y);
+        _engine.SetViewportSize(width, height);
     }
 
-    private void OnMouseDown(IMouse mouse, Silk.NET.Input.MouseButton button)
+    // ---------------------------------------------------------------------
+    // 指针输入（坐标为已根据像素密度换算后的逻辑坐标）
+    // ---------------------------------------------------------------------
+
+    public void OnPointerDown(float x, float y, MouseButton button)
     {
-        if (button != Silk.NET.Input.MouseButton.Left) return;
-        _mouseDownPosition = mouse.Position;
+        if (button != MouseButton.Left) return;
+        _mouseDownPosition = new System.Numerics.Vector2(x, y);
 
         // Check scrollbar hit first
-        var scrollbarHit = _engine.HitTestScrollbar(mouse.Position.X, mouse.Position.Y);
+        var scrollbarHit = _engine.HitTestScrollbar(x, y);
         if (scrollbarHit != null)
         {
             _logger.LogTrace("Scrollbar hit: type={HitType}, element={Tag}#{Id}, thumbOffset={Offset}, pos=({X}, {Y})",
                 scrollbarHit.HitType, scrollbarHit.Box.Element.TagName, scrollbarHit.Box.Element.Id ?? "",
-                scrollbarHit.ThumbOffset, mouse.Position.X, mouse.Position.Y);
+                scrollbarHit.ThumbOffset, x, y);
             _draggingScrollbar = scrollbarHit;
             _isDragging = true;
             if (scrollbarHit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb ||
@@ -268,18 +170,18 @@ public class MikoApp
             return;
         }
 
-        var target = _engine.HitTest(mouse.Position.X, mouse.Position.Y);
+        var target = _engine.HitTest(x, y);
         if (target is InputElement { Type: InputType.Range } rangeInput)
         {
             _isDragging = true;
             _draggingRange = rangeInput;
-            UpdateRangeValue(rangeInput, mouse.Position.X);
+            UpdateRangeValue(rangeInput, x);
         }
     }
 
-    private void OnMouseUp(IMouse mouse, Silk.NET.Input.MouseButton button)
+    public void OnPointerUp(float x, float y, MouseButton button)
     {
-        if (button != Silk.NET.Input.MouseButton.Left) return;
+        if (button != MouseButton.Left) return;
 
         if (_isDragging)
         {
@@ -294,9 +196,8 @@ public class MikoApp
                     hit.HitType == MikoEngine.ScrollbarHitType.HorizontalTrack)
                 {
                     _logger.LogTrace("Scrollbar track click: type={HitType}, element={Tag}#{Id}, pos=({X}, {Y})",
-                        hit.HitType, hit.Box.Element.TagName, hit.Box.Element.Id ?? "",
-                        mouse.Position.X, mouse.Position.Y);
-                    _engine.ScrollTrackClick(hit.Box, hit.HitType, mouse.Position.X, mouse.Position.Y);
+                        hit.HitType, hit.Box.Element.TagName, hit.Box.Element.Id ?? "", x, y);
+                    _engine.ScrollTrackClick(hit.Box, hit.HitType, x, y);
                 }
             }
 
@@ -320,7 +221,7 @@ public class MikoApp
         HandleClick(target, position.X, position.Y);
     }
 
-    private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 position)
+    public void OnPointerMove(float x, float y)
     {
         if (_isDragging && _draggingScrollbar != null)
         {
@@ -328,47 +229,53 @@ public class MikoApp
             if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb)
             {
                 _logger.LogTrace("Scrollbar thumb drag: vertical, element={Tag}#{Id}, mouseY={Y}",
-                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", position.Y);
-                _engine.DragVerticalThumb(hit.Box, position.Y, hit.ThumbOffset);
+                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", y);
+                _engine.DragVerticalThumb(hit.Box, y, hit.ThumbOffset);
             }
             else if (hit.HitType == MikoEngine.ScrollbarHitType.HorizontalThumb)
             {
                 _logger.LogTrace("Scrollbar thumb drag: horizontal, element={Tag}#{Id}, mouseX={X}",
-                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", position.X);
-                _engine.DragHorizontalThumb(hit.Box, position.X, hit.ThumbOffset);
+                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", x);
+                _engine.DragHorizontalThumb(hit.Box, x, hit.ThumbOffset);
             }
             return;
         }
 
         if (_isDragging && _draggingRange != null)
         {
-            UpdateRangeValue(_draggingRange, position.X);
+            UpdateRangeValue(_draggingRange, x);
             return;
         }
 
-        UpdateCursor(mouse, position.X, position.Y);
+        UpdateCursor(x, y);
     }
 
     /// <summary>
-    /// Resolves the CSS cursor of the element under the pointer and applies it to
-    /// the window, so styles such as <c>Cursor = Cursor.Pointer</c> take effect.
+    /// 滚动。<paramref name="deltaX"/>/<paramref name="deltaY"/> 为像素增量
+    /// （平台实现层负责将滚轮单位换算为像素）。
     /// </summary>
-    private void UpdateCursor(IMouse mouse, float x, float y)
+    public void OnScroll(float x, float y, float deltaX, float deltaY)
+    {
+        _logger.LogTrace("OnScroll: pos=({PosX}, {PosY}), delta=({DeltaX}, {DeltaY})", x, y, deltaX, deltaY);
+        _engine.ScrollBy(x, y, deltaX, deltaY);
+    }
+
+    /// <summary>
+    /// 解析指针下元素的 CSS 光标并在变化时通过 <see cref="CursorChanged"/> 通知平台层。
+    /// </summary>
+    private void UpdateCursor(float x, float y)
     {
         var target = _engine.HitTest(x, y);
         var cursor = ResolveCursor(target);
-        var standardCursor = ToStandardCursor(cursor);
 
-        if (standardCursor == _currentCursor) return;
-        _currentCursor = standardCursor;
-
-        mouse.Cursor.Type = CursorType.Standard;
-        mouse.Cursor.StandardCursor = standardCursor;
+        if (cursor == _currentCursor) return;
+        _currentCursor = cursor;
+        CursorChanged?.Invoke(cursor);
     }
 
     /// <summary>
-    /// Walks up from the hovered element to the first one with an explicit (non-default)
-    /// cursor, approximating CSS cursor inheritance. Falls back to <see cref="Cursor.Default"/>.
+    /// 从悬停元素向上查找首个具有显式（非默认）光标的元素，近似 CSS 光标继承。
+    /// 回退到 <see cref="Cursor.Default"/>。
     /// </summary>
     private static Cursor ResolveCursor(Element? element)
     {
@@ -380,17 +287,6 @@ public class MikoApp
         }
         return Cursor.Default;
     }
-
-    private static StandardCursor ToStandardCursor(Cursor cursor) => cursor switch
-    {
-        Cursor.Pointer => StandardCursor.Hand,
-        Cursor.Text => StandardCursor.IBeam,
-        Cursor.Wait => StandardCursor.Wait,
-        Cursor.NotAllowed => StandardCursor.NotAllowed,
-        Cursor.Move => StandardCursor.ResizeAll,
-        Cursor.Help => StandardCursor.Arrow,
-        _ => StandardCursor.Default,
-    };
 
     private void HandleClick(Element target, float x, float y)
     {
@@ -408,7 +304,7 @@ public class MikoApp
             Target = target,
             X = x,
             Y = y,
-            Button = Events.MouseButton.Left,
+            Button = MouseButton.Left,
             Bubbles = true
         };
 
@@ -538,7 +434,8 @@ public class MikoApp
         }
     }
 
-    private void SetFocus(Element? newFocus)
+    /// <summary>设置当前焦点元素，触发 blur/focus 事件。</summary>
+    public void SetFocus(Element? newFocus)
     {
         if (_focusedElement == newFocus) return;
 
@@ -574,99 +471,105 @@ public class MikoApp
         }
     }
 
-    private void OnKeyDown(IKeyboard keyboard, Key key, int scancode)
+    // ---------------------------------------------------------------------
+    // 键盘 / 文本输入
+    // ---------------------------------------------------------------------
+
+    /// <summary>键按下。返回 true 表示该按键已被全局处理器消费。</summary>
+    public bool OnKeyDown(MikoKey key, MikoKeyModifiers mods)
     {
         foreach (var handler in _options.GlobalKeyDownHandlers)
         {
-            if (handler(key)) return;
+            if (handler(key)) return true;
         }
 
-        if (_focusedElement is not InputElement input) return;
-        if (input.Type != InputType.Text && input.Type != InputType.Password) return;
+        if (_focusedElement is not InputElement input) return false;
+        if (input.Type != InputType.Text && input.Type != InputType.Password) return false;
 
         var keyName = key.ToString();
-        bool ctrl = keyboard.IsKeyPressed(Key.ControlLeft) || keyboard.IsKeyPressed(Key.ControlRight);
+        bool ctrl = mods.HasFlag(MikoKeyModifiers.Control);
 
         var keyArgs = new KeyboardEventArgs
         {
             Target = input,
             Key = keyName,
             CtrlKey = ctrl,
+            ShiftKey = mods.HasFlag(MikoKeyModifiers.Shift),
+            AltKey = mods.HasFlag(MikoKeyModifiers.Alt),
             Bubbles = true
         };
         _eventDispatcher.Dispatch(input, EventTypes.KeyDown, keyArgs);
 
-        if (IsRepeatableKey(key))
-        {
-            _heldKey = key;
-            _heldKeyboard = keyboard;
-            _keyRepeatStarted = false;
-            _keyHoldTimer.Restart();
-        }
-
-        ProcessKeyAction(keyboard, key);
+        ProcessKeyAction(key);
+        return false;
     }
 
-    private void OnKeyUp(IKeyboard keyboard, Key key, int scancode)
+    /// <summary>键释放（当前无状态需要清理，保留以备扩展与对称性）。</summary>
+    public void OnKeyUp(MikoKey key, MikoKeyModifiers mods)
     {
-        if (_heldKey == key)
-        {
-            _heldKey = null;
-            _heldKeyboard = null;
-            _keyHoldTimer.Stop();
-        }
     }
 
-    private static bool IsRepeatableKey(Key key) => key is
-        Key.Backspace or Key.Delete or Key.Left or Key.Right or Key.Home or Key.End;
+    /// <summary>该按键在按住时是否应触发重复（用于平台层的按键重复定时）。</summary>
+    public static bool IsRepeatableKey(MikoKey key) => key is
+        MikoKey.Backspace or MikoKey.Delete or MikoKey.Left or MikoKey.Right or MikoKey.Home or MikoKey.End;
 
-    private void ProcessKeyAction(IKeyboard keyboard, Key key)
+    /// <summary>由平台层在按键重复时调用，重新执行编辑动作。</summary>
+    public void RepeatKey(MikoKey key)
+    {
+        ProcessKeyAction(key);
+    }
+
+    private void ProcessKeyAction(MikoKey key)
     {
         if (_focusedElement is not InputElement input) return;
         if (input.Type != InputType.Text && input.Type != InputType.Password) return;
 
         switch (key)
         {
-            case Key.Backspace:
+            case MikoKey.Backspace:
                 if (input.Backspace())
                     DispatchInputEvent(input);
                 break;
-            case Key.Delete:
+            case MikoKey.Delete:
                 if (input.Delete())
                     DispatchInputEvent(input);
                 break;
-            case Key.Left:
+            case MikoKey.Left:
                 if (input.CursorPosition > 0)
                 {
                     input.CursorPosition--;
                     input.IsDirty = true;
                 }
                 break;
-            case Key.Right:
+            case MikoKey.Right:
                 if (input.CursorPosition < (input.Value ?? string.Empty).Length)
                 {
                     input.CursorPosition++;
                     input.IsDirty = true;
                 }
                 break;
-            case Key.Home:
+            case MikoKey.Home:
                 input.CursorPosition = 0;
                 input.IsDirty = true;
                 break;
-            case Key.End:
+            case MikoKey.End:
                 input.MoveCursorToEnd();
                 input.IsDirty = true;
                 break;
         }
     }
 
-    private void OnKeyChar(IKeyboard keyboard, char character)
+    /// <summary>文本输入（已组合的字符）。控制字符会被忽略。</summary>
+    public void OnTextInput(string text)
     {
         if (_focusedElement is not InputElement input) return;
         if (input.Type != InputType.Text && input.Type != InputType.Password) return;
-        if (char.IsControl(character)) return;
 
-        input.InsertText(character.ToString());
+        foreach (var character in text)
+        {
+            if (char.IsControl(character)) continue;
+            input.InsertText(character.ToString());
+        }
         DispatchInputEvent(input);
     }
 
@@ -690,6 +593,10 @@ public class MikoApp
         };
         _eventDispatcher.Dispatch(element, EventTypes.Change, changeArgs);
     }
+
+    // ---------------------------------------------------------------------
+    // 辅助：滑块、滚动偏移、布局盒查找
+    // ---------------------------------------------------------------------
 
     private void UpdateRangeValue(InputElement rangeInput, float mouseX)
     {
@@ -737,14 +644,14 @@ public class MikoApp
         return (scrollX, scrollY);
     }
 
-    private Layout.LayoutBox? FindLayoutBoxForElement(Element element)
+    private LayoutBox? FindLayoutBoxForElement(Element element)
     {
         var layout = _engine.GetCurrentLayout();
         if (layout == null) return null;
         return FindLayoutBoxRecursive(layout, element);
     }
 
-    private static Layout.LayoutBox? FindLayoutBoxRecursive(Layout.LayoutBox box, Element element)
+    private static LayoutBox? FindLayoutBoxRecursive(LayoutBox box, Element element)
     {
         if (box.Element == element) return box;
         foreach (var child in box.Children)
@@ -753,21 +660,5 @@ public class MikoApp
             if (found != null) return found;
         }
         return null;
-    }
-
-    private void OnMouseScroll(IMouse mouse, ScrollWheel scrollWheel)
-    {
-        float deltaY = scrollWheel.Y * -40f;
-        float deltaX = scrollWheel.X * -40f;
-        _logger.LogTrace("OnMouseScroll: wheel=({WheelX}, {WheelY}), pos=({PosX}, {PosY}), delta=({DeltaX}, {DeltaY})",
-            scrollWheel.X, scrollWheel.Y, mouse.Position.X, mouse.Position.Y, deltaX, deltaY);
-        _engine.ScrollBy(mouse.Position.X, mouse.Position.Y, deltaX, deltaY);
-    }
-
-    private void OnClose()
-    {
-        _inputContext?.Dispose();
-        _grContext?.Dispose();
-        _gl?.Dispose();
     }
 }

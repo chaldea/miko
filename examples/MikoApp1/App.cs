@@ -6,7 +6,7 @@ namespace MikoApp1;
 
 public static class App
 {
-    public static MikoApp Create()
+    public static MikoAppContext CreateContext()
     {
         var builder = MikoAppBuilder.CreateDefault();
         builder.UseTitle("Miko Demo App");

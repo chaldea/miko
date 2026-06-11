@@ -5,7 +5,7 @@ namespace MikoRazorApp;
 
 public static class App
 {
-    public static MikoApp Create()
+    public static MikoAppContext CreateContext()
     {
         var builder = MikoAppBuilder.CreateDefault();
 

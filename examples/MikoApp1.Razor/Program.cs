@@ -1,13 +1,15 @@
-﻿namespace MikoApp1.Razor;
+﻿using Miko.Windowing;
+
+namespace MikoApp1.Razor;
 
 public static class Program
 {
     [STAThread]
     public static void Main(string[] args)
     {
-        var app = RazorApp.Create();
+        var context = RazorApp.CreateContext();
         // Initialize hot reload handler
-        MikoHotReloadHandler.Initialize(app.GetHotReloadService());
-        app.Run();
+        MikoHotReloadHandler.Initialize(context.GetHotReloadService());
+        context.RunDesktop();
     }
 }

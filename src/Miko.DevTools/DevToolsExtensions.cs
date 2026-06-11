@@ -2,8 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Miko.DevTools.Logging;
 using Miko.Hosting;
+using Miko.Platform;
 using Miko.Rendering;
-using Silk.NET.Input;
 
 namespace Miko.DevTools;
 
@@ -22,7 +22,7 @@ public static class DevToolsExtensions
 
         builder.AddGlobalKeyHandler(key =>
         {
-            if (key == Key.F12)
+            if (key == MikoKey.F12)
             {
                 bridge.ToggleDevTools();
                 return true;

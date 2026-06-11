@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <PackageReference Include="Miko" Version="1.0.0" />
+    <PackageReference Include="Miko.Windowing" Version="1.0.0" />
     <PackageReference Include="Miko.DevTools" Version="1.0.0" />
     <PackageReference Include="Miko.Razor.Compiler" Version="1.0.0" />
   </ItemGroup>
