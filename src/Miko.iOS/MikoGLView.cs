@@ -53,21 +53,20 @@ public class MikoGLView : SKGLView
             _initialized = true;
         }
 
-        if (_controller.NeedsRebuild)
-        {
-            _controller.Rebuild(canvas, logicalWidth, logicalHeight);
-        }
-
         float currentTime = (float)_frameTimer.Elapsed.TotalSeconds;
         float deltaTime = currentTime - _lastFrameTime;
         _lastFrameTime = currentTime;
-        _controller.Update(deltaTime);
 
-        canvas.Clear(SKColors.White);
-        canvas.Save();
-        canvas.Scale((float)_scale);
-        _controller.Engine.Render(canvas);
-        canvas.Restore();
+        // RenderFrame holds the input/render lock so touch-driven DOM mutations on the
+        // UI thread can't race the layout walk on the render thread.
+        _controller.RenderFrame(canvas, logicalWidth, logicalHeight, deltaTime, c =>
+        {
+            c.Clear(SKColors.White);
+            c.Save();
+            c.Scale((float)_scale);
+            _controller.Engine.Render(c);
+            c.Restore();
+        });
     }
 
     // UITouch.LocationInView 返回的是逻辑点（point），与渲染所用的逻辑坐标一致，无需再除以缩放系数。

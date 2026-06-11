@@ -153,16 +153,14 @@ public sealed class SilkDesktopHost
         using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
         var canvas = surface.Canvas;
 
-        if (_controller.NeedsRebuild)
+        // Goes through RenderFrame for parity with the mobile hosts. Desktop pumps input
+        // and render on one thread, so the lock is uncontended here.
+        _controller.RenderFrame(canvas, _width, _height, deltaTime, c =>
         {
-            _controller.Rebuild(canvas, _width, _height);
-        }
-
-        _controller.Update(deltaTime);
-
-        canvas.Clear(SKColors.White);
-        _controller.Engine.Render(canvas);
-        canvas.Flush();
+            c.Clear(SKColors.White);
+            _controller.Engine.Render(c);
+            c.Flush();
+        });
         _grContext.Flush();
     }
 
