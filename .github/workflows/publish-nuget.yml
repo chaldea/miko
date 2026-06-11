@@ -13,7 +13,8 @@ permissions:
 jobs:
   publish:
     name: Pack and push
-    runs-on: ubuntu-latest
+    # macos-latest can build the desktop, Android and iOS packages in one job.
+    runs-on: macos-latest
     env:
       VERSION: 0.0.${{ github.run_number }}
       CONFIGURATION: Release
@@ -29,23 +30,31 @@ jobs:
             9.0.x
             10.0.x
 
+      - name: Install mobile workloads
+        run: dotnet workload install android ios
+
       - name: Pack library packages
         run: |
           for proj in \
             src/Miko/Miko.csproj \
             src/Miko.Bootstrap/Miko.Bootstrap.csproj \
             src/Miko.DevTools/Miko.DevTools.csproj \
-            src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj
+            src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj \
+            src/Miko.Windowing/Miko.Windowing.csproj \
+            src/Miko.Android/Miko.Android.csproj \
+            src/Miko.iOS/Miko.iOS.csproj
           do
             dotnet pack "$proj" -c $CONFIGURATION -p:Version=$VERSION -o "$ARTIFACTS"
           done
 
       - name: Pin template dependency versions to current build
         run: |
-          sed -i -E 's#(Include="Miko(\.[A-Za-z.]+)?" Version=")[^"]+(")#\1'"$VERSION"'\3#g' \
-            templates/MikoRazorApp/MikoRazorApp.csproj
-          echo "----- templates/MikoRazorApp/MikoRazorApp.csproj after substitution -----"
-          grep -E 'PackageReference Include="Miko' templates/MikoRazorApp/MikoRazorApp.csproj
+          shopt -s globstar nullglob
+          for csproj in templates/**/*.csproj; do
+            sed -i '' -E 's#(Include="Miko(\.[A-Za-z.]+)?" Version=")[^"]+(")#\1'"$VERSION"'\3#g' "$csproj"
+          done
+          echo "----- template csproj Miko references after substitution -----"
+          grep -REn 'PackageReference Include="Miko' templates/ || true
 
       - name: Pack template package
         run: dotnet pack templates/Miko.Templates.csproj -c $CONFIGURATION -p:Version=$VERSION -o "$ARTIFACTS"

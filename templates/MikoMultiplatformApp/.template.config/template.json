@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Miko",
+  "classifications": [ "Miko", "Razor", "Multiplatform", "Desktop", "Android", "iOS", "Empty" ],
+  "identity": "Miko.Razor.Multiplatform.Empty",
+  "name": "Miko Razor Multiplatform App (Empty)",
+  "shortName": "miko-multiplatform",
+  "description": "An empty Miko cross-platform application (Desktop/Android/iOS) using Razor components, rendered with SkiaSharp.",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "MikoMultiplatformApp",
+  "preferNameDirectory": true,
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "exclude": [
+            "**/bin/**",
+            "**/obj/**",
+            "**/*.user",
+            "nuget.config"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -121,6 +121,17 @@ dotnet run
 A window opens showing the home page (`Pages/Home.razor`). Add a page by dropping a new
 `.razor` file with a `@page` directive into `Pages/` — routes are discovered automatically.
 
+For a cross-platform app (Desktop + Android + iOS), use the multiplatform template instead:
+
+```bash
+# Scaffold a shared app plus Desktop / Android / iOS startup projects
+dotnet new miko-multiplatform -o MyApp
+cd MyApp
+
+# Run on the desktop
+dotnet run --project MyApp.Desktop
+```
+
 ```razor
 @page "/about"
 @namespace MyApp.Pages
