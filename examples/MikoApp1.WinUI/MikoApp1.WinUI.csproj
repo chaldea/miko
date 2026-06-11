@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MikoApp1\MikoApp1.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Windowing\Miko.Windowing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

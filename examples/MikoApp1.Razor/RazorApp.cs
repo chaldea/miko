@@ -7,7 +7,7 @@ namespace MikoApp1.Razor;
 
 public static class RazorApp
 {
-    public static MikoApp Create()
+    public static MikoAppContext CreateContext()
     {
         var builder = MikoAppBuilder.CreateDefault();
         builder.UseTitle("Miko Razor Demo");

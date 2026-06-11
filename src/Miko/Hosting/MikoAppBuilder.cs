@@ -6,10 +6,10 @@ using Miko.Animation;
 using Miko.Core;
 using Miko.Events;
 using Miko.Layout;
+using Miko.Platform;
 using Miko.Rendering;
 using Miko.Routing;
 using Miko.Styling;
-using Silk.NET.Input;
 
 namespace Miko.Hosting;
 
@@ -30,6 +30,7 @@ public class MikoAppBuilder
         builder.Services.AddSingleton<EventDispatcher>();
         builder.Services.AddSingleton<MikoEngine>();
         builder.Services.AddSingleton<HotReloadService>();
+        builder.Services.AddSingleton<MikoInteractionController>();
         return builder;
     }
 
@@ -94,7 +95,7 @@ public class MikoAppBuilder
         return this;
     }
 
-    public MikoAppBuilder AddGlobalKeyHandler(Func<Key, bool> handler)
+    public MikoAppBuilder AddGlobalKeyHandler(Func<MikoKey, bool> handler)
     {
         Services.Configure<MikoAppOptions>(o => o.GlobalKeyDownHandlers.Add(handler));
         return this;
@@ -114,11 +115,15 @@ public class MikoAppBuilder
         return this;
     }
 
-    public MikoApp Build()
+    /// <summary>
+    /// 构建平台无关的应用上下文。各平台启动项目（Miko.Windowing / Miko.Android / Miko.iOS）
+    /// 通过该上下文获取已配置的服务、选项、交互控制器与引擎，并驱动各自的渲染循环。
+    /// </summary>
+    public MikoAppContext Build()
     {
-        Services.AddSingleton<MikoApp>();
+        Services.AddSingleton<MikoAppContext>();
         var serviceProvider = Services.BuildServiceProvider();
-        return serviceProvider.GetRequiredService<MikoApp>();
+        return serviceProvider.GetRequiredService<MikoAppContext>();
     }
 }
 

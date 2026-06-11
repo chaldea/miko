@@ -4,5 +4,5 @@ namespace MikoApp1;
 
 public static class MikoProgram
 {
-    public static MikoApp CreateMikoApp() => App.Create();
+    public static MikoAppContext CreateContext() => App.CreateContext();
 }

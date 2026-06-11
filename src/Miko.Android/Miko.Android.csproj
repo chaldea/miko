@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>Miko.Android</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Miko</Authors>
+    <Description>Android host (SkiaSharp GL surface + touch input) for the Miko rendering engine.</Description>
+    <PackageTags>miko;android;skiasharp;ui</PackageTags>
+    <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Miko\Miko.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp.Views" Version="3.119.1" />
+  </ItemGroup>
+
+</Project>

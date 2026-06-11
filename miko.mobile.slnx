@@ -1,0 +1,17 @@
+<!--
+  移动端解决方案。包含 Android / iOS 平台实现库与示例启动项目。
+  构建此解决方案需要安装对应的 .NET 工作负载（`dotnet workload install android ios`）。
+  主解决方案 miko.slnx 刻意不包含这些项目，以便无移动端工作负载时也能正常构建。
+-->
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Miko/Miko.csproj" />
+    <Project Path="src/Miko.Android/Miko.Android.csproj" />
+    <Project Path="src/Miko.iOS/Miko.iOS.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/MikoApp1/MikoApp1.csproj" />
+    <Project Path="examples/MikoApp1.Droid/MikoApp1.Droid.csproj" />
+    <Project Path="examples/MikoApp1.iOS/MikoApp1.iOS.csproj" />
+  </Folder>
+</Solution>
