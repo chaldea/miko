@@ -49,9 +49,13 @@ jobs:
 
       - name: Pin template dependency versions to current build
         run: |
-          shopt -s globstar nullglob
-          for csproj in templates/**/*.csproj; do
-            sed -i '' -E 's#(Include="Miko(\.[A-Za-z.]+)?" Version=")[^"]+(")#\1'"$VERSION"'\3#g' "$csproj"
+          # macOS runners ship bash 3.2 (no globstar) and BSD sed (which needs an
+          # explicit ''-suffix arg for -i), so use find for recursion and a sed
+          # invocation that is portable across BSD and GNU sed.
+          find templates -name '*.csproj' -print0 | while IFS= read -r -d '' csproj; do
+            tmp="$(mktemp)"
+            sed -E 's#(Include="Miko(\.[A-Za-z.]+)?" Version=")[^"]+(")#\1'"$VERSION"'\3#g' "$csproj" > "$tmp"
+            mv "$tmp" "$csproj"
           done
           echo "----- template csproj Miko references after substitution -----"
           grep -REn 'PackageReference Include="Miko' templates/ || true
