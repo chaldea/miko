@@ -47,6 +47,16 @@ public sealed class MikoInteractionController
     private bool _isDragging;
     private MikoEngine.ScrollbarHitResult? _draggingScrollbar;
 
+    // Serializes input handling against the render frame. On hosts that render on a
+    // dedicated thread (Android GLThread, iOS CADisplayLink) the render thread walks the
+    // DOM during layout (LayoutEngine.ComputeStyles enumerates Element.Children) while
+    // input events on the UI thread mutate the DOM synchronously (a click runs the
+    // component handler, which calls StateHasChanged and rewrites Children). Without this
+    // lock the two race and throw "Collection was modified; enumeration operation may not
+    // execute". The desktop (Silk) host pumps input and render on one thread, so it never
+    // hit this — but the lock is harmless there (uncontended, re-entrant).
+    private readonly object _sync = new();
+
     public MikoInteractionController(
         IOptions<MikoAppOptions> options,
         IServiceProvider serviceProvider,
@@ -138,10 +148,31 @@ public sealed class MikoInteractionController
         _engine.AnimationManager.Update(deltaTime);
     }
 
+    /// <summary>
+    /// 在输入/渲染锁的保护下执行一帧：先按需重建 DOM 树，再推进动画，最后调用
+    /// <paramref name="render"/> 绘制。平台宿主应通过本方法渲染，而非直接调用
+    /// <see cref="Rebuild"/>/<see cref="Update"/>/<c>Engine.Render</c>，以确保输入处理
+    /// 引发的 DOM 变更不会与布局/渲染对 DOM 的遍历并发执行。
+    /// </summary>
+    public void RenderFrame(SKCanvas canvas, float width, float height, float deltaTime, Action<SKCanvas> render)
+    {
+        lock (_sync)
+        {
+            if (_needsRebuild)
+                Rebuild(canvas, width, height);
+
+            Update(deltaTime);
+            render(canvas);
+        }
+    }
+
     /// <summary>视口尺寸变化。</summary>
     public void SetViewportSize(float width, float height)
     {
-        _engine.SetViewportSize(width, height);
+        lock (_sync)
+        {
+            _engine.SetViewportSize(width, height);
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -151,103 +182,111 @@ public sealed class MikoInteractionController
     public void OnPointerDown(float x, float y, MouseButton button)
     {
         if (button != MouseButton.Left) return;
-        _mouseDownPosition = new System.Numerics.Vector2(x, y);
-
-        // Check scrollbar hit first
-        var scrollbarHit = _engine.HitTestScrollbar(x, y);
-        if (scrollbarHit != null)
+        lock (_sync)
         {
-            _logger.LogTrace("Scrollbar hit: type={HitType}, element={Tag}#{Id}, thumbOffset={Offset}, pos=({X}, {Y})",
-                scrollbarHit.HitType, scrollbarHit.Box.Element.TagName, scrollbarHit.Box.Element.Id ?? "",
-                scrollbarHit.ThumbOffset, x, y);
-            _draggingScrollbar = scrollbarHit;
-            _isDragging = true;
-            if (scrollbarHit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb ||
-                scrollbarHit.HitType == MikoEngine.ScrollbarHitType.HorizontalThumb)
+            _mouseDownPosition = new System.Numerics.Vector2(x, y);
+
+            // Check scrollbar hit first
+            var scrollbarHit = _engine.HitTestScrollbar(x, y);
+            if (scrollbarHit != null)
             {
-                _mouseDownPosition = null; // suppress click handling
+                _logger.LogTrace("Scrollbar hit: type={HitType}, element={Tag}#{Id}, thumbOffset={Offset}, pos=({X}, {Y})",
+                    scrollbarHit.HitType, scrollbarHit.Box.Element.TagName, scrollbarHit.Box.Element.Id ?? "",
+                    scrollbarHit.ThumbOffset, x, y);
+                _draggingScrollbar = scrollbarHit;
+                _isDragging = true;
+                if (scrollbarHit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb ||
+                    scrollbarHit.HitType == MikoEngine.ScrollbarHitType.HorizontalThumb)
+                {
+                    _mouseDownPosition = null; // suppress click handling
+                }
+                return;
             }
-            return;
-        }
 
-        var target = _engine.HitTest(x, y);
-        if (target is InputElement { Type: InputType.Range } rangeInput)
-        {
-            _isDragging = true;
-            _draggingRange = rangeInput;
-            UpdateRangeValue(rangeInput, x);
+            var target = _engine.HitTest(x, y);
+            if (target is InputElement { Type: InputType.Range } rangeInput)
+            {
+                _isDragging = true;
+                _draggingRange = rangeInput;
+                UpdateRangeValue(rangeInput, x);
+            }
         }
     }
 
     public void OnPointerUp(float x, float y, MouseButton button)
     {
         if (button != MouseButton.Left) return;
-
-        if (_isDragging)
+        lock (_sync)
         {
-            _isDragging = false;
-
-            // Handle scrollbar track click (not thumb drag)
-            if (_draggingScrollbar != null)
+            if (_isDragging)
             {
-                var hit = _draggingScrollbar;
-                _draggingScrollbar = null;
-                if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalTrack ||
-                    hit.HitType == MikoEngine.ScrollbarHitType.HorizontalTrack)
+                _isDragging = false;
+
+                // Handle scrollbar track click (not thumb drag)
+                if (_draggingScrollbar != null)
                 {
-                    _logger.LogTrace("Scrollbar track click: type={HitType}, element={Tag}#{Id}, pos=({X}, {Y})",
-                        hit.HitType, hit.Box.Element.TagName, hit.Box.Element.Id ?? "", x, y);
-                    _engine.ScrollTrackClick(hit.Box, hit.HitType, x, y);
+                    var hit = _draggingScrollbar;
+                    _draggingScrollbar = null;
+                    if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalTrack ||
+                        hit.HitType == MikoEngine.ScrollbarHitType.HorizontalTrack)
+                    {
+                        _logger.LogTrace("Scrollbar track click: type={HitType}, element={Tag}#{Id}, pos=({X}, {Y})",
+                            hit.HitType, hit.Box.Element.TagName, hit.Box.Element.Id ?? "", x, y);
+                        _engine.ScrollTrackClick(hit.Box, hit.HitType, x, y);
+                    }
                 }
+
+                _draggingRange = null;
+                _mouseDownPosition = null;
+                return;
             }
 
-            _draggingRange = null;
+            if (_mouseDownPosition == null) return;
+
+            var position = _mouseDownPosition.Value;
             _mouseDownPosition = null;
-            return;
+
+            var target = _engine.HitTest(position.X, position.Y);
+            if (target == null)
+            {
+                SetFocusCore(null);
+                return;
+            }
+
+            HandleClick(target, position.X, position.Y);
         }
-
-        if (_mouseDownPosition == null) return;
-
-        var position = _mouseDownPosition.Value;
-        _mouseDownPosition = null;
-
-        var target = _engine.HitTest(position.X, position.Y);
-        if (target == null)
-        {
-            SetFocus(null);
-            return;
-        }
-
-        HandleClick(target, position.X, position.Y);
     }
 
     public void OnPointerMove(float x, float y)
     {
-        if (_isDragging && _draggingScrollbar != null)
+        lock (_sync)
         {
-            var hit = _draggingScrollbar;
-            if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb)
+            if (_isDragging && _draggingScrollbar != null)
             {
-                _logger.LogTrace("Scrollbar thumb drag: vertical, element={Tag}#{Id}, mouseY={Y}",
-                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", y);
-                _engine.DragVerticalThumb(hit.Box, y, hit.ThumbOffset);
+                var hit = _draggingScrollbar;
+                if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb)
+                {
+                    _logger.LogTrace("Scrollbar thumb drag: vertical, element={Tag}#{Id}, mouseY={Y}",
+                        hit.Box.Element.TagName, hit.Box.Element.Id ?? "", y);
+                    _engine.DragVerticalThumb(hit.Box, y, hit.ThumbOffset);
+                }
+                else if (hit.HitType == MikoEngine.ScrollbarHitType.HorizontalThumb)
+                {
+                    _logger.LogTrace("Scrollbar thumb drag: horizontal, element={Tag}#{Id}, mouseX={X}",
+                        hit.Box.Element.TagName, hit.Box.Element.Id ?? "", x);
+                    _engine.DragHorizontalThumb(hit.Box, x, hit.ThumbOffset);
+                }
+                return;
             }
-            else if (hit.HitType == MikoEngine.ScrollbarHitType.HorizontalThumb)
+
+            if (_isDragging && _draggingRange != null)
             {
-                _logger.LogTrace("Scrollbar thumb drag: horizontal, element={Tag}#{Id}, mouseX={X}",
-                    hit.Box.Element.TagName, hit.Box.Element.Id ?? "", x);
-                _engine.DragHorizontalThumb(hit.Box, x, hit.ThumbOffset);
+                UpdateRangeValue(_draggingRange, x);
+                return;
             }
-            return;
-        }
 
-        if (_isDragging && _draggingRange != null)
-        {
-            UpdateRangeValue(_draggingRange, x);
-            return;
+            UpdateCursor(x, y);
         }
-
-        UpdateCursor(x, y);
     }
 
     /// <summary>
@@ -256,8 +295,11 @@ public sealed class MikoInteractionController
     /// </summary>
     public void OnScroll(float x, float y, float deltaX, float deltaY)
     {
-        _logger.LogTrace("OnScroll: pos=({PosX}, {PosY}), delta=({DeltaX}, {DeltaY})", x, y, deltaX, deltaY);
-        _engine.ScrollBy(x, y, deltaX, deltaY);
+        lock (_sync)
+        {
+            _logger.LogTrace("OnScroll: pos=({PosX}, {PosY}), delta=({DeltaX}, {DeltaY})", x, y, deltaX, deltaY);
+            _engine.ScrollBy(x, y, deltaX, deltaY);
+        }
     }
 
     /// <summary>
@@ -321,7 +363,7 @@ public sealed class MikoInteractionController
         else
         {
             CloseAllSelects();
-            SetFocus(null);
+            SetFocusCore(null);
         }
     }
 
@@ -333,7 +375,7 @@ public sealed class MikoInteractionController
         {
             case InputType.Text:
             case InputType.Password:
-                SetFocus(inputElement);
+                SetFocusCore(inputElement);
                 inputElement.MoveCursorToEnd();
                 break;
             case InputType.Checkbox:
@@ -351,7 +393,7 @@ public sealed class MikoInteractionController
 
     private void HandleSelectClick(SelectElement selectElement)
     {
-        SetFocus(selectElement);
+        SetFocusCore(selectElement);
         selectElement.Toggle();
     }
 
@@ -437,6 +479,14 @@ public sealed class MikoInteractionController
     /// <summary>设置当前焦点元素，触发 blur/focus 事件。</summary>
     public void SetFocus(Element? newFocus)
     {
+        lock (_sync)
+        {
+            SetFocusCore(newFocus);
+        }
+    }
+
+    private void SetFocusCore(Element? newFocus)
+    {
         if (_focusedElement == newFocus) return;
 
         var oldFocus = _focusedElement;
@@ -478,30 +528,33 @@ public sealed class MikoInteractionController
     /// <summary>键按下。返回 true 表示该按键已被全局处理器消费。</summary>
     public bool OnKeyDown(MikoKey key, MikoKeyModifiers mods)
     {
-        foreach (var handler in _options.GlobalKeyDownHandlers)
+        lock (_sync)
         {
-            if (handler(key)) return true;
+            foreach (var handler in _options.GlobalKeyDownHandlers)
+            {
+                if (handler(key)) return true;
+            }
+
+            if (_focusedElement is not InputElement input) return false;
+            if (input.Type != InputType.Text && input.Type != InputType.Password) return false;
+
+            var keyName = key.ToString();
+            bool ctrl = mods.HasFlag(MikoKeyModifiers.Control);
+
+            var keyArgs = new KeyboardEventArgs
+            {
+                Target = input,
+                Key = keyName,
+                CtrlKey = ctrl,
+                ShiftKey = mods.HasFlag(MikoKeyModifiers.Shift),
+                AltKey = mods.HasFlag(MikoKeyModifiers.Alt),
+                Bubbles = true
+            };
+            _eventDispatcher.Dispatch(input, EventTypes.KeyDown, keyArgs);
+
+            ProcessKeyAction(key);
+            return false;
         }
-
-        if (_focusedElement is not InputElement input) return false;
-        if (input.Type != InputType.Text && input.Type != InputType.Password) return false;
-
-        var keyName = key.ToString();
-        bool ctrl = mods.HasFlag(MikoKeyModifiers.Control);
-
-        var keyArgs = new KeyboardEventArgs
-        {
-            Target = input,
-            Key = keyName,
-            CtrlKey = ctrl,
-            ShiftKey = mods.HasFlag(MikoKeyModifiers.Shift),
-            AltKey = mods.HasFlag(MikoKeyModifiers.Alt),
-            Bubbles = true
-        };
-        _eventDispatcher.Dispatch(input, EventTypes.KeyDown, keyArgs);
-
-        ProcessKeyAction(key);
-        return false;
     }
 
     /// <summary>键释放（当前无状态需要清理，保留以备扩展与对称性）。</summary>
@@ -516,7 +569,10 @@ public sealed class MikoInteractionController
     /// <summary>由平台层在按键重复时调用，重新执行编辑动作。</summary>
     public void RepeatKey(MikoKey key)
     {
-        ProcessKeyAction(key);
+        lock (_sync)
+        {
+            ProcessKeyAction(key);
+        }
     }
 
     private void ProcessKeyAction(MikoKey key)
@@ -562,15 +618,18 @@ public sealed class MikoInteractionController
     /// <summary>文本输入（已组合的字符）。控制字符会被忽略。</summary>
     public void OnTextInput(string text)
     {
-        if (_focusedElement is not InputElement input) return;
-        if (input.Type != InputType.Text && input.Type != InputType.Password) return;
-
-        foreach (var character in text)
+        lock (_sync)
         {
-            if (char.IsControl(character)) continue;
-            input.InsertText(character.ToString());
+            if (_focusedElement is not InputElement input) return;
+            if (input.Type != InputType.Text && input.Type != InputType.Password) return;
+
+            foreach (var character in text)
+            {
+                if (char.IsControl(character)) continue;
+                input.InsertText(character.ToString());
+            }
+            DispatchInputEvent(input);
         }
-        DispatchInputEvent(input);
     }
 
     private void DispatchInputEvent(InputElement input)
