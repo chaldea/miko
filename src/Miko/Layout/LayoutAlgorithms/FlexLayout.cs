@@ -670,25 +670,13 @@ public class FlexLayout
             var child = box.Children[i];
             if (BlockLayout.IsOutOfFlow(child)) continue;
             float itemOffset = offset + spacing * i;
+            if (itemOffset == 0) continue;
 
+            // 沿主轴平移整棵子树，使子元素的子孙跟随移动。
             if (isRow)
-            {
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X + itemOffset,
-                    child.BoxModel.Content.Y,
-                    child.BoxModel.Content.Width,
-                    child.BoxModel.Content.Height
-                );
-            }
+                OffsetSubtree(child, itemOffset, 0);
             else
-            {
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X,
-                    child.BoxModel.Content.Y + itemOffset,
-                    child.BoxModel.Content.Width,
-                    child.BoxModel.Content.Height
-                );
-            }
+                OffsetSubtree(child, 0, itemOffset);
         }
     }
 
@@ -763,26 +751,28 @@ public class FlexLayout
                     break;
             }
 
-            // 应用偏移
-            if (isRow)
+            // 应用偏移。子元素可能已布局好整棵子树（如本身是另一个 flex/block 容器），
+            // 因此偏移必须递归平移整棵子树，否则子孙元素会停留在偏移前的位置。
+            if (offset != 0)
             {
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X,
-                    child.BoxModel.Content.Y + offset,
-                    child.BoxModel.Content.Width,
-                    child.BoxModel.Content.Height
-                );
-            }
-            else
-            {
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X + offset,
-                    child.BoxModel.Content.Y,
-                    child.BoxModel.Content.Width,
-                    child.BoxModel.Content.Height
-                );
+                if (isRow)
+                    OffsetSubtree(child, 0, offset);
+                else
+                    OffsetSubtree(child, offset, 0);
             }
         }
+    }
+
+    /// <summary>
+    /// 递归平移一个盒子及其全部子孙的内容区。用于 flex 对齐/分布产生的位移，
+    /// 确保子元素的子树跟随移动。
+    /// </summary>
+    private static void OffsetSubtree(LayoutBox box, float dx, float dy)
+    {
+        var content = box.BoxModel.Content;
+        box.BoxModel.Content = new RectF(content.X + dx, content.Y + dy, content.Width, content.Height);
+        foreach (var child in box.Children)
+            OffsetSubtree(child, dx, dy);
     }
 
     /// <summary>

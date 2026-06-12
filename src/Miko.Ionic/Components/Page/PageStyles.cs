@@ -32,9 +32,12 @@ internal static class PageStyles
 
             // ion-header — block band above the content (order: -1 in Ionic).
             // MD mode renders an elevation shadow; iOS mode a hairline bottom border.
+            // position:relative + z-index lift the header (and its shadow) above the
+            // content that follows it in normal flow.
             [".ion-header"] = new()
             {
                 Display = Display.Block,
+                Position = Position.Relative,
                 Width = Length.Percent(100),
                 BoxShadow = t.HeaderBoxShadow.Count > 0 ? t.HeaderBoxShadow : null,
                 BorderBottom = t.HeaderBorderWidth > 0

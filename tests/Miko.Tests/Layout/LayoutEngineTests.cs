@@ -1126,6 +1126,115 @@ public class LayoutEngineTests
         layoutRoot.Children.Count.ShouldBe(2);
     }
 
+    [Fact]
+    public void FlexLayout_AlignItemsCenter_ShouldOffsetChildSubtree()
+    {
+        // Arrange - a tall flex-row container (align-items: center) whose child is itself
+        // a container with a nested grandchild. Centering the child must also move the
+        // grandchild's subtree, not leave it at the top.
+        var root = new DivElement { Class = "bar" };
+        var title = new DivElement { Class = "title" };
+        var inner = new DivElement { Class = "inner" };
+        title.AddChild(inner);
+        root.AddChild(title);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("bar"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            AlignItems = AlignItems.Center,
+                            Width = Length.Px(300),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("title"),
+                        Style = new Style { Width = Length.Px(200), Height = Length.Px(20) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("inner"),
+                        Style = new Style { Width = Length.Px(200), Height = Length.Px(20) }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+        var titleBox = layoutRoot.Children[0];
+        var innerBox = titleBox.Children[0];
+
+        // Assert - title centered in the 100px bar: (100 - 20) / 2 = 40
+        titleBox.BoxModel.Content.Y.ShouldBe(40);
+        // The nested grandchild must follow its parent's centered position (not stay at 0)
+        innerBox.BoxModel.Content.Y.ShouldBe(40);
+    }
+
+    [Fact]
+    public void FlexLayout_JustifyContentCenter_ShouldOffsetChildSubtree()
+    {
+        // Arrange - a wide flex-row container (justify-content: center) whose single child
+        // has a nested grandchild. Centering along the main axis must move the subtree.
+        var root = new DivElement { Class = "bar" };
+        var item = new DivElement { Class = "item" };
+        var inner = new DivElement { Class = "inner" };
+        item.AddChild(inner);
+        root.AddChild(item);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("bar"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            JustifyContent = JustifyContent.Center,
+                            Width = Length.Px(300),
+                            Height = Length.Px(50)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
+                        Style = new Style { Width = Length.Px(100), Height = Length.Px(50) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("inner"),
+                        Style = new Style { Width = Length.Px(100), Height = Length.Px(50) }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+        var itemBox = layoutRoot.Children[0];
+        var innerBox = itemBox.Children[0];
+
+        // Assert - item centered along main axis: (300 - 100) / 2 = 100
+        itemBox.BoxModel.Content.X.ShouldBe(100);
+        // The nested grandchild must follow its parent's centered position (not stay at 0)
+        innerBox.BoxModel.Content.X.ShouldBe(100);
+    }
+
     #endregion
 
     #region Flex-Grow/Shrink/Basis Tests

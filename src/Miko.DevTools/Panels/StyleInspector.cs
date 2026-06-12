@@ -135,7 +135,22 @@ internal static class StyleInspector
         if (cs.BorderTopWidth.Value > 0)
             AddRow(container, "border", $"{FormatLength(cs.BorderTopWidth)} {cs.BorderTopStyle.ToString().ToLower()} {FormatColor(cs.BorderTopColor)}");
 
+        if (cs.ZIndex != 0)
+            AddRow(container, "z-index", cs.ZIndex.ToString());
+
+        if (cs.BoxShadow != null && cs.BoxShadow.Count > 0)
+            AddRow(container, "box-shadow", FormatBoxShadow(cs.BoxShadow));
+
         return container;
+    }
+
+    private static string FormatBoxShadow(List<Common.BoxShadow> shadows)
+    {
+        return string.Join(", ", shadows.Select(s =>
+        {
+            var inset = s.Inset ? "inset " : "";
+            return $"{inset}{s.OffsetX:0.#}px {s.OffsetY:0.#}px {s.BlurRadius:0.#}px {s.SpreadRadius:0.#}px {FormatColor(s.Color)}";
+        }));
     }
 
     private static void AddRow(DivElement container, string property, string value)
