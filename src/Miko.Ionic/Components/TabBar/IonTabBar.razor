@@ -1,0 +1,21 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>
+    /// Placement of the tab bar relative to the tabs content: <c>"bottom"</c> (default)
+    /// or <c>"top"</c>. Mirrors Ionic's <c>slot</c> attribute on <c>ion-tab-bar</c>.
+    /// </summary>
+    [Parameter] public string Slot { get; set; } = "bottom";
+
+    private string _cssClass = "ion-tab-bar ion-tab-bar-bottom";
+
+    protected override void OnParametersSet()
+    {
+        var slot = string.Equals(Slot, "top", StringComparison.OrdinalIgnoreCase) ? "top" : "bottom";
+        _cssClass = $"ion-tab-bar ion-tab-bar-{slot}";
+    }
+}

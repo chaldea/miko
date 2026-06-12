@@ -1,0 +1,20 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="ion-tabs">
+    <div class="tabs-inner">
+        @Content
+    </div>
+    @Bar
+</div>
+
+@code {
+    /// <summary>
+    /// Main content area shown above (slot="bottom") or below (slot="top") the tab bar.
+    /// </summary>
+    [Parameter] public RenderFragment? Content { get; set; }
+
+    /// <summary>
+    /// The tab bar (<c>ion-tab-bar</c>) holding the tab buttons.
+    /// </summary>
+    [Parameter] public RenderFragment? Bar { get; set; }
+}
