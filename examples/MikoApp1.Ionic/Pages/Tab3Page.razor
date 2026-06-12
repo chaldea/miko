@@ -1,8 +1,16 @@
 @page "/tab3"
 @namespace MikoApp1.Ionic.Pages
 
-<div class="demo-content">
-    <h1>Tab 3</h1>
-    <p>This is the third tab page, served at <strong>/tab3</strong>.</p>
-    <p>The square icon is highlighted while this route is active.</p>
-</div>
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <IonTitle>Tab 3</IonTitle>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen="true">
+        <div class="demo-content">
+            <p>This is the third tab page, served at <strong>/tab3</strong>.</p>
+            <p>The square icon is highlighted while this route is active.</p>
+        </div>
+    </IonContent>
+</IonPage>

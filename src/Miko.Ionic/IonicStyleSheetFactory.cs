@@ -12,6 +12,7 @@ public static class IonicStyleSheetFactory
     public static StyleSheet Create(IonicTheme theme)
     {
         var sheet = new StyleSheet();
+        sheet.Add(PageStyles.GenStyle(theme));
         sheet.Add(TabStyles.GenStyle(theme));
         sheet.Add(IconStyles.GenStyle(theme));
         sheet.Add(LabelStyles.GenStyle(theme));

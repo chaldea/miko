@@ -1,0 +1,23 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    <div class="inner-scroll">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// When true the content fills the area beneath a transparent/translucent header
+    /// (Ionic's <c>fullscreen</c> attribute). Kept for API parity; in this base port it
+    /// only adds a marker class.
+    /// </summary>
+    [Parameter] public bool Fullscreen { get; set; }
+
+    private string _cssClass = "ion-content";
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = Fullscreen ? "ion-content content-fullscreen" : "ion-content";
+    }
+}

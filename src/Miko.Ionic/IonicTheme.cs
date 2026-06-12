@@ -39,6 +39,23 @@ public class IonicTheme
     public float TabButtonMaxWidth { get; set; } = 168f;
     public float TabButtonPaddingX { get; set; } = 12f;
 
+    // Toolbar (toolbar.md.scss / ionic.theme.default.md.scss)
+    public Color ToolbarBackground { get; set; }
+    public Color ToolbarColor { get; set; }
+    public float ToolbarMinHeight { get; set; } = 56f;
+
+    // Title (title.md.scss)
+    public float TitleFontSize { get; set; } = 20f;
+    public FontWeight TitleFontWeight { get; set; } = FontWeight.Medium;
+    public float TitlePaddingX { get; set; } = 20f;
+
+    // Header (header.md.vars.scss) — first (elevation) layer of the MD box shadow.
+    public BoxShadow HeaderBoxShadow { get; set; }
+
+    // Content (content.scss)
+    public Color ContentBackground { get; set; }
+    public Color ContentColor { get; set; }
+
     /// <summary>
     /// Creates the default Ionic light theme (Material Design mode).
     /// </summary>
@@ -65,5 +82,17 @@ public class IonicTheme
         TabBarColor = Color.FromHex("595959"),
         // $tabbar-md-color-selected: ion-color(primary, base)
         TabBarColorSelected = Color.FromHex("0054e9"),
+
+        // $toolbar-md-background: $background-color (#fff)
+        ToolbarBackground = Color.FromHex("ffffff"),
+        // $toolbar-md-color: var(--ion-text-color, #424242)
+        ToolbarColor = Color.FromHex("424242"),
+
+        // $header-md-box-shadow first layer: 0 2px 4px -1px rgba(0, 0, 0, 0.2)
+        HeaderBoxShadow = new BoxShadow(0, 2, 4, -1, new Color(0, 0, 0, 51)),
+
+        // content.scss: --background #fff, --color #000
+        ContentBackground = Color.FromHex("ffffff"),
+        ContentColor = Color.FromHex("000000"),
     };
 }
