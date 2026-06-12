@@ -253,6 +253,8 @@ public class ComputedStyle : Style
             if (style.Opacity.HasValue) computed.Opacity = style.Opacity.Value;
             if (style.ZIndex.HasValue) computed.ZIndex = style.ZIndex.Value;
 
+            if (style.BoxShadow != null) computed.BoxShadow = style.BoxShadow;
+
             if (style.OverflowX.HasValue) computed.OverflowX = style.OverflowX.Value;
             if (style.OverflowY.HasValue) computed.OverflowY = style.OverflowY.Value;
 

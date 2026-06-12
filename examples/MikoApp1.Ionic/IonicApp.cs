@@ -1,4 +1,5 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Miko.DevTools;
 using Miko.Hosting;
 using Miko.Ionic;
 
@@ -10,6 +11,7 @@ public static class IonicApp
     {
         var builder = MikoAppBuilder.CreateDefault();
         builder.UseTitle("Miko Ionic Demo");
+        builder.AddDevTools();
         builder.AddIonic();
         builder.AddStyleSheet(GlobalStyles.Create());
         // Portrait, phone-like viewport to showcase the bottom tab bar layout.

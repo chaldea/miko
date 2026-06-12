@@ -106,13 +106,16 @@ public class RenderEngine
             ApplyTransform(box);
         }
 
-        // 1. 绘制背景
+        // 1. 绘制盒阴影（在背景之前）
+        RenderBoxShadow(box);
+
+        // 2. 绘制背景
         RenderBackground(box);
 
-        // 2. 绘制边框
+        // 3. 绘制边框
         RenderBorder(box);
 
-        // 3. 绘制内容
+        // 4. 绘制内容
         RenderContent(box);
 
         // 4. 递归绘制子元素
@@ -310,6 +313,26 @@ public class RenderEngine
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 渲染盒阴影
+    /// </summary>
+    private void RenderBoxShadow(LayoutBox box)
+    {
+        if (_painter == null) return;
+
+        var style = box.ComputedStyle;
+        if (style.BoxShadow == null || style.BoxShadow.Count == 0) return;
+
+        _painter.DrawBoxShadow(
+            style.BoxShadow,
+            box.BoxModel.BorderBox,
+            style.BorderTopLeftRadius.Value,
+            style.BorderTopRightRadius.Value,
+            style.BorderBottomRightRadius.Value,
+            style.BorderBottomLeftRadius.Value
+        );
     }
 
     /// <summary>

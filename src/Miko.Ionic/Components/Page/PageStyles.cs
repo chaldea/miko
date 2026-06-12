@@ -31,11 +31,15 @@ internal static class PageStyles
             },
 
             // ion-header — block band above the content (order: -1 in Ionic).
+            // MD mode renders an elevation shadow; iOS mode a hairline bottom border.
             [".ion-header"] = new()
             {
                 Display = Display.Block,
                 Width = Length.Percent(100),
-                BoxShadow = t.HeaderBoxShadow,
+                BoxShadow = t.HeaderBoxShadow.Count > 0 ? t.HeaderBoxShadow : null,
+                BorderBottom = t.HeaderBorderWidth > 0
+                    ? new BorderSide(Length.Px(t.HeaderBorderWidth), BorderStyle.Solid, t.HeaderBorderColor)
+                    : new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
                 ZIndex = 10,
             },
 
@@ -61,12 +65,15 @@ internal static class PageStyles
                 MinHeight = Length.Px(t.ToolbarMinHeight),
             },
 
-            // ion-title — grows to fill the toolbar; MD typography.
+            // ion-title — grows to fill the toolbar. MD left-aligns; iOS centers.
             [".ion-title"] = new()
             {
                 Display = Display.Flex,
                 FlexGrow = 1,
                 AlignItems = AlignItems.Center,
+                JustifyContent = t.TitleTextAlign == TextAlign.Center
+                    ? JustifyContent.Center
+                    : JustifyContent.FlexStart,
                 PaddingLeft = Length.Px(t.TitlePaddingX),
                 PaddingRight = Length.Px(t.TitlePaddingX),
                 FontSize = Length.Px(t.TitleFontSize),
@@ -80,6 +87,7 @@ internal static class PageStyles
                 Width = Length.Percent(100),
                 WhiteSpace = WhiteSpace.Nowrap,
                 OverflowX = Overflow.Hidden,
+                TextAlign = t.TitleTextAlign,
             },
 
             // ion-content — region filling the remaining page height below the header.

@@ -91,7 +91,7 @@ internal static class AccordionStyles
                 {
                     Color = t.AccordionActiveColor,
                     BackgroundColor = t.AccordionActiveBg,
-                    BoxShadow = new BoxShadow(0, -1 * t.AccordionBorderWidth.Value, 0, 0, t.AccordionBorderColor, true),
+                    BoxShadow = [new BoxShadow(0, -1 * t.AccordionBorderWidth.Value, 0, 0, t.AccordionBorderColor, true)],
 
                     ["&::after"] = new()
                     {
@@ -121,7 +121,7 @@ internal static class AccordionStyles
                 ["&:focus"] = new()
                 {
                     ZIndex = 3,
-                    BoxShadow = t.AccordionBtnFocusBoxShadow
+                    BoxShadow = [t.AccordionBtnFocusBoxShadow]
                 },
 
             },

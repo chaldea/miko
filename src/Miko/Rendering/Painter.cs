@@ -18,6 +18,70 @@ public class Painter
     }
 
     /// <summary>
+    /// 绘制盒阴影（支持多层阴影）
+    /// </summary>
+    public void DrawBoxShadow(List<BoxShadow> shadows, RectF rect, float topLeftRadius = 0, float topRightRadius = 0, float bottomRightRadius = 0, float bottomLeftRadius = 0)
+    {
+        if (shadows == null || shadows.Count == 0) return;
+
+        // 阴影按顺序绘制（第一个在最上层）
+        foreach (var shadow in shadows)
+        {
+            if (shadow.Color.A == 0) continue;
+
+            // 计算阴影矩形（应用 offset 和 spread）
+            var shadowRect = new RectF(
+                rect.X + shadow.OffsetX - shadow.SpreadRadius,
+                rect.Y + shadow.OffsetY - shadow.SpreadRadius,
+                rect.Width + shadow.SpreadRadius * 2,
+                rect.Height + shadow.SpreadRadius * 2
+            );
+
+            // 阴影圆角也需要应用 spread
+            float shadowTopLeftRadius = topLeftRadius + shadow.SpreadRadius;
+            float shadowTopRightRadius = topRightRadius + shadow.SpreadRadius;
+            float shadowBottomRightRadius = bottomRightRadius + shadow.SpreadRadius;
+            float shadowBottomLeftRadius = bottomLeftRadius + shadow.SpreadRadius;
+
+            using var paint = new SKPaint
+            {
+                Color = shadow.Color.ToSKColor(),
+                Style = SKPaintStyle.Fill,
+                IsAntialias = true
+            };
+
+            // 应用模糊
+            if (shadow.BlurRadius > 0)
+            {
+                paint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, shadow.BlurRadius / 2f);
+            }
+
+            if (shadow.Inset)
+            {
+                // Inset shadow: 绘制在元素内部（需要裁剪）
+                // 暂时跳过 inset 实现（Ionic 的 header shadow 不使用 inset）
+                // TODO: 完整实现 inset shadow
+            }
+            else
+            {
+                // 外阴影: 在背景之下绘制
+                if (shadowTopLeftRadius > 0 || shadowTopRightRadius > 0 ||
+                    shadowBottomRightRadius > 0 || shadowBottomLeftRadius > 0)
+                {
+                    using var path = CreateRoundRectPath(shadowRect.ToSKRect(),
+                        shadowTopLeftRadius, shadowTopRightRadius,
+                        shadowBottomRightRadius, shadowBottomLeftRadius);
+                    _canvas.DrawPath(path, paint);
+                }
+                else
+                {
+                    _canvas.DrawRect(shadowRect.ToSKRect(), paint);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// 绘制背景
     /// </summary>
     public void DrawBackground(RectF rect, Color color, float topLeftRadius = 0, float topRightRadius = 0, float bottomRightRadius = 0, float bottomLeftRadius = 0)

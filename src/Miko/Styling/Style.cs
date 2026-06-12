@@ -271,7 +271,11 @@ public class Style
     public Length? RowGap { get; set; }
     public Length? ColumnGap { get; set; }
 
-    public BoxShadow? BoxShadow { get; set; }
+    /// <summary>
+    /// Box shadow layers. Multiple shadows are applied in order (first shadow is on top).
+    /// Matches CSS box-shadow which supports comma-separated shadow definitions.
+    /// </summary>
+    public List<BoxShadow>? BoxShadow { get; set; }
 
     // 溢出
     public Overflow? OverflowX { get; set; }

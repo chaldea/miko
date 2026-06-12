@@ -160,6 +160,38 @@ public class FlexLayout
             }
         }
 
+        // 6. 应用 min-height/max-height 约束
+        bool isBorderBoxH = style.BoxSizing == BoxSizing.BorderBox;
+        float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
+        if (!style.MinHeight.IsAuto)
+        {
+            float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+            if (isBorderBoxH) min = Math.Max(0, min - verticalExtra);
+            contentHeight = Math.Max(contentHeight, min);
+        }
+        if (!style.MaxHeight.IsAuto)
+        {
+            float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+            if (isBorderBoxH) max = Math.Max(0, max - verticalExtra);
+            contentHeight = Math.Min(contentHeight, max);
+        }
+
+        // 7. 应用 min-width/max-width 约束
+        bool isBorderBoxW = style.BoxSizing == BoxSizing.BorderBox;
+        float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
+        if (!style.MinWidth.IsAuto)
+        {
+            float min = style.MinWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
+            if (isBorderBoxW) min = Math.Max(0, min - horizontalExtra);
+            contentWidth = Math.Max(contentWidth, min);
+        }
+        if (!style.MaxWidth.IsAuto)
+        {
+            float max = style.MaxWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
+            if (isBorderBoxW) max = Math.Max(0, max - horizontalExtra);
+            contentWidth = Math.Min(contentWidth, max);
+        }
+
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);
 
         // 记录可滚动内容尺寸

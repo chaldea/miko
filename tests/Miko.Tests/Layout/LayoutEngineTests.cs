@@ -1029,6 +1029,103 @@ public class LayoutEngineTests
         layoutChild2.BoxModel.Content.Height.ShouldBe(100);
     }
 
+    [Fact]
+    public void FlexLayout_Row_ShouldRespectMinHeight()
+    {
+        // Arrange - flex row container with min-height should enforce minimum height
+        // even when content is smaller
+        var root = new DivElement { Class = "flex-container" };
+        var child = new DivElement { Class = "small-child" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(200),
+                            MinHeight = Length.Px(80)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("small-child"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(50),
+                            Height = Length.Px(20)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - container height should be at least 80px (the min-height)
+        layoutRoot.BoxModel.Content.Height.ShouldBeGreaterThanOrEqualTo(80);
+        layoutRoot.Children[0].BoxModel.Content.Height.ShouldBe(20);
+    }
+
+    [Fact]
+    public void FlexLayout_Column_ShouldRespectMinHeight()
+    {
+        // Arrange - flex column container with min-height should enforce minimum
+        // when children don't fill the space
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new DivElement { Class = "child" };
+        var child2 = new DivElement { Class = "child" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column,
+                            Width = Length.Px(200),
+                            MinHeight = Length.Px(120)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(50),
+                            Height = Length.Px(30)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - container height should be at least 120px (the min-height),
+        // even though children only take 60px total
+        layoutRoot.BoxModel.Content.Height.ShouldBeGreaterThanOrEqualTo(120);
+        layoutRoot.Children.Count.ShouldBe(2);
+    }
+
     #endregion
 
     #region Flex-Grow/Shrink/Basis Tests
