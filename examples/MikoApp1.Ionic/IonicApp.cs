@@ -15,6 +15,7 @@ public static class IonicApp
         // Portrait, phone-like viewport to showcase the bottom tab bar layout.
         builder.UseSize(390, 844);
         builder.UseGeneratedRoutes();
+        builder.UseDefaultLayout<MainLayout>();
         builder.EnableHotReload();
         builder.UseLogging(logging =>
         {
