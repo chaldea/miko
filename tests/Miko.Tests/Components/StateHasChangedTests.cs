@@ -101,4 +101,67 @@ public class StateHasChangedTests
         parent.Children.Count.ShouldBe(1);
         parent.Children[0].TextContent.ShouldBe("Count: 1");
     }
+
+    // A reusable button-like child whose @onclick handler lives in the child and merely
+    // forwards to a parent-supplied Action — exactly like IonMenuButton (ISSUE-052).
+    private class ForwardingButtonComponent : ComponentBase
+    {
+        [Parameter] public Action? OnClick { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "onclick",
+                EventCallback.Factory.Create<MouseEventArgs>(this, () => OnClick?.Invoke()));
+            builder.CloseElement();
+        }
+    }
+
+    // A parent that owns toggle state AND the conditionally-rendered content, and embeds
+    // the forwarding child — exactly like HomePage owning _menuOpen, the IonMenu drawer,
+    // and the IonMenuButton. The parent's callback must call StateHasChanged() itself,
+    // because the child's EventCallback only re-renders the child, not the parent.
+    private class ToggleHostComponent : ComponentBase
+    {
+        private bool _open;
+        public ForwardingButtonComponent? Button { get; private set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "div");
+            builder.AddContent(1, _open ? "OPEN" : "CLOSED");
+
+            Button = new ForwardingButtonComponent { OnClick = Open };
+            builder.OpenElement(2, "div");
+            var childElement = Button.Build();
+            builder.AttachElement(childElement);
+            builder.CloseElement();
+
+            builder.CloseElement();
+        }
+
+        private void Open()
+        {
+            _open = true;
+            StateHasChanged();
+        }
+    }
+
+    [Fact]
+    public void StateHasChanged_ParentOwnsState_ChildClickForwardsToParent_ParentRerenders()
+    {
+        var host = new ToggleHostComponent();
+        var element = host.Build();
+        element.TextContent.ShouldBe("CLOSED");
+
+        // Simulate clicking the child button: it forwards to the parent's Open(), which
+        // flips the parent state and calls StateHasChanged() to re-render the parent.
+        host.Button.ShouldNotBeNull();
+        var childRoot = host.Button!.Build();
+        childRoot.OnClick.ShouldNotBeNull();
+        childRoot.OnClick!.Invoke(new MouseEventArgs { Target = childRoot });
+
+        // The parent's rendered content reflects the new state.
+        element.TextContent.ShouldBe("OPEN");
+    }
 }

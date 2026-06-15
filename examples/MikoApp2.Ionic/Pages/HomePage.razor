@@ -1,0 +1,101 @@
+@page "/"
+@namespace MikoApp2.Ionic.Pages
+@inject Miko.Animation.AnimationManager Animations
+
+@* Sidemenu (overlay drawer) layout with slide/fade animation. IonApp lays out three
+   siblings: the page first, then the backdrop and the drawer (so the reverse-document-order
+   hit-test reaches the overlay before the full-size page). The drawer and backdrop stay
+   mounted so both the open and close transitions can animate. _menuOpen drives the slide /
+   fade target; _backdropMounted keeps the backdrop's display on through the close fade and
+   is dropped once that fade completes (so it stops blocking page taps). *@
+<IonApp>
+    <IonPage>
+        <IonHeader>
+            <IonToolbar>
+                <IonButtons Slot="start">
+                    <IonMenuButton OnClick="OpenMenu" />
+                </IonButtons>
+                <IonTitle>Inbox</IonTitle>
+            </IonToolbar>
+        </IonHeader>
+
+        <IonContent Fullscreen="true">
+            <div class="demo-content">
+                <p>This is the sidemenu layout demo.</p>
+                <p>Tap the menu button in the top-left to slide the navigation drawer in over
+                   the page. Tap the dimmed backdrop to slide it back out.</p>
+            </div>
+        </IonContent>
+    </IonPage>
+
+    <IonBackdrop Visible="_backdropMounted" Open="_menuOpen" OnClick="CloseMenu" />
+
+    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay">
+        <IonContent>
+            <IonList Id="inbox-list">
+                <IonListHeader>Inbox</IonListHeader>
+                @foreach (var item in _pages)
+                {
+                    <IonItem Lines="none">
+                        <IonIcon Icon="@item.Icon" />
+                        <IonLabel>@item.Title</IonLabel>
+                    </IonItem>
+                }
+            </IonList>
+        </IonContent>
+    </IonMenu>
+</IonApp>
+
+@code {
+    private bool _menuOpen;        // slide/fade target: true = open
+    private bool _backdropMounted; // backdrop display on (kept on through the close fade)
+
+    private readonly MenuPage[] _pages =
+    {
+        new("Inbox", Ionicons.MailOutline),
+        new("Outbox", Ionicons.PaperPlaneOutline),
+        new("Favorites", Ionicons.HeartOutline),
+        new("Archived", Ionicons.ArchiveOutline),
+        new("Trash", Ionicons.TrashOutline),
+        new("Spam", Ionicons.WarningOutline),
+    };
+
+    protected override void OnInitialized()
+    {
+        // Defer dropping the backdrop's display until its fade-out finishes, so the close
+        // animation plays in full before the backdrop stops covering (and blocking) the page.
+        Animations.TransitionCompleted += OnTransitionCompleted;
+    }
+
+    // The click handlers live in IonMenuButton / IonBackdrop (their EventCallbacks re-render
+    // those child components, not this page), so call StateHasChanged() here — this page owns
+    // the open state and renders the drawer/backdrop — to drive the animation.
+    private void OpenMenu()
+    {
+        _menuOpen = true;
+        _backdropMounted = true;
+        StateHasChanged();
+    }
+
+    private void CloseMenu()
+    {
+        _menuOpen = false;   // drawer slides out; backdrop fades out (still mounted)
+        StateHasChanged();
+    }
+
+    private void OnTransitionCompleted(Element element, string property)
+    {
+        // When the backdrop's fade-OUT completes, unmount it (display:none) so it no longer
+        // blocks the page. Guard against a re-open that happened mid-close.
+        if (!_menuOpen
+            && _backdropMounted
+            && property == nameof(Style.Opacity)
+            && (element.Class?.Contains("ion-menu-backdrop") ?? false))
+        {
+            _backdropMounted = false;
+            StateHasChanged();
+        }
+    }
+
+    private readonly record struct MenuPage(string Title, string Icon);
+}

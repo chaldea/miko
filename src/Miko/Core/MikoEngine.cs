@@ -318,6 +318,7 @@ public class MikoEngine
         float Width, float Height,
         float PaddingTop, float PaddingRight, float PaddingBottom, float PaddingLeft,
         float MarginTop, float MarginRight, float MarginBottom, float MarginLeft,
+        float Top, float Right, float Bottom, float Left,
         float Opacity, float FontSize, float BorderWidth,
         float BorderTopLeftRadius, float BorderTopRightRadius, float BorderBottomRightRadius, float BorderBottomLeftRadius,
         Color BackgroundColor, Color Color, Color BorderColor,
@@ -369,6 +370,10 @@ public class MikoEngine
             cs.Height.IsAuto ? float.NaN : cs.Height.Value,
             cs.PaddingTop.Value, cs.PaddingRight.Value, cs.PaddingBottom.Value, cs.PaddingLeft.Value,
             cs.MarginTop.Value, cs.MarginRight.Value, cs.MarginBottom.Value, cs.MarginLeft.Value,
+            cs.Top.IsAuto ? float.NaN : cs.Top.Value,
+            cs.Right.IsAuto ? float.NaN : cs.Right.Value,
+            cs.Bottom.IsAuto ? float.NaN : cs.Bottom.Value,
+            cs.Left.IsAuto ? float.NaN : cs.Left.Value,
             cs.Opacity, cs.FontSize.Value, cs.BorderTopWidth.Value,
             cs.BorderTopLeftRadius.Value, cs.BorderTopRightRadius.Value,
             cs.BorderBottomRightRadius.Value, cs.BorderBottomLeftRadius.Value,
@@ -451,6 +456,16 @@ public class MikoEngine
             TryTrackFloat(element, nameof(Style.MarginBottom), oldSnap.MarginBottom, newSnap.MarginBottom, transition);
         if (prop == "all" || prop == nameof(Style.MarginLeft) || prop == nameof(Style.Margin))
             TryTrackFloat(element, nameof(Style.MarginLeft), oldSnap.MarginLeft, newSnap.MarginLeft, transition);
+
+        // Inset properties (used e.g. to slide an absolutely-positioned drawer on/off-screen).
+        if (prop == "all" || prop == nameof(Style.Top))
+            TryTrackFloat(element, nameof(Style.Top), oldSnap.Top, newSnap.Top, transition);
+        if (prop == "all" || prop == nameof(Style.Right))
+            TryTrackFloat(element, nameof(Style.Right), oldSnap.Right, newSnap.Right, transition);
+        if (prop == "all" || prop == nameof(Style.Bottom))
+            TryTrackFloat(element, nameof(Style.Bottom), oldSnap.Bottom, newSnap.Bottom, transition);
+        if (prop == "all" || prop == nameof(Style.Left))
+            TryTrackFloat(element, nameof(Style.Left), oldSnap.Left, newSnap.Left, transition);
 
         if (prop == "all" || prop == nameof(Style.BorderTopLeftRadius))
             TryTrackFloat(element, nameof(Style.BorderTopLeftRadius), oldSnap.BorderTopLeftRadius, newSnap.BorderTopLeftRadius, transition);

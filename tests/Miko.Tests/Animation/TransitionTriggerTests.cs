@@ -269,6 +269,124 @@ public class TransitionTriggerTests : IDisposable
     }
 
     [Fact]
+    public void Transition_Left_ShouldTriggerAndInterpolate()
+    {
+        // Inset properties must be transitionable so an absolutely-positioned element can
+        // slide on/off-screen (ISSUE-052 §3 drawer slide). Regression: Left/Right/Top/Bottom
+        // were not captured by the engine's transition detector.
+        var styleSheet = new StyleSheet();
+        styleSheet.Add(new CssObject
+        {
+            [".box"] = new CssObject
+            {
+                Position = Position.Absolute,
+                Width = Length.Px(100),
+                Height = Length.Px(50),
+                Left = Length.Px(-100),
+                Transitions = [Transition.For(x => x.Left).Duration(1f).Linear()]
+            },
+            [".box.open"] = new CssObject
+            {
+                Left = Length.Px(0)
+            }
+        });
+
+        var root = new DivElement { Style = new Style { Position = Position.Relative, Width = Length.Px(500), Height = Length.Px(500) } };
+        var box = new DivElement { Class = "box" };
+        root.AddChild(box);
+
+        var engine = new MikoEngine();
+        engine.Initialize(root, [styleSheet], _canvas, 600, 600);
+
+        box.Class = "box open";
+        engine.Render(_canvas);
+        engine.AnimationManager.HasActiveAnimations.ShouldBeTrue();
+
+        // Halfway through a linear -100 → 0 slide.
+        engine.AnimationManager.Update(0.5f);
+        box.Style!.Left!.Value.Value.ShouldBe(-50f, 1f);
+
+        // Completes at 0.
+        engine.AnimationManager.Update(0.6f);
+        engine.AnimationManager.HasActiveAnimations.ShouldBeFalse();
+        box.Style!.Left!.Value.Value.ShouldBe(0f, 1f);
+    }
+
+    [Fact]
+    public void Transition_Right_ShouldTrigger()
+    {
+        // Mirror of Left for the trailing-edge (Side="end") drawer.
+        var styleSheet = new StyleSheet();
+        styleSheet.Add(new CssObject
+        {
+            [".box"] = new CssObject
+            {
+                Position = Position.Absolute,
+                Width = Length.Px(100), Height = Length.Px(50),
+                Right = Length.Px(-100),
+                Transitions = [Transition.For(x => x.Right).Duration(0.5f).Linear()]
+            },
+            [".box.open"] = new CssObject { Right = Length.Px(0) }
+        });
+
+        var root = new DivElement { Style = new Style { Position = Position.Relative, Width = Length.Px(500), Height = Length.Px(500) } };
+        var box = new DivElement { Class = "box" };
+        root.AddChild(box);
+
+        var engine = new MikoEngine();
+        engine.Initialize(root, [styleSheet], _canvas, 600, 600);
+
+        box.Class = "box open";
+        engine.Render(_canvas);
+
+        engine.AnimationManager.HasActiveAnimations.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void TransitionCompleted_ShouldFire_WithElementAndProperty_WhenTransitionFinishes()
+    {
+        var styleSheet = new StyleSheet();
+        styleSheet.Add(new CssObject
+        {
+            [".box"] = new CssObject
+            {
+                Width = Length.Px(100),
+                Height = Length.Px(50),
+                Opacity = 1f,
+                Transitions = [Transition.For(x => x.Opacity).Duration(0.5f).Linear()]
+            },
+            [".box.faded"] = new CssObject
+            {
+                Opacity = 0f
+            }
+        });
+
+        var root = new DivElement { Style = new Style { Width = Length.Px(500), Height = Length.Px(500) } };
+        var box = new DivElement { Class = "box" };
+        root.AddChild(box);
+
+        var engine = new MikoEngine();
+        engine.Initialize(root, [styleSheet], _canvas, 600, 600);
+
+        var completed = new List<(Element element, string property)>();
+        engine.AnimationManager.TransitionCompleted += (el, prop) => completed.Add((el, prop));
+
+        box.Class = "box faded";
+        engine.Render(_canvas);
+        engine.AnimationManager.HasActiveAnimations.ShouldBeTrue();
+
+        // Not yet complete halfway through.
+        engine.AnimationManager.Update(0.25f);
+        completed.ShouldBeEmpty();
+
+        // Past the duration: the event fires once with the element and property name.
+        engine.AnimationManager.Update(0.3f);
+        completed.Count.ShouldBe(1);
+        completed[0].element.ShouldBe(box);
+        completed[0].property.ShouldBe(nameof(Style.Opacity));
+    }
+
+    [Fact]
     public void Transition_FirstFrame_ShouldRenderStartValue_NotTargetValue()
     {
         // 验证触发 transition 的首帧渲染起始值，不会闪烁到目标值

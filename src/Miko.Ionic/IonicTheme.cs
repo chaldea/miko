@@ -75,6 +75,29 @@ public class IonicTheme
     public Color ContentBackground { get; set; }
     public Color ContentColor { get; set; }
 
+    // App shell (sidemenu layout root)
+    public Color AppBackground { get; set; }
+
+    // Menu (side drawer) — MD lifts the drawer with an elevation shadow; iOS uses a
+    // hairline trailing border. The backdrop dims the page behind an open overlay menu.
+    public float MenuWidth { get; set; } = 304f;
+    public Color MenuBackground { get; set; }
+    public List<BoxShadow> MenuBoxShadow { get; set; } = new();
+    public Color MenuBorderColor { get; set; }
+    public float MenuBorderWidth { get; set; }
+    public Color BackdropColor { get; set; }
+    /// <summary>Drawer slide / backdrop fade duration in seconds (Ionic menu is ~280ms).</summary>
+    public float MenuAnimDuration { get; set; } = 0.28f;
+
+    // List / list header / item
+    public Color ListBackground { get; set; }
+    public Color ListHeaderColor { get; set; }
+    public float ListHeaderFontSize { get; set; } = 16f;
+    public float ItemMinHeight { get; set; } = 48f;
+    public Color ItemColor { get; set; }
+    public Color ItemBorderColor { get; set; }
+    public float ItemPaddingStart { get; set; } = 16f;
+
     // Brand palette shared by both modes (ionic.theme.default.scss).
     private static void ApplyBrandColors(IonicTheme t)
     {
@@ -144,6 +167,28 @@ public class IonicTheme
         t.HeaderBorderWidth = 0f;
 
         t.ContentBackground = Color.FromHex("ffffff");
+
+        // App / sidemenu (menu.md.scss): drawer width 304, white surface, 4dp elevation
+        // shadow; backdrop rgba(0,0,0,.32). List/item from list.md / item.md.
+        t.AppBackground = Color.FromHex("ffffff");
+        t.MenuWidth = 304f;
+        t.MenuBackground = Color.FromHex("ffffff");
+        t.MenuBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 2, 4, -1, new Color(0, 0, 0, 51)),  // 0.2 * 255
+            new BoxShadow(0, 4, 5, 0, new Color(0, 0, 0, 36)),   // 0.14 * 255
+            new BoxShadow(0, 1, 10, 0, new Color(0, 0, 0, 31)),  // 0.12 * 255
+        };
+        t.MenuBorderWidth = 0f;
+        t.BackdropColor = new Color(0, 0, 0, 82);                // rgba(0,0,0,.32)
+
+        t.ListBackground = Color.FromHex("ffffff");
+        t.ListHeaderColor = Color.FromHex("595959");             // step-350
+        t.ListHeaderFontSize = 16f;
+        t.ItemMinHeight = 48f;
+        t.ItemColor = Color.FromHex("000000");
+        t.ItemBorderColor = new Color(0, 0, 0, 18);              // rgba(0,0,0,.07)
+        t.ItemPaddingStart = 16f;
         return t;
     }
 
@@ -187,6 +232,25 @@ public class IonicTheme
         t.HeaderBorderWidth = 0.55f;                            // ~hairline
 
         t.ContentBackground = Color.FromHex("ffffff");
+
+        // App / sidemenu (menu.ios.scss): drawer width 270, hairline trailing border
+        // instead of an elevation shadow; backdrop rgba(0,0,0,.4). List/item from
+        // list.ios / item.ios (44px rows).
+        t.AppBackground = Color.FromHex("ffffff");
+        t.MenuWidth = 270f;
+        t.MenuBackground = Color.FromHex("ffffff");
+        t.MenuBoxShadow = new List<BoxShadow>();
+        t.MenuBorderColor = new Color(0, 0, 0, 51);             // rgba(0,0,0,.2)
+        t.MenuBorderWidth = 0.55f;                              // ~hairline
+        t.BackdropColor = new Color(0, 0, 0, 102);              // rgba(0,0,0,.4)
+
+        t.ListBackground = Color.FromHex("ffffff");
+        t.ListHeaderColor = Color.FromHex("737373");            // step-400
+        t.ListHeaderFontSize = 17f;
+        t.ItemMinHeight = 44f;
+        t.ItemColor = Color.FromHex("000000");
+        t.ItemBorderColor = new Color(0, 0, 0, 51);             // rgba(0,0,0,.2)
+        t.ItemPaddingStart = 16f;
         return t;
     }
 }

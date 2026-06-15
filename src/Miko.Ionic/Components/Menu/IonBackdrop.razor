@@ -1,0 +1,33 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Dim/close layer for the side menu. Kept mounted by the host page while the menu is open
+   OR closing so its opacity fade-out can animate; the page drops `Visible` only after the
+   fade-out completes, which switches it to display:none (it covers the whole app and would
+   otherwise block page taps even at opacity:0 — hit-testing ignores opacity). *@
+<div class="@_cssClass" @onclick="HandleClick"></div>
+
+@code {
+    /// <summary>Mounts the backdrop (display) — true while the menu is open or animating closed.</summary>
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>Opacity target — true fades the dim layer in, false fades it out.</summary>
+    [Parameter] public bool Open { get; set; }
+
+    /// <summary>Invoked when the backdrop is clicked (closes the menu).</summary>
+    [Parameter] public Action? OnClick { get; set; }
+
+    private string _cssClass = "ion-menu-backdrop";
+
+    protected override void OnParametersSet()
+    {
+        var cls = "ion-menu-backdrop";
+        if (Visible) cls += " ion-menu-backdrop-mounted";
+        if (Open) cls += " ion-menu-backdrop-open";
+        _cssClass = cls;
+    }
+
+    private void HandleClick()
+    {
+        OnClick?.Invoke();
+    }
+}

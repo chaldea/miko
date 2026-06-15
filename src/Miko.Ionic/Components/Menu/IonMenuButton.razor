@@ -1,0 +1,15 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="ion-menu-button" @onclick="HandleClick">
+    <IonIcon Icon="@Ionicons.Menu" />
+</div>
+
+@code {
+    /// <summary>Invoked when the hamburger button is clicked (typically opens the menu).</summary>
+    [Parameter] public Action? OnClick { get; set; }
+
+    private void HandleClick()
+    {
+        OnClick?.Invoke();
+    }
+}

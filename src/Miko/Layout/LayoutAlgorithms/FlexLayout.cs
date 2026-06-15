@@ -40,6 +40,8 @@ public class FlexLayout
 
         // 2. 计算容器宽度
         float contentWidth;
+        // 宽度未定（auto 且无可用宽度约束）：先按 0 占位，待子元素布局后再收缩包裹。
+        bool widthIsIndefinite = false;
         if (!style.Width.IsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
@@ -51,6 +53,7 @@ public class FlexLayout
         }
         else if (constraints.IsInfiniteWidth || containerWidth <= 0)
         {
+            widthIsIndefinite = true;
             // 当没有可用宽度约束时（如在 flex row 容器中），根据内容计算宽度
             if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
             {
@@ -126,11 +129,25 @@ public class FlexLayout
 
         if (isRow)
         {
-            LayoutRowDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize);
+            LayoutRowDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize, widthIsIndefinite);
         }
         else
         {
             LayoutColumnDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize);
+        }
+
+        // 4b. 行布局且宽度未定：收缩包裹到子元素主轴总宽度（对称于下面 auto 高度的处理）。
+        // 例如一个 auto 宽度的 flex 行容器作为另一个 flex 行的项目（ion-buttons 内含按钮），
+        // 需以子元素的自然宽度作为自身宽度，否则会塌缩为 0。
+        if (isRow && widthIsIndefinite && style.Width.IsAuto)
+        {
+            float totalChildMainWidth = 0;
+            foreach (var child in box.Children)
+            {
+                if (BlockLayout.IsOutOfFlow(child)) continue;
+                totalChildMainWidth += child.BoxModel.MarginBox.Width;
+            }
+            contentWidth = totalChildMainWidth;
         }
 
         // 5. 计算最终容器高度
@@ -223,7 +240,7 @@ public class FlexLayout
     }
 
     private void LayoutRowDirection(LayoutBox box, float contentX, float contentY,
-        float contentWidth, float contentHeight, ref float maxCrossSize)
+        float contentWidth, float contentHeight, ref float maxCrossSize, bool widthIsIndefinite = false)
     {
         // 第一遍：使用 flex-basis 或自然尺寸布局子元素
         var childInfos = new List<FlexChildInfo>();
@@ -335,7 +352,8 @@ public class FlexLayout
                     info.FinalSize = info.FlexBasis + freeSpace * growRatio;
                 }
             }
-            else if (freeSpace < 0 && totalFlexShrinkWeighted > 0)
+            // 宽度未定（收缩包裹）时 contentWidth 为 0 占位，负 freeSpace 是假象，不应收缩。
+            else if (freeSpace < 0 && totalFlexShrinkWeighted > 0 && !widthIsIndefinite)
             {
                 anyAdjustment = true;
                 float shrinkAmount = -freeSpace;

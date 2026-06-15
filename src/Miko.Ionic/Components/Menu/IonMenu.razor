@@ -1,0 +1,35 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* The drawer itself is the component root and is kept mounted by the host page at all
+   times, so it can slide both in and out (a transition only fires for an element that was
+   laid out in the previous frame). Open/closed is a class toggle that animates the
+   leading/trailing offset; when closed the drawer sits fully off-screen, so its hit-box is
+   off-screen too and never blocks the page. The dim/close layer is a separate IonBackdrop
+   sibling. *@
+<div class="@_menuClass">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Whether the drawer is open (slid on-screen).</summary>
+    [Parameter] public bool IsOpen { get; set; }
+
+    /// <summary>Edge the drawer is anchored to: <c>"start"</c> (default) or <c>"end"</c>.</summary>
+    [Parameter] public string Side { get; set; } = "start";
+
+    /// <summary>
+    /// Reveal behavior. Only <c>"overlay"</c> (drawer slides over the content with a
+    /// backdrop) is implemented; kept for Ionic API parity.
+    /// </summary>
+    [Parameter] public string Type { get; set; } = "overlay";
+
+    private string _menuClass = "ion-menu ion-menu-start";
+
+    protected override void OnParametersSet()
+    {
+        var side = string.Equals(Side, "end", StringComparison.OrdinalIgnoreCase) ? "end" : "start";
+        _menuClass = IsOpen
+            ? $"ion-menu ion-menu-{side} ion-menu-open"
+            : $"ion-menu ion-menu-{side}";
+    }
+}

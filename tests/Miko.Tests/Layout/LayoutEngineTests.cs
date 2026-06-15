@@ -1784,6 +1784,61 @@ public class LayoutEngineTests
         layoutChild.BoxModel.MarginBox.Width.ShouldBe(200, 1f);
     }
 
+    [Fact]
+    public void FlexLayout_AutoWidthRowContainer_NestedAsFlexItem_ShrinkWrapsToChildren()
+    {
+        // 一个 auto 宽度的 flex 行容器作为另一个 flex 行的项目时，应收缩包裹到子元素的
+        // 主轴总宽度，而不是塌缩为 0。复现 ISSUE-052 中 ion-buttons（内含固定尺寸按钮）
+        // 在工具栏行内宽度为 0 的引擎缺陷。
+        var outer = new DivElement { Class = "outer" };
+        var inner = new DivElement { Class = "inner" };       // auto width row flex item
+        var fixedChild = new DivElement { Class = "fixed" };  // explicit 48px child
+        inner.AddChild(fixedChild);
+        outer.AddChild(inner);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("outer"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex, FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(390), Height = Length.Px(56)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("inner"),
+                        Style = new Style
+                        {
+                            // auto width + auto basis: should shrink-wrap, not collapse to 0.
+                            Display = Display.Flex, FlexDirection = FlexDirection.Row
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("fixed"),
+                        Style = new Style { Width = Length.Px(48), Height = Length.Px(48) }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(outer, styleSheets, 800, 600);
+
+        var innerBox = layoutRoot.Children[0];
+        var fixedBox = innerBox.Children[0];
+        // The fixed child keeps its 48px (no spurious flex-shrink under indefinite width)...
+        fixedBox.BoxModel.Content.Width.ShouldBe(48, 0.5f);
+        // ...and the auto-width row container shrink-wraps to it instead of collapsing to 0.
+        innerBox.BoxModel.Content.Width.ShouldBe(48, 0.5f);
+    }
+
     #endregion
 
     #region Display.Inline Tests
