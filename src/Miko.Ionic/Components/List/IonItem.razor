@@ -1,0 +1,22 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>
+    /// Divider behavior. <c>"none"</c> drops the bottom divider; any other value (or null)
+    /// keeps the default hairline. Mirrors Ionic's <c>lines</c> attribute on <c>ion-item</c>.
+    /// </summary>
+    [Parameter] public string? Lines { get; set; }
+
+    private string _cssClass = "ion-item";
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = string.Equals(Lines, "none", StringComparison.OrdinalIgnoreCase)
+            ? "ion-item ion-item-lines-none"
+            : "ion-item";
+    }
+}

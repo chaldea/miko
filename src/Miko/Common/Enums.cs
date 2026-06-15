@@ -172,6 +172,12 @@ public enum FontStyle { Normal, Italic, Oblique }
 public enum WhiteSpace { Normal, Nowrap, Pre, PreWrap, PreLine }
 public enum Cursor { Default, Pointer, Text, Wait, NotAllowed, Move, Help }
 public enum Visibility { Visible, Hidden, Collapse }
+/// <summary>
+/// Whether an element is a hit-test target. <see cref="None"/> makes the element transparent
+/// to pointer hits (taps pass through to whatever is behind it), while its descendants remain
+/// hittable. Inherited, like CSS <c>pointer-events</c>.
+/// </summary>
+public enum PointerEvents { Auto, None }
 public enum FlexWrap { Nowrap, Wrap, WrapReverse }
 public enum AlignSelf { Auto, FlexStart, FlexEnd, Center, Stretch, Baseline }
 public enum AlignContent { FlexStart, FlexEnd, Center, SpaceBetween, SpaceAround, Stretch }

@@ -177,6 +177,7 @@ internal static class CssObjectResolver
                style.TextTransform != null || style.FontStyle != null || style.WhiteSpace != null ||
                style.LetterSpacing != null || style.VerticalAlign != null || style.Opacity != null ||
                style.ZIndex != null || style.Visibility != null || style.Cursor != null ||
+               style.PointerEvents != null ||
                style.UserSelect != null || style.FlexWrap != null || style.AlignSelf != null ||
                style.AlignContent != null || style.Gap != null || style.RowGap != null ||
                style.ColumnGap != null || style.BoxShadow != null || style.OverflowX != null ||

@@ -1029,6 +1029,212 @@ public class LayoutEngineTests
         layoutChild2.BoxModel.Content.Height.ShouldBe(100);
     }
 
+    [Fact]
+    public void FlexLayout_Row_ShouldRespectMinHeight()
+    {
+        // Arrange - flex row container with min-height should enforce minimum height
+        // even when content is smaller
+        var root = new DivElement { Class = "flex-container" };
+        var child = new DivElement { Class = "small-child" };
+        root.AddChild(child);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(200),
+                            MinHeight = Length.Px(80)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("small-child"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(50),
+                            Height = Length.Px(20)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - container height should be at least 80px (the min-height)
+        layoutRoot.BoxModel.Content.Height.ShouldBeGreaterThanOrEqualTo(80);
+        layoutRoot.Children[0].BoxModel.Content.Height.ShouldBe(20);
+    }
+
+    [Fact]
+    public void FlexLayout_Column_ShouldRespectMinHeight()
+    {
+        // Arrange - flex column container with min-height should enforce minimum
+        // when children don't fill the space
+        var root = new DivElement { Class = "flex-container" };
+        var child1 = new DivElement { Class = "child" };
+        var child2 = new DivElement { Class = "child" };
+        root.AddChild(child1);
+        root.AddChild(child2);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("flex-container"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column,
+                            Width = Length.Px(200),
+                            MinHeight = Length.Px(120)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style
+                        {
+                            Width = Length.Px(50),
+                            Height = Length.Px(30)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert - container height should be at least 120px (the min-height),
+        // even though children only take 60px total
+        layoutRoot.BoxModel.Content.Height.ShouldBeGreaterThanOrEqualTo(120);
+        layoutRoot.Children.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void FlexLayout_AlignItemsCenter_ShouldOffsetChildSubtree()
+    {
+        // Arrange - a tall flex-row container (align-items: center) whose child is itself
+        // a container with a nested grandchild. Centering the child must also move the
+        // grandchild's subtree, not leave it at the top.
+        var root = new DivElement { Class = "bar" };
+        var title = new DivElement { Class = "title" };
+        var inner = new DivElement { Class = "inner" };
+        title.AddChild(inner);
+        root.AddChild(title);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("bar"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            AlignItems = AlignItems.Center,
+                            Width = Length.Px(300),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("title"),
+                        Style = new Style { Width = Length.Px(200), Height = Length.Px(20) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("inner"),
+                        Style = new Style { Width = Length.Px(200), Height = Length.Px(20) }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+        var titleBox = layoutRoot.Children[0];
+        var innerBox = titleBox.Children[0];
+
+        // Assert - title centered in the 100px bar: (100 - 20) / 2 = 40
+        titleBox.BoxModel.Content.Y.ShouldBe(40);
+        // The nested grandchild must follow its parent's centered position (not stay at 0)
+        innerBox.BoxModel.Content.Y.ShouldBe(40);
+    }
+
+    [Fact]
+    public void FlexLayout_JustifyContentCenter_ShouldOffsetChildSubtree()
+    {
+        // Arrange - a wide flex-row container (justify-content: center) whose single child
+        // has a nested grandchild. Centering along the main axis must move the subtree.
+        var root = new DivElement { Class = "bar" };
+        var item = new DivElement { Class = "item" };
+        var inner = new DivElement { Class = "inner" };
+        item.AddChild(inner);
+        root.AddChild(item);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("bar"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            JustifyContent = JustifyContent.Center,
+                            Width = Length.Px(300),
+                            Height = Length.Px(50)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
+                        Style = new Style { Width = Length.Px(100), Height = Length.Px(50) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("inner"),
+                        Style = new Style { Width = Length.Px(100), Height = Length.Px(50) }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+        var itemBox = layoutRoot.Children[0];
+        var innerBox = itemBox.Children[0];
+
+        // Assert - item centered along main axis: (300 - 100) / 2 = 100
+        itemBox.BoxModel.Content.X.ShouldBe(100);
+        // The nested grandchild must follow its parent's centered position (not stay at 0)
+        innerBox.BoxModel.Content.X.ShouldBe(100);
+    }
+
     #endregion
 
     #region Flex-Grow/Shrink/Basis Tests
@@ -1576,6 +1782,61 @@ public class LayoutEngineTests
         // Assert - 50% of 400px = 200px
         var layoutChild = layoutRoot.Children[0];
         layoutChild.BoxModel.MarginBox.Width.ShouldBe(200, 1f);
+    }
+
+    [Fact]
+    public void FlexLayout_AutoWidthRowContainer_NestedAsFlexItem_ShrinkWrapsToChildren()
+    {
+        // 一个 auto 宽度的 flex 行容器作为另一个 flex 行的项目时，应收缩包裹到子元素的
+        // 主轴总宽度，而不是塌缩为 0。复现 ISSUE-052 中 ion-buttons（内含固定尺寸按钮）
+        // 在工具栏行内宽度为 0 的引擎缺陷。
+        var outer = new DivElement { Class = "outer" };
+        var inner = new DivElement { Class = "inner" };       // auto width row flex item
+        var fixedChild = new DivElement { Class = "fixed" };  // explicit 48px child
+        inner.AddChild(fixedChild);
+        outer.AddChild(inner);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("outer"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex, FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(390), Height = Length.Px(56)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("inner"),
+                        Style = new Style
+                        {
+                            // auto width + auto basis: should shrink-wrap, not collapse to 0.
+                            Display = Display.Flex, FlexDirection = FlexDirection.Row
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("fixed"),
+                        Style = new Style { Width = Length.Px(48), Height = Length.Px(48) }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(outer, styleSheets, 800, 600);
+
+        var innerBox = layoutRoot.Children[0];
+        var fixedBox = innerBox.Children[0];
+        // The fixed child keeps its 48px (no spurious flex-shrink under indefinite width)...
+        fixedBox.BoxModel.Content.Width.ShouldBe(48, 0.5f);
+        // ...and the auto-width row container shrink-wraps to it instead of collapsing to 0.
+        innerBox.BoxModel.Content.Width.ShouldBe(48, 0.5f);
     }
 
     #endregion

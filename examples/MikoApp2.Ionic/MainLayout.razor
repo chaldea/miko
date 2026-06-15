@@ -1,0 +1,9 @@
+@inherits Miko.Components.LayoutComponentBase
+@namespace MikoApp2.Ionic
+
+@* The sidemenu shell (IonApp + IonMenu + IonPage) lives in the page itself so the
+   menu-open state, the menu button, and the drawer share one component and re-render
+   together on toggle. The layout just hosts the routed page in a full-size container. *@
+<div class="app-root">
+    @Body
+</div>

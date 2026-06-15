@@ -90,6 +90,7 @@ public class ComputedStyle : Style
     public new WhiteSpace WhiteSpace { get; set; } = Common.WhiteSpace.Normal;
     public new Visibility Visibility { get; set; } = Common.Visibility.Visible;
     public new Cursor Cursor { get; set; } = Common.Cursor.Default;
+    public new PointerEvents PointerEvents { get; set; } = Common.PointerEvents.Auto;
     public new FlexWrap FlexWrap { get; set; } = Common.FlexWrap.Nowrap;
     public new AlignSelf AlignSelf { get; set; } = Common.AlignSelf.Auto;
     public new AlignContent AlignContent { get; set; } = Common.AlignContent.FlexStart;
@@ -246,12 +247,15 @@ public class ComputedStyle : Style
             if (style.WhiteSpace.HasValue) computed.WhiteSpace = style.WhiteSpace.Value;
             if (style.Visibility.HasValue) computed.Visibility = style.Visibility.Value;
             if (style.Cursor.HasValue) computed.Cursor = style.Cursor.Value;
+            if (style.PointerEvents.HasValue) computed.PointerEvents = style.PointerEvents.Value;
             if (style.FlexWrap.HasValue) computed.FlexWrap = style.FlexWrap.Value;
             if (style.AlignSelf.HasValue) computed.AlignSelf = style.AlignSelf.Value;
             if (style.AlignContent.HasValue) computed.AlignContent = style.AlignContent.Value;
 
             if (style.Opacity.HasValue) computed.Opacity = style.Opacity.Value;
             if (style.ZIndex.HasValue) computed.ZIndex = style.ZIndex.Value;
+
+            if (style.BoxShadow != null) computed.BoxShadow = style.BoxShadow;
 
             if (style.OverflowX.HasValue) computed.OverflowX = style.OverflowX.Value;
             if (style.OverflowY.HasValue) computed.OverflowY = style.OverflowY.Value;

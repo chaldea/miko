@@ -40,6 +40,8 @@ public class FlexLayout
 
         // 2. 计算容器宽度
         float contentWidth;
+        // 宽度未定（auto 且无可用宽度约束）：先按 0 占位，待子元素布局后再收缩包裹。
+        bool widthIsIndefinite = false;
         if (!style.Width.IsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
@@ -51,6 +53,7 @@ public class FlexLayout
         }
         else if (constraints.IsInfiniteWidth || containerWidth <= 0)
         {
+            widthIsIndefinite = true;
             // 当没有可用宽度约束时（如在 flex row 容器中），根据内容计算宽度
             if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
             {
@@ -126,11 +129,25 @@ public class FlexLayout
 
         if (isRow)
         {
-            LayoutRowDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize);
+            LayoutRowDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize, widthIsIndefinite);
         }
         else
         {
             LayoutColumnDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize);
+        }
+
+        // 4b. 行布局且宽度未定：收缩包裹到子元素主轴总宽度（对称于下面 auto 高度的处理）。
+        // 例如一个 auto 宽度的 flex 行容器作为另一个 flex 行的项目（ion-buttons 内含按钮），
+        // 需以子元素的自然宽度作为自身宽度，否则会塌缩为 0。
+        if (isRow && widthIsIndefinite && style.Width.IsAuto)
+        {
+            float totalChildMainWidth = 0;
+            foreach (var child in box.Children)
+            {
+                if (BlockLayout.IsOutOfFlow(child)) continue;
+                totalChildMainWidth += child.BoxModel.MarginBox.Width;
+            }
+            contentWidth = totalChildMainWidth;
         }
 
         // 5. 计算最终容器高度
@@ -158,6 +175,38 @@ public class FlexLayout
 
                 contentHeight = totalChildHeight;
             }
+        }
+
+        // 6. 应用 min-height/max-height 约束
+        bool isBorderBoxH = style.BoxSizing == BoxSizing.BorderBox;
+        float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
+        if (!style.MinHeight.IsAuto)
+        {
+            float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+            if (isBorderBoxH) min = Math.Max(0, min - verticalExtra);
+            contentHeight = Math.Max(contentHeight, min);
+        }
+        if (!style.MaxHeight.IsAuto)
+        {
+            float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+            if (isBorderBoxH) max = Math.Max(0, max - verticalExtra);
+            contentHeight = Math.Min(contentHeight, max);
+        }
+
+        // 7. 应用 min-width/max-width 约束
+        bool isBorderBoxW = style.BoxSizing == BoxSizing.BorderBox;
+        float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
+        if (!style.MinWidth.IsAuto)
+        {
+            float min = style.MinWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
+            if (isBorderBoxW) min = Math.Max(0, min - horizontalExtra);
+            contentWidth = Math.Max(contentWidth, min);
+        }
+        if (!style.MaxWidth.IsAuto)
+        {
+            float max = style.MaxWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
+            if (isBorderBoxW) max = Math.Max(0, max - horizontalExtra);
+            contentWidth = Math.Min(contentWidth, max);
         }
 
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);
@@ -191,7 +240,7 @@ public class FlexLayout
     }
 
     private void LayoutRowDirection(LayoutBox box, float contentX, float contentY,
-        float contentWidth, float contentHeight, ref float maxCrossSize)
+        float contentWidth, float contentHeight, ref float maxCrossSize, bool widthIsIndefinite = false)
     {
         // 第一遍：使用 flex-basis 或自然尺寸布局子元素
         var childInfos = new List<FlexChildInfo>();
@@ -303,7 +352,8 @@ public class FlexLayout
                     info.FinalSize = info.FlexBasis + freeSpace * growRatio;
                 }
             }
-            else if (freeSpace < 0 && totalFlexShrinkWeighted > 0)
+            // 宽度未定（收缩包裹）时 contentWidth 为 0 占位，负 freeSpace 是假象，不应收缩。
+            else if (freeSpace < 0 && totalFlexShrinkWeighted > 0 && !widthIsIndefinite)
             {
                 anyAdjustment = true;
                 float shrinkAmount = -freeSpace;
@@ -638,25 +688,13 @@ public class FlexLayout
             var child = box.Children[i];
             if (BlockLayout.IsOutOfFlow(child)) continue;
             float itemOffset = offset + spacing * i;
+            if (itemOffset == 0) continue;
 
+            // 沿主轴平移整棵子树，使子元素的子孙跟随移动。
             if (isRow)
-            {
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X + itemOffset,
-                    child.BoxModel.Content.Y,
-                    child.BoxModel.Content.Width,
-                    child.BoxModel.Content.Height
-                );
-            }
+                OffsetSubtree(child, itemOffset, 0);
             else
-            {
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X,
-                    child.BoxModel.Content.Y + itemOffset,
-                    child.BoxModel.Content.Width,
-                    child.BoxModel.Content.Height
-                );
-            }
+                OffsetSubtree(child, 0, itemOffset);
         }
     }
 
@@ -731,26 +769,28 @@ public class FlexLayout
                     break;
             }
 
-            // 应用偏移
-            if (isRow)
+            // 应用偏移。子元素可能已布局好整棵子树（如本身是另一个 flex/block 容器），
+            // 因此偏移必须递归平移整棵子树，否则子孙元素会停留在偏移前的位置。
+            if (offset != 0)
             {
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X,
-                    child.BoxModel.Content.Y + offset,
-                    child.BoxModel.Content.Width,
-                    child.BoxModel.Content.Height
-                );
-            }
-            else
-            {
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X + offset,
-                    child.BoxModel.Content.Y,
-                    child.BoxModel.Content.Width,
-                    child.BoxModel.Content.Height
-                );
+                if (isRow)
+                    OffsetSubtree(child, 0, offset);
+                else
+                    OffsetSubtree(child, offset, 0);
             }
         }
+    }
+
+    /// <summary>
+    /// 递归平移一个盒子及其全部子孙的内容区。用于 flex 对齐/分布产生的位移，
+    /// 确保子元素的子树跟随移动。
+    /// </summary>
+    private static void OffsetSubtree(LayoutBox box, float dx, float dy)
+    {
+        var content = box.BoxModel.Content;
+        box.BoxModel.Content = new RectF(content.X + dx, content.Y + dy, content.Width, content.Height);
+        foreach (var child in box.Children)
+            OffsetSubtree(child, dx, dy);
     }
 
     /// <summary>

@@ -101,6 +101,7 @@ public class StyleResolver
         style.FontWeight ??= parentStyle.FontWeight;
         style.TextAlign ??= parentStyle.TextAlign;
         style.LineHeight ??= parentStyle.LineHeight;
+        style.PointerEvents ??= parentStyle.PointerEvents;
     }
 
     /// <summary>

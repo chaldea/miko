@@ -1,0 +1,107 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-menu>: a single full-screen host containing the drawer (.menu-inner)
+   and the backdrop as siblings. The host is always mounted (so the slide/fade animate in both
+   directions — a transition needs a previous-frame layout box). When closed and settled the
+   host is pointer-events:none, so taps pass through to the page; the drawer is off-screen and
+   the backdrop is display:none. The backdrop's display is dropped only after its fade-out
+   completes (deferred unmount), driven by the AnimationManager.TransitionCompleted event. *@
+@* Backdrop is authored BEFORE the drawer so the engine's reverse-document-order hit-test
+   checks the drawer first: a tap on the drawer hits the drawer, a tap on the dim area falls
+   through to the backdrop. (Paint order is handled by z-index via OrderedChildren, so the
+   drawer still renders above the backdrop regardless of this source order.) *@
+<div class="@_hostClass">
+    <div class="@_backdropClass" @onclick="HandleBackdrop"></div>
+    <div class="@_innerClass">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    /// <summary>Whether the drawer is open (slid on-screen, backdrop dimmed).</summary>
+    [Parameter] public bool IsOpen { get; set; }
+
+    /// <summary>Edge the drawer is anchored to: <c>"start"</c> (default) or <c>"end"</c>.</summary>
+    [Parameter] public string Side { get; set; } = "start";
+
+    /// <summary>
+    /// Reveal behavior. Only <c>"overlay"</c> (drawer slides over the content with a
+    /// backdrop) is implemented; kept for Ionic API parity.
+    /// </summary>
+    [Parameter] public string Type { get; set; } = "overlay";
+
+    /// <summary>Invoked when the backdrop is tapped, asking the host to close the menu.</summary>
+    [Parameter] public Action? OnClose { get; set; }
+
+    /// <summary>
+    /// The app's animation manager. Nested components don't get DI, so the host page injects
+    /// it and passes it down; used to defer the backdrop's <c>display:none</c> until its
+    /// fade-out finishes. If null, the backdrop simply unmounts on the same frame (no fade-out).
+    /// </summary>
+    [Parameter] public AnimationManager? Animations { get; set; }
+
+    // The backdrop stays mounted (display) through the close fade; dropped once it completes.
+    private bool _backdropMounted;
+    private bool _subscribed;
+
+    private string _hostClass = "ion-menu-host ion-menu-host-start ion-menu-host-idle";
+    private string _innerClass = "ion-menu-inner ion-menu-inner-start";
+    private string _backdropClass = "ion-menu-backdrop";
+
+    protected override void OnParametersSet()
+    {
+        if (!_subscribed && Animations is not null)
+        {
+            Animations.TransitionCompleted += OnTransitionCompleted;
+            _subscribed = true;
+        }
+
+        if (IsOpen) _backdropMounted = true;
+
+        var side = string.Equals(Side, "end", StringComparison.OrdinalIgnoreCase) ? "end" : "start";
+
+        // Host is interactive (auto) while open or animating closed (so the backdrop catches
+        // the dim-area tap during the fade); pointer-events:none once closed and settled.
+        var hostState = IsOpen ? "open" : (_backdropMounted ? "closing" : "idle");
+        _hostClass = $"ion-menu-host ion-menu-host-{side} ion-menu-host-{hostState}";
+
+        _innerClass = IsOpen
+            ? $"ion-menu-inner ion-menu-inner-{side} ion-menu-inner-open"
+            : $"ion-menu-inner ion-menu-inner-{side}";
+
+        var backdrop = "ion-menu-backdrop";
+        if (_backdropMounted) backdrop += " ion-menu-backdrop-mounted";
+        if (IsOpen) backdrop += " ion-menu-backdrop-open";
+        _backdropClass = backdrop;
+    }
+
+    protected override void OnDispose()
+    {
+        // Nested components are recreated each render; release the subscription so handlers
+        // from discarded instances don't accumulate.
+        if (_subscribed && Animations is not null)
+        {
+            Animations.TransitionCompleted -= OnTransitionCompleted;
+            _subscribed = false;
+        }
+    }
+
+    private void HandleBackdrop()
+    {
+        OnClose?.Invoke();
+    }
+
+    private void OnTransitionCompleted(Element element, string property)
+    {
+        // After the backdrop's fade-OUT finishes, unmount it (display:none) so the host can
+        // settle to pointer-events:none. Guard against a re-open mid-close.
+        if (!IsOpen
+            && _backdropMounted
+            && property == nameof(Style.Opacity)
+            && (element.Class?.Contains("ion-menu-backdrop") ?? false))
+        {
+            _backdropMounted = false;
+            StateHasChanged();
+        }
+    }
+}

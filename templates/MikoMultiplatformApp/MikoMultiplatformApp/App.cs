@@ -1,5 +1,8 @@
 using Miko.DevTools;
 using Miko.Hosting;
+//#if (useIonic)
+using Miko.Ionic;
+//#endif
 
 namespace MikoMultiplatformApp;
 
@@ -18,9 +21,17 @@ public static class App
         var builder = MikoAppBuilder.CreateDefault();
 
         builder.UseTitle("Miko Multiplatform App");
+        //#if (useIonic)
+        // Phone-portrait viewport showcases the Ionic mobile layout.
+        builder.UseSize(390, 844);
+        //#else
         builder.UseSize(1024, 768);
+        //#endif
 
         builder.AddDevTools();
+        //#if (useIonic)
+        builder.AddIonic();
+        //#endif
         builder.AddStyleSheet(GlobalStyles.Create());
 
         // Routes and the default layout are wired up by Miko.Razor.Compiler.

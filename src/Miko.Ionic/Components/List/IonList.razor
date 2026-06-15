@@ -1,0 +1,10 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="ion-list" id="@Id">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Optional DOM id for the list (Ionic's <c>id</c> attribute, e.g. <c>"inbox-list"</c>).</summary>
+    [Parameter] public string? Id { get; set; }
+}

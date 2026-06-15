@@ -106,13 +106,16 @@ public class RenderEngine
             ApplyTransform(box);
         }
 
-        // 1. 绘制背景
+        // 1. 绘制盒阴影（在背景之前）
+        RenderBoxShadow(box);
+
+        // 2. 绘制背景
         RenderBackground(box);
 
-        // 2. 绘制边框
+        // 3. 绘制边框
         RenderBorder(box);
 
-        // 3. 绘制内容
+        // 4. 绘制内容
         RenderContent(box);
 
         // 4. 递归绘制子元素
@@ -134,7 +137,7 @@ public class RenderEngine
         }
         else
         {
-            foreach (var child in box.Children)
+            foreach (var child in OrderedChildren(box))
             {
                 RenderBox(child);
             }
@@ -145,6 +148,34 @@ public class RenderEngine
 
         if (hasTransform) _painter.Restore();
         if (hasOpacity) _painter.Restore();
+    }
+
+    /// <summary>
+    /// 返回按 z-index 稳定排序后的子元素渲染顺序。z-index 仅对定位元素（position 非 static）
+    /// 生效（与 CSS 一致）；相同 z-index 的元素保持文档顺序。这让带正 z-index 的定位元素
+    /// （如 ion-header 的阴影）渲染在普通流兄弟之上。
+    /// </summary>
+    private static IEnumerable<LayoutBox> OrderedChildren(LayoutBox box)
+    {
+        var children = box.Children;
+        // 快速路径：没有任何子元素设置了 z-index 时，避免分配与排序。
+        bool anyZ = false;
+        foreach (var c in children)
+        {
+            if (c.ComputedStyle.ZIndex != 0 && c.ComputedStyle.Position != Common.Position.Static)
+            {
+                anyZ = true;
+                break;
+            }
+        }
+        if (!anyZ) return children;
+
+        // 稳定排序：仅定位元素参与 z-index 比较，其余视为 0。
+        return children
+            .Select((c, i) => (c, i))
+            .OrderBy(t => t.c.ComputedStyle.Position != Common.Position.Static ? t.c.ComputedStyle.ZIndex : 0)
+            .ThenBy(t => t.i)
+            .Select(t => t.c);
     }
 
     private void ApplyTransform(LayoutBox box)
@@ -310,6 +341,26 @@ public class RenderEngine
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 渲染盒阴影
+    /// </summary>
+    private void RenderBoxShadow(LayoutBox box)
+    {
+        if (_painter == null) return;
+
+        var style = box.ComputedStyle;
+        if (style.BoxShadow == null || style.BoxShadow.Count == 0) return;
+
+        _painter.DrawBoxShadow(
+            style.BoxShadow,
+            box.BoxModel.BorderBox,
+            style.BorderTopLeftRadius.Value,
+            style.BorderTopRightRadius.Value,
+            style.BorderBottomRightRadius.Value,
+            style.BorderBottomLeftRadius.Value
+        );
     }
 
     /// <summary>

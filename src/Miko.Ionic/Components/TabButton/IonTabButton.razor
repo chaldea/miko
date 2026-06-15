@@ -1,0 +1,31 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<a class="@_cssClass" href="@Href" @onclick="HandleClick">
+    @ChildContent
+</a>
+
+@code {
+    /// <summary>Logical tab identifier (e.g. <c>"tab1"</c>).</summary>
+    [Parameter] public string? Tab { get; set; }
+
+    /// <summary>Navigation target for the tab button.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Whether this tab button is the currently selected one.</summary>
+    [Parameter] public bool Selected { get; set; }
+
+    /// <summary>Invoked when the tab button is clicked.</summary>
+    [Parameter] public Action? OnClick { get; set; }
+
+    private string _cssClass = "ion-tab-button";
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = Selected ? "ion-tab-button tab-selected" : "ion-tab-button";
+    }
+
+    private void HandleClick()
+    {
+        OnClick?.Invoke();
+    }
+}

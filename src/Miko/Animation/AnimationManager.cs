@@ -61,6 +61,14 @@ public class AnimationManager
 
     public int ActiveTransitionCount => _transitions.Count;
 
+    /// <summary>
+    /// Raised when a property transition finishes, with the animated element and the
+    /// CSS property name (e.g. <c>nameof(Style.Opacity)</c>). Fired from
+    /// <see cref="Update"/> on the render thread. Lets callers defer work until an
+    /// animate-out completes (e.g. drop <c>display:none</c> after a fade-out).
+    /// </summary>
+    public event Action<Element, string>? TransitionCompleted;
+
     public void Clear()
     {
         _logger.LogDebug("AnimationManager.Clear: removing {Transitions} transitions, {Animations} animations",
@@ -345,6 +353,7 @@ public class AnimationManager
                 _transitions.RemoveAt(i);
                 _logger.LogDebug("Transition completed: \"{Property}\" on <{Tag} id=\"{Id}\">",
                     transition.Property.PropertyName, transition.Element.TagName, transition.Element.Id ?? "");
+                TransitionCompleted?.Invoke(transition.Element, transition.Property.PropertyName);
             }
         }
     }

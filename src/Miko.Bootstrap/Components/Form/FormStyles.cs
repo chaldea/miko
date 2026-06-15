@@ -156,7 +156,7 @@ internal static class FormStyles
                     Color = t.BS.BodyColor,
                     BackgroundColor = t.BS.BodyBg,
                     BorderColor = "#86b7fe",
-                    BoxShadow = new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f))
+                    BoxShadow = [new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f))]
                 },
                 ["&:disabled"] = new()
                 {
@@ -267,7 +267,7 @@ internal static class FormStyles
                 {
                     BorderColor = "#86b7fe",
                     // Outline = 0,
-                    BoxShadow = new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f))
+                    BoxShadow = [new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f))]
                 },
 
                 ["&:disabled"] = new()
@@ -355,7 +355,7 @@ internal static class FormStyles
                 {
                     BorderColor = t.InputFocusBorderColor,
                     // Outline = 0,
-                    BoxShadow = new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f))
+                    BoxShadow = [new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f))]
                 },
 
                 ["&:checked"] = new()

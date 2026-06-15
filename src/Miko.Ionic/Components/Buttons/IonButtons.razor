@@ -1,0 +1,22 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>
+    /// Placement within the toolbar: <c>"start"</c> (default, leading edge) or
+    /// <c>"end"</c> (trailing edge). Mirrors Ionic's <c>slot</c> attribute on
+    /// <c>ion-buttons</c>. Visual order follows authoring order in the toolbar markup.
+    /// </summary>
+    [Parameter] public string Slot { get; set; } = "start";
+
+    private string _cssClass = "ion-buttons buttons-start";
+
+    protected override void OnParametersSet()
+    {
+        var slot = string.Equals(Slot, "end", StringComparison.OrdinalIgnoreCase) ? "end" : "start";
+        _cssClass = $"ion-buttons buttons-{slot}";
+    }
+}

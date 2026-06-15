@@ -1,0 +1,27 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="ion-icon" Style="@_iconStyle"></div>
+
+@code {
+    /// <summary>
+    /// Kebab-case Ionicons name (see <see cref="Miko.Ionic.Ionicons"/> for constants),
+    /// e.g. <c>"triangle"</c>. The matching embedded SVG is rendered as the icon.
+    /// </summary>
+    [Parameter] public string? Icon { get; set; }
+
+    private Style? _iconStyle;
+
+    protected override void OnParametersSet()
+    {
+        var image = IconResolver.Load(Icon);
+        _iconStyle = image is null
+            ? null
+            : new Style
+            {
+                BackgroundImage = image,
+                BackgroundSize = BackgroundSize.Contain,
+                BackgroundPosition = BackgroundPosition.Center,
+                BackgroundRepeat = BackgroundRepeat.NoRepeat
+            };
+    }
+}

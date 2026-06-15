@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Styling;
 
 namespace Miko.Bootstrap.Styles;
@@ -257,9 +257,9 @@ internal static class UtilitiesStyle
             [".bg-dark-subtle"] = new() { BackgroundColor = t.DarkBgSubtle },
 
             // Shadow
-            [".shadow"] = new() { BoxShadow = t.BoxShadow },
-            [".shadow-sm"] = new() { BoxShadow = t.BoxShadowSm },
-            [".shadow-lg"] = new() { BoxShadow = t.BoxShadowLg },
+            [".shadow"] = new() { BoxShadow = new List<BoxShadow> { t.BoxShadow } },
+            [".shadow-sm"] = new() { BoxShadow = new List<BoxShadow> { t.BoxShadowSm } },
+            [".shadow-lg"] = new() { BoxShadow = new List<BoxShadow> { t.BoxShadowLg } },
             // NOTE: .shadow-none would need BoxShadow = null, but CssObject doesn't support clearing box-shadow
 
             // Rounded

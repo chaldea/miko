@@ -261,6 +261,7 @@ public class Style
     public int? ZIndex { get; set; }
     public Visibility? Visibility { get; set; }
     public Cursor? Cursor { get; set; }
+    public PointerEvents? PointerEvents { get; set; }
     public UserSelect? UserSelect { get; set; }
 
     // Flex extras
@@ -271,7 +272,11 @@ public class Style
     public Length? RowGap { get; set; }
     public Length? ColumnGap { get; set; }
 
-    public BoxShadow? BoxShadow { get; set; }
+    /// <summary>
+    /// Box shadow layers. Multiple shadows are applied in order (first shadow is on top).
+    /// Matches CSS box-shadow which supports comma-separated shadow definitions.
+    /// </summary>
+    public List<BoxShadow>? BoxShadow { get; set; }
 
     // 溢出
     public Overflow? OverflowX { get; set; }
@@ -384,6 +389,7 @@ public class Style
         ZIndex ??= other.ZIndex;
         Visibility ??= other.Visibility;
         Cursor ??= other.Cursor;
+        PointerEvents ??= other.PointerEvents;
         UserSelect ??= other.UserSelect;
 
         FlexWrap ??= other.FlexWrap;
