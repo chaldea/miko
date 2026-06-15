@@ -272,4 +272,41 @@ public class ComputedStyle : Style
 
         return computed;
     }
+
+    /// <summary>
+    /// 折算所有长度属性中的 env(safe-area-inset-*) 分量为像素。由布局引擎在样式计算阶段、
+    /// 已知平台安全区边距时调用。仅影响显式使用了 env() 的属性（其余长度原样返回），
+    /// 因此对桌面（零安全区）或未使用 env() 的元素完全无副作用。
+    /// <para>
+    /// 注意：这只解析“内容元素主动声明的”安全区内边距等；不会内缩整个视口，故全屏浮层
+    /// （未使用 env() 的 absolute 100%×100% 元素）仍覆盖整个屏幕（见 ISSUE-054）。
+    /// </para>
+    /// </summary>
+    public void ResolveSafeArea(SafeAreaInsets insets)
+    {
+        if (insets.IsZero) return;
+
+        PaddingTop = PaddingTop.ResolveSafeArea(insets);
+        PaddingRight = PaddingRight.ResolveSafeArea(insets);
+        PaddingBottom = PaddingBottom.ResolveSafeArea(insets);
+        PaddingLeft = PaddingLeft.ResolveSafeArea(insets);
+
+        MarginTop = MarginTop.ResolveSafeArea(insets);
+        MarginRight = MarginRight.ResolveSafeArea(insets);
+        MarginBottom = MarginBottom.ResolveSafeArea(insets);
+        MarginLeft = MarginLeft.ResolveSafeArea(insets);
+
+        Top = Top.ResolveSafeArea(insets);
+        Right = Right.ResolveSafeArea(insets);
+        Bottom = Bottom.ResolveSafeArea(insets);
+        Left = Left.ResolveSafeArea(insets);
+
+        Width = Width.ResolveSafeArea(insets);
+        Height = Height.ResolveSafeArea(insets);
+        MinWidth = MinWidth.ResolveSafeArea(insets);
+        MinHeight = MinHeight.ResolveSafeArea(insets);
+        MaxWidth = MaxWidth.ResolveSafeArea(insets);
+        MaxHeight = MaxHeight.ResolveSafeArea(insets);
+        FlexBasis = FlexBasis.ResolveSafeArea(insets);
+    }
 }

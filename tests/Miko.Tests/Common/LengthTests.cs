@@ -353,4 +353,72 @@ public class LengthTests
         // 复合长度列出各非零分量（顺序：em, rem, px, %）
         len.ToString().ShouldBe("1.5em + 0.5rem + 2px");
     }
+
+    // ---- env(safe-area-inset-*) support (ISSUE-054) ----
+
+    [Fact]
+    public void SafeAreaInset_HasSafeAreaComponent()
+    {
+        Length.SafeAreaInsetTop.HasSafeAreaComponent.ShouldBeTrue();
+        Length.SafeAreaInsetBottom.HasSafeAreaComponent.ShouldBeTrue();
+        Length.Px(10).HasSafeAreaComponent.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void SafeAreaInset_BeforeResolve_ToPixelsIsZero()
+    {
+        // Unresolved env() has no safe-area context yet, so it contributes 0 px.
+        Length.SafeAreaInsetTop.ToPixels(0).ShouldBe(0);
+    }
+
+    [Fact]
+    public void ResolveSafeArea_FoldsEachSideIntoPixels()
+    {
+        var insets = new SafeAreaInsets(12, 48, 8, 24);
+
+        Length.SafeAreaInsetTop.ResolveSafeArea(insets).ToPixels(0).ShouldBe(48);
+        Length.SafeAreaInsetRight.ResolveSafeArea(insets).ToPixels(0).ShouldBe(8);
+        Length.SafeAreaInsetBottom.ResolveSafeArea(insets).ToPixels(0).ShouldBe(24);
+        Length.SafeAreaInsetLeft.ResolveSafeArea(insets).ToPixels(0).ShouldBe(12);
+    }
+
+    [Fact]
+    public void ResolveSafeArea_CompositeWithPx_AddsBoth()
+    {
+        // calc(env(safe-area-inset-bottom) + 8px) with a 24px bottom inset => 32px.
+        var len = Length.SafeAreaInsetBottom + Length.Px(8);
+        var resolved = len.ResolveSafeArea(new SafeAreaInsets(0, 0, 0, 24));
+
+        resolved.ToPixels(0).ShouldBe(32);
+        resolved.HasSafeAreaComponent.ShouldBeFalse();   // folded in, no longer symbolic
+    }
+
+    [Fact]
+    public void ResolveSafeArea_ZeroInsets_LeavesNonSafeComponentsUntouched()
+    {
+        var len = Length.SafeAreaInsetTop + Length.Px(5);
+        // Zero insets: the env() part contributes nothing, the px part remains.
+        var resolved = len.ResolveSafeArea(SafeAreaInsets.Zero);
+
+        resolved.ToPixels(0).ShouldBe(5);
+    }
+
+    [Fact]
+    public void ResolveSafeArea_Idempotent()
+    {
+        var insets = new SafeAreaInsets(0, 48, 0, 0);
+        var once = Length.SafeAreaInsetTop.ResolveSafeArea(insets);
+        var twice = once.ResolveSafeArea(insets);
+
+        // After folding, re-resolving must not double-count.
+        twice.ToPixels(0).ShouldBe(48);
+    }
+
+    [Fact]
+    public void SafeAreaInset_ToString_RendersEnv()
+    {
+        Length.SafeAreaInsetTop.ToString().ShouldBe("env(safe-area-inset-top)");
+        (Length.SafeAreaInsetBottom + Length.Px(8)).ToString()
+            .ShouldBe("8px + env(safe-area-inset-bottom)");
+    }
 }

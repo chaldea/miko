@@ -8,11 +8,11 @@ using Shouldly;
 namespace Miko.Tests.Layout;
 
 /// <summary>
-/// Verifies safe-area inset handling in <see cref="LayoutEngine.Layout"/>. When non-zero insets
-/// are supplied (from a mobile host's system-bar insets), the root is laid out inside the
-/// inset viewport rect — origin shifts to (left, top) and the available size shrinks by
-/// left+right / top+bottom — so content is not occluded by the status bar / navigation bar.
-/// Zero insets must reproduce the pre-safe-area behavior exactly.
+/// Verifies safe-area handling in <see cref="LayoutEngine.Layout"/>. Unlike the original
+/// (ISSUE-052) design that shrank the whole viewport to the inset rect, the layout viewport
+/// now stays full-screen (origin 0,0; full width/height). Safe-area insets are exposed through
+/// CSS <c>env(safe-area-inset-*)</c> length components that *content* opts into (via padding),
+/// so full-screen overlays still cover the entire screen (see ISSUE-054).
 /// </summary>
 public class SafeAreaLayoutTests
 {
@@ -39,8 +39,32 @@ public class SafeAreaLayoutTests
         }
     };
 
-    // A fixed-position child pinned to top:0 left:0 — resolves against the (inset) viewport block.
-    private static StyleSheet FixedChildSheet() => new()
+    // A root that pads its content into the safe area via env(safe-area-inset-*).
+    // box-sizing:border-box keeps the border box at viewport size while the content box insets.
+    private static StyleSheet SafeAreaPaddedSheet() => new()
+    {
+        Rules = new List<StyleRule>
+        {
+            new()
+            {
+                Selector = new ClassSelector("root"),
+                Style = new Style
+                {
+                    Display = Display.Block,
+                    BoxSizing = BoxSizing.BorderBox,
+                    Width = Length.Percent(100),
+                    Height = Length.Percent(100),
+                    PaddingTop = Length.SafeAreaInsetTop,
+                    PaddingBottom = Length.SafeAreaInsetBottom,
+                    PaddingLeft = Length.SafeAreaInsetLeft,
+                    PaddingRight = Length.SafeAreaInsetRight,
+                },
+            },
+        }
+    };
+
+    // A full-screen absolutely-positioned overlay (like the menu backdrop): no env() padding.
+    private static StyleSheet OverlaySheet() => new()
     {
         Rules = new List<StyleRule>
         {
@@ -55,12 +79,12 @@ public class SafeAreaLayoutTests
             },
             new()
             {
-                Selector = new ClassSelector("pinned"),
+                Selector = new ClassSelector("backdrop"),
                 Style = new Style
                 {
-                    Position = Position.Fixed,
+                    Position = Position.Absolute,
                     Top = Length.Px(0), Left = Length.Px(0),
-                    Width = Length.Px(50), Height = Length.Px(50),
+                    Width = Length.Percent(100), Height = Length.Percent(100),
                 },
             },
         }
@@ -85,7 +109,6 @@ public class SafeAreaLayoutTests
         var layout = _layoutEngine.Layout(root, new List<StyleSheet> { FullSizeRootSheet() },
             ViewportW, ViewportH, SafeAreaInsets.Zero);
 
-        // Default-parameter overload (no insets) must match zero insets exactly.
         layout.BoxModel.Content.Left.ShouldBe(0f);
         layout.BoxModel.Content.Top.ShouldBe(0f);
         layout.BoxModel.Content.Width.ShouldBe(ViewportW);
@@ -108,55 +131,78 @@ public class SafeAreaLayoutTests
     }
 
     [Fact]
-    public void NonZeroInsets_OffsetOriginAndShrinkSize()
+    public void NonZeroInsets_RootStillFillsFullViewport()
     {
+        // A full-size root WITHOUT env() padding must still fill the entire screen even when
+        // insets are non-zero — the viewport is not shrunk. This is what lets overlays cover
+        // the whole screen.
         const float top = 48f, bottom = 24f, left = 12f, right = 8f;
         var root = new DivElement { Class = "root" };
 
         var layout = _layoutEngine.Layout(root, new List<StyleSheet> { FullSizeRootSheet() },
             ViewportW, ViewportH, new SafeAreaInsets(left, top, right, bottom));
 
-        // Origin shifts into the safe area...
-        layout.BoxModel.Content.Left.ShouldBe(left);
+        layout.BoxModel.Content.Left.ShouldBe(0f);
+        layout.BoxModel.Content.Top.ShouldBe(0f);
+        layout.BoxModel.Content.Width.ShouldBe(ViewportW);
+        layout.BoxModel.Content.Height.ShouldBe(ViewportH);
+    }
+
+    [Fact]
+    public void EnvPadding_InsetsContentBox()
+    {
+        // A root that opts into env(safe-area-inset-*) padding: its border box still fills the
+        // viewport, but its content box is inset by the resolved insets.
+        const float top = 48f, bottom = 24f, left = 12f, right = 8f;
+        var root = new DivElement { Class = "root" };
+
+        var layout = _layoutEngine.Layout(root, new List<StyleSheet> { SafeAreaPaddedSheet() },
+            ViewportW, ViewportH, new SafeAreaInsets(left, top, right, bottom));
+
+        // Border box covers the whole screen...
+        layout.BoxModel.BorderBox.Top.ShouldBe(0f);
+        layout.BoxModel.BorderBox.Height.ShouldBe(ViewportH);
+        layout.BoxModel.BorderBox.Width.ShouldBe(ViewportW);
+        // ...while the content box is padded into the safe area.
         layout.BoxModel.Content.Top.ShouldBe(top);
-        // ...and 100% width/height resolve against the inset (available) size.
-        layout.BoxModel.Content.Width.ShouldBe(ViewportW - left - right);
-        layout.BoxModel.Content.Height.ShouldBe(ViewportH - top - bottom);
-        // The content stays clear of the bottom/right system bars.
+        layout.BoxModel.Content.Left.ShouldBe(left);
         layout.BoxModel.Content.Bottom.ShouldBe(ViewportH - bottom, 0.5f);
         layout.BoxModel.Content.Right.ShouldBe(ViewportW - right, 0.5f);
     }
 
     [Fact]
-    public void TopInsetOnly_PushesContentBelowStatusBar()
+    public void EnvPadding_TopInsetOnly()
     {
         const float top = 48f;
         var root = new DivElement { Class = "root" };
 
-        var layout = _layoutEngine.Layout(root, new List<StyleSheet> { FullSizeRootSheet() },
+        var layout = _layoutEngine.Layout(root, new List<StyleSheet> { SafeAreaPaddedSheet() },
             ViewportW, ViewportH, new SafeAreaInsets(0, top, 0, 0));
 
-        layout.BoxModel.Content.Top.ShouldBe(top);
-        layout.BoxModel.Content.Width.ShouldBe(ViewportW);          // no horizontal inset
-        layout.BoxModel.Content.Height.ShouldBe(ViewportH - top);   // only the top is reserved
+        layout.BoxModel.Content.Top.ShouldBe(top);          // only the top is reserved
+        layout.BoxModel.Content.Left.ShouldBe(0f);
+        layout.BoxModel.Content.Height.ShouldBe(ViewportH - top);
+        layout.BoxModel.Content.Width.ShouldBe(ViewportW);  // no horizontal inset
     }
 
     [Fact]
-    public void FixedChild_ResolvesAgainstInsetViewportBlock()
+    public void Overlay_CoversFullScreen_DespiteInsets()
     {
-        const float top = 48f, left = 12f;
+        // The regression ISSUE-054 fixes: a full-screen overlay (menu backdrop) must cover the
+        // entire screen even with non-zero insets, so the dim layer reaches under the system bars.
+        const float top = 48f, bottom = 24f;
         var root = new DivElement { Class = "root" };
-        var pinned = new DivElement { Class = "pinned" };
-        root.AddChild(pinned);
+        var backdrop = new DivElement { Class = "backdrop" };
+        root.AddChild(backdrop);
 
-        var layout = _layoutEngine.Layout(root, new List<StyleSheet> { FixedChildSheet() },
-            ViewportW, ViewportH, new SafeAreaInsets(left, top, 0, 0));
+        var layout = _layoutEngine.Layout(root, new List<StyleSheet> { OverlaySheet() },
+            ViewportW, ViewportH, new SafeAreaInsets(0, top, 0, bottom));
 
-        var pinnedBox = FindByClass(layout, "pinned");
-        pinnedBox.ShouldNotBeNull();
-        // A fixed top:0 left:0 element pins to the safe-area corner, not the screen corner,
-        // so it isn't drawn under the status bar.
-        pinnedBox!.BoxModel.MarginBox.Top.ShouldBe(top);
-        pinnedBox.BoxModel.MarginBox.Left.ShouldBe(left);
+        var backdropBox = FindByClass(layout, "backdrop");
+        backdropBox.ShouldNotBeNull();
+        backdropBox!.BoxModel.BorderBox.Top.ShouldBe(0f);
+        backdropBox.BoxModel.BorderBox.Left.ShouldBe(0f);
+        backdropBox.BoxModel.BorderBox.Width.ShouldBe(ViewportW);
+        backdropBox.BoxModel.BorderBox.Height.ShouldBe(ViewportH);
     }
 }
