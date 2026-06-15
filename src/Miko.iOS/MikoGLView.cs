@@ -37,6 +37,18 @@ public class MikoGLView : SKGLView
         PaintSurface += OnPaintSurface;
     }
 
+    /// <summary>
+    /// 安全区变化（刘海、Home 指示条、旋转）时回调。<see cref="UIView.SafeAreaInsets"/>
+    /// 已是逻辑点，与渲染坐标一致，直接推给引擎作为安全区，使内容不被系统 UI 遮盖。
+    /// </summary>
+    public override void SafeAreaInsetsDidChange()
+    {
+        base.SafeAreaInsetsDidChange();
+        var insets = SafeAreaInsets;
+        _controller.SetSafeAreaInsets(
+            (float)insets.Left, (float)insets.Top, (float)insets.Right, (float)insets.Bottom);
+    }
+
     private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
     {
         var canvas = e.Surface.Canvas;
@@ -61,7 +73,9 @@ public class MikoGLView : SKGLView
         // UI thread can't race the layout walk on the render thread.
         _controller.RenderFrame(canvas, logicalWidth, logicalHeight, deltaTime, c =>
         {
-            c.Clear(SKColors.White);
+            // 用根背景色填充整个 surface，使安全区内的系统栏带与内容背景一致（而非白边）。
+            var rootBg = _controller.Engine.GetRootBackgroundColor();
+            c.Clear(rootBg?.ToSKColor() ?? SKColors.White);
             c.Save();
             c.Scale((float)_scale);
             _controller.Engine.Render(c);
