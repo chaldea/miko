@@ -49,6 +49,7 @@ public class MikoEngine
     private LayoutBox? _currentLayout;
     private float _viewportWidth;
     private float _viewportHeight;
+    private SafeAreaInsets _safeArea;
 
     public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight)
     {
@@ -72,14 +73,14 @@ public class MikoEngine
         // Capture old styles from transferred LayoutBoxes (before layout replaces them)
         var oldStyles = CaptureTransitionableStyles(root);
 
-        _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight);
+        _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
 
         if (oldStyles.Elements.Count > 0 || oldStyles.PseudoElements.Count > 0)
         {
             bool transitionsTriggered = DetectAndTriggerTransitions(root, oldStyles);
             if (transitionsTriggered)
             {
-                _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight);
+                _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
             }
         }
 
@@ -130,7 +131,7 @@ public class MikoEngine
         {
             var dirtyRegions = _dirtyManager.GetDirtyRegions();
             var oldLayout = _currentLayout;
-            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
+            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
             RestoreScrollState(oldLayout, _currentLayout);
 
             // 脏区域过多时，增量渲染会退化为多次全树遍历，成本超过一次全量渲染，
@@ -157,13 +158,13 @@ public class MikoEngine
 
         var oldStyles = CaptureTransitionableStyles(_root);
         var oldLayout = _currentLayout;
-        _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
+        _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
 
         bool transitionsTriggered = DetectAndTriggerTransitions(_root, oldStyles);
         if (transitionsTriggered)
         {
             // 重新布局，使用 transition 起始值（已写入 inline style）
-            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight);
+            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
         }
 
         RestoreScrollState(oldLayout, _currentLayout);
@@ -242,6 +243,26 @@ public class MikoEngine
         }
     }
 
+    /// <summary>当前安全区边距（逻辑像素）。</summary>
+    public SafeAreaInsets SafeAreaInsets => _safeArea;
+
+    /// <summary>
+    /// 设置安全区边距（逻辑像素）。由平台宿主从系统状态栏/导航栏获取后传入。
+    /// 值发生变化时触发完整重新布局，使根元素内缩到安全区内。
+    /// </summary>
+    public void SetSafeAreaInsets(SafeAreaInsets insets)
+    {
+        if (_safeArea == insets) return;
+
+        _safeArea = insets;
+
+        // 安全区变化需要完整重新布局（与视口变化同理）
+        if (_root != null)
+        {
+            InvalidateElement(_root);
+        }
+    }
+
     /// <summary>
     /// 添加样式表
     /// </summary>
@@ -265,6 +286,17 @@ public class MikoEngine
     /// 获取根元素
     /// </summary>
     public Element? GetRoot() => _root;
+
+    /// <summary>
+    /// 根元素的已解析背景色。平台宿主用它填充整个 surface（含安全区系统栏带），
+    /// 使状态栏/导航栏后方的颜色与内容背景一致。根背景透明时返回 null。
+    /// </summary>
+    public Color? GetRootBackgroundColor()
+    {
+        var bg = _currentLayout?.ComputedStyle.BackgroundColor;
+        if (bg == null || bg.Value.A == 0) return null;
+        return bg;
+    }
 
     /// <summary>
     /// 在指定坐标处进行命中测试，返回最深层的元素

@@ -175,6 +175,18 @@ public sealed class MikoInteractionController
         }
     }
 
+    /// <summary>
+    /// 安全区边距变化（逻辑像素）。平台宿主从系统状态栏/导航栏 inset 换算为逻辑像素后调用，
+    /// 使根内容内缩到安全区内，避免被系统 UI 遮盖。
+    /// </summary>
+    public void SetSafeAreaInsets(float left, float top, float right, float bottom)
+    {
+        lock (_sync)
+        {
+            _engine.SetSafeAreaInsets(new SafeAreaInsets(left, top, right, bottom));
+        }
+    }
+
     // ---------------------------------------------------------------------
     // 指针输入（坐标为已根据像素密度换算后的逻辑坐标）
     // ---------------------------------------------------------------------

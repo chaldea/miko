@@ -20,10 +20,23 @@ public class LayoutEngine
     /// <summary>
     /// 执行布局计算
     /// </summary>
-    public LayoutBox Layout(Element root, List<StyleSheet> styleSheets, float viewportWidth, float viewportHeight)
+    /// <param name="safeArea">
+    /// 安全区边距（逻辑像素）。非零时根元素在内缩后的视口矩形内布局，避免内容被
+    /// 系统状态栏/导航栏遮盖。默认无内缩（桌面）。
+    /// </param>
+    public LayoutBox Layout(Element root, List<StyleSheet> styleSheets, float viewportWidth, float viewportHeight,
+        SafeAreaInsets safeArea = default)
     {
-        // 1. 样式计算：为每个元素计算最终样式
-        var viewport = new ViewportInfo(viewportWidth, viewportHeight);
+        // 安全区内缩后的可用视口：原点右下移 (Left, Top)，尺寸减去左右/上下边距。
+        // 百分比尺寸、约束、绝对/固定定位的包含块都以此为基准，使整棵树落在安全区内。
+        float originX = safeArea.Left;
+        float originY = safeArea.Top;
+        float availableWidth = Math.Max(0, viewportWidth - safeArea.Left - safeArea.Right);
+        float availableHeight = Math.Max(0, viewportHeight - safeArea.Top - safeArea.Bottom);
+
+        // 1. 样式计算：为每个元素计算最终样式（视口尺寸用安全区内的可用尺寸，
+        //    使 100vw/100% 不会把内容撑到系统栏下方）。
+        var viewport = new ViewportInfo(availableWidth, availableHeight);
         ComputeStyles(root, styleSheets, viewport);
 
         // 2. 构建布局树：根据 display 属性过滤和组织
@@ -34,13 +47,13 @@ public class LayoutEngine
             throw new InvalidOperationException("Failed to build layout tree");
         }
 
-        // 3. 布局计算：计算每个盒子的位置和尺寸
-        var constraints = new LayoutConstraints(viewportWidth, viewportHeight);
-        CalculateLayout(layoutRoot, constraints, 0, 0);
+        // 3. 布局计算：计算每个盒子的位置和尺寸（从安全区原点开始）
+        var constraints = new LayoutConstraints(availableWidth, availableHeight);
+        CalculateLayout(layoutRoot, constraints, originX, originY);
 
         // 4. 定位调整：处理 relative/absolute 定位的偏移
-        // 根元素的初始包含块为视口
-        var viewportBlock = new RectF(0, 0, viewportWidth, viewportHeight);
+        // 根元素的初始包含块为安全区内缩后的视口
+        var viewportBlock = new RectF(originX, originY, availableWidth, availableHeight);
         ApplyPositioning(layoutRoot, viewportBlock);
 
         return layoutRoot;
