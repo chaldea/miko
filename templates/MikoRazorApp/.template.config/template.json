@@ -25,7 +25,22 @@
       ],
       "replaces": "net10.0",
       "defaultValue": "net10.0"
-    }
+    },
+    "layout": {
+      "type": "parameter",
+      "datatype": "choice",
+      "description": "Initial UI layout to scaffold.",
+      "defaultValue": "blank",
+      "choices": [
+        { "choice": "blank",    "description": "An empty page (default)." },
+        { "choice": "sidemenu", "description": "Ionic side-menu drawer over a content page." },
+        { "choice": "tabs",     "description": "Ionic bottom tab bar with three routed tab pages." }
+      ]
+    },
+    "useBlank":    { "type": "computed", "value": "(layout == \"blank\")" },
+    "useSidemenu": { "type": "computed", "value": "(layout == \"sidemenu\")" },
+    "useTabs":     { "type": "computed", "value": "(layout == \"tabs\")" },
+    "useIonic":    { "type": "computed", "value": "(layout == \"sidemenu\" || layout == \"tabs\")" }
   },
   "sources": [
     {
@@ -37,6 +52,63 @@
             "**/*.user",
             "nuget.config"
           ]
+        },
+        {
+          "condition": "(useBlank)",
+          "exclude": [
+            "MainLayout.tabs.razor",
+            "MainLayout.sidemenu.razor",
+            "GlobalStyles.tabs.cs",
+            "GlobalStyles.sidemenu.cs",
+            "_Imports.tabs.razor",
+            "_Imports.sidemenu.razor",
+            "Pages/Home.sidemenu.razor",
+            "Pages/Tab1Page.razor",
+            "Pages/Tab2Page.razor",
+            "Pages/Tab3Page.razor"
+          ],
+          "rename": {
+            "MainLayout.blank.razor": "MainLayout.razor",
+            "GlobalStyles.blank.cs":  "GlobalStyles.cs",
+            "Pages/Home.blank.razor": "Pages/Home.razor"
+          }
+        },
+        {
+          "condition": "(useTabs)",
+          "exclude": [
+            "MainLayout.blank.razor",
+            "MainLayout.sidemenu.razor",
+            "GlobalStyles.blank.cs",
+            "GlobalStyles.sidemenu.cs",
+            "_Imports.sidemenu.razor",
+            "Pages/Home.blank.razor",
+            "Pages/Home.sidemenu.razor"
+          ],
+          "rename": {
+            "MainLayout.tabs.razor": "MainLayout.razor",
+            "GlobalStyles.tabs.cs":  "GlobalStyles.cs",
+            "_Imports.tabs.razor":   "_Imports.razor"
+          }
+        },
+        {
+          "condition": "(useSidemenu)",
+          "exclude": [
+            "MainLayout.blank.razor",
+            "MainLayout.tabs.razor",
+            "GlobalStyles.blank.cs",
+            "GlobalStyles.tabs.cs",
+            "_Imports.tabs.razor",
+            "Pages/Home.blank.razor",
+            "Pages/Tab1Page.razor",
+            "Pages/Tab2Page.razor",
+            "Pages/Tab3Page.razor"
+          ],
+          "rename": {
+            "MainLayout.sidemenu.razor": "MainLayout.razor",
+            "GlobalStyles.sidemenu.cs":  "GlobalStyles.cs",
+            "_Imports.sidemenu.razor":   "_Imports.razor",
+            "Pages/Home.sidemenu.razor": "Pages/Home.razor"
+          }
         }
       ]
     }

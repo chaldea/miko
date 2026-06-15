@@ -121,6 +121,17 @@ dotnet run
 A window opens showing the home page (`Pages/Home.razor`). Add a page by dropping a new
 `.razor` file with a `@page` directive into `Pages/` — routes are discovered automatically.
 
+#### Choose a layout
+
+Both templates accept a `--layout` option to scaffold a starting UI. The default is `blank`;
+`tabs` and `sidemenu` scaffold Ionic-based layouts (and add the `Miko.Ionic` package):
+
+```bash
+dotnet new miko-razor --layout blank     -o MyApp   # empty page (default)
+dotnet new miko-razor --layout tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
+dotnet new miko-razor --layout sidemenu  -o MyApp   # Ionic side-menu drawer over a page
+```
+
 For a cross-platform app (Desktop + Android + iOS), use the multiplatform template instead:
 
 ```bash

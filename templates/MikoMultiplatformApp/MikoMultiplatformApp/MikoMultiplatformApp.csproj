@@ -20,6 +20,9 @@
     <PackageReference Include="Miko" Version="1.0.0" />
     <PackageReference Include="Miko.DevTools" Version="1.0.0" />
     <PackageReference Include="Miko.Razor.Compiler" Version="1.0.0" />
+    <!--#if (useIonic) -->
+    <PackageReference Include="Miko.Ionic" Version="1.0.0" />
+    <!--#endif -->
   </ItemGroup>
 
 </Project>
