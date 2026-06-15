@@ -17,26 +17,26 @@ public class LayoutEngine
     private readonly FlexLayout _flexLayout = new();
     private readonly TableLayout _tableLayout = new();
 
+    // 当前布局的安全区边距。在样式计算阶段用于折算各元素的 env(safe-area-inset-*) 长度。
+    // 不内缩视口本身——视口始终为全屏，仅“声明了 env() 的内容元素”据此添加内边距，
+    // 从而全屏浮层（菜单遮罩等）仍覆盖整个屏幕（见 ISSUE-054）。
+    private SafeAreaInsets _safeArea;
+
     /// <summary>
     /// 执行布局计算
     /// </summary>
     /// <param name="safeArea">
-    /// 安全区边距（逻辑像素）。非零时根元素在内缩后的视口矩形内布局，避免内容被
-    /// 系统状态栏/导航栏遮盖。默认无内缩（桌面）。
+    /// 安全区边距（逻辑像素）。通过 CSS <c>env(safe-area-inset-*)</c> 暴露给内容元素，
+    /// 使其可主动添加内边距避开系统状态栏/导航栏；视口本身不内缩。默认无安全区（桌面）。
     /// </param>
     public LayoutBox Layout(Element root, List<StyleSheet> styleSheets, float viewportWidth, float viewportHeight,
         SafeAreaInsets safeArea = default)
     {
-        // 安全区内缩后的可用视口：原点右下移 (Left, Top)，尺寸减去左右/上下边距。
-        // 百分比尺寸、约束、绝对/固定定位的包含块都以此为基准，使整棵树落在安全区内。
-        float originX = safeArea.Left;
-        float originY = safeArea.Top;
-        float availableWidth = Math.Max(0, viewportWidth - safeArea.Left - safeArea.Right);
-        float availableHeight = Math.Max(0, viewportHeight - safeArea.Top - safeArea.Bottom);
+        _safeArea = safeArea;
 
-        // 1. 样式计算：为每个元素计算最终样式（视口尺寸用安全区内的可用尺寸，
-        //    使 100vw/100% 不会把内容撑到系统栏下方）。
-        var viewport = new ViewportInfo(availableWidth, availableHeight);
+        // 视口为全屏：env(safe-area-inset-*) 由各内容元素按需折算成内边距，浮层不受影响。
+        // 1. 样式计算：为每个元素计算最终样式（并折算其 env() 安全区分量）。
+        var viewport = new ViewportInfo(viewportWidth, viewportHeight);
         ComputeStyles(root, styleSheets, viewport);
 
         // 2. 构建布局树：根据 display 属性过滤和组织
@@ -47,13 +47,12 @@ public class LayoutEngine
             throw new InvalidOperationException("Failed to build layout tree");
         }
 
-        // 3. 布局计算：计算每个盒子的位置和尺寸（从安全区原点开始）
-        var constraints = new LayoutConstraints(availableWidth, availableHeight);
-        CalculateLayout(layoutRoot, constraints, originX, originY);
+        // 3. 布局计算：从视口原点 (0,0) 开始，覆盖整个视口。
+        var constraints = new LayoutConstraints(viewportWidth, viewportHeight);
+        CalculateLayout(layoutRoot, constraints, 0f, 0f);
 
-        // 4. 定位调整：处理 relative/absolute 定位的偏移
-        // 根元素的初始包含块为安全区内缩后的视口
-        var viewportBlock = new RectF(originX, originY, availableWidth, availableHeight);
+        // 4. 定位调整：处理 relative/absolute 定位的偏移。根包含块为整个视口。
+        var viewportBlock = new RectF(0f, 0f, viewportWidth, viewportHeight);
         ApplyPositioning(layoutRoot, viewportBlock);
 
         return layoutRoot;
@@ -170,6 +169,9 @@ public class LayoutEngine
     private void ComputeStyles(Element element, List<StyleSheet> styleSheets, ViewportInfo viewport)
     {
         var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport);
+
+        // 折算该元素声明的 env(safe-area-inset-*) 长度为像素（桌面/零安全区时为空操作）。
+        computedStyle.ResolveSafeArea(_safeArea);
 
         // 创建布局盒子并关联
         element.LayoutBox = new LayoutBox
@@ -304,6 +306,7 @@ public class LayoutEngine
 
         var pseudoElement = new PseudoElement { TextContent = matchedStyle.Content, Type = type };
         var computedStyle = ComputedStyle.FromStyle(matchedStyle);
+        computedStyle.ResolveSafeArea(_safeArea);
 
         pseudoElement.LayoutBox = new LayoutBox
         {

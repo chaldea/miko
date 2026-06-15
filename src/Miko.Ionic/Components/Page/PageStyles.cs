@@ -46,13 +46,19 @@ internal static class PageStyles
                 ZIndex = 10,
             },
 
-            // ion-toolbar — full-width bar holding the title.
+            // ion-toolbar — full-width bar holding the title. The first toolbar in a header sits
+            // under the system status bar on mobile; env(safe-area-inset-*) pads its content down
+            // (and clear of a side notch) while the toolbar background still extends under the bar.
+            // On desktop / zero-inset platforms these env() lengths resolve to 0 (no-op).
             [".ion-toolbar"] = new()
             {
                 Display = Display.Block,
                 Width = Length.Percent(100),
                 BackgroundColor = t.ToolbarBackground,
                 Color = t.ToolbarColor,
+                PaddingTop = Length.SafeAreaInsetTop,
+                PaddingLeft = Length.SafeAreaInsetLeft,
+                PaddingRight = Length.SafeAreaInsetRight,
             },
 
             [".ion-toolbar .toolbar-container"] = new()

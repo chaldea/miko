@@ -79,6 +79,12 @@ internal static class MenuStyles
                     ? new BorderSide(Length.Px(t.MenuBorderWidth), BorderStyle.Solid, t.MenuBorderColor)
                     : new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
                 ZIndex = 1001,
+                // The drawer panel itself spans the full screen height (so its surface reaches
+                // under the status/navigation bars), but its contents must clear those bars:
+                // env(safe-area-inset-*) pads the top/bottom. The drawer is a slide-in overlay,
+                // so unlike the host/backdrop it DOES opt into the inset for its content.
+                PaddingTop = Length.SafeAreaInsetTop,
+                PaddingBottom = Length.SafeAreaInsetBottom,
                 Transitions = new List<Transition>
                 {
                     Transition.For(x => x.Left).Duration(t.MenuAnimDuration).EaseOut(),

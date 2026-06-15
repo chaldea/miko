@@ -39,7 +39,10 @@ internal static class TabStyles
                 OverflowY = Overflow.Hidden,
             },
 
-            // ion-tab-bar — the bar holding the tab buttons.
+            // ion-tab-bar — the bar holding the tab buttons. On mobile the bar sits at the bottom
+            // edge under the system navigation bar / home indicator; env(safe-area-inset-bottom)
+            // pads it so the buttons clear that band while the bar background fills behind it.
+            // Zero-inset platforms (desktop) resolve the env() length to 0 (no-op).
             [".ion-tab-bar"] = new()
             {
                 Display = Display.Flex,
@@ -50,6 +53,9 @@ internal static class TabStyles
                 BackgroundColor = t.TabBarBackground,
                 Color = t.TabBarColor,
                 TextAlign = TextAlign.Center,
+                PaddingBottom = Length.SafeAreaInsetBottom,
+                PaddingLeft = Length.SafeAreaInsetLeft,
+                PaddingRight = Length.SafeAreaInsetRight,
             },
 
             // slot="bottom" (default): border on top.
