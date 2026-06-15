@@ -181,6 +181,9 @@ public class RenderTreeBuilder
         if (_componentStack.Count == 0) return;
         var component = _componentStack.Pop();
         var element = component.Build();
+        // Link the produced element back to its component so the component can be disposed
+        // (e.g. unsubscribe from events) when this element subtree is later discarded.
+        element.DisposeCallback = component.DisposeInternal;
         if (_stack.Count > 0)
             _stack.Peek().AddChild(element);
         else if (_componentStack.Count > 0)

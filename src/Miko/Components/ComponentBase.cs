@@ -25,6 +25,16 @@ public abstract class ComponentBase : IComponent
     /// </summary>
     protected virtual void OnParametersSet() { }
 
+    /// <summary>
+    /// Invoked when the component instance is discarded — i.e. the element it produced is
+    /// replaced or removed during a re-render. Override to release resources or unsubscribe
+    /// from events (nested components are recreated each render, so subscriptions made in
+    /// <see cref="OnInitialized"/>/<see cref="OnParametersSet"/> must be torn down here).
+    /// </summary>
+    protected virtual void OnDispose() { }
+
+    internal void DisposeInternal() => OnDispose();
+
     public virtual Element Build()
     {
         if (!_initialized)
@@ -55,6 +65,10 @@ public abstract class ComponentBase : IComponent
         if (_rootElement.Parent == null)
         {
             var newElement = BuildNew();
+            // The old children are discarded by ReplaceElementContent — tear down the nested
+            // components that produced them first.
+            foreach (var oldChild in _rootElement.Children)
+                DisposeSubtree(oldChild);
             ReplaceElementContent(_rootElement, newElement);
             return;
         }
@@ -69,6 +83,19 @@ public abstract class ComponentBase : IComponent
         parent.Children[index] = rebuilt;
         rebuilt.SetParent(parent);
         _rootElement = rebuilt;
+        // The old subtree (and the nested component instances that produced it) is now
+        // unreferenced — dispose those components so their event subscriptions are released.
+        // Skip oldElement itself: this component instance persists and re-renders.
+        foreach (var oldChild in oldElement.Children)
+            DisposeSubtree(oldChild);
+    }
+
+    // Walks a discarded element subtree and invokes each element's component dispose callback.
+    private static void DisposeSubtree(Element element)
+    {
+        element.DisposeCallback?.Invoke();
+        foreach (var child in element.Children)
+            DisposeSubtree(child);
     }
 
     private Element BuildNew()

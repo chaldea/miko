@@ -9,11 +9,11 @@ namespace Miko.Tests.Layout;
 
 /// <summary>
 /// Verifies the layout invariants the Ionic sidemenu (overlay drawer) relies on after the
-/// animation rework: the drawer and backdrop are absolute siblings of the page under
-/// <c>ion-app</c>; the drawer slides on/off-screen by animating its leading/trailing offset
-/// (so the closed drawer sits off-screen and its hit-box leaves the viewport), and the page
-/// fills the app regardless. Mirrors <c>Miko.Ionic</c>'s structure without depending on the
-/// component library.
+/// nested-host rework: a full-screen <c>ion-menu-host</c> sits as an absolute sibling of the
+/// page under <c>ion-app</c> and holds the <c>ion-menu-inner</c> drawer + <c>ion-menu-backdrop</c>;
+/// the drawer slides on/off-screen by animating its leading/trailing offset (so the closed
+/// drawer sits off-screen and its hit-box leaves the viewport), and the page fills the app
+/// regardless. Mirrors <c>Miko.Ionic</c>'s structure without depending on the component library.
 /// </summary>
 public class SideMenuOverlayLayoutTests
 {
@@ -25,9 +25,8 @@ public class SideMenuOverlayLayoutTests
 
     // ion-app: relative flex column filling the viewport.
     // ion-page: block child that fills the app (the overlay must not push it).
-    // ion-menu / ion-menu-backdrop: absolute siblings of the page.
-    // The drawer's leading/trailing offset is the open/closed state: start side uses Left
-    // (closed -MenuWidth → open 0), end side uses Right.
+    // ion-menu-host: absolute full-screen sibling of the page, holding the backdrop + drawer.
+    // ion-menu-inner (drawer): off-screen by MenuWidth when closed; flush at 0 when open.
     private static StyleSheet BuildSheet(string side, bool menuOpen)
     {
         bool start = side == "start";
@@ -47,6 +46,13 @@ public class SideMenuOverlayLayoutTests
                     FlexGrow = 1, FlexShrink = 1, FlexBasis = Length.Px(0),
                     Width = Length.Percent(100),
                 } },
+                new() { Selector = new ClassSelector("ion-menu-host"), Style = new Style
+                {
+                    Position = Position.Absolute,
+                    Top = Length.Px(0), Left = Length.Px(0),
+                    Width = Length.Percent(100), Height = Length.Percent(100),
+                    ZIndex = 1000,
+                } },
                 new() { Selector = new ClassSelector("ion-menu-backdrop"), Style = new Style
                 {
                     Position = Position.Absolute,
@@ -55,7 +61,7 @@ public class SideMenuOverlayLayoutTests
                     Display = menuOpen ? Display.Block : Display.None,
                     ZIndex = 1000,
                 } },
-                new() { Selector = new ClassSelector("ion-menu"), Style = new Style
+                new() { Selector = new ClassSelector("ion-menu-inner"), Style = new Style
                 {
                     Position = Position.Absolute,
                     Top = Length.Px(0),
@@ -74,14 +80,17 @@ public class SideMenuOverlayLayoutTests
     {
         var app = new DivElement { Class = "ion-app" };
         var page = new DivElement { Class = "ion-page" };
+        var host = new DivElement { Class = "ion-menu-host" };
         var backdrop = new DivElement { Class = "ion-menu-backdrop" };
-        var menu = new DivElement { Class = "ion-menu" };
+        var menu = new DivElement { Class = "ion-menu-inner" };
 
-        // Page first, overlay siblings last — the engine's reverse-document-order hit-test
-        // depends on the overlay coming after the full-size page.
+        // Drawer + backdrop nest inside the full-screen host (Ionic-style). Backdrop first so
+        // the reverse-order hit-test checks the drawer first (matches the IonMenu component).
+        host.AddChild(backdrop);
+        host.AddChild(menu);
+        // Page first, overlay host last — reverse-document-order hit-test depends on it.
         app.AddChild(page);
-        app.AddChild(backdrop);
-        app.AddChild(menu);
+        app.AddChild(host);
         return (app, page, backdrop, menu);
     }
 
@@ -103,7 +112,7 @@ public class SideMenuOverlayLayoutTests
 
         var layoutRoot = _layoutEngine.Layout(app, new List<StyleSheet> { BuildSheet("start", menuOpen: true) }, ViewportW, ViewportH);
 
-        var menu = FindByClass(layoutRoot, "ion-menu");
+        var menu = FindByClass(layoutRoot, "ion-menu-inner");
         menu.ShouldNotBeNull();
         menu!.ComputedStyle.Position.ShouldBe(Position.Absolute);
         menu.BoxModel.MarginBox.Left.ShouldBe(0f);
@@ -121,7 +130,7 @@ public class SideMenuOverlayLayoutTests
 
         // Closed drawer's border box is entirely off the left edge (right edge <= 0), so its
         // hit-box has left the viewport and cannot capture page taps.
-        var menu = FindByClass(layoutRoot, "ion-menu");
+        var menu = FindByClass(layoutRoot, "ion-menu-inner");
         menu.ShouldNotBeNull();
         menu!.BoxModel.MarginBox.Left.ShouldBe(-MenuWidth);
         menu.BoxModel.BorderBox.Right.ShouldBeLessThanOrEqualTo(0f);
@@ -134,7 +143,7 @@ public class SideMenuOverlayLayoutTests
 
         var layoutRoot = _layoutEngine.Layout(app, new List<StyleSheet> { BuildSheet("end", menuOpen: true) }, ViewportW, ViewportH);
 
-        var menu = FindByClass(layoutRoot, "ion-menu");
+        var menu = FindByClass(layoutRoot, "ion-menu-inner");
         menu.ShouldNotBeNull();
         // Open end drawer sits flush against the right edge of the viewport.
         menu!.BoxModel.MarginBox.Right.ShouldBe(ViewportW, 0.5f);
@@ -149,7 +158,7 @@ public class SideMenuOverlayLayoutTests
         var layoutRoot = _layoutEngine.Layout(app, new List<StyleSheet> { BuildSheet("end", menuOpen: false) }, ViewportW, ViewportH);
 
         // Closed end drawer's left edge is at/after the right viewport edge → off-screen.
-        var menu = FindByClass(layoutRoot, "ion-menu");
+        var menu = FindByClass(layoutRoot, "ion-menu-inner");
         menu.ShouldNotBeNull();
         menu!.BoxModel.BorderBox.Left.ShouldBeGreaterThanOrEqualTo(ViewportW - 0.5f);
     }
@@ -179,7 +188,7 @@ public class SideMenuOverlayLayoutTests
         // The backdrop is display:none when closed (so it cannot block page taps); the drawer
         // remains mounted (off-screen) so it can animate back in.
         FindByClass(layoutRoot, "ion-menu-backdrop").ShouldBeNull();
-        FindByClass(layoutRoot, "ion-menu").ShouldNotBeNull();
+        FindByClass(layoutRoot, "ion-menu-inner").ShouldNotBeNull();
 
         var page = FindByClass(layoutRoot, "ion-page");
         page.ShouldNotBeNull();

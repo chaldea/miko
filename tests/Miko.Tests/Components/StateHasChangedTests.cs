@@ -164,4 +164,76 @@ public class StateHasChangedTests
         // The parent's rendered content reflects the new state.
         element.TextContent.ShouldBe("OPEN");
     }
+
+    // A nested child rendered via OpenComponent/CloseComponent (the real component path), so
+    // its produced element carries a DisposeCallback. Counts OnDispose invocations.
+    private class DisposableChildComponent : ComponentBase
+    {
+        public static int DisposeCount;
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "div");
+            builder.CloseElement();
+        }
+
+        protected override void OnDispose() => DisposeCount++;
+    }
+
+    // A parent that re-renders and re-creates its nested child each render (like a page that
+    // toggles _menuOpen and re-renders an IonMenu).
+    private class ReRenderingParentComponent : ComponentBase
+    {
+        private int _tick;
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "div");
+            builder.AddContent(1, $"tick:{_tick}");
+            builder.OpenComponent<DisposableChildComponent>(2);
+            builder.CloseComponent();
+            builder.CloseElement();
+        }
+
+        public void Bump()
+        {
+            _tick++;
+            StateHasChanged();
+        }
+    }
+
+    [Fact]
+    public void StateHasChanged_DiscardedNestedComponent_IsDisposed()
+    {
+        DisposableChildComponent.DisposeCount = 0;
+
+        var parent = new ReRenderingParentComponent();
+        var element = parent.Build();
+        // Give the root a parent so StateHasChanged takes the parent-swap branch.
+        var grandparent = new DivElement();
+        grandparent.AddChild(element);
+
+        DisposableChildComponent.DisposeCount.ShouldBe(0);
+
+        // Each re-render creates a fresh child and discards the previous one — the discarded
+        // instance must be disposed exactly once per re-render.
+        parent.Bump();
+        DisposableChildComponent.DisposeCount.ShouldBe(1);
+
+        parent.Bump();
+        DisposableChildComponent.DisposeCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public void StateHasChanged_RootComponent_DiscardedNestedComponent_IsDisposed()
+    {
+        DisposableChildComponent.DisposeCount = 0;
+
+        // No grandparent → StateHasChanged takes the root (ReplaceElementContent) branch.
+        var parent = new ReRenderingParentComponent();
+        parent.Build();
+
+        parent.Bump();
+        DisposableChildComponent.DisposeCount.ShouldBe(1);
+    }
 }

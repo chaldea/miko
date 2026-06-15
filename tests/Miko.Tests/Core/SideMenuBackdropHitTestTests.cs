@@ -9,11 +9,12 @@ using SkiaSharp;
 namespace Miko.Tests.Core;
 
 /// <summary>
-/// Hit-test invariants for the animated sidemenu (ISSUE-052 §2/§3). Structure is
-/// <c>ion-app → [ ion-page, ion-menu-backdrop, ion-menu ]</c> — the page first, then the
-/// overlay siblings, so the reverse-document-order hit-test reaches the overlay before the
-/// full-size page. The open drawer/backdrop catch taps; the closed (off-screen) drawer and
-/// the closed (display:none) backdrop must NOT, so the page stays interactive.
+/// Hit-test invariants for the nested-host sidemenu (ISSUE-052 §3b). Structure is
+/// <c>ion-app → [ ion-page, ion-menu-host → ( ion-menu-inner, ion-menu-backdrop ) ]</c> — the
+/// page first, the full-screen host last so reverse-document-order hit-test reaches it first.
+/// When open the host is <c>pointer-events:auto</c> so the dim area hits the backdrop and the
+/// drawer hits the inner; when closed the host is <c>pointer-events:none</c> so every tap
+/// passes through to the page (the drawer is off-screen and the backdrop is display:none).
 /// </summary>
 public class SideMenuBackdropHitTestTests
 {
@@ -29,18 +30,25 @@ public class SideMenuBackdropHitTestTests
         return engine;
     }
 
-    // app(relative, fills) → [ page(block, fills), backdrop(absolute, fills), drawer(absolute,
-    // MenuWidth) ]. pageFirst controls whether the page is authored before the overlay
-    // siblings: hit-testing is reverse-document-order, so the overlay must come AFTER the
-    // full-size page to be reachable. menuOpen=false slides the drawer off-screen (Left
-    // -MenuWidth) and hides the backdrop (display:none).
-    private static (DivElement app, DivElement page, DivElement backdrop, DivElement drawer) Build(
-        bool pageFirst = true, bool menuOpen = true)
+    private static (DivElement app, DivElement page, DivElement backdrop, DivElement drawer) Build(bool menuOpen = true)
     {
         var page = new DivElement
         {
             Class = "ion-page",
             Style = new Style { Display = Display.Block, Width = Length.Percent(100), Height = Length.Percent(100) }
+        };
+
+        var drawer = new DivElement
+        {
+            Class = "ion-menu-inner",
+            Style = new Style
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(0),
+                Left = Length.Px(menuOpen ? 0 : -MenuWidth),
+                Width = Length.Px(MenuWidth), Height = Length.Percent(100),
+                ZIndex = 1001,
+            }
         };
 
         var backdrop = new DivElement
@@ -56,17 +64,22 @@ public class SideMenuBackdropHitTestTests
             }
         };
 
-        var drawer = new DivElement
+        // Full-screen host: interactive when open, pointer-events:none when closed so taps
+        // pass through to the page below.
+        var host = new DivElement
         {
-            Class = "ion-menu",
+            Class = "ion-menu-host",
             Style = new Style
             {
                 Position = Position.Absolute,
-                Top = Length.Px(0),
-                Left = Length.Px(menuOpen ? 0 : -MenuWidth),
-                Width = Length.Px(MenuWidth), Height = Length.Percent(100),
-                ZIndex = 1001,
-            }
+                Top = Length.Px(0), Left = Length.Px(0),
+                Width = Length.Percent(100), Height = Length.Percent(100),
+                PointerEvents = menuOpen ? PointerEvents.Auto : PointerEvents.None,
+                ZIndex = 1000,
+            },
+            // Backdrop authored before drawer so reverse-order hit-test checks the drawer
+            // first (drawer taps hit the drawer; dim-area taps fall through to the backdrop).
+            Children = { backdrop, drawer }
         };
 
         var app = new DivElement
@@ -80,19 +93,7 @@ public class SideMenuBackdropHitTestTests
             },
         };
         app.AddChild(page);
-        if (pageFirst)
-        {
-            app.AddChild(backdrop);
-            app.AddChild(drawer);
-        }
-        else
-        {
-            // Broken order: overlay before page (page ends up last → wins the hit-test).
-            app.Children.Clear();
-            app.AddChild(backdrop);
-            app.AddChild(drawer);
-            app.AddChild(page);
-        }
+        app.AddChild(host);
 
         return (app, page, backdrop, drawer);
     }
@@ -134,30 +135,15 @@ public class SideMenuBackdropHitTestTests
         backdrop.Id.ShouldBe("clicked");
     }
 
-    // Regression for ISSUE-052 §2: if the overlay is authored BEFORE the full-size page,
-    // the reverse-document-order hit-test reaches the page first and the dim area never hits
-    // the backdrop (menu cannot be closed by tapping outside). The overlay must come last.
+    // ISSUE-052 §3b: when closed the host is pointer-events:none, so taps pass through to the
+    // page everywhere — including the left strip where the open drawer would sit, and the dim
+    // area where the (now display:none) backdrop would be. The app stays fully interactive.
     [Fact]
-    public void Open_Click_OnDimArea_OverlayBeforePage_DoesNotReachBackdrop()
-    {
-        var (app, _, backdrop, _) = Build(pageFirst: false);
-        var engine = CreateEngine(app);
-
-        var hit = engine.HitTest(MenuWidth + 40f, H / 2f);
-
-        hit.ShouldNotBe(backdrop);
-        hit?.Class.ShouldBe("ion-page");
-    }
-
-    // ISSUE-052 §3: when closed, the off-screen drawer and display:none backdrop must not
-    // capture taps anywhere — every point hits the page, so the app is fully interactive.
-    [Fact]
-    public void Closed_Click_InLeftStrip_HitsPage_NotOffScreenDrawer()
+    public void Closed_Click_InLeftStrip_PassesThroughHostToPage()
     {
         var (app, page, _, drawer) = Build(menuOpen: false);
         var engine = CreateEngine(app);
 
-        // A point in the left strip where the OPEN drawer would sit (x < MenuWidth).
         var hit = engine.HitTest(MenuWidth / 2f, H / 2f);
 
         hit.ShouldBe(page);
@@ -165,7 +151,7 @@ public class SideMenuBackdropHitTestTests
     }
 
     [Fact]
-    public void Closed_Click_Anywhere_HitsPage_NotHiddenBackdrop()
+    public void Closed_Click_InDimArea_PassesThroughHostToPage()
     {
         var (app, page, backdrop, _) = Build(menuOpen: false);
         var engine = CreateEngine(app);

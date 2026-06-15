@@ -26,6 +26,10 @@ public abstract class Element
     // 布局后的盒子模型引用
     internal LayoutBox? LayoutBox { get; set; }
 
+    // 产生该元素的组件的清理回调（组件被替换/丢弃时调用，用于退订事件等）。
+    // 以委托而非组件引用形式保存，避免 Core 反向依赖 Components 类型。
+    internal Action? DisposeCallback { get; set; }
+
     // 脏标记
     internal bool IsDirty { get; set; }
 

@@ -261,6 +261,7 @@ public class Style
     public int? ZIndex { get; set; }
     public Visibility? Visibility { get; set; }
     public Cursor? Cursor { get; set; }
+    public PointerEvents? PointerEvents { get; set; }
     public UserSelect? UserSelect { get; set; }
 
     // Flex extras
@@ -388,6 +389,7 @@ public class Style
         ZIndex ??= other.ZIndex;
         Visibility ??= other.Visibility;
         Cursor ??= other.Cursor;
+        PointerEvents ??= other.PointerEvents;
         UserSelect ??= other.UserSelect;
 
         FlexWrap ??= other.FlexWrap;

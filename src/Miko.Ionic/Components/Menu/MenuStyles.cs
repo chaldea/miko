@@ -30,13 +30,42 @@ internal static class MenuStyles
                 BackgroundColor = t.AppBackground,
             },
 
-            // ion-menu — the drawer. Absolutely positioned (relative to ion-app), full
-            // height, a flex column so the inner ion-content (flex-grow / basis 0) resolves
-            // to the drawer's height. MD lifts it with an elevation shadow; iOS uses a
-            // hairline trailing border. It is always mounted by the page and slides in/out
-            // by animating its leading/trailing offset — so it animates both directions and,
-            // when closed (off-screen), its hit-box is off-screen and never blocks the page.
-            [".ion-menu"] = new()
+            // ion-menu-host — full-screen overlay layer (relative to ion-app) that owns the
+            // drawer + backdrop, mirroring Ionic's <ion-menu> Host. Always mounted so the
+            // slide/fade can animate in both directions. Transparent; establishes the
+            // containing block so the backdrop's 100% fills the screen.
+            [".ion-menu-host"] = new()
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(0),
+                Left = Length.Px(0),
+                Width = Length.Percent(100),
+                Height = Length.Percent(100),
+                ZIndex = 1000,
+            },
+
+            // Closed & settled: transparent to taps so the page below stays interactive.
+            [".ion-menu-host-idle"] = new()
+            {
+                PointerEvents = PointerEvents.None,
+            },
+            // Open or animating closed: interactive, so the backdrop catches the dim-area tap.
+            [".ion-menu-host-open"] = new()
+            {
+                PointerEvents = PointerEvents.Auto,
+            },
+            [".ion-menu-host-closing"] = new()
+            {
+                PointerEvents = PointerEvents.Auto,
+            },
+
+            // ion-menu-inner — the drawer itself. Absolutely positioned within the host, full
+            // height, a flex column so the inner ion-content (flex-grow / basis 0) resolves to
+            // the drawer's height. MD lifts it with an elevation shadow; iOS uses a hairline
+            // trailing border. Slides in/out by animating its leading/trailing offset — so it
+            // animates both directions and, when closed (off-screen), its hit-box leaves the
+            // viewport and never blocks the page.
+            [".ion-menu-inner"] = new()
             {
                 Position = Position.Absolute,
                 Top = Length.Px(0),
@@ -58,30 +87,29 @@ internal static class MenuStyles
             },
 
             // Side="start" (leading): closed off-screen to the left, open at the left edge.
-            [".ion-menu-start"] = new()
+            [".ion-menu-inner-start"] = new()
             {
                 Left = Length.Px(-t.MenuWidth),
                 Right = Length.Auto,
             },
-            [".ion-menu-start.ion-menu-open"] = new()
+            [".ion-menu-inner-start.ion-menu-inner-open"] = new()
             {
                 Left = Length.Px(0),
             },
 
             // Side="end" (trailing): closed off-screen to the right, open at the right edge.
-            [".ion-menu-end"] = new()
+            [".ion-menu-inner-end"] = new()
             {
                 Left = Length.Auto,
                 Right = Length.Px(-t.MenuWidth),
             },
-            [".ion-menu-end.ion-menu-open"] = new()
+            [".ion-menu-inner-end.ion-menu-inner-open"] = new()
             {
                 Right = Length.Px(0),
             },
 
-            // ion-menu-backdrop — full-cover dim layer behind an open overlay menu. Painted
-            // over the page (z-index) below the drawer. display:none at rest (so it does not
-            // block page taps); the page mounts it while open/closing and animates opacity.
+            // ion-menu-backdrop — full-cover dim layer filling the host, below the drawer
+            // (z-index). display:none at rest; mounted while open/closing and animates opacity.
             [".ion-menu-backdrop"] = new()
             {
                 Position = Position.Absolute,

@@ -310,6 +310,12 @@ public class MikoEngine
             if (hit != null) return hit;
         }
 
+        // pointer-events:none makes this element transparent to hits — the tap passes
+        // through to whatever is behind it (descendants were already tested above and can
+        // still be hit if they reset pointer-events to auto).
+        if (box.ComputedStyle.PointerEvents == PointerEvents.None)
+            return null;
+
         return box.Element;
     }
 
