@@ -24,6 +24,31 @@
         { "choice": "tabs",     "description": "Ionic bottom tab bar with three routed tab pages." }
       ]
     },
+    "displayName": {
+      "type": "parameter",
+      "datatype": "string",
+      "description": "Human-readable application display name (Android label, iOS bundle display name, window title). Defaults to the project name.",
+      "defaultValue": "",
+      "replaces": ""
+    },
+    "appDisplayName": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "displayName",
+        "fallbackVariableName": "name"
+      },
+      "replaces": "Miko Multiplatform App"
+    },
+    "appIdSuffix": {
+      "type": "generated",
+      "generator": "casing",
+      "parameters": {
+        "source": "name",
+        "toLower": true
+      },
+      "replaces": "multiplatformapp"
+    },
     "useBlank":    { "type": "computed", "value": "(layout == \"blank\")" },
     "useSidemenu": { "type": "computed", "value": "(layout == \"sidemenu\")" },
     "useTabs":     { "type": "computed", "value": "(layout == \"tabs\")" },
