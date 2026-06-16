@@ -41,6 +41,11 @@ public class BlockLayout
             style.PaddingLeft.ToPixels(containerWidth, fs)
         );
 
+        // replaced 元素（video）的内禀尺寸：用于 width/height 为 auto 时回退，
+        // 并支持只给一边时按内禀纵横比补全另一边（与 <img> 行为对齐）。
+        var (intrinsicW, intrinsicH) = GetReplacedIntrinsicSize(box.Element);
+        bool isReplaced = intrinsicW > 0 && intrinsicH > 0;
+
         // 2. 计算 width
         float contentWidth;
         if (!style.Width.IsAuto)
@@ -50,6 +55,23 @@ public class BlockLayout
             {
                 contentWidth -= box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
                 contentWidth = Math.Max(0, contentWidth);
+            }
+        }
+        else if (isReplaced)
+        {
+            // width auto 的 replaced 元素：
+            // - height 也 auto 时用内禀宽；
+            // - height 指定时按纵横比反推宽（保持 video 不变形）。
+            if (style.Height.IsAuto)
+            {
+                contentWidth = intrinsicW;
+            }
+            else
+            {
+                float h = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
+                if (style.BoxSizing == BoxSizing.BorderBox)
+                    h = Math.Max(0, h - box.BoxModel.Border.Vertical - box.BoxModel.Padding.Vertical);
+                contentWidth = h * intrinsicW / intrinsicH;
             }
         }
         else if (constraints.IsInfiniteWidth || containerWidth <= 0)
@@ -261,6 +283,13 @@ public class BlockLayout
                 contentHeight = Math.Max(0, contentHeight);
             }
         }
+        else if (isReplaced)
+        {
+            // height auto 的 replaced 元素：width 指定时按纵横比反推高，否则用内禀高。
+            contentHeight = style.Width.IsAuto
+                ? intrinsicH
+                : contentWidth * intrinsicH / intrinsicW;
+        }
         else if (constraints.AvailableHeight.HasValue &&
                  (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
         {
@@ -425,6 +454,22 @@ public class BlockLayout
     private static bool IsInlineOrInlineBlock(LayoutBox child)
     {
         return child.Type == LayoutType.Inline || child.Type == LayoutType.InlineBlock;
+    }
+
+    /// <summary>
+    /// replaced 元素（目前仅 video）的内禀尺寸（CSS 像素）。
+    /// 媒体已加载时返回真实尺寸；未知时回退到 HTML 默认 300×150。
+    /// 非 replaced 元素返回 (0, 0)。
+    /// </summary>
+    internal static (float width, float height) GetReplacedIntrinsicSize(Core.Element element)
+    {
+        if (element is Core.DomElements.VideoElement video)
+        {
+            float w = video.IntrinsicWidth ?? 300;
+            float h = video.IntrinsicHeight ?? 150;
+            return (w, h);
+        }
+        return (0, 0);
     }
 
     /// <summary>

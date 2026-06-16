@@ -466,6 +466,21 @@ public class Painter
     }
 
     /// <summary>
+    /// 绘制一张 <see cref="SKImage"/>（可能由 GPU 纹理零拷贝包装而来，如视频帧）。
+    /// <paramref name="srcRect"/> 为源采样矩形（用于 object-fit 裁剪），null 表示整图。
+    /// </summary>
+    public void DrawImage(SKImage image, RectF dstRect, RectF? srcRect = null)
+    {
+        if (image == null) return;
+
+        using var paint = new SKPaint { IsAntialias = true };
+        if (srcRect is { } src)
+            _canvas.DrawImage(image, src.ToSKRect(), dstRect.ToSKRect(), paint);
+        else
+            _canvas.DrawImage(image, dstRect.ToSKRect(), paint);
+    }
+
+    /// <summary>
     /// 保存画布状态
     /// </summary>
     public int Save() => _canvas.Save();
