@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Windowing</PackageId>
@@ -34,6 +35,11 @@
     <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <!-- FFmpeg 托管绑定（高层 API）。视频后端的软解基线实现使用。 -->
+    <PackageReference Include="Sdcb.FFmpeg" Version="7.0.0" />
+    <!-- Windows x64 原生 FFmpeg 运行时，使 demo 无需手动安装 FFmpeg 即可运行。 -->
+    <PackageReference Include="Sdcb.FFmpeg.runtime.windows-x64" Version="7.0.0" />
   </ItemGroup>
 
 </Project>

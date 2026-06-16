@@ -5,6 +5,7 @@ using Miko.Common;
 using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Layout;
+using Miko.Platform.Video;
 using Miko.Rendering;
 using Miko.Styling;
 using SkiaSharp;
@@ -51,6 +52,29 @@ public class MikoEngine
     private float _viewportHeight;
     private SafeAreaInsets _safeArea;
 
+    /// <summary>
+    /// 视频后端。由平台宿主在初始化时从 DI 注入（未注册视频后端时为 null，
+    /// <c>&lt;video&gt;</c> 元素将只显示背景/poster）。
+    /// </summary>
+    public IVideoBackend? VideoBackend { get; set; }
+
+    /// <summary>
+    /// 当前 GPU 上下文。GPU 宿主（桌面 OpenGL / 移动 GLES/Metal）每帧设置，
+    /// 供视频帧源把解码 GPU 资源零拷贝包装为图像；转发给底层渲染引擎。
+    /// </summary>
+    public GRContext? GraphicsContext
+    {
+        get => _renderEngine.GraphicsContext;
+        set => _renderEngine.GraphicsContext = value;
+    }
+
+    // 已激活的视频会话，按元素身份索引；用于跨重建复用与移除时回收。
+    private readonly Dictionary<VideoElement, IVideoSession> _videoSessions = new();
+
+    // 外部线程（视频解码线程等）投递的失效请求，在帧开始时于主线程排空。
+    private readonly List<Element> _pendingInvalidations = new();
+    private readonly object _pendingInvalidationsLock = new();
+
     public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight)
     {
         // Transfer old LayoutBox references to new elements for transition detection
@@ -83,6 +107,9 @@ public class MikoEngine
                 _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
             }
         }
+
+        // 同步视频会话（创建新元素的会话、回收已移除元素的会话）。
+        SyncVideoSessions(root);
 
         _renderEngine.Render(_currentLayout);
         ScanAndStartAnimations(root);
@@ -125,6 +152,10 @@ public class MikoEngine
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
+        // 排空跨线程失效请求（视频解码线程投递的新帧/加载完成）。
+        DrainPendingInvalidations();
+        SyncVideoSessions(_root);
+
         _renderEngine.SetCanvas(canvas);
 
         if (_dirtyManager.HasDirtyRegions())
@@ -154,6 +185,9 @@ public class MikoEngine
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
+        // 排空跨线程失效请求（如视频解码线程投递的新帧/加载完成）。
+        DrainPendingInvalidations();
+
         _renderEngine.SetCanvas(canvas);
 
         var oldStyles = CaptureTransitionableStyles(_root);
@@ -167,6 +201,9 @@ public class MikoEngine
             _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
         }
 
+        // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
+        SyncVideoSessions(_root);
+
         RestoreScrollState(oldLayout, _currentLayout);
         _renderEngine.Render(_currentLayout);
         _dirtyManager.Clear();
@@ -178,6 +215,38 @@ public class MikoEngine
     public void InvalidateElement(Element element)
     {
         _dirtyManager.MarkDirty(element);
+    }
+
+    /// <summary>
+    /// 线程安全的失效入口。供外部线程（视频解码线程、异步资源加载等）调用：
+    /// 仅把元素入队，真正的标脏在下一帧主循环（<see cref="DrainPendingInvalidations"/>）执行，
+    /// 避免与布局/渲染对 DOM 的遍历并发。
+    /// </summary>
+    public void PostInvalidate(Element element)
+    {
+        lock (_pendingInvalidationsLock)
+        {
+            _pendingInvalidations.Add(element);
+        }
+    }
+
+    /// <summary>是否有待处理的跨线程失效请求（平台宿主据此决定是否需要再绘制一帧）。</summary>
+    public bool HasPendingInvalidations
+    {
+        get { lock (_pendingInvalidationsLock) return _pendingInvalidations.Count > 0; }
+    }
+
+    private void DrainPendingInvalidations()
+    {
+        List<Element>? batch = null;
+        lock (_pendingInvalidationsLock)
+        {
+            if (_pendingInvalidations.Count == 0) return;
+            batch = new List<Element>(_pendingInvalidations);
+            _pendingInvalidations.Clear();
+        }
+        foreach (var element in batch)
+            _dirtyManager.MarkDirty(element);
     }
 
     public AnimationManager AnimationManager => _animationManager;
@@ -651,6 +720,140 @@ public class MikoEngine
             child.SetParent(element);
             EnsureParentReferences(child);
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // 视频会话生命周期
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// 同步视频会话与当前 DOM 树：为新出现的 <see cref="VideoElement"/> 创建会话并接管，
+    /// 为已消失的元素回收会话。在每次布局后调用，使会话随元素增删而增删。
+    /// </summary>
+    private void SyncVideoSessions(Element root)
+    {
+        if (VideoBackend == null) return;
+
+        // 收集当前树中所有 VideoElement
+        var present = new HashSet<VideoElement>();
+        CollectVideoElements(root, present);
+
+        // 1. 回收已不在树中的会话
+        if (_videoSessions.Count > 0)
+        {
+            var removed = new List<VideoElement>();
+            foreach (var (element, session) in _videoSessions)
+            {
+                if (!present.Contains(element))
+                {
+                    session.Dispose();
+                    element.Session = null;
+                    removed.Add(element);
+                }
+            }
+            foreach (var element in removed)
+                _videoSessions.Remove(element);
+        }
+
+        // 2. 为新元素创建会话
+        foreach (var video in present)
+        {
+            EnsurePosterDecoded(video);
+
+            if (video.Session != null) continue;
+            if (string.IsNullOrEmpty(video.Source)) continue;
+
+            CreateVideoSession(video);
+        }
+    }
+
+    /// <summary>
+    /// 惰性解码本地 poster 文件（首帧前占位）。仅处理可读的本地文件路径；
+    /// 远程 URL 的获取交由应用层设置 <see cref="VideoElement.PosterBitmap"/>。失败时静默忽略。
+    /// </summary>
+    private static void EnsurePosterDecoded(VideoElement video)
+    {
+        if (video.PosterBitmap != null) return;
+        if (string.IsNullOrEmpty(video.Poster)) return;
+        if (!File.Exists(video.Poster)) return;
+
+        try
+        {
+            using var stream = File.OpenRead(video.Poster);
+            video.PosterBitmap = SKBitmap.Decode(stream);
+        }
+        catch
+        {
+            // poster 解码失败不应影响播放，回退到背景色。
+        }
+    }
+
+    private void CreateVideoSession(VideoElement video)
+    {
+        try
+        {
+            var session = VideoBackend!.CreateSession(
+                new VideoSourceDescriptor(video.Source!),
+                new VideoSessionOptions(
+                    AutoPlay: video.AutoPlay,
+                    Muted: video.Muted,
+                    Loop: video.Loop));
+
+            video.Session = session;
+            _videoSessions[video] = session;
+
+            // 事件可能在解码线程触发，统一通过 PostInvalidate 把重绘转交主循环。
+            session.Event += evt => OnVideoSessionEvent(video, evt);
+
+            _logger.LogDebug("Video session created for <video src=\"{Src}\">", video.Source);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create video session for <video src=\"{Src}\">", video.Source);
+        }
+    }
+
+    private void OnVideoSessionEvent(VideoElement video, VideoSessionEvent evt)
+    {
+        switch (evt)
+        {
+            case VideoSessionEvent.Loaded loaded:
+                // 写入内禀尺寸并触发重排（auto 尺寸的 video 将按真实纵横比布局）。
+                video.IntrinsicWidth = loaded.Width;
+                video.IntrinsicHeight = loaded.Height;
+                PostInvalidate(video);
+                break;
+
+            case VideoSessionEvent.FrameAvailable:
+                // 新帧到达：标脏该元素，下一帧合成最新帧。
+                PostInvalidate(video);
+                break;
+
+            case VideoSessionEvent.Ended:
+                PostInvalidate(video);
+                break;
+
+            case VideoSessionEvent.Error error:
+                _logger.LogError(error.Cause, "Video error on <video src=\"{Src}\">: {Message}",
+                    video.Source, error.Message);
+                break;
+        }
+    }
+
+    private static void CollectVideoElements(Element element, HashSet<VideoElement> sink)
+    {
+        if (element is VideoElement video)
+            sink.Add(video);
+        foreach (var child in element.Children)
+            CollectVideoElements(child, sink);
+    }
+
+    /// <summary>释放所有视频会话。平台宿主关闭时调用。</summary>
+    public void DisposeVideoSessions()
+    {
+        foreach (var session in _videoSessions.Values)
+            session.Dispose();
+        _videoSessions.Clear();
     }
 
     private void ScanAndStartAnimations(Element element)

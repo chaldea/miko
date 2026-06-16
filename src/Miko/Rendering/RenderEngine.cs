@@ -20,6 +20,13 @@ public class RenderEngine
 
     private SKCanvas? _canvas;
     private Painter? _painter;
+
+    /// <summary>
+    /// 当前渲染所用的 GPU 上下文。GPU 宿主在拥有 <see cref="GRContext"/> 时设置，
+    /// 供视频帧源把解码 GPU 资源零拷贝包装为 <see cref="SKImage"/>。
+    /// 离屏/软件渲染下为 null，视频帧源应回退到 CPU 光栅图像。
+    /// </summary>
+    public GRContext? GraphicsContext { get; set; }
     private List<RectF>? _dirtyRegions;
     private readonly List<(LayoutBox box, SelectElement select, float scrollOffsetX, float scrollOffsetY)> _pendingDropdowns = new();
     private float _currentScrollOffsetX;
@@ -590,6 +597,64 @@ public class RenderEngine
         {
             _painter.DrawImage(imageElement.Bitmap, box.BoxModel.Content);
         }
+
+        // 渲染视频帧
+        if (element is Miko.Core.DomElements.VideoElement videoElement)
+        {
+            RenderVideoFrame(box, videoElement);
+        }
+    }
+
+    /// <summary>
+    /// 把视频当前帧合成进内容盒。帧是一张 GPU 图像，DrawImage 后即与其它元素进入同一
+    /// Skia 命令流，自动获得 overflow 裁剪、圆角、opacity、transform 与兄弟覆盖等链路。
+    /// 首帧前回退到 poster 占位图，无 poster 时仅保留背景色（已在 RenderBackground 绘制）。
+    /// </summary>
+    private void RenderVideoFrame(LayoutBox box, Miko.Core.DomElements.VideoElement video)
+    {
+        if (_painter == null) return;
+
+        var content = box.BoxModel.Content;
+        if (content.Width <= 0 || content.Height <= 0) return;
+
+        var frame = video.Session?.FrameSource.AcquireCurrentFrame(GraphicsContext);
+        if (frame != null)
+        {
+            try
+            {
+                // 视频默认 object-fit: contain（letterbox），保持纵横比不变形。
+                var dst = FitContain(frame.Width, frame.Height, content);
+                _painter.DrawImage(frame, dst);
+            }
+            finally
+            {
+                video.Session!.FrameSource.ReleaseCurrentFrame();
+            }
+            return;
+        }
+
+        // 首帧前：绘制 poster 占位图（若已解码）。
+        if (video.PosterBitmap != null)
+        {
+            var dst = FitContain(video.PosterBitmap.Width, video.PosterBitmap.Height, content);
+            _painter.DrawImage(video.PosterBitmap, dst);
+        }
+    }
+
+    /// <summary>
+    /// 计算 object-fit: contain 的目标矩形：在 <paramref name="content"/> 内按源纵横比
+    /// 等比缩放并居中，产生上下或左右的 letterbox 空白（由背景色填充）。
+    /// </summary>
+    private static RectF FitContain(float srcW, float srcH, RectF content)
+    {
+        if (srcW <= 0 || srcH <= 0) return content;
+
+        float scale = Math.Min(content.Width / srcW, content.Height / srcH);
+        float w = srcW * scale;
+        float h = srcH * scale;
+        float x = content.X + (content.Width - w) / 2f;
+        float y = content.Y + (content.Height - h) / 2f;
+        return new RectF(x, y, w, h);
     }
 
     /// <summary>

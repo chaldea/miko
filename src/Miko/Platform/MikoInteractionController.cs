@@ -72,6 +72,10 @@ public sealed class MikoInteractionController
         _hotReloadService = hotReloadService;
         _logger = logger;
 
+        // 视频后端为可选服务：注册了平台后端（如桌面 FFmpegVideoBackend）时注入引擎，
+        // 否则 <video> 元素仅显示背景/poster。
+        _engine.VideoBackend = serviceProvider.GetService<Platform.Video.IVideoBackend>();
+
         if (_options.RouteAssemblies != null || _options.RouteConfigurator != null)
         {
             _router = new Router();

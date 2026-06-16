@@ -88,6 +88,10 @@ public class InlineLayout
         float contentWidth;
         float contentHeight;
 
+        // replaced 元素（video）的内禀尺寸，用于 inline replaced 的盒尺寸（与 <img> 行为对齐）。
+        var (intrinsicW, intrinsicH) = BlockLayout.GetReplacedIntrinsicSize(box.Element);
+        bool isReplaced = intrinsicW > 0 && intrinsicH > 0;
+
         if (!style.Width.IsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
@@ -95,6 +99,21 @@ public class InlineLayout
             {
                 contentWidth -= box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
                 contentWidth = Math.Max(0, contentWidth);
+            }
+        }
+        else if (isReplaced)
+        {
+            // width auto：height 指定时按纵横比反推宽，否则用内禀宽。
+            if (style.Height.IsAuto)
+            {
+                contentWidth = intrinsicW;
+            }
+            else
+            {
+                float h = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
+                if (style.BoxSizing == BoxSizing.BorderBox)
+                    h = Math.Max(0, h - box.BoxModel.Border.Vertical - box.BoxModel.Padding.Vertical);
+                contentWidth = h * intrinsicW / intrinsicH;
             }
         }
         else if (box.Children.Count == 0 && hasOwnText)
@@ -116,6 +135,13 @@ public class InlineLayout
                 contentHeight -= box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
                 contentHeight = Math.Max(0, contentHeight);
             }
+        }
+        else if (isReplaced)
+        {
+            // height auto：width 指定时按纵横比反推高，否则用内禀高。
+            contentHeight = style.Width.IsAuto
+                ? intrinsicH
+                : contentWidth * intrinsicH / intrinsicW;
         }
         else if (BlockLayout.GetTextFormControlContentHeight(box) is float formControlHeight)
         {

@@ -37,6 +37,7 @@ public class RenderTreeBuilder
         ["ol"] = () => new OlElement(),
         ["li"] = () => new LiElement(),
         ["img"] = () => new ImageElement(),
+        ["video"] = () => new VideoElement(),
         ["table"] = () => new TableElement(),
         ["thead"] = () => new TheadElement(),
         ["tbody"] = () => new TbodyElement(),
@@ -93,8 +94,29 @@ public class RenderTreeBuilder
                     _ => InputType.Text,
                 };
                 break;
+            case "src" when element is ImageElement img:
+                img.Source = value; break;
+            case "src" when element is VideoElement video:
+                video.Source = value; break;
+            case "poster" when element is VideoElement video:
+                video.Poster = value; break;
+            case "autoplay" when element is VideoElement video:
+                video.AutoPlay = ParseHtmlBool(value); break;
+            case "loop" when element is VideoElement video:
+                video.Loop = ParseHtmlBool(value); break;
+            case "muted" when element is VideoElement video:
+                video.Muted = ParseHtmlBool(value); break;
+            case "controls" when element is VideoElement video:
+                video.Controls = ParseHtmlBool(value); break;
         }
     }
+
+    /// <summary>
+    /// HTML 布尔属性：存在即为真。Razor 通常以 <c>autoplay="true"</c>/<c>="false"</c> 传值，
+    /// 因此显式的 "false" 视为假，其余（含空串、"true"、属性名本身）视为真。
+    /// </summary>
+    private static bool ParseHtmlBool(string? value)
+        => !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 
     public void AddAttribute(int seq, string name, object? value)
     {

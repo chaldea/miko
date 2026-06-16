@@ -241,6 +241,15 @@ public class StyleResolver
                 style.BorderStyle ??= Common.BorderStyle.None;
                 break;
 
+            case "video":
+                // Browser default: display: inline, black background (letterbox bars + 首帧前底色)。
+                // 内禀尺寸不写入样式，由布局在缺省时回退到 300×150（见 BlockLayout replaced 处理）。
+                style.Display ??= Common.Display.Inline;
+                style.BorderWidth ??= Common.Length.Px(0);
+                style.BorderStyle ??= Common.BorderStyle.None;
+                style.BackgroundColor ??= Common.Color.Black;
+                break;
+
             case "select":
                 // Browser default: display: inline-block, border: 1px solid
                 // Padding for text and dropdown arrow
