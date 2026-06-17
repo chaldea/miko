@@ -7,6 +7,21 @@ namespace Miko.Tests.Components;
 
 public class EventCallbackAsyncTests
 {
+    /// <summary>
+    /// Polls a condition until it becomes true or times out. More reliable than fixed delays
+    /// on slow CI runners (macOS, etc.) where thread scheduling is unpredictable.
+    /// </summary>
+    private static async Task WaitForConditionAsync(Func<bool> condition, int timeoutMs = 1000, int pollIntervalMs = 10)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (!condition())
+        {
+            if (DateTime.UtcNow > deadline)
+                throw new TimeoutException($"Condition not met within {timeoutMs}ms");
+            await Task.Delay(pollIntervalMs);
+        }
+    }
+
     private class AsyncCounterComponent : ComponentBase
     {
         public int Count { get; set; }
@@ -42,8 +57,8 @@ public class EventCallbackAsyncTests
         // Simulate click - handler returns Task but doesn't block
         element.OnClick!.Invoke(new MouseEventArgs { Target = element });
 
-        // Give the async operation time to complete
-        await Task.Delay(50);
+        // Wait for the async operation to complete (polls instead of fixed delay)
+        await WaitForConditionAsync(() => component.AsyncCompleted);
 
         // Component should have re-rendered automatically
         component.Count.ShouldBe(1);
@@ -81,7 +96,7 @@ public class EventCallbackAsyncTests
 
         element.OnClick!.Invoke(new MouseEventArgs { Target = element });
 
-        await Task.Delay(50);
+        await WaitForConditionAsync(() => component.Executed);
 
         component.Executed.ShouldBeTrue();
         element.TextContent.ShouldBe("Done");
@@ -169,7 +184,7 @@ public class EventCallbackAsyncTests
 
         // Complete the async work; parent re-renders again with "loaded".
         parent.Gate.SetResult();
-        await Task.Delay(50);
+        await WaitForConditionAsync(() => element.TextContent == "Status: loaded");
         element.TextContent.ShouldBe("Status: loaded");
     }
 }
