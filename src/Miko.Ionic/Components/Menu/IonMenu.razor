@@ -31,7 +31,7 @@
     [Parameter] public string Type { get; set; } = "overlay";
 
     /// <summary>Invoked when the backdrop is tapped, asking the host to close the menu.</summary>
-    [Parameter] public Action? OnClose { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
 
     /// <summary>
     /// The app's animation manager. Nested components don't get DI, so the host page injects
@@ -86,9 +86,9 @@
         }
     }
 
-    private void HandleBackdrop()
+    private async Task HandleBackdrop(MouseEventArgs _)
     {
-        OnClose?.Invoke();
+        await OnClose.InvokeAsync();
     }
 
     private void OnTransitionCompleted(Element element, string property)

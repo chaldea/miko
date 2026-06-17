@@ -10,6 +10,7 @@ public class ComponentLifecycleAsyncTests
     {
         public string Status { get; set; } = "Initial";
         public bool InitCompleted { get; set; }
+        public readonly TaskCompletionSource Gate = new();
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
@@ -20,7 +21,8 @@ public class ComponentLifecycleAsyncTests
 
         protected override async Task OnInitializedAsync()
         {
-            await Task.Delay(10);
+            // Block on the gate so the test controls exactly when the async completes.
+            await Gate.Task;
             Status = "Loaded";
             InitCompleted = true;
         }
@@ -32,14 +34,15 @@ public class ComponentLifecycleAsyncTests
         var component = new AsyncInitComponent();
         var element = component.Build();
 
-        // First render shows initial state
+        // First render shows initial state — the async init is still pending on the gate.
         element.TextContent.ShouldBe("Status: Initial");
         component.InitCompleted.ShouldBeFalse();
 
-        // Give async init time to complete
+        // Release the gate and let the continuation run.
+        component.Gate.SetResult();
         await Task.Delay(50);
 
-        // Component should have re-rendered with loaded state
+        // Component should have re-rendered with loaded state.
         component.Status.ShouldBe("Loaded");
         component.InitCompleted.ShouldBeTrue();
         element.TextContent.ShouldBe("Status: Loaded");
@@ -49,6 +52,7 @@ public class ComponentLifecycleAsyncTests
     {
         [Parameter] public string? Input { get; set; }
         public string? ProcessedInput { get; set; }
+        public readonly TaskCompletionSource Gate = new();
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
@@ -59,7 +63,7 @@ public class ComponentLifecycleAsyncTests
 
         protected override async Task OnParametersSetAsync()
         {
-            await Task.Delay(10);
+            await Gate.Task;
             ProcessedInput = Input?.ToUpper();
         }
     }
@@ -70,9 +74,10 @@ public class ComponentLifecycleAsyncTests
         var component = new AsyncParamsComponent { Input = "test" };
         var element = component.Build();
 
-        // First render happens before async completes
+        // First render happens before async completes (still pending on the gate).
         element.TextContent.ShouldBe("Processed: None");
 
+        component.Gate.SetResult();
         await Task.Delay(50);
 
         // After async completes, should have processed the input
@@ -116,6 +121,7 @@ public class ComponentLifecycleAsyncTests
     {
         public int SyncCount { get; set; }
         public int AsyncCount { get; set; }
+        public readonly TaskCompletionSource Gate = new();
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
@@ -131,7 +137,7 @@ public class ComponentLifecycleAsyncTests
 
         protected override async Task OnInitializedAsync()
         {
-            await Task.Delay(10);
+            await Gate.Task;
             AsyncCount++;
         }
     }
@@ -142,10 +148,11 @@ public class ComponentLifecycleAsyncTests
         var component = new MixedLifecycleComponent();
         var element = component.Build();
 
-        // Sync method executes immediately
+        // Sync method executes immediately; async is still pending on the gate.
         component.SyncCount.ShouldBe(1);
         component.AsyncCount.ShouldBe(0);
 
+        component.Gate.SetResult();
         await Task.Delay(50);
 
         // Async method completes and triggers re-render

@@ -18,8 +18,22 @@ internal static class GlobalStyles
                 Padding = new Padding(20),
             },
 
+            [".nav-bar"] = new()
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                MarginBottom = Length.Px(16),
+            },
+
+            [".nav-bar .btn"] = new()
+            {
+                MarginRight = Length.Px(8),
+            },
+
             [".search-box"] = new()
             {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
                 MarginBottom = Length.Px(20),
             },
 

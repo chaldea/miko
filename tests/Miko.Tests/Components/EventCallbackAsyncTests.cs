@@ -100,6 +100,78 @@ public class EventCallbackAsyncTests
 
         element.TextContent.ShouldBe("Count: 1");
     }
+
+    // A reusable child (like Bootstrap Button) that exposes a non-generic EventCallback
+    // parameter and forwards its own @onclick to it. Mirrors the real Razor-generated pattern.
+    private class ButtonChildComponent : ComponentBase
+    {
+        [Parameter] public EventCallback OnClick { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "button");
+            builder.AddAttribute(1, "onclick",
+                EventCallback.Factory.Create<MouseEventArgs>(this, HandleClick));
+            builder.CloseElement();
+        }
+
+        private Task HandleClick(MouseEventArgs _) => OnClick.InvokeAsync();
+    }
+
+    // A parent that owns state, renders the child, and binds the child's EventCallback to its
+    // own async handler. When the child button fires, the parent's handler runs and — because
+    // EventCallback.Factory.Create(parent, handler) bound the receiver to the parent — the
+    // PARENT re-renders. This is exactly the ISSUE-060 search-button scenario.
+    private class ParentWithAsyncChildCallback : ComponentBase
+    {
+        private string _status = "idle";
+        public ButtonChildComponent? Child { get; private set; }
+        public readonly TaskCompletionSource Gate = new();
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "div");
+            builder.AddContent(1, $"Status: {_status}");
+
+            Child = new ButtonChildComponent
+            {
+                OnClick = EventCallback.Factory.Create(this, LoadAsync)
+            };
+            var childElement = Child.Build();
+            builder.AttachElement(childElement);
+
+            builder.CloseElement();
+        }
+
+        private async Task LoadAsync()
+        {
+            _status = "loading";
+            await Gate.Task;
+            _status = "loaded";
+        }
+    }
+
+    [Fact]
+    public async Task ParentEventCallback_AsyncChildClick_RerendersParent()
+    {
+        var parent = new ParentWithAsyncChildCallback();
+        var element = parent.Build();
+        element.TextContent.ShouldBe("Status: idle");
+
+        // Simulate clicking the child button.
+        parent.Child.ShouldNotBeNull();
+        var childRoot = parent.Child!.Build();
+        childRoot.OnClick.ShouldNotBeNull();
+        childRoot.OnClick!.Invoke(new MouseEventArgs { Target = childRoot });
+
+        // The handler set _status="loading" synchronously and the parent re-rendered.
+        element.TextContent.ShouldBe("Status: loading");
+
+        // Complete the async work; parent re-renders again with "loaded".
+        parent.Gate.SetResult();
+        await Task.Delay(50);
+        element.TextContent.ShouldBe("Status: loaded");
+    }
 }
 
 // Public version for cross-class testing

@@ -1,17 +1,23 @@
-@page "/"
+@page "/native"
 @namespace MikoApp.AsyncDemo.Pages
 @inject HttpClient Http
 
+@* This page demonstrates the SAME async data loading as Home.razor, but using only raw
+   HTML elements (<button>, <table>, <input>) with native @onclick / @oninput event
+   bindings — no Bootstrap components. The Razor compiler generates EventCallback bindings
+   for native events too, so async handlers work identically. *@
+
 <div class="container">
-    <h1>Product Search Demo</h1>
-    <p>This demo showcases async/await in Miko components. Data is fetched from a real ASP.NET Core API.</p>
+    <h1>Native Elements Demo</h1>
+    <p>Same async data loading as the Bootstrap demo, but using raw &lt;button&gt;, &lt;table&gt;,
+       and &lt;input&gt; elements with native event bindings.</p>
 
     <div class="search-box">
         <input type="text" class="search-input form-control"
                value="@_searchQuery"
                @oninput="OnSearchInput"
                placeholder="Search products..." />
-        <Button Variant="primary" OnClick="SearchAsync">Search</Button>
+        <button class="btn btn-primary" @onclick="SearchAsync">Search</button>
     </div>
 
     @if (_isLoading)
@@ -20,7 +26,7 @@
     }
     else if (_products != null && _products.Count > 0)
     {
-        <Table Striped="true" Hover="true" class="product-table">
+        <table class="table product-table">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -40,7 +46,7 @@
                     </tr>
                 }
             </tbody>
-        </Table>
+        </table>
     }
     else
     {
@@ -53,24 +59,23 @@
     private bool _isLoading = true;
     private string _searchQuery = "";
 
-    // Async lifecycle: load initial data when component initializes.
-    // The render thread is not blocked — the component renders with _isLoading=true
-    // first, then re-renders automatically when the HTTP response arrives.
+    // Async lifecycle: load initial data when the component initializes.
     protected override async Task OnInitializedAsync()
     {
         await LoadProductsAsync(null);
     }
 
+    // Native <input> @oninput handler — receives InputEventArgs.
     private void OnSearchInput(InputEventArgs args)
     {
         _searchQuery = args.Data;
     }
 
-    // Async search triggered by the Button's OnClick parameter (Blazor convention:
-    // EventCallback accepts both Action and Func<Task>). EventCallback re-renders THIS
-    // component after the handler completes — both after the sync portion (showing the
-    // loading indicator) and after the async HTTP call returns (showing the results).
-    private async Task SearchAsync()
+    // Native <button> @onclick async handler. The Razor compiler wraps this in an
+    // EventCallback<MouseEventArgs> bound to this component, so StateHasChanged is called
+    // automatically — first after the sync portion (showing the loading indicator), then
+    // after the async HTTP call returns (showing the results).
+    private async Task SearchAsync(MouseEventArgs args)
     {
         await LoadProductsAsync(_searchQuery);
     }
@@ -78,7 +83,7 @@
     private async Task LoadProductsAsync(string? searchQuery)
     {
         _isLoading = true;
-        StateHasChanged(); // Show loading indicator immediately (on render thread)
+        StateHasChanged(); // Show loading indicator immediately
 
         try
         {
@@ -96,8 +101,7 @@
         finally
         {
             _isLoading = false;
-            // StateHasChanged is called automatically by EventCallback / TrackPendingTask
-            // after this async method completes.
+            // StateHasChanged is called automatically after this async method completes.
         }
     }
 
