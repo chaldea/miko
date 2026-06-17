@@ -25,6 +25,7 @@ public class GlobalKeyHandlerTests
             new EmptyServiceProvider(),
             engine,
             new EventDispatcher(),
+            new MikoDispatcher(),
             new HotReloadService(NullLogger<HotReloadService>.Instance),
             NullLogger<MikoInteractionController>.Instance);
     }

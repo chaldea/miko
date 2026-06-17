@@ -12,6 +12,7 @@ public abstract class ComponentBase : IComponent
 
     private Element? _rootElement;
     private bool _initialized;
+    private readonly List<Task> _pendingTasks = new();
 
     protected virtual void BuildRenderTree(RenderTreeBuilder builder) { }
 
@@ -21,9 +22,21 @@ public abstract class ComponentBase : IComponent
     protected virtual void OnInitialized() { }
 
     /// <summary>
+    /// Async method invoked when the component is ready to start.
+    /// If this returns an incomplete Task, the component will re-render when the task completes.
+    /// </summary>
+    protected virtual Task OnInitializedAsync() => Task.CompletedTask;
+
+    /// <summary>
     /// Method invoked when the component has received parameters from its parent.
     /// </summary>
     protected virtual void OnParametersSet() { }
+
+    /// <summary>
+    /// Async method invoked when the component has received parameters from its parent.
+    /// If this returns an incomplete Task, the component will re-render when the task completes.
+    /// </summary>
+    protected virtual Task OnParametersSetAsync() => Task.CompletedTask;
 
     /// <summary>
     /// Invoked when the component instance is discarded — i.e. the element it produced is
@@ -40,15 +53,52 @@ public abstract class ComponentBase : IComponent
         if (!_initialized)
         {
             OnInitialized();
+            var initTask = OnInitializedAsync();
+            TrackPendingTask(initTask);
             _initialized = true;
         }
 
         OnParametersSet();
+        var paramsTask = OnParametersSetAsync();
+        TrackPendingTask(paramsTask);
 
         var builder = new RenderTreeBuilder();
         BuildRenderTree(builder);
         _rootElement = builder.Build();
         return _rootElement;
+    }
+
+    /// <summary>
+    /// Tracks an async lifecycle task. If the task is incomplete, schedules StateHasChanged
+    /// to be called (on the render thread via SynchronizationContext) when it completes.
+    /// </summary>
+    private void TrackPendingTask(Task task)
+    {
+        if (task.IsCompleted)
+        {
+            // Fast path: task already completed (e.g. Task.CompletedTask or cached result).
+            if (task.IsFaulted)
+                HandleTaskException(task.Exception!);
+            return;
+        }
+
+        // Slow path: task is running. Schedule a continuation to re-render when it completes.
+        // The continuation runs on the render thread (via the installed SynchronizationContext).
+        _pendingTasks.Add(task);
+        _ = task.ContinueWith(t =>
+        {
+            _pendingTasks.Remove(t);
+            if (t.IsFaulted)
+                HandleTaskException(t.Exception!);
+            else
+                StateHasChanged();
+        }, TaskScheduler.Current);
+    }
+
+    private static void HandleTaskException(AggregateException ex)
+    {
+        var flatten = ex.Flatten();
+        Console.Error.WriteLine($"[ComponentBase] Unhandled exception in async lifecycle: {flatten.InnerException ?? flatten}");
     }
 
     /// <summary>

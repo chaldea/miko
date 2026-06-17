@@ -1,0 +1,105 @@
+@page "/"
+@namespace MikoApp.AsyncDemo.Pages
+@inject HttpClient Http
+
+<div class="container">
+    <h1>Product Search Demo</h1>
+    <p>This demo showcases async/await in Miko components. Data is fetched from a real ASP.NET Core API.</p>
+
+    <div class="search-box">
+        <input type="text" class="search-input form-control"
+               value="@_searchQuery"
+               @oninput="OnSearchInput"
+               placeholder="Search products..." />
+        <Button Variant="primary" OnClick="HandleSearchClick">Search</Button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="loading">Loading products...</div>
+    }
+    else if (_products != null && _products.Count > 0)
+    {
+        <Table Striped="true" Hover="true" class="product-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Category</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in _products)
+                {
+                    <tr>
+                        <td>@product.Id</td>
+                        <td>@product.Name</td>
+                        <td>$@product.Price</td>
+                        <td>@product.Category</td>
+                    </tr>
+                }
+            </tbody>
+        </Table>
+    }
+    else
+    {
+        <p>No products found.</p>
+    }
+</div>
+
+@code {
+    private List<Product>? _products;
+    private bool _isLoading = true;
+    private string _searchQuery = "";
+
+    // Async lifecycle: load initial data when component initializes
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductsAsync(null);
+    }
+
+    private void OnSearchInput(InputEventArgs args)
+    {
+        _searchQuery = args.Data;
+    }
+
+    // Synchronous wrapper for the Bootstrap Button component (which expects Action)
+    private void HandleSearchClick()
+    {
+        _ = SearchAsync();
+    }
+
+    // Async event handler: search button click
+    private async Task SearchAsync()
+    {
+        await LoadProductsAsync(_searchQuery);
+    }
+
+    private async Task LoadProductsAsync(string? searchQuery)
+    {
+        _isLoading = true;
+        StateHasChanged(); // Show loading indicator immediately
+
+        try
+        {
+            var url = string.IsNullOrWhiteSpace(searchQuery)
+                ? "/api/products"
+                : $"/api/products?search={Uri.EscapeDataString(searchQuery)}";
+
+            _products = await Http.GetFromJsonAsync<List<Product>>(url);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+            _products = new List<Product>();
+        }
+        finally
+        {
+            _isLoading = false;
+            // StateHasChanged() is called automatically after async completes
+        }
+    }
+
+    record Product(int Id, string Name, decimal Price, string Category);
+}

@@ -28,6 +28,7 @@ public class MikoAppBuilder
         builder.Services.AddSingleton<RenderEngine>();
         builder.Services.AddSingleton<DirtyRegionManager>();
         builder.Services.AddSingleton<EventDispatcher>();
+        builder.Services.AddSingleton<Platform.MikoDispatcher>();
         builder.Services.AddSingleton<MikoEngine>();
         builder.Services.AddSingleton<HotReloadService>();
         builder.Services.AddSingleton<MikoInteractionController>();

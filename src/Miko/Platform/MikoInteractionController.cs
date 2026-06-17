@@ -29,6 +29,7 @@ public sealed class MikoInteractionController
     private readonly HotReloadService _hotReloadService;
     private readonly ILogger<MikoInteractionController> _logger;
     private readonly EventDispatcher _eventDispatcher;
+    private readonly MikoSynchronizationContext _syncContext;
 
     private Router? _router;
     private NavigationManager? _navigationManager;
@@ -62,6 +63,7 @@ public sealed class MikoInteractionController
         IServiceProvider serviceProvider,
         MikoEngine engine,
         EventDispatcher eventDispatcher,
+        MikoDispatcher dispatcher,
         HotReloadService hotReloadService,
         ILogger<MikoInteractionController> logger)
     {
@@ -71,6 +73,7 @@ public sealed class MikoInteractionController
         _eventDispatcher = eventDispatcher;
         _hotReloadService = hotReloadService;
         _logger = logger;
+        _syncContext = new MikoSynchronizationContext(dispatcher);
 
         // 视频后端为可选服务：注册了平台后端（如桌面 FFmpegVideoBackend）时注入引擎，
         // 否则 <video> 元素仅显示背景/poster。
@@ -366,7 +369,7 @@ public sealed class MikoInteractionController
             Bubbles = true
         };
 
-        _eventDispatcher.Dispatch(target, EventTypes.Click, args);
+        DispatchWithSyncContext(target, EventTypes.Click, args);
 
         if (target is InputElement inputElement)
         {
@@ -501,6 +504,24 @@ public sealed class MikoInteractionController
         }
     }
 
+    /// <summary>
+    /// Wraps event dispatcher invocation with the MikoSynchronizationContext so async
+    /// event handlers resume on the render thread.
+    /// </summary>
+    private void DispatchWithSyncContext<T>(Element target, string eventType, T args) where T : MikoEventArgs
+    {
+        var prevContext = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(_syncContext);
+        try
+        {
+            _eventDispatcher.Dispatch(target, eventType, args);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(prevContext);
+        }
+    }
+
     private void SetFocusCore(Element? newFocus)
     {
         if (_focusedElement == newFocus) return;
@@ -516,7 +537,7 @@ public sealed class MikoInteractionController
                 RelatedTarget = newFocus,
                 Bubbles = false
             };
-            _eventDispatcher.Dispatch(oldFocus, EventTypes.Blur, blurArgs);
+            DispatchWithSyncContext(oldFocus, EventTypes.Blur, blurArgs);
 
             if (oldFocus is SelectElement sel)
                 sel.HandleBlur();
@@ -533,7 +554,7 @@ public sealed class MikoInteractionController
                 RelatedTarget = oldFocus,
                 Bubbles = false
             };
-            _eventDispatcher.Dispatch(newFocus, EventTypes.Focus, focusArgs);
+            DispatchWithSyncContext(newFocus, EventTypes.Focus, focusArgs);
         }
     }
 
@@ -566,7 +587,7 @@ public sealed class MikoInteractionController
                 AltKey = mods.HasFlag(MikoKeyModifiers.Alt),
                 Bubbles = true
             };
-            _eventDispatcher.Dispatch(input, EventTypes.KeyDown, keyArgs);
+            DispatchWithSyncContext(input, EventTypes.KeyDown, keyArgs);
 
             ProcessKeyAction(key);
             return false;
@@ -656,7 +677,7 @@ public sealed class MikoInteractionController
             Data = input.Value ?? string.Empty,
             Bubbles = true
         };
-        _eventDispatcher.Dispatch(input, EventTypes.Input, inputArgs);
+        DispatchWithSyncContext(input, EventTypes.Input, inputArgs);
     }
 
     private void DispatchChange(Element element)
@@ -666,7 +687,7 @@ public sealed class MikoInteractionController
             Target = element,
             Bubbles = true
         };
-        _eventDispatcher.Dispatch(element, EventTypes.Change, changeArgs);
+        DispatchWithSyncContext(element, EventTypes.Change, changeArgs);
     }
 
     // ---------------------------------------------------------------------

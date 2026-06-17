@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RazorLangVersion>Latest</RazorLangVersion>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
+
+    <!--
+      Miko renders with SkiaSharp, not the browser, so the Razor SDK's web-asset
+      pipeline is not used. Turn it off to avoid pulling in static web asset
+      processing from transitive ASP.NET Core dependencies.
+    -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Miko\Miko.csproj" />
+    <ProjectReference Include="..\..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
+    <ProjectReference Include="..\..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
+  </ItemGroup>
+
+  <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
+    <PropertyGroup>
+      <_CustomRazorGeneratorDir>
+        $(MSBuildThisFileDirectory)..\..\..\src\Miko.Razor.Compiler\bin\$(Configuration)\net9.0\</_CustomRazorGeneratorDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <Analyzer Remove="@(_RazorAnalyzer)" />
+      <_RazorAnalyzer Remove="@(_RazorAnalyzer)" />
+    </ItemGroup>
+    <ItemGroup>
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" />
+      <_RazorAnalyzer
+        Include="$(_CustomRazorGeneratorDir)Microsoft.AspNetCore.Razor.Utilities.Shared.dll" />
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.Extensions.ObjectPool.dll" />
+      <Analyzer Include="@(_RazorAnalyzer)" />
+    </ItemGroup>
+  </Target>
+</Project>
