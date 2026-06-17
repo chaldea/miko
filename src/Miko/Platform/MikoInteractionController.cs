@@ -128,7 +128,13 @@ public sealed class MikoInteractionController
     /// <summary>初始化引擎并构建首帧 DOM 树。</summary>
     public void Initialize(SKCanvas canvas, float width, float height)
     {
-        var root = BuildRoot();
+        // Install the sync context before BuildRoot so that OnInitializedAsync
+        // continuations are captured and posted back to the dispatcher (render thread).
+        var prevCtx = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(_syncContext);
+        Element root;
+        try { root = BuildRoot(); }
+        finally { SynchronizationContext.SetSynchronizationContext(prevCtx); }
         _engine.Initialize(root, _options.StyleSheets, canvas, width, height);
     }
 
@@ -144,7 +150,12 @@ public sealed class MikoInteractionController
     {
         _logger.LogInformation("[HotReload] Render loop detected _needsRebuild flag, rebuilding DOM tree");
         _needsRebuild = false;
-        var root = BuildRoot();
+        // Install the sync context so OnInitializedAsync continuations post to the dispatcher.
+        var prevCtx = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(_syncContext);
+        Element root;
+        try { root = BuildRoot(); }
+        finally { SynchronizationContext.SetSynchronizationContext(prevCtx); }
         _engine.Initialize(root, _options.StyleSheets, canvas, width, height);
         _logger.LogInformation("[HotReload] DOM rebuilt and initialized, next frame will render new content");
     }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Miko.Bootstrap;
 using Miko.DevTools;
 using Miko.Hosting;
@@ -28,7 +29,10 @@ public static class App
         builder.UseDefaultLayout<MainLayout>();
 
         builder.EnableHotReload();
-
+		builder.UseLogging(logging =>
+        {
+            logging.AddConsole().SetMinimumLevel(LogLevel.Trace);
+        });
         return builder.Build();
     }
 

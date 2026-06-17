@@ -41,7 +41,7 @@ var products = new List<Product>
 app.MapGet("/api/products", async (string? search) =>
 {
     // Simulate network delay
-    await Task.Delay(500);
+    await Task.Delay(3000);
 
     if (string.IsNullOrWhiteSpace(search))
         return products;

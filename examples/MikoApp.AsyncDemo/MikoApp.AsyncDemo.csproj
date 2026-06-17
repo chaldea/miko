@@ -16,6 +16,10 @@
     <ProjectReference Include="..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+  </ItemGroup>
+
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
     <PropertyGroup>
       <_CustomRazorGeneratorDir>

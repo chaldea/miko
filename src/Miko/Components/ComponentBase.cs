@@ -1,4 +1,4 @@
-using Miko.Core;
+﻿using Miko.Core;
 using Miko.Layout;
 using Miko.Routing;
 
@@ -12,7 +12,6 @@ public abstract class ComponentBase : IComponent
 
     private Element? _rootElement;
     private bool _initialized;
-    private readonly List<Task> _pendingTasks = new();
 
     protected virtual void BuildRenderTree(RenderTreeBuilder builder) { }
 
@@ -82,17 +81,31 @@ public abstract class ComponentBase : IComponent
             return;
         }
 
-        // Slow path: task is running. Schedule a continuation to re-render when it completes.
-        // The continuation runs on the render thread (via the installed SynchronizationContext).
-        _pendingTasks.Add(task);
+        // Slow path: task is running. Capture the current SynchronizationContext (which the
+        // caller — MikoInteractionController.Initialize/Rebuild/DispatchWithSyncContext — has
+        // installed before invoking Build()/OnInitializedAsync()). The continuation will be
+        // posted back to that context (i.e. MikoDispatcher) so it runs on the render thread.
+        var capturedCtx = SynchronizationContext.Current;
+
         _ = task.ContinueWith(t =>
         {
-            _pendingTasks.Remove(t);
             if (t.IsFaulted)
+            {
                 HandleTaskException(t.Exception!);
+                return;
+            }
+
+            if (capturedCtx != null)
+            {
+                // Post StateHasChanged back to the render thread via dispatcher.
+                capturedCtx.Post(_ => StateHasChanged(), null);
+            }
             else
+            {
+                // No sync context available (e.g. unit tests): call directly.
                 StateHasChanged();
-        }, TaskScheduler.Current);
+            }
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
     private static void HandleTaskException(AggregateException ex)

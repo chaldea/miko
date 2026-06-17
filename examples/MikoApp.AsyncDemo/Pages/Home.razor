@@ -11,7 +11,7 @@
                value="@_searchQuery"
                @oninput="OnSearchInput"
                placeholder="Search products..." />
-        <Button Variant="primary" OnClick="HandleSearchClick">Search</Button>
+        <Button Variant="primary" OnClickAsync="SearchAsync">Search</Button>
     </div>
 
     @if (_isLoading)
@@ -53,7 +53,9 @@
     private bool _isLoading = true;
     private string _searchQuery = "";
 
-    // Async lifecycle: load initial data when component initializes
+    // Async lifecycle: load initial data when component initializes.
+    // The render thread is not blocked — the component renders with _isLoading=true
+    // first, then re-renders automatically when the HTTP response arrives.
     protected override async Task OnInitializedAsync()
     {
         await LoadProductsAsync(null);
@@ -64,13 +66,8 @@
         _searchQuery = args.Data;
     }
 
-    // Synchronous wrapper for the Bootstrap Button component (which expects Action)
-    private void HandleSearchClick()
-    {
-        _ = SearchAsync();
-    }
-
-    // Async event handler: search button click
+    // Async search triggered by the Button's OnClickAsync parameter.
+    // EventCallback wraps this so StateHasChanged is called automatically on completion.
     private async Task SearchAsync()
     {
         await LoadProductsAsync(_searchQuery);
@@ -79,7 +76,7 @@
     private async Task LoadProductsAsync(string? searchQuery)
     {
         _isLoading = true;
-        StateHasChanged(); // Show loading indicator immediately
+        StateHasChanged(); // Show loading indicator immediately (on render thread)
 
         try
         {
@@ -97,7 +94,8 @@
         finally
         {
             _isLoading = false;
-            // StateHasChanged() is called automatically after async completes
+            // StateHasChanged is called automatically by EventCallback / TrackPendingTask
+            // after this async method completes.
         }
     }
 
