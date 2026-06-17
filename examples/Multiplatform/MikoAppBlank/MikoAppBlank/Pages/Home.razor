@@ -1,0 +1,20 @@
+@page "/"
+@namespace MikoAppBlank.Pages
+
+<div class="home">
+    <h1 class="home-title">Welcome to Miko</h1>
+    <p class="home-subtitle">Your multiplatform app is up and running.</p>
+
+    <div class="counter">
+        <button class="counter-btn" @onclick="Increment">Clicked @_count times</button>
+    </div>
+</div>
+
+@code {
+    private int _count = 0;
+
+    private void Increment()
+    {
+        _count++;
+    }
+}

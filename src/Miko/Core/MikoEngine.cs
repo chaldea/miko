@@ -19,6 +19,7 @@ public class MikoEngine
     private readonly DirtyRegionManager _dirtyManager;
     private readonly EventDispatcher _eventDispatcher;
     private readonly AnimationManager _animationManager;
+    private readonly Platform.MikoDispatcher _dispatcher;
     private List<StyleSheet> _styleSheets = new();
     private ILogger _logger = NullLogger.Instance;
 
@@ -28,6 +29,7 @@ public class MikoEngine
         DirtyRegionManager dirtyManager,
         EventDispatcher eventDispatcher,
         AnimationManager animationManager,
+        Platform.MikoDispatcher dispatcher,
         ILogger<MikoEngine>? logger = null)
     {
         _layoutEngine = layoutEngine;
@@ -35,10 +37,11 @@ public class MikoEngine
         _dirtyManager = dirtyManager;
         _eventDispatcher = eventDispatcher;
         _animationManager = animationManager;
+        _dispatcher = dispatcher;
         if (logger != null) _logger = logger;
     }
 
-    public MikoEngine() : this(new(), new(), new(), new(), new()) { }
+    public MikoEngine() : this(new(), new(), new(), new(), new(), new()) { }
 
     public void SetLogger(ILogger logger)
     {
@@ -153,6 +156,7 @@ public class MikoEngine
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
         // 排空跨线程失效请求（视频解码线程投递的新帧/加载完成）。
+        _dispatcher.Drain();
         DrainPendingInvalidations();
         SyncVideoSessions(_root);
 
@@ -186,6 +190,7 @@ public class MikoEngine
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
         // 排空跨线程失效请求（如视频解码线程投递的新帧/加载完成）。
+        _dispatcher.Drain();
         DrainPendingInvalidations();
 
         _renderEngine.SetCanvas(canvas);
@@ -975,7 +980,21 @@ public class MikoEngine
                 ScrollTop = scrollableBox.ScrollTop,
                 Bubbles = true
             };
-            _eventDispatcher.Dispatch(scrollableBox.Element, EventTypes.Scroll, scrollArgs);
+
+            // Scroll events may have async handlers; wrap with SynchronizationContext.
+            // (The dispatcher is already drained at the start of this frame, so any
+            // continuations will run next frame.)
+            var prevContext = SynchronizationContext.Current;
+            var syncContext = new Platform.MikoSynchronizationContext(_dispatcher);
+            SynchronizationContext.SetSynchronizationContext(syncContext);
+            try
+            {
+                _eventDispatcher.Dispatch(scrollableBox.Element, EventTypes.Scroll, scrollArgs);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(prevContext);
+            }
 
             InvalidateElement(scrollableBox.Element);
             _logger.LogTrace("ScrollBy: scrolled, new position=({ScrollLeft}, {ScrollTop})", scrollableBox.ScrollLeft, scrollableBox.ScrollTop);

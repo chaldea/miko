@@ -4,15 +4,15 @@
 @code {
     private string _cssClass = "dropdown-item";
     [Parameter] public bool Active { get; set; }
-    [Parameter] public Action? OnClick { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
 
     protected override void OnParametersSet()
     {
         _cssClass = Active ? "dropdown-item active" : "dropdown-item";
     }
 
-    private void HandleClick()
+    private async Task HandleClick(MouseEventArgs _)
     {
-        OnClick?.Invoke();
+        await OnClick.InvokeAsync();
     }
 }

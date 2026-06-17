@@ -6,10 +6,10 @@
 
 @code {
     /// <summary>Invoked when the hamburger button is clicked (typically opens the menu).</summary>
-    [Parameter] public Action? OnClick { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
 
-    private void HandleClick()
+    private async Task HandleClick(MouseEventArgs _)
     {
-        OnClick?.Invoke();
+        await OnClick.InvokeAsync();
     }
 }

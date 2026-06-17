@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RazorLangVersion>Latest</RazorLangVersion>
+    <StartupObject>MikoAppBlank.Program</StartupObject>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
+
+    <!--
+      Miko renders with SkiaSharp, not the browser, so the Razor SDK's web-asset
+      pipeline is not used. Turn it off to avoid pulling in static web asset
+      processing from transitive ASP.NET Core dependencies.
+    -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Miko" Version="0.0.12" />
+    <PackageReference Include="Miko.Windowing" Version="0.0.12" />
+    <PackageReference Include="Miko.DevTools" Version="0.0.12" />
+    <PackageReference Include="Miko.Razor.Compiler" Version="0.0.12" />
+  </ItemGroup>
+
+</Project>

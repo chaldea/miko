@@ -30,9 +30,9 @@
     [Parameter] public bool Dismissible { get; set; }
 
     /// <summary>
-    /// Callback when alert is dismissed
+    /// Callback when alert is dismissed. Accepts Action, Func&lt;Task&gt;, or EventCallback.
     /// </summary>
-    [Parameter] public Action? OnDismissed { get; set; }
+    [Parameter] public EventCallback OnDismissed { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -50,9 +50,8 @@
         _cssClass = string.Join(" ", classes);
     }
 
-    private void OnDismiss()
+    private async Task OnDismiss(MouseEventArgs _)
     {
-        OnDismissed?.Invoke();
-        StateHasChanged();
+        await OnDismissed.InvokeAsync();
     }
 }

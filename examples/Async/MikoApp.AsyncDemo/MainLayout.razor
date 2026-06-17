@@ -1,0 +1,15 @@
+@inherits Miko.Components.LayoutComponentBase
+@namespace MikoApp.AsyncDemo
+
+<div class="app-root">
+    <div class="nav-bar">
+        <button class="btn btn-secondary" @onclick="GoBootstrap">Bootstrap Demo</button>
+        <button class="btn btn-secondary" @onclick="GoNative">Native Demo</button>
+    </div>
+    @Body
+</div>
+
+@code {
+    private void GoBootstrap(MouseEventArgs _) => NavigationManager?.NavigateTo("/");
+    private void GoNative(MouseEventArgs _) => NavigationManager?.NavigateTo("/native");
+}

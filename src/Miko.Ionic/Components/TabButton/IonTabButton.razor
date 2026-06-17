@@ -15,7 +15,7 @@
     [Parameter] public bool Selected { get; set; }
 
     /// <summary>Invoked when the tab button is clicked.</summary>
-    [Parameter] public Action? OnClick { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
 
     private string _cssClass = "ion-tab-button";
 
@@ -24,8 +24,8 @@
         _cssClass = Selected ? "ion-tab-button tab-selected" : "ion-tab-button";
     }
 
-    private void HandleClick()
+    private async Task HandleClick(MouseEventArgs _)
     {
-        OnClick?.Invoke();
+        await OnClick.InvokeAsync();
     }
 }

@@ -1,5 +1,5 @@
 @namespace Miko.Bootstrap.Components
-<button class="@_cssClass" disabled="@Disabled" @onclick="HandleClick">
+<button class="@_cssClass" disabled="@Disabled" @onclick="HandleClickAsync">
     @ChildContent
 </button>
 
@@ -17,9 +17,10 @@
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>
-    /// Click event callback
+    /// Click event callback. The Razor compiler will accept Action, Func&lt;Task&gt;, or
+    /// another EventCallback. Both sync and async handlers are supported uniformly.
     /// </summary>
-    [Parameter] public Action? OnClick { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -27,11 +28,11 @@
         _cssClass = $"btn btn-{Variant}";
     }
 
-    private void HandleClick()
+    private async Task HandleClickAsync(MouseEventArgs _)
     {
-        if (!Disabled)
-        {
-            OnClick?.Invoke();
-        }
+        if (Disabled) return;
+        await OnClick.InvokeAsync();
     }
+}
+
 }

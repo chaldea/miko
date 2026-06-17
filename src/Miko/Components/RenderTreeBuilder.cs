@@ -142,21 +142,36 @@ public class RenderTreeBuilder
     public void AddAttribute<T>(int seq, string name, EventCallback<T> callback)
         where T : MikoEventArgs
     {
-        if (_stack.Count == 0 || callback.Handler is null) return;
+        if (_stack.Count == 0 || !callback.HasDelegate) return;
         var element = _stack.Peek();
+
+        // Bind the EventCallback to the element's strongly-typed handler slot. The wrapper
+        // invokes the callback (fires InvokeAsync → user delegate → StateHasChanged on the
+        // receiver component when the Task completes, marshaled back to the render thread).
         switch (name)
         {
-            case "onclick"      when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnClick = h; break;
-            case "onmouseenter" when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnMouseEnter = h; break;
-            case "onmouseleave" when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnMouseLeave = h; break;
-            case "onmousedown"  when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnMouseDown = h; break;
-            case "onmouseup"    when callback.Handler is MikoEventHandler<MouseEventArgs> h:    element.OnMouseUp = h; break;
-            case "onfocus"      when callback.Handler is MikoEventHandler<FocusEventArgs> h:    element.OnFocus = h; break;
-            case "onblur"       when callback.Handler is MikoEventHandler<FocusEventArgs> h:    element.OnBlur = h; break;
-            case "onchange"     when callback.Handler is MikoEventHandler<ChangeEventArgs> h:   element.OnChange = h; break;
-            case "onscroll"     when callback.Handler is MikoEventHandler<ScrollEventArgs> h:   element.OnScroll = h; break;
-            case "onkeydown"    when callback.Handler is MikoEventHandler<KeyboardEventArgs> h: element.OnKeyDown = h; break;
-            case "oninput"      when callback.Handler is MikoEventHandler<InputEventArgs> h:    element.OnInput = h; break;
+            case "onclick" when callback is EventCallback<MouseEventArgs> mc:
+                element.OnClick = arg => _ = mc.InvokeAsync(arg); break;
+            case "onmouseenter" when callback is EventCallback<MouseEventArgs> mc:
+                element.OnMouseEnter = arg => _ = mc.InvokeAsync(arg); break;
+            case "onmouseleave" when callback is EventCallback<MouseEventArgs> mc:
+                element.OnMouseLeave = arg => _ = mc.InvokeAsync(arg); break;
+            case "onmousedown" when callback is EventCallback<MouseEventArgs> mc:
+                element.OnMouseDown = arg => _ = mc.InvokeAsync(arg); break;
+            case "onmouseup" when callback is EventCallback<MouseEventArgs> mc:
+                element.OnMouseUp = arg => _ = mc.InvokeAsync(arg); break;
+            case "onfocus" when callback is EventCallback<FocusEventArgs> fc:
+                element.OnFocus = arg => _ = fc.InvokeAsync(arg); break;
+            case "onblur" when callback is EventCallback<FocusEventArgs> fc:
+                element.OnBlur = arg => _ = fc.InvokeAsync(arg); break;
+            case "onchange" when callback is EventCallback<ChangeEventArgs> cc:
+                element.OnChange = arg => _ = cc.InvokeAsync(arg); break;
+            case "onscroll" when callback is EventCallback<ScrollEventArgs> sc:
+                element.OnScroll = arg => _ = sc.InvokeAsync(arg); break;
+            case "onkeydown" when callback is EventCallback<KeyboardEventArgs> kc:
+                element.OnKeyDown = arg => _ = kc.InvokeAsync(arg); break;
+            case "oninput" when callback is EventCallback<InputEventArgs> ic:
+                element.OnInput = arg => _ = ic.InvokeAsync(arg); break;
         }
     }
 

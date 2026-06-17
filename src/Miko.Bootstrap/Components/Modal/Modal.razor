@@ -30,10 +30,10 @@
     [Parameter] public bool Visible { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public RenderFragment? Footer { get; set; }
-    [Parameter] public Action? OnClose { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
 
-    private void Close()
+    private async Task Close(MouseEventArgs _)
     {
-        OnClose?.Invoke();
+        await OnClose.InvokeAsync();
     }
 }

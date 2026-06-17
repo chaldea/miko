@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <StartupObject>MikoAppSidemenu.Desktop.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MikoAppSidemenu\MikoAppSidemenu.csproj" />
+    <PackageReference Include="Miko.Windowing" Version="0.0.12" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,109 @@
+@page "/native"
+@namespace MikoApp.AsyncDemo.Pages
+@inject HttpClient Http
+
+@* This page demonstrates the SAME async data loading as Home.razor, but using only raw
+   HTML elements (<button>, <table>, <input>) with native @onclick / @oninput event
+   bindings — no Bootstrap components. The Razor compiler generates EventCallback bindings
+   for native events too, so async handlers work identically. *@
+
+<div class="container">
+    <h1>Native Elements Demo</h1>
+    <p>Same async data loading as the Bootstrap demo, but using raw &lt;button&gt;, &lt;table&gt;,
+       and &lt;input&gt; elements with native event bindings.</p>
+
+    <div class="search-box">
+        <input type="text" class="search-input form-control"
+               value="@_searchQuery"
+               @oninput="OnSearchInput"
+               placeholder="Search products..." />
+        <button class="btn btn-primary" @onclick="SearchAsync">Search</button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="loading">Loading products...</div>
+    }
+    else if (_products != null && _products.Count > 0)
+    {
+        <table class="table product-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Category</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in _products)
+                {
+                    <tr>
+                        <td>@product.Id</td>
+                        <td>@product.Name</td>
+                        <td>$@product.Price</td>
+                        <td>@product.Category</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No products found.</p>
+    }
+</div>
+
+@code {
+    private List<Product>? _products;
+    private bool _isLoading = true;
+    private string _searchQuery = "";
+
+    // Async lifecycle: load initial data when the component initializes.
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductsAsync(null);
+    }
+
+    // Native <input> @oninput handler — receives InputEventArgs.
+    private void OnSearchInput(InputEventArgs args)
+    {
+        _searchQuery = args.Data;
+    }
+
+    // Native <button> @onclick async handler. The Razor compiler wraps this in an
+    // EventCallback<MouseEventArgs> bound to this component, so StateHasChanged is called
+    // automatically — first after the sync portion (showing the loading indicator), then
+    // after the async HTTP call returns (showing the results).
+    private async Task SearchAsync(MouseEventArgs args)
+    {
+        await LoadProductsAsync(_searchQuery);
+    }
+
+    private async Task LoadProductsAsync(string? searchQuery)
+    {
+        _isLoading = true;
+        StateHasChanged(); // Show loading indicator immediately
+
+        try
+        {
+            var url = string.IsNullOrWhiteSpace(searchQuery)
+                ? "/api/products"
+                : $"/api/products?search={Uri.EscapeDataString(searchQuery)}";
+
+            _products = await Http.GetFromJsonAsync<List<Product>>(url);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+            _products = new List<Product>();
+        }
+        finally
+        {
+            _isLoading = false;
+            // StateHasChanged is called automatically after this async method completes.
+        }
+    }
+
+    record Product(int Id, string Name, decimal Price, string Category);
+}
