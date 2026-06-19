@@ -191,7 +191,7 @@ Layout algorithms should:
 The project follows a clear module-based structure:
 - Source code: `src/Miko/`
 - Tests: `tests/Miko.Tests/`
-- Documentation: `docs/` (ARCHITECTURE.md, REQUIREMENT.md)
+- Documentation: `docs/` (VitePress site published to GitHub Pages; see `docs/.vitepress/config.mts`)
 - Solution file: `miko.slnx` (Visual Studio solution)
 
 ## Important Notes
@@ -200,4 +200,4 @@ The project follows a clear module-based structure:
 - SkiaSharp resources should be properly disposed (use `using` statements)
 - The project uses nullable reference types - respect null annotations
 - Layout calculations use floats - be aware of floating-point precision
-- The architecture document (`docs/ARCHITECTURE.md`) contains detailed design specifications
+- The documentation site under `docs/` (VitePress) contains the usage guide; `DEVELOPMENT.md` has the developer-oriented walkthrough
