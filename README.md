@@ -3,6 +3,9 @@
 [![NuGet](https://img.shields.io/nuget/v/Miko.svg)](https://www.nuget.org/packages/Miko)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](https://dotnet.microsoft.com/)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-512BD4.svg)](https://chaldea.github.io/miko/)
+
+📖 **[Read the documentation](https://chaldea.github.io/miko/)**
 
 **Miko** is a **native, cross-platform UI rendering engine for .NET** that uses
 **[Razor](https://learn.microsoft.com/aspnet/core/blazor/components/) as its layout
@@ -243,7 +246,8 @@ Miko mirrors a browser's rendering pipeline:
 
 Style cascade order (lowest to highest precedence): **Tag → Class → ID → inline**.
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design and
+See the [documentation site](https://chaldea.github.io/miko/) for the full guide
+(rendering pipeline, styling, layout, and more) and
 [`DEVELOPMENT.md`](DEVELOPMENT.md) for a developer-oriented walkthrough.
 
 ---

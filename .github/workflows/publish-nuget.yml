@@ -6,6 +6,14 @@ name: Publish NuGet
 on:
   push:
     branches: [ main ]
+    # Documentation-only changes must not republish NuGet packages (which would bump
+    # the version for every doc edit). The VitePress site is built/deployed by docs.yml.
+    paths-ignore:
+      - 'docs/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/docs.yml'
+      - '**/*.md'
 
 permissions:
   contents: read
