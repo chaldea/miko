@@ -1,0 +1,55 @@
+@page "/"
+@namespace MikoApp.Media.Pages
+@inject HttpClient Http
+
+<!-- 网络视频：经 FFmpeg 后端从 http 加载并解码合成。 -->
+<video class="hero"
+       src="http://localhost:5050/assets/sample.mp4"
+       autoplay loop muted />
+
+@if (_isLoading)
+{
+    <div class="loading">Loading products…</div>
+}
+else if (_products is { Count: > 0 })
+{
+    <div class="grid">
+        @foreach (var p in _products)
+        {
+            <div class="card">
+                <!-- 网络缩略图：加载完成前显示嵌入资源占位图（res://）。 -->
+                <img class="thumb" src="@p.ThumbnailUrl" placeholder="res://Assets/spinner.png" />
+                <div class="card-name">@p.Name</div>
+                <div class="card-price">$@p.Price · @p.Category</div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="loading">No products found.</div>
+}
+
+@code {
+    private List<Product>? _products;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _products = await Http.GetFromJsonAsync<List<Product>>("/api/products");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+            _products = new List<Product>();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    record Product(int Id, string Name, decimal Price, string Category, string ThumbnailUrl);
+}

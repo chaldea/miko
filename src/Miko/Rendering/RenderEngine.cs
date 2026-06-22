@@ -593,15 +593,39 @@ public class RenderEngine
         }
 
         // 渲染图片
-        if (element is ImageElement imageElement && imageElement.Bitmap != null)
+        if (element is ImageElement imageElement)
         {
-            _painter.DrawImage(imageElement.Bitmap, box.BoxModel.Content);
+            RenderImage(box, imageElement);
         }
 
         // 渲染视频帧
         if (element is Miko.Core.DomElements.VideoElement videoElement)
         {
             RenderVideoFrame(box, videoElement);
+        }
+    }
+
+    /// <summary>
+    /// 渲染图片元素。真实图已解码时填满内容盒（保持既有行为）；尚未就绪时回退到占位图
+    /// （object-fit: contain，保持纵横比），无占位图则仅保留背景色。加载完成后引擎标脏，下一帧自动切换。
+    /// </summary>
+    private void RenderImage(LayoutBox box, ImageElement img)
+    {
+        if (_painter == null) return;
+
+        var content = box.BoxModel.Content;
+        if (content.Width <= 0 || content.Height <= 0) return;
+
+        if (img.Bitmap != null)
+        {
+            _painter.DrawImage(img.Bitmap, content);
+            return;
+        }
+
+        if (img.PlaceholderBitmap != null)
+        {
+            var dst = FitContain(img.PlaceholderBitmap.Width, img.PlaceholderBitmap.Height, content);
+            _painter.DrawImage(img.PlaceholderBitmap, dst);
         }
     }
 

@@ -17,6 +17,43 @@ public class RenderTreeBuilderTests
     }
 
     [Fact]
+    public void MultipleTopLevelElements_AreWrappedInDiv_NotOverwritten()
+    {
+        // 多个顶层元素（如 <video/> 后跟条件块）必须全部保留，包裹进一个 div，
+        // 而不是后者覆盖前者（ISSUE-062 问题2：video 标签丢失）。
+        var builder = new RenderTreeBuilder();
+        builder.OpenElement(0, "video");
+        builder.CloseElement();
+        builder.OpenElement(1, "div");
+        builder.CloseElement();
+
+        var root = builder.Build();
+
+        var wrapper = root.ShouldBeOfType<DivElement>();
+        wrapper.Children.Count.ShouldBe(2);
+        wrapper.Children[0].ShouldBeOfType<VideoElement>();
+        wrapper.Children[1].ShouldBeOfType<DivElement>();
+    }
+
+    [Fact]
+    public void ThreeTopLevelElements_AllPreservedInOrder()
+    {
+        var builder = new RenderTreeBuilder();
+        builder.OpenElement(0, "video");
+        builder.CloseElement();
+        builder.OpenElement(1, "span");
+        builder.CloseElement();
+        builder.OpenElement(2, "p");
+        builder.CloseElement();
+
+        var wrapper = builder.Build().ShouldBeOfType<DivElement>();
+        wrapper.Children.Count.ShouldBe(3);
+        wrapper.Children[0].ShouldBeOfType<VideoElement>();
+        wrapper.Children[1].ShouldBeOfType<SpanElement>();
+        wrapper.Children[2].ShouldBeOfType<ParagraphElement>();
+    }
+
+    [Fact]
     public void AddAttribute_Class_SetsClassProperty()
     {
         var builder = new RenderTreeBuilder();

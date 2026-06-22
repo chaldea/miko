@@ -10,7 +10,7 @@ the framework — from a static render-to-PNG console app to full cross-platform
 | [Multiplatform](#multiplatform) | Starter templates with a shared Razor core and Android / iOS / Desktop heads. |
 | [Windows](#windows) | The same starter templates as single Windows desktop projects. |
 | [Async](#async) | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls. |
-| [Video](#video) | The `<video>` element with an FFmpeg decoding backend. |
+| [Media](#media) | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
 
 ## Bootstrap
 
@@ -77,18 +77,17 @@ Demonstrates: async lifecycle (`OnInitializedAsync`) with non-blocking loading s
 continuations marshalled back to the render thread. See
 [Async & Lifecycle](/guide/async) for the concepts.
 
-## Video
+## Media
 
-`MikoApp.Video` is a minimal desktop demo of the `<video>` element backed by an FFmpeg
-decoder, composited into the SkiaSharp canvas as a replaced element that participates in
-the box model.
+`Media/` loads **network** images and a video through Miko's unified resource manager.
+An ASP.NET Core API serves offline-generated product thumbnails (SkiaSharp) and a sample
+video (FFmpeg); the Miko client renders them with `<img>` (with a `res://` `placeholder`
+shown until each thumbnail loads) and `<video>` (FFmpeg backend).
 
 ```bash
-# Plays a generated test clip if no path is given
-dotnet run --project examples/Video/MikoApp.Video/MikoApp.Video.csproj
-
-# Or pass a video file
-dotnet run --project examples/Video/MikoApp.Video/MikoApp.Video.csproj -- path/to/video.mp4
+# Two terminals — start the API first
+dotnet run --project examples/Media/MikoApp.Media.Api        # http://localhost:5050
+dotnet run --project examples/Media/MikoApp.Media.Desktop    # opens the window
 ```
 
 > This demo targets Windows (`win-x64`) and requires the FFmpeg backend.

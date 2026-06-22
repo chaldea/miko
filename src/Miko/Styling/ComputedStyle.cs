@@ -95,6 +95,11 @@ public class ComputedStyle : Style
     public new AlignSelf AlignSelf { get; set; } = Common.AlignSelf.Auto;
     public new AlignContent AlignContent { get; set; } = Common.AlignContent.FlexStart;
 
+    // Gap 默认 0；RowGap/ColumnGap 默认 Auto，表示"未单独设置"，回退到 Gap。
+    public new Length Gap { get; set; } = Length.Px(0);
+    public new Length RowGap { get; set; } = Length.Auto;
+    public new Length ColumnGap { get; set; } = Length.Auto;
+
     public new float Opacity { get; set; } = 1.0f;
     public new int ZIndex { get; set; } = 0;
 
@@ -251,6 +256,10 @@ public class ComputedStyle : Style
             if (style.FlexWrap.HasValue) computed.FlexWrap = style.FlexWrap.Value;
             if (style.AlignSelf.HasValue) computed.AlignSelf = style.AlignSelf.Value;
             if (style.AlignContent.HasValue) computed.AlignContent = style.AlignContent.Value;
+
+            if (style.Gap.HasValue) computed.Gap = style.Gap.Value;
+            if (style.RowGap.HasValue) computed.RowGap = style.RowGap.Value;
+            if (style.ColumnGap.HasValue) computed.ColumnGap = style.ColumnGap.Value;
 
             if (style.Opacity.HasValue) computed.Opacity = style.Opacity.Value;
             if (style.ZIndex.HasValue) computed.ZIndex = style.ZIndex.Value;

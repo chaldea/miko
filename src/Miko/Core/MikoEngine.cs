@@ -62,6 +62,12 @@ public class MikoEngine
     public IVideoBackend? VideoBackend { get; set; }
 
     /// <summary>
+    /// 图片资源加载器。由平台宿主在初始化时从 DI 注入（默认注入内置 <c>ResourceManager</c>）。
+    /// 为 null 时 <c>&lt;img&gt;</c> 不会自动加载，需应用层自行填充 <c>Bitmap</c>。
+    /// </summary>
+    public Platform.Resources.IImageLoader? ImageLoader { get; set; }
+
+    /// <summary>
     /// 当前 GPU 上下文。GPU 宿主（桌面 OpenGL / 移动 GLES/Metal）每帧设置，
     /// 供视频帧源把解码 GPU 资源零拷贝包装为图像；转发给底层渲染引擎。
     /// </summary>
@@ -73,6 +79,12 @@ public class MikoEngine
 
     // 已激活的视频会话，按元素身份索引；用于跨重建复用与移除时回收。
     private readonly Dictionary<VideoElement, IVideoSession> _videoSessions = new();
+
+    // 已发起加载的图片元素，按元素身份索引；避免每帧重复请求。值为加载任务。
+    private readonly Dictionary<ImageElement, Task> _imageLoads = new();
+
+    // 已发起占位图加载的元素，避免重复请求。
+    private readonly HashSet<ImageElement> _placeholderLoads = new();
 
     // 外部线程（视频解码线程等）投递的失效请求，在帧开始时于主线程排空。
     private readonly List<Element> _pendingInvalidations = new();
@@ -113,6 +125,8 @@ public class MikoEngine
 
         // 同步视频会话（创建新元素的会话、回收已移除元素的会话）。
         SyncVideoSessions(root);
+        // 同步图片源（为新 <img> 发起异步加载、解码占位图）。
+        SyncImageSources(root);
 
         _renderEngine.Render(_currentLayout);
         ScanAndStartAnimations(root);
@@ -159,6 +173,7 @@ public class MikoEngine
         _dispatcher.Drain();
         DrainPendingInvalidations();
         SyncVideoSessions(_root);
+        SyncImageSources(_root);
 
         _renderEngine.SetCanvas(canvas);
 
@@ -208,6 +223,8 @@ public class MikoEngine
 
         // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
         SyncVideoSessions(_root);
+        // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
+        SyncImageSources(_root);
 
         RestoreScrollState(oldLayout, _currentLayout);
         _renderEngine.Render(_currentLayout);
@@ -766,7 +783,7 @@ public class MikoEngine
             EnsurePosterDecoded(video);
 
             if (video.Session != null) continue;
-            if (string.IsNullOrEmpty(video.Source)) continue;
+            if (video.Source.IsEmpty) continue;
 
             CreateVideoSession(video);
         }
@@ -798,7 +815,7 @@ public class MikoEngine
         try
         {
             var session = VideoBackend!.CreateSession(
-                new VideoSourceDescriptor(video.Source!),
+                new VideoSourceDescriptor(video.Source.ToUri()),
                 new VideoSessionOptions(
                     AutoPlay: video.AutoPlay,
                     Muted: video.Muted,
@@ -810,11 +827,11 @@ public class MikoEngine
             // 事件可能在解码线程触发，统一通过 PostInvalidate 把重绘转交主循环。
             session.Event += evt => OnVideoSessionEvent(video, evt);
 
-            _logger.LogDebug("Video session created for <video src=\"{Src}\">", video.Source);
+            _logger.LogDebug("Video session created for <video src=\"{Src}\">", video.Source.Raw);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create video session for <video src=\"{Src}\">", video.Source);
+            _logger.LogError(ex, "Failed to create video session for <video src=\"{Src}\">", video.Source.Raw);
         }
     }
 
@@ -840,7 +857,7 @@ public class MikoEngine
 
             case VideoSessionEvent.Error error:
                 _logger.LogError(error.Cause, "Video error on <video src=\"{Src}\">: {Message}",
-                    video.Source, error.Message);
+                    video.Source.Raw, error.Message);
                 break;
         }
     }
@@ -859,6 +876,103 @@ public class MikoEngine
         foreach (var session in _videoSessions.Values)
             session.Dispose();
         _videoSessions.Clear();
+    }
+
+    // ---------------------------------------------------------------------
+    // 图片资源加载生命周期
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// 同步图片源与当前 DOM 树：为带 <c>src</c>、尚未解码且未在加载中的 <see cref="ImageElement"/>
+    /// 发起异步加载，并惰性解码占位图。镜像 <see cref="SyncVideoSessions"/>，在每次布局后调用。
+    /// </summary>
+    private void SyncImageSources(Element root)
+    {
+        if (ImageLoader == null) return;
+
+        var present = new HashSet<ImageElement>();
+        CollectImageElements(root, present);
+
+        foreach (var img in present)
+        {
+            EnsurePlaceholderDecoded(img);
+
+            if (img.Bitmap != null) continue;
+            if (img.Source.IsEmpty) continue;
+            if (_imageLoads.ContainsKey(img)) continue;
+
+            BeginImageLoad(img);
+        }
+
+        // 回收已不在树中的元素的加载记录，避免字典无界增长。
+        if (_imageLoads.Count > 0)
+        {
+            var stale = new List<ImageElement>();
+            foreach (var img in _imageLoads.Keys)
+                if (!present.Contains(img)) stale.Add(img);
+            foreach (var img in stale)
+                _imageLoads.Remove(img);
+        }
+        if (_placeholderLoads.Count > 0)
+            _placeholderLoads.RemoveWhere(img => !present.Contains(img));
+    }
+
+    /// <summary>
+    /// 惰性解码占位图（首张真实图前显示）。通过统一资源管理器异步加载，支持本地文件与 res://。
+    /// 失败时静默忽略，回退到背景色。
+    /// </summary>
+    private void EnsurePlaceholderDecoded(ImageElement img)
+    {
+        if (img.PlaceholderBitmap != null) return;
+        if (string.IsNullOrEmpty(img.Placeholder)) return;
+        if (ImageLoader == null) return;
+
+        // 标记已请求：用 _imageLoads 之外的小技巧——占位图加载也可能在途，避免重复请求。
+        // 这里用 PlaceholderBitmap 的赋值作为完成标记，进行中状态由下方任务捕获保证幂等。
+        if (_placeholderLoads.Contains(img)) return;
+        _placeholderLoads.Add(img);
+
+        MediaSource placeholder = img.Placeholder; // 隐式解析协议
+        ImageLoader.LoadAsync(placeholder).ContinueWith(t =>
+        {
+            if (t.Status == TaskStatus.RanToCompletion && t.Result != null)
+            {
+                img.PlaceholderBitmap = t.Result;
+                PostInvalidate(img);
+            }
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+    }
+
+    /// <summary>
+    /// 发起一次图片异步加载。加载在后台线程进行，完成后写入位图与内禀尺寸，
+    /// 再通过 <see cref="PostInvalidate"/> 把重排/重绘转交主循环。镜像视频 <c>Loaded</c> 事件。
+    /// </summary>
+    private void BeginImageLoad(ImageElement img)
+    {
+        // ExecuteSynchronously：加载已完成时内联执行（仅做字段赋值，开销极小），
+        // 否则在后台线程完成。无论哪种情形都通过 PostInvalidate 把失效安全转交主循环。
+        var task = ImageLoader!.LoadAsync(img.Source).ContinueWith(t =>
+        {
+            var bmp = t.Status == TaskStatus.RanToCompletion ? t.Result : null;
+            if (bmp != null)
+            {
+                img.Bitmap = bmp;
+                img.IntrinsicWidth = bmp.Width;
+                img.IntrinsicHeight = bmp.Height;
+            }
+            // 即使失败也投递失效：让占位图/背景在下一帧稳定呈现。
+            PostInvalidate(img);
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+        _imageLoads[img] = task;
+    }
+
+    private static void CollectImageElements(Element element, HashSet<ImageElement> sink)
+    {
+        if (element is ImageElement img)
+            sink.Add(img);
+        foreach (var child in element.Children)
+            CollectImageElements(child, sink);
     }
 
     private void ScanAndStartAnimations(Element element)
