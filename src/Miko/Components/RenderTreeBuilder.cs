@@ -1,4 +1,4 @@
-using Miko.Common;
+﻿using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
@@ -62,7 +62,9 @@ public class RenderTreeBuilder
         if (_stack.Count > 0)
             _stack.Peek().AddChild(element);
         else
-            _root = element;
+            // 顶层元素：经 AttachToTree 处理多根（多个顶层元素自动包裹进一个 div），
+            // 避免后一个根覆盖前一个（如 <video/> 之后再跟条件块时丢失 video）。
+            AttachToTree(element);
     }
 
     public void AddAttribute(int seq, string name, string? value)
@@ -96,6 +98,8 @@ public class RenderTreeBuilder
                 break;
             case "src" when element is ImageElement img:
                 img.Source = value; break;
+            case "placeholder" when element is ImageElement placeholderImg:
+                placeholderImg.Placeholder = value; break;
             case "src" when element is VideoElement video:
                 video.Source = value; break;
             case "poster" when element is VideoElement video:
@@ -138,6 +142,12 @@ public class RenderTreeBuilder
     }
 
     public void AddAttribute(int seq, string name, bool value) { }
+
+    /// <summary>
+    /// 无值布尔属性（HTML 中如 <c>&lt;video autoplay loop muted&gt;</c>，Razor 生成 2 参重载）。
+    /// 按 HTML 语义"出现即为真"，等价于值 "true"。
+    /// </summary>
+    public void AddAttribute(int seq, string name) => AddAttribute(seq, name, "true");
 
     public void AddAttribute<T>(int seq, string name, EventCallback<T> callback)
         where T : MikoEventArgs
@@ -239,7 +249,7 @@ public class RenderTreeBuilder
         if (_stack.Count > 0)
             _stack.Peek().AddChild(element);
         else
-            _root = element;
+            AttachToTree(element);
     }
 
     public Element Build()
@@ -327,19 +337,30 @@ public class RenderTreeBuilder
         }
     }
 
+    // 由多根包裹自动生成的 div（非用户书写）。用于把后续顶层元素平铺追加，避免逐层嵌套。
+    private DivElement? _syntheticRoot;
+
     private void AttachToTree(Element element)
     {
         if (_stack.Count > 0)
-            _stack.Peek().AddChild(element);
-        else if (_root is null)
-            _root = element;
-        else
         {
-            // Multiple root elements: wrap in a div
-            var wrapper = new DivElement();
-            wrapper.AddChild(_root);
-            wrapper.AddChild(element);
-            _root = wrapper;
+            _stack.Peek().AddChild(element);
+            return;
         }
+
+        if (_root is null)
+        {
+            _root = element;
+            return;
+        }
+
+        // 出现第二个及以上顶层元素：用一个 div 平铺包裹全部顶层元素（而非逐层嵌套）。
+        if (_syntheticRoot is null)
+        {
+            _syntheticRoot = new DivElement();
+            _syntheticRoot.AddChild(_root);
+            _root = _syntheticRoot;
+        }
+        _syntheticRoot.AddChild(element);
     }
 }

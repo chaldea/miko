@@ -12,7 +12,7 @@ the framework — from a static render-to-PNG console app to full cross-platform
 | [`Multiplatform/`](#multiplatform)  | Starter templates with a shared Razor core and Android / iOS / Desktop heads.  |
 | [`Windows/`](#windows)              | The same starter templates as single Windows desktop projects.                 |
 | [`Async/`](#async)                  | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls.  |
-| [`Video/`](#video)                  | The `<video>` element with an FFmpeg decoding backend.                          |
+| [`Media/`](#media)                  | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
 
 ---
 
@@ -162,34 +162,29 @@ walkthrough.
 
 ---
 
-## Video
+## Media
 
-`Video/` (`MikoApp.Video`) — A minimal desktop demo of the `<video>` element backed by an
-FFmpeg decoder, rendered into the SkiaSharp canvas as a replaced element that participates
-in the box model (with an overlaid caption to show compositing / z-order).
+`Media/` — Loads **network** images and a video through Miko's unified resource manager
+(ISSUE-062). Three projects modeled on the `Async/` layout:
 
-**Run:**
+- `MikoApp.Media.Api` — ASP.NET Core minimal API that generates 24 products, thumbnails
+  (SkiaSharp) and a sample video (FFmpeg) **offline** and serves them over http.
+- `MikoApp.Media` — the shared Miko client UI.
+- `MikoApp.Media.Desktop` — the desktop head (registers the FFmpeg video backend).
 
-```bash
-# Plays a generated test clip if no path is given
-dotnet run --project examples/Video/MikoApp.Video/MikoApp.Video.csproj
-
-# Or pass a video file to play
-dotnet run --project examples/Video/MikoApp.Video/MikoApp.Video.csproj -- path/to/video.mp4
-```
-
-There is also a headless self-test that decodes a generated clip and verifies frame sizes
-without opening a window:
+**Run** (two terminals — API first):
 
 ```bash
-dotnet run --project examples/Video/MikoApp.Video/MikoApp.Video.csproj -- --selftest
+dotnet run --project examples/Media/MikoApp.Media.Api        # http://localhost:5050
+dotnet run --project examples/Media/MikoApp.Media.Desktop    # opens the window
 ```
 
 **What it demonstrates:**
 
-- `VideoElement` as a replaced element laid out by the box model
-- An FFmpeg software-decoding backend (`UseFFmpegVideo()`) composited onto the Skia canvas
-- Other elements (a caption) drawn over the video frames
+- A unified `MediaSource` + resource manager resolving `file://` / `res://` / `http(s)://` / `data:`
+- `<img>` loading from the network asynchronously, with a `res://` `placeholder` shown until ready
+- `VideoElement` streaming a sample clip over http via the FFmpeg backend (`UseFFmpegVideo()`)
+- A replaced-element image/video sized by its intrinsic dimensions inside the box model
 
 > Note: this demo targets Windows (`win-x64`) and requires the FFmpeg backend.
 

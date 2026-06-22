@@ -242,545 +242,101 @@ public class FlexLayout
     private void LayoutRowDirection(LayoutBox box, float contentX, float contentY,
         float contentWidth, float contentHeight, ref float maxCrossSize, bool widthIsIndefinite = false)
     {
-        // 第一遍：使用 flex-basis 或自然尺寸布局子元素
-        var childInfos = new List<FlexChildInfo>();
-        float totalFlexBasisSize = 0;
-        float totalFlexGrow = 0;
-        float totalFlexShrinkWeighted = 0;
+        var style = box.ComputedStyle;
+        float fs = style.FontSize.Value;
 
+        // 解析 gap：columnGap 用于行内项目间距（主轴），rowGap 用于行间距（交叉轴）。
+        float columnGap = (style.ColumnGap.IsAuto ? style.Gap : style.ColumnGap).ToPixels(contentWidth, fs);
+        float rowGap = (style.RowGap.IsAuto ? style.Gap : style.RowGap).ToPixels(contentWidth, fs);
+
+        // 收集所有非绝对定位子元素。
+        var allChildren = new List<LayoutBox>();
         foreach (var child in box.Children)
+            if (!BlockLayout.IsOutOfFlow(child)) allChildren.Add(child);
+
+        // 无 flex 项目：若容器自身有文本内容，交叉轴（高）取文本行高。
+        if (allChildren.Count == 0)
         {
-            if (BlockLayout.IsOutOfFlow(child)) continue;
-
-            var childStyle = child.ComputedStyle;
-            float childFs = childStyle.FontSize.Value; // 子元素字体大小，用于解析其长度中的 em 分量
-            float flexBasis;
-            bool usedAutoSize = false;
-
-            // 确定 flex-basis（统一转换为 outer size 以便正确计算剩余空间）
-            if (!childStyle.FlexBasis.IsAuto)
-            {
-                float basisContentWidth = childStyle.FlexBasis.ToPixels(contentWidth, childFs);
-                float outerExtra;
-                if (childStyle.BoxSizing == BoxSizing.BorderBox)
-                {
-                    outerExtra = childStyle.MarginLeft.ToPixels(contentWidth, childFs)
-                        + childStyle.MarginRight.ToPixels(contentWidth, childFs);
-                }
-                else
-                {
-                    outerExtra = childStyle.MarginLeft.ToPixels(contentWidth, childFs)
-                        + childStyle.MarginRight.ToPixels(contentWidth, childFs)
-                        + childStyle.BorderLeftWidth.ToPixels(contentWidth, childFs)
-                        + childStyle.BorderRightWidth.ToPixels(contentWidth, childFs)
-                        + childStyle.PaddingLeft.ToPixels(contentWidth, childFs)
-                        + childStyle.PaddingRight.ToPixels(contentWidth, childFs);
-                }
-                flexBasis = basisContentWidth + outerExtra;
-            }
-            else if (!childStyle.Width.IsAuto)
-            {
-                float basisContentWidth = childStyle.Width.ToPixels(contentWidth, childFs);
-                float outerExtra;
-                if (childStyle.BoxSizing == BoxSizing.BorderBox)
-                {
-                    outerExtra = childStyle.MarginLeft.ToPixels(contentWidth, childFs)
-                        + childStyle.MarginRight.ToPixels(contentWidth, childFs);
-                }
-                else
-                {
-                    outerExtra = childStyle.MarginLeft.ToPixels(contentWidth, childFs)
-                        + childStyle.MarginRight.ToPixels(contentWidth, childFs)
-                        + childStyle.BorderLeftWidth.ToPixels(contentWidth, childFs)
-                        + childStyle.BorderRightWidth.ToPixels(contentWidth, childFs)
-                        + childStyle.PaddingLeft.ToPixels(contentWidth, childFs)
-                        + childStyle.PaddingRight.ToPixels(contentWidth, childFs);
-                }
-                flexBasis = basisContentWidth + outerExtra;
-            }
-            else
-            {
-                // 使用内容自然尺寸
-                var childConstraints = new LayoutConstraints(null, null);
-                LayoutDispatcher.Dispatch(child, childConstraints, 0, 0);
-                flexBasis = child.BoxModel.MarginBox.Width;
-                usedAutoSize = true;
-            }
-
-            var info = new FlexChildInfo
-            {
-                Child = child,
-                FlexBasis = flexBasis,
-                FlexGrow = childStyle.FlexGrow,
-                FlexShrink = childStyle.FlexShrink,
-                FinalSize = flexBasis,
-                UsedAutoSize = usedAutoSize
-            };
-
-            childInfos.Add(info);
-            totalFlexBasisSize += flexBasis;
-            totalFlexGrow += childStyle.FlexGrow;
-            totalFlexShrinkWeighted += childStyle.FlexShrink * flexBasis;
+            if (!string.IsNullOrEmpty(box.Element.TextContent))
+                maxCrossSize = Math.Max(maxCrossSize, BlockLayout.ResolveLineHeight(style));
+            return;
         }
 
-        // 计算剩余空间
-        float freeSpace = contentWidth - totalFlexBasisSize;
+        // 如果不换行，所有子元素在一行；否则按宽度 + gap 分行。
+        var lines = style.FlexWrap == FlexWrap.Wrap
+            ? PartitionIntoLines(allChildren, contentWidth, columnGap, true, widthIsIndefinite)
+            : new List<List<LayoutBox>> { allChildren };
 
-        // 检查是否有 auto margin（主轴方向：left/right）
-        int autoMarginCount = 0;
-        foreach (var info in childInfos)
+        float currentY = contentY;
+        foreach (var line in lines)
         {
-            var childStyle = info.Child.ComputedStyle;
-            if (childStyle.MarginLeft.IsAuto) autoMarginCount++;
-            if (childStyle.MarginRight.IsAuto) autoMarginCount++;
+            float lineCrossSize = 0;
+            LayoutFlexLine(line, contentX, currentY, contentWidth, contentHeight, columnGap, true, widthIsIndefinite,
+                style.JustifyContent, style.AlignItems, ref lineCrossSize);
+            maxCrossSize = Math.Max(maxCrossSize, lineCrossSize);
+            currentY += lineCrossSize + rowGap;
         }
 
-        // 如果有 auto margin 且有剩余空间，auto margin 消耗剩余空间（优先于 flex-grow）
-        bool hasAutoMargins = autoMarginCount > 0 && freeSpace > 0;
-        float autoMarginSize = hasAutoMargins ? Math.Max(0, freeSpace) / autoMarginCount : 0;
+        // 移除最后一行后多余的 rowGap。
+        if (lines.Count > 0) currentY -= rowGap;
 
-        // 分配空间（grow 或 shrink）— 仅在没有 auto margin 时生效
-        bool anyAdjustment = false;
-        if (!hasAutoMargins)
-        {
-            if (freeSpace > 0 && totalFlexGrow > 0)
-            {
-                anyAdjustment = true;
-                foreach (var info in childInfos)
-                {
-                    float growRatio = info.FlexGrow / totalFlexGrow;
-                    info.FinalSize = info.FlexBasis + freeSpace * growRatio;
-                }
-            }
-            // 宽度未定（收缩包裹）时 contentWidth 为 0 占位，负 freeSpace 是假象，不应收缩。
-            else if (freeSpace < 0 && totalFlexShrinkWeighted > 0 && !widthIsIndefinite)
-            {
-                anyAdjustment = true;
-                float shrinkAmount = -freeSpace;
-                foreach (var info in childInfos)
-                {
-                    float shrinkRatio = (info.FlexShrink * info.FlexBasis) / totalFlexShrinkWeighted;
-                    info.FinalSize = info.FlexBasis - shrinkAmount * shrinkRatio;
-                    info.FinalSize = Math.Max(0, info.FinalSize);
-                }
-            }
-        }
-
-        // 第二遍：使用最终尺寸重新布局子元素
-        float currentX = contentX;
-        foreach (var info in childInfos)
-        {
-            var child = info.Child;
-            var childStyle = child.ComputedStyle;
-            float childFs = childStyle.FontSize.Value; // 子元素字体大小，用于解析其长度中的 em 分量
-
-            // 处理主轴 auto margin
-            float extraMarginLeft = 0;
-            float extraMarginRight = 0;
-            if (hasAutoMargins)
-            {
-                if (childStyle.MarginLeft.IsAuto) extraMarginLeft = autoMarginSize;
-                if (childStyle.MarginRight.IsAuto) extraMarginRight = autoMarginSize;
-                currentX += extraMarginLeft;
-            }
-
-            bool needsResize = anyAdjustment && Math.Abs(info.FinalSize - info.FlexBasis) > 0.01f;
-
-            if (needsResize || !info.UsedAutoSize)
-            {
-                // 需要调整大小，或者使用了显式的 flex-basis/width
-                float childMarginLeft = childStyle.MarginLeft.IsAuto ? 0 : childStyle.MarginLeft.ToPixels(contentWidth, childFs);
-                float childMarginRight = childStyle.MarginRight.IsAuto ? 0 : childStyle.MarginRight.ToPixels(contentWidth, childFs);
-                float childBorderLeftWidth = childStyle.BorderLeftWidth.ToPixels(contentWidth, childFs);
-                float childBorderRightWidth = childStyle.BorderRightWidth.ToPixels(contentWidth, childFs);
-                float childPaddingLeft = childStyle.PaddingLeft.ToPixels(contentWidth, childFs);
-                float childPaddingRight = childStyle.PaddingRight.ToPixels(contentWidth, childFs);
-
-                // FinalSize 统一代表 outer (margin box) 尺寸，需要减去 margin/border/padding 得到 content width
-                float childContentWidth = info.FinalSize - childMarginLeft - childMarginRight
-                    - childBorderLeftWidth - childBorderRightWidth - childPaddingLeft - childPaddingRight;
-                childContentWidth = Math.Max(0, childContentWidth);
-
-                // 使用计算出的宽度约束重新布局
-                float? childAvailableHeight = contentHeight > 0 ? contentHeight : null;
-                var childConstraints = new LayoutConstraints(childContentWidth, childAvailableHeight);
-                LayoutDispatcher.Dispatch(child, childConstraints, currentX, contentY);
-
-                // 强制设置宽度（覆盖子元素自己计算的宽度）
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X,
-                    child.BoxModel.Content.Y,
-                    childContentWidth,
-                    child.BoxModel.Content.Height
-                );
-            }
-            else
-            {
-                // 使用自动尺寸，不需要强制调整
-                float? childAvailableHeight = contentHeight > 0 ? contentHeight : null;
-                var childConstraints = new LayoutConstraints(null, childAvailableHeight);
-                LayoutDispatcher.Dispatch(child, childConstraints, currentX, contentY);
-            }
-
-            currentX = child.BoxModel.MarginBox.Right + extraMarginRight;
-            maxCrossSize = Math.Max(maxCrossSize, child.BoxModel.MarginBox.Height);
-        }
-
-        // 没有子元素但有文本内容时，根据文本计算尺寸
-        if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
-        {
-            var style = box.ComputedStyle;
-            // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
-            float textHeight = BlockLayout.ResolveLineHeight(style);
-            maxCrossSize = Math.Max(maxCrossSize, textHeight);
-        }
-
-        float totalWidth = currentX - contentX;
-
-        // 主轴对齐 (justify-content) - 只有当没有 flex-grow 时才应用
-        if (totalFlexGrow == 0)
-        {
-            ApplyJustifyContent(box, contentX, contentWidth, totalWidth, true);
-        }
-
-        // 交叉轴对齐 (align-items) — 使用容器高度（如果明确）或最大子元素高度
-        float crossSize = contentHeight > 0 ? Math.Max(contentHeight, maxCrossSize) : maxCrossSize;
-        ApplyAlignItems(box, contentY, crossSize, true);
+        // 容器交叉轴尺寸由所有行的总高决定（未指定高度时）。
+        // 注：justify-content / align-items 已在每行内 (LayoutFlexLine) 应用。
+        maxCrossSize = currentY - contentY;
     }
 
     private void LayoutColumnDirection(LayoutBox box, float contentX, float contentY,
         float contentWidth, float contentHeight, ref float maxCrossSize)
     {
-        // 第一遍：使用 flex-basis 或自然尺寸布局子元素
-        var childInfos = new List<FlexChildInfo>();
-        float totalFlexBasisSize = 0;
-        float totalFlexGrow = 0;
-        float totalFlexShrinkWeighted = 0;
+        var style = box.ComputedStyle;
+        float fs = style.FontSize.Value;
 
+        // 解析 gap：rowGap 用于列内项目间距（主轴），columnGap 用于列间距（交叉轴）。
+        float rowGap = (style.RowGap.IsAuto ? style.Gap : style.RowGap).ToPixels(contentHeight, fs);
+        float columnGap = (style.ColumnGap.IsAuto ? style.Gap : style.ColumnGap).ToPixels(contentHeight, fs);
+
+        // 收集所有非绝对定位子元素。
+        var allChildren = new List<LayoutBox>();
         foreach (var child in box.Children)
+            if (!BlockLayout.IsOutOfFlow(child)) allChildren.Add(child);
+
+        // 无 flex 项目：若容器自身有文本内容，交叉轴（宽）取文本宽度（高度由主 Layout 计算）。
+        if (allChildren.Count == 0)
         {
-            if (BlockLayout.IsOutOfFlow(child)) continue;
-
-            var childStyle = child.ComputedStyle;
-            float childFs = childStyle.FontSize.Value; // 子元素字体大小，用于解析其长度中的 em 分量
-            float flexBasis;
-            bool usedAutoSize = false;
-
-            // 确定 flex-basis（列方向使用高度，统一转换为 outer size）
-            if (!childStyle.FlexBasis.IsAuto)
+            if (!string.IsNullOrEmpty(box.Element.TextContent))
             {
-                float basisContentHeight = childStyle.FlexBasis.ToPixels(contentHeight, childFs);
-                float outerExtra = childStyle.MarginTop.ToPixels(contentWidth, childFs)
-                    + childStyle.MarginBottom.ToPixels(contentWidth, childFs)
-                    + childStyle.BorderTopWidth.ToPixels(contentWidth, childFs)
-                    + childStyle.BorderBottomWidth.ToPixels(contentWidth, childFs)
-                    + childStyle.PaddingTop.ToPixels(contentWidth, childFs)
-                    + childStyle.PaddingBottom.ToPixels(contentWidth, childFs);
-                flexBasis = basisContentHeight + outerExtra;
+                float textWidth = TextMeasurer.MeasureTextWidth(
+                    box.Element.TextContent, style.FontFamily, style.FontSize.Value, style.FontWeight);
+                maxCrossSize = Math.Max(maxCrossSize, textWidth);
             }
-            else if (!childStyle.Height.IsAuto)
-            {
-                float basisContentHeight = childStyle.Height.ToPixels(contentHeight, childFs);
-                float outerExtra = childStyle.MarginTop.ToPixels(contentWidth, childFs)
-                    + childStyle.MarginBottom.ToPixels(contentWidth, childFs)
-                    + childStyle.BorderTopWidth.ToPixels(contentWidth, childFs)
-                    + childStyle.BorderBottomWidth.ToPixels(contentWidth, childFs)
-                    + childStyle.PaddingTop.ToPixels(contentWidth, childFs)
-                    + childStyle.PaddingBottom.ToPixels(contentWidth, childFs);
-                flexBasis = basisContentHeight + outerExtra;
-            }
-            else
-            {
-                // 使用内容自然尺寸
-                var childConstraints = new LayoutConstraints(contentWidth, null);
-                LayoutDispatcher.Dispatch(child, childConstraints, 0, 0);
-                flexBasis = child.BoxModel.MarginBox.Height;
-                usedAutoSize = true;
-            }
-
-            var info = new FlexChildInfo
-            {
-                Child = child,
-                FlexBasis = flexBasis,
-                FlexGrow = childStyle.FlexGrow,
-                FlexShrink = childStyle.FlexShrink,
-                FinalSize = flexBasis,
-                UsedAutoSize = usedAutoSize
-            };
-
-            childInfos.Add(info);
-            totalFlexBasisSize += flexBasis;
-            totalFlexGrow += childStyle.FlexGrow;
-            totalFlexShrinkWeighted += childStyle.FlexShrink * flexBasis;
+            return;
         }
 
-        // 计算剩余空间（只有当容器高度明确时才分配）
-        bool hasDefiniteHeight = contentHeight > 0;
-        float freeSpace = hasDefiniteHeight ? contentHeight - totalFlexBasisSize : 0;
+        // 列方向主轴为高度；高度未指定（auto）时为 indefinite，不参与 shrink 且不分列。
+        bool heightIsIndefinite = contentHeight <= 0;
 
-        // 检查是否有 auto margin（主轴方向：top/bottom）
-        int autoMarginCount = 0;
-        foreach (var info in childInfos)
+        // 如果不换行或高度未定，所有子元素在一列；否则按高度 + gap 分列。
+        var lines = (style.FlexWrap == FlexWrap.Wrap && !heightIsIndefinite)
+            ? PartitionIntoLines(allChildren, contentHeight, rowGap, false, heightIsIndefinite)
+            : new List<List<LayoutBox>> { allChildren };
+
+        float currentX = contentX;
+        foreach (var line in lines)
         {
-            var childStyle = info.Child.ComputedStyle;
-            if (childStyle.MarginTop.IsAuto) autoMarginCount++;
-            if (childStyle.MarginBottom.IsAuto) autoMarginCount++;
+            float lineCrossSize = 0;
+            LayoutFlexLine(line, currentX, contentY, contentHeight, contentWidth, rowGap, false, heightIsIndefinite,
+                style.JustifyContent, style.AlignItems, ref lineCrossSize);
+            maxCrossSize = Math.Max(maxCrossSize, lineCrossSize);
+            currentX += lineCrossSize + columnGap;
         }
 
-        // 如果有 auto margin 且有剩余空间，auto margin 消耗剩余空间（优先于 flex-grow）
-        bool hasAutoMargins = autoMarginCount > 0 && freeSpace > 0;
-        float autoMarginSize = hasAutoMargins ? Math.Max(0, freeSpace) / autoMarginCount : 0;
+        // 移除最后一列后多余的 columnGap。
+        if (lines.Count > 0) currentX -= columnGap;
 
-        // 分配空间（grow 或 shrink）— 仅在没有 auto margin 时生效
-        bool anyAdjustment = false;
-        if (!hasAutoMargins)
-        {
-            if (freeSpace > 0 && totalFlexGrow > 0)
-            {
-                anyAdjustment = true;
-                foreach (var info in childInfos)
-                {
-                    float growRatio = info.FlexGrow / totalFlexGrow;
-                    info.FinalSize = info.FlexBasis + freeSpace * growRatio;
-                }
-            }
-            else if (freeSpace < 0 && totalFlexShrinkWeighted > 0)
-            {
-                anyAdjustment = true;
-                float shrinkAmount = -freeSpace;
-                foreach (var info in childInfos)
-                {
-                    float shrinkRatio = (info.FlexShrink * info.FlexBasis) / totalFlexShrinkWeighted;
-                    info.FinalSize = info.FlexBasis - shrinkAmount * shrinkRatio;
-                    info.FinalSize = Math.Max(0, info.FinalSize);
-                }
-            }
-        }
-
-        // 第二遍：使用最终尺寸重新布局子元素
-        float currentY = contentY;
-        foreach (var info in childInfos)
-        {
-            var child = info.Child;
-            var childStyle = child.ComputedStyle;
-            float childFs = childStyle.FontSize.Value; // 子元素字体大小，用于解析其长度中的 em 分量
-
-            // 处理主轴 auto margin
-            float extraMarginTop = 0;
-            float extraMarginBottom = 0;
-            if (hasAutoMargins)
-            {
-                if (childStyle.MarginTop.IsAuto) extraMarginTop = autoMarginSize;
-                if (childStyle.MarginBottom.IsAuto) extraMarginBottom = autoMarginSize;
-                currentY += extraMarginTop;
-            }
-
-            bool needsResize = anyAdjustment && Math.Abs(info.FinalSize - info.FlexBasis) > 0.01f;
-
-            if (needsResize || !info.UsedAutoSize)
-            {
-                // 需要调整大小，或者使用了显式的 flex-basis/height
-                float childMarginTop = childStyle.MarginTop.IsAuto ? 0 : childStyle.MarginTop.ToPixels(contentWidth, childFs);
-                float childMarginBottom = childStyle.MarginBottom.IsAuto ? 0 : childStyle.MarginBottom.ToPixels(contentWidth, childFs);
-                float childBorderTopWidth = childStyle.BorderTopWidth.ToPixels(contentWidth, childFs);
-                float childBorderBottomWidth = childStyle.BorderBottomWidth.ToPixels(contentWidth, childFs);
-                float childPaddingTop = childStyle.PaddingTop.ToPixels(contentWidth, childFs);
-                float childPaddingBottom = childStyle.PaddingBottom.ToPixels(contentWidth, childFs);
-
-                // FinalSize 统一代表 outer size，需要减去 margin/border/padding 得到 content height
-                float childContentHeight = info.FinalSize - childMarginTop - childMarginBottom
-                    - childBorderTopWidth - childBorderBottomWidth - childPaddingTop - childPaddingBottom;
-                childContentHeight = Math.Max(0, childContentHeight);
-
-                // 使用计算出的高度约束重新布局
-                var childConstraints = new LayoutConstraints(contentWidth, childContentHeight);
-                LayoutDispatcher.Dispatch(child, childConstraints, contentX, currentY);
-
-                // 强制设置高度（覆盖子元素自己计算的高度）
-                child.BoxModel.Content = new RectF(
-                    child.BoxModel.Content.X,
-                    child.BoxModel.Content.Y,
-                    child.BoxModel.Content.Width,
-                    childContentHeight
-                );
-            }
-            else
-            {
-                // 使用自动尺寸，不需要强制调整
-                var childConstraints = new LayoutConstraints(contentWidth, null);
-                LayoutDispatcher.Dispatch(child, childConstraints, contentX, currentY);
-            }
-
-            currentY = child.BoxModel.MarginBox.Bottom + extraMarginBottom;
-            maxCrossSize = Math.Max(maxCrossSize, child.BoxModel.MarginBox.Width);
-        }
-
-        // 没有子元素但有文本内容时，根据文本计算尺寸
-        if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
-        {
-            var style = box.ComputedStyle;
-            float textWidth = TextMeasurer.MeasureTextWidth(
-                box.Element.TextContent,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight);
-            // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
-            float textHeight = BlockLayout.ResolveLineHeight(style);
-            currentY += textHeight;
-            maxCrossSize = Math.Max(maxCrossSize, textWidth);
-        }
-
-        float totalHeight = currentY - contentY;
-
-        // 主轴对齐 (justify-content) - 只有当没有 flex-grow 且有明确高度时才应用
-        if (totalFlexGrow == 0 && hasDefiniteHeight)
-        {
-            ApplyJustifyContent(box, contentY, contentHeight, totalHeight, false);
-        }
-
-        // 交叉轴对齐 (align-items) — 使用容器宽度（如果明确）或最大子元素宽度
-        float crossSize = contentWidth > 0 ? Math.Max(contentWidth, maxCrossSize) : maxCrossSize;
-        ApplyAlignItems(box, contentX, crossSize, false);
+        // 容器交叉轴尺寸由所有列的总宽决定（未指定宽度时）。
+        // 注：justify-content / align-items 已在每列内 (LayoutFlexLine) 应用。
+        maxCrossSize = currentX - contentX;
     }
-
-    private void ApplyJustifyContent(LayoutBox box, float start, float containerSize, float contentSize, bool isRow)
-    {
-        if (box.Children.Count == 0) return;
-
-        float spacing = 0;
-        float offset = 0;
-
-        switch (box.ComputedStyle.JustifyContent)
-        {
-            case JustifyContent.FlexStart:
-                // 默认，无需调整
-                break;
-
-            case JustifyContent.FlexEnd:
-                offset = containerSize - contentSize;
-                break;
-
-            case JustifyContent.Center:
-                offset = (containerSize - contentSize) / 2;
-                break;
-
-            case JustifyContent.SpaceBetween:
-                if (box.Children.Count > 1)
-                {
-                    spacing = (containerSize - contentSize) / (box.Children.Count - 1);
-                }
-                break;
-
-            case JustifyContent.SpaceAround:
-                spacing = (containerSize - contentSize) / box.Children.Count;
-                offset = spacing / 2;
-                break;
-
-            case JustifyContent.SpaceEvenly:
-                spacing = (containerSize - contentSize) / (box.Children.Count + 1);
-                offset = spacing;
-                break;
-        }
-
-        // 应用偏移
-        for (int i = 0; i < box.Children.Count; i++)
-        {
-            var child = box.Children[i];
-            if (BlockLayout.IsOutOfFlow(child)) continue;
-            float itemOffset = offset + spacing * i;
-            if (itemOffset == 0) continue;
-
-            // 沿主轴平移整棵子树，使子元素的子孙跟随移动。
-            if (isRow)
-                OffsetSubtree(child, itemOffset, 0);
-            else
-                OffsetSubtree(child, 0, itemOffset);
-        }
-    }
-
-    private void ApplyAlignItems(LayoutBox box, float start, float crossSize, bool isRow)
-    {
-        foreach (var child in box.Children)
-        {
-            if (BlockLayout.IsOutOfFlow(child)) continue;
-
-            float childCrossSize = isRow ? child.BoxModel.MarginBox.Height : child.BoxModel.MarginBox.Width;
-            float offset = 0;
-
-            switch (box.ComputedStyle.AlignItems)
-            {
-                case AlignItems.FlexStart:
-                    // 默认，无需调整
-                    break;
-
-                case AlignItems.FlexEnd:
-                    offset = crossSize - childCrossSize;
-                    break;
-
-                case AlignItems.Center:
-                    offset = (crossSize - childCrossSize) / 2;
-                    break;
-
-                case AlignItems.Stretch:
-                    // 拉伸子元素到交叉轴尺寸，但只拉伸没有显式尺寸的子元素
-                    if (isRow)
-                    {
-                        // Row 布局：只有当子元素没有显式高度时才拉伸
-                        if (child.ComputedStyle.Height.IsAuto)
-                        {
-                            // 计算目标 content height = crossSize - margin - border - padding
-                            float targetContentHeight = crossSize
-                                - child.BoxModel.Margin.Vertical
-                                - child.BoxModel.Border.Vertical
-                                - child.BoxModel.Padding.Vertical;
-                            targetContentHeight = Math.Max(0, targetContentHeight);
-
-                            child.BoxModel.Content = new RectF(
-                                child.BoxModel.Content.X,
-                                child.BoxModel.Content.Y,
-                                child.BoxModel.Content.Width,
-                                targetContentHeight
-                            );
-                        }
-                    }
-                    else
-                    {
-                        // Column 布局：只有当子元素没有显式宽度时才拉伸
-                        if (child.ComputedStyle.Width.IsAuto)
-                        {
-                            float targetContentWidth = crossSize
-                                - child.BoxModel.Margin.Horizontal
-                                - child.BoxModel.Border.Horizontal
-                                - child.BoxModel.Padding.Horizontal;
-                            targetContentWidth = Math.Max(0, targetContentWidth);
-
-                            child.BoxModel.Content = new RectF(
-                                child.BoxModel.Content.X,
-                                child.BoxModel.Content.Y,
-                                targetContentWidth,
-                                child.BoxModel.Content.Height
-                            );
-                        }
-                    }
-                    break;
-
-                case AlignItems.Baseline:
-                    // TODO: 基线对齐
-                    break;
-            }
-
-            // 应用偏移。子元素可能已布局好整棵子树（如本身是另一个 flex/block 容器），
-            // 因此偏移必须递归平移整棵子树，否则子孙元素会停留在偏移前的位置。
-            if (offset != 0)
-            {
-                if (isRow)
-                    OffsetSubtree(child, 0, offset);
-                else
-                    OffsetSubtree(child, offset, 0);
-            }
-        }
-    }
-
     /// <summary>
     /// 递归平移一个盒子及其全部子孙的内容区。用于 flex 对齐/分布产生的位移，
     /// 确保子元素的子树跟随移动。
@@ -804,5 +360,389 @@ public class FlexLayout
         public float FlexShrink { get; set; }
         public float FinalSize { get; set; }
         public bool UsedAutoSize { get; set; }
+    }
+
+    /// <summary>
+    /// 将子元素按 FlexWrap 分行/列。主轴方向 isRow=true → 按宽度分行，false → 按高度分列。
+    /// </summary>
+    private List<List<LayoutBox>> PartitionIntoLines(List<LayoutBox> children, float availableMainSize,
+        float gap, bool isRow, bool mainSizeIsIndefinite)
+    {
+        var lines = new List<List<LayoutBox>>();
+        var currentLine = new List<LayoutBox>();
+        float currentLineSize = 0;
+
+        foreach (var child in children)
+        {
+            // 计算该子元素的主轴 flex-basis（初步尺寸，未经 grow/shrink）。
+            float childBasis = ComputeFlexBasis(child, availableMainSize, isRow, mainSizeIsIndefinite);
+
+            // 如果当前行非空且加上此子会超出容器宽度，则换行。
+            bool wouldOverflow = currentLine.Count > 0 &&
+                (currentLineSize + gap + childBasis > availableMainSize + 0.01f);
+
+            if (wouldOverflow)
+            {
+                lines.Add(currentLine);
+                currentLine = new List<LayoutBox>();
+                currentLineSize = 0;
+            }
+
+            currentLine.Add(child);
+            currentLineSize += childBasis;
+            if (currentLine.Count > 1) currentLineSize += gap; // gap 从第二个元素起计。
+        }
+
+        if (currentLine.Count > 0) lines.Add(currentLine);
+        return lines;
+    }
+
+    private float ComputeFlexBasis(LayoutBox child, float containerMainSize, bool isRow, bool mainSizeIsIndefinite)
+        => ComputeFlexBasis(child, containerMainSize, isRow, mainSizeIsIndefinite, out _);
+
+    /// <summary>
+    /// 计算子元素的 flex-basis（主轴方向初步尺寸），包含 margin/border/padding (outer size)。
+    /// <paramref name="usedAutoSize"/> 表示是否使用了内容自然尺寸（无显式 width/height/flex-basis）。
+    /// </summary>
+    private float ComputeFlexBasis(LayoutBox child, float containerMainSize, bool isRow, bool mainSizeIsIndefinite, out bool usedAutoSize)
+    {
+        var style = child.ComputedStyle;
+        float fs = style.FontSize.Value;
+
+        float basisContentSize;
+        usedAutoSize = false;
+
+        if (!style.FlexBasis.IsAuto)
+        {
+            basisContentSize = style.FlexBasis.ToPixels(containerMainSize, fs);
+        }
+        else
+        {
+            var explicitSize = isRow ? style.Width : style.Height;
+            if (!explicitSize.IsAuto)
+            {
+                basisContentSize = explicitSize.ToPixels(containerMainSize, fs);
+            }
+            else
+            {
+                // 使用内容自然尺寸。
+                var childConstraints = new LayoutConstraints(null, null);
+                LayoutDispatcher.Dispatch(child, childConstraints, 0, 0);
+                basisContentSize = isRow ? child.BoxModel.Content.Width : child.BoxModel.Content.Height;
+                usedAutoSize = true;
+            }
+        }
+
+        // 转换为 outer size (margin box)。
+        float outerExtra;
+        if (isRow)
+        {
+            float ml = style.MarginLeft.ToPixels(containerMainSize, fs);
+            float mr = style.MarginRight.ToPixels(containerMainSize, fs);
+            if (style.BoxSizing == BoxSizing.BorderBox)
+            {
+                outerExtra = ml + mr;
+            }
+            else
+            {
+                outerExtra = ml + mr
+                    + style.BorderLeftWidth.ToPixels(containerMainSize, fs)
+                    + style.BorderRightWidth.ToPixels(containerMainSize, fs)
+                    + style.PaddingLeft.ToPixels(containerMainSize, fs)
+                    + style.PaddingRight.ToPixels(containerMainSize, fs);
+            }
+        }
+        else
+        {
+            float mt = style.MarginTop.ToPixels(containerMainSize, fs);
+            float mb = style.MarginBottom.ToPixels(containerMainSize, fs);
+            if (style.BoxSizing == BoxSizing.BorderBox)
+            {
+                outerExtra = mt + mb;
+            }
+            else
+            {
+                outerExtra = mt + mb
+                    + style.BorderTopWidth.ToPixels(containerMainSize, fs)
+                    + style.BorderBottomWidth.ToPixels(containerMainSize, fs)
+                    + style.PaddingTop.ToPixels(containerMainSize, fs)
+                    + style.PaddingBottom.ToPixels(containerMainSize, fs);
+            }
+        }
+
+        return basisContentSize + outerExtra;
+    }
+
+    /// <summary>
+    /// 布局一行 flex 子元素（行方向）或一列（列方向），应用 flex-grow/shrink + gap。
+    /// </summary>
+    private void LayoutFlexLine(List<LayoutBox> lineChildren, float lineX, float lineY,
+        float lineMainSize, float lineCrossSize, float gap, bool isRow, bool mainSizeIsIndefinite,
+        JustifyContent justifyContent, AlignItems alignItems, ref float resultCrossSize)
+    {
+        // 第一遍：计算 flex-basis。
+        var childInfos = new List<FlexChildInfo>();
+        float totalFlexBasisSize = 0;
+        float totalFlexGrow = 0;
+        float totalFlexShrinkWeighted = 0;
+
+        foreach (var child in lineChildren)
+        {
+            var childStyle = child.ComputedStyle;
+            float flexBasis = ComputeFlexBasis(child, lineMainSize, isRow, mainSizeIsIndefinite, out bool usedAutoSize);
+
+            var info = new FlexChildInfo
+            {
+                Child = child,
+                FlexBasis = flexBasis,
+                FlexGrow = childStyle.FlexGrow,
+                FlexShrink = childStyle.FlexShrink,
+                FinalSize = flexBasis,
+                UsedAutoSize = usedAutoSize
+            };
+
+            childInfos.Add(info);
+            totalFlexBasisSize += flexBasis;
+            totalFlexGrow += childStyle.FlexGrow;
+            totalFlexShrinkWeighted += childStyle.FlexShrink * flexBasis;
+        }
+
+        // gap 占用主轴空间：n 个元素间有 n-1 个 gap。
+        float totalGapSize = Math.Max(0, lineChildren.Count - 1) * gap;
+        float freeSpace = lineMainSize - totalFlexBasisSize - totalGapSize;
+
+        // 检查 auto margin。
+        int autoMarginCount = 0;
+        foreach (var info in childInfos)
+        {
+            var childStyle = info.Child.ComputedStyle;
+            if (isRow)
+            {
+                if (childStyle.MarginLeft.IsAuto) autoMarginCount++;
+                if (childStyle.MarginRight.IsAuto) autoMarginCount++;
+            }
+            else
+            {
+                if (childStyle.MarginTop.IsAuto) autoMarginCount++;
+                if (childStyle.MarginBottom.IsAuto) autoMarginCount++;
+            }
+        }
+
+        bool hasAutoMargins = autoMarginCount > 0 && freeSpace > 0;
+        float autoMarginSize = hasAutoMargins ? Math.Max(0, freeSpace) / autoMarginCount : 0;
+
+        // flex-grow / flex-shrink（仅当没有 auto margin 时）。
+        bool anyAdjustment = false;
+        if (!hasAutoMargins)
+        {
+            if (freeSpace > 0 && totalFlexGrow > 0)
+            {
+                anyAdjustment = true;
+                foreach (var info in childInfos)
+                {
+                    float growRatio = info.FlexGrow / totalFlexGrow;
+                    info.FinalSize = info.FlexBasis + freeSpace * growRatio;
+                }
+            }
+            else if (freeSpace < 0 && totalFlexShrinkWeighted > 0 && !mainSizeIsIndefinite)
+            {
+                anyAdjustment = true;
+                float shrinkAmount = -freeSpace;
+                foreach (var info in childInfos)
+                {
+                    float shrinkRatio = (info.FlexShrink * info.FlexBasis) / totalFlexShrinkWeighted;
+                    info.FinalSize = info.FlexBasis - shrinkAmount * shrinkRatio;
+                    info.FinalSize = Math.Max(0, info.FinalSize);
+                }
+            }
+        }
+
+        // 第二遍：用最终尺寸布局子元素并放置（含 gap）。
+        float lineStart = isRow ? lineX : lineY;
+        float lineCross = isRow ? lineY : lineX;
+        float currentMain = lineStart;
+        float maxCross = 0;
+
+        foreach (var info in childInfos)
+        {
+            var child = info.Child;
+            var childStyle = child.ComputedStyle;
+            float childFs = childStyle.FontSize.Value;
+
+            // 处理 auto margin。
+            float extraMarginBefore = 0, extraMarginAfter = 0;
+            if (hasAutoMargins)
+            {
+                if (isRow)
+                {
+                    if (childStyle.MarginLeft.IsAuto) extraMarginBefore = autoMarginSize;
+                    if (childStyle.MarginRight.IsAuto) extraMarginAfter = autoMarginSize;
+                }
+                else
+                {
+                    if (childStyle.MarginTop.IsAuto) extraMarginBefore = autoMarginSize;
+                    if (childStyle.MarginBottom.IsAuto) extraMarginAfter = autoMarginSize;
+                }
+                currentMain += extraMarginBefore;
+            }
+
+            bool needsResize = anyAdjustment && Math.Abs(info.FinalSize - info.FlexBasis) > 0.01f;
+
+            if (isRow)
+            {
+                float childMarginLeft = childStyle.MarginLeft.IsAuto ? 0 : childStyle.MarginLeft.ToPixels(lineMainSize, childFs);
+                float childMarginRight = childStyle.MarginRight.IsAuto ? 0 : childStyle.MarginRight.ToPixels(lineMainSize, childFs);
+                float? childAvailableHeight = lineCrossSize > 0 ? lineCrossSize : null;
+
+                // dispatch 把 margin-box 原点放到 currentMain；置子前不再修正坐标。
+                if (needsResize || !info.UsedAutoSize)
+                {
+                    // 显式尺寸或需 grow/shrink：用计算出的 content width 重新布局并强制宽度。
+                    float childBorderLeftWidth = childStyle.BorderLeftWidth.ToPixels(lineMainSize, childFs);
+                    float childBorderRightWidth = childStyle.BorderRightWidth.ToPixels(lineMainSize, childFs);
+                    float childPaddingLeft = childStyle.PaddingLeft.ToPixels(lineMainSize, childFs);
+                    float childPaddingRight = childStyle.PaddingRight.ToPixels(lineMainSize, childFs);
+
+                    float childContentWidth = info.FinalSize - childMarginLeft - childMarginRight
+                        - childBorderLeftWidth - childBorderRightWidth - childPaddingLeft - childPaddingRight;
+                    childContentWidth = Math.Max(0, childContentWidth);
+
+                    var childConstraints = new LayoutConstraints(childContentWidth, childAvailableHeight);
+                    LayoutDispatcher.Dispatch(child, childConstraints, currentMain, lineCross);
+                    child.BoxModel.Content = new RectF(
+                        child.BoxModel.Content.X, child.BoxModel.Content.Y,
+                        childContentWidth, child.BoxModel.Content.Height);
+                }
+                else
+                {
+                    // 自然尺寸（含文本）：不强制宽度，让子元素按内容布局。
+                    var childConstraints = new LayoutConstraints(null, childAvailableHeight);
+                    LayoutDispatcher.Dispatch(child, childConstraints, currentMain, lineCross);
+                }
+
+                // 子元素 margin-box 已放在 currentMain，下一项从其右缘开始（含 auto margin + gap）。
+                currentMain = child.BoxModel.MarginBox.Right + extraMarginAfter + gap;
+                maxCross = Math.Max(maxCross, child.BoxModel.MarginBox.Height);
+            }
+            else
+            {
+                float childMarginTop = childStyle.MarginTop.IsAuto ? 0 : childStyle.MarginTop.ToPixels(lineMainSize, childFs);
+                float childMarginBottom = childStyle.MarginBottom.IsAuto ? 0 : childStyle.MarginBottom.ToPixels(lineMainSize, childFs);
+                float? childAvailableWidth = lineCrossSize > 0 ? lineCrossSize : null;
+
+                if (needsResize || !info.UsedAutoSize)
+                {
+                    float childBorderTopWidth = childStyle.BorderTopWidth.ToPixels(lineMainSize, childFs);
+                    float childBorderBottomWidth = childStyle.BorderBottomWidth.ToPixels(lineMainSize, childFs);
+                    float childPaddingTop = childStyle.PaddingTop.ToPixels(lineMainSize, childFs);
+                    float childPaddingBottom = childStyle.PaddingBottom.ToPixels(lineMainSize, childFs);
+
+                    float childContentHeight = info.FinalSize - childMarginTop - childMarginBottom
+                        - childBorderTopWidth - childBorderBottomWidth - childPaddingTop - childPaddingBottom;
+                    childContentHeight = Math.Max(0, childContentHeight);
+
+                    var childConstraints = new LayoutConstraints(childAvailableWidth, childContentHeight);
+                    LayoutDispatcher.Dispatch(child, childConstraints, lineCross, currentMain);
+                    child.BoxModel.Content = new RectF(
+                        child.BoxModel.Content.X, child.BoxModel.Content.Y,
+                        child.BoxModel.Content.Width, childContentHeight);
+                }
+                else
+                {
+                    var childConstraints = new LayoutConstraints(childAvailableWidth, null);
+                    LayoutDispatcher.Dispatch(child, childConstraints, lineCross, currentMain);
+                }
+
+                currentMain = child.BoxModel.MarginBox.Bottom + extraMarginAfter + gap;
+                maxCross = Math.Max(maxCross, child.BoxModel.MarginBox.Width);
+            }
+        }
+
+        // 主轴对齐 (justify-content)：仅当本行无 flex-grow 时应用（grow 已占满主轴）。
+        // gap 已计入 totalMainUsed，使对齐基于含间距的实际占用。
+        if (totalFlexGrow == 0 && lineMainSize > 0)
+        {
+            float totalMainUsed = currentMain - lineStart - gap; // 去掉末尾多余 gap
+            ApplyLineJustifyContent(childInfos, lineStart, lineMainSize, totalMainUsed, isRow, justifyContent);
+        }
+
+        // 交叉轴对齐 (align-items)。
+        float crossExtent = lineCrossSize > 0 ? Math.Max(lineCrossSize, maxCross) : maxCross;
+        ApplyLineAlignItems(childInfos, lineCross, crossExtent, isRow, alignItems);
+
+        resultCrossSize = maxCross;
+    }
+
+    /// <summary>对一行/列的子元素应用 justify-content（主轴对齐）。</summary>
+    private void ApplyLineJustifyContent(List<FlexChildInfo> line, float start, float containerSize, float contentSize, bool isRow, JustifyContent justifyContent)
+    {
+        if (line.Count == 0) return;
+
+        float spacing = 0, offset = 0;
+        switch (justifyContent)
+        {
+            case Common.JustifyContent.FlexEnd: offset = containerSize - contentSize; break;
+            case Common.JustifyContent.Center: offset = (containerSize - contentSize) / 2; break;
+            case Common.JustifyContent.SpaceBetween:
+                if (line.Count > 1) spacing = (containerSize - contentSize) / (line.Count - 1);
+                break;
+            case Common.JustifyContent.SpaceAround:
+                spacing = (containerSize - contentSize) / line.Count; offset = spacing / 2; break;
+            case Common.JustifyContent.SpaceEvenly:
+                spacing = (containerSize - contentSize) / (line.Count + 1); offset = spacing; break;
+        }
+
+        for (int i = 0; i < line.Count; i++)
+        {
+            float itemOffset = offset + spacing * i;
+            if (Math.Abs(itemOffset) < 0.01f) continue;
+            if (isRow) OffsetSubtree(line[i].Child, itemOffset, 0);
+            else OffsetSubtree(line[i].Child, 0, itemOffset);
+        }
+    }
+
+    /// <summary>对一行/列的子元素应用 align-items（交叉轴对齐）。</summary>
+    private void ApplyLineAlignItems(List<FlexChildInfo> line, float crossStart, float crossSize, bool isRow, AlignItems alignItems)
+    {
+        foreach (var info in line)
+        {
+            var child = info.Child;
+            float childCrossSize = isRow ? child.BoxModel.MarginBox.Height : child.BoxModel.MarginBox.Width;
+            float offset = 0;
+
+            switch (alignItems)
+            {
+                case Common.AlignItems.FlexEnd: offset = crossSize - childCrossSize; break;
+                case Common.AlignItems.Center: offset = (crossSize - childCrossSize) / 2; break;
+                case Common.AlignItems.Stretch:
+                    if (isRow)
+                    {
+                        if (child.ComputedStyle.Height.IsAuto)
+                        {
+                            float target = Math.Max(0, crossSize - child.BoxModel.Margin.Vertical
+                                - child.BoxModel.Border.Vertical - child.BoxModel.Padding.Vertical);
+                            child.BoxModel.Content = new RectF(child.BoxModel.Content.X, child.BoxModel.Content.Y,
+                                child.BoxModel.Content.Width, target);
+                        }
+                    }
+                    else
+                    {
+                        if (child.ComputedStyle.Width.IsAuto)
+                        {
+                            float target = Math.Max(0, crossSize - child.BoxModel.Margin.Horizontal
+                                - child.BoxModel.Border.Horizontal - child.BoxModel.Padding.Horizontal);
+                            child.BoxModel.Content = new RectF(child.BoxModel.Content.X, child.BoxModel.Content.Y,
+                                target, child.BoxModel.Content.Height);
+                        }
+                    }
+                    break;
+            }
+
+            if (Math.Abs(offset) > 0.01f)
+            {
+                if (isRow) OffsetSubtree(child, 0, offset);
+                else OffsetSubtree(child, offset, 0);
+            }
+        }
     }
 }

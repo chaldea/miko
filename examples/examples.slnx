@@ -30,8 +30,10 @@
     <Project Path="Multiplatform/MikoAppTabs/MikoAppTabs.iOS/MikoAppTabs.iOS.csproj" />
     <Project Path="Multiplatform/MikoAppTabs/MikoAppTabs/MikoAppTabs.csproj" />
   </Folder>
-  <Folder Name="/Video/">
-    <Project Path="Video/MikoApp.Video/MikoApp.Video.csproj" />
+  <Folder Name="/Media/">
+    <Project Path="Media/MikoApp.Media.Api/MikoApp.Media.Api.csproj" />
+    <Project Path="Media/MikoApp.Media.Desktop/MikoApp.Media.Desktop.csproj" />
+    <Project Path="Media/MikoApp.Media/MikoApp.Media.csproj" />
   </Folder>
   <Folder Name="/Windows/">
     <Project Path="Windows/MikoAppBlank/MikoAppBlank.csproj" />

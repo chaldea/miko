@@ -33,7 +33,7 @@ public class VideoElementTests
 
         var video = root.ShouldBeOfType<VideoElement>();
         video.TagName.ShouldBe("video");
-        video.Source.ShouldBe("movie.mp4");
+        video.Source.Raw.ShouldBe("movie.mp4");
         video.AutoPlay.ShouldBeTrue();
         video.Loop.ShouldBeTrue();
         video.Muted.ShouldBeTrue();

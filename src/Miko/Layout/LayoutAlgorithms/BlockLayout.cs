@@ -457,8 +457,9 @@ public class BlockLayout
     }
 
     /// <summary>
-    /// replaced 元素（目前仅 video）的内禀尺寸（CSS 像素）。
-    /// 媒体已加载时返回真实尺寸；未知时回退到 HTML 默认 300×150。
+    /// replaced 元素（video / img）的内禀尺寸（CSS 像素）。
+    /// 媒体已加载时返回真实尺寸；video 未知时回退到 HTML 默认 300×150。
+    /// img 未加载完成时返回 (0, 0)（无内禀尺寸，需 CSS 显式定尺寸以避免加载前后的重排抖动）。
     /// 非 replaced 元素返回 (0, 0)。
     /// </summary>
     internal static (float width, float height) GetReplacedIntrinsicSize(Core.Element element)
@@ -468,6 +469,10 @@ public class BlockLayout
             float w = video.IntrinsicWidth ?? 300;
             float h = video.IntrinsicHeight ?? 150;
             return (w, h);
+        }
+        if (element is Core.DomElements.ImageElement image)
+        {
+            return (image.IntrinsicWidth ?? 0, image.IntrinsicHeight ?? 0);
         }
         return (0, 0);
     }

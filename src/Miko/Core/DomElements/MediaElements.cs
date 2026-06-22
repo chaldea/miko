@@ -1,16 +1,34 @@
+using Miko.Common;
 using Miko.Platform.Video;
 using SkiaSharp;
 
 namespace Miko.Core.DomElements;
 
 /// <summary>
-/// 图片元素
+/// 图片元素。<see cref="Source"/> 经统一资源管理器异步加载并解码为 <see cref="Bitmap"/>，
+/// 加载完成前可渲染 <see cref="Placeholder"/> 占位内容。
 /// </summary>
 public class ImageElement : Element
 {
     public override string TagName => "img";
-    public string? Source { get; set; }
+
+    /// <summary>图片源（file:// / res:// / http(s):// / data: / 裸路径）。</summary>
+    public MediaSource Source { get; set; }
+
+    /// <summary>占位图源（本地文件 / res://）。真实图片就绪前渲染，标准浏览器无此属性，为引擎扩展。</summary>
+    public string? Placeholder { get; set; }
+
+    /// <summary>已解码的位图（由引擎异步加载后写入）。</summary>
     public SKBitmap? Bitmap { get; internal set; }
+
+    /// <summary>占位图已解码的位图（首张真实图前绘制）。</summary>
+    internal SKBitmap? PlaceholderBitmap { get; set; }
+
+    /// <summary>
+    /// replaced 元素内禀尺寸（CSS 像素），加载完成后由引擎写入并触发重排。未知时为 null。
+    /// </summary>
+    internal int? IntrinsicWidth { get; set; }
+    internal int? IntrinsicHeight { get; set; }
 }
 
 /// <summary>
@@ -26,7 +44,7 @@ public class VideoElement : Element
     public override string TagName => "video";
 
     // ---- 声明式属性（HTML 风格）-------------------------------------------
-    public string? Source { get; set; }
+    public MediaSource Source { get; set; }
     public bool AutoPlay { get; set; }
     public bool Loop { get; set; }
     public bool Muted { get; set; }

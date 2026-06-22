@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "MikoApp.Media.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:64578;http://localhost:64579"
+    }
+  }
+}
