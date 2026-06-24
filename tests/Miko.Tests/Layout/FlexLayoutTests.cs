@@ -292,4 +292,109 @@ public class FlexLayoutTests
         root.Children[5].BoxModel.Content.X.ShouldBe(180);
         root.Children[5].BoxModel.Content.Y.ShouldBe(70);
     }
+
+    // ISSUE-064 §1.2: a flex COLUMN whose height comes from min-height (not an explicit height)
+    // must still vertically center its children (justify-content: center on the main axis) and
+    // horizontally center them (align-items: center on the cross axis). This mirrors
+    // ion-segment-button: a flex-column with min-height + align/justify center wrapping a small
+    // label. The bug was that justify-content was skipped because the main-axis size was still 0
+    // (the min-height was applied to the box only AFTER the children were placed).
+    [Fact]
+    public void FlexColumn_MinHeight_CentersChildVerticallyAndHorizontally()
+    {
+        // <button flex-col W=200 minH=40 align/justify center> <label 50x20/> </button>
+        // The button's height comes from min-height (40), taller than its 20px label, so the
+        // label must be vertically centered within the 40px (justify-content: center) and
+        // horizontally centered within the 200px (align-items: center).
+        var button = new DivElement { Class = "button" };
+        var label = new DivElement { Class = "label" };
+        button.AddChild(label);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new()
+            {
+                Rules = new List<StyleRule>
+                {
+                    new()
+                    {
+                        Selector = new ClassSelector("button"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column,
+                            AlignItems = AlignItems.Center,
+                            JustifyContent = JustifyContent.Center,
+                            Width = Length.Px(200),
+                            MinHeight = Length.Px(40),
+                        }
+                    },
+                    new()
+                    {
+                        Selector = new ClassSelector("label"),
+                        Style = new Style { Display = Display.Block, Width = Length.Px(50), Height = Length.Px(20) }
+                    },
+                }
+            }
+        };
+
+        var root = _layoutEngine.Layout(button, styleSheets, 800, 600);
+
+        var labelBox = root.Children[0];
+
+        // The button is 40px tall (min-height floors the 20px content).
+        root.BoxModel.Content.Height.ShouldBe(40);
+
+        // Horizontal centering (align-items: center, cross axis): the 50px label is centered
+        // in the 200px button → left edge at (200 - 50) / 2 = 75.
+        labelBox.BoxModel.Content.X.ShouldBe(75);
+
+        // Vertical centering (justify-content: center, main axis): the 20px label is centered
+        // in the 40px button → top edge at (40 - 20) / 2 = 10.
+        labelBox.BoxModel.Content.Y.ShouldBe(10);
+    }
+
+    // Same centering, but the column has an EXPLICIT height (control case). This already worked,
+    // so it guards against a regression in the explicit-height path.
+    [Fact]
+    public void FlexColumn_ExplicitHeight_CentersChildVerticallyAndHorizontally()
+    {
+        var button = new DivElement { Class = "button" };
+        var label = new DivElement { Class = "label" };
+        button.AddChild(label);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new()
+            {
+                Rules = new List<StyleRule>
+                {
+                    new()
+                    {
+                        Selector = new ClassSelector("button"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Column,
+                            AlignItems = AlignItems.Center,
+                            JustifyContent = JustifyContent.Center,
+                            Width = Length.Px(200),
+                            Height = Length.Px(40),
+                        }
+                    },
+                    new()
+                    {
+                        Selector = new ClassSelector("label"),
+                        Style = new Style { Display = Display.Block, Width = Length.Px(50), Height = Length.Px(20) }
+                    },
+                }
+            }
+        };
+
+        var root = _layoutEngine.Layout(button, styleSheets, 800, 600);
+        var labelBox = root.Children[0];
+
+        labelBox.BoxModel.Content.X.ShouldBe(75);  // (200 - 50) / 2
+        labelBox.BoxModel.Content.Y.ShouldBe(10);  // (40 - 20) / 2
+    }
 }

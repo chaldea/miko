@@ -62,7 +62,7 @@ public class RenderTreeBuilder
         if (_stack.Count > 0)
             _stack.Peek().AddChild(element);
         else
-            // 顶层元素：经 AttachToTree 处理多根（多个顶层元素自动包裹进一个 div），
+            // 顶层元素：经 AttachToTree 处理多根（多个顶层元素并入一个透明片段），
             // 避免后一个根覆盖前一个（如 <video/> 之后再跟条件块时丢失 video）。
             AttachToTree(element);
     }
@@ -187,12 +187,16 @@ public class RenderTreeBuilder
 
     public void AddContent(int seq, object? text)
     {
-        if (_stack.Count == 0 || text is null) return;
+        if (text is null) return;
+        // A RenderFragment may emit top-level elements (e.g. a transparent CascadingValue whose
+        // ChildContent is rendered with no open element on the stack), so invoke it regardless of
+        // stack depth. Only literal/text content requires an open element to attach to.
         if (text is RenderFragment fragment)
         {
             fragment(this);
             return;
         }
+        if (_stack.Count == 0) return;
         var str = text.ToString();
         if (string.IsNullOrEmpty(str)) return;
         var decoded = WebUtility.HtmlDecode(str);
@@ -229,15 +233,12 @@ public class RenderTreeBuilder
         var component = _componentStack.Pop();
         var element = component.Build();
         // Link the produced element back to its component so the component can be disposed
-        // (e.g. unsubscribe from events) when this element subtree is later discarded.
+        // (e.g. unsubscribe from events) when this element subtree is later discarded. When the
+        // component produced several top-level elements, `element` is a transparent FragmentElement
+        // that stays in the tree (and is skipped by layout); the callback lives on it as usual.
         element.DisposeCallback = component.DisposeInternal;
         if (_stack.Count > 0)
             _stack.Peek().AddChild(element);
-        else if (_componentStack.Count > 0)
-        {
-            // nested component scenario — shouldn't happen normally
-            AttachToTree(element);
-        }
         else
             AttachToTree(element);
     }
@@ -256,9 +257,10 @@ public class RenderTreeBuilder
     {
         if (_stack.Count > 0)
             throw new InvalidOperationException("Unclosed elements remain in the render tree.");
-        if (_root is null)
-            throw new InvalidOperationException("No elements were added to the render tree.");
-        return _root;
+        // A component that rendered nothing (e.g. a transparent CascadingValue with null
+        // ChildContent) yields an empty transparent FragmentElement rather than throwing. The
+        // empty fragment carries no layout box, so it represents "rendered nothing" faithfully.
+        return _root ??= new FragmentElement();
     }
 
     private static readonly Regex _tokenRegex = new(
@@ -337,8 +339,11 @@ public class RenderTreeBuilder
         }
     }
 
-    // 由多根包裹自动生成的 div（非用户书写）。用于把后续顶层元素平铺追加，避免逐层嵌套。
-    private DivElement? _syntheticRoot;
+    // 由多根自动生成的透明片段容器（非用户书写）。用于把全部顶层元素平铺承载。
+    // 它留在 DOM 树中作为组件的稳定根（供 StateHasChanged 原地重渲染），但对布局透明
+    // ——LayoutEngine 不为其建盒，而是把其子节点的盒子摊平进父级（等价 display:contents）。
+    // 见 FragmentElement 与 LayoutEngine.AppendChildLayoutBoxes。
+    private FragmentElement? _syntheticRoot;
 
     private void AttachToTree(Element element)
     {
@@ -354,11 +359,13 @@ public class RenderTreeBuilder
             return;
         }
 
-        // 出现第二个及以上顶层元素：用一个 div 平铺包裹全部顶层元素（而非逐层嵌套）。
+        // 出现第二个及以上顶层元素：用一个透明片段平铺承载全部顶层元素（而非逐层嵌套，
+        // 也不套不透明 div，避免破坏样式布局）。若已有根本身就是片段，则直接复用为承载容器。
         if (_syntheticRoot is null)
         {
-            _syntheticRoot = new DivElement();
-            _syntheticRoot.AddChild(_root);
+            _syntheticRoot = _root as FragmentElement ?? new FragmentElement();
+            if (!ReferenceEquals(_syntheticRoot, _root))
+                _syntheticRoot.AddChild(_root);
             _root = _syntheticRoot;
         }
         _syntheticRoot.AddChild(element);

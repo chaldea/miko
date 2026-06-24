@@ -17,10 +17,11 @@ public class RenderTreeBuilderTests
     }
 
     [Fact]
-    public void MultipleTopLevelElements_AreWrappedInDiv_NotOverwritten()
+    public void MultipleTopLevelElements_AreWrappedInTransparentFragment_NotOverwritten()
     {
-        // 多个顶层元素（如 <video/> 后跟条件块）必须全部保留，包裹进一个 div，
-        // 而不是后者覆盖前者（ISSUE-062 问题2：video 标签丢失）。
+        // 多个顶层元素（如 <video/> 后跟条件块）必须全部保留，承载进一个透明 FragmentElement，
+        // 而不是后者覆盖前者（ISSUE-062 问题2：video 标签丢失）。容器透明化是 ISSUE-066 问题1：
+        // 不再用不透明 <div> 包裹，以免破坏样式布局。
         var builder = new RenderTreeBuilder();
         builder.OpenElement(0, "video");
         builder.CloseElement();
@@ -29,7 +30,7 @@ public class RenderTreeBuilderTests
 
         var root = builder.Build();
 
-        var wrapper = root.ShouldBeOfType<DivElement>();
+        var wrapper = root.ShouldBeOfType<FragmentElement>();
         wrapper.Children.Count.ShouldBe(2);
         wrapper.Children[0].ShouldBeOfType<VideoElement>();
         wrapper.Children[1].ShouldBeOfType<DivElement>();
@@ -46,7 +47,7 @@ public class RenderTreeBuilderTests
         builder.OpenElement(2, "p");
         builder.CloseElement();
 
-        var wrapper = builder.Build().ShouldBeOfType<DivElement>();
+        var wrapper = builder.Build().ShouldBeOfType<FragmentElement>();
         wrapper.Children.Count.ShouldBe(3);
         wrapper.Children[0].ShouldBeOfType<VideoElement>();
         wrapper.Children[1].ShouldBeOfType<SpanElement>();
@@ -129,11 +130,14 @@ public class RenderTreeBuilderTests
     }
 
     [Fact]
-    public void Build_EmptyBuilder_Throws()
+    public void Build_EmptyBuilder_ReturnsEmptyTransparentFragment()
     {
+        // A component that renders nothing (e.g. a transparent CascadingValue with null
+        // ChildContent) yields an empty FragmentElement rather than throwing.
         var builder = new RenderTreeBuilder();
 
-        Should.Throw<InvalidOperationException>(() => builder.Build());
+        var root = builder.Build().ShouldBeOfType<FragmentElement>();
+        root.Children.ShouldBeEmpty();
     }
 
     [Fact]

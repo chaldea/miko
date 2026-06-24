@@ -77,6 +77,44 @@ public class StyleResolverTests
         computed.PaddingLeft.Value.ShouldBe(6);
         computed.BorderTopWidth.Value.ShouldBe(2);
         computed.BorderTopStyle.ShouldBe(BorderStyle.Solid);
+        // Browsers center button text by default (UA stylesheet text-align: center).
+        computed.TextAlign.ShouldBe(TextAlign.Center);
+    }
+
+    [Fact]
+    public void Resolve_ForButtonElement_CenterTextAlign_BeatsInheritedLeft()
+    {
+        // A button inside a left-aligned parent must still center its own text — the UA default
+        // (text-align: center) is applied before inheritance, so it wins over the inherited Left.
+        var resolver = new StyleResolver();
+        var parent = new DivElement
+        {
+            Style = new Style { TextAlign = TextAlign.Left }
+        };
+        var button = new ButtonElement { TextContent = "Click" };
+        parent.AddChild(button);
+
+        var parentComputed = resolver.Resolve(parent, []);
+        parent.LayoutBox = new LayoutBox { Element = parent, ComputedStyle = parentComputed };
+
+        var buttonComputed = resolver.Resolve(button, []);
+        buttonComputed.TextAlign.ShouldBe(TextAlign.Center);
+    }
+
+    [Fact]
+    public void Resolve_ForButtonElement_ExplicitTextAlign_OverridesUaDefault()
+    {
+        // An author rule should still override the UA default (??= leaves an explicit value).
+        var styleSheet = new StyleSheet();
+        styleSheet.Rules.Add(new StyleRule
+        {
+            Selector = new Miko.Styling.Selectors.TagSelector("button"),
+            Style = new Style { TextAlign = TextAlign.Left }
+        });
+
+        var computed = new StyleResolver().Resolve(new ButtonElement { TextContent = "Click" }, [styleSheet]);
+
+        computed.TextAlign.ShouldBe(TextAlign.Left);
     }
 
     [Fact]

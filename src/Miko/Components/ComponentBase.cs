@@ -1,6 +1,8 @@
 ﻿using Miko.Core;
 using Miko.Layout;
 using Miko.Routing;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace Miko.Components;
 
@@ -49,6 +51,12 @@ public abstract class ComponentBase : IComponent
 
     public virtual Element Build()
     {
+        // Resolve cascading parameters first, so they're available inside the lifecycle methods
+        // below (matches Blazor, where cascading values arrive with the initial parameter set).
+        // The ambient values are in scope because the providing CascadingValue<T>.Build is still
+        // on the call stack (see CascadingValueSource).
+        SetCascadingParameters();
+
         if (!_initialized)
         {
             OnInitialized();
@@ -163,9 +171,32 @@ public abstract class ComponentBase : IComponent
 
     private Element BuildNew()
     {
+        SetCascadingParameters();
         var builder = new RenderTreeBuilder();
         BuildRenderTree(builder);
         return builder.Build();
+    }
+
+    /// <summary>
+    /// Populates this component's <see cref="CascadingParameterAttribute"/> properties from the
+    /// ambient <see cref="CascadingValueSource"/>. Mirrors how <c>[Inject]</c> is resolved by
+    /// reflection in <see cref="RouteView"/>. Properties with no matching provider are left
+    /// untouched (keep their default).
+    /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "Cascading parameter properties are declared on the component type and preserved with it.")]
+    private void SetCascadingParameters()
+    {
+        var properties = GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        foreach (var prop in properties)
+        {
+            if (!prop.CanWrite) continue;
+            var attr = prop.GetCustomAttribute<CascadingParameterAttribute>();
+            if (attr == null) continue;
+
+            if (CascadingValueSource.TryResolve(prop.PropertyType, attr.Name, out var value))
+                prop.SetValue(this, value);
+        }
     }
 
     private static void ReplaceElementContent(Element target, Element source)
