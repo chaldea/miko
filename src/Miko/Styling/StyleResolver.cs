@@ -216,7 +216,7 @@ public class StyleResolver
                 break;
 
             case "button":
-                // Browser default: display: inline-block, padding: 2px 6px
+                // Browser default: display: inline-block, padding: 2px 6px, text-align: center
                 // Note: Border appearance simplified (browsers use 'outset' style)
                 style.Display ??= Common.Display.InlineBlock;
                 style.BoxSizing ??= Common.BoxSizing.BorderBox;
@@ -227,6 +227,8 @@ public class StyleResolver
                 style.BorderWidth ??= Common.Length.Px(2);
                 style.BorderStyle ??= Common.BorderStyle.Solid;
                 style.BorderColor ??= Common.Color.Gray;
+                // Browsers center button text by default (UA stylesheet text-align: center).
+                style.TextAlign ??= Common.TextAlign.Center;
                 break;
 
             case "input":

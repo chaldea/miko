@@ -107,6 +107,27 @@ public class FlexLayout
         bool isRow = style.FlexDirection == FlexDirection.Row ||
                      style.FlexDirection == FlexDirection.RowReverse;
 
+        // 2b. 当尺寸为 auto 时，提前用 min-height / min-width 抬升内容区尺寸，再交给行/列布局。
+        // 这样当容器（如 ion-segment-button）靠 min-height 撑出高度、但内容更小时，主轴上的
+        // justify-content 能在该 min 尺寸内居中子元素（否则主轴尺寸仍为 0，对齐被跳过，子元素贴边）。
+        // 交叉轴上的 align-items 同理受 min-width / min-height 影响。
+        // 注意：min 只在 auto 维度上抬升占位尺寸，不影响显式尺寸（显式尺寸已是确定值）。
+        if (style.Height.IsAuto && !style.MinHeight.IsAuto)
+        {
+            float minH = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+            if (style.BoxSizing == BoxSizing.BorderBox)
+                minH = Math.Max(0, minH - box.BoxModel.Border.Vertical - box.BoxModel.Padding.Vertical);
+            contentHeight = Math.Max(contentHeight, minH);
+        }
+        if (style.Width.IsAuto && !style.MinWidth.IsAuto)
+        {
+            float minW = style.MinWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
+            if (style.BoxSizing == BoxSizing.BorderBox)
+                minW = Math.Max(0, minW - box.BoxModel.Border.Horizontal - box.BoxModel.Padding.Horizontal);
+            contentWidth = Math.Max(contentWidth, minW);
+            if (contentWidth > 0) widthIsIndefinite = false;
+        }
+
         // 4. 布局子元素
         float contentX = x + box.BoxModel.Margin.Left + box.BoxModel.Border.Left + box.BoxModel.Padding.Left;
         float contentY = y + box.BoxModel.Margin.Top + box.BoxModel.Border.Top + box.BoxModel.Padding.Top;

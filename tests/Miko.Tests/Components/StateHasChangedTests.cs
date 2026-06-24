@@ -236,4 +236,66 @@ public class StateHasChangedTests
         parent.Bump();
         DisposableChildComponent.DisposeCount.ShouldBe(1);
     }
+
+    // A page that renders two top-level elements (a FragmentElement root) and owns state, like
+    // a multi-root Razor page using a Layout (ISSUE-066 问题1).
+    private class MultiRootCounterPage : ComponentBase
+    {
+        private int _count;
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "div");
+            builder.AddContent(1, $"a:{_count}");
+            builder.CloseElement();
+            builder.OpenElement(2, "div");
+            builder.AddContent(3, $"b:{_count}");
+            builder.CloseElement();
+        }
+
+        public void Increment()
+        {
+            _count++;
+            StateHasChanged();
+        }
+    }
+
+    [Fact]
+    public void StateHasChanged_MultiRootPage_WithoutParent_UpdatesInPlace()
+    {
+        // No-layout case: the fragment root has no parent → ReplaceElementContent branch.
+        var page = new MultiRootCounterPage();
+        var root = page.Build();
+
+        root.ShouldBeOfType<FragmentElement>();
+        root.Parent.ShouldBeNull();
+        root.Children[0].TextContent.ShouldBe("a:0");
+        root.Children[1].TextContent.ShouldBe("b:0");
+
+        page.Increment();
+
+        // The engine holds the same fragment reference; its children are updated in place.
+        root.Children[0].TextContent.ShouldBe("a:1");
+        root.Children[1].TextContent.ShouldBe("b:1");
+    }
+
+    [Fact]
+    public void StateHasChanged_MultiRootPage_WithParent_ReplacesFragmentInParent()
+    {
+        // Layout case: the fragment root is a child of the layout's <div class="root">.
+        var page = new MultiRootCounterPage();
+        var root = page.Build();
+        var layoutRoot = new DivElement { Class = "root" };
+        layoutRoot.AddChild(root);
+
+        layoutRoot.Children.Count.ShouldBe(1);
+
+        page.Increment();
+
+        // A single fragment child remains (replaced, not duplicated) and reflects the new state.
+        layoutRoot.Children.Count.ShouldBe(1);
+        var fragment = layoutRoot.Children[0].ShouldBeOfType<FragmentElement>();
+        fragment.Children[0].TextContent.ShouldBe("a:1");
+        fragment.Children[1].TextContent.ShouldBe("b:1");
+    }
 }

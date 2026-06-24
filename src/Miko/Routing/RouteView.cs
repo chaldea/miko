@@ -39,11 +39,18 @@ public class RouteView
         if (_defaultLayout != null)
         {
             var layout = (LayoutComponentBase)CreateComponent(_defaultLayout);
+            // The page content (possibly a transparent multi-root FragmentElement) is placed into
+            // the layout's body. The fragment stays in the DOM as the page's stable root, but the
+            // layout engine skips it (display:contents), so no wrapper element disturbs the layout.
             layout.BodyElement = content;
             layout.Body = builder => { builder.AttachElement(content); };
             return layout.Build();
         }
 
+        // No layout: the page is the engine's root. A multi-root page is a transparent
+        // FragmentElement; the layout engine treats a root-level fragment as the (permitted)
+        // auto-created wrapper, so it can be returned as-is — keeping it as the component's
+        // stable root so StateHasChanged can re-render it in place.
         return content;
     }
 

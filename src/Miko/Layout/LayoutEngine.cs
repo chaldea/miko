@@ -261,11 +261,7 @@ public class LayoutEngine
         // 递归构建子元素的布局树
         foreach (var child in element.Children)
         {
-            var childLayoutBox = BuildLayoutTree(child, styleSheets);
-            if (childLayoutBox != null)
-            {
-                layoutBox.Children.Add(childLayoutBox);
-            }
+            AppendChildLayoutBoxes(layoutBox, child, styleSheets);
         }
 
         // 注入 ::after 伪元素
@@ -276,6 +272,32 @@ public class LayoutEngine
         }
 
         return layoutBox;
+    }
+
+    /// <summary>
+    /// 将 <paramref name="child"/> 的布局盒加入 <paramref name="parentBox"/>。
+    /// <see cref="FragmentElement"/> 是透明容器：不为其自身建盒，而是把其子节点的布局盒
+    /// 直接摊平进父盒（等价 CSS <c>display: contents</c>）。片段留在 DOM 树中作为多根组件的
+    /// 稳定根（供 StateHasChanged 原地重渲染），但在布局上不产生任何包裹盒，从而不影响样式。
+    /// 注意：当片段本身是布局根（无父，如无 Layout 的多根页面）时不经此路径，而是按普通块盒
+    /// 充当 issue 所允许的"自动创建的根包裹"。
+    /// </summary>
+    private void AppendChildLayoutBoxes(LayoutBox parentBox, Element child, List<StyleSheet> styleSheets)
+    {
+        if (child is FragmentElement)
+        {
+            foreach (var grandChild in child.Children)
+            {
+                AppendChildLayoutBoxes(parentBox, grandChild, styleSheets);
+            }
+            return;
+        }
+
+        var childLayoutBox = BuildLayoutTree(child, styleSheets);
+        if (childLayoutBox != null)
+        {
+            parentBox.Children.Add(childLayoutBox);
+        }
     }
 
     private LayoutBox? CreatePseudoElementBox(Element element, List<StyleSheet> styleSheets, PseudoElementType type)
