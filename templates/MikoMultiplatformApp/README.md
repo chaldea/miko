@@ -9,6 +9,7 @@ components for its UI, rendered with SkiaSharp on Desktop, Android and iOS.
 | ------------------------------- | ------------------------------------------------------------ |
 | `MikoMultiplatformApp`          | Shared UI (Razor components, styles) and app configuration.  |
 | `MikoMultiplatformApp.Desktop`  | Desktop startup (Windows/Linux/macOS) — uses `Miko.Windowing`. |
+| `MikoMultiplatformApp.Simulator`| Device simulator (Windows/Linux/macOS) — uses `Miko.Simulator`. |
 | `MikoMultiplatformApp.Android`  | Android startup — uses `Miko.Android`.                       |
 | `MikoMultiplatformApp.iOS`      | iOS startup — uses `Miko.iOS`.                               |
 
@@ -22,6 +23,12 @@ Desktop:
 
 ```bash
 dotnet run --project MikoMultiplatformApp.Desktop
+```
+
+Device simulator (preview app with device chrome and settings panel):
+
+```bash
+dotnet run --project MikoMultiplatformApp.Simulator
 ```
 
 Android (device/emulator connected, `android` workload installed):
