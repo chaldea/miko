@@ -8,6 +8,7 @@
     <Project Path="../src/Miko.Bootstrap/Miko.Bootstrap.csproj" />
     <Project Path="../src/Miko.DevTools/Miko.DevTools.csproj" />
     <Project Path="../src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj" />
+    <Project Path="../src/Miko.Simulator/Miko.Simulator.csproj" />
     <Project Path="../src/Miko.Windowing/Miko.Windowing.csproj" />
     <Project Path="../src/Miko/Miko.csproj" />
   </Folder>
@@ -16,18 +17,21 @@
     <Project Path="Multiplatform/MikoAppBlank/MikoAppBlank.Android/MikoAppBlank.Android.csproj" />
     <Project Path="Multiplatform/MikoAppBlank/MikoAppBlank.Desktop/MikoAppBlank.Desktop.csproj" />
     <Project Path="Multiplatform/MikoAppBlank/MikoAppBlank.iOS/MikoAppBlank.iOS.csproj" />
+    <Project Path="Multiplatform/MikoAppBlank/MikoAppBlank.Simulator/MikoAppBlank.Simulator.csproj" />
     <Project Path="Multiplatform/MikoAppBlank/MikoAppBlank/MikoAppBlank.csproj" />
   </Folder>
   <Folder Name="/Multiplatform/MikoAppSidemenu/">
     <Project Path="Multiplatform/MikoAppSidemenu/MikoAppSidemenu.Android/MikoAppSidemenu.Android.csproj" />
     <Project Path="Multiplatform/MikoAppSidemenu/MikoAppSidemenu.Desktop/MikoAppSidemenu.Desktop.csproj" />
     <Project Path="Multiplatform/MikoAppSidemenu/MikoAppSidemenu.iOS/MikoAppSidemenu.iOS.csproj" />
+    <Project Path="Multiplatform/MikoAppSidemenu/MikoAppSidemenu.Simulator/MikoAppSidemenu.Simulator.csproj" />
     <Project Path="Multiplatform/MikoAppSidemenu/MikoAppSidemenu/MikoAppSidemenu.csproj" />
   </Folder>
   <Folder Name="/Multiplatform/MikoAppTabs/">
     <Project Path="Multiplatform/MikoAppTabs/MikoAppTabs.Android/MikoAppTabs.Android.csproj" />
     <Project Path="Multiplatform/MikoAppTabs/MikoAppTabs.Desktop/MikoAppTabs.Desktop.csproj" />
     <Project Path="Multiplatform/MikoAppTabs/MikoAppTabs.iOS/MikoAppTabs.iOS.csproj" />
+    <Project Path="Multiplatform/MikoAppTabs/MikoAppTabs.Simulator/MikoAppTabs.Simulator.csproj" />
     <Project Path="Multiplatform/MikoAppTabs/MikoAppTabs/MikoAppTabs.csproj" />
   </Folder>
   <Folder Name="/Media/">

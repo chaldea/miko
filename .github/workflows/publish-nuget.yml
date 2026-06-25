@@ -50,6 +50,7 @@ jobs:
             src/Miko.DevTools/Miko.DevTools.csproj \
             src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj \
             src/Miko.Windowing/Miko.Windowing.csproj \
+            src/Miko.Simulator/Miko.Simulator.csproj \
             src/Miko.Android/Miko.Android.csproj \
             src/Miko.iOS/Miko.iOS.csproj
           do
