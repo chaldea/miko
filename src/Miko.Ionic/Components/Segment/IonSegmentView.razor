@@ -1,0 +1,20 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-segment-view>: a container that shows exactly one child
+   <ion-segment-content> at a time. The active content id (Value) is cascaded down (named
+   "SegmentViewValue") so each content element knows whether it is active or hidden.
+   The host page owns Value and binds the same field to the segment's ValueChanged to coordinate
+   which button is selected and which content is shown. *@
+<div class="ion-segment-view">
+    <CascadingValue TValue="string" Name="SegmentViewValue" Value="@Value">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>
+    /// The id of the currently visible <see cref="IonSegmentContent"/>. Bind the same field
+    /// from the host that drives the segment's selected value so the segment and view coordinate.
+    /// </summary>
+    [Parameter] public string? Value { get; set; }
+}

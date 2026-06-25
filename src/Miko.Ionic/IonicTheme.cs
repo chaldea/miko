@@ -98,6 +98,17 @@ public class IonicTheme
     public Color ItemBorderColor { get; set; }
     public float ItemPaddingStart { get; set; } = 16f;
 
+    // Segment
+    public Color SegmentBackground { get; set; }
+    public Color SegmentButtonColor { get; set; }
+    public Color SegmentButtonCheckedBackground { get; set; }
+    public Color SegmentButtonCheckedColor { get; set; }
+    public float SegmentButtonFontSize { get; set; } = 12f;
+    public float SegmentButtonMaxWidth { get; set; } = 168f;
+    public float SegmentButtonMinHeight { get; set; } = 32f;
+    public float SegmentButtonPaddingX { get; set; } = 8f;
+    public float SegmentButtonPaddingY { get; set; } = 4f;
+
     // Brand palette shared by both modes (ionic.theme.default.scss).
     private static void ApplyBrandColors(IonicTheme t)
     {
@@ -189,6 +200,19 @@ public class IonicTheme
         t.ItemColor = Color.FromHex("000000");
         t.ItemBorderColor = new Color(0, 0, 0, 18);              // rgba(0,0,0,.07)
         t.ItemPaddingStart = 16f;
+
+        // Segment (segment.md.scss / segment-button.md.scss): translucent track, primary
+        // checked indicator with white text (MD 7+ solid-pill style).
+        t.SegmentBackground = new Color(0, 0, 0, 13);            // rgba(0,0,0,.05) light track
+        t.SegmentButtonColor = Color.FromHex("595959");          // step-350
+        t.SegmentButtonCheckedBackground = t.Primary;
+        t.SegmentButtonCheckedColor = Color.FromHex("ffffff");
+        t.SegmentButtonFontSize = 12f;
+        t.SegmentButtonMaxWidth = 168f;
+        t.SegmentButtonMinHeight = 32f;
+        t.SegmentButtonPaddingX = 8f;
+        t.SegmentButtonPaddingY = 4f;
+
         return t;
     }
 
@@ -251,6 +275,19 @@ public class IonicTheme
         t.ItemColor = Color.FromHex("000000");
         t.ItemBorderColor = new Color(0, 0, 0, 51);             // rgba(0,0,0,.2)
         t.ItemPaddingStart = 16f;
+
+        // Segment (segment.ios.scss / segment-button.ios.scss): iOS uses similar translucent
+        // track, primary checked indicator. Slightly different typography/spacing.
+        t.SegmentBackground = new Color(0, 0, 0, 13);            // rgba(0,0,0,.05)
+        t.SegmentButtonColor = Color.FromHex("737373");          // step-400
+        t.SegmentButtonCheckedBackground = t.Primary;
+        t.SegmentButtonCheckedColor = Color.FromHex("ffffff");
+        t.SegmentButtonFontSize = 13f;                           // iOS slightly larger
+        t.SegmentButtonMaxWidth = 240f;                          // iOS wider max
+        t.SegmentButtonMinHeight = 28f;                          // iOS slightly shorter
+        t.SegmentButtonPaddingX = 6f;
+        t.SegmentButtonPaddingY = 4f;
+
         return t;
     }
 }

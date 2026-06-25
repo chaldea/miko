@@ -1,0 +1,31 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-segment-content>: one page of content inside an <ion-segment-view>.
+   Reads the active content id from the enclosing view (named cascaded string "SegmentViewValue")
+   and hides itself (display:none) when its Id doesn't match. *@
+<div id="@Id" class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>
+    /// This content's identifier, matched against the segment view's active value.
+    /// Emitted as the element's <c>id</c> attribute so tests/host can <c>FindById</c>.
+    /// </summary>
+    [Parameter] public string? Id { get; set; }
+
+    /// <summary>The active content id supplied by the enclosing <see cref="IonSegmentView"/>.</summary>
+    [CascadingParameter(Name = "SegmentViewValue")]
+    public string? ActiveId { get; set; }
+
+    /// <summary>True when this content is the active one shown in the view.</summary>
+    public bool IsActive { get; private set; }
+
+    private string _cssClass = "ion-segment-content";
+
+    protected override void OnParametersSet()
+    {
+        IsActive = !string.IsNullOrEmpty(Id) && Id == ActiveId;
+        _cssClass = IsActive ? "ion-segment-content" : "ion-segment-content segment-content-hidden";
+    }
+}

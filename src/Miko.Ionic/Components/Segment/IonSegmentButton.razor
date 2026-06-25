@@ -1,0 +1,51 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-segment-button>: one selectable button inside an <ion-segment>.
+   Reads the segment's selection state from the cascaded IonSegmentContext to decide whether it
+   is checked, and asks the segment to select it on tap. ContentId links it to an
+   <ion-segment-content> shown in a sibling <ion-segment-view>. *@
+<button class="@_cssClass" @onclick="HandleClick">
+    @ChildContent
+</button>
+
+@code {
+    /// <summary>This button's value; becomes the segment's selected value when tapped.</summary>
+    [Parameter] public string Value { get; set; } = string.Empty;
+
+    /// <summary>Id of the <see cref="IonSegmentContent"/> this button activates in a segment view.</summary>
+    [Parameter] public string? ContentId { get; set; }
+
+    /// <summary>When true this individual button is dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Content arrangement (Ionic <c>layout</c>: <c>"icon-top"</c>, <c>"icon-start"</c>, …).
+    /// Kept for API parity; emitted as a marker class only in this base port.
+    /// </summary>
+    [Parameter] public string? Layout { get; set; }
+
+    /// <summary>Selection/select callback supplied by the enclosing <see cref="IonSegment"/>.</summary>
+    [CascadingParameter] public IonSegmentContext? SegmentContext { get; set; }
+
+    /// <summary>True when this button's value matches the segment's selected value.</summary>
+    public bool Selected { get; private set; }
+
+    private string _cssClass = "ion-segment-button";
+
+    protected override void OnParametersSet()
+    {
+        Selected = SegmentContext is not null && SegmentContext.Value == Value;
+
+        var cls = "ion-segment-button";
+        if (Selected) cls += " segment-button-checked";
+        if (Disabled) cls += " segment-button-disabled";
+        if (!string.IsNullOrEmpty(Layout)) cls += $" segment-button-layout-{Layout}";
+        _cssClass = cls;
+    }
+
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled || SegmentContext is null) return;
+        await SegmentContext.Select.InvokeAsync(Value);
+    }
+}

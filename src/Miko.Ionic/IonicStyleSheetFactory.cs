@@ -18,6 +18,7 @@ public static class IonicStyleSheetFactory
         sheet.Add(LabelStyles.GenStyle(theme));
         sheet.Add(MenuStyles.GenStyle(theme));
         sheet.Add(ListStyles.GenStyle(theme));
+        sheet.Add(SegmentStyles.GenStyle(theme));
         return sheet;
     }
 }

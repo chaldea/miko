@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MikoAppTabs\MikoAppTabs.csproj" />
-    <PackageReference Include="Miko.Windowing" Version="0.0.12" />
+    <ProjectReference Include="..\..\..\..\src\Miko.Windowing\Miko.Windowing.csproj" />
   </ItemGroup>
 
 </Project>
