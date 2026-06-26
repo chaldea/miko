@@ -561,33 +561,49 @@ public class RenderEngine
         if (!string.IsNullOrEmpty(element.TextContent))
         {
             var style = box.ComputedStyle;
-            // button 元素的文本应垂直居中（与浏览器行为一致）
-            var verticalAlign = element is Miko.Core.DomElements.ButtonElement
-                ? VerticalAlign.Middle
-                : VerticalAlign.Top;
+            var content = box.BoxModel.Content;
+
+            // 文本绘制矩形与垂直对齐：
+            // - button 默认像 flex 容器一样把文本居中于整个内容盒；
+            // - 其余元素遵循 CSS 行盒（line box）模型：文本位于高度为 line-height 的行盒内，
+            //   行距（leading）平均分配到上下两侧（half-leading），使文本在行盒内垂直居中。
+            //   行盒锚定在内容盒顶部，高度取 line-height（未显式设置时回退到字体度量），
+            //   因此当元素只有文本时（内容高 = line-height）文本居中于内容盒（参见 ISSUE-070），
+            //   而自然行高下行盒高 ≈ 字体高，居中与顶对齐等价（无回归）。
+            RectF textRect;
+            if (element is Miko.Core.DomElements.ButtonElement)
+            {
+                textRect = content;
+            }
+            else
+            {
+                float lineBoxHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);
+                textRect = new RectF(content.X, content.Y, content.Width, lineBoxHeight);
+            }
 
             _painter.DrawText(
                 element.TextContent,
-                box.BoxModel.Content,
+                textRect,
                 style.Color,
                 style.FontFamily,
                 style.FontSize.Value,
                 style.FontWeight,
                 style.TextAlign,
-                verticalAlign
+                VerticalAlign.Middle
             );
 
             if (style.TextDecoration != Common.TextDecoration.None)
             {
                 _painter.DrawTextDecoration(
                     element.TextContent,
-                    box.BoxModel.Content,
+                    textRect,
                     style.Color,
                     style.FontFamily,
                     style.FontSize.Value,
                     style.FontWeight,
                     style.TextAlign,
-                    style.TextDecoration
+                    style.TextDecoration,
+                    VerticalAlign.Middle
                 );
             }
         }

@@ -5,18 +5,22 @@ namespace Miko.Ionic.Components;
 
 /// <summary>
 /// Styles for the tab layout components (<c>ion-tabs</c>, <c>ion-tab-bar</c>,
-/// <c>ion-tab-button</c>). Ported from the Ionic Material Design source:
-/// <c>tabs.scss</c>, <c>tab-bar.scss</c> / <c>tab-bar.md.scss</c>,
-/// <c>tab-button.scss</c> / <c>tab-button.md.scss</c>.
+/// <c>ion-tab-button</c>). Ported from the Ionic source:
+/// <c>tabs.scss</c>, <c>tab-bar.scss</c> / <c>tab-bar.md.scss</c> / <c>tab-bar.ios.scss</c>,
+/// <c>tab-button.scss</c> / <c>tab-button.md.scss</c> / <c>tab-button.ios.scss</c>.
+/// <para>
+/// Rules are scoped by the active mode class (<c>md</c> / <c>ios</c>); see
+/// <see cref="PageStyles"/> for the mode-scoping rationale.
+/// </para>
 /// </summary>
 internal static class TabStyles
 {
-    internal static CssObject GenStyle(IonicTheme t)
+    internal static CssObject GenStyle(string mode, IonicTheme t)
     {
         return new CssObject
         {
             // ion-tabs — flex column container that fills its parent.
-            [".ion-tabs"] = new()
+            [$".ion-tabs.{mode}"] = new()
             {
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Column,
@@ -28,7 +32,7 @@ internal static class TabStyles
             // A flex column so its child page fills the available height. OverflowY:Hidden
             // makes it adopt the flex-assigned height as its content height (so the grow
             // child page is sized correctly) instead of collapsing to a zero basis.
-            [".tabs-inner"] = new()
+            [$".ion-tabs.{mode} .tabs-inner"] = new()
             {
                 FlexGrow = 1,
                 FlexShrink = 1,
@@ -43,7 +47,7 @@ internal static class TabStyles
             // edge under the system navigation bar / home indicator; env(safe-area-inset-bottom)
             // pads it so the buttons clear that band while the bar background fills behind it.
             // Zero-inset platforms (desktop) resolve the env() length to 0 (no-op).
-            [".ion-tab-bar"] = new()
+            [$".ion-tab-bar.{mode}"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
@@ -59,19 +63,19 @@ internal static class TabStyles
             },
 
             // slot="bottom" (default): border on top.
-            [".ion-tab-bar-bottom"] = new()
+            [$".ion-tab-bar.{mode}.ion-tab-bar-bottom"] = new()
             {
                 BorderTop = new BorderSide(Length.Px(t.TabBarBorderWidth), BorderStyle.Solid, t.TabBarBorderColor),
             },
 
             // slot="top": border on the bottom instead.
-            [".ion-tab-bar-top"] = new()
+            [$".ion-tab-bar.{mode}.ion-tab-bar-top"] = new()
             {
                 BorderBottom = new BorderSide(Length.Px(t.TabBarBorderWidth), BorderStyle.Solid, t.TabBarBorderColor),
             },
 
             // ion-tab-button — each button: icon stacked above label, vertically centered.
-            [".ion-tab-button"] = new()
+            [$".ion-tab-button.{mode}"] = new()
             {
                 FlexGrow = 1,
                 FlexShrink = 1,
@@ -90,7 +94,7 @@ internal static class TabStyles
             },
 
             // Selected tab button takes the selected (primary) color.
-            [".ion-tab-button.tab-selected"] = new()
+            [$".ion-tab-button.{mode}.tab-selected"] = new()
             {
                 Color = t.TabBarColorSelected,
             },

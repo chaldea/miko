@@ -24,6 +24,10 @@ public class MikoAppBuilder
         builder.Services.AddOptions<MikoAppOptions>();
         builder.Services.AddSingleton<AnimationManager>();
         builder.Services.AddSingleton<NavigationManager>();
+        // Host platform info (auto-detected from the OS). Singleton so platform hosts / the
+        // device simulator can resolve and override it; component libraries derive UI choices
+        // from it (e.g. Miko.Ionic's md/ios mode).
+        builder.Services.AddSingleton<Platform.IPlatformInfo, Platform.PlatformInfo>();
         builder.Services.AddSingleton<LayoutEngine>();
         builder.Services.AddSingleton<RenderEngine>();
         builder.Services.AddSingleton<DirtyRegionManager>();

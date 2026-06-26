@@ -14,7 +14,7 @@ public class IonHeaderTests : IonicComponentTestBase
 
         // Assert - DOM structure
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-header");
+        cut.Root.Class.ShouldBe("md ion-header");
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class IonHeaderTests : IonicComponentTestBase
 
         // Assert - DOM structure is the component contract
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-header");
+        cut.Root.Class.ShouldBe("md ion-header");
         cut.Root.Children.Count.ShouldBe(0); // No children when ChildContent is empty
     }
 }

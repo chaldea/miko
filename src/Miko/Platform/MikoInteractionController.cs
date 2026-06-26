@@ -116,6 +116,13 @@ public sealed class MikoInteractionController
     /// <summary>热重载/路由变更后是否需要重建 DOM 树。</summary>
     public bool NeedsRebuild => _needsRebuild;
 
+    /// <summary>
+    /// 请求在下一帧重建整个 DOM 树（在锁保护下由 <see cref="RenderFrame"/> 执行）。
+    /// 供平台宿主在影响整棵树的外部状态变化后调用——例如模拟器切换设备/平台后，
+    /// 让 Ionic 组件以新的 mode 重新渲染。
+    /// </summary>
+    public void RequestRebuild() => _needsRebuild = true;
+
     // ---------------------------------------------------------------------
     // 生命周期
     // ---------------------------------------------------------------------

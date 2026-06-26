@@ -5,17 +5,21 @@ namespace Miko.Ionic.Components;
 
 /// <summary>
 /// Styles for the list components (<c>ion-list</c>, <c>ion-list-header</c>, <c>ion-item</c>).
-/// Ported from the Ionic source: <c>list.scss</c> / <c>list.md.scss</c>,
-/// <c>list-header.scss</c>, <c>item.scss</c> / <c>item.md.scss</c>.
+/// Ported from the Ionic source: <c>list.scss</c> / <c>list.md.scss</c> / <c>list.ios.scss</c>,
+/// <c>list-header.scss</c>, <c>item.scss</c> / <c>item.md.scss</c> / <c>item.ios.scss</c>.
+/// <para>
+/// Rules are scoped by the active mode class (<c>md</c> / <c>ios</c>); see
+/// <see cref="PageStyles"/> for the mode-scoping rationale.
+/// </para>
 /// </summary>
 internal static class ListStyles
 {
-    internal static CssObject GenStyle(IonicTheme t)
+    internal static CssObject GenStyle(string mode, IonicTheme t)
     {
         return new CssObject
         {
             // ion-list — vertical stack of items with a small top/bottom inset.
-            [".ion-list"] = new()
+            [$".ion-list.{mode}"] = new()
             {
                 Display = Display.Block,
                 Width = Length.Percent(100),
@@ -25,7 +29,7 @@ internal static class ListStyles
             },
 
             // ion-list-header — section header above the items.
-            [".ion-list-header"] = new()
+            [$".ion-list-header.{mode}"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
@@ -40,7 +44,7 @@ internal static class ListStyles
 
             // ion-item — a single row: leading icon (slot="start") + label, vertically
             // centered, with a hairline bottom divider.
-            [".ion-item"] = new()
+            [$".ion-item.{mode}"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
@@ -53,13 +57,13 @@ internal static class ListStyles
             },
 
             // lines="none": drop the bottom divider.
-            [".ion-item-lines-none"] = new()
+            [$".ion-item.{mode}.ion-item-lines-none"] = new()
             {
                 BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
             },
 
             // Leading icon (slot="start") inside an item: fixed size + gap before the label.
-            [".ion-item .ion-icon"] = new()
+            [$".ion-item.{mode} .ion-icon"] = new()
             {
                 Width = Length.Px(24),
                 Height = Length.Px(24),

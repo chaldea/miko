@@ -7,11 +7,72 @@
         <IonToolbar>
             <IonTitle>Tab 1</IonTitle>
         </IonToolbar>
+        <IonToolbar>
+            <IonSegment Value="@_selectedSegment" ValueChanged="@OnSegmentChanged">
+                <IonSegmentButton Value="all">
+                    <IonLabel>All</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton Value="favorites">
+                    <IonLabel>Favorites</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton Value="recent">
+                    <IonLabel>Recent</IonLabel>
+                </IonSegmentButton>
+            </IonSegment>
+        </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen="true">
-        <div class="demo-content">
-            <p>This is the first tab page, served at <strong>/tab1</strong>.</p>
-            <p>Each tab is an independent route — navigating swaps the page below the header while the tab bar stays put.</p>
-        </div>
+        <IonSegmentView Value="@_selectedSegment">
+            <IonSegmentContent Id="all">
+                <div style="padding: 16px;">
+                    <h3>All Items</h3>
+                    <IonList>
+                        <IonItem>
+                            <IonLabel>Item 1</IonLabel>
+                        </IonItem>
+                        <IonItem>
+                            <IonLabel>Item 2</IonLabel>
+                        </IonItem>
+                        <IonItem>
+                            <IonLabel>Item 3</IonLabel>
+                        </IonItem>
+                    </IonList>
+                </div>
+            </IonSegmentContent>
+
+            <IonSegmentContent Id="favorites">
+                <div style="padding: 16px;">
+                    <h3>Favorites</h3>
+                    <IonList>
+                        <IonItem>
+                            <IonLabel>Favorite Item 1</IonLabel>
+                        </IonItem>
+                        <IonItem>
+                            <IonLabel>Favorite Item 2</IonLabel>
+                        </IonItem>
+                    </IonList>
+                </div>
+            </IonSegmentContent>
+
+            <IonSegmentContent Id="recent">
+                <div style="padding: 16px;">
+                    <h3>Recent Items</h3>
+                    <IonList>
+                        <IonItem>
+                            <IonLabel>Recent Item 1</IonLabel>
+                        </IonItem>
+                    </IonList>
+                </div>
+            </IonSegmentContent>
+        </IonSegmentView>
     </IonContent>
 </IonPage>
+
+@code {
+    private string _selectedSegment = "all";
+
+    private void OnSegmentChanged(string value)
+    {
+        _selectedSegment = value;
+    }
+}

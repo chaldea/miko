@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="ion-menu-button" @onclick="HandleClick">
+<div class="@($"{Mode} ion-menu-button")" @onclick="HandleClick">
     <IonIcon Icon="@Ionicons.Menu" />
 </div>
 

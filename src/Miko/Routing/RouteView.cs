@@ -33,6 +33,13 @@ public class RouteView
         if (componentType == null)
             throw new InvalidOperationException($"No route found for path: {path}");
 
+        // Push our service provider as the ambient render scope so any descendant component
+        // built via RenderTreeBuilder.OpenComponent<T> (which uses new T()) can still resolve
+        // its [Inject] properties — see ComponentServiceScope. ComponentBase.Build itself also
+        // re-pushes this provider for its own children, but we open the scope here so that the
+        // page's first build sees a non-empty stack.
+        using var _ = Components.ComponentServiceScope.Push(_serviceProvider);
+
         var component = CreateComponent(componentType);
         var content = component.Build();
 

@@ -14,7 +14,7 @@ public class IonButtonsTests : IonicComponentTestBase
 
         // Assert - DOM structure
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-buttons buttons-start");
+        cut.Root.Class.ShouldBe("md ion-buttons buttons-start");
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class IonButtonsTests : IonicComponentTestBase
             parameters.Add(nameof(IonButtons.Slot), "start"));
 
         // Assert
-        cut.Root.Class.ShouldBe("ion-buttons buttons-start");
+        cut.Root.Class.ShouldBe("md ion-buttons buttons-start");
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class IonButtonsTests : IonicComponentTestBase
             parameters.Add(nameof(IonButtons.Slot), "end"));
 
         // Assert - Key style/class attribute
-        cut.Root.Class.ShouldBe("ion-buttons buttons-end");
+        cut.Root.Class.ShouldBe("md ion-buttons buttons-end");
     }
 
     [Fact]
@@ -50,8 +50,8 @@ public class IonButtonsTests : IonicComponentTestBase
             parameters.Add(nameof(IonButtons.Slot), "End"));
 
         // Assert
-        cut1.Root.Class.ShouldBe("ion-buttons buttons-end");
-        cut2.Root.Class.ShouldBe("ion-buttons buttons-end");
+        cut1.Root.Class.ShouldBe("md ion-buttons buttons-end");
+        cut2.Root.Class.ShouldBe("md ion-buttons buttons-end");
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class IonButtonsTests : IonicComponentTestBase
             parameters.Add(nameof(IonButtons.Slot), "invalid"));
 
         // Assert
-        cut.Root.Class.ShouldBe("ion-buttons buttons-start");
+        cut.Root.Class.ShouldBe("md ion-buttons buttons-start");
     }
 
     [Fact]

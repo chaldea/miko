@@ -17,10 +17,26 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Miko" Version="0.0.12" />
-    <PackageReference Include="Miko.DevTools" Version="0.0.12" />
-    <PackageReference Include="Miko.Razor.Compiler" Version="0.0.12" />
-    <PackageReference Include="Miko.Ionic" Version="0.0.12" />
+    <ProjectReference Include="..\..\..\..\src\Miko\Miko.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
   </ItemGroup>
 
+  <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
+    <PropertyGroup>
+      <_CustomRazorGeneratorDir>
+        $(MSBuildThisFileDirectory)..\..\..\..\src\Miko.Razor.Compiler\bin\$(Configuration)\net9.0\</_CustomRazorGeneratorDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <Analyzer Remove="@(_RazorAnalyzer)" />
+      <_RazorAnalyzer Remove="@(_RazorAnalyzer)" />
+    </ItemGroup>
+    <ItemGroup>
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" />
+      <_RazorAnalyzer
+        Include="$(_CustomRazorGeneratorDir)Microsoft.AspNetCore.Razor.Utilities.Shared.dll" />
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.Extensions.ObjectPool.dll" />
+      <Analyzer Include="@(_RazorAnalyzer)" />
+    </ItemGroup>
+  </Target>
 </Project>

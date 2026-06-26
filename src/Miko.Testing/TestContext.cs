@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Layout;
@@ -17,6 +19,7 @@ public class TestContext : IDisposable
     private readonly float _defaultViewportHeight = 600f;
     private SKBitmap? _testBitmap;
     private SKCanvas? _testCanvas;
+    private IServiceProvider? _serviceProvider;
 
     /// <summary>
     /// Gets or sets the default viewport width for rendering components.
@@ -32,6 +35,22 @@ public class TestContext : IDisposable
     /// Gets the list of stylesheets that will be applied to rendered components.
     /// </summary>
     public List<StyleSheet> StyleSheets => _styleSheets;
+
+    /// <summary>
+    /// Safe-area insets (logical px) applied during layout, used to resolve elements'
+    /// <c>env(safe-area-inset-*)</c> lengths — mirrors what a mobile platform host supplies.
+    /// Defaults to <see cref="SafeAreaInsets.Zero"/> (desktop / no insets).
+    /// </summary>
+    public SafeAreaInsets SafeArea { get; set; } = SafeAreaInsets.Zero;
+
+    /// <summary>
+    /// Services made available to rendered components via <c>[Inject]</c>. Register services
+    /// here before calling <see cref="Render{TComponent}"/>; the container is built lazily on the
+    /// first render and pushed as the ambient component service scope (mirroring how the app's
+    /// <c>RouteView</c> supplies services). Empty by default — components with no registered
+    /// dependency resolve <c>[Inject]</c> to null, matching a bare build.
+    /// </summary>
+    public IServiceCollection Services { get; } = new ServiceCollection();
 
     public TestContext()
     {
@@ -58,8 +77,14 @@ public class TestContext : IDisposable
             builder.ApplyParameters();
         }
 
-        // Build the component
-        var rootElement = component.Build();
+        // Build the component under the ambient service scope so [Inject] properties (on this
+        // component and any nested components) resolve from the registered Services. Push is a
+        // no-op when no services were registered, leaving [Inject] null as before.
+        Element rootElement;
+        using (ComponentServiceScope.Push(GetServiceProvider()))
+        {
+            rootElement = component.Build();
+        }
 
         return RenderElement(rootElement);
     }
@@ -80,7 +105,8 @@ public class TestContext : IDisposable
             rootElement,
             _styleSheets,
             ViewportWidth,
-            ViewportHeight);
+            ViewportHeight,
+            SafeArea);
 
         // Collect computed styles from the layout tree
         var computedStyles = new Dictionary<Element, ComputedStyle>();
@@ -109,6 +135,14 @@ public class TestContext : IDisposable
     public void AddStyleSheet(StyleSheet styleSheet)
     {
         _styleSheets.Add(styleSheet);
+    }
+
+    // Builds (once) the service provider from registered Services. Returns null when nothing was
+    // registered, so the ambient scope push is a no-op and [Inject] stays null (bare-build parity).
+    private IServiceProvider? GetServiceProvider()
+    {
+        if (Services.Count == 0) return null;
+        return _serviceProvider ??= Services.BuildServiceProvider();
     }
 
     private void EnsureTestCanvas()

@@ -17,11 +17,11 @@
     /// <summary>Invoked when the tab button is clicked.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
-    private string _cssClass = "ion-tab-button";
+    private string _cssClass = "md ion-tab-button";
 
     protected override void OnParametersSet()
     {
-        _cssClass = Selected ? "ion-tab-button tab-selected" : "ion-tab-button";
+        _cssClass = Selected ? $"{Mode} ion-tab-button tab-selected" : $"{Mode} ion-tab-button";
     }
 
     private async Task HandleClick(MouseEventArgs _)

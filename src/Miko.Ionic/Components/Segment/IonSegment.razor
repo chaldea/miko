@@ -1,0 +1,47 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-segment>: a row of segment buttons where exactly one is selected.
+   The segment owns the selected Value and cascades it (plus a select callback) to its buttons
+   via CascadingValue<IonSegmentContext>. Buttons match the context by type. When a button is
+   tapped it calls back through SelectAsync, which re-emits ValueChanged so the host can update
+   the shared selected value (and feed the same value to a sibling IonSegmentView). *@
+<div class="@_cssClass">
+    <CascadingValue TValue="IonSegmentContext" Value="_context">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>The selected button value. Bind this from the host (two-way with <see cref="ValueChanged"/>).</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new value when a button is tapped.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>When true the whole segment is dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    private string _cssClass = "md ion-segment";
+    private IonSegmentContext _context = new();
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = Disabled ? $"{Mode} ion-segment segment-disabled" : $"{Mode} ion-segment";
+
+        // Rebuild the cascaded context each render so buttons read the current Value and a
+        // select callback bound to this segment instance.
+        _context = new IonSegmentContext
+        {
+            Value = Value,
+            Select = EventCallback.Factory.Create<string>(this, SelectAsync),
+        };
+    }
+
+    /// <summary>Invoked by a child button to request becoming the selected one.</summary>
+    private async Task SelectAsync(string value)
+    {
+        if (Disabled || value == Value) return;
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
+    }
+}

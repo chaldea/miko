@@ -6,20 +6,26 @@ namespace Miko.Ionic.Components;
 /// <summary>
 /// Styles for the page-structure components (<c>ion-page</c>, <c>ion-header</c>,
 /// <c>ion-toolbar</c>, <c>ion-title</c>, <c>ion-content</c>). Ported from the Ionic
-/// Material Design source: <c>header.scss</c> / <c>header.md.scss</c>,
-/// <c>toolbar.scss</c> / <c>toolbar.md.scss</c>, <c>title.scss</c> / <c>title.md.scss</c>,
-/// <c>content.scss</c>.
+/// source: <c>header.scss</c> / <c>header.md.scss</c> / <c>header.ios.scss</c>,
+/// <c>toolbar.scss</c> / <c>toolbar.md.scss</c> / <c>toolbar.ios.scss</c>,
+/// <c>title.scss</c> / <c>title.md.scss</c> / <c>title.ios.scss</c>, <c>content.scss</c>.
+/// <para>
+/// Rules are scoped by the active mode class (<c>md</c> / <c>ios</c>) that each component
+/// stamps onto its root element, so a single stylesheet carries both modes and switching the
+/// root class alone re-styles the tree. <paramref name="mode"/> is woven into each selector;
+/// the mode-specific values come from <paramref name="t"/> (a per-mode <see cref="IonicTheme"/>).
+/// </para>
 /// </summary>
 internal static class PageStyles
 {
-    internal static CssObject GenStyle(IonicTheme t)
+    internal static CssObject GenStyle(string mode, IonicTheme t)
     {
         return new CssObject
         {
             // ion-page — flex column shell: header on top, content fills the rest.
             // Grows to fill its flex parent (the tabs-inner content area) so percentage
             // heights are not resolved against a zero-height basis.
-            [".ion-page"] = new()
+            [$".ion-page.{mode}"] = new()
             {
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Column,
@@ -34,7 +40,7 @@ internal static class PageStyles
             // MD mode renders an elevation shadow; iOS mode a hairline bottom border.
             // position:relative + z-index lift the header (and its shadow) above the
             // content that follows it in normal flow.
-            [".ion-header"] = new()
+            [$".ion-header.{mode}"] = new()
             {
                 Display = Display.Block,
                 Position = Position.Relative,
@@ -46,22 +52,31 @@ internal static class PageStyles
                 ZIndex = 10,
             },
 
-            // ion-toolbar — full-width bar holding the title. The first toolbar in a header sits
-            // under the system status bar on mobile; env(safe-area-inset-*) pads its content down
-            // (and clear of a side notch) while the toolbar background still extends under the bar.
+            // ion-toolbar — full-width bar holding the title. Every toolbar clears a side notch
+            // via env(safe-area-inset-left/right) (Ionic's toolbar.scss :host), but NOT the top:
+            // only the FIRST toolbar in a header sits under the status bar, so its top inset is
+            // applied by the header rule below — matching Ionic's
+            // `ion-header ion-toolbar:first-of-type { padding-top: safe-area-top }`.
             // On desktop / zero-inset platforms these env() lengths resolve to 0 (no-op).
-            [".ion-toolbar"] = new()
+            [$".ion-toolbar.{mode}"] = new()
             {
                 Display = Display.Block,
                 Width = Length.Percent(100),
                 BackgroundColor = t.ToolbarBackground,
                 Color = t.ToolbarColor,
-                PaddingTop = Length.SafeAreaInsetTop,
                 PaddingLeft = Length.SafeAreaInsetLeft,
                 PaddingRight = Length.SafeAreaInsetRight,
             },
 
-            [".ion-toolbar .toolbar-container"] = new()
+            // Only the first toolbar inside a header gets the top safe-area inset (it's the one
+            // under the system status bar). Subsequent toolbars in the same header keep zero top
+            // padding. Ported from header.scss: `ion-header ion-toolbar:first-of-type`.
+            [$".ion-header.{mode} .ion-toolbar:first-of-type"] = new()
+            {
+                PaddingTop = Length.SafeAreaInsetTop,
+            },
+
+            [$".ion-toolbar.{mode} .toolbar-container"] = new()
             {
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Row,
@@ -75,7 +90,7 @@ internal static class PageStyles
             },
 
             // ion-title — grows to fill the toolbar. MD left-aligns; iOS centers.
-            [".ion-title"] = new()
+            [$".ion-title.{mode}"] = new()
             {
                 Display = Display.Flex,
                 FlexGrow = 1,
@@ -90,7 +105,7 @@ internal static class PageStyles
                 Color = t.ToolbarColor,
             },
 
-            [".ion-title .toolbar-title"] = new()
+            [$".ion-title.{mode} .toolbar-title"] = new()
             {
                 Display = Display.Block,
                 Width = Length.Percent(100),
@@ -100,7 +115,7 @@ internal static class PageStyles
             },
 
             // ion-content — region filling the remaining page height below the header.
-            [".ion-content"] = new()
+            [$".ion-content.{mode}"] = new()
             {
                 Display = Display.Block,
                 Position = Position.Relative,
@@ -113,7 +128,7 @@ internal static class PageStyles
                 OverflowY = Overflow.Auto,
             },
 
-            [".ion-content .inner-scroll"] = new()
+            [$".ion-content.{mode} .inner-scroll"] = new()
             {
                 Width = Length.Percent(100),
                 Height = Length.Percent(100),
