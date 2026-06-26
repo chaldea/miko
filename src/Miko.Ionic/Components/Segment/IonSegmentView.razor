@@ -5,7 +5,7 @@
    "SegmentViewValue") so each content element knows whether it is active or hidden.
    The host page owns Value and binds the same field to the segment's ValueChanged to coordinate
    which button is selected and which content is shown. *@
-<div class="ion-segment-view">
+<div class="@($"{Mode} ion-segment-view")">
     <CascadingValue TValue="string" Name="SegmentViewValue" Value="@Value">
         @ChildContent
     </CascadingValue>

@@ -1001,7 +1001,7 @@ public class Painter
     /// <summary>
     /// 绘制文本装饰（下划线、上划线、删除线）
     /// </summary>
-    public void DrawTextDecoration(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, TextDecoration decoration)
+    public void DrawTextDecoration(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, TextDecoration decoration, VerticalAlign verticalAlign = VerticalAlign.Top)
     {
         if (decoration == TextDecoration.None || string.IsNullOrEmpty(text) || color.A == 0) return;
 
@@ -1028,8 +1028,20 @@ public class Painter
             _ => rect.Left
         };
 
+        // 基线 Y 计算需与 DrawText 保持一致，使装饰线随文本垂直对齐方式一同偏移。
         using var baselineFont = new SKFont(textRuns[0].Typeface, fontSize);
-        float baselineY = rect.Top - baselineFont.Metrics.Ascent;
+        float baselineY;
+        if (verticalAlign == VerticalAlign.Middle)
+        {
+            float textHeight = baselineFont.Metrics.Descent - baselineFont.Metrics.Ascent;
+            float centeredTop = rect.Top + (rect.Height - textHeight) / 2;
+            baselineY = centeredTop - baselineFont.Metrics.Ascent;
+        }
+        else
+        {
+            baselineY = rect.Top - baselineFont.Metrics.Ascent;
+        }
+
         float lineY = decoration switch
         {
             TextDecoration.Underline => baselineY + fontSize * 0.15f,

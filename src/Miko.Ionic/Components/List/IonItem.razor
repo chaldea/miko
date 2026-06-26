@@ -11,12 +11,12 @@
     /// </summary>
     [Parameter] public string? Lines { get; set; }
 
-    private string _cssClass = "ion-item";
+    private string _cssClass = "md ion-item";
 
     protected override void OnParametersSet()
     {
         _cssClass = string.Equals(Lines, "none", StringComparison.OrdinalIgnoreCase)
-            ? "ion-item ion-item-lines-none"
-            : "ion-item";
+            ? $"{Mode} ion-item ion-item-lines-none"
+            : $"{Mode} ion-item";
     }
 }

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Common;
@@ -40,6 +41,10 @@ public sealed class SimulatorHost
     private readonly MikoInteractionController _appController;
     private readonly SimulatorOptions _options;
     private readonly ILogger _logger;
+
+    // The app's mutable host-platform singleton (if registered). Updated as the user selects a
+    // different device so platform-dependent UI (e.g. Ionic's md/ios mode) switches with it.
+    private readonly PlatformInfo? _platformInfo;
 
     // 面板引擎（与应用引擎相互独立）。
     private readonly MikoEngine _panelEngine = new();
@@ -90,6 +95,13 @@ public sealed class SimulatorHost
         _logger = logger ?? NullLogger<SimulatorHost>.Instance;
         _device = options.InitialDevice ?? options.Devices[0];
         _orientation = options.InitialOrientation;
+
+        // The host platform is a mutable singleton; only present when registered (it is by
+        // default — MikoAppBuilder.CreateDefault registers IPlatformInfo). Seed it from the
+        // initial device BEFORE the app's first build so the starting mode matches the device.
+        _platformInfo = _appContext.Services.GetService<IPlatformInfo>() as PlatformInfo;
+        if (_platformInfo != null)
+            _platformInfo.Platform = _device.Platform;
     }
 
     /// <summary>启动模拟器窗口并运行渲染循环（阻塞直到窗口关闭）。</summary>
@@ -423,7 +435,17 @@ public sealed class SimulatorHost
     private void SelectDevice(DeviceProfile device)
     {
         if (device.Name == _device.Name) return;
+        var platformChanged = device.Platform != _device.Platform;
         _device = device;
+
+        // Switch the app's host platform so mode-dependent UI (Ionic md/ios) follows the device,
+        // then ask the controller to rebuild the DOM on the next frame with the new mode.
+        if (platformChanged && _platformInfo != null)
+        {
+            _platformInfo.Platform = device.Platform;
+            _appController.RequestRebuild();
+        }
+
         InitAppEngine();
         _panelNeedsRebuild = true;
         _logger.LogInformation("Simulated device changed to {Device}", device);

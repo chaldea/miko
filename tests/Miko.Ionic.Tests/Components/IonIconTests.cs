@@ -15,7 +15,7 @@ public class IonIconTests : IonicComponentTestBase
 
         // Assert - DOM structure
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-icon");
+        cut.Root.Class.ShouldBe("md ion-icon");
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class IonIconTests : IonicComponentTestBase
 
         // Assert - DOM structure is the component contract
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-icon");
+        cut.Root.Class.ShouldBe("md ion-icon");
         cut.Root.Children.Count.ShouldBe(0); // Icon is rendered via background-image, not children
     }
 

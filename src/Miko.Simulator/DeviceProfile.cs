@@ -1,4 +1,5 @@
 using Miko.Common;
+using Miko.Platform;
 
 namespace Miko.Simulator;
 
@@ -24,6 +25,12 @@ public sealed record DeviceProfile(
     /// <summary>设备类别（用于面板分组与边框样式）。</summary>
     public DeviceKind Kind { get; init; } = DeviceKind.Phone;
 
+    /// <summary>
+    /// 设备所属平台。转发给应用的 <see cref="IPlatformInfo"/>，使依赖平台的 UI
+    /// （如 Ionic 的 md/ios mode）随选中设备切换。默认 <see cref="HostPlatform.Ios"/>。
+    /// </summary>
+    public HostPlatform Platform { get; init; } = HostPlatform.Ios;
+
     /// <summary>物理像素宽度（离屏画面以此分辨率渲染，保证缩放后清晰）。</summary>
     public int PixelWidth => (int)MathF.Round(LogicalWidth * Scale);
 
@@ -34,16 +41,16 @@ public sealed record DeviceProfile(
 
     // 内置常用设备预设。数值取自各设备的逻辑点（point）分辨率与安全区。
     public static DeviceProfile IPhone15Pro { get; } = new(
-        "iPhone 15 Pro", 393, 852, 3f, new SafeAreaInsets(0, 59, 0, 34)) { Kind = DeviceKind.Phone };
+        "iPhone 15 Pro", 393, 852, 3f, new SafeAreaInsets(0, 59, 0, 34)) { Kind = DeviceKind.Phone, Platform = HostPlatform.Ios };
 
     public static DeviceProfile IPhoneSE { get; } = new(
-        "iPhone SE", 375, 667, 2f, new SafeAreaInsets(0, 20, 0, 0)) { Kind = DeviceKind.Phone };
+        "iPhone SE", 375, 667, 2f, new SafeAreaInsets(0, 20, 0, 0)) { Kind = DeviceKind.Phone, Platform = HostPlatform.Ios };
 
     public static DeviceProfile Pixel7 { get; } = new(
-        "Pixel 7", 412, 915, 2.625f, new SafeAreaInsets(0, 24, 0, 0)) { Kind = DeviceKind.Phone };
+        "Pixel 7", 412, 915, 2.625f, new SafeAreaInsets(0, 24, 0, 0)) { Kind = DeviceKind.Phone, Platform = HostPlatform.Android };
 
     public static DeviceProfile IPadMini { get; } = new(
-        "iPad mini", 744, 1133, 2f, new SafeAreaInsets(0, 24, 0, 20)) { Kind = DeviceKind.Tablet };
+        "iPad mini", 744, 1133, 2f, new SafeAreaInsets(0, 24, 0, 20)) { Kind = DeviceKind.Tablet, Platform = HostPlatform.Ios };
 
     /// <summary>内置设备预设列表（面板下拉默认使用）。</summary>
     public static IReadOnlyList<DeviceProfile> Defaults { get; } = new[]

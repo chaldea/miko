@@ -14,9 +14,12 @@ public class IonSegmentButtonTests : IonicComponentTestBase
         var cut = Context.Render<IonSegmentButton>(parameters =>
             parameters.Add(nameof(IonSegmentButton.Value), "test"));
 
-        // Assert - DOM structure
-        cut.Root.TagName.ShouldBe("button");
-        cut.Root.Class.ShouldBe("ion-segment-button");
+        // Assert - The host is a <div> carrying the ion-segment-button classes; the clickable
+        // native <button> (button-native) is its first child.
+        cut.Root.TagName.ShouldBe("div");
+        cut.Root.Class.ShouldBe("md ion-segment-button");
+        cut.Root.Children[0].TagName.ShouldBe("button");
+        cut.Root.Children[0].Class.ShouldBe("button-native");
     }
 
     [Fact]
@@ -50,8 +53,7 @@ public class IonSegmentButtonTests : IonicComponentTestBase
             }));
         });
 
-        // Assert - The button inside should have the checked class
-        // Navigate to the button element (segment > cascading wrapper > button)
+        // Assert - The host (ion-segment-button) should have the checked class
         var buttonElement = FindButtonInTree(cut.Root);
         buttonElement.ShouldNotBeNull();
         buttonElement.Class.ShouldContain("segment-button-checked");
@@ -72,11 +74,11 @@ public class IonSegmentButtonTests : IonicComponentTestBase
             }));
         });
 
-        // Assert - The button should NOT have the checked class
+        // Assert - The host should NOT have the checked class
         var buttonElement = FindButtonInTree(cut.Root);
         buttonElement.ShouldNotBeNull();
         buttonElement.Class.ShouldNotContain("segment-button-checked");
-        buttonElement.Class.ShouldBe("ion-segment-button");
+        buttonElement.Class.ShouldBe("md ion-segment-button");
     }
 
     [Fact]
@@ -114,16 +116,27 @@ public class IonSegmentButtonTests : IonicComponentTestBase
         var cut = Context.Render<IonSegmentButton>(parameters =>
             parameters.Add(nameof(IonSegmentButton.Value), "test"));
 
-        // Assert - DOM structure is the component contract
-        cut.Root.TagName.ShouldBe("button");
+        // Assert - DOM structure is the component contract: a <div> host wrapping a
+        // <button class="button-native"> (holding .button-inner) and the indicator sibling.
+        cut.Root.TagName.ShouldBe("div");
         cut.Root.Class.ShouldNotBeNull();
         cut.Root.Class.ShouldContain("ion-segment-button");
+
+        var native = cut.Root.Children[0];
+        native.TagName.ShouldBe("button");
+        native.Class.ShouldBe("button-native");
+        native.FindByClass("button-inner").Count.ShouldBe(1);
+
+        // The indicator is a SIBLING of the native button, not nested inside it.
+        cut.Root.FindByClass("segment-button-indicator").Count.ShouldBe(1);
+        native.FindByClass("segment-button-indicator").Count.ShouldBe(0);
     }
 
-    // Helper: recursively finds the first <button> element in the tree
+    // Helper: finds the ion-segment-button host element in the tree (the segment wraps children
+    // in a CascadingValue, so the button host is a descendant).
     private Core.Element? FindButtonInTree(Core.Element root)
     {
-        if (root.TagName == "button") return root;
+        if (root.Class?.Contains("ion-segment-button") == true) return root;
         foreach (var child in root.Children)
         {
             var found = FindButtonInTree(child);

@@ -21,12 +21,12 @@
     /// <summary>When true the whole segment is dimmed and non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    private string _cssClass = "ion-segment";
+    private string _cssClass = "md ion-segment";
     private IonSegmentContext _context = new();
 
     protected override void OnParametersSet()
     {
-        _cssClass = Disabled ? "ion-segment segment-disabled" : "ion-segment";
+        _cssClass = Disabled ? $"{Mode} ion-segment segment-disabled" : $"{Mode} ion-segment";
 
         // Rebuild the cascaded context each render so buttons read the current Value and a
         // select callback bound to this segment instance.

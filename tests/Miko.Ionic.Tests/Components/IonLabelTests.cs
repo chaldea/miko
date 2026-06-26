@@ -14,7 +14,7 @@ public class IonLabelTests : IonicComponentTestBase
 
         // Assert - DOM structure
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-label");
+        cut.Root.Class.ShouldBe("md ion-label");
     }
 
     [Fact]
@@ -27,6 +27,6 @@ public class IonLabelTests : IonicComponentTestBase
         var elements = cut.GetAllElements();
         elements.Count.ShouldBe(1); // Only the root div
         elements[0].TagName.ShouldBe("div");
-        elements[0].Class.ShouldBe("ion-label");
+        elements[0].Class.ShouldBe("md ion-label");
     }
 }

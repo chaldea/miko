@@ -1,12 +1,30 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-@* Mirrors Ionic's <ion-segment-button>: one selectable button inside an <ion-segment>.
-   Reads the segment's selection state from the cascaded IonSegmentContext to decide whether it
-   is checked, and asks the segment to select it on tap. ContentId links it to an
-   <ion-segment-content> shown in a sibling <ion-segment-view>. *@
-<button class="@_cssClass" @onclick="HandleClick">
-    @ChildContent
-</button>
+@* Mirrors Ionic's <ion-segment-button> host structure:
+   <ion-segment-button>            <!-- host: flex column, the checked/label-only/etc. classes -->
+     <button class="button-native"> <!-- the clickable surface; flex-grows to fill the host -->
+       <span class="button-inner">  <!-- centers the slotted content -->
+         <slot />                   <!-- ion-label / ion-icon -->
+       </span>
+     </button>
+     <div class="segment-button-indicator"> <!-- SIBLING of the button, not inside it -->
+       <div class="segment-button-indicator-background"></div>
+     </div>
+   </ion-segment-button>
+   The indicator is the checked-state overlay: md a 2px primary underline bar, ios a full-height
+   light pill behind the label. Keeping it a sibling (not inside the button) is what lets the
+   label sit correctly centered in the button with its 12px margin — the indicator no longer
+   participates in the button's flex flow. *@
+<div class="@_cssClass">
+    <button class="button-native" @onclick="HandleClick">
+        <span class="button-inner">
+            @ChildContent
+        </span>
+    </button>
+    <div class="segment-button-indicator">
+        <div class="segment-button-indicator-background"></div>
+    </div>
+</div>
 
 @code {
     /// <summary>This button's value; becomes the segment's selected value when tapped.</summary>
@@ -30,17 +48,39 @@
     /// <summary>True when this button's value matches the segment's selected value.</summary>
     public bool Selected { get; private set; }
 
-    private string _cssClass = "ion-segment-button";
+    private string _cssClass = "md ion-segment-button";
 
     protected override void OnParametersSet()
     {
         Selected = SegmentContext is not null && SegmentContext.Value == Value;
 
-        var cls = "ion-segment-button";
+        var cls = $"{Mode} ion-segment-button";
         if (Selected) cls += " segment-button-checked";
         if (Disabled) cls += " segment-button-disabled";
         if (!string.IsNullOrEmpty(Layout)) cls += $" segment-button-layout-{Layout}";
         _cssClass = cls;
+    }
+
+    /// <summary>
+    /// After the tree is built, stamp the content markers Ionic derives from the slotted children:
+    /// <c>segment-button-has-label</c>/<c>-icon</c> and the <c>-label-only</c>/<c>-icon-only</c>
+    /// variants. Ionic resolves these at render via <c>querySelector</c>; here we scan the built
+    /// subtree for an <c>ion-label</c>/<c>ion-icon</c> descendant and append the classes to the
+    /// host button. The <c>-has-label-only</c> marker drives the md label margin rule
+    /// (<c>segment-button.md.scss</c>).
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        bool hasLabel = root.FindByClass("ion-label").Count > 0;
+        bool hasIcon = root.FindByClass("ion-icon").Count > 0;
+
+        if (hasLabel) root.Class += " segment-button-has-label";
+        if (hasIcon) root.Class += " segment-button-has-icon";
+        if (hasLabel && !hasIcon) root.Class += " segment-button-has-label-only";
+        if (hasIcon && !hasLabel) root.Class += " segment-button-has-icon-only";
+
+        return root;
     }
 
     private async Task HandleClick(MouseEventArgs _)

@@ -14,10 +14,10 @@
     /// </summary>
     [Parameter] public bool Fullscreen { get; set; }
 
-    private string _cssClass = "ion-content";
+    private string _cssClass = "md ion-content";
 
     protected override void OnParametersSet()
     {
-        _cssClass = Fullscreen ? "ion-content content-fullscreen" : "ion-content";
+        _cssClass = Fullscreen ? $"{Mode} ion-content content-fullscreen" : $"{Mode} ion-content";
     }
 }

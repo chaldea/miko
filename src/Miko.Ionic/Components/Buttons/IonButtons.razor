@@ -12,11 +12,11 @@
     /// </summary>
     [Parameter] public string Slot { get; set; } = "start";
 
-    private string _cssClass = "ion-buttons buttons-start";
+    private string _cssClass = "md ion-buttons buttons-start";
 
     protected override void OnParametersSet()
     {
         var slot = string.Equals(Slot, "end", StringComparison.OrdinalIgnoreCase) ? "end" : "start";
-        _cssClass = $"ion-buttons buttons-{slot}";
+        _cssClass = $"{Mode} ion-buttons buttons-{slot}";
     }
 }

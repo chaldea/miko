@@ -15,6 +15,14 @@ public abstract class ComponentBase : IComponent
     private Element? _rootElement;
     private bool _initialized;
 
+    /// <summary>
+    /// The service provider that resolved this component's <see cref="InjectAttribute"/>
+    /// properties. Captured from the ambient <see cref="ComponentServiceScope"/> on the
+    /// first <see cref="Build"/> so it can be re-pushed during nested renders triggered by
+    /// <see cref="StateHasChanged"/> (which runs outside the original ancestor's <c>Build</c>).
+    /// </summary>
+    private IServiceProvider? _services;
+
     protected virtual void BuildRenderTree(RenderTreeBuilder builder) { }
 
     /// <summary>
@@ -51,6 +59,19 @@ public abstract class ComponentBase : IComponent
 
     public virtual Element Build()
     {
+        // Resolve [Inject] services from the ambient ComponentServiceScope (pushed by RouteView
+        // for the top-level page, then re-pushed by every ancestor while its BuildRenderTree
+        // runs — see the using-block below). This makes [Inject] available on any component
+        // instantiated through RenderTreeBuilder.OpenComponent<T>, not only routed pages.
+        // Resolution happens once per component instance: subsequent rebuilds keep the same
+        // injected values (matches Blazor's behaviour).
+        if (!_initialized)
+        {
+            _services ??= ComponentServiceScope.Current;
+            if (_services != null)
+                InjectServices(this, _services);
+        }
+
         // Resolve cascading parameters first, so they're available inside the lifecycle methods
         // below (matches Blazor, where cascading values arrive with the initial parameter set).
         // The ambient values are in scope because the providing CascadingValue<T>.Build is still
@@ -70,9 +91,41 @@ public abstract class ComponentBase : IComponent
         TrackPendingTask(paramsTask);
 
         var builder = new RenderTreeBuilder();
-        BuildRenderTree(builder);
+        // Make this component's service provider ambient to its descendants. Nested components
+        // produced by RenderTreeBuilder.OpenComponent<T>() construct via new T() and resolve
+        // [Inject] from ComponentServiceScope.Current in their own Build() — which runs on the
+        // same call stack while this using-block is open.
+        using (ComponentServiceScope.Push(_services))
+        {
+            BuildRenderTree(builder);
+        }
         _rootElement = builder.Build();
         return _rootElement;
+    }
+
+    /// <summary>
+    /// Populates a component's <see cref="InjectAttribute"/> properties (public or non-public)
+    /// from the supplied service provider. Properties whose service is not registered are left
+    /// untouched (mirrors Blazor, which throws — but here unresolved injections are tolerated to
+    /// preserve the existing <see cref="Routing.RouteView"/> behaviour). Read-only properties are
+    /// skipped, matching Blazor.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "Inject properties are declared on the component type and preserved with it.")]
+    private static void InjectServices(ComponentBase component, IServiceProvider serviceProvider)
+    {
+        var properties = component.GetType().GetProperties(
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+        foreach (var prop in properties)
+        {
+            if (!prop.CanWrite) continue;
+            if (prop.GetCustomAttribute<InjectAttribute>() == null) continue;
+
+            var service = serviceProvider.GetService(prop.PropertyType);
+            if (service != null)
+                prop.SetValue(component, service);
+        }
     }
 
     /// <summary>
@@ -173,7 +226,13 @@ public abstract class ComponentBase : IComponent
     {
         SetCascadingParameters();
         var builder = new RenderTreeBuilder();
-        BuildRenderTree(builder);
+        // Re-push our captured provider so nested components rebuilt during StateHasChanged
+        // still receive [Inject] services. StateHasChanged runs outside any ancestor's Build,
+        // so without this push the ambient scope would be empty.
+        using (ComponentServiceScope.Push(_services))
+        {
+            BuildRenderTree(builder);
+        }
         return builder.Build();
     }
 

@@ -101,13 +101,26 @@ public class IonicTheme
     // Segment
     public Color SegmentBackground { get; set; }
     public Color SegmentButtonColor { get; set; }
-    public Color SegmentButtonCheckedBackground { get; set; }
+    /// <summary>Text color of the checked button. MD turns the label the primary color; iOS keeps
+    /// the default dark text (the pill behind it provides the contrast).</summary>
     public Color SegmentButtonCheckedColor { get; set; }
+    /// <summary>Color of the checked indicator. MD: the 2px primary underline bar. iOS: the light
+    /// elevated pill surface that slides behind the label.</summary>
+    public Color SegmentIndicatorColor { get; set; }
+    /// <summary>Indicator height. MD: 2px (a bottom underline bar). iOS: 100% (a full-height pill).</summary>
+    public Length SegmentIndicatorHeight { get; set; } = Length.Px(2);
+    /// <summary>Indicator corner radius. MD: 0 (square bar). iOS: 7px (rounded pill).</summary>
+    public float SegmentIndicatorBorderRadius { get; set; }
+    /// <summary>Indicator elevation. MD: none. iOS: a soft drop shadow under the pill.</summary>
+    public List<BoxShadow> SegmentIndicatorBoxShadow { get; set; } = new();
     public float SegmentButtonFontSize { get; set; } = 12f;
     public float SegmentButtonMaxWidth { get; set; } = 168f;
-    public float SegmentButtonMinHeight { get; set; } = 32f;
+    public float SegmentButtonMinHeight { get; set; } = 48f;
     public float SegmentButtonPaddingX { get; set; } = 8f;
-    public float SegmentButtonPaddingY { get; set; } = 4f;
+    /// <summary>Top/bottom padding of a segment button. 0 in Ionic (both md and ios):
+    /// <c>$segment-button-md-padding-top/-bottom</c> and the ios <c>--padding-top/-bottom</c>.
+    /// The button's height comes from <see cref="SegmentButtonMinHeight"/>, not vertical padding.</summary>
+    public float SegmentButtonPaddingY { get; set; } = 0f;
 
     // Brand palette shared by both modes (ionic.theme.default.scss).
     private static void ApplyBrandColors(IonicTheme t)
@@ -201,17 +214,21 @@ public class IonicTheme
         t.ItemBorderColor = new Color(0, 0, 0, 18);              // rgba(0,0,0,.07)
         t.ItemPaddingStart = 16f;
 
-        // Segment (segment.md.scss / segment-button.md.scss): translucent track, primary
-        // checked indicator with white text (MD 7+ solid-pill style).
+        // Segment (segment.md.scss / segment-button.md.scss): translucent track; the checked
+        // button shows a 2px primary underline bar (the indicator) and its label turns primary —
+        // the button background stays transparent (md does NOT fill the whole button).
         t.SegmentBackground = new Color(0, 0, 0, 13);            // rgba(0,0,0,.05) light track
         t.SegmentButtonColor = Color.FromHex("595959");          // step-350
-        t.SegmentButtonCheckedBackground = t.Primary;
-        t.SegmentButtonCheckedColor = Color.FromHex("ffffff");
+        t.SegmentButtonCheckedColor = t.Primary;                 // --color-checked: primary
+        t.SegmentIndicatorColor = t.Primary;                     // --indicator-color: color-checked
+        t.SegmentIndicatorHeight = Length.Px(2);                 // --indicator-height: 2px
+        t.SegmentIndicatorBorderRadius = 0f;                     // square underline bar
+        t.SegmentIndicatorBoxShadow = new();                     // --indicator-box-shadow: none
         t.SegmentButtonFontSize = 12f;
         t.SegmentButtonMaxWidth = 168f;
-        t.SegmentButtonMinHeight = 32f;
+        t.SegmentButtonMinHeight = 48f;                            // md $segment-button-md-min-height
         t.SegmentButtonPaddingX = 8f;
-        t.SegmentButtonPaddingY = 4f;
+        t.SegmentButtonPaddingY = 0f;                            // md padding-top/bottom: 0
 
         return t;
     }
@@ -276,17 +293,25 @@ public class IonicTheme
         t.ItemBorderColor = new Color(0, 0, 0, 51);             // rgba(0,0,0,.2)
         t.ItemPaddingStart = 16f;
 
-        // Segment (segment.ios.scss / segment-button.ios.scss): iOS uses similar translucent
-        // track, primary checked indicator. Slightly different typography/spacing.
+        // Segment (segment.ios.scss / segment-button.ios.scss): translucent track; the checked
+        // button shows a full-height light rounded pill (the indicator) with a soft shadow sliding
+        // behind the label. Unlike md, the label color stays the default dark text — the pill
+        // provides the contrast, so the button background itself stays transparent.
         t.SegmentBackground = new Color(0, 0, 0, 13);            // rgba(0,0,0,.05)
-        t.SegmentButtonColor = Color.FromHex("737373");          // step-400
-        t.SegmentButtonCheckedBackground = t.Primary;
-        t.SegmentButtonCheckedColor = Color.FromHex("ffffff");
+        t.SegmentButtonColor = Color.FromHex("000000");          // iOS text color (dark)
+        t.SegmentButtonCheckedColor = Color.FromHex("000000");   // checked label stays dark
+        t.SegmentIndicatorColor = Color.FromHex("ffffff");       // light elevated pill surface
+        t.SegmentIndicatorHeight = Length.Percent(100);          // --indicator-height: 100%
+        t.SegmentIndicatorBorderRadius = 7f;                     // --border-radius: 7px (rounded pill)
+        t.SegmentIndicatorBoxShadow = new()                      // 0 0 5px rgba(0,0,0,.16)
+        {
+            new BoxShadow(Length.Px(0), Length.Px(0), Length.Px(5), Length.Px(0), new Color(0, 0, 0, 41)),
+        };
         t.SegmentButtonFontSize = 13f;                           // iOS slightly larger
         t.SegmentButtonMaxWidth = 240f;                          // iOS wider max
         t.SegmentButtonMinHeight = 28f;                          // iOS slightly shorter
         t.SegmentButtonPaddingX = 6f;
-        t.SegmentButtonPaddingY = 4f;
+        t.SegmentButtonPaddingY = 0f;                            // iOS padding-top/bottom: 0
 
         return t;
     }

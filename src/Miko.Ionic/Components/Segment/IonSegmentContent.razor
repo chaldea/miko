@@ -21,11 +21,11 @@
     /// <summary>True when this content is the active one shown in the view.</summary>
     public bool IsActive { get; private set; }
 
-    private string _cssClass = "ion-segment-content";
+    private string _cssClass = "md ion-segment-content";
 
     protected override void OnParametersSet()
     {
         IsActive = !string.IsNullOrEmpty(Id) && Id == ActiveId;
-        _cssClass = IsActive ? "ion-segment-content" : "ion-segment-content segment-content-hidden";
+        _cssClass = IsActive ? $"{Mode} ion-segment-content" : $"{Mode} ion-segment-content segment-content-hidden";
     }
 }

@@ -9,10 +9,17 @@ namespace Miko.Ionic.Components;
 /// <c>ion-menu-backdrop</c>, <c>ion-menu-button</c>, <c>ion-buttons</c>). Ported from the
 /// Ionic source: <c>app.scss</c>, <c>menu.scss</c> / <c>menu.md.scss</c> / <c>menu.ios.scss</c>,
 /// <c>menu-button.scss</c>, <c>buttons.scss</c>.
+/// <para>
+/// Rules are scoped by the active mode class (<c>md</c> / <c>ios</c>) the host stamps onto its
+/// root. The drawer (<c>.ion-menu-inner</c>) and backdrop are non-component child <c>div</c>s of
+/// the moded <c>.ion-menu-host</c>, so they are scoped as descendants of the host's mode class
+/// (their mode-specific values — width / shadow / border / backdrop color — then switch with it).
+/// See <see cref="PageStyles"/> for the rationale.
+/// </para>
 /// </summary>
 internal static class MenuStyles
 {
-    internal static CssObject GenStyle(IonicTheme t)
+    internal static CssObject GenStyle(string mode, IonicTheme t)
     {
         return new CssObject
         {
@@ -20,7 +27,7 @@ internal static class MenuStyles
             // overlay menu + backdrop. Position:relative makes the absolutely positioned
             // menu pin to this box. No overflow: that would disable the z-index paint sort
             // that lifts the menu/backdrop above the page.
-            [".ion-app"] = new()
+            [$".ion-app.{mode}"] = new()
             {
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Column,
@@ -34,7 +41,7 @@ internal static class MenuStyles
             // drawer + backdrop, mirroring Ionic's <ion-menu> Host. Always mounted so the
             // slide/fade can animate in both directions. Transparent; establishes the
             // containing block so the backdrop's 100% fills the screen.
-            [".ion-menu-host"] = new()
+            [$".ion-menu-host.{mode}"] = new()
             {
                 Position = Position.Absolute,
                 Top = Length.Px(0),
@@ -45,16 +52,16 @@ internal static class MenuStyles
             },
 
             // Closed & settled: transparent to taps so the page below stays interactive.
-            [".ion-menu-host-idle"] = new()
+            [$".ion-menu-host.{mode}.ion-menu-host-idle"] = new()
             {
                 PointerEvents = PointerEvents.None,
             },
             // Open or animating closed: interactive, so the backdrop catches the dim-area tap.
-            [".ion-menu-host-open"] = new()
+            [$".ion-menu-host.{mode}.ion-menu-host-open"] = new()
             {
                 PointerEvents = PointerEvents.Auto,
             },
-            [".ion-menu-host-closing"] = new()
+            [$".ion-menu-host.{mode}.ion-menu-host-closing"] = new()
             {
                 PointerEvents = PointerEvents.Auto,
             },
@@ -65,7 +72,7 @@ internal static class MenuStyles
             // trailing border. Slides in/out by animating its leading/trailing offset — so it
             // animates both directions and, when closed (off-screen), its hit-box leaves the
             // viewport and never blocks the page.
-            [".ion-menu-inner"] = new()
+            [$".ion-menu-host.{mode} .ion-menu-inner"] = new()
             {
                 Position = Position.Absolute,
                 Top = Length.Px(0),
@@ -93,30 +100,30 @@ internal static class MenuStyles
             },
 
             // Side="start" (leading): closed off-screen to the left, open at the left edge.
-            [".ion-menu-inner-start"] = new()
+            [$".ion-menu-host.{mode} .ion-menu-inner-start"] = new()
             {
                 Left = Length.Px(-t.MenuWidth),
                 Right = Length.Auto,
             },
-            [".ion-menu-inner-start.ion-menu-inner-open"] = new()
+            [$".ion-menu-host.{mode} .ion-menu-inner-start.ion-menu-inner-open"] = new()
             {
                 Left = Length.Px(0),
             },
 
             // Side="end" (trailing): closed off-screen to the right, open at the right edge.
-            [".ion-menu-inner-end"] = new()
+            [$".ion-menu-host.{mode} .ion-menu-inner-end"] = new()
             {
                 Left = Length.Auto,
                 Right = Length.Px(-t.MenuWidth),
             },
-            [".ion-menu-inner-end.ion-menu-inner-open"] = new()
+            [$".ion-menu-host.{mode} .ion-menu-inner-end.ion-menu-inner-open"] = new()
             {
                 Right = Length.Px(0),
             },
 
             // ion-menu-backdrop — full-cover dim layer filling the host, below the drawer
             // (z-index). display:none at rest; mounted while open/closing and animates opacity.
-            [".ion-menu-backdrop"] = new()
+            [$".ion-menu-host.{mode} .ion-menu-backdrop"] = new()
             {
                 Position = Position.Absolute,
                 Top = Length.Px(0),
@@ -135,20 +142,20 @@ internal static class MenuStyles
             },
 
             // Mounted (present) while the menu is open or animating closed.
-            [".ion-menu-backdrop-mounted"] = new()
+            [$".ion-menu-host.{mode} .ion-menu-backdrop-mounted"] = new()
             {
                 Display = Display.Block,
             },
 
             // Faded in (open). BackdropColor already carries the ~.32 alpha.
-            [".ion-menu-backdrop-open"] = new()
+            [$".ion-menu-host.{mode} .ion-menu-backdrop-open"] = new()
             {
                 Opacity = 1f,
             },
 
             // ion-menu-button — the hamburger in the toolbar. Square tap target holding the
             // menu icon; auto width so it does not stretch the toolbar row.
-            [".ion-menu-button"] = new()
+            [$".ion-menu-button.{mode}"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
@@ -159,7 +166,7 @@ internal static class MenuStyles
                 Cursor = Cursor.Pointer,
             },
 
-            [".ion-menu-button .ion-icon"] = new()
+            [$".ion-menu-button.{mode} .ion-icon"] = new()
             {
                 Width = Length.Px(24),
                 Height = Length.Px(24),
@@ -167,7 +174,7 @@ internal static class MenuStyles
 
             // ion-buttons — slot container in the toolbar. Auto width (no flex-grow) so the
             // grow-able title absorbs the remaining row width next to it.
-            [".ion-buttons"] = new()
+            [$".ion-buttons.{mode}"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,

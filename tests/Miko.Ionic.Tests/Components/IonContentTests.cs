@@ -14,7 +14,7 @@ public class IonContentTests : IonicComponentTestBase
 
         // Assert - DOM structure
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-content");
+        cut.Root.Class.ShouldBe("md ion-content");
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class IonContentTests : IonicComponentTestBase
             parameters.Add(nameof(IonContent.Fullscreen), true));
 
         // Assert - Key style/class attribute
-        cut.Root.Class.ShouldBe("ion-content content-fullscreen");
+        cut.Root.Class.ShouldBe("md ion-content content-fullscreen");
     }
 
     [Fact]
@@ -52,13 +52,13 @@ public class IonContentTests : IonicComponentTestBase
             parameters.Add(nameof(IonContent.Fullscreen), false));
 
         // Assert
-        cut1.Root.Class.ShouldBe("ion-content");
+        cut1.Root.Class.ShouldBe("md ion-content");
 
         // Act - Second render with fullscreen
         var cut2 = Context.Render<IonContent>(parameters =>
             parameters.Add(nameof(IonContent.Fullscreen), true));
 
         // Assert
-        cut2.Root.Class.ShouldBe("ion-content content-fullscreen");
+        cut2.Root.Class.ShouldBe("md ion-content content-fullscreen");
     }
 }

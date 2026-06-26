@@ -23,7 +23,7 @@ public class IonSegmentTests : IonicComponentTestBase
 
         // Assert - DOM structure
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-segment");
+        cut.Root.Class.ShouldBe("md ion-segment");
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class IonSegmentTests : IonicComponentTestBase
         });
 
         // Assert - Key style/class attribute
-        cut.Root.Class.ShouldBe("ion-segment segment-disabled");
+        cut.Root.Class.ShouldBe("md ion-segment segment-disabled");
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class IonSegmentTests : IonicComponentTestBase
 
         // Assert - The segment rendered (context cascade happens during render)
         cut.Root.ShouldNotBeNull();
-        cut.Root.Class.ShouldBe("ion-segment");
+        cut.Root.Class.ShouldBe("md ion-segment");
         // Note: Full cascading behavior is tested in IonSegmentButtonTests where buttons
         // read the context and derive their Selected state.
     }

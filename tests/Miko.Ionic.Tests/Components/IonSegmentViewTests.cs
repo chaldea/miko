@@ -23,7 +23,7 @@ public class IonSegmentViewTests : IonicComponentTestBase
 
         // Assert - DOM structure
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-segment-view");
+        cut.Root.Class.ShouldBe("md ion-segment-view");
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class IonSegmentViewTests : IonicComponentTestBase
         var elements = cut.GetAllElements();
         elements.Count.ShouldBeGreaterThanOrEqualTo(1);
         elements[0].TagName.ShouldBe("div");
-        elements[0].Class.ShouldBe("ion-segment-view");
+        elements[0].Class.ShouldBe("md ion-segment-view");
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class IonSegmentViewTests : IonicComponentTestBase
 
         // Assert - The view rendered (context cascade happens during render)
         cut.Root.ShouldNotBeNull();
-        cut.Root.Class.ShouldBe("ion-segment-view");
+        cut.Root.Class.ShouldBe("md ion-segment-view");
     }
 
     [Fact]

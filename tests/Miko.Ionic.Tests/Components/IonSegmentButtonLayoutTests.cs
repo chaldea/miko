@@ -49,13 +49,19 @@ public class IonSegmentButtonLayoutTests : IonicComponentTestBase
             }));
         });
 
-        var button = cut.Root; // <button class="ion-segment-button">
+        var host = cut.Root; // <div class="ion-segment-button"> — the host wrapper
+        host.TagName.ShouldBe("div");
+
+        // The clickable surface (.button-native) is the host's first child; the label is centered
+        // inside it (via .button-inner).
+        var button = host.Children[0];
         button.TagName.ShouldBe("button");
+        button.Class.ShouldBe("button-native");
 
         var buttonBox = cut.GetBoxModel(button);
         buttonBox.ShouldNotBeNull();
 
-        // The label sits inside the button (ion-label is the first descendant div).
+        // The label sits inside the button-native (ion-label is a descendant div).
         var label = button.FindByClass("ion-label").FirstOrDefault();
         label.ShouldNotBeNull();
         var labelBox = cut.GetBoxModel(label!);

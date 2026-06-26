@@ -16,7 +16,7 @@ public class IonSegmentContentTests : IonicComponentTestBase
 
         // Assert - DOM structure (without view context, it's inactive so gets hidden class)
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("ion-segment-content segment-content-hidden");
+        cut.Root.Class.ShouldBe("md ion-segment-content segment-content-hidden");
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class IonSegmentContentTests : IonicComponentTestBase
         // Assert - The content inside should NOT have the hidden class
         var contentElement = FindContentInTree(cut.Root);
         contentElement.ShouldNotBeNull();
-        contentElement.Class.ShouldBe("ion-segment-content");
+        contentElement.Class.ShouldBe("md ion-segment-content");
         contentElement.Class.ShouldNotContain("segment-content-hidden");
     }
 

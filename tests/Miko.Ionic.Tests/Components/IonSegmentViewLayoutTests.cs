@@ -76,7 +76,7 @@ public class IonSegmentViewLayoutTests : IonicComponentTestBase
         // Find the active content element (visible — no hidden class)
         var content = cut.FindById("all");
         content.ShouldNotBeNull();
-        content!.Class.ShouldBe("ion-segment-content"); // active, not hidden
+        content!.Class.ShouldBe("md ion-segment-content"); // active, not hidden
 
         // Assert - the content sizes to its 120px child, NOT collapsed to 0
         var box = cut.GetBoxModel(content);
