@@ -58,6 +58,13 @@ public static class IonicStyleSheetFactory
         sheet.Add(LabelStyles.GenStyle(mode, t));
         sheet.Add(MenuStyles.GenStyle(mode, t));
         sheet.Add(ListStyles.GenStyle(mode, t));
+        sheet.Add(ItemStyles.GenStyle(mode, t));
         sheet.Add(SegmentStyles.GenStyle(mode, t));
+        sheet.Add(ButtonStyles.GenStyle(mode, t));
+        sheet.Add(BackButtonStyles.GenStyle(mode, t));
+        sheet.Add(SearchbarStyles.GenStyle(mode, t));
+        sheet.Add(FooterStyles.GenStyle(mode, t));
+        sheet.Add(SlidesStyles.GenStyle(mode, t));
+        sheet.Add(AvatarStyles.GenStyle(mode, t));
     }
 }

@@ -1,0 +1,26 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-item-options>: the container holding the swipe-reveal action buttons for
+   an <ion-item-sliding>. It is anchored to one edge (Side "end" default, or "start") and sits
+   off-screen until the sliding row is opened. It cascades its Side down to its <ion-item-option>
+   children so they (and the stylesheet) know which edge they belong to. *@
+<div class="@_cssClass">
+    <CascadingValue TValue="string" Name="ItemOptionsSide" Value="@_side">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>Edge these options are anchored to: <c>"end"</c> (default) or <c>"start"</c>.
+    /// Mirrors Ionic's <c>side</c> attribute on <c>ion-item-options</c>.</summary>
+    [Parameter] public string Side { get; set; } = "end";
+
+    private string _side = "end";
+    private string _cssClass = "md ion-item-options ion-item-options-end";
+
+    protected override void OnParametersSet()
+    {
+        _side = string.Equals(Side, "start", StringComparison.OrdinalIgnoreCase) ? "start" : "end";
+        _cssClass = $"{Mode} ion-item-options ion-item-options-{_side}";
+    }
+}

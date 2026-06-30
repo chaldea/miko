@@ -1,0 +1,155 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-searchbar> host structure:
+   <ion-searchbar class="searchbar ...">            <!-- host: flex row, the state classes -->
+     <div class="searchbar-input-container">
+       <input class="searchbar-input" />            <!-- the rounded text field -->
+       (md) <button class="searchbar-cancel-button">  <!-- icon cancel, inside the container -->
+         <div><ion-icon icon=arrow-back-sharp /></div>
+       </button>
+       <ion-icon class="searchbar-search-icon" />   <!-- leading magnifier -->
+       <button class="searchbar-clear-button">       <!-- trailing reset -->
+         <ion-icon class="searchbar-clear-icon" />
+       </button>
+     </div>
+     (ios) <button class="searchbar-cancel-button">  <!-- text cancel, sibling of the container -->
+       <div>Cancel</div>
+     </button>
+   </ion-searchbar>
+   The cancel button is a child of the input-container in md (an icon, default arrow-back-sharp)
+   and a sibling of it in ios (text, default "Cancel") — matching the Ionic source. Search icon
+   defaults to search-sharp (md) / search-outline (ios); clear icon to close-sharp (md) /
+   close-circle (ios). Input value/placeholder/type/disabled are stamped in Build() because the
+   renderer's <input> attribute mapping does not carry them through. The focus/clear/cancel
+   interactivity is out of scope for the renderer (like IonButton.Href). *@
+<div class="@_cssClass">
+    <div class="searchbar-input-container">
+        <input class="searchbar-input" type="@_type" />
+        @if (Mode == "md")
+        {
+            <button class="searchbar-cancel-button">
+                <div>
+                    <IonIcon Icon="@_cancelButtonIcon" />
+                </div>
+            </button>
+        }
+        <IonIcon Icon="@_searchIcon" Class="searchbar-search-icon" />
+        <button class="searchbar-clear-button">
+            <IonIcon Icon="@_clearIcon" Class="searchbar-clear-icon" />
+        </button>
+    </div>
+    @if (Mode == "ios")
+    {
+        <button class="searchbar-cancel-button">
+            <div>@CancelButtonText</div>
+        </button>
+    }
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the input fill.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>The current value of the search field (Ionic <c>value</c>).</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Placeholder text (Ionic <c>placeholder</c>). Defaults to <c>"Search"</c>.</summary>
+    [Parameter] public string Placeholder { get; set; } = "Search";
+
+    /// <summary>When true, the searchbar is dimmed and non-interactive (Ionic <c>disabled</c>).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>When true, enables the iOS animated layout (Ionic <c>animated</c>).</summary>
+    [Parameter] public bool Animated { get; set; }
+
+    /// <summary>Cancel button behavior (Ionic <c>showCancelButton</c>): <c>"never"</c> (default),
+    /// <c>"focus"</c>, or <c>"always"</c>.</summary>
+    [Parameter] public string ShowCancelButton { get; set; } = "never";
+
+    /// <summary>Clear button behavior (Ionic <c>showClearButton</c>): <c>"always"</c> (default),
+    /// <c>"focus"</c>, or <c>"never"</c>.</summary>
+    [Parameter] public string ShowClearButton { get; set; } = "always";
+
+    /// <summary>Cancel button text, shown in iOS mode (Ionic <c>cancelButtonText</c>).</summary>
+    [Parameter] public string CancelButtonText { get; set; } = "Cancel";
+
+    /// <summary>Cancel button icon, shown in md mode (Ionic <c>cancelButtonIcon</c>). Defaults to
+    /// <c>arrow-back-sharp</c>.</summary>
+    [Parameter] public string? CancelButtonIcon { get; set; }
+
+    /// <summary>Search icon name (Ionic <c>searchIcon</c>). Defaults to <c>search-sharp</c> (md) /
+    /// <c>search-outline</c> (ios).</summary>
+    [Parameter] public string? SearchIcon { get; set; }
+
+    /// <summary>Clear icon name (Ionic <c>clearIcon</c>). Defaults to <c>close-sharp</c> (md) /
+    /// <c>close-circle</c> (ios).</summary>
+    [Parameter] public string? ClearIcon { get; set; }
+
+    /// <summary>Input type (Ionic <c>type</c>). Defaults to <c>"search"</c>.</summary>
+    [Parameter] public string Type { get; set; } = "search";
+
+    /// <summary>Debounce in ms for the input event (Ionic <c>debounce</c>). Kept for API parity;
+    /// the renderer does not debounce.</summary>
+    [Parameter] public int? Debounce { get; set; }
+
+    /// <summary>Form control name (Ionic <c>name</c>). Kept for API parity.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    private string _cssClass = "md ion-searchbar searchbar-left-aligned";
+    private string _type = "search";
+    private string _searchIcon = Ionicons.SearchSharp;
+    private string _clearIcon = Ionicons.CloseSharp;
+    private string _cancelButtonIcon = Ionicons.ArrowBackSharp;
+
+    protected override void OnParametersSet()
+    {
+        var mode = Mode;
+        _type = string.IsNullOrEmpty(Type) ? "search" : Type.ToLowerInvariant();
+
+        // Icon defaults are mode-specific (searchbar.tsx render).
+        _searchIcon = SearchIcon ?? (mode == "ios" ? Ionicons.SearchOutline : Ionicons.SearchSharp);
+        _clearIcon = ClearIcon ?? (mode == "ios" ? Ionicons.CloseCircle : Ionicons.CloseSharp);
+        _cancelButtonIcon = CancelButtonIcon ?? Ionicons.ArrowBackSharp;
+
+        // Host class — mirrors the createColorClasses + state map in searchbar.tsx render().
+        var cls = $"{mode} ion-searchbar searchbar-left-aligned";
+        if (Animated) cls += " searchbar-animated";
+        if (Disabled) cls += " searchbar-disabled";
+        if (HasValue) cls += " searchbar-has-value";
+        if (ShouldShowClear) cls += " searchbar-should-show-clear";
+        if (ShouldShowCancel) cls += " searchbar-should-show-cancel";
+        if (!string.IsNullOrEmpty(Color)) cls += $" ion-color-{Color.ToLowerInvariant()}";
+        _cssClass = cls;
+    }
+
+    private bool HasValue => !string.IsNullOrEmpty(Value);
+
+    // Mirrors searchbar.tsx shouldShowCancelButton/shouldShowClearButton. The port has no focus
+    // lifecycle, so "focus" behaves like "never" (the button never auto-reveals on focus).
+    private bool ShouldShowCancel =>
+        ShowCancelButton is "always" || (ShowCancelButton == "focus" && false);
+
+    private bool ShouldShowClear =>
+        ShowClearButton is "always" || (ShowClearButton == "focus" && false);
+
+    /// <summary>
+    /// After the subtree is built, stamp the input's value/placeholder/type/disabled directly on
+    /// the <see cref="InputElement"/> — the renderer's <c>&lt;input&gt;</c> attribute mapping only
+    /// carries <c>type</c> through, so value/placeholder/disabled are set here, mirroring how
+    /// <see cref="IonButton"/>/<see cref="IonSegmentButton"/> stamp DOM state after
+    /// <see cref="Build"/>.
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        if (root.FindByClass("searchbar-input").FirstOrDefault() is InputElement input)
+        {
+            input.Value = Value ?? string.Empty;
+            input.Placeholder = Placeholder;
+            input.Type = _type == "search" ? InputType.Search : InputType.Text;
+            if (Disabled) input.SetState(ElementState.Disabled);
+        }
+        return root;
+    }
+}

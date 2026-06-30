@@ -22,6 +22,10 @@
     <ProjectReference Include="..\..\..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*" />
+  </ItemGroup>
+
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
     <PropertyGroup>
       <_CustomRazorGeneratorDir>

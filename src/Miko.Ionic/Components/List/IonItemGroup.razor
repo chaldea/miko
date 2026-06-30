@@ -1,0 +1,8 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-item-group>: a plain block container that groups a set of items
+   (and an optional <ion-item-divider> header) into a logical section. It carries no visual
+   styling of its own beyond being a block — the items inside render their own dividers. *@
+<div class="@($"{Mode} ion-item-group")">
+    @ChildContent
+</div>

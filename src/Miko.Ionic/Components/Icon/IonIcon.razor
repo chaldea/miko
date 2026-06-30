@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@($"{Mode} ion-icon")" Style="@_iconStyle"></div>
+<div class="@_cssClass" Style="@_iconStyle"></div>
 
 @code {
     /// <summary>
@@ -9,10 +9,29 @@
     /// </summary>
     [Parameter] public string? Icon { get; set; }
 
+    /// <summary>
+    /// Named slot the icon occupies in its parent (Ionic's <c>slot</c> attribute), e.g.
+    /// <c>"icon-only"</c>, <c>"start"</c>, <c>"end"</c>. Stamped as an <c>ion-slot-*</c> marker
+    /// class so a parent (e.g. <see cref="IonButton"/>) can detect it via class lookup — mirroring
+    /// Ionic's <c>querySelector('[slot="…"]')</c>.
+    /// </summary>
+    [Parameter] public string? Slot { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes to apply to the icon root element.
+    /// </summary>
+    [Parameter] public string? Class { get; set; }
+
+    private string _cssClass = "md ion-icon";
     private Style? _iconStyle;
 
     protected override void OnParametersSet()
     {
+        var cls = $"{Mode} ion-icon";
+        if (!string.IsNullOrEmpty(Slot)) cls += $" ion-slot-{Slot.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(Class)) cls += $" {Class}";
+        _cssClass = cls;
+
         var image = IconResolver.Load(Icon);
         _iconStyle = image is null
             ? null

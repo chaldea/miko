@@ -93,6 +93,7 @@ public class RenderTreeBuilder
                     "radio" => InputType.Radio,
                     "password" => InputType.Password,
                     "range" => InputType.Range,
+                    "search" => InputType.Search,
                     _ => InputType.Text,
                 };
                 break;
