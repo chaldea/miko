@@ -1,0 +1,84 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-back-button> structure:
+   <ion-back-button>                    <!-- host with show-back-button / disabled classes -->
+     <button class="button-native">     <!-- clickable surface with flex layout -->
+       <span class="button-inner">      <!-- centers the icon + text row -->
+         <ion-icon part="icon"></ion-icon>
+         <span part="text" class="button-text"></span>
+       </span>
+     </button>
+   </ion-back-button>
+   The icon defaults to chevron-left (iOS) / arrow-left (MD). The text defaults to "Back" on
+   iOS, null on MD. When the button has icon-only (no text), it uses a circular ripple effect. *@
+<div class="@_cssClass">
+    <button class="button-native" @onclick="HandleClick" disabled="@Disabled">
+        <span class="button-inner">
+            @if (_icon != null)
+            {
+                <IonIcon Icon="@_icon" Class="back-button-icon" />
+            }
+            @if (_text != null)
+            {
+                <span class="button-text">@_text</span>
+            }
+        </span>
+    </button>
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to text color.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>The URL to navigate back to by default when there is no history.
+    /// When null, the button is hidden (mirrors Ionic's <c>show-back-button</c> logic).</summary>
+    [Parameter] public string? DefaultHref { get; set; }
+
+    /// <summary>When true, the user cannot interact with the button (dimmed, non-interactive).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Override the default back button icon. When null, uses the mode default
+    /// (chevron-left for iOS, arrow-left for MD).</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Override the default back button text. When null, uses the mode default
+    /// ("Back" for iOS, null for MD).</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Raised when the button is clicked (skipped when disabled). Navigation is out
+    /// of scope for the renderer — the host app wires this to its nav stack.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string _cssClass = "md ion-back-button";
+    private string? _icon;
+    private string? _text;
+
+    protected override void OnParametersSet()
+    {
+        // Resolve the icon — either the explicit Icon parameter, or the mode default.
+        _icon = Icon ?? (Mode == "ios" ? "chevron-back" : "arrow-back-sharp");
+
+        // Resolve the text — either the explicit Text parameter, or the mode default.
+        _text = Text ?? (Mode == "ios" ? "Back" : null);
+
+        // Build the CSS class. Show the button only when DefaultHref is set (mirrors Ionic's
+        // logic: <c>showBackButton</c> = defaultHref !== undefined).
+        var showButton = DefaultHref != null;
+        var hasIconOnly = _icon != null && _text == null;
+
+        var cls = $"{Mode} ion-back-button button";
+        if (showButton) cls += " show-back-button";
+        if (Disabled) cls += " back-button-disabled";
+        if (hasIconOnly) cls += " back-button-has-icon-only";
+        if (!string.IsNullOrEmpty(Color)) cls += $" ion-color-{Color.ToLowerInvariant()}";
+
+        _cssClass = cls;
+    }
+
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled) return;
+        await OnClick.InvokeAsync();
+    }
+}

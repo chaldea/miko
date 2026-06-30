@@ -106,6 +106,9 @@ public class ComputedStyle : Style
     public new Overflow OverflowX { get; set; } = Overflow.Visible;
     public new Overflow OverflowY { get; set; } = Overflow.Visible;
 
+    // vertical-align 默认 baseline（与 CSS 一致）。
+    public new VerticalAlign VerticalAlign { get; set; } = Common.VerticalAlign.Baseline;
+
     /// <summary>
     /// 表格布局算法（默认 auto，与浏览器行为一致）。
     /// </summary>
@@ -268,6 +271,8 @@ public class ComputedStyle : Style
 
             if (style.OverflowX.HasValue) computed.OverflowX = style.OverflowX.Value;
             if (style.OverflowY.HasValue) computed.OverflowY = style.OverflowY.Value;
+
+            if (style.VerticalAlign.HasValue) computed.VerticalAlign = style.VerticalAlign.Value;
 
             if (style.TableLayout.HasValue) computed.TableLayout = style.TableLayout.Value;
 

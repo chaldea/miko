@@ -1,0 +1,9 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-avatar>: a circular inline-block container that clips its content
+   (typically an <img> or <ion-img>) into a circle. It carries no intrinsic size — it sizes to
+   its content. ios and md share the same geometry (50% radius + hidden overflow), so the mode
+   class is stamped only for selector-parity with the rest of the component suite. *@
+<div class="@($"{Mode} ion-avatar")">
+    @ChildContent
+</div>

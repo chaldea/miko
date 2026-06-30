@@ -1,0 +1,8 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-item-divider>: a section header row that sits between item groups.
+   Structurally it is a flex row like an item (leading content + label, vertically centered),
+   but with a tinted background and its own min-height/colors from the theme. *@
+<div class="@($"{Mode} ion-item-divider")">
+    @ChildContent
+</div>

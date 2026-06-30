@@ -1,7 +1,45 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
 <div class="@($"{Mode} ion-toolbar")">
+    <div class="toolbar-background"></div>
     <div class="toolbar-container">
-        @ChildContent
+        @Start
+        @Secondary
+        <div class="toolbar-content">
+            @ChildContent
+        </div>
+        @Primary
+        @End
     </div>
 </div>
+
+@code {
+    /// <summary>
+    /// Default content rendered in the center of the toolbar — Ionic's default slot.
+    /// Typically contains an <c>IonTitle</c> or other centered content.
+    /// </summary>
+    [Parameter] public new RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Content pinned to the start (left in LTR) of the toolbar — Ionic's <c>slot="start"</c>.
+    /// Typically an <c>IonButtons</c> with a back/menu button.
+    /// </summary>
+    [Parameter] public RenderFragment? Start { get; set; }
+
+    /// <summary>
+    /// Buttons placed at the secondary edge — Ionic's <c>slot="secondary"</c>. On iOS this is the
+    /// start side, on Material Design the end side; the stylesheet resolves the visual placement.
+    /// </summary>
+    [Parameter] public RenderFragment? Secondary { get; set; }
+
+    /// <summary>
+    /// Buttons placed at the primary edge — Ionic's <c>slot="primary"</c>. On iOS this is the end
+    /// side, on Material Design the start side; the stylesheet resolves the visual placement.
+    /// </summary>
+    [Parameter] public RenderFragment? Primary { get; set; }
+
+    /// <summary>
+    /// Content pinned to the end (right in LTR) of the toolbar — Ionic's <c>slot="end"</c>.
+    /// </summary>
+    [Parameter] public RenderFragment? End { get; set; }
+}

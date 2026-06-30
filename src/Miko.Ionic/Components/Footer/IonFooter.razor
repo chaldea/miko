@@ -1,0 +1,49 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    @if (Translucent && Mode == "ios")
+    {
+        <div class="footer-background"></div>
+    }
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>
+    /// If <c>true</c>, the footer will be translucent.
+    /// Only applies when the mode is <c>"ios"</c> and the device supports backdrop-filter.
+    /// Note: In order to scroll content behind the footer, the <c>fullscreen</c> attribute
+    /// needs to be set on the content.
+    /// </summary>
+    [Parameter] public bool Translucent { get; set; }
+
+    /// <summary>
+    /// Describes the scroll effect that will be applied to the footer.
+    /// Only applies in iOS mode. Currently supports <c>"fade"</c>.
+    /// </summary>
+    [Parameter] public string? Collapse { get; set; }
+
+    private string _cssClass = "md ion-footer footer-md";
+
+    protected override void OnParametersSet()
+    {
+        var classes = new List<string> { Mode, "ion-footer", $"footer-{Mode}" };
+
+        if (Translucent)
+        {
+            classes.Add("footer-translucent");
+            classes.Add($"footer-translucent-{Mode}");
+        }
+
+        // Footer toolbar padding is typically enabled by default
+        // (disabled only when keyboard is visible or tab bar is at bottom, but we simplify for now)
+        classes.Add("footer-toolbar-padding");
+
+        if (!string.IsNullOrEmpty(Collapse))
+        {
+            classes.Add($"footer-collapse-{Collapse}");
+        }
+
+        _cssClass = string.Join(" ", classes);
+    }
+}

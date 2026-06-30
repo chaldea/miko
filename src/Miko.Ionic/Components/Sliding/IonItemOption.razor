@@ -1,0 +1,44 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-item-option>: a single swipe-reveal action button inside an
+   <ion-item-options>. It is a filled button (white label on a brand fill). The fill color is
+   chosen by the `color` attribute (Ionic's named palette: "primary", "danger", "success", …),
+   stamped as an ion-color-* class that the stylesheet maps to a background. With no color it
+   falls back to the theme's default (primary) option fill. *@
+<button class="@_cssClass" @onclick="HandleClick">
+    <span class="button-inner">
+        @ChildContent
+    </span>
+</button>
+
+@code {
+    /// <summary>Named palette color for the fill (e.g. <c>"primary"</c>, <c>"danger"</c>,
+    /// <c>"success"</c>). Null uses the default option fill. Mirrors Ionic's <c>color</c>.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>When true the option is dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Raised when the option is tapped.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>The edge supplied by the enclosing <see cref="IonItemOptions"/>.</summary>
+    [CascadingParameter(Name = "ItemOptionsSide")]
+    public string? Side { get; set; }
+
+    private string _cssClass = "md ion-item-option";
+
+    protected override void OnParametersSet()
+    {
+        var cls = $"{Mode} ion-item-option";
+        if (!string.IsNullOrEmpty(Color)) cls += $" ion-color-{Color.ToLowerInvariant()}";
+        if (Disabled) cls += " item-option-disabled";
+        _cssClass = cls;
+    }
+
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled) return;
+        await OnClick.InvokeAsync();
+    }
+}

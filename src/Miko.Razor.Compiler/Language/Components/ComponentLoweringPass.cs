@@ -349,11 +349,22 @@ internal sealed class ComponentLoweringPass : ComponentIntermediateNodePassBase,
 
             bool IsIgnorableWhitespace(IntermediateNode n)
             {
-                if (n is HtmlContentIntermediateNode html &&
-                    html.Children.Count == 1 &&
-                    html.Children[0] is IntermediateToken token &&
-                    string.IsNullOrWhiteSpace(token.Content))
+                if (n is HtmlContentIntermediateNode html)
                 {
+                    // Check if all children are whitespace tokens
+                    if (html.Children.Count == 0)
+                    {
+                        return true;
+                    }
+
+                    foreach (var child in html.Children)
+                    {
+                        if (child is not IntermediateToken token || !string.IsNullOrWhiteSpace(token.Content))
+                        {
+                            return false;
+                        }
+                    }
+
                     return true;
                 }
 

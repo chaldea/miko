@@ -1,0 +1,33 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-item-sliding>: a row whose <ion-item> can be slid aside to reveal one or
+   two sets of <ion-item-options> (anchored to the start and/or end edge). Ionic drives the slide
+   with a drag gesture; this port exposes the resting state declaratively via <see cref="Open"/>
+   (and which side is revealed via <see cref="OpenSide"/>), stamping the active-slide class that
+   the stylesheet uses to translate the options into view. The host clips its overflow so the
+   options stay hidden off the edge until revealed. *@
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>When true the row is slid open, revealing the options on <see cref="OpenSide"/>.</summary>
+    [Parameter] public bool Open { get; set; }
+
+    /// <summary>Which side's options are revealed when <see cref="Open"/> is true: <c>"end"</c>
+    /// (default) or <c>"start"</c>.</summary>
+    [Parameter] public string OpenSide { get; set; } = "end";
+
+    private string _cssClass = "md ion-item-sliding";
+
+    protected override void OnParametersSet()
+    {
+        var cls = $"{Mode} ion-item-sliding";
+        if (Open)
+        {
+            var side = string.Equals(OpenSide, "start", StringComparison.OrdinalIgnoreCase) ? "start" : "end";
+            cls += $" item-sliding-open item-sliding-open-{side}";
+        }
+        _cssClass = cls;
+    }
+}

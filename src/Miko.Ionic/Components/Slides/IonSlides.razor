@@ -1,0 +1,81 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@using Miko.Animation
+@using Miko.Common
+@using Miko.Core
+@* Mirrors Ionic's <ion-slides> (slides.tsx). Ionic delegates the actual sliding to the bundled
+   Swiper library; this port keeps the same DOM contract — a swiper-container host wrapping a
+   swiper-wrapper that holds the <ion-slide> children — and exposes the resting state declaratively:
+   the active slide (ActiveIndex) and the optional pager/scrollbar furniture. The track is a flex
+   row whose wrapper is translated so the active slide sits in the viewport; the host clips the
+   overflow so the off-screen slides stay hidden (matching .swiper-container overflow:hidden).
+
+     <ion-slides class="md slides-md swiper-container">
+       <div class="swiper-wrapper">           <!-- flex row, translated to the active slide -->
+         <slot/>                               <!-- the <ion-slide> children -->
+       </div>
+       (pager)    <div class="swiper-pagination"/>
+       (scrollbar)<div class="swiper-scrollbar"/>
+     </ion-slides>
+
+   The pager/scrollbar are rendered as in slides.tsx (gated on Pager / Scrollbar). The swiper's
+   gesture/transition lifecycle and the rich Swiper option set are out of scope for the renderer
+   (like IonButton.Href / IonItemSliding's drag) — ActiveIndex provides the declarative resting
+   position, stamped onto the wrapper's transform in Build() (the renderer maps a Style object, not
+   a string style attribute). *@
+<div class="@_cssClass">
+    <div class="swiper-wrapper">
+        @ChildContent
+    </div>
+    @if (Pager)
+    {
+        <div class="swiper-pagination"></div>
+    }
+    @if (Scrollbar)
+    {
+        <div class="swiper-scrollbar"></div>
+    }
+</div>
+
+@code {
+    /// <summary>If true, render the pagination bullets (Ionic <c>pager</c>).</summary>
+    [Parameter] public bool Pager { get; set; }
+
+    /// <summary>If true, render the scrollbar (Ionic <c>scrollbar</c>).</summary>
+    [Parameter] public bool Scrollbar { get; set; }
+
+    /// <summary>Index of the active slide shown in the viewport. Drives the wrapper translation that
+    /// the (otherwise gesture-driven) Swiper would apply. Defaults to 0 (the first slide). Mirrors
+    /// Swiper's <c>initialSlide</c> / <c>activeIndex</c>.</summary>
+    [Parameter] public int ActiveIndex { get; set; }
+
+    private string _cssClass = "md slides-md swiper-container";
+
+    protected override void OnParametersSet()
+    {
+        var mode = Mode;
+        // class map from slides.tsx render(): [mode]: true, [slides-{mode}]: true, 'swiper-container': true.
+        _cssClass = $"{mode} slides-{mode} swiper-container";
+    }
+
+    /// <summary>
+    /// After the subtree is built, stamp the active-slide offset onto the <c>swiper-wrapper</c>'s
+    /// transform. Each slide fills the viewport (100% wide), so the resting position for slide
+    /// <see cref="ActiveIndex"/> is <c>translateX(-index*100%)</c>. Stamped here (not as an inline
+    /// <c>style</c> attribute) because the renderer only carries a <see cref="Style"/> object
+    /// through — mirroring how <see cref="IonSearchbar"/> stamps DOM state after <see cref="Build"/>.
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        var index = ActiveIndex < 0 ? 0 : ActiveIndex;
+        if (index > 0 && root.FindByClass("swiper-wrapper").FirstOrDefault() is { } wrapper)
+        {
+            wrapper.Style = new Style
+            {
+                Transform = new Transform(new TransformFunction.TranslateX(Length.Percent(-index * 100))),
+            };
+        }
+        return root;
+    }
+}

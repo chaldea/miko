@@ -1,4 +1,5 @@
 using Miko.Common;
+using Miko.Components;
 using Miko.Core.DomElements;
 using Miko.Layout;
 using Miko.Styling;
@@ -479,6 +480,7 @@ public class InputElementTests
     [InlineData(InputType.Checkbox)]
     [InlineData(InputType.Radio)]
     [InlineData(InputType.Range)]
+    [InlineData(InputType.Search)]
     public void AllInputTypes_ShouldHaveValidDefaultStyles(InputType inputType)
     {
         // Arrange
@@ -495,8 +497,8 @@ public class InputElementTests
 
         // 高度规则因类型而异：
         // - Checkbox/Radio/Range 为本征尺寸控件，保留固定默认高度；
-        // - Text/Password 高度为 auto，由内容（行高/字体）在布局阶段撑开（ISSUE-040）。
-        if (inputType is InputType.Text or InputType.Password)
+        // - Text/Password/Search 高度为 auto，由内容（行高/字体）在布局阶段撑开（ISSUE-040）。
+        if (inputType is InputType.Text or InputType.Password or InputType.Search)
         {
             computed.Height.IsAuto.ShouldBeTrue(
                 $"{inputType} input height should be auto and derived from content");
@@ -505,6 +507,30 @@ public class InputElementTests
         {
             computed.Height.Value.ShouldBeGreaterThan(0,
                 $"{inputType} input should have positive height");
+        }
+    }
+
+    /// <summary>
+    /// 通过 RenderTreeBuilder 渲染 <c>type="search"</c> 的 input 时，应解析为
+    /// <see cref="InputType.Search"/>（Ionic searchbar 依赖此映射）。
+    /// </summary>
+    [Fact]
+    public void SearchType_Attribute_ResolvesToInputTypeSearch()
+    {
+        var component = new SearchInputComponent();
+        var root = component.Build();
+
+        var input = root.ShouldBeOfType<InputElement>();
+        input.Type.ShouldBe(InputType.Search);
+    }
+
+    private sealed class SearchInputComponent : ComponentBase
+    {
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "input");
+            builder.AddAttribute(1, "type", "search");
+            builder.CloseElement();
         }
     }
 

@@ -142,7 +142,8 @@ public enum InputType
     Password,
     Checkbox,
     Radio,
-    Range
+    Range,
+    Search
 }
 
 /// <summary>

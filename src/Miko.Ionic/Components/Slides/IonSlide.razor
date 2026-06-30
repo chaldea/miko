@@ -1,0 +1,19 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-slide> (slide.tsx): a single slide within an <ion-slides> track. The host
+   carries the mode class plus the swiper classes (swiper-slide centers its content; swiper-zoom-
+   container is kept for API/structure parity even though the port has no zoom gesture). It fills
+   the slides viewport (100% × 100%) and centers whatever it holds. *@
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    private string _cssClass = "md swiper-slide swiper-zoom-container";
+
+    protected override void OnParametersSet()
+    {
+        // class map from slide.tsx render(): [mode]: true, 'swiper-slide': true, 'swiper-zoom-container': true.
+        _cssClass = $"{Mode} swiper-slide swiper-zoom-container";
+    }
+}

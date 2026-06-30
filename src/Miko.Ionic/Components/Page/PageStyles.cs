@@ -61,11 +61,27 @@ internal static class PageStyles
             [$".ion-toolbar.{mode}"] = new()
             {
                 Display = Display.Block,
+                Position = Position.Relative,
                 Width = Length.Percent(100),
                 BackgroundColor = t.ToolbarBackground,
                 Color = t.ToolbarColor,
                 PaddingLeft = Length.SafeAreaInsetLeft,
                 PaddingRight = Length.SafeAreaInsetRight,
+            },
+
+            // toolbar-background — absolutely positioned layer covering the toolbar behind the
+            // container content. Ported from toolbar.scss `.toolbar-background` (inset 0, abs).
+            // Holding the background here (rather than on :host) keeps it under the content and
+            // lets the safe-area padding on the root push the container inward without moving it.
+            [$".ion-toolbar.{mode} .toolbar-background"] = new()
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(0),
+                Right = Length.Px(0),
+                Bottom = Length.Px(0),
+                Left = Length.Px(0),
+                BackgroundColor = t.ToolbarBackground,
+                ZIndex = 0,
             },
 
             // Only the first toolbar inside a header gets the top safe-area inset (it's the one
@@ -79,6 +95,7 @@ internal static class PageStyles
             [$".ion-toolbar.{mode} .toolbar-container"] = new()
             {
                 Display = Display.Flex,
+                Position = Position.Relative,
                 FlexDirection = FlexDirection.Row,
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.SpaceBetween,
@@ -87,6 +104,20 @@ internal static class PageStyles
                 // so set it directly to give the toolbar its fixed band height.
                 Height = Length.Px(t.ToolbarMinHeight),
                 MinHeight = Length.Px(t.ToolbarMinHeight),
+                // Lift the content above the absolutely-positioned toolbar-background.
+                ZIndex = 1,
+            },
+
+            // toolbar-content — wraps the default slot (the title). Grows to fill the space
+            // between the start/end slots. Ported from toolbar.{md,ios}.scss `.toolbar-content`.
+            [$".ion-toolbar.{mode} .toolbar-content"] = new()
+            {
+                Display = Display.Flex,
+                FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = Length.Px(0),
+                AlignItems = AlignItems.Center,
+                MinWidth = Length.Px(0),
             },
 
             // ion-title — grows to fill the toolbar. MD left-aligns; iOS centers.

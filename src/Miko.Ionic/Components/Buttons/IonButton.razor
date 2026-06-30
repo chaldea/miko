@@ -1,0 +1,93 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-button> host structure:
+   <ion-button>                       <!-- host: the fill/size/shape/expand/color classes -->
+     <button class="button-native">   <!-- the painted clickable surface -->
+       <span class="button-inner">    <!-- centers the slotted content row -->
+         (icon-only / start / label / end slots, flattened here into ChildContent)
+       </span>
+     </button>
+   </ion-button>
+   Ionic renders an <a> instead of a <button> when an `href` is set; this port keeps the
+   <button> surface and exposes Href as a marker (navigation is out of scope for the renderer).
+   The `fill` default is solid, except inside a toolbar / list-header where Ionic defaults to
+   clear — modeled here when an explicit Fill is not supplied. *@
+<div class="@_cssClass">
+    <button class="button-native" @onclick="HandleClick">
+        <span class="button-inner">
+            @ChildContent
+        </span>
+    </button>
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to fill / text color.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Fill style (Ionic <c>fill</c>): <c>"solid"</c> (default), <c>"outline"</c>, or
+    /// <c>"clear"</c>. Null defaults to solid outside a toolbar.</summary>
+    [Parameter] public string? Fill { get; set; }
+
+    /// <summary>Width expansion (Ionic <c>expand</c>): <c>"block"</c> (full-width) or
+    /// <c>"full"</c> (full-width, square corners, no side borders).</summary>
+    [Parameter] public string? Expand { get; set; }
+
+    /// <summary>Corner shape (Ionic <c>shape</c>): <c>"round"</c> for pill corners.</summary>
+    [Parameter] public string? Shape { get; set; }
+
+    /// <summary>Size (Ionic <c>size</c>): <c>"small"</c>, <c>"default"</c>, or <c>"large"</c>.</summary>
+    [Parameter] public string? Size { get; set; }
+
+    /// <summary>When true, uses a heavier font weight (Ionic <c>strong</c>).</summary>
+    [Parameter] public bool Strong { get; set; }
+
+    /// <summary>When true, the button is dimmed and non-interactive (Ionic <c>disabled</c>).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Link target (Ionic <c>href</c>). Kept as a marker for API parity; the renderer
+    /// does not perform navigation.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Raised when the button is tapped (skipped when disabled).</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string _cssClass = "md ion-button button-solid";
+
+    protected override void OnParametersSet()
+    {
+        var fill = string.IsNullOrEmpty(Fill) ? "solid" : Fill.ToLowerInvariant();
+
+        var cls = $"{Mode} ion-button button-{fill}";
+        if (!string.IsNullOrEmpty(Color)) cls += $" ion-color-{Color.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(Expand)) cls += $" button-{Expand.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(Size)) cls += $" button-{Size.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(Shape)) cls += $" button-{Shape.ToLowerInvariant()}";
+        if (Strong) cls += " button-strong";
+        if (Disabled) cls += " button-disabled";
+        _cssClass = cls;
+    }
+
+    /// <summary>
+    /// After the subtree is built, stamp <c>button-has-icon-only</c> when the only slotted child is
+    /// an icon placed in the <c>icon-only</c> slot — Ionic resolves this at render via
+    /// <c>querySelector('[slot="icon-only"]')</c>. Here we look for an <see cref="IonIcon"/>
+    /// descendant carrying the <c>ion-slot-icon-only</c> marker class (stamped by IonIcon from its
+    /// <c>Slot</c> attribute).
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        if (root.FindByClass("ion-slot-icon-only").Count > 0)
+        {
+            root.Class += " button-has-icon-only";
+        }
+        return root;
+    }
+
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled) return;
+        await OnClick.InvokeAsync();
+    }
+}
