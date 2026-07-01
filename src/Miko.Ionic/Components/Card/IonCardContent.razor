@@ -1,0 +1,14 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    private string _cssClass = "md ion-card-content card-content-md";
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = $"{Mode} ion-card-content card-content-{Mode}";
+    }
+}

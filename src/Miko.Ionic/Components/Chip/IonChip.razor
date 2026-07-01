@@ -1,0 +1,28 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>When true, renders the outline chip variant.</summary>
+    [Parameter] public bool Outline { get; set; }
+
+    /// <summary>When true, the chip is dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    private string _cssClass = "md ion-chip ion-activatable";
+
+    protected override void OnParametersSet()
+    {
+        var cls = $"{Mode} ion-chip ion-activatable";
+        if (Outline) cls += " chip-outline";
+        if (Disabled) cls += " chip-disabled";
+        if (!string.IsNullOrWhiteSpace(Color))
+            cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
+        _cssClass = cls;
+    }
+}

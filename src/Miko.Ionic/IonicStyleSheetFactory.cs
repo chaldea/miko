@@ -66,5 +66,13 @@ public static class IonicStyleSheetFactory
         sheet.Add(FooterStyles.GenStyle(mode, t));
         sheet.Add(SlidesStyles.GenStyle(mode, t));
         sheet.Add(AvatarStyles.GenStyle(mode, t));
+        sheet.Add(SpinnerStyles.GenStyle(mode, t));
+        sheet.Add(BadgeStyles.GenStyle(mode, t));
+        sheet.Add(ChipStyles.GenStyle(mode, t));
+        sheet.Add(CardStyles.GenStyle(mode, t));
+        sheet.Add(GridStyles.GenStyle(mode, t));
+        sheet.Add(InfiniteScrollStyles.GenStyle(mode, t));
+        sheet.Add(RefresherStyles.GenStyle(mode, t));
+        sheet.Add(SelectStyles.GenStyle(mode, t));
     }
 }

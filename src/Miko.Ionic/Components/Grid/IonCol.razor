@@ -1,0 +1,83 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass" Style="@_inlineStyle">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Column size from 1 to 12, or <c>"auto"</c>.</summary>
+    [Parameter] public string? Size { get; set; }
+
+    /// <summary>Column offset from 1 to 11 columns.</summary>
+    [Parameter] public string? Offset { get; set; }
+
+    /// <summary>Column push from 1 to 11 columns.</summary>
+    [Parameter] public string? Push { get; set; }
+
+    /// <summary>Column pull from 1 to 11 columns.</summary>
+    [Parameter] public string? Pull { get; set; }
+
+    private string _cssClass = "md ion-col";
+    private Style? _inlineStyle;
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = $"{Mode} ion-col";
+        _inlineStyle = BuildColumnStyle();
+    }
+
+    private Style? BuildColumnStyle()
+    {
+        Style? style = null;
+
+        if (!string.IsNullOrWhiteSpace(Size))
+        {
+            style ??= new Style();
+            if (string.Equals(Size, "auto", StringComparison.OrdinalIgnoreCase))
+            {
+                style.FlexGrow = 0;
+                style.FlexShrink = 0;
+                style.FlexBasis = Length.Auto;
+                style.Width = Length.Auto;
+                style.MaxWidth = Length.Percent(100);
+            }
+            else if (TryColumnPercent(Size, out var sizePercent))
+            {
+                style.FlexGrow = 0;
+                style.FlexShrink = 0;
+                style.FlexBasis = Length.Percent(sizePercent);
+                style.Width = Length.Percent(sizePercent);
+                style.MaxWidth = Length.Percent(sizePercent);
+            }
+        }
+
+        if (TryColumnPercent(Offset, out var offsetPercent))
+        {
+            style ??= new Style();
+            style.MarginLeft = Length.Percent(offsetPercent);
+        }
+
+        if (TryColumnPercent(Push, out var pushPercent))
+        {
+            style ??= new Style();
+            style.Left = Length.Percent(pushPercent);
+        }
+
+        if (TryColumnPercent(Pull, out var pullPercent))
+        {
+            style ??= new Style();
+            style.Right = Length.Percent(pullPercent);
+        }
+
+        return style;
+    }
+
+    private static bool TryColumnPercent(string? value, out float percent)
+    {
+        percent = 0;
+        if (!float.TryParse(value, out var columns)) return false;
+        if (columns <= 0 || columns > 12) return false;
+        percent = columns / 12f * 100f;
+        return true;
+    }
+}

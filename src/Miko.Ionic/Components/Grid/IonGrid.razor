@@ -1,0 +1,17 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>When true, constrains the grid to Ionic's fixed grid width.</summary>
+    [Parameter] public bool Fixed { get; set; }
+
+    private string _cssClass = "md ion-grid";
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = Fixed ? $"{Mode} ion-grid grid-fixed" : $"{Mode} ion-grid";
+    }
+}

@@ -230,6 +230,74 @@ public class IonicTheme
     /// <summary>Avatar host width/height (md 64px, ios 48px).</summary>
     public float AvatarSize { get; set; } = 64f;
 
+    // Spinner / badge / chip / card / grid / refresher / infinite-scroll / select.
+    public Color SpinnerColor { get; set; }
+    public Color SpinnerTrackColor { get; set; }
+    public float SpinnerSize { get; set; } = 28f;
+    public float SpinnerSmallSize { get; set; } = 16f;
+
+    public Color BadgeBackground { get; set; }
+    public Color BadgeColor { get; set; }
+    public float BadgeBorderRadius { get; set; } = 4f;
+    public float BadgeFontSize { get; set; } = 13f;
+    public float BadgePaddingTop { get; set; } = 3f;
+    public float BadgePaddingEnd { get; set; } = 4f;
+    public float BadgePaddingBottom { get; set; } = 4f;
+    public float BadgePaddingStart { get; set; } = 4f;
+    public float BadgeMinWidth { get; set; } = 10f;
+
+    public Color ChipBackground { get; set; }
+    public Color ChipColor { get; set; }
+    public Color ChipBorderColor { get; set; }
+    public float ChipFontSize { get; set; } = 14f;
+
+    public Color CardBackground { get; set; }
+    public Color CardColor { get; set; }
+    public float CardMarginTop { get; set; } = 10f;
+    public float CardMarginEnd { get; set; } = 10f;
+    public float CardMarginBottom { get; set; } = 10f;
+    public float CardMarginStart { get; set; } = 10f;
+    public float CardBorderRadius { get; set; } = 4f;
+    public float CardFontSize { get; set; } = 14f;
+    public Length CardLineHeight { get; set; } = Length.Number(1.5f);
+    public List<BoxShadow> CardBoxShadow { get; set; } = new();
+    public float CardHeaderPaddingTop { get; set; } = 16f;
+    public float CardHeaderPaddingEnd { get; set; } = 16f;
+    public float CardHeaderPaddingBottom { get; set; } = 16f;
+    public float CardHeaderPaddingStart { get; set; } = 16f;
+    public float CardContentPaddingTop { get; set; } = 13f;
+    public float CardContentPaddingEnd { get; set; } = 16f;
+    public float CardContentPaddingBottom { get; set; } = 13f;
+    public float CardContentPaddingStart { get; set; } = 16f;
+    public float CardContentFontSize { get; set; } = 14f;
+    public Length CardContentLineHeight { get; set; } = Length.Number(1.5f);
+
+    public float GridPadding { get; set; } = 5f;
+    public float GridColumnPadding { get; set; } = 5f;
+    public float GridFixedWidth { get; set; } = 1140f;
+
+    public float InfiniteScrollContentMinHeight { get; set; } = 84f;
+    public float RefresherHeight { get; set; } = 60f;
+    public float RefresherIconFontSize { get; set; } = 30f;
+    public float RefresherTextFontSize { get; set; } = 16f;
+
+    public Color SelectTextColor { get; set; }
+    public Color SelectPlaceholderColor { get; set; }
+    public Color SelectLabelColor { get; set; }
+    public Color SelectBackground { get; set; }
+    public Color SelectBorderColor { get; set; }
+    public Color SelectHighlightColor { get; set; }
+    public Color SelectHelperColor { get; set; }
+    public Color SelectErrorColor { get; set; }
+    public float SelectFontSize { get; set; } = 16f;
+    public float SelectMinHeight { get; set; } = 48f;
+    public float SelectPaddingTop { get; set; } = 8f;
+    public float SelectPaddingEnd { get; set; } = 0f;
+    public float SelectPaddingBottom { get; set; } = 8f;
+    public float SelectPaddingStart { get; set; } = 0f;
+    public float SelectBorderRadius { get; set; } = 4f;
+    public float SelectRoundBorderRadius { get; set; } = 999f;
+
     // Brand palette shared by both modes (ionic.theme.default.scss).
     private static void ApplyBrandColors(IonicTheme t)
     {
@@ -425,6 +493,75 @@ public class IonicTheme
         // Avatar (avatar.md.vars.scss): 64px square.
         t.AvatarSize = 64f;
 
+        t.SpinnerColor = t.Primary;
+        t.SpinnerTrackColor = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 51);
+        t.SpinnerSize = 28f;
+        t.SpinnerSmallSize = 16f;
+
+        t.BadgeBackground = t.Primary;
+        t.BadgeColor = Color.FromHex("ffffff");
+        t.BadgeBorderRadius = 4f;
+        t.BadgeFontSize = 13f;
+        t.BadgePaddingTop = 3f;
+        t.BadgePaddingEnd = 4f;
+        t.BadgePaddingBottom = 4f;
+        t.BadgePaddingStart = 4f;
+
+        t.ChipBackground = new Color(0, 0, 0, 31);
+        t.ChipColor = new Color(0, 0, 0, 222);
+        t.ChipBorderColor = new Color(0, 0, 0, 82);
+        t.ChipFontSize = 14f;
+
+        t.CardBackground = Color.FromHex("ffffff");
+        t.CardColor = Color.FromHex("000000");
+        t.CardMarginTop = 10f;
+        t.CardMarginEnd = 10f;
+        t.CardMarginBottom = 10f;
+        t.CardMarginStart = 10f;
+        t.CardBorderRadius = 4f;
+        t.CardFontSize = 14f;
+        t.CardLineHeight = Length.Number(1.5f);
+        t.CardBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 3, 1, -2, new Color(0, 0, 0, 51)),
+            new BoxShadow(0, 2, 2, 0, new Color(0, 0, 0, 36)),
+            new BoxShadow(0, 1, 5, 0, new Color(0, 0, 0, 31)),
+        };
+        t.CardHeaderPaddingTop = 16f;
+        t.CardHeaderPaddingEnd = 16f;
+        t.CardHeaderPaddingBottom = 16f;
+        t.CardHeaderPaddingStart = 16f;
+        t.CardContentPaddingTop = 13f;
+        t.CardContentPaddingEnd = 16f;
+        t.CardContentPaddingBottom = 13f;
+        t.CardContentPaddingStart = 16f;
+        t.CardContentFontSize = 14f;
+        t.CardContentLineHeight = Length.Number(1.5f);
+
+        t.GridPadding = 5f;
+        t.GridColumnPadding = 5f;
+        t.GridFixedWidth = 1140f;
+
+        t.InfiniteScrollContentMinHeight = 84f;
+        t.RefresherHeight = 60f;
+        t.RefresherIconFontSize = 30f;
+        t.RefresherTextFontSize = 16f;
+
+        t.SelectTextColor = Color.FromHex("000000");
+        t.SelectPlaceholderColor = Color.FromHex("666666");
+        t.SelectLabelColor = Color.FromHex("666666");
+        t.SelectBackground = Color.Transparent;
+        t.SelectBorderColor = new Color(0, 0, 0, 61);
+        t.SelectHighlightColor = t.Primary;
+        t.SelectHelperColor = Color.FromHex("666666");
+        t.SelectErrorColor = t.Danger;
+        t.SelectFontSize = 16f;
+        t.SelectMinHeight = 48f;
+        t.SelectPaddingTop = 8f;
+        t.SelectPaddingBottom = 8f;
+        t.SelectBorderRadius = 4f;
+        t.SelectRoundBorderRadius = 999f;
+
         return t;
     }
 
@@ -585,6 +722,73 @@ public class IonicTheme
 
         // Avatar (avatar.ios.vars.scss): 48px square.
         t.AvatarSize = 48f;
+
+        t.SpinnerColor = t.Primary;
+        t.SpinnerTrackColor = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 51);
+        t.SpinnerSize = 28f;
+        t.SpinnerSmallSize = 16f;
+
+        t.BadgeBackground = t.Primary;
+        t.BadgeColor = Color.FromHex("ffffff");
+        t.BadgeBorderRadius = 10f;
+        t.BadgeFontSize = 13f;
+        t.BadgePaddingTop = 3f;
+        t.BadgePaddingEnd = 8f;
+        t.BadgePaddingBottom = 3f;
+        t.BadgePaddingStart = 8f;
+
+        t.ChipBackground = new Color(0, 0, 0, 31);
+        t.ChipColor = new Color(0, 0, 0, 222);
+        t.ChipBorderColor = new Color(0, 0, 0, 82);
+        t.ChipFontSize = 14f;
+
+        t.CardBackground = Color.FromHex("ffffff");
+        t.CardColor = Color.FromHex("000000");
+        t.CardMarginTop = 24f;
+        t.CardMarginEnd = 16f;
+        t.CardMarginBottom = 24f;
+        t.CardMarginStart = 16f;
+        t.CardBorderRadius = 8f;
+        t.CardFontSize = 14f;
+        t.CardLineHeight = Length.Number(1.4f);
+        t.CardBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 4, 16, 0, new Color(0, 0, 0, 31)),
+        };
+        t.CardHeaderPaddingTop = 20f;
+        t.CardHeaderPaddingEnd = 20f;
+        t.CardHeaderPaddingBottom = 16f;
+        t.CardHeaderPaddingStart = 20f;
+        t.CardContentPaddingTop = 20f;
+        t.CardContentPaddingEnd = 20f;
+        t.CardContentPaddingBottom = 20f;
+        t.CardContentPaddingStart = 20f;
+        t.CardContentFontSize = 16f;
+        t.CardContentLineHeight = Length.Number(1.4f);
+
+        t.GridPadding = 5f;
+        t.GridColumnPadding = 5f;
+        t.GridFixedWidth = 1140f;
+
+        t.InfiniteScrollContentMinHeight = 84f;
+        t.RefresherHeight = 60f;
+        t.RefresherIconFontSize = 30f;
+        t.RefresherTextFontSize = 16f;
+
+        t.SelectTextColor = Color.FromHex("000000");
+        t.SelectPlaceholderColor = Color.FromHex("666666");
+        t.SelectLabelColor = Color.FromHex("666666");
+        t.SelectBackground = Color.Transparent;
+        t.SelectBorderColor = new Color(0, 0, 0, 51);
+        t.SelectHighlightColor = t.Primary;
+        t.SelectHelperColor = Color.FromHex("666666");
+        t.SelectErrorColor = t.Danger;
+        t.SelectFontSize = 17f;
+        t.SelectMinHeight = 44f;
+        t.SelectPaddingTop = 8f;
+        t.SelectPaddingBottom = 8f;
+        t.SelectBorderRadius = 10f;
+        t.SelectRoundBorderRadius = 999f;
 
         return t;
     }

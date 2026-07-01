@@ -1,0 +1,20 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<span class="@_cssClass">
+    @ChildContent
+</span>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
+    [Parameter] public string? Color { get; set; }
+
+    private string _cssClass = "md ion-badge";
+
+    protected override void OnParametersSet()
+    {
+        var cls = $"{Mode} ion-badge";
+        if (!string.IsNullOrWhiteSpace(Color))
+            cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
+        _cssClass = cls;
+    }
+}
