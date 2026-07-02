@@ -1,0 +1,31 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    <div class="infinite-loading">
+        @if (!string.IsNullOrEmpty(LoadingSpinner))
+        {
+            <div class="infinite-loading-spinner">
+                <IonSpinner Name="@LoadingSpinner" Class="infinite-loading-spinner-icon" />
+            </div>
+        }
+        @if (LoadingText is not null)
+        {
+            <div class="infinite-loading-text">@LoadingText</div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>Spinner name to show while loading.</summary>
+    [Parameter] public string? LoadingSpinner { get; set; }
+
+    /// <summary>Optional text to display while loading.</summary>
+    [Parameter] public string? LoadingText { get; set; }
+
+    private string _cssClass = "md ion-infinite-scroll-content infinite-scroll-content-md";
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = $"{Mode} ion-infinite-scroll-content infinite-scroll-content-{Mode}";
+    }
+}

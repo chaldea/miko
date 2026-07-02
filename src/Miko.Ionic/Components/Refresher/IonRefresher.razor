@@ -1,0 +1,84 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Minimum pull distance before a refresh becomes ready.</summary>
+    [Parameter] public int PullMin { get; set; } = 60;
+
+    /// <summary>Maximum pull distance before refresh starts automatically. Kept for API parity.</summary>
+    [Parameter] public int? PullMax { get; set; }
+
+    /// <summary>When true, the refresher is hidden and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Current refresher state. Supported values: inactive, pulling, ready, refreshing, cancelling, completing.</summary>
+    [Parameter] public string State { get; set; } = "inactive";
+
+    /// <summary>Raised when refresh starts. Call <see cref="Complete"/> when the async work is done.</summary>
+    [Parameter] public EventCallback OnRefresh { get; set; }
+
+    private string _cssClass = "md ion-refresher refresher-md";
+    private float _progress;
+    private string _state = "inactive";
+
+    protected override void OnParametersSet()
+    {
+        _state = NormalizeState(State);
+        BuildClass();
+    }
+
+    /// <summary>Programmatically enters refreshing state and emits <see cref="OnRefresh"/>.</summary>
+    public async Task BeginRefresh()
+    {
+        if (Disabled || _state == "refreshing") return;
+        _state = "refreshing";
+        _progress = 1f;
+        BuildClass();
+        await OnRefresh.InvokeAsync();
+    }
+
+    /// <summary>Completes the refresh and returns the refresher to inactive state.</summary>
+    public Task Complete()
+    {
+        _state = "inactive";
+        _progress = 0;
+        BuildClass();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Cancels a pull gesture and returns the refresher to inactive state.</summary>
+    public Task Cancel()
+    {
+        _state = "inactive";
+        _progress = 0;
+        BuildClass();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Returns the current pull progress.</summary>
+    public Task<float> GetProgress() => Task.FromResult(_progress);
+
+    private void BuildClass()
+    {
+        var cls = $"{Mode} ion-refresher refresher-{Mode}";
+        if (!Disabled && _state != "inactive") cls += " refresher-active";
+        if (Disabled) cls += " refresher-disabled";
+        if (_state != "inactive") cls += $" refresher-{_state}";
+        _cssClass = cls;
+    }
+
+    private static string NormalizeState(string? state) => state?.ToLowerInvariant() switch
+    {
+        "pulling" => "pulling",
+        "ready" => "ready",
+        "refreshing" => "refreshing",
+        "cancelling" => "cancelling",
+        "completing" => "completing",
+        _ => "inactive",
+    };
+}

@@ -1,0 +1,51 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    <div class="refresher-pulling">
+        @if (!string.IsNullOrEmpty(PullingIcon))
+        {
+            <div class="refresher-pulling-icon">
+                <IonIcon Icon="@PullingIcon" />
+            </div>
+        }
+        @if (PullingText is not null)
+        {
+            <div class="refresher-pulling-text">@PullingText</div>
+        }
+    </div>
+    <div class="refresher-refreshing">
+        @if (!string.IsNullOrEmpty(RefreshingSpinner))
+        {
+            <div class="refresher-refreshing-icon">
+                <IonSpinner Name="@RefreshingSpinner" />
+            </div>
+        }
+        @if (RefreshingText is not null)
+        {
+            <div class="refresher-refreshing-text">@RefreshingText</div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>Icon to show while pulling. Defaults to arrow-down (md) / refresh (ios).</summary>
+    [Parameter] public string? PullingIcon { get; set; }
+
+    /// <summary>Text to show while pulling.</summary>
+    [Parameter] public string? PullingText { get; set; }
+
+    /// <summary>Spinner name to show while refreshing.</summary>
+    [Parameter] public string? RefreshingSpinner { get; set; }
+
+    /// <summary>Text to show while refreshing.</summary>
+    [Parameter] public string? RefreshingText { get; set; }
+
+    private string _cssClass = "md ion-refresher-content";
+
+    protected override void OnParametersSet()
+    {
+        _cssClass = $"{Mode} ion-refresher-content";
+        PullingIcon ??= Mode == "ios" ? Ionicons.Refresh : Ionicons.ArrowDown;
+        RefreshingSpinner ??= Mode == "ios" ? "lines" : "circular";
+    }
+}

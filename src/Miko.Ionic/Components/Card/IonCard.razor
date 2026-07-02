@@ -1,0 +1,80 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@if (IsClickable)
+{
+    <div class="@_cssClass">
+        @if (string.IsNullOrEmpty(Href))
+        {
+            <button class="card-native" @onclick="HandleClick">
+                @ChildContent
+            </button>
+        }
+        else
+        {
+            <a class="card-native" href="@Href" target="@Target" rel="@Rel" @onclick="HandleClick">
+                @ChildContent
+            </a>
+        }
+    </div>
+}
+else
+{
+    <div class="@_cssClass">
+        @ChildContent
+    </div>
+}
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>When true, renders a clickable card surface.</summary>
+    [Parameter] public bool Button { get; set; }
+
+    /// <summary>Link target. When set, the native card surface is an anchor.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Anchor target, used only when <see cref="Href"/> is set.</summary>
+    [Parameter] public string? Target { get; set; }
+
+    /// <summary>Anchor rel, used only when <see cref="Href"/> is set.</summary>
+    [Parameter] public string? Rel { get; set; }
+
+    /// <summary>When true, the card is dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Raised when the clickable card surface is tapped.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string _cssClass = "md ion-card";
+
+    private bool IsClickable => Button || !string.IsNullOrEmpty(Href);
+
+    protected override void OnParametersSet()
+    {
+        var cls = $"{Mode} ion-card";
+        if (Disabled) cls += " card-disabled";
+        if (IsClickable) cls += " ion-activatable";
+        if (!string.IsNullOrWhiteSpace(Color))
+            cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
+        _cssClass = cls;
+    }
+
+    public override Element Build()
+    {
+        var root = base.Build();
+        if (Disabled)
+            root.SetState(ElementState.Disabled);
+
+        if (root.FindByClass("card-native").FirstOrDefault() is { } native && Disabled)
+            native.SetState(ElementState.Disabled);
+
+        return root;
+    }
+
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled) return;
+        await OnClick.InvokeAsync();
+    }
+}

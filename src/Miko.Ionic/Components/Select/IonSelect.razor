@@ -1,0 +1,185 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass">
+    <label class="select-wrapper">
+        @if (HasLabel)
+        {
+            <div class="label-text-wrapper">
+                <div class="label-text">@Label</div>
+            </div>
+        }
+        <div class="select-wrapper-inner">
+            @StartSlot
+            <div class="native-wrapper">
+                <select class="select-native" @onchange="HandleChange">
+                    @ChildContent
+                </select>
+                <div class="@_textClass">@DisplayText</div>
+            </div>
+            @EndSlot
+            <IonIcon Icon="@_toggleIcon" Class="select-icon" />
+        </div>
+        @if (Mode == "md" && Fill != "outline")
+        {
+            <div class="select-highlight"></div>
+        }
+    </label>
+    @if (HasBottomContent)
+    {
+        <div class="select-bottom">
+            @if (!string.IsNullOrEmpty(HelperText))
+            {
+                <div class="helper-text">@HelperText</div>
+            }
+            @if (!string.IsNullOrEmpty(ErrorText))
+            {
+                <div class="error-text">@ErrorText</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>The selected value.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised when the selected value changes.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Raised when the selected value changes.</summary>
+    [Parameter] public EventCallback<ChangeEventArgs> OnChange { get; set; }
+
+    /// <summary>Placeholder text shown when no value is selected.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Visible label text associated with the select.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Label placement marker: start, end, floating, stacked, or fixed.</summary>
+    [Parameter] public string LabelPlacement { get; set; } = "start";
+
+    /// <summary>Content shown at the start side of the select.</summary>
+    [Parameter] public RenderFragment? StartSlot { get; set; }
+
+    /// <summary>Content shown at the end side of the select.</summary>
+    [Parameter] public RenderFragment? EndSlot { get; set; }
+
+    /// <summary>Helper text displayed below the control.</summary>
+    [Parameter] public string? HelperText { get; set; }
+
+    /// <summary>Error text displayed below the control.</summary>
+    [Parameter] public string? ErrorText { get; set; }
+
+    /// <summary>When true, the user cannot interact with the select.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>When true, the select can accept multiple values. The native renderer stores a single selected index today.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>Form field name marker.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>Fill marker: solid or outline.</summary>
+    [Parameter] public string? Fill { get; set; }
+
+    /// <summary>Shape marker. Use <c>"round"</c> for round corners.</summary>
+    [Parameter] public string? Shape { get; set; }
+
+    /// <summary>Justify marker: start, end, or space-between.</summary>
+    [Parameter] public string? Justify { get; set; }
+
+    /// <summary>Toggle icon when closed. Defaults to chevron-expand on iOS and caret-down-sharp on md.</summary>
+    [Parameter] public string? ToggleIcon { get; set; }
+
+    /// <summary>Optional selected text override.</summary>
+    [Parameter] public string? SelectedText { get; set; }
+
+    private string _cssClass = "md ion-select ion-focusable select-ltr select-label-placement-start";
+    private string _textClass = "select-text select-placeholder";
+    private string _toggleIcon = Ionicons.CaretDownSharp;
+    private string? _displayText;
+
+    private bool HasLabel => !string.IsNullOrEmpty(Label);
+    private bool HasBottomContent => !string.IsNullOrEmpty(HelperText) || !string.IsNullOrEmpty(ErrorText);
+    private bool HasValue => !string.IsNullOrEmpty(Value);
+    private string DisplayText =>
+        !string.IsNullOrEmpty(SelectedText) ? SelectedText :
+        !string.IsNullOrEmpty(_displayText) ? _displayText :
+        Placeholder ?? string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        var labelPlacement = NormalizeToken(LabelPlacement, "start");
+        var cls = $"{Mode} ion-select ion-focusable select-ltr select-label-placement-{labelPlacement}";
+        if (Disabled) cls += " select-disabled";
+        if (HasValue || !string.IsNullOrEmpty(SelectedText)) cls += " has-value";
+        if (!string.IsNullOrEmpty(Placeholder)) cls += " has-placeholder";
+        if (!string.IsNullOrEmpty(Fill)) cls += $" select-fill-{Fill.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(Shape)) cls += $" select-shape-{Shape.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(Justify)) cls += $" select-justify-{Justify.ToLowerInvariant()}";
+        if (!string.IsNullOrWhiteSpace(Color))
+            cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
+        _cssClass = cls;
+
+        _textClass = HasValue || !string.IsNullOrEmpty(SelectedText)
+            ? "select-text"
+            : "select-text select-placeholder";
+
+        _toggleIcon = ToggleIcon ?? (Mode == "ios" ? Ionicons.ChevronExpand : Ionicons.CaretDownSharp);
+    }
+
+    public override Element Build()
+    {
+        var root = base.Build();
+        var select = root.FindByClass("select-native").FirstOrDefault() as SelectElement;
+        if (select is null) return root;
+
+        select.Multiple = Multiple;
+        if (Disabled) select.SetState(ElementState.Disabled);
+
+        if (Value is not null)
+            select.Value = Value;
+        else
+            select.SelectedIndex = -1;
+
+        _displayText = ResolveDisplayText(select);
+        if (!root.HasClass("has-value") && !string.IsNullOrEmpty(_displayText))
+            root.Class += " has-value";
+
+        if (root.FindByClass("select-text").FirstOrDefault() is { } text)
+        {
+            var display = DisplayText;
+            text.TextContent = display;
+            text.Class = string.IsNullOrEmpty(display) || (string.IsNullOrEmpty(_displayText) && !string.IsNullOrEmpty(Placeholder))
+                ? "select-text select-placeholder"
+                : "select-text";
+        }
+
+        return root;
+    }
+
+    private async Task HandleChange(ChangeEventArgs args)
+    {
+        var next = (args.Target as SelectElement)?.Value ?? args.NewValue;
+        if (Value != next)
+        {
+            Value = next;
+            await ValueChanged.InvokeAsync(next);
+        }
+
+        await OnChange.InvokeAsync(args);
+    }
+
+    private string ResolveDisplayText(SelectElement select)
+    {
+        if (!string.IsNullOrEmpty(SelectedText)) return SelectedText;
+        var option = select.GetSelectedOption();
+        return option?.TextContent ?? string.Empty;
+    }
+
+    private static string NormalizeToken(string? value, string fallback)
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.ToLowerInvariant();
+}

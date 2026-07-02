@@ -1,0 +1,140 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div class="@_cssClass" Style="@_hostStyle">
+    @for (var i = 0; i < _segmentCount; i++)
+    {
+        <div class="@SegmentClass(i)" Style="@SegmentStyle(i)"></div>
+    }
+</div>
+
+@code {
+    private static readonly HashSet<string> ValidNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "bubbles",
+        "circles",
+        "circular",
+        "crescent",
+        "dots",
+        "lines",
+        "lines-small",
+        "lines-sharp",
+        "lines-sharp-small",
+    };
+
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Animation duration in milliseconds. Defaults to Ionic's per-spinner timing.</summary>
+    [Parameter] public int? Duration { get; set; }
+
+    /// <summary>
+    /// Spinner preset name: <c>bubbles</c>, <c>circles</c>, <c>circular</c>, <c>crescent</c>,
+    /// <c>dots</c>, <c>lines</c>, <c>lines-small</c>, <c>lines-sharp</c>, or
+    /// <c>lines-sharp-small</c>.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>When true, stamps Ionic's paused state and pauses the generated animation style.</summary>
+    [Parameter] public bool Paused { get; set; }
+
+    /// <summary>Additional CSS classes to apply to the spinner root element.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    private string _cssClass = "md ion-spinner spinner-circular";
+    private string _spinnerName = "circular";
+    private int _segmentCount = 1;
+    private Style? _hostStyle;
+
+    protected override void OnParametersSet()
+    {
+        _spinnerName = NormalizeName(Name);
+        _segmentCount = SegmentCount(_spinnerName);
+
+        var cls = $"{Mode} ion-spinner spinner-{_spinnerName}";
+        if (Paused) cls += " spinner-paused";
+        if (!string.IsNullOrWhiteSpace(Color)) cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
+        if (!string.IsNullOrWhiteSpace(Class)) cls += $" {Class}";
+        _cssClass = cls;
+
+        _hostStyle = BuildHostStyle();
+    }
+
+    private string NormalizeName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return Mode == "ios" ? "lines" : "circular";
+
+        var normalized = name.Trim().ToLowerInvariant();
+        return ValidNames.Contains(normalized) ? normalized : "lines";
+    }
+
+    private static int SegmentCount(string name) => name switch
+    {
+        "bubbles" => 9,
+        "circles" => 8,
+        "dots" => 3,
+        "lines-sharp" or "lines-sharp-small" => 12,
+        "lines" or "lines-small" => 8,
+        _ => 1,
+    };
+
+    private static bool IsLineSpinner(string name) =>
+        name is "lines" or "lines-small" or "lines-sharp" or "lines-sharp-small";
+
+    private string SegmentClass(int index)
+    {
+        var type = IsLineSpinner(_spinnerName) ? "spinner-line" : "spinner-circle";
+        return $"{type} {type}-{index + 1}";
+    }
+
+    private Style? BuildHostStyle()
+    {
+        var seconds = (Duration ?? DefaultDuration(_spinnerName)) / 1000f;
+        if (seconds <= 0) return null;
+
+        return new Style
+        {
+            Animations = new List<KeyframeAnimation>
+            {
+                new("ion-spinner-rotate", seconds,
+                    new Keyframe(0f, new Style { Transform = Transform.FromRotate(0) }),
+                    new Keyframe(1f, new Style { Transform = Transform.FromRotate(360) }))
+                {
+                    Infinite = true,
+                    TimingFunction = TimingFunction.Linear,
+                    PlayState = Paused ? AnimationPlayState.Paused : AnimationPlayState.Running,
+                },
+            },
+        };
+    }
+
+    private Style SegmentStyle(int index)
+    {
+        if (_spinnerName == "dots")
+        {
+            return new Style
+            {
+                Opacity = MathF.Max(0.4f, 1f - index * 0.2f),
+            };
+        }
+
+        var angle = 360f / _segmentCount * index;
+        return new Style
+        {
+            Transform = Transform.FromRotate(angle),
+            Opacity = MathF.Max(0.25f, 1f - index * 0.07f),
+        };
+    }
+
+    private static int DefaultDuration(string name) => name switch
+    {
+        "bubbles" => 1000,
+        "circles" => 1000,
+        "circular" => 1400,
+        "crescent" => 750,
+        "dots" => 750,
+        "lines" or "lines-small" => 1000,
+        "lines-sharp" or "lines-sharp-small" => 1200,
+        _ => 1000,
+    };
+}
