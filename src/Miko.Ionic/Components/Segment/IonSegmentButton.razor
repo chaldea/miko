@@ -15,7 +15,7 @@
    light pill behind the label. Keeping it a sibling (not inside the button) is what lets the
    label sit correctly centered in the button with its 12px margin — the indicator no longer
    participates in the button's flex flow. *@
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     <button class="button-native" @onclick="HandleClick">
         <span class="button-inner">
             @ChildContent
@@ -48,17 +48,18 @@
     /// <summary>True when this button's value matches the segment's selected value.</summary>
     public bool Selected { get; private set; }
 
-    private string _cssClass = "md ion-segment-button";
-
     protected override void OnParametersSet()
     {
         Selected = SegmentContext is not null && SegmentContext.Value == Value;
 
-        var cls = $"{Mode} ion-segment-button";
-        if (Selected) cls += " segment-button-checked";
-        if (Disabled) cls += " segment-button-disabled";
-        if (!string.IsNullOrEmpty(Layout)) cls += $" segment-button-layout-{Layout}";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-segment-button")
+            .If(Selected, "segment-button-checked")
+            .If(Disabled, "segment-button-disabled")
+            .AddValue(Layout, "segment-button-layout-");
     }
 
     /// <summary>

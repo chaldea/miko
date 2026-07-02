@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     <label class="select-wrapper">
         @if (HasLabel)
         {
@@ -97,7 +97,6 @@
     /// <summary>Optional selected text override.</summary>
     [Parameter] public string? SelectedText { get; set; }
 
-    private string _cssClass = "md ion-select ion-focusable select-ltr select-label-placement-start";
     private string _textClass = "select-text select-placeholder";
     private string _toggleIcon = Ionicons.CaretDownSharp;
     private string? _displayText;
@@ -113,16 +112,23 @@
     protected override void OnParametersSet()
     {
         var labelPlacement = NormalizeToken(LabelPlacement, "start");
-        var cls = $"{Mode} ion-select ion-focusable select-ltr select-label-placement-{labelPlacement}";
-        if (Disabled) cls += " select-disabled";
-        if (HasValue || !string.IsNullOrEmpty(SelectedText)) cls += " has-value";
-        if (!string.IsNullOrEmpty(Placeholder)) cls += " has-placeholder";
-        if (!string.IsNullOrEmpty(Fill)) cls += $" select-fill-{Fill.ToLowerInvariant()}";
-        if (!string.IsNullOrEmpty(Shape)) cls += $" select-shape-{Shape.ToLowerInvariant()}";
-        if (!string.IsNullOrEmpty(Justify)) cls += $" select-justify-{Justify.ToLowerInvariant()}";
-        if (!string.IsNullOrWhiteSpace(Color))
-            cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
-        _cssClass = cls;
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-select")
+            .Add("ion-focusable")
+            .Add("select-ltr")
+            .Add($"select-label-placement-{labelPlacement}")
+            .If(Disabled, "select-disabled")
+            .If(HasValue || !string.IsNullOrEmpty(SelectedText), "has-value")
+            .If(!string.IsNullOrEmpty(Placeholder), "has-placeholder")
+            .AddValue(Fill, "select-fill-")
+            .AddValue(Shape, "select-shape-")
+            .AddValue(Justify, "select-justify-")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
 
         _textClass = HasValue || !string.IsNullOrEmpty(SelectedText)
             ? "select-text"

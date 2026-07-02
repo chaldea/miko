@@ -5,7 +5,7 @@
    chosen by the `color` attribute (Ionic's named palette: "primary", "danger", "success", …),
    stamped as an ion-color-* class that the stylesheet maps to a background. With no color it
    falls back to the theme's default (primary) option fill. *@
-<button class="@_cssClass" @onclick="HandleClick">
+<button class="@ClassMapper.Class" style="@Style" @onclick="HandleClick">
     <span class="button-inner">
         @ChildContent
     </span>
@@ -26,14 +26,15 @@
     [CascadingParameter(Name = "ItemOptionsSide")]
     public string? Side { get; set; }
 
-    private string _cssClass = "md ion-item-option";
-
     protected override void OnParametersSet()
     {
-        var cls = $"{Mode} ion-item-option";
-        if (!string.IsNullOrEmpty(Color)) cls += $" ion-color-{Color.ToLowerInvariant()}";
-        if (Disabled) cls += " item-option-disabled";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-item-option")
+            .AddColor(Color)
+            .If(Disabled, "item-option-disabled");
     }
 
     private async Task HandleClick(MouseEventArgs _)

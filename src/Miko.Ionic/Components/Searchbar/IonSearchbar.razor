@@ -22,7 +22,7 @@
    close-circle (ios). Input value/placeholder/type/disabled are stamped in Build() because the
    renderer's <input> attribute mapping does not carry them through. The focus/clear/cancel
    interactivity is out of scope for the renderer (like IonButton.Href). *@
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     <div class="searchbar-input-container">
         <input class="searchbar-input" type="@_type" />
         @if (Mode == "md")
@@ -96,7 +96,6 @@
     /// <summary>Form control name (Ionic <c>name</c>). Kept for API parity.</summary>
     [Parameter] public string? Name { get; set; }
 
-    private string _cssClass = "md ion-searchbar searchbar-left-aligned";
     private string _type = "search";
     private string _searchIcon = Ionicons.SearchSharp;
     private string _clearIcon = Ionicons.CloseSharp;
@@ -113,14 +112,18 @@
         _cancelButtonIcon = CancelButtonIcon ?? Ionicons.ArrowBackSharp;
 
         // Host class — mirrors the createColorClasses + state map in searchbar.tsx render().
-        var cls = $"{mode} ion-searchbar searchbar-left-aligned";
-        if (Animated) cls += " searchbar-animated";
-        if (Disabled) cls += " searchbar-disabled";
-        if (HasValue) cls += " searchbar-has-value";
-        if (ShouldShowClear) cls += " searchbar-should-show-clear";
-        if (ShouldShowCancel) cls += " searchbar-should-show-cancel";
-        if (!string.IsNullOrEmpty(Color)) cls += $" ion-color-{Color.ToLowerInvariant()}";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(mode)
+            .Add("ion-searchbar")
+            .Add("searchbar-left-aligned")
+            .If(Animated, "searchbar-animated")
+            .If(Disabled, "searchbar-disabled")
+            .If(HasValue, "searchbar-has-value")
+            .If(ShouldShowClear, "searchbar-should-show-clear")
+            .If(ShouldShowCancel, "searchbar-should-show-cancel")
+            .AddColor(Color);
     }
 
     private bool HasValue => !string.IsNullOrEmpty(Value);

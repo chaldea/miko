@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@($"{Mode} ion-tabs")">
+<div class="@ClassMapper.Class" style="@Style">
     <div class="tabs-inner">
         @Content
     </div>
@@ -17,4 +17,13 @@
     /// The tab bar (<c>ion-tab-bar</c>) holding the tab buttons.
     /// </summary>
     [Parameter] public RenderFragment? Bar { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-tabs");
+    }
 }

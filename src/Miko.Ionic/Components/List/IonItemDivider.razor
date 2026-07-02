@@ -3,6 +3,17 @@
 @* Mirrors Ionic's <ion-item-divider>: a section header row that sits between item groups.
    Structurally it is a flex row like an item (leading content + label, vertically centered),
    but with a tinted background and its own min-height/colors from the theme. *@
-<div class="@($"{Mode} ion-item-divider")">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
+
+@code {
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-item-divider");
+    }
+}

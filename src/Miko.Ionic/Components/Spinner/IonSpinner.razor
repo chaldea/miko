@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass" Style="@_hostStyle">
+<div class="@ClassMapper.Class" Style="@_mergedStyle">
     @for (var i = 0; i < _segmentCount; i++)
     {
         <div class="@SegmentClass(i)" Style="@SegmentStyle(i)"></div>
@@ -40,23 +40,38 @@
     /// <summary>Additional CSS classes to apply to the spinner root element.</summary>
     [Parameter] public string? Class { get; set; }
 
-    private string _cssClass = "md ion-spinner spinner-circular";
     private string _spinnerName = "circular";
     private int _segmentCount = 1;
-    private Style? _hostStyle;
+    private Style? _mergedStyle;
 
     protected override void OnParametersSet()
     {
         _spinnerName = NormalizeName(Name);
         _segmentCount = SegmentCount(_spinnerName);
 
-        var cls = $"{Mode} ion-spinner spinner-{_spinnerName}";
-        if (Paused) cls += " spinner-paused";
-        if (!string.IsNullOrWhiteSpace(Color)) cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
-        if (!string.IsNullOrWhiteSpace(Class)) cls += $" {Class}";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-spinner")
+            .Add($"spinner-{_spinnerName}")
+            .If(Paused, "spinner-paused")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color)
+            .Add(Class);
 
-        _hostStyle = BuildHostStyle();
+        var hostStyle = BuildHostStyle();
+
+        if (Style is not null && hostStyle is not null)
+        {
+            _mergedStyle = new Style();
+            _mergedStyle.Merge(Style);
+            _mergedStyle.Merge(hostStyle);
+        }
+        else
+        {
+            _mergedStyle = hostStyle ?? Style;
+        }
     }
 
     private string NormalizeName(string? name)

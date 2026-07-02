@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     <div class="refresher-pulling">
         @if (!string.IsNullOrEmpty(PullingIcon))
         {
@@ -40,11 +40,14 @@
     /// <summary>Text to show while refreshing.</summary>
     [Parameter] public string? RefreshingText { get; set; }
 
-    private string _cssClass = "md ion-refresher-content";
-
     protected override void OnParametersSet()
     {
-        _cssClass = $"{Mode} ion-refresher-content";
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-refresher-content");
+
         PullingIcon ??= Mode == "ios" ? Ionicons.Refresh : Ionicons.ArrowDown;
         RefreshingSpinner ??= Mode == "ios" ? "lines" : "circular";
     }

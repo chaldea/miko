@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
 
@@ -20,7 +20,6 @@
     /// <summary>Raised when refresh starts. Call <see cref="Complete"/> when the async work is done.</summary>
     [Parameter] public EventCallback OnRefresh { get; set; }
 
-    private string _cssClass = "md ion-refresher refresher-md";
     private float _progress;
     private string _state = "inactive";
 
@@ -65,11 +64,15 @@
 
     private void BuildClass()
     {
-        var cls = $"{Mode} ion-refresher refresher-{Mode}";
-        if (!Disabled && _state != "inactive") cls += " refresher-active";
-        if (Disabled) cls += " refresher-disabled";
-        if (_state != "inactive") cls += $" refresher-{_state}";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-refresher")
+            .Add($"refresher-{Mode}")
+            .If(!Disabled && _state != "inactive", "refresher-active")
+            .If(Disabled, "refresher-disabled")
+            .If(_state != "inactive", $"refresher-{_state}");
     }
 
     private static string NormalizeState(string? state) => state?.ToLowerInvariant() switch

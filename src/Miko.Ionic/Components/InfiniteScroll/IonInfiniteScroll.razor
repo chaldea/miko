@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass" @onscroll="HandleScroll">
+<div class="@ClassMapper.Class" style="@Style" @onscroll="HandleScroll">
     @ChildContent
 </div>
 
@@ -20,7 +20,6 @@
     /// <summary>Raised when the scroll event crosses the threshold. The event carries no payload, matching Ionic's ionInfinite.</summary>
     [Parameter] public EventCallback OnInfinite { get; set; }
 
-    private string _cssClass = "md ion-infinite-scroll infinite-scroll-enabled";
     private bool _isLoading;
     private bool _didFire;
 
@@ -36,12 +35,14 @@
             _isLoading = true;
         }
 
-        var cls = $"{Mode} ion-infinite-scroll";
-        if (!Disabled) cls += " infinite-scroll-enabled";
-        if (_isLoading) cls += " infinite-scroll-loading";
-        if (string.Equals(Position, "top", StringComparison.OrdinalIgnoreCase))
-            cls += " infinite-scroll-top";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-infinite-scroll")
+            .If(!Disabled, "infinite-scroll-enabled")
+            .If(_isLoading, "infinite-scroll-loading")
+            .If(string.Equals(Position, "top", StringComparison.OrdinalIgnoreCase), "infinite-scroll-top");
     }
 
     /// <summary>Marks the infinite scroll work as complete and allows the next threshold crossing to fire.</summary>

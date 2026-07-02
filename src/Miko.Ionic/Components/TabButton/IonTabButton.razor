@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<a class="@_cssClass" href="@Href" @onclick="HandleClick">
+<a class="@ClassMapper.Class" style="@Style" href="@Href" @onclick="HandleClick">
     @ChildContent
 </a>
 
@@ -17,11 +17,14 @@
     /// <summary>Invoked when the tab button is clicked.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
-    private string _cssClass = "md ion-tab-button";
-
     protected override void OnParametersSet()
     {
-        _cssClass = Selected ? $"{Mode} ion-tab-button tab-selected" : $"{Mode} ion-tab-button";
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-tab-button")
+            .If(Selected, "tab-selected");
     }
 
     private async Task HandleClick(MouseEventArgs _)

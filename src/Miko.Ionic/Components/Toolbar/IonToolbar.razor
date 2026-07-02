@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@($"{Mode} ion-toolbar")">
+<div class="@ClassMapper.Class" style="@Style">
     <div class="toolbar-background"></div>
     <div class="toolbar-container">
         @Start
@@ -42,4 +42,13 @@
     /// Content pinned to the end (right in LTR) of the toolbar — Ionic's <c>slot="end"</c>.
     /// </summary>
     [Parameter] public RenderFragment? End { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-toolbar");
+    }
 }

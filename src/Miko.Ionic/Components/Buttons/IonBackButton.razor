@@ -11,7 +11,7 @@
    </ion-back-button>
    The icon defaults to chevron-left (iOS) / arrow-left (MD). The text defaults to "Back" on
    iOS, null on MD. When the button has icon-only (no text), it uses a circular ripple effect. *@
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     <button class="button-native" @onclick="HandleClick" disabled="@Disabled">
         <span class="button-inner">
             @if (_icon != null)
@@ -50,7 +50,6 @@
     /// of scope for the renderer — the host app wires this to its nav stack.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
-    private string _cssClass = "md ion-back-button";
     private string? _icon;
     private string? _text;
 
@@ -67,13 +66,16 @@
         var showButton = DefaultHref != null;
         var hasIconOnly = _icon != null && _text == null;
 
-        var cls = $"{Mode} ion-back-button button";
-        if (showButton) cls += " show-back-button";
-        if (Disabled) cls += " back-button-disabled";
-        if (hasIconOnly) cls += " back-button-has-icon-only";
-        if (!string.IsNullOrEmpty(Color)) cls += $" ion-color-{Color.ToLowerInvariant()}";
-
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-back-button")
+            .Add("button")
+            .If(showButton, "show-back-button")
+            .If(Disabled, "back-button-disabled")
+            .If(hasIconOnly, "back-button-has-icon-only")
+            .AddColor(Color);
     }
 
     private async Task HandleClick(MouseEventArgs _)

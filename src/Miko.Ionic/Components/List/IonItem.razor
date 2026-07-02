@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
 
@@ -11,12 +11,13 @@
     /// </summary>
     [Parameter] public string? Lines { get; set; }
 
-    private string _cssClass = "md ion-item";
-
     protected override void OnParametersSet()
     {
-        _cssClass = string.Equals(Lines, "none", StringComparison.OrdinalIgnoreCase)
-            ? $"{Mode} ion-item ion-item-lines-none"
-            : $"{Mode} ion-item";
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-item")
+            .If(string.Equals(Lines, "none", StringComparison.OrdinalIgnoreCase), "ion-item-lines-none");
     }
 }

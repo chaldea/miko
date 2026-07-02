@@ -23,7 +23,7 @@
    (like IonButton.Href / IonItemSliding's drag) — ActiveIndex provides the declarative resting
    position, stamped onto the wrapper's transform in Build() (the renderer maps a Style object, not
    a string style attribute). *@
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     <div class="swiper-wrapper">
         @ChildContent
     </div>
@@ -49,13 +49,16 @@
     /// Swiper's <c>initialSlide</c> / <c>activeIndex</c>.</summary>
     [Parameter] public int ActiveIndex { get; set; }
 
-    private string _cssClass = "md slides-md swiper-container";
-
     protected override void OnParametersSet()
     {
         var mode = Mode;
         // class map from slides.tsx render(): [mode]: true, [slides-{mode}]: true, 'swiper-container': true.
-        _cssClass = $"{mode} slides-{mode} swiper-container";
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(mode)
+            .Add($"slides-{mode}")
+            .Add("swiper-container");
     }
 
     /// <summary>
