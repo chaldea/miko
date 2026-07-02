@@ -1,5 +1,6 @@
 using Miko.Components;
 using Miko.Platform;
+using Miko.Styling;
 
 namespace Miko.Ionic.Components;
 
@@ -29,4 +30,20 @@ public abstract class IonicComponentBase : ComponentBase
     /// <c>OnParametersSet</c>) so the mode-scoped stylesheet rules take effect.
     /// </summary>
     protected string Mode => IonicModeResolver.ResolveClass(PlatformInfo);
+
+    /// <summary>
+    /// Additional CSS class names to apply to the component's root element.
+    /// </summary>
+    [Parameter] public string? ClassName { get; set; }
+
+    /// <summary>
+    /// Inline styles to apply to the component's root element.
+    /// </summary>
+    [Parameter] public Style? Style { get; set; }
+
+    /// <summary>
+    /// Utility for building CSS class names dynamically.
+    /// Components should use this in <see cref="OnParametersSet"/> to construct their class attribute.
+    /// </summary>
+    protected ClassMapper ClassMapper { get; } = new();
 }

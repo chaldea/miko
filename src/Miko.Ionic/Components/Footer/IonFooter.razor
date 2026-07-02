@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     @if (Translucent && Mode == "ios")
     {
         <div class="footer-background"></div>
@@ -23,27 +23,17 @@
     /// </summary>
     [Parameter] public string? Collapse { get; set; }
 
-    private string _cssClass = "md ion-footer footer-md";
-
     protected override void OnParametersSet()
     {
-        var classes = new List<string> { Mode, "ion-footer", $"footer-{Mode}" };
-
-        if (Translucent)
-        {
-            classes.Add("footer-translucent");
-            classes.Add($"footer-translucent-{Mode}");
-        }
-
-        // Footer toolbar padding is typically enabled by default
-        // (disabled only when keyboard is visible or tab bar is at bottom, but we simplify for now)
-        classes.Add("footer-toolbar-padding");
-
-        if (!string.IsNullOrEmpty(Collapse))
-        {
-            classes.Add($"footer-collapse-{Collapse}");
-        }
-
-        _cssClass = string.Join(" ", classes);
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-footer")
+            .Add($"footer-{Mode}")
+            .If(Translucent, "footer-translucent")
+            .If(Translucent, $"footer-translucent-{Mode}")
+            .Add("footer-toolbar-padding")
+            .AddValue(Collapse, "footer-collapse-");
     }
 }

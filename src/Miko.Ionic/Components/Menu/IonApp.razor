@@ -1,5 +1,16 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@($"{Mode} ion-app")">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
+
+@code {
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-app");
+    }
+}

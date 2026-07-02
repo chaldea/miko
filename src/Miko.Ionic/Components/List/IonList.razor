@@ -1,10 +1,19 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@($"{Mode} ion-list")" id="@Id">
+<div class="@ClassMapper.Class" style="@Style" id="@Id">
     @ChildContent
 </div>
 
 @code {
     /// <summary>Optional DOM id for the list (Ionic's <c>id</c> attribute, e.g. <c>"inbox-list"</c>).</summary>
     [Parameter] public string? Id { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-list");
+    }
 }

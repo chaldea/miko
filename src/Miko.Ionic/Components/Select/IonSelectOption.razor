@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<option class="@_cssClass">
+<option class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </option>
 
@@ -14,13 +14,14 @@
     /// <summary>When true, the option is selected when no parent value overrides it.</summary>
     [Parameter] public bool Selected { get; set; }
 
-    private string _cssClass = "md ion-select-option";
-
     protected override void OnParametersSet()
     {
-        _cssClass = Disabled
-            ? $"{Mode} ion-select-option select-option-disabled"
-            : $"{Mode} ion-select-option";
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-select-option")
+            .If(Disabled, "select-option-disabled");
     }
 
     public override Element Build()

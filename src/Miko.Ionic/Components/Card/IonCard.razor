@@ -2,7 +2,7 @@
 @inherits IonicComponentBase
 @if (IsClickable)
 {
-    <div class="@_cssClass">
+    <div class="@ClassMapper.Class" style="@Style">
         @if (string.IsNullOrEmpty(Href))
         {
             <button class="card-native" @onclick="HandleClick">
@@ -19,7 +19,7 @@
 }
 else
 {
-    <div class="@_cssClass">
+    <div class="@ClassMapper.Class" style="@Style">
         @ChildContent
     </div>
 }
@@ -46,18 +46,19 @@ else
     /// <summary>Raised when the clickable card surface is tapped.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
-    private string _cssClass = "md ion-card";
-
     private bool IsClickable => Button || !string.IsNullOrEmpty(Href);
 
     protected override void OnParametersSet()
     {
-        var cls = $"{Mode} ion-card";
-        if (Disabled) cls += " card-disabled";
-        if (IsClickable) cls += " ion-activatable";
-        if (!string.IsNullOrWhiteSpace(Color))
-            cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-card")
+            .If(Disabled, "card-disabled")
+            .If(IsClickable, "ion-activatable")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
     }
 
     public override Element Build()

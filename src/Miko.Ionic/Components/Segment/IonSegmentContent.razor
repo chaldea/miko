@@ -3,7 +3,7 @@
 @* Mirrors Ionic's <ion-segment-content>: one page of content inside an <ion-segment-view>.
    Reads the active content id from the enclosing view (named cascaded string "SegmentViewValue")
    and hides itself (display:none) when its Id doesn't match. *@
-<div id="@Id" class="@_cssClass">
+<div id="@Id" class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
 
@@ -21,11 +21,15 @@
     /// <summary>True when this content is the active one shown in the view.</summary>
     public bool IsActive { get; private set; }
 
-    private string _cssClass = "md ion-segment-content";
-
     protected override void OnParametersSet()
     {
         IsActive = !string.IsNullOrEmpty(Id) && Id == ActiveId;
-        _cssClass = IsActive ? $"{Mode} ion-segment-content" : $"{Mode} ion-segment-content segment-content-hidden";
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-segment-content")
+            .If(!IsActive, "segment-content-hidden");
     }
 }

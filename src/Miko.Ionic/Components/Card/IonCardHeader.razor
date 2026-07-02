@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
 
@@ -11,14 +11,16 @@
     /// <summary>When true, stamps the iOS translucent header marker class.</summary>
     [Parameter] public bool Translucent { get; set; }
 
-    private string _cssClass = "md ion-card-header ion-inherit-color";
-
     protected override void OnParametersSet()
     {
-        var cls = $"{Mode} ion-card-header ion-inherit-color";
-        if (Translucent) cls += " card-header-translucent";
-        if (!string.IsNullOrWhiteSpace(Color))
-            cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-card-header")
+            .Add("ion-inherit-color")
+            .If(Translucent, "card-header-translucent")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
     }
 }

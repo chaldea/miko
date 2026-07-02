@@ -4,6 +4,17 @@
    (typically an <img> or <ion-img>) into a circle. It carries no intrinsic size — it sizes to
    its content. ios and md share the same geometry (50% radius + hidden overflow), so the mode
    class is stamped only for selector-parity with the rest of the component suite. *@
-<div class="@($"{Mode} ion-avatar")">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
+
+@code {
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-avatar");
+    }
+}

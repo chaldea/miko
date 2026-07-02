@@ -12,7 +12,7 @@
    <button> surface and exposes Href as a marker (navigation is out of scope for the renderer).
    The `fill` default is solid, except inside a toolbar / list-header where Ionic defaults to
    clear — modeled here when an explicit Fill is not supplied. *@
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     <button class="button-native" @onclick="HandleClick">
         <span class="button-inner">
             @ChildContent
@@ -52,20 +52,22 @@
     /// <summary>Raised when the button is tapped (skipped when disabled).</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
-    private string _cssClass = "md ion-button button-solid";
-
     protected override void OnParametersSet()
     {
         var fill = string.IsNullOrEmpty(Fill) ? "solid" : Fill.ToLowerInvariant();
 
-        var cls = $"{Mode} ion-button button-{fill}";
-        if (!string.IsNullOrEmpty(Color)) cls += $" ion-color-{Color.ToLowerInvariant()}";
-        if (!string.IsNullOrEmpty(Expand)) cls += $" button-{Expand.ToLowerInvariant()}";
-        if (!string.IsNullOrEmpty(Size)) cls += $" button-{Size.ToLowerInvariant()}";
-        if (!string.IsNullOrEmpty(Shape)) cls += $" button-{Shape.ToLowerInvariant()}";
-        if (Strong) cls += " button-strong";
-        if (Disabled) cls += " button-disabled";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-button")
+            .Add($"button-{fill}")
+            .AddColor(Color)
+            .AddValue(Expand, "button-")
+            .AddValue(Size, "button-")
+            .AddValue(Shape, "button-")
+            .If(Strong, "button-strong")
+            .If(Disabled, "button-disabled");
     }
 
     /// <summary>

@@ -1,5 +1,16 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@($"{Mode} ion-title")">
+<div class="@ClassMapper.Class" style="@Style">
     <div class="toolbar-title">@ChildContent</div>
 </div>
+
+@code {
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-title");
+    }
+}

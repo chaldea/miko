@@ -3,6 +3,17 @@
 @* Mirrors Ionic's <ion-item-group>: a plain block container that groups a set of items
    (and an optional <ion-item-divider> header) into a logical section. It carries no visual
    styling of its own beyond being a block — the items inside render their own dividers. *@
-<div class="@($"{Mode} ion-item-group")">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
+
+@code {
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-item-group");
+    }
+}

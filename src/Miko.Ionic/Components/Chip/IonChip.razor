@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
 
@@ -14,15 +14,17 @@
     /// <summary>When true, the chip is dimmed and non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    private string _cssClass = "md ion-chip ion-activatable";
-
     protected override void OnParametersSet()
     {
-        var cls = $"{Mode} ion-chip ion-activatable";
-        if (Outline) cls += " chip-outline";
-        if (Disabled) cls += " chip-disabled";
-        if (!string.IsNullOrWhiteSpace(Color))
-            cls += $" ion-color ion-color-{Color.ToLowerInvariant()}";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-chip")
+            .Add("ion-activatable")
+            .If(Outline, "chip-outline")
+            .If(Disabled, "chip-disabled")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
     }
 }

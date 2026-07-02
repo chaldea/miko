@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass" Style="@_inlineStyle">
+<div class="@ClassMapper.Class" Style="@_mergedStyle">
     @ChildContent
 </div>
 
@@ -17,13 +17,28 @@
     /// <summary>Column pull from 1 to 11 columns.</summary>
     [Parameter] public string? Pull { get; set; }
 
-    private string _cssClass = "md ion-col";
-    private Style? _inlineStyle;
+    private Style? _mergedStyle;
 
     protected override void OnParametersSet()
     {
-        _cssClass = $"{Mode} ion-col";
-        _inlineStyle = BuildColumnStyle();
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-col");
+
+        var columnStyle = BuildColumnStyle();
+
+        if (Style is not null && columnStyle is not null)
+        {
+            _mergedStyle = new Style();
+            _mergedStyle.Merge(Style);
+            _mergedStyle.Merge(columnStyle);
+        }
+        else
+        {
+            _mergedStyle = columnStyle ?? Style;
+        }
     }
 
     private Style? BuildColumnStyle()

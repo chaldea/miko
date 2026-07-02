@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
 
@@ -11,11 +11,15 @@
     /// </summary>
     [Parameter] public string Slot { get; set; } = "bottom";
 
-    private string _cssClass = "md ion-tab-bar ion-tab-bar-bottom";
-
     protected override void OnParametersSet()
     {
         var slot = string.Equals(Slot, "top", StringComparison.OrdinalIgnoreCase) ? "top" : "bottom";
-        _cssClass = $"{Mode} ion-tab-bar ion-tab-bar-{slot}";
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-tab-bar")
+            .Add($"ion-tab-bar-{slot}");
     }
 }

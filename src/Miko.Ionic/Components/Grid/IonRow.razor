@@ -1,14 +1,16 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
 
 @code {
-    private string _cssClass = "md ion-row";
-
     protected override void OnParametersSet()
     {
-        _cssClass = $"{Mode} ion-row";
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-row");
     }
 }

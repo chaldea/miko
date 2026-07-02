@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass" Style="@_iconStyle"></div>
+<div class="@ClassMapper.Class" Style="@_mergedStyle"></div>
 
 @code {
     /// <summary>
@@ -22,25 +22,44 @@
     /// </summary>
     [Parameter] public string? Class { get; set; }
 
-    private string _cssClass = "md ion-icon";
-    private Style? _iconStyle;
+    private Style? _mergedStyle;
 
     protected override void OnParametersSet()
     {
-        var cls = $"{Mode} ion-icon";
-        if (!string.IsNullOrEmpty(Slot)) cls += $" ion-slot-{Slot.ToLowerInvariant()}";
-        if (!string.IsNullOrEmpty(Class)) cls += $" {Class}";
-        _cssClass = cls;
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-icon")
+            .AddValue(Slot, "ion-slot-")
+            .Add(Class);
 
         var image = IconResolver.Load(Icon);
-        _iconStyle = image is null
-            ? null
-            : new Style
+        if (image is not null)
+        {
+            var iconStyle = new Style
             {
                 BackgroundImage = image,
                 BackgroundSize = BackgroundSize.Contain,
                 BackgroundPosition = BackgroundPosition.Center,
                 BackgroundRepeat = BackgroundRepeat.NoRepeat
             };
+
+            // Merge with user-provided Style
+            if (Style is not null)
+            {
+                _mergedStyle = new Style();
+                _mergedStyle.Merge(Style);
+                _mergedStyle.Merge(iconStyle);
+            }
+            else
+            {
+                _mergedStyle = iconStyle;
+            }
+        }
+        else
+        {
+            _mergedStyle = Style;
+        }
     }
 }

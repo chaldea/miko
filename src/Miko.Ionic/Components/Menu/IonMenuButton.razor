@@ -1,12 +1,21 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@($"{Mode} ion-menu-button")" @onclick="HandleClick">
+<div class="@ClassMapper.Class" style="@Style" @onclick="HandleClick">
     <IonIcon Icon="@Ionicons.Menu" />
 </div>
 
 @code {
     /// <summary>Invoked when the hamburger button is clicked (typically opens the menu).</summary>
     [Parameter] public EventCallback OnClick { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-menu-button");
+    }
 
     private async Task HandleClick(MouseEventArgs _)
     {

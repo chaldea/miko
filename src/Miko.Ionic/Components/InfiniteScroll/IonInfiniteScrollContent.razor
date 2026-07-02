@@ -1,6 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     <div class="infinite-loading">
         @if (!string.IsNullOrEmpty(LoadingSpinner))
         {
@@ -22,10 +22,13 @@
     /// <summary>Optional text to display while loading.</summary>
     [Parameter] public string? LoadingText { get; set; }
 
-    private string _cssClass = "md ion-infinite-scroll-content infinite-scroll-content-md";
-
     protected override void OnParametersSet()
     {
-        _cssClass = $"{Mode} ion-infinite-scroll-content infinite-scroll-content-{Mode}";
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-infinite-scroll-content")
+            .Add($"infinite-scroll-content-{Mode}");
     }
 }

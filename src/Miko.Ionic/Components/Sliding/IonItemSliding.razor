@@ -6,7 +6,7 @@
    (and which side is revealed via <see cref="OpenSide"/>), stamping the active-slide class that
    the stylesheet uses to translate the options into view. The host clips its overflow so the
    options stay hidden off the edge until revealed. *@
-<div class="@_cssClass">
+<div class="@ClassMapper.Class" style="@Style">
     @ChildContent
 </div>
 
@@ -18,16 +18,20 @@
     /// (default) or <c>"start"</c>.</summary>
     [Parameter] public string OpenSide { get; set; } = "end";
 
-    private string _cssClass = "md ion-item-sliding";
-
     protected override void OnParametersSet()
     {
-        var cls = $"{Mode} ion-item-sliding";
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-item-sliding");
+
         if (Open)
         {
             var side = string.Equals(OpenSide, "start", StringComparison.OrdinalIgnoreCase) ? "start" : "end";
-            cls += $" item-sliding-open item-sliding-open-{side}";
+            ClassMapper
+                .Add("item-sliding-open")
+                .Add($"item-sliding-open-{side}");
         }
-        _cssClass = cls;
     }
 }

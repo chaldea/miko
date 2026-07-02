@@ -10,7 +10,7 @@
    checks the drawer first: a tap on the drawer hits the drawer, a tap on the dim area falls
    through to the backdrop. (Paint order is handled by z-index via OrderedChildren, so the
    drawer still renders above the backdrop regardless of this source order.) *@
-<div class="@_hostClass">
+<div class="@_hostClass" style="@Style">
     <div class="@_backdropClass" @onclick="HandleBackdrop"></div>
     <div class="@_innerClass">
         @ChildContent
@@ -63,7 +63,10 @@
         // Host is interactive (auto) while open or animating closed (so the backdrop catches
         // the dim-area tap during the fade); pointer-events:none once closed and settled.
         var hostState = IsOpen ? "open" : (_backdropMounted ? "closing" : "idle");
-        _hostClass = $"{Mode} ion-menu-host ion-menu-host-{side} ion-menu-host-{hostState}";
+
+        // Build host class with ClassMapper-like pattern but store in field since we have multiple elements
+        var hostClassParts = new List<string> { ClassName, Mode, "ion-menu-host", $"ion-menu-host-{side}", $"ion-menu-host-{hostState}" };
+        _hostClass = string.Join(" ", hostClassParts.Where(c => !string.IsNullOrWhiteSpace(c)));
 
         _innerClass = IsOpen
             ? $"ion-menu-inner ion-menu-inner-{side} ion-menu-inner-open"
@@ -97,7 +100,7 @@
         // settle to pointer-events:none. Guard against a re-open mid-close.
         if (!IsOpen
             && _backdropMounted
-            && property == nameof(Style.Opacity)
+            && property == "Opacity"
             && (element.Class?.Contains("ion-menu-backdrop") ?? false))
         {
             _backdropMounted = false;
