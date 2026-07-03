@@ -417,7 +417,7 @@ public class Painter
         float totalWidth = 0;
         foreach (var run in textRuns)
         {
-            using var font = new SKFont(run.Typeface, fontSize);
+            using var font = CreateHighQualityFont(run.Typeface, fontSize);
             totalWidth += font.MeasureText(run.Text, paint);
         }
 
@@ -431,7 +431,7 @@ public class Painter
         };
 
         // 计算文本基线Y位置
-        using var baselineFont = new SKFont(textRuns[0].Typeface, fontSize);
+        using var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
         float y;
         if (verticalAlign == VerticalAlign.Middle)
         {
@@ -449,9 +449,83 @@ public class Painter
         // 绘制每个文本段
         foreach (var run in textRuns)
         {
-            using var font = new SKFont(run.Typeface, fontSize);
+            using var font = CreateHighQualityFont(run.Typeface, fontSize);
             _canvas.DrawText(run.Text, x, y, SKTextAlign.Left, font, paint);
             x += font.MeasureText(run.Text, paint);
+        }
+    }
+
+    /// <summary>
+    /// 绘制多行文本（支持换行）
+    /// </summary>
+    public void DrawMultilineText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, float lineHeight, WhiteSpace whiteSpace, VerticalAlign verticalAlign = VerticalAlign.Top)
+    {
+        if (string.IsNullOrEmpty(text) || color.A == 0) return;
+
+        // 预处理文本
+        var processedText = Utils.TextWrapper.ProcessText(text, whiteSpace);
+
+        // 分行
+        var lines = Utils.TextWrapper.WrapText(processedText, fontFamily, fontSize, fontWeight, rect.Width, whiteSpace);
+
+        if (lines.Count == 0) return;
+
+        var fontManager = FontManager.Instance;
+        using var paint = new SKPaint
+        {
+            Color = color.ToSKColor(),
+            IsAntialias = true
+        };
+
+        // 计算总高度用于垂直对齐
+        float totalHeight = lineHeight * lines.Count;
+        float startY = verticalAlign switch
+        {
+            VerticalAlign.Middle => rect.Top + (rect.Height - totalHeight) / 2,
+            VerticalAlign.Bottom => rect.Bottom - totalHeight,
+            _ => rect.Top
+        };
+
+        // 绘制每一行
+        float currentY = startY;
+        foreach (var line in lines)
+        {
+            if (!string.IsNullOrEmpty(line))
+            {
+                var fallbackResolver = new FontFallbackResolver(fontManager);
+                var textRuns = fallbackResolver.ResolveTextRuns(line, fontFamily, fontWeight);
+
+                // 计算行宽度用于水平对齐
+                float lineWidth = 0;
+                foreach (var run in textRuns)
+                {
+                    using var font = CreateHighQualityFont(run.Typeface, fontSize);
+                    lineWidth += font.MeasureText(run.Text, paint);
+                }
+
+                // 计算起始X位置
+                float x = textAlign switch
+                {
+                    TextAlign.Left => rect.Left,
+                    TextAlign.Right => rect.Right - lineWidth,
+                    TextAlign.Center => rect.Left + (rect.Width - lineWidth) / 2,
+                    _ => rect.Left
+                };
+
+                // 计算基线Y位置
+                using var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
+                float y = currentY - baselineFont.Metrics.Ascent;
+
+                // 绘制当前行
+                foreach (var run in textRuns)
+                {
+                    using var font = CreateHighQualityFont(run.Typeface, fontSize);
+                    _canvas.DrawText(run.Text, x, y, SKTextAlign.Left, font, paint);
+                    x += font.MeasureText(run.Text, paint);
+                }
+            }
+
+            currentY += lineHeight;
         }
     }
 
@@ -462,7 +536,12 @@ public class Painter
     {
         if (bitmap == null) return;
 
-        _canvas.DrawBitmap(bitmap, rect.ToSKRect());
+        // 启用抗锯齿和高质量采样，改善图像（特别是 SVG）的渲染质量
+        // 将 SKBitmap 转换为 SKImage 以使用支持 SKSamplingOptions 的 API
+        using var image = SKImage.FromBitmap(bitmap);
+        using var paint = new SKPaint { IsAntialias = true };
+        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+        _canvas.DrawImage(image, rect.ToSKRect(), sampling, paint);
     }
 
     /// <summary>
@@ -980,7 +1059,7 @@ public class Painter
             using var measurePaint = new SKPaint { IsAntialias = true };
             foreach (var run in runs)
             {
-                using var font = new SKFont(run.Typeface, fontSize);
+                using var font = CreateHighQualityFont(run.Typeface, fontSize);
                 cursorX += font.MeasureText(run.Text, measurePaint);
             }
         }
@@ -1016,7 +1095,7 @@ public class Painter
         float totalWidth = 0;
         foreach (var run in textRuns)
         {
-            using var font = new SKFont(run.Typeface, fontSize);
+            using var font = CreateHighQualityFont(run.Typeface, fontSize);
             totalWidth += font.MeasureText(run.Text, measurePaint);
         }
 
@@ -1029,7 +1108,7 @@ public class Painter
         };
 
         // 基线 Y 计算需与 DrawText 保持一致，使装饰线随文本垂直对齐方式一同偏移。
-        using var baselineFont = new SKFont(textRuns[0].Typeface, fontSize);
+        using var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
         float baselineY;
         if (verticalAlign == VerticalAlign.Middle)
         {
@@ -1089,5 +1168,22 @@ public class Painter
     public void Concat(SKMatrix matrix)
     {
         _canvas.Concat(ref matrix);
+    }
+
+    /// <summary>
+    /// 创建高质量字体对象，启用子像素定位和抗锯齿边缘渲染
+    /// </summary>
+    private static SKFont CreateHighQualityFont(SKTypeface typeface, float fontSize)
+    {
+        var font = new SKFont(typeface, fontSize)
+        {
+            // 启用子像素定位，提高文本定位精度（特别是在缩放画布时）
+            Subpixel = true,
+            // 使用子像素抗锯齿，配合 SKSurfaceProperties 的 PixelGeometry 获得最佳效果
+            Edging = SKFontEdging.SubpixelAntialias,
+            // 使用 Normal hinting 在保持清晰度的同时不牺牲字形形状
+            Hinting = SKFontHinting.Normal
+        };
+        return font;
     }
 }

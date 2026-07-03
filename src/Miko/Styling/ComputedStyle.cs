@@ -6,7 +6,7 @@ namespace Miko.Styling;
 /// <summary>
 /// 计算后的样式（包含所有默认值）
 /// </summary>
-public class ComputedStyle : Style
+public partial class ComputedStyle : Style
 {
     // 使用非空的默认值
     public new Display Display { get; set; } = Common.Display.Block;
@@ -121,6 +121,7 @@ public class ComputedStyle : Style
 
     public new string? Content { get; set; }
 
+
     /// <summary>
     /// 从样式对象创建计算样式
     /// </summary>
@@ -135,157 +136,54 @@ public class ComputedStyle : Style
 
         if (style != null)
         {
-            if (style.Display.HasValue) computed.Display = style.Display.Value;
-            if (style.BoxSizing.HasValue) computed.BoxSizing = style.BoxSizing.Value;
-            if (style.FlexDirection.HasValue) computed.FlexDirection = style.FlexDirection.Value;
-            if (style.JustifyContent.HasValue) computed.JustifyContent = style.JustifyContent.Value;
-            if (style.AlignItems.HasValue) computed.AlignItems = style.AlignItems.Value;
+            // 调用生成的通用属性赋值
+            computed.ApplyStylePropertiesGenerated(style);
 
-            if (style.FlexGrow.HasValue) computed.FlexGrow = style.FlexGrow.Value;
-            if (style.FlexShrink.HasValue) computed.FlexShrink = style.FlexShrink.Value;
-            if (style.FlexBasis.HasValue) computed.FlexBasis = style.FlexBasis.Value;
+            // 特殊处理：font-size 的 em 单位需要相对父元素解析
+            if (style.FontSize.HasValue)
+            {
+                computed.FontSize = Length.Px(style.FontSize.Value.ToPixels(0, parentFontSizePx));
+            }
 
-            if (style.Width.HasValue) computed.Width = style.Width.Value;
-            if (style.Height.HasValue) computed.Height = style.Height.Value;
-            if (style.MinWidth.HasValue) computed.MinWidth = style.MinWidth.Value;
-            if (style.MinHeight.HasValue) computed.MinHeight = style.MinHeight.Value;
-            if (style.MaxWidth.HasValue) computed.MaxWidth = style.MaxWidth.Value;
-            if (style.MaxHeight.HasValue) computed.MaxHeight = style.MaxHeight.Value;
-
-            if (style.PaddingTop.HasValue) computed.PaddingTop = style.PaddingTop.Value;
-            if (style.PaddingRight.HasValue) computed.PaddingRight = style.PaddingRight.Value;
-            if (style.PaddingBottom.HasValue) computed.PaddingBottom = style.PaddingBottom.Value;
-            if (style.PaddingLeft.HasValue) computed.PaddingLeft = style.PaddingLeft.Value;
-
-            if (style.MarginTop.HasValue) computed.MarginTop = style.MarginTop.Value;
-            if (style.MarginRight.HasValue) computed.MarginRight = style.MarginRight.Value;
-            if (style.MarginBottom.HasValue) computed.MarginBottom = style.MarginBottom.Value;
-            if (style.MarginLeft.HasValue) computed.MarginLeft = style.MarginLeft.Value;
-
-            // 边框宽度：单边属性 > 统一属性 > 默认值
-            if (style.BorderTopWidth.HasValue)
-                computed.BorderTopWidth = style.BorderTopWidth.Value;
-            else if (style.BorderWidth.HasValue)
+            // 特殊处理：边框宽度的统一属性回退逻辑
+            if (!style.BorderTopWidth.HasValue && style.BorderWidth.HasValue)
                 computed.BorderTopWidth = style.BorderWidth.Value;
-
-            if (style.BorderRightWidth.HasValue)
-                computed.BorderRightWidth = style.BorderRightWidth.Value;
-            else if (style.BorderWidth.HasValue)
+            if (!style.BorderRightWidth.HasValue && style.BorderWidth.HasValue)
                 computed.BorderRightWidth = style.BorderWidth.Value;
-
-            if (style.BorderBottomWidth.HasValue)
-                computed.BorderBottomWidth = style.BorderBottomWidth.Value;
-            else if (style.BorderWidth.HasValue)
+            if (!style.BorderBottomWidth.HasValue && style.BorderWidth.HasValue)
                 computed.BorderBottomWidth = style.BorderWidth.Value;
-
-            if (style.BorderLeftWidth.HasValue)
-                computed.BorderLeftWidth = style.BorderLeftWidth.Value;
-            else if (style.BorderWidth.HasValue)
+            if (!style.BorderLeftWidth.HasValue && style.BorderWidth.HasValue)
                 computed.BorderLeftWidth = style.BorderWidth.Value;
 
-            // 边框颜色：单边属性 > 统一属性 > 默认值
-            if (style.BorderTopColor.HasValue)
-                computed.BorderTopColor = style.BorderTopColor.Value;
-            else if (style.BorderColor.HasValue)
+            // 特殊处理：边框颜色的统一属性回退逻辑
+            if (!style.BorderTopColor.HasValue && style.BorderColor.HasValue)
                 computed.BorderTopColor = style.BorderColor.Value;
-
-            if (style.BorderRightColor.HasValue)
-                computed.BorderRightColor = style.BorderRightColor.Value;
-            else if (style.BorderColor.HasValue)
+            if (!style.BorderRightColor.HasValue && style.BorderColor.HasValue)
                 computed.BorderRightColor = style.BorderColor.Value;
-
-            if (style.BorderBottomColor.HasValue)
-                computed.BorderBottomColor = style.BorderBottomColor.Value;
-            else if (style.BorderColor.HasValue)
+            if (!style.BorderBottomColor.HasValue && style.BorderColor.HasValue)
                 computed.BorderBottomColor = style.BorderColor.Value;
-
-            if (style.BorderLeftColor.HasValue)
-                computed.BorderLeftColor = style.BorderLeftColor.Value;
-            else if (style.BorderColor.HasValue)
+            if (!style.BorderLeftColor.HasValue && style.BorderColor.HasValue)
                 computed.BorderLeftColor = style.BorderColor.Value;
 
-            // 边框样式：单边属性 > 统一属性 > 默认值
-            if (style.BorderTopStyle.HasValue)
-                computed.BorderTopStyle = style.BorderTopStyle.Value;
-            else if (style.BorderStyle.HasValue)
+            // 特殊处理：边框样式的统一属性回退逻辑
+            if (!style.BorderTopStyle.HasValue && style.BorderStyle.HasValue)
                 computed.BorderTopStyle = style.BorderStyle.Value;
-
-            if (style.BorderRightStyle.HasValue)
-                computed.BorderRightStyle = style.BorderRightStyle.Value;
-            else if (style.BorderStyle.HasValue)
+            if (!style.BorderRightStyle.HasValue && style.BorderStyle.HasValue)
                 computed.BorderRightStyle = style.BorderStyle.Value;
-
-            if (style.BorderBottomStyle.HasValue)
-                computed.BorderBottomStyle = style.BorderBottomStyle.Value;
-            else if (style.BorderStyle.HasValue)
+            if (!style.BorderBottomStyle.HasValue && style.BorderStyle.HasValue)
                 computed.BorderBottomStyle = style.BorderStyle.Value;
-
-            if (style.BorderLeftStyle.HasValue)
-                computed.BorderLeftStyle = style.BorderLeftStyle.Value;
-            else if (style.BorderStyle.HasValue)
+            if (!style.BorderLeftStyle.HasValue && style.BorderStyle.HasValue)
                 computed.BorderLeftStyle = style.BorderStyle.Value;
-
-            if (style.BorderTopLeftRadius.HasValue) computed.BorderTopLeftRadius = style.BorderTopLeftRadius.Value;
-            if (style.BorderTopRightRadius.HasValue) computed.BorderTopRightRadius = style.BorderTopRightRadius.Value;
-            if (style.BorderBottomRightRadius.HasValue) computed.BorderBottomRightRadius = style.BorderBottomRightRadius.Value;
-            if (style.BorderBottomLeftRadius.HasValue) computed.BorderBottomLeftRadius = style.BorderBottomLeftRadius.Value;
-
-            if (style.BackgroundColor.HasValue) computed.BackgroundColor = style.BackgroundColor.Value;
-            if (style.BackgroundImage != null) computed.BackgroundImage = style.BackgroundImage;
-            if (style.BackgroundRepeat.HasValue) computed.BackgroundRepeat = style.BackgroundRepeat.Value;
-            if (style.BackgroundSize.HasValue) computed.BackgroundSize = style.BackgroundSize.Value;
-            if (style.BackgroundPosition.HasValue) computed.BackgroundPosition = style.BackgroundPosition.Value;
-            if (style.Color.HasValue) computed.Color = style.Color.Value;
-            if (style.FontFamily != null) computed.FontFamily = style.FontFamily;
-            // font-size 中的 em 相对于父元素字体大小解析；rem 相对于根字体大小。
-            if (style.FontSize.HasValue) computed.FontSize = Length.Px(style.FontSize.Value.ToPixels(0, parentFontSizePx));
-            if (style.FontWeight.HasValue) computed.FontWeight = style.FontWeight.Value;
-            if (style.TextAlign.HasValue) computed.TextAlign = style.TextAlign.Value;
-            if (style.LineHeight.HasValue) computed.LineHeight = style.LineHeight.Value;
-
-            if (style.Position.HasValue) computed.Position = style.Position.Value;
-            if (style.Top.HasValue) computed.Top = style.Top.Value;
-            if (style.Right.HasValue) computed.Right = style.Right.Value;
-            if (style.Bottom.HasValue) computed.Bottom = style.Bottom.Value;
-            if (style.Left.HasValue) computed.Left = style.Left.Value;
-
-            if (style.TextDecoration.HasValue) computed.TextDecoration = style.TextDecoration.Value;
-            if (style.TextTransform.HasValue) computed.TextTransform = style.TextTransform.Value;
-            if (style.FontStyle.HasValue) computed.FontStyle = style.FontStyle.Value;
-            if (style.WhiteSpace.HasValue) computed.WhiteSpace = style.WhiteSpace.Value;
-            if (style.Visibility.HasValue) computed.Visibility = style.Visibility.Value;
-            if (style.Cursor.HasValue) computed.Cursor = style.Cursor.Value;
-            if (style.PointerEvents.HasValue) computed.PointerEvents = style.PointerEvents.Value;
-            if (style.FlexWrap.HasValue) computed.FlexWrap = style.FlexWrap.Value;
-            if (style.AlignSelf.HasValue) computed.AlignSelf = style.AlignSelf.Value;
-            if (style.AlignContent.HasValue) computed.AlignContent = style.AlignContent.Value;
-
-            if (style.Gap.HasValue) computed.Gap = style.Gap.Value;
-            if (style.RowGap.HasValue) computed.RowGap = style.RowGap.Value;
-            if (style.ColumnGap.HasValue) computed.ColumnGap = style.ColumnGap.Value;
-
-            if (style.Opacity.HasValue) computed.Opacity = style.Opacity.Value;
-            if (style.ZIndex.HasValue) computed.ZIndex = style.ZIndex.Value;
-
-            if (style.BoxShadow != null) computed.BoxShadow = style.BoxShadow;
-
-            if (style.OverflowX.HasValue) computed.OverflowX = style.OverflowX.Value;
-            if (style.OverflowY.HasValue) computed.OverflowY = style.OverflowY.Value;
-
-            if (style.VerticalAlign.HasValue) computed.VerticalAlign = style.VerticalAlign.Value;
-
-            if (style.TableLayout.HasValue) computed.TableLayout = style.TableLayout.Value;
-
-            if (style.Transform != null) computed.Transform = style.Transform;
-            if (style.TransformOrigin.HasValue) computed.TransformOrigin = style.TransformOrigin.Value;
-            if (style.Transitions != null) computed.Transitions = style.Transitions;
-            if (style.Animations != null) computed.Animations = style.Animations;
-
-            if (style.Content != null) computed.Content = style.Content;
         }
 
         return computed;
     }
+
+    /// <summary>
+    /// 由 Source Generator 实现的样式属性应用逻辑
+    /// </summary>
+    partial void ApplyStylePropertiesGenerated(Style style);
+
 
     /// <summary>
     /// 折算所有长度属性中的 env(safe-area-inset-*) 分量为像素。由布局引擎在样式计算阶段、

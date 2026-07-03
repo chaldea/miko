@@ -50,14 +50,40 @@ public class InlineLayout
 
         if (hasOwnText)
         {
-            var (textWidth, _) = TextMeasurer.MeasureText(
-                box.Element.TextContent,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight);
-            ownTextWidth = textWidth;
             // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
-            ownTextHeight = BlockLayout.ResolveLineHeight(style);
+            float resolvedLineHeight = BlockLayout.ResolveLineHeight(style);
+
+            // 如果元素有明确的宽度约束，使用多行测量（支持自动换行）
+            if (constraints.AvailableWidth.HasValue && constraints.AvailableWidth.Value > 0)
+            {
+                // 减去 padding 和 border 得到可用内容宽度
+                float availableContentWidth = constraints.AvailableWidth.Value
+                    - box.BoxModel.Padding.Horizontal
+                    - box.BoxModel.Border.Horizontal;
+
+                var (wrappedWidth, wrappedHeight) = TextMeasurer.MeasureTextWithWrap(
+                    box.Element.TextContent,
+                    style.FontFamily,
+                    style.FontSize.Value,
+                    style.FontWeight,
+                    availableContentWidth,
+                    resolvedLineHeight,
+                    style.WhiteSpace);
+
+                ownTextWidth = wrappedWidth;
+                ownTextHeight = wrappedHeight;
+            }
+            else
+            {
+                // 没有宽度约束，使用单行测量
+                var (textWidth, _) = TextMeasurer.MeasureText(
+                    box.Element.TextContent,
+                    style.FontFamily,
+                    style.FontSize.Value,
+                    style.FontWeight);
+                ownTextWidth = textWidth;
+                ownTextHeight = resolvedLineHeight;
+            }
         }
 
         float currentX = contentX + ownTextWidth;
@@ -92,7 +118,15 @@ public class InlineLayout
         var (intrinsicW, intrinsicH) = BlockLayout.GetReplacedIntrinsicSize(box.Element);
         bool isReplaced = intrinsicW > 0 && intrinsicH > 0;
 
-        if (!style.Width.IsAuto)
+        // 百分比针对"不确定尺寸"的包含块解析时按 auto 处理（CSS 规范）：
+        // inline/inline-block 的子元素以 null 约束布局（无确定包含块尺寸），此时
+        // width/height:100% 会解析为 0 而塌缩。若父尺寸不确定，退化为内容尺寸（见 ISSUE-077）。
+        bool widthPercentAgainstIndefinite = style.Width.HasPercentComponent && !constraints.AvailableWidth.HasValue;
+        bool heightPercentAgainstIndefinite = style.Height.HasPercentComponent && !constraints.AvailableHeight.HasValue;
+        bool widthIsAuto = style.Width.IsAuto || widthPercentAgainstIndefinite;
+        bool heightIsAuto = style.Height.IsAuto || heightPercentAgainstIndefinite;
+
+        if (!widthIsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -104,7 +138,7 @@ public class InlineLayout
         else if (isReplaced)
         {
             // width auto：height 指定时按纵横比反推宽，否则用内禀宽。
-            if (style.Height.IsAuto)
+            if (heightIsAuto)
             {
                 contentWidth = intrinsicW;
             }
@@ -127,7 +161,7 @@ public class InlineLayout
             contentWidth = maxWidth;
         }
 
-        if (!style.Height.IsAuto)
+        if (!heightIsAuto)
         {
             contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -139,7 +173,7 @@ public class InlineLayout
         else if (isReplaced)
         {
             // height auto：width 指定时按纵横比反推高，否则用内禀高。
-            contentHeight = style.Width.IsAuto
+            contentHeight = widthIsAuto
                 ? intrinsicH
                 : contentWidth * intrinsicH / intrinsicW;
         }

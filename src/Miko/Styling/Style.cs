@@ -9,7 +9,7 @@ namespace Miko.Styling;
 /// <summary>
 /// 样式对象
 /// </summary>
-public class Style
+public partial class Style
 {
     // 布局属性
     public Display? Display { get; set; }
@@ -23,15 +23,17 @@ public class Style
     public Length? FlexBasis { get; set; }
 
     /// <summary>
-    /// flex 简写属性 (flex: N → flex-grow: N; flex-shrink: 1; flex-basis: 0%)
+    /// flex 简写属性，展开为 flex-grow / flex-shrink / flex-basis。
+    /// 支持 <see cref="Flex"/> 的多种写法，并保留 <c>Flex = 1</c> 的单数值兼容
+    /// （通过 <see cref="Flex"/> 的隐式转换，等价于 <c>N 1 0%</c>）。
     /// </summary>
-    public float Flex
+    public Flex Flex
     {
         set
         {
-            FlexGrow = value;
-            FlexShrink = 1;
-            FlexBasis = Length.Percent(0);
+            FlexGrow = value.Grow;
+            FlexShrink = value.Shrink;
+            FlexBasis = value.Basis;
         }
     }
 
@@ -308,109 +310,13 @@ public class Style
     /// </summary>
     public void Merge(Style other)
     {
-        Display ??= other.Display;
-        FlexDirection ??= other.FlexDirection;
-        JustifyContent ??= other.JustifyContent;
-        AlignItems ??= other.AlignItems;
-
-        FlexGrow ??= other.FlexGrow;
-        FlexShrink ??= other.FlexShrink;
-        FlexBasis ??= other.FlexBasis;
-
-        BoxSizing ??= other.BoxSizing;
-        Width ??= other.Width;
-        Height ??= other.Height;
-        MinWidth ??= other.MinWidth;
-        MinHeight ??= other.MinHeight;
-        MaxWidth ??= other.MaxWidth;
-        MaxHeight ??= other.MaxHeight;
-
-        PaddingTop ??= other.PaddingTop;
-        PaddingRight ??= other.PaddingRight;
-        PaddingBottom ??= other.PaddingBottom;
-        PaddingLeft ??= other.PaddingLeft;
-
-        MarginTop ??= other.MarginTop;
-        MarginRight ??= other.MarginRight;
-        MarginBottom ??= other.MarginBottom;
-        MarginLeft ??= other.MarginLeft;
-
-        BorderWidth ??= other.BorderWidth;
-        BorderColor ??= other.BorderColor;
-        BorderStyle ??= other.BorderStyle;
-
-        BorderTopWidth ??= other.BorderTopWidth;
-        BorderRightWidth ??= other.BorderRightWidth;
-        BorderBottomWidth ??= other.BorderBottomWidth;
-        BorderLeftWidth ??= other.BorderLeftWidth;
-
-        BorderTopColor ??= other.BorderTopColor;
-        BorderRightColor ??= other.BorderRightColor;
-        BorderBottomColor ??= other.BorderBottomColor;
-        BorderLeftColor ??= other.BorderLeftColor;
-
-        BorderTopStyle ??= other.BorderTopStyle;
-        BorderRightStyle ??= other.BorderRightStyle;
-        BorderBottomStyle ??= other.BorderBottomStyle;
-        BorderLeftStyle ??= other.BorderLeftStyle;
-
-        BorderTopLeftRadius ??= other.BorderTopLeftRadius;
-        BorderTopRightRadius ??= other.BorderTopRightRadius;
-        BorderBottomRightRadius ??= other.BorderBottomRightRadius;
-        BorderBottomLeftRadius ??= other.BorderBottomLeftRadius;
-
-        BackgroundColor ??= other.BackgroundColor;
-        BackgroundImage ??= other.BackgroundImage;
-        BackgroundRepeat ??= other.BackgroundRepeat;
-        BackgroundSize ??= other.BackgroundSize;
-        BackgroundPosition ??= other.BackgroundPosition;
-        Color ??= other.Color;
-        FontFamily ??= other.FontFamily;
-        FontSize ??= other.FontSize;
-        FontWeight ??= other.FontWeight;
-        TextAlign ??= other.TextAlign;
-        LineHeight ??= other.LineHeight;
-
-        Position ??= other.Position;
-        Top ??= other.Top;
-        Right ??= other.Right;
-        Bottom ??= other.Bottom;
-        Left ??= other.Left;
-
-        TextDecoration ??= other.TextDecoration;
-        TextTransform ??= other.TextTransform;
-        FontStyle ??= other.FontStyle;
-        WhiteSpace ??= other.WhiteSpace;
-        LetterSpacing ??= other.LetterSpacing;
-        VerticalAlign ??= other.VerticalAlign;
-        TableLayout ??= other.TableLayout;
-
-        Opacity ??= other.Opacity;
-        ZIndex ??= other.ZIndex;
-        Visibility ??= other.Visibility;
-        Cursor ??= other.Cursor;
-        PointerEvents ??= other.PointerEvents;
-        UserSelect ??= other.UserSelect;
-
-        FlexWrap ??= other.FlexWrap;
-        AlignSelf ??= other.AlignSelf;
-        AlignContent ??= other.AlignContent;
-        Gap ??= other.Gap;
-        RowGap ??= other.RowGap;
-        ColumnGap ??= other.ColumnGap;
-
-        BoxShadow ??= other.BoxShadow;
-
-        OverflowX ??= other.OverflowX;
-        OverflowY ??= other.OverflowY;
-
-        Transform ??= other.Transform;
-        TransformOrigin ??= other.TransformOrigin;
-        Transitions ??= other.Transitions;
-        Animations ??= other.Animations;
-
-        Content ??= other.Content;
+        MergeGenerated(other);
     }
+
+    /// <summary>
+    /// 由 Source Generator 实现的合并逻辑
+    /// </summary>
+    partial void MergeGenerated(Style other);
 
     /// <summary>
     /// 克隆样式

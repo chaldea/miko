@@ -125,14 +125,21 @@ public class BackgroundImage
         if (width <= 0) width = 16;
         if (height <= 0) height = 16;
 
-        var bitmap = new SKBitmap(width, height);
+        // 创建高质量的 Bitmap，启用抗锯齿以改善 SVG 渲染质量
+        var imageInfo = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
+
+        // 启用高质量渲染选项
         canvas.Clear(SKColors.Transparent);
 
         var scaleX = width / _picture!.CullRect.Width;
         var scaleY = height / _picture.CullRect.Height;
         canvas.Scale(scaleX, scaleY);
-        canvas.DrawPicture(_picture);
+
+        // 使用高质量的绘制选项，启用抗锯齿
+        using var paint = new SKPaint { IsAntialias = true };
+        canvas.DrawPicture(_picture, paint);
 
         return bitmap;
     }

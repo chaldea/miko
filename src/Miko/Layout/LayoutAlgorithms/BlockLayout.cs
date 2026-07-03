@@ -316,7 +316,29 @@ public class BlockLayout
             else if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
             {
                 // 行高优先使用显式 line-height，否则取字体自然度量。
-                contentHeight = ResolveLineHeight(style);
+                float resolvedLineHeight = ResolveLineHeight(style);
+
+                // 如果文本可能换行（WhiteSpace 允许且有宽度限制），使用多行测量
+                bool shouldWrap = style.WhiteSpace == WhiteSpace.Normal
+                               || style.WhiteSpace == WhiteSpace.PreWrap
+                               || style.WhiteSpace == WhiteSpace.PreLine;
+
+                if (shouldWrap && contentWidth > 0)
+                {
+                    var (_, wrappedHeight) = TextMeasurer.MeasureTextWithWrap(
+                        box.Element.TextContent,
+                        style.FontFamily,
+                        style.FontSize.Value,
+                        style.FontWeight,
+                        contentWidth,
+                        resolvedLineHeight,
+                        style.WhiteSpace);
+                    contentHeight = wrappedHeight;
+                }
+                else
+                {
+                    contentHeight = resolvedLineHeight;
+                }
             }
             else
             {

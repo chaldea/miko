@@ -24,6 +24,20 @@ public class CssObjectTests
     }
 
     [Fact]
+    public void Register_BoxSizingOnlyRule()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            ["*"] = new() { BoxSizing = BoxSizing.BorderBox }
+        });
+
+        sheet.Rules.Count.ShouldBe(1);
+        var element = new DivElement();
+        new StyleResolver().Resolve(element, [sheet]).BoxSizing.ShouldBe(BoxSizing.BorderBox);
+    }
+
+    [Fact]
     public void Register_TagSelector()
     {
         var sheet = new StyleSheet();
