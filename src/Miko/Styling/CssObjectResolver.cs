@@ -7,12 +7,6 @@ namespace Miko.Styling;
 /// </summary>
 internal static class CssObjectResolver
 {
-    private static readonly System.Reflection.FieldInfo[] StyleBackingFields = typeof(Style)
-        .GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-        .Where(field => field.IsDefined(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), inherit: false)
-            && field.Name.EndsWith(">k__BackingField", StringComparison.Ordinal))
-        .ToArray();
-
     internal static void Resolve(CssObject css, StyleSheet sheet)
     {
         foreach (var (selectorStr, child) in css.Children)
@@ -157,6 +151,6 @@ internal static class CssObjectResolver
 
     private static bool HasAnyProperty(Style style)
     {
-        return StyleBackingFields.Any(field => field.GetValue(style) != null);
+        return style.HasAnyProperty();
     }
 }

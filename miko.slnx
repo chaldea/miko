@@ -7,6 +7,7 @@
     <Project Path="src/Miko.iOS/Miko.iOS.csproj" />
     <Project Path="src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj" />
     <Project Path="src/Miko.Simulator/Miko.Simulator.csproj" />
+    <Project Path="src/Miko.SourceGenerators/Miko.SourceGenerators.csproj" />
     <Project Path="src/Miko.Testing/Miko.Testing.csproj" />
     <Project Path="src/Miko.Windowing/Miko.Windowing.csproj" />
     <Project Path="src/Miko/Miko.csproj" />
