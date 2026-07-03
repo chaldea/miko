@@ -50,14 +50,40 @@ public class InlineLayout
 
         if (hasOwnText)
         {
-            var (textWidth, _) = TextMeasurer.MeasureText(
-                box.Element.TextContent,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight);
-            ownTextWidth = textWidth;
             // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
-            ownTextHeight = BlockLayout.ResolveLineHeight(style);
+            float resolvedLineHeight = BlockLayout.ResolveLineHeight(style);
+
+            // 如果元素有明确的宽度约束，使用多行测量（支持自动换行）
+            if (constraints.AvailableWidth.HasValue && constraints.AvailableWidth.Value > 0)
+            {
+                // 减去 padding 和 border 得到可用内容宽度
+                float availableContentWidth = constraints.AvailableWidth.Value
+                    - box.BoxModel.Padding.Horizontal
+                    - box.BoxModel.Border.Horizontal;
+
+                var (wrappedWidth, wrappedHeight) = TextMeasurer.MeasureTextWithWrap(
+                    box.Element.TextContent,
+                    style.FontFamily,
+                    style.FontSize.Value,
+                    style.FontWeight,
+                    availableContentWidth,
+                    resolvedLineHeight,
+                    style.WhiteSpace);
+
+                ownTextWidth = wrappedWidth;
+                ownTextHeight = wrappedHeight;
+            }
+            else
+            {
+                // 没有宽度约束，使用单行测量
+                var (textWidth, _) = TextMeasurer.MeasureText(
+                    box.Element.TextContent,
+                    style.FontFamily,
+                    style.FontSize.Value,
+                    style.FontWeight);
+                ownTextWidth = textWidth;
+                ownTextHeight = resolvedLineHeight;
+            }
         }
 
         float currentX = contentX + ownTextWidth;
