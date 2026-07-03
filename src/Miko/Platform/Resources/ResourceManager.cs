@@ -1,5 +1,4 @@
-using System.Collections.Concurrent;
-using System.Reflection;
+﻿using System.Collections.Concurrent;
 using Miko.Common;
 using SkiaSharp;
 using Svg.Skia;
@@ -19,23 +18,18 @@ namespace Miko.Platform.Resources;
 public sealed class ResourceManager : IImageLoader
 {
     private readonly HttpClient _http;
-    private readonly Assembly[] _resourceAssemblies;
+    private readonly IResourceAssemblyProvider _assemblyProvider;
     private readonly ConcurrentDictionary<string, Task<SKBitmap?>> _cache = new();
 
+    /// <summary>
+    /// 创建 ResourceManager 实例（推荐通过 DI 容器注入）
+    /// </summary>
     /// <param name="httpClient">用于网络源的 HttpClient；为空时新建一个默认实例。</param>
-    /// <param name="resourceAssemblies">res:// 源解析时查找的程序集；为空时回退到入口程序集。</param>
-    public ResourceManager(HttpClient? httpClient = null, params Assembly[]? resourceAssemblies)
+    /// <param name="assemblyProvider">资源程序集提供器；为空时使用默认提供器（仅包含入口程序集）。</param>
+    public ResourceManager(HttpClient? httpClient = null, IResourceAssemblyProvider? assemblyProvider = null)
     {
         _http = httpClient ?? new HttpClient();
-        _resourceAssemblies = resourceAssemblies is { Length: > 0 }
-            ? resourceAssemblies
-            : DefaultResourceAssemblies();
-    }
-
-    private static Assembly[] DefaultResourceAssemblies()
-    {
-        var entry = Assembly.GetEntryAssembly();
-        return entry != null ? new[] { entry } : Array.Empty<Assembly>();
+        _assemblyProvider = assemblyProvider ?? new ResourceAssemblyProvider();
     }
 
     /// <inheritdoc />
@@ -69,18 +63,42 @@ public sealed class ResourceManager : IImageLoader
 
     private static SKBitmap? DecodeFile(string path)
     {
-        if (!File.Exists(path)) return null;
-        if (IsSvg(path))
+        // 智能路径解析：支持多种场景
+        string? resolvedPath = ResolveFilePath(path);
+        if (resolvedPath == null || !File.Exists(resolvedPath))
+            return null;
+
+        if (IsSvg(resolvedPath))
         {
-            using var stream = File.OpenRead(path);
+            using var stream = File.OpenRead(resolvedPath);
             return RenderSvg(stream);
         }
-        return SKBitmap.Decode(path);
+        return SKBitmap.Decode(resolvedPath);
+    }
+
+    /// <summary>
+    /// 智能解析文件路径，处理多种启动场景：
+    /// 1. 绝对路径：直接使用
+    /// 2. 相对路径：按照应用目录计算
+    /// </summary>
+    private static string? ResolveFilePath(string path)
+    {
+        // 1. 如果是绝对路径，直接返回
+        if (Path.IsPathRooted(path))
+        {
+            return File.Exists(path) ? path : null;
+        }
+
+        var appBasePath = Path.Combine(AppContext.BaseDirectory, path);
+        if (File.Exists(appBasePath))
+            return appBasePath;
+
+        return null;
     }
 
     private SKBitmap? DecodeResource(string resourceName)
     {
-        foreach (var assembly in _resourceAssemblies)
+        foreach (var assembly in _assemblyProvider.GetResourceAssemblies())
         {
             using var stream = assembly.GetManifestResourceStream(resourceName);
             if (stream == null) continue;
@@ -131,7 +149,11 @@ public sealed class ResourceManager : IImageLoader
         var bitmap = new SKBitmap(w, h);
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear(SKColors.Transparent);
-        canvas.DrawPicture(svg.Picture);
+
+        // 使用之前在 ISSUE-073 中添加的抗锯齿设置
+        using var paint = new SKPaint { IsAntialias = true };
+        canvas.DrawPicture(svg.Picture, paint);
+
         return bitmap;
     }
 

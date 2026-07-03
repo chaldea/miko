@@ -23,15 +23,17 @@ public class Style
     public Length? FlexBasis { get; set; }
 
     /// <summary>
-    /// flex 简写属性 (flex: N → flex-grow: N; flex-shrink: 1; flex-basis: 0%)
+    /// flex 简写属性，展开为 flex-grow / flex-shrink / flex-basis。
+    /// 支持 <see cref="Flex"/> 的多种写法，并保留 <c>Flex = 1</c> 的单数值兼容
+    /// （通过 <see cref="Flex"/> 的隐式转换，等价于 <c>N 1 0%</c>）。
     /// </summary>
-    public float Flex
+    public Flex Flex
     {
         set
         {
-            FlexGrow = value;
-            FlexShrink = 1;
-            FlexBasis = Length.Percent(0);
+            FlexGrow = value.Grow;
+            FlexShrink = value.Shrink;
+            FlexBasis = value.Basis;
         }
     }
 

@@ -581,16 +581,52 @@ public class RenderEngine
                 textRect = new RectF(content.X, content.Y, content.Width, lineBoxHeight);
             }
 
-            _painter.DrawText(
-                element.TextContent,
-                textRect,
-                style.Color,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight,
-                style.TextAlign,
-                VerticalAlign.Middle
-            );
+            // 根据 WhiteSpace 属性决定是否使用多行文本绘制
+            bool shouldWrap = Utils.TextWrapper.ShouldWrap(style.WhiteSpace);
+            bool needsMultiline = false;
+
+            if (shouldWrap && content.Width > 0)
+            {
+                // 检查文本是否需要换行（预处理后的文本宽度是否超过可用宽度）
+                var processedText = Utils.TextWrapper.ProcessText(element.TextContent, style.WhiteSpace);
+                var (singleLineWidth, _) = Utils.TextMeasurer.MeasureText(
+                    processedText,
+                    style.FontFamily,
+                    style.FontSize.Value,
+                    style.FontWeight);
+
+                needsMultiline = singleLineWidth > content.Width || processedText.Contains('\n');
+            }
+
+            if (needsMultiline)
+            {
+                float lineHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);
+                _painter.DrawMultilineText(
+                    element.TextContent,
+                    content, // 使用整个内容区域进行换行
+                    style.Color,
+                    style.FontFamily,
+                    style.FontSize.Value,
+                    style.FontWeight,
+                    style.TextAlign,
+                    lineHeight,
+                    style.WhiteSpace,
+                    element is Miko.Core.DomElements.ButtonElement ? VerticalAlign.Middle : VerticalAlign.Top
+                );
+            }
+            else
+            {
+                _painter.DrawText(
+                    element.TextContent,
+                    textRect,
+                    style.Color,
+                    style.FontFamily,
+                    style.FontSize.Value,
+                    style.FontWeight,
+                    style.TextAlign,
+                    VerticalAlign.Middle
+                );
+            }
 
             if (style.TextDecoration != Common.TextDecoration.None)
             {

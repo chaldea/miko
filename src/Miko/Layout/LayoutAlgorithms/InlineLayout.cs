@@ -92,7 +92,15 @@ public class InlineLayout
         var (intrinsicW, intrinsicH) = BlockLayout.GetReplacedIntrinsicSize(box.Element);
         bool isReplaced = intrinsicW > 0 && intrinsicH > 0;
 
-        if (!style.Width.IsAuto)
+        // 百分比针对"不确定尺寸"的包含块解析时按 auto 处理（CSS 规范）：
+        // inline/inline-block 的子元素以 null 约束布局（无确定包含块尺寸），此时
+        // width/height:100% 会解析为 0 而塌缩。若父尺寸不确定，退化为内容尺寸（见 ISSUE-077）。
+        bool widthPercentAgainstIndefinite = style.Width.HasPercentComponent && !constraints.AvailableWidth.HasValue;
+        bool heightPercentAgainstIndefinite = style.Height.HasPercentComponent && !constraints.AvailableHeight.HasValue;
+        bool widthIsAuto = style.Width.IsAuto || widthPercentAgainstIndefinite;
+        bool heightIsAuto = style.Height.IsAuto || heightPercentAgainstIndefinite;
+
+        if (!widthIsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -104,7 +112,7 @@ public class InlineLayout
         else if (isReplaced)
         {
             // width auto：height 指定时按纵横比反推宽，否则用内禀宽。
-            if (style.Height.IsAuto)
+            if (heightIsAuto)
             {
                 contentWidth = intrinsicW;
             }
@@ -127,7 +135,7 @@ public class InlineLayout
             contentWidth = maxWidth;
         }
 
-        if (!style.Height.IsAuto)
+        if (!heightIsAuto)
         {
             contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -139,7 +147,7 @@ public class InlineLayout
         else if (isReplaced)
         {
             // height auto：width 指定时按纵横比反推高，否则用内禀高。
-            contentHeight = style.Width.IsAuto
+            contentHeight = widthIsAuto
                 ? intrinsicH
                 : contentWidth * intrinsicH / intrinsicW;
         }

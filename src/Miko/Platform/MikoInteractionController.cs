@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Miko.Common;
@@ -7,6 +7,8 @@ using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Hosting;
 using Miko.Layout;
+using Miko.Platform.Resources;
+using Miko.Platform.Video;
 using Miko.Routing;
 using SkiaSharp;
 
@@ -77,12 +79,11 @@ public sealed class MikoInteractionController
 
         // 视频后端为可选服务：注册了平台后端（如桌面 FFmpegVideoBackend）时注入引擎，
         // 否则 <video> 元素仅显示背景/poster。
-        _engine.VideoBackend = serviceProvider.GetService<Platform.Video.IVideoBackend>();
+        _engine.VideoBackend = serviceProvider.GetService<IVideoBackend>();
 
         // 图片加载器：优先用 DI 注册的实现（应用可经 UseImageLoading 自定义）；
         // 否则注入内置 ResourceManager，复用 DI 中的 HttpClient（若已注册）与入口程序集解析 res://。
-        _engine.ImageLoader = serviceProvider.GetService<Platform.Resources.IImageLoader>()
-            ?? new Platform.Resources.ResourceManager(serviceProvider.GetService<HttpClient>());
+        _engine.ImageLoader = serviceProvider.GetService<IImageLoader>();
 
         if (_options.RouteAssemblies != null || _options.RouteConfigurator != null)
         {

@@ -189,8 +189,13 @@ public sealed class SimulatorHost
         var (pixelW, pixelH) = CurrentPixelSize();
 
         _appSurface?.Dispose();
+
+        // 使用 SKSurfaceProperties 指定像素几何信息，改善文字和图形的渲染质量。
+        // 创建 GPU 支持的 Surface 时，指定 surface properties 以启用更好的子像素渲染。
+        var surfaceProps = new SKSurfaceProperties(SKPixelGeometry.RgbHorizontal);
         _appSurface = SKSurface.Create(_grContext, budgeted: true,
-            new SKImageInfo(pixelW, pixelH, SKColorType.Rgba8888, SKAlphaType.Premul));
+            new SKImageInfo(pixelW, pixelH, SKColorType.Rgba8888, SKAlphaType.Premul),
+            0, surfaceProps);
 
         // 应用以逻辑坐标布局；离屏画布按 scale 放大渲染以保持清晰。
         if (!_appInitialized)
@@ -397,7 +402,8 @@ public sealed class SimulatorHost
         {
             canvas.Save();
             canvas.ClipRoundRect(clip, antialias: true);
-            var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None);
+            // 使用 Cubic 采样提供更好的缩小质量（从高分辨率缩小到显示尺寸）
+            var sampling = new SKSamplingOptions(SKCubicResampler.Mitchell);
             canvas.DrawImage(image, _deviceScreenRect, sampling);
             canvas.Restore();
         }

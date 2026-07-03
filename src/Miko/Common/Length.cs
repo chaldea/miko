@@ -68,6 +68,12 @@ public struct Length
     public bool IsAuto => _isAuto;
 
     /// <summary>
+    /// 是否含百分比分量。用于布局阶段判断：当百分比针对"不确定尺寸"的包含块解析时，
+    /// 按 CSS 规范应退化为 auto（内容决定），而非解析为 0（见 ISSUE-077 循环依赖）。
+    /// </summary>
+    public bool HasPercentComponent => !_isAuto && _percent != 0;
+
+    /// <summary>
     /// 该长度是否仅由单一单位构成（auto，或恰好只有一个非零分量；全零视为 0px 的单一长度）。
     /// </summary>
     private bool IsSingleComponent
