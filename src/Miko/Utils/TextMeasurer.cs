@@ -155,4 +155,85 @@ public static class TextMeasurer
         _measureCache.Clear();
         _heightCache.Clear();
     }
+
+    /// <summary>
+    /// 测量文本在指定最大宽度下的多行尺寸（支持自动换行）
+    /// </summary>
+    /// <param name="text">要测量的文本</param>
+    /// <param name="fontFamily">字体家族</param>
+    /// <param name="fontSize">字体大小（像素）</param>
+    /// <param name="fontWeight">字体粗细</param>
+    /// <param name="maxWidth">最大宽度（像素），文本超过此宽度会换行</param>
+    /// <param name="lineHeight">行高（像素），如果为 null 则使用字体自然高度</param>
+    /// <param name="whiteSpace">空白字符处理模式，默认为 Normal</param>
+    /// <returns>包含实际宽度和总高度的元组</returns>
+    public static (float Width, float Height) MeasureTextWithWrap(
+        string? text,
+        string fontFamily,
+        float fontSize,
+        FontWeight fontWeight,
+        float maxWidth,
+        float? lineHeight = null,
+        WhiteSpace whiteSpace = WhiteSpace.Normal)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return (0, 0);
+        }
+
+        // 根据 WhiteSpace 检查是否允许换行
+        bool shouldWrap = whiteSpace == WhiteSpace.Normal
+                       || whiteSpace == WhiteSpace.PreWrap
+                       || whiteSpace == WhiteSpace.PreLine;
+
+        // 使用行高或字体度量
+        float effectiveLineHeight = lineHeight ?? MeasureTextHeight(fontFamily, fontSize, fontWeight);
+
+        if (!shouldWrap)
+        {
+            // 不允许换行，直接测量单行
+            var (singleWidth, _) = MeasureText(text, fontFamily, fontSize, fontWeight);
+            return (singleWidth, effectiveLineHeight);
+        }
+
+        // 简单的分词换行算法：按空格分割单词
+        var words = text.Split(new[] { ' ', '\t' }, StringSplitOptions.None);
+        var lines = new List<string>();
+        var currentLine = "";
+        float currentLineWidth = 0;
+        float maxActualWidth = 0;
+
+        foreach (var word in words)
+        {
+            var testLine = string.IsNullOrEmpty(currentLine) ? word : currentLine + " " + word;
+            var testWidth = MeasureTextWidth(testLine, fontFamily, fontSize, fontWeight);
+
+            if (testWidth <= maxWidth || string.IsNullOrEmpty(currentLine))
+            {
+                // 当前行可以容纳这个单词
+                currentLine = testLine;
+                currentLineWidth = testWidth;
+            }
+            else
+            {
+                // 需要换行
+                lines.Add(currentLine);
+                maxActualWidth = Math.Max(maxActualWidth, currentLineWidth);
+                currentLine = word;
+                currentLineWidth = MeasureTextWidth(word, fontFamily, fontSize, fontWeight);
+            }
+        }
+
+        // 添加最后一行
+        if (!string.IsNullOrEmpty(currentLine))
+        {
+            lines.Add(currentLine);
+            maxActualWidth = Math.Max(maxActualWidth, currentLineWidth);
+        }
+
+        int lineCount = Math.Max(1, lines.Count);
+        float totalHeight = lineCount * effectiveLineHeight;
+
+        return (maxActualWidth, totalHeight);
+    }
 }
