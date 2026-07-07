@@ -29,6 +29,13 @@ public class LayoutBox
     public float ScrollableContentWidth { get; set; }
     public float ScrollableContentHeight { get; set; }
 
+    // 直接文本内容作为匿名 flex 项时的对齐偏移（相对内容盒左上角）。
+    // flex 容器的直接文本没有独立 LayoutBox，无法参与 justify-content/align-items 的
+    // 子盒偏移。FlexLayout 在此记录其对齐位移，RenderEngine 绘制直接文本时叠加应用
+    // （见 ISSUE-085）。非 flex 容器保持 0，绘制行为不变。
+    public float TextContentOffsetX { get; set; }
+    public float TextContentOffsetY { get; set; }
+
     // 是否需要显示滚动条
     // ScrollableContent* 表示包含内边距的滚动区域，因此与 padding box 的视口尺寸比较。
     public bool HasVerticalScrollbar => ComputedStyle.OverflowY == Overflow.Scroll ||

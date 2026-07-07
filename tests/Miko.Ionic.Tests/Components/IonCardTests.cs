@@ -147,4 +147,72 @@ public class IonCardTests : IonicComponentTestBase
         style.PaddingTop.ShouldBe(Length.Px(13));
         style.PaddingLeft.ShouldBe(Length.Px(16));
     }
+
+    [Fact]
+    public void IonCardTitle_RendersWithCorrectClasses()
+    {
+        var cut = Context.Render<IonCardTitle>(p => p.AddChildContent(Text("Card Title")));
+
+        cut.Root.TagName.ShouldBe("div");
+        cut.Root.Class.ShouldBe("md ion-card-title ion-inherit-color");
+        cut.GetTextContent().ShouldBe("Card Title");
+    }
+
+    [Fact]
+    public void IonCardTitle_AppliesColorClass()
+    {
+        var cut = Context.Render<IonCardTitle>(p =>
+        {
+            p.Add(nameof(IonCardTitle.Color), "primary");
+            p.AddChildContent(Text("Colored Title"));
+        });
+
+        cut.Root.Class.ShouldContain("ion-color");
+        cut.Root.Class.ShouldContain("ion-color-primary");
+    }
+
+    [Fact]
+    public void IonCardSubtitle_RendersWithCorrectClasses()
+    {
+        var cut = Context.Render<IonCardSubtitle>(p => p.AddChildContent(Text("Card Subtitle")));
+
+        cut.Root.TagName.ShouldBe("div");
+        cut.Root.Class.ShouldBe("md ion-card-subtitle ion-inherit-color");
+        cut.GetTextContent().ShouldBe("Card Subtitle");
+    }
+
+    [Fact]
+    public void IonCardSubtitle_AppliesColorClass()
+    {
+        var cut = Context.Render<IonCardSubtitle>(p =>
+        {
+            p.Add(nameof(IonCardSubtitle.Color), "danger");
+            p.AddChildContent(Text("Colored Subtitle"));
+        });
+
+        cut.Root.Class.ShouldContain("ion-color");
+        cut.Root.Class.ShouldContain("ion-color-danger");
+    }
+
+    [Fact]
+    public void IonCardTitle_IosMode_StampsIosClass()
+    {
+        UsePlatform(Miko.Platform.HostPlatform.Ios);
+
+        var cut = Context.Render<IonCardTitle>(p => p.AddChildContent(Text("iOS Title")));
+
+        cut.Root.Class.ShouldContain("ios");
+        cut.Root.Class.ShouldContain("ion-card-title");
+    }
+
+    [Fact]
+    public void IonCardSubtitle_IosMode_StampsIosClass()
+    {
+        UsePlatform(Miko.Platform.HostPlatform.Ios);
+
+        var cut = Context.Render<IonCardSubtitle>(p => p.AddChildContent(Text("iOS Subtitle")));
+
+        cut.Root.Class.ShouldContain("ios");
+        cut.Root.Class.ShouldContain("ion-card-subtitle");
+    }
 }

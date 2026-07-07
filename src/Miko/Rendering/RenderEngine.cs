@@ -584,6 +584,17 @@ public class RenderEngine
                 textRect = new RectF(content.X, content.Y, content.Width, lineBoxHeight);
             }
 
+            // flex 容器的直接文本作为匿名 flex 项参与 justify-content/align-items（见 ISSUE-085）。
+            // FlexLayout 记录的对齐位移在此叠加到文本绘制矩形上（非 flex 容器偏移为 0）。
+            if (box.TextContentOffsetX != 0f || box.TextContentOffsetY != 0f)
+            {
+                textRect = new RectF(
+                    textRect.X + box.TextContentOffsetX,
+                    textRect.Y + box.TextContentOffsetY,
+                    textRect.Width,
+                    textRect.Height);
+            }
+
             // 根据 WhiteSpace 属性决定是否使用多行文本绘制
             bool shouldWrap = Utils.TextWrapper.ShouldWrap(style.WhiteSpace);
             bool needsMultiline = false;

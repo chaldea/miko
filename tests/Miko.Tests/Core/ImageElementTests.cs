@@ -85,6 +85,48 @@ public class ImageElementTests
         box.BoxModel.Content.Height.ShouldBe(400);
     }
 
+    // ---- max-width 等比缩放（ISSUE-083）-----------------------------------
+
+    [Fact]
+    public void Layout_ImageMaxWidthClamps_ScalesHeightProportionally()
+    {
+        // 默认 <img> 为 display:inline，走 InlineLayout。宽高均 auto，
+        // max-width 将内禀宽 1024 夹取到 400，高度须按纵横比等比缩放，而非保持内禀高。
+        var img = new ImageElement();
+        SetIntrinsic(img, 1024, 512);   // 2:1
+
+        var box = LayoutImage(img, new Style { MaxWidth = Length.Px(400) });
+
+        box.BoxModel.Content.Width.ShouldBe(400);
+        box.BoxModel.Content.Height.ShouldBe(200);   // 400 * 512/1024
+    }
+
+    [Fact]
+    public void Layout_BlockImageMaxWidthClamps_ScalesHeightProportionally()
+    {
+        // display:block 路径（BlockLayout）同样须在 max-width 夹取后等比缩放高度。
+        var img = new ImageElement();
+        SetIntrinsic(img, 1024, 512);
+
+        var box = LayoutImage(img, new Style { Display = Display.Block, MaxWidth = Length.Px(400) });
+
+        box.BoxModel.Content.Width.ShouldBe(400);
+        box.BoxModel.Content.Height.ShouldBe(200);
+    }
+
+    [Fact]
+    public void Layout_ImageMaxWidthAboveIntrinsic_KeepsIntrinsicSize()
+    {
+        // max-width 大于内禀宽时不夹取，维持内禀尺寸。
+        var img = new ImageElement();
+        SetIntrinsic(img, 1024, 512);
+
+        var box = LayoutImage(img, new Style { MaxWidth = Length.Px(2000) });
+
+        box.BoxModel.Content.Width.ShouldBe(1024);
+        box.BoxModel.Content.Height.ShouldBe(512);
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private LayoutBox LayoutImage(ImageElement img, Style? style = null)

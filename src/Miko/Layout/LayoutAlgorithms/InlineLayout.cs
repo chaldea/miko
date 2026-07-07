@@ -216,10 +216,10 @@ public class InlineLayout
         }
         else if (isReplaced)
         {
-            // height auto：width 指定时按纵横比反推高，否则用内禀高。
-            contentHeight = widthIsAuto
-                ? intrinsicH
-                : contentWidth * intrinsicH / intrinsicW;
+            // height auto：按内禀纵横比从最终内容宽度反推高。contentWidth 已应用
+            // min/max-width 夹取，因此 max-width 约束会等比缩放高度而非保持内禀高
+            // （auto 宽未被夹取时 contentWidth==intrinsicW，结果即内禀高）。见 ISSUE-083。
+            contentHeight = contentWidth * intrinsicH / intrinsicW;
         }
         else if (BlockLayout.GetTextFormControlContentHeight(box) is float formControlHeight)
         {
