@@ -881,7 +881,7 @@ public class FlexLayout
         if (totalFlexGrow == 0 && lineMainSize > 0)
         {
             float totalMainUsed = currentMain - lineStart - gap; // 去掉末尾多余 gap
-            mainAlignmentOffset = ApplyLineJustifyContent(childInfos, lineStart, lineMainSize, totalMainUsed, isRow, justifyContent, totalItems);
+            mainAlignmentOffset = ApplyLineJustifyContent(childInfos, lineStart, lineMainSize, totalMainUsed, isRow, justifyContent, totalItems, hasOwnText);
         }
 
         // 交叉轴对齐 (align-items)。返回交叉轴对齐偏移，用于文本的 TextContentOffset。
@@ -930,7 +930,7 @@ public class FlexLayout
     }
 
     /// <summary>对一行/列的子元素应用 justify-content（主轴对齐）。返回主轴对齐偏移。</summary>
-    private float ApplyLineJustifyContent(List<FlexChildInfo> line, float start, float containerSize, float contentSize, bool isRow, JustifyContent justifyContent, int totalItems)
+    private float ApplyLineJustifyContent(List<FlexChildInfo> line, float start, float containerSize, float contentSize, bool isRow, JustifyContent justifyContent, int totalItems, bool hasOwnText)
     {
         if (line.Count == 0) return 0;
 
@@ -948,11 +948,11 @@ public class FlexLayout
                 spacing = (containerSize - contentSize) / (totalItems + 1); offset = spacing; break;
         }
 
-        // 文本作为第一项，其偏移即为 offset（间距由文本后的 gap 处理）。
-        // 子元素从第二项开始，索引+1。
+        // 如果有文本（第0项），子元素从第1项开始；否则从第0项开始。
+        int startIndex = hasOwnText ? 1 : 0;
         for (int i = 0; i < line.Count; i++)
         {
-            float itemOffset = offset + spacing * (i + 1);
+            float itemOffset = offset + spacing * (startIndex + i);
             if (Math.Abs(itemOffset) < 0.01f) continue;
             if (isRow) OffsetSubtree(line[i].Child, itemOffset, 0);
             else OffsetSubtree(line[i].Child, 0, itemOffset);

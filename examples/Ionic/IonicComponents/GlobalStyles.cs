@@ -46,7 +46,8 @@ internal class GlobalStyles
             {
                 Border = new Border(1, BorderStyle.Solid, "#dee3ea"),
                 BorderRadius = new BorderRadius(Rem(0.4f)),
-                Height = Px(200)
+                Display = Display.Block,
+                Height = Px(200),
             },
             [".container-row"] = new ()
             {
@@ -54,7 +55,7 @@ internal class GlobalStyles
                 FlexDirection = FlexDirection.Row,
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.Center,
-                Height = Percent(100),
+                MinHeight = Percent(100),
             },
             [".container-column"] = new()
             {
@@ -62,7 +63,20 @@ internal class GlobalStyles
                 FlexDirection = FlexDirection.Column,
                 AlignItems = AlignItems.Stretch,
                 JustifyContent = JustifyContent.Center,
-                Height = Percent(100),
+                MinHeight = Percent(100),
+            },
+            [".wd-400"] = new ()
+            {
+                MaxWidth = Px(400),
+                Margin = new Margin(Px(0), Auto),
+            },
+            [".hi-auto"] = new ()
+            {
+                Height = Auto,
+            },
+            ["img"] = new CssObject()
+            {
+                MaxWidth = Percent(100),
             }
         });
 

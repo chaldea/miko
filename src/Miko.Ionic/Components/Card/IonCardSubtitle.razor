@@ -1,0 +1,22 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+<div role="heading" aria-level="3" class="@ClassMapper.Class" style="@Style">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
+    [Parameter] public string? Color { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-card-subtitle")
+            .Add("ion-inherit-color")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+    }
+}

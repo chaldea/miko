@@ -3,6 +3,7 @@ using Miko.Components;
 using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Ionic.Components;
+using Miko.Styling;
 using Shouldly;
 
 namespace Miko.Ionic.Tests.Components;
@@ -214,5 +215,109 @@ public class IonCardTests : IonicComponentTestBase
 
         cut.Root.Class.ShouldContain("ios");
         cut.Root.Class.ShouldContain("ion-card-subtitle");
+    }
+
+    [Fact]
+    public void IonCard_InFlexContainer_HasCorrectDisplay()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonCard>(p => p.AddChildContent(Text("Content")));
+        var style = cut.GetComputedStyle(cut.Root)!;
+
+        // Card 应该是 block 元素
+        style.Display.ShouldBe(Display.Block);
+
+        // Width 为 100% 以防止在Flex容器中收缩到0
+        style.Width.ShouldBe(Length.Percent(100));
+    }
+
+    [Fact]
+    public void IonCard_InFlexContainer_RendersWithNonZeroWidth()
+    {
+        // 模拟DebugDemo的实际场景：根容器600px → Flex容器max-width:400px → IonCard
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var containerStyle = new StyleSheet();
+        containerStyle.Add(new CssObject
+        {
+            [".root"] = new()
+            {
+                Display = Display.Block,
+                Width = Length.Px(600),
+                Height = Length.Px(600),
+            },
+            [".flex-container"] = new()
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                JustifyContent = JustifyContent.Center,
+                Height = Length.Px(200),
+                MaxWidth = Length.Px(400),
+                Margin = new Margin(0, Length.Auto),
+            }
+        });
+        Context.AddStyleSheet(containerStyle);
+
+        // 创建嵌套结构：root > flex-container > IonCard（带内容）
+        var root = new DivElement { Class = "root" };
+        var flexContainer = new DivElement { Class = "flex-container" };
+
+        // 创建一个简单的card div来测试
+        var cardDiv = new DivElement
+        {
+            Class = "md ion-card",
+            Children =
+            {
+                new DivElement
+                {
+                    Class = "md ion-card-header",
+                    Children =
+                    {
+                        new DivElement
+                        {
+                            Class = "md ion-card-title ion-inherit-color",
+                            TextContent = "Title"
+                        },
+                        new DivElement
+                        {
+                            Class = "md ion-card-subtitle ion-inherit-color",
+                            TextContent = "Subtitle"
+                        }
+                    }
+                },
+                new DivElement
+                {
+                    Class = "md ion-card-content",
+                    TextContent = "Content text here"
+                }
+            }
+        };
+
+        flexContainer.AddChild(cardDiv);
+        root.AddChild(flexContainer);
+
+        // 渲染整个结构
+        var cut = Context.RenderElement(root);
+
+        var container = cut.Root.Children[0];
+        var card = container.Children[0];
+
+        // 查找Flex容器和Card的LayoutBox
+        var containerBox = cut.FindLayoutBox(container);
+        var cardBox = cut.FindLayoutBox(card);
+
+        containerBox.ShouldNotBeNull("Container LayoutBox should exist");
+        cardBox.ShouldNotBeNull("Card LayoutBox should exist");
+
+        // 验证Flex容器被max-width约束到400px
+        containerBox.BoxModel.Content.Width.ShouldBeLessThanOrEqualTo(400f,
+            $"Flex container should be constrained by max-width: 400px, but got {containerBox.BoxModel.Content.Width}px");
+
+        // 验证IonCard的宽度不为0且不超过容器宽度
+        cardBox.BoxModel.Content.Width.ShouldBeGreaterThan(0f,
+            $"IonCard width should not be 0 in flex container, but got {cardBox.BoxModel.Content.Width}px");
+        cardBox.BoxModel.Content.Width.ShouldBeLessThanOrEqualTo(containerBox.BoxModel.Content.Width,
+            $"IonCard width should not exceed container width, but card is {cardBox.BoxModel.Content.Width}px and container is {containerBox.BoxModel.Content.Width}px");
     }
 }

@@ -14,6 +14,7 @@ internal static class CardStyles
             {
                 Display = Display.Block,
                 Position = Position.Relative,
+                Width = Length.Percent(100),
                 MarginTop = Length.Px(t.CardMarginTop),
                 MarginRight = Length.Px(t.CardMarginEnd),
                 MarginBottom = Length.Px(t.CardMarginBottom),

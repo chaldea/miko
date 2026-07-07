@@ -12,8 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <TrimmerRootAssembly Include="Silk.NET.Windowing.Glfw" />
-    <TrimmerRootAssembly Include="Silk.NET.Input.Glfw" />
+    <EmbeddedResource Include="Resources\**\*" />
   </ItemGroup>
 
   <ItemGroup>

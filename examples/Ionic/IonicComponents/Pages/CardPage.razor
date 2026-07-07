@@ -6,17 +6,59 @@
     Cards are containers that display content such as text, images, buttons, and lists. A card can be a single component, but is often made up of a header, title, subtitle, and content. Cards are broken up into several components to accommodate this structure: card header, card title, card subtitle, and card content.
 </p>
 
-<h2>
-    Basic Usage
-</h2>
+<h2>Basic Usage</h2>
 
 <div class="playground">
     <div class="playground-container">
-        <div class="container-row">
+        <div class="container-row wd-400">
+            <IonCard>
+                <IonCardHeader>
+                    <IonCardTitle>Card Title</IonCardTitle>
+                    <IonCardSubtitle>Card Subtitle</IonCardSubtitle>
+                </IonCardHeader>
+
+                <IonCardContent>Here's a small text description for the card content. Nothing more, nothing less.</IonCardContent>
+            </IonCard>
+        </div>
+    </div>
+</div>
+
+<h2>Media Cards</h2>
+
+<div class="playground">
+    <div class="playground-container hi-auto">
+        <div class="container-row wd-400">
+            <IonCard>
+                <img src="res://IonicComponents.Resources.card-media.png" />
+                <IonCardHeader>
+                    <IonCardTitle>Card Title</IonCardTitle>
+                    <IonCardSubtitle>Card Subtitle</IonCardSubtitle>
+                </IonCardHeader>
+                <IonCardContent>Here's a small text description for the card content. Nothing more, nothing less.</IonCardContent>
+            </IonCard>
+        </div>
+    </div>
+</div>
+
+<h2>Card Buttons</h2>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row wd-400">
+            <IonCard>
+                <IonCardHeader>
+                    <IonCardTitle>Card Title</IonCardTitle>
+                    <IonCardSubtitle>Card Subtitle</IonCardSubtitle>
+                </IonCardHeader>
+
+                <IonCardContent>Here's a small text description for the card content. Nothing more, nothing less.</IonCardContent>
+
+                <IonButton Fill="clear">Action 1</IonButton>
+                <IonButton Fill="clear">Action 2</IonButton>
+            </IonCard>
         </div>
     </div>
 </div>
 
 @code {
-
 }

@@ -23,6 +23,7 @@ public static class RazorApp
         {
             logging.AddConsole().SetMinimumLevel(LogLevel.Trace);
         });
+        builder.AddResourceAssembly(typeof(RazorApp).Assembly);
         return builder.Build();
     }
 }
