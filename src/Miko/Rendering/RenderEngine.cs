@@ -592,9 +592,15 @@ public class RenderEngine
             {
                 float actualTextWidth = Utils.TextMeasurer.MeasureTextWidth(
                     element.TextContent, style.FontFamily, style.FontSize.Value, style.FontWeight);
+
+                // 像素对齐：将偏移后的坐标四舍五入到整数像素，避免亚像素渲染导致文本模糊/锯齿。
+                // 文本渲染对亚像素位置非常敏感，即使0.5px的偏移也会显著影响抗锯齿效果。
+                float newX = MathF.Round(textRect.X + box.TextContentOffsetX);
+                float newY = MathF.Round(textRect.Y + box.TextContentOffsetY);
+
                 textRect = new RectF(
-                    textRect.X + box.TextContentOffsetX,
-                    textRect.Y + box.TextContentOffsetY,
+                    newX,
+                    newY,
                     actualTextWidth,  // 收缩到文本实际宽度，TextAlign 在此宽度内对齐（通常无额外偏移）
                     textRect.Height);
             }
