@@ -458,28 +458,31 @@ public class RenderEngine
             ? bgImage.RenderAtSize((int)drawWidth, (int)drawHeight) ?? bitmap
             : bitmap;
 
+        // Template icons (Ionicons SVG masks) are tinted with the element's color — CSS fill: currentColor.
+        Color? tint = bgImage.IsTemplate ? style.Color : (Color?)null;
+
         _painter!.SaveClip(area);
 
         switch (style.BackgroundRepeat)
         {
             case BackgroundRepeat.Repeat:
-                TileImage(renderBitmap, area, startX, startY, drawWidth, drawHeight, true, true);
+                TileImage(renderBitmap, area, startX, startY, drawWidth, drawHeight, true, true, tint);
                 break;
             case BackgroundRepeat.RepeatX:
-                TileImage(renderBitmap, area, startX, startY, drawWidth, drawHeight, true, false);
+                TileImage(renderBitmap, area, startX, startY, drawWidth, drawHeight, true, false, tint);
                 break;
             case BackgroundRepeat.RepeatY:
-                TileImage(renderBitmap, area, startX, startY, drawWidth, drawHeight, false, true);
+                TileImage(renderBitmap, area, startX, startY, drawWidth, drawHeight, false, true, tint);
                 break;
             case BackgroundRepeat.NoRepeat:
-                _painter.DrawImage(renderBitmap, new RectF(startX, startY, drawWidth, drawHeight));
+                _painter.DrawImage(renderBitmap, new RectF(startX, startY, drawWidth, drawHeight), tint);
                 break;
         }
 
         _painter.Restore();
     }
 
-    private void TileImage(SKBitmap bitmap, RectF area, float startX, float startY, float tileW, float tileH, bool repeatX, bool repeatY)
+    private void TileImage(SKBitmap bitmap, RectF area, float startX, float startY, float tileW, float tileH, bool repeatX, bool repeatY, Color? tint = null)
     {
         float originX = startX;
         if (repeatX)
@@ -499,7 +502,7 @@ public class RenderEngine
         {
             for (float x = originX; x < endX; x += tileW)
             {
-                _painter!.DrawImage(bitmap, new RectF(x, y, tileW, tileH));
+                _painter!.DrawImage(bitmap, new RectF(x, y, tileW, tileH), tint);
             }
         }
     }

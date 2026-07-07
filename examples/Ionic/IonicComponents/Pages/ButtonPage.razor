@@ -1,0 +1,98 @@
+@page "/button"
+
+<h1>IonButton</h1>
+
+<p>
+    Buttons provide a clickable element, which can be used in forms, or anywhere that needs simple, standard button functionality. They may display text, icons, or both. Buttons can be styled with several attributes to look a specific way.
+</p>
+
+<h2>Basic Usage</h2>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonButton>Default</IonButton>
+            <IonButton Disabled="true">Disabled</IonButton>
+        </div>
+    </div>
+</div>
+
+<h2>Expand</h2>
+
+<p>
+    This property lets you specify how wide the button should be. By default, buttons have display: inline-block, but setting this property will change the button to a full-width element with display: block.
+</p>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-column">
+            <IonButton Expand="block">Block</IonButton>
+            <IonButton Expand="full">Full</IonButton>
+        </div>
+    </div>
+</div>
+
+<h2>Shape</h2>
+
+<p>
+    This property lets you specify the shape of the button. By default, buttons are rectangular with a small border radius, but setting this to "round" will change the button to a rounded element.
+</p>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonButton>Default</IonButton>
+            <IonButton Shape="round">Round</IonButton>
+            <IonButton>
+                <IconOnly><IonIcon Icon="@Ionicons.Heart"></IonIcon></IconOnly>
+            </IonButton>
+            <IonButton Shape="round">
+                <IconOnly><IonIcon Icon="@Ionicons.Heart"></IonIcon></IconOnly>
+            </IonButton>
+        </div>
+    </div>
+</div>
+
+<h2>Fill</h2>
+
+<p>
+    This property determines the background and border color of the button. By default, buttons have a solid background unless the button is inside of a toolbar, in which case it has a transparent background.
+</p>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonButton>Default</IonButton>
+            <IonButton Fill="clear">Clear</IonButton>
+            <IonButton Fill="outline">Outline</IonButton>
+            <IonButton Fill="solid">Solid</IonButton>
+        </div>
+    </div>
+</div>
+
+<h2>Size</h2>
+<p>
+    This property specifies the size of the button. Setting this property will change the height and padding of a button.
+</p>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonButton Size="small">Small</IonButton>
+            <IonButton Size="default">Default</IonButton>
+            <IonButton Size="large">Large</IonButton>
+        </div>
+    </div>
+</div>
+
+<h2>Icons</h2>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonButton Size="small">
+                <IonIcon Slot="icon-only" Icon="@Ionicons.SettingsSharp" />
+            </IonButton>
+        </div>
+    </div>
+</div>

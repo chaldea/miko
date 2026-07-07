@@ -1,13 +1,20 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-@* Mirrors Ionic's <ion-button> host structure:
-   <ion-button>                       <!-- host: the fill/size/shape/expand/color classes -->
-     <button class="button-native">   <!-- the painted clickable surface -->
-       <span class="button-inner">    <!-- centers the slotted content row -->
-         (icon-only / start / label / end slots, flattened here into ChildContent)
+@* Mirrors Ionic's <ion-button> host structure and its four slot insertion points:
+   <ion-button>                          <!-- host: the fill/size/shape/expand/color classes -->
+     <button class="button-native">      <!-- the painted clickable surface -->
+       <span class="button-inner">       <!-- centers the slotted content row -->
+         <slot name="icon-only" />        <!-- icon for a text-less button -->
+         <slot name="start" />            <!-- leading content (LTR left) -->
+         <slot />                         <!-- default label content -->
+         <slot name="end" />              <!-- trailing content (LTR right) -->
        </span>
      </button>
    </ion-button>
+   The named slots map to RenderFragment parameters (IconOnly / Start / End), each wrapped in a
+   marker span (ion-slot-*) so the slot styles apply and the icon-only detection can find them —
+   mirroring Ionic's ::slotted([slot=…]) selectors and querySelector('[slot="icon-only"]').
+   The default slot maps to ChildContent, rendered between start and end (Ionic's authoring order).
    Ionic renders an <a> instead of a <button> when an `href` is set; this port keeps the
    <button> surface and exposes Href as a marker (navigation is out of scope for the renderer).
    The `fill` default is solid, except inside a toolbar / list-header where Ionic defaults to
@@ -15,7 +22,19 @@
 <div class="@ClassMapper.Class" style="@Style">
     <button class="button-native" @onclick="HandleClick">
         <span class="button-inner">
+            @if (IconOnly is not null)
+            {
+                <span class="ion-slot-icon-only">@IconOnly</span>
+            }
+            @if (Start is not null)
+            {
+                <span class="ion-slot-start">@Start</span>
+            }
             @ChildContent
+            @if (End is not null)
+            {
+                <span class="ion-slot-end">@End</span>
+            }
         </span>
     </button>
 </div>
@@ -51,6 +70,19 @@
 
     /// <summary>Raised when the button is tapped (skipped when disabled).</summary>
     [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Content for Ionic's <c>icon-only</c> slot — an icon in a button that has no text.
+    /// When set (and no text/start/end content), the host gets the <c>button-has-icon-only</c>
+    /// class so it renders as a square icon button.</summary>
+    [Parameter] public RenderFragment? IconOnly { get; set; }
+
+    /// <summary>Content for Ionic's <c>start</c> slot — placed before the label (left in LTR,
+    /// right in RTL). Typically a leading icon.</summary>
+    [Parameter] public RenderFragment? Start { get; set; }
+
+    /// <summary>Content for Ionic's <c>end</c> slot — placed after the label (right in LTR,
+    /// left in RTL). Typically a trailing icon.</summary>
+    [Parameter] public RenderFragment? End { get; set; }
 
     protected override void OnParametersSet()
     {

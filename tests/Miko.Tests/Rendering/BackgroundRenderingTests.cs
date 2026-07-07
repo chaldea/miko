@@ -189,6 +189,52 @@ public class BackgroundRenderingTests : IDisposable
     }
 
     [Fact]
+    public void BackgroundImage_Template_ShouldTintWithColor()
+    {
+        // A black glyph marked as a template should be recolored with the element's `color`.
+        var bg = BackgroundImage.FromBitmap(CreateTestBitmap(20, 20, SKColors.Black));
+        bg.Repeat = BackgroundRepeat.NoRepeat;
+        bg.IsTemplate = true;
+
+        var root = CreateRootWithBackground(bg, 100, 100);
+        root.Style!.Color = Color.FromRgb(255, 0, 0);
+        RenderElement(root);
+
+        GetPixelColor(10, 10).ShouldBe(SKColors.Red);
+    }
+
+    [Fact]
+    public void BackgroundImage_NonTemplate_ShouldKeepOwnColor()
+    {
+        // A non-template image keeps its own pixels even when `color` is set.
+        var bg = BackgroundImage.FromBitmap(CreateTestBitmap(20, 20, SKColors.Blue));
+        bg.Repeat = BackgroundRepeat.NoRepeat;
+
+        var root = CreateRootWithBackground(bg, 100, 100);
+        root.Style!.Color = Color.FromRgb(255, 0, 0);
+        RenderElement(root);
+
+        GetPixelColor(10, 10).ShouldBe(SKColors.Blue);
+    }
+
+    [Fact]
+    public void BackgroundImage_TemplateSvg_ShouldTintWithColor()
+    {
+        // An Ionicons-style black SVG glyph rendered as a template tints to the element color.
+        var svgContent = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='black'/></svg>";
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(svgContent));
+        var bg = BackgroundImage.FromSvgStream(stream);
+        bg.Repeat = BackgroundRepeat.NoRepeat;
+        bg.IsTemplate = true;
+
+        var root = CreateRootWithBackground(bg, 100, 100);
+        root.Style!.Color = Color.FromRgb(0, 128, 0);
+        RenderElement(root);
+
+        GetPixelColor(8, 8).ShouldBe(new SKColor(0, 128, 0));
+    }
+
+    [Fact]
     public void BackgroundImage_SvgStream_ShouldRender()
     {
         var svgContent = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='blue'/></svg>";

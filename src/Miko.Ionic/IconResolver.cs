@@ -29,7 +29,10 @@ public static class IconResolver
             var resourceName = ResourcePrefix + name + ".svg";
             try
             {
-                return BackgroundImage.FromResource(typeof(IconResolver).Assembly, resourceName);
+                var image = BackgroundImage.FromResource(typeof(IconResolver).Assembly, resourceName);
+                // Ionicons glyphs are monochrome masks tinted via `color` (CSS fill: currentColor).
+                image.IsTemplate = true;
+                return image;
             }
             catch (InvalidOperationException)
             {

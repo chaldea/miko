@@ -178,6 +178,17 @@ public class IonicTheme
     public float ButtonSmallBorderRadius { get; set; } = 4f;
     /// <summary>Icon-only square side (the clamp midpoint of Ionic's min-width/min-height).</summary>
     public float ButtonIconOnlyMinSize { get; set; } = 40f;
+    /// <summary>Icon box size for the <c>icon-only</c> slot at default size
+    /// (Ionic's <c>::slotted(ion-icon[slot="icon-only"])</c> font-size).</summary>
+    public float ButtonIconOnlyIconSize { get; set; } = 22.4f;
+    /// <summary>Icon-only square side for the small size variant.</summary>
+    public float ButtonSmallIconOnlyMinSize { get; set; } = 28f;
+    /// <summary>Icon box size for a small icon-only button.</summary>
+    public float ButtonSmallIconOnlyIconSize { get; set; } = 16f;
+    /// <summary>Icon-only square side for the large size variant.</summary>
+    public float ButtonLargeIconOnlyMinSize { get; set; } = 50f;
+    /// <summary>Icon box size for a large icon-only button.</summary>
+    public float ButtonLargeIconOnlyIconSize { get; set; } = 28f;
 
     // Searchbar (searchbar.scss / searchbar.md.scss / searchbar.ios.scss + their *.vars.scss).
     // The host is a full-width flex row wrapping an input container; the input is a rounded pill
@@ -454,6 +465,11 @@ public class IonicTheme
         t.ButtonSmallFontSize = 13f;
         t.ButtonSmallBorderRadius = 4f;                          // md small keeps the default radius
         t.ButtonIconOnlyMinSize = 40f;                           // clamp(30, 2.86em@14, 60) midpoint
+        t.ButtonIconOnlyIconSize = 22.4f;                        // md default icon-only font size
+        t.ButtonSmallIconOnlyMinSize = 28f;                      // clamp(23, 2.16em@13, 54) ≈ 28
+        t.ButtonSmallIconOnlyIconSize = 16f;                     // md small icon-only font size
+        t.ButtonLargeIconOnlyMinSize = 50f;                      // clamp(46, 2.5em@20, 78) ≈ 50
+        t.ButtonLargeIconOnlyIconSize = 28f;                     // md large icon-only font size
 
         // Searchbar (searchbar.md.scss / searchbar.md.vars.scss): 8px host padding; flat 2px-radius
         // white input with a 3-layer elevation shadow and a 21px left search icon; 16px input text
@@ -688,6 +704,11 @@ public class IonicTheme
         t.ButtonSmallFontSize = 13f;
         t.ButtonSmallBorderRadius = 6f;
         t.ButtonIconOnlyMinSize = 40f;                           // clamp(30, 2.125em@16, 60) ≈ 34→40
+        t.ButtonIconOnlyIconSize = 18f;                          // ios default icon-only font size
+        t.ButtonSmallIconOnlyMinSize = 28f;                      // clamp(23, 2.16em@13, 54) ≈ 28
+        t.ButtonSmallIconOnlyIconSize = 17f;                     // ios small icon-only font size
+        t.ButtonLargeIconOnlyMinSize = 50f;                      // clamp(46, 2.5em@20, 78) ≈ 50
+        t.ButtonLargeIconOnlyIconSize = 18f;                     // ios large icon-only font size
 
         // Searchbar (searchbar.ios.scss / searchbar.ios.vars.scss): 12px host padding; 10px-radius
         // translucent input (rgba(text,.07)) with no shadow; 36px input min-height; 17px input text
