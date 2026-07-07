@@ -560,112 +560,11 @@ public class RenderEngine
             return;
         }
 
-        // 渲染文本内容
-        if (!string.IsNullOrEmpty(element.TextContent))
+        // 渲染文本节点（TextNode）。文本自 ISSUE-086 起以有序文本节点子盒形式存在，
+        // 由各自的 TextNode 盒在布局中定位，此处按其内容盒绘制。
+        if (element is Miko.Core.DomElements.TextNode)
         {
-            var style = box.ComputedStyle;
-            var content = box.BoxModel.Content;
-
-            // 文本绘制矩形与垂直对齐：
-            // - button 默认像 flex 容器一样把文本居中于整个内容盒；
-            // - 其余元素遵循 CSS 行盒（line box）模型：文本位于高度为 line-height 的行盒内，
-            //   行距（leading）平均分配到上下两侧（half-leading），使文本在行盒内垂直居中。
-            //   行盒锚定在内容盒顶部，高度取 line-height（未显式设置时回退到字体度量），
-            //   因此当元素只有文本时（内容高 = line-height）文本居中于内容盒（参见 ISSUE-070），
-            //   而自然行高下行盒高 ≈ 字体高，居中与顶对齐等价（无回归）。
-            RectF textRect;
-            if (element is Miko.Core.DomElements.ButtonElement)
-            {
-                textRect = content;
-            }
-            else
-            {
-                float lineBoxHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);
-                textRect = new RectF(content.X, content.Y, content.Width, lineBoxHeight);
-            }
-
-            // flex 容器的直接文本作为匿名 flex 项参与 justify-content/align-items（见 ISSUE-085）。
-            // FlexLayout 记录的对齐位移在此叠加到文本绘制矩形上（非 flex 容器偏移为 0）。
-            // 重要：当文本已经通过 flex 对齐偏移后，textRect 的宽度应收缩为文本实际宽度，
-            // 避免 TextAlign 在容器全宽内再次居中造成叠加偏移（见 ISSUE-085 问题2）。
-            if (box.TextContentOffsetX != 0f || box.TextContentOffsetY != 0f)
-            {
-                float actualTextWidth = Utils.TextMeasurer.MeasureTextWidth(
-                    element.TextContent, style.FontFamily, style.FontSize.Value, style.FontWeight);
-
-                // 像素对齐：将偏移后的坐标四舍五入到整数像素，避免亚像素渲染导致文本模糊/锯齿。
-                // 文本渲染对亚像素位置非常敏感，即使0.5px的偏移也会显著影响抗锯齿效果。
-                float newX = MathF.Round(textRect.X + box.TextContentOffsetX);
-                float newY = MathF.Round(textRect.Y + box.TextContentOffsetY);
-
-                textRect = new RectF(
-                    newX,
-                    newY,
-                    actualTextWidth,  // 收缩到文本实际宽度，TextAlign 在此宽度内对齐（通常无额外偏移）
-                    textRect.Height);
-            }
-
-            // 根据 WhiteSpace 属性决定是否使用多行文本绘制
-            bool shouldWrap = Utils.TextWrapper.ShouldWrap(style.WhiteSpace);
-            bool needsMultiline = false;
-
-            if (shouldWrap && content.Width > 0)
-            {
-                // 检查文本是否需要换行（预处理后的文本宽度是否超过可用宽度）
-                var processedText = Utils.TextWrapper.ProcessText(element.TextContent, style.WhiteSpace);
-                var (singleLineWidth, _) = Utils.TextMeasurer.MeasureText(
-                    processedText,
-                    style.FontFamily,
-                    style.FontSize.Value,
-                    style.FontWeight);
-
-                needsMultiline = singleLineWidth > content.Width || processedText.Contains('\n');
-            }
-
-            if (needsMultiline)
-            {
-                float lineHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);
-                _painter.DrawMultilineText(
-                    element.TextContent,
-                    content, // 使用整个内容区域进行换行
-                    style.Color,
-                    style.FontFamily,
-                    style.FontSize.Value,
-                    style.FontWeight,
-                    style.TextAlign,
-                    lineHeight,
-                    style.WhiteSpace,
-                    element is Miko.Core.DomElements.ButtonElement ? VerticalAlign.Middle : VerticalAlign.Top
-                );
-            }
-            else
-            {
-                _painter.DrawText(
-                    element.TextContent,
-                    textRect,
-                    style.Color,
-                    style.FontFamily,
-                    style.FontSize.Value,
-                    style.FontWeight,
-                    style.TextAlign,
-                    VerticalAlign.Middle
-                );
-            }
-
-            if (style.TextDecoration != Common.TextDecoration.None)
-            {
-                _painter.DrawTextDecoration(
-                    element.TextContent,
-                    textRect,
-                    style.Color,
-                    style.FontFamily,
-                    style.FontSize.Value,
-                    style.FontWeight,
-                    style.TextAlign,
-                    style.TextDecoration,
-                    VerticalAlign.Middle
-                );
-            }
+            RenderTextNode(box);
         }
 
         // 渲染图片
@@ -679,6 +578,107 @@ public class RenderEngine
         {
             RenderVideoFrame(box, videoElement);
         }
+    }
+
+    /// <summary>
+    /// 绘制文本节点（<see cref="Core.DomElements.TextNode"/>）。
+    ///
+    /// 文本节点的内容盒已由 <see cref="Layout.LayoutAlgorithms.TextLayout"/> 定位并测出实际文本尺寸。
+    /// 水平对齐（text-align）以父元素内容盒为参照：单行时在父内容宽度内对齐；文本超宽需换行时按父
+    /// 内容盒多行绘制。垂直方向遵循 CSS 行盒模型（半行距上下均分），因此在纯文本场景下文本垂直居中于
+    /// 其行盒（保持 ISSUE-070 行为）。坐标做像素对齐以保持抗锯齿清晰度（见 ISSUE-085 抗锯齿修复）。
+    /// </summary>
+    private void RenderTextNode(LayoutBox box)
+    {
+        if (_painter == null) return;
+
+        var text = box.Element.TextContent;
+        if (string.IsNullOrEmpty(text)) return;
+
+        var style = box.ComputedStyle;
+        var content = box.BoxModel.Content;
+
+        // text-align 的对齐参照：
+        // - 当文本节点是父元素唯一的在流内容时（无其它行内兄弟），以父内容盒作为对齐容器，
+        //   使 center/right 生效（覆盖纯文本元素与 button 的居中场景）。
+        // - 否则（存在交错的兄弟元素，如 text1 <span/> text3），文本已由布局定位到其行内位置，
+        //   按自身内容盒左对齐绘制，不再二次对齐（避免破坏交错顺序）。
+        var parent = box.Element.Parent;
+        bool textNodeIsSoleInlineContent = parent != null && IsSoleInFlowInlineChild(box);
+
+        float alignX;
+        float alignWidth;
+        if (textNodeIsSoleInlineContent && parent!.LayoutBox != null)
+        {
+            var parentContent = parent.LayoutBox.BoxModel.Content;
+            alignX = parentContent.X;
+            alignWidth = parentContent.Width;
+        }
+        else
+        {
+            alignX = content.X;
+            alignWidth = content.Width;
+        }
+
+        // 是否需要多行绘制：文本宽度超过对齐容器宽度，或包含换行符。
+        bool shouldWrap = Utils.TextWrapper.ShouldWrap(style.WhiteSpace);
+        bool needsMultiline = false;
+        if (shouldWrap && alignWidth > 0)
+        {
+            var processedText = Utils.TextWrapper.ProcessText(text, style.WhiteSpace);
+            var (singleLineWidth, _) = Utils.TextMeasurer.MeasureText(
+                processedText, style.FontFamily, style.FontSize.Value, style.FontWeight);
+            needsMultiline = singleLineWidth > alignWidth + 0.5f || processedText.Contains('\n');
+        }
+
+        if (needsMultiline)
+        {
+            float lineHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);
+            // 多行文本在对齐容器宽度内换行与水平对齐，从文本节点顶部开始向下排列。
+            var wrapRect = new RectF(MathF.Round(alignX), MathF.Round(content.Y), alignWidth, content.Height);
+            _painter.DrawMultilineText(
+                text, wrapRect, style.Color, style.FontFamily, style.FontSize.Value, style.FontWeight,
+                style.TextAlign, lineHeight, style.WhiteSpace, VerticalAlign.Top);
+
+            if (style.TextDecoration != Common.TextDecoration.None)
+            {
+                _painter.DrawTextDecoration(text, wrapRect, style.Color, style.FontFamily,
+                    style.FontSize.Value, style.FontWeight, style.TextAlign, style.TextDecoration, VerticalAlign.Top);
+            }
+            return;
+        }
+
+        // 单行：在对齐容器宽度内按 text-align 水平对齐，垂直居中于文本节点行盒。
+        var textRect = new RectF(MathF.Round(alignX), MathF.Round(content.Y), alignWidth, content.Height);
+        _painter.DrawText(
+            text, textRect, style.Color, style.FontFamily, style.FontSize.Value, style.FontWeight,
+            style.TextAlign, VerticalAlign.Middle);
+
+        if (style.TextDecoration != Common.TextDecoration.None)
+        {
+            _painter.DrawTextDecoration(text, textRect, style.Color, style.FontFamily,
+                style.FontSize.Value, style.FontWeight, style.TextAlign, style.TextDecoration, VerticalAlign.Middle);
+        }
+    }
+
+    /// <summary>
+    /// 判断一个文本节点盒是否为其父元素唯一的在流行内内容（即父元素只有这一个非脱流子节点）。
+    /// 用于决定文本是否应以父内容盒作为 text-align 的对齐容器。
+    /// </summary>
+    private static bool IsSoleInFlowInlineChild(LayoutBox textBox)
+    {
+        var parentBox = textBox.Element.Parent?.LayoutBox;
+        if (parentBox == null) return false;
+
+        int inFlowCount = 0;
+        foreach (var sibling in parentBox.Children)
+        {
+            var pos = sibling.ComputedStyle.Position;
+            if (pos == Common.Position.Absolute || pos == Common.Position.Fixed) continue;
+            inFlowCount++;
+            if (inFlowCount > 1) return false;
+        }
+        return inFlowCount == 1;
     }
 
     /// <summary>

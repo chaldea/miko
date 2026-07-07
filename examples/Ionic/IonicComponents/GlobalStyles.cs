@@ -20,12 +20,16 @@ internal class GlobalStyles
             [".sidebar"] = new()
             {
                 Width = Length.Px(200),
+                FlexShrink = 0,
                 Height = Length.Percent(100),
                 Padding = new Padding(16),
                 BackgroundColor = Color.FromRgb(52, 58, 64),
                 Color = Color.White
             },
-            [".title"] = new() { Color = Color.White },
+            [".title"] = new()
+            {
+                Color = Color.White
+            },
             [".main-content"] = new()
             {
                 FlexGrow = 1,

@@ -102,6 +102,9 @@ public class StyleResolver
         style.TextAlign ??= parentStyle.TextAlign;
         style.LineHeight ??= parentStyle.LineHeight;
         style.PointerEvents ??= parentStyle.PointerEvents;
+        // WhiteSpace 在 CSS 中可继承：文本节点（TextNode）依赖它决定是否换行（如 nowrap），
+        // 因此必须从父元素继承，否则匿名文本会退回默认 Normal 而错误换行（见 ISSUE-086）。
+        style.WhiteSpace ??= parentStyle.WhiteSpace;
     }
 
     /// <summary>

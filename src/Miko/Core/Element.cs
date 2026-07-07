@@ -1,3 +1,4 @@
+using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Layout;
 using Miko.Styling;
@@ -19,7 +20,79 @@ public abstract class Element
         Parent = parent;
     }
     public Style? Style { get; set; }
-    public string? TextContent { get; set; }
+
+    // TextContent 的原始存储。仅由 TextNode（承载真实文本）与 TextContent facade 直接访问。
+    // 普通元素不应直接写入此字段——文本应作为 TextNode 子节点存在，见 ISSUE-086。
+    private string? _rawTextContent;
+
+    /// <summary>
+    /// 原始文本存储，供 <see cref="DomElements.TextNode"/> 及 <see cref="TextContent"/> facade 内部使用。
+    /// </summary>
+    internal string? RawTextContent
+    {
+        get => _rawTextContent;
+        set => _rawTextContent = value;
+    }
+
+    /// <summary>
+    /// 元素的直接文本内容（便利外观）。
+    ///
+    /// 自 ISSUE-086 起，文本以有序的 <see cref="DomElements.TextNode"/> 子节点形式存放，以保留
+    /// 文本与标签的交错顺序。为兼容既有代码，此属性保留 string 语义：
+    /// <list type="bullet">
+    /// <item>get：拼接所有直接子 <see cref="DomElements.TextNode"/> 的文本；无文本子节点时返回 null。</item>
+    /// <item>set：移除现有文本子节点，若值非空则重建单个前置文本节点（等价旧「文本在前」语义）。</item>
+    /// </list>
+    /// <see cref="DomElements.TextNode"/> 自身重写此逻辑，直接读写其 <see cref="RawTextContent"/>。
+    /// </summary>
+    public virtual string? TextContent
+    {
+        get
+        {
+            // 快速路径：无子节点。
+            if (Children.Count == 0) return null;
+
+            string? single = null;
+            System.Text.StringBuilder? sb = null;
+            bool any = false;
+            foreach (var child in Children)
+            {
+                if (child is TextNode tn)
+                {
+                    any = true;
+                    if (sb != null)
+                    {
+                        sb.Append(tn.Text);
+                    }
+                    else if (single != null)
+                    {
+                        sb = new System.Text.StringBuilder(single);
+                        sb.Append(tn.Text);
+                    }
+                    else
+                    {
+                        single = tn.Text;
+                    }
+                }
+            }
+
+            if (!any) return null;
+            return sb?.ToString() ?? single;
+        }
+        set
+        {
+            // 移除已有的文本节点。
+            Children.RemoveAll(c => c is TextNode);
+            if (!string.IsNullOrEmpty(value))
+            {
+                // 重建为单个前置文本节点，保持旧「文本排在子元素之前」的语义。
+                var textNode = new TextNode(value);
+                textNode.SetParent(this);
+                Children.Insert(0, textNode);
+            }
+            IsDirty = true;
+        }
+    }
 
     internal Dictionary<PseudoElementType, Style>? PseudoElementStyles { get; set; }
 

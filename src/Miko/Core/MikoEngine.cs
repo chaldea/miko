@@ -400,6 +400,11 @@ public class MikoEngine
 
     private Element? HitTestBox(LayoutBox box, float x, float y, float scrollOffsetX = 0, float scrollOffsetY = 0)
     {
+        // 文本节点（TextNode）对命中透明：点击文本时命中目标应解析为其包含元素（如 button），
+        // 而非匿名文本节点本身，否则会破坏事件处理与冒泡（见 ISSUE-086）。
+        if (box.Element is TextNode)
+            return null;
+
         var rect = box.BoxModel.BorderBox;
         float adjustedLeft = rect.Left - scrollOffsetX;
         float adjustedRight = rect.Right - scrollOffsetX;

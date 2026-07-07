@@ -38,7 +38,9 @@ internal static class DomTreeBuilder
             PaddingLeft = Length.Px(depth * 16 + 4)
         };
 
-        bool hasChildren = element.Children.Count > 0;
+        // 文本以 TextNode 子节点承载（见 ISSUE-086），但 DevTools 已通过 element.TextContent 预览
+        // 单独显示文本，故树的「子元素」仅统计非文本节点，避免文本被重复渲染为 <#text> 行。
+        bool hasChildren = element.Children.Any(c => c is not Core.DomElements.TextNode);
         bool isCollapsed = _collapsedElements.Contains(element);
 
         var line = new DivElement { Style = new Styling.Style { Display = Display.Flex, FlexDirection = FlexDirection.Row } };
@@ -131,6 +133,8 @@ internal static class DomTreeBuilder
 
             foreach (var child in element.Children)
             {
+                // 文本节点已通过上方 TextContent 预览显示，不再作为独立树节点渲染。
+                if (child is Core.DomElements.TextNode) continue;
                 BuildTreeNode(parent, child, bridge, depth + 1);
             }
 

@@ -220,22 +220,8 @@ public class FlexLayout
 
         float maxCrossSize = 0;
 
-        // 当元素同时拥有 TextContent 和子元素时，文本作为匿名 flex 项排在子元素之前，
-        // 参与主轴/交叉轴的对齐与分布（与 BlockLayout/InlineLayout 保持一致）。
-        float ownTextWidth = 0;
-        float ownTextHeight = 0;
-        bool hasOwnText = !string.IsNullOrEmpty(box.Element.TextContent);
-
-        if (hasOwnText)
-        {
-            var (textWidth, _) = TextMeasurer.MeasureText(
-                box.Element.TextContent,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight);
-            ownTextWidth = textWidth;
-            ownTextHeight = BlockLayout.ResolveLineHeight(style);
-        }
+        // 文本节点（TextNode）作为普通 flex 项参与主轴/交叉轴的对齐与分布（见 ISSUE-086），
+        // 不再需要把父元素的 TextContent 作为匿名 flex 项特殊处理（原 TextContentOffset 逻辑已移除）。
 
         // 脱离文档流的子元素（absolute/fixed）不是 flex 项目：
         // 单独布局以获得尺寸，不参与主轴/交叉轴的排列与尺寸计算。
@@ -253,11 +239,11 @@ public class FlexLayout
 
         if (isRow)
         {
-            LayoutRowDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize, widthIsIndefinite, heightIsDefinite, ownTextWidth, ownTextHeight);
+            LayoutRowDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize, widthIsIndefinite, heightIsDefinite);
         }
         else
         {
-            LayoutColumnDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize, heightIsDefinite, widthIsDefinite, ownTextWidth, ownTextHeight);
+            LayoutColumnDirection(box, contentX, contentY, contentWidth, contentHeight, ref maxCrossSize, heightIsDefinite, widthIsDefinite);
         }
 
         // 4b. 行布局且宽度未定：收缩包裹到子元素主轴总宽度（对称于下面 auto 高度的处理）。
@@ -265,23 +251,12 @@ public class FlexLayout
         // 需以子元素的自然宽度作为自身宽度，否则会塌缩为 0。
         if (isRow && widthIsIndefinite && widthIsAuto)
         {
+            // 文本节点已作为 flex 子项计入 MarginBox 宽度，无需再单独测量文本（见 ISSUE-086）。
             float totalChildMainWidth = 0;
             foreach (var child in box.Children)
             {
                 if (BlockLayout.IsOutOfFlow(child)) continue;
                 totalChildMainWidth += child.BoxModel.MarginBox.Width;
-            }
-
-            // 容器自身带文本（无 flex 子元素）时，文本宽度也是主轴内容尺寸的一部分，
-            // 收缩包裹应取子元素总宽与自身文本宽度的较大者，否则会塌缩为 0（见 ISSUE-078）。
-            if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
-            {
-                var (textWidth, _) = TextMeasurer.MeasureText(
-                    box.Element.TextContent,
-                    style.FontFamily,
-                    style.FontSize.Value,
-                    style.FontWeight);
-                totalChildMainWidth = Math.Max(totalChildMainWidth, textWidth);
             }
 
             contentWidth = totalChildMainWidth;
@@ -296,18 +271,12 @@ public class FlexLayout
             }
             else
             {
-                // 列布局：计算所有子元素的总高度
+                // 列布局：计算所有子元素的总高度（文本节点作为 flex 子项已计入，见 ISSUE-086）。
                 float totalChildHeight = 0;
                 foreach (var child in box.Children)
                 {
                     if (BlockLayout.IsOutOfFlow(child)) continue;
                     totalChildHeight += child.BoxModel.MarginBox.Height;
-                }
-
-                if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
-                {
-                    // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
-                    totalChildHeight = BlockLayout.ResolveLineHeight(style);
                 }
 
                 contentHeight = totalChildHeight;
@@ -348,34 +317,6 @@ public class FlexLayout
 
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);
 
-        // 5b. 直接文本内容作为匿名 flex 项的对齐（见 ISSUE-085）。
-        // 容器没有 in-flow 子盒但自身带文本时，文本不是独立 LayoutBox，无法在上面的
-        // 行/列布局中被偏移。此处按最终内容盒尺寸计算文本在主轴(justify-content)与
-        // 交叉轴(align-items)上的对齐位移，交由 RenderEngine 绘制时叠加。
-        bool hasInFlowChild = false;
-        foreach (var child in box.Children)
-            if (!BlockLayout.IsOutOfFlow(child)) { hasInFlowChild = true; break; }
-
-        if (!hasInFlowChild && !string.IsNullOrEmpty(box.Element.TextContent))
-        {
-            float textWidth = TextMeasurer.MeasureTextWidth(
-                box.Element.TextContent, style.FontFamily, style.FontSize.Value, style.FontWeight);
-            float textHeight = BlockLayout.ResolveLineHeight(style);
-
-            // 主轴 = justify-content，交叉轴 = align-items。
-            float mainOffset = AlignMainAxis(
-                isRow ? contentWidth : contentHeight,
-                isRow ? textWidth : textHeight,
-                style.JustifyContent);
-            float crossOffset = AlignCrossAxis(
-                isRow ? contentHeight : contentWidth,
-                isRow ? textHeight : textWidth,
-                style.AlignItems);
-
-            box.TextContentOffsetX = isRow ? mainOffset : crossOffset;
-            box.TextContentOffsetY = isRow ? crossOffset : mainOffset;
-        }
-
         // 记录可滚动内容尺寸
         // 滚动区域包含盒子的内边距（见 BlockLayout 中的说明）
         float padH = box.BoxModel.Padding.Horizontal;
@@ -406,7 +347,7 @@ public class FlexLayout
 
     private void LayoutRowDirection(LayoutBox box, float contentX, float contentY,
         float contentWidth, float contentHeight, ref float maxCrossSize, bool widthIsIndefinite = false,
-        bool crossHeightIsDefinite = true, float ownTextWidth = 0, float ownTextHeight = 0)
+        bool crossHeightIsDefinite = true)
     {
         var style = box.ComputedStyle;
         float fs = style.FontSize.Value;
@@ -415,22 +356,14 @@ public class FlexLayout
         float columnGap = (style.ColumnGap.IsAuto ? style.Gap : style.ColumnGap).ToPixels(contentWidth, fs);
         float rowGap = (style.RowGap.IsAuto ? style.Gap : style.RowGap).ToPixels(contentWidth, fs);
 
-        // 收集所有非绝对定位子元素。
+        // 收集所有非绝对定位子元素（含文本节点，见 ISSUE-086）。
         var allChildren = new List<LayoutBox>();
         foreach (var child in box.Children)
             if (!BlockLayout.IsOutOfFlow(child)) allChildren.Add(child);
 
-        // 无 flex 项目且无文本内容：提前返回。
-        bool hasOwnText = ownTextWidth > 0;
-        if (allChildren.Count == 0 && !hasOwnText)
+        // 无 flex 项目：提前返回。
+        if (allChildren.Count == 0)
         {
-            return;
-        }
-
-        // 无子元素但有文本：交叉轴（高）取文本行高。
-        if (allChildren.Count == 0 && hasOwnText)
-        {
-            maxCrossSize = Math.Max(maxCrossSize, ownTextHeight);
             return;
         }
 
@@ -444,7 +377,7 @@ public class FlexLayout
         {
             float lineCrossSize = 0;
             LayoutFlexLine(box, line, contentX, currentY, contentWidth, contentHeight, columnGap, true, widthIsIndefinite,
-                style.JustifyContent, style.AlignItems, ref lineCrossSize, crossHeightIsDefinite, ownTextWidth, ownTextHeight);
+                style.JustifyContent, style.AlignItems, ref lineCrossSize, crossHeightIsDefinite);
             maxCrossSize = Math.Max(maxCrossSize, lineCrossSize);
             currentY += lineCrossSize + rowGap;
         }
@@ -459,7 +392,7 @@ public class FlexLayout
 
     private void LayoutColumnDirection(LayoutBox box, float contentX, float contentY,
         float contentWidth, float contentHeight, ref float maxCrossSize, bool heightIsDefinite,
-        bool crossWidthIsDefinite = true, float ownTextWidth = 0, float ownTextHeight = 0)
+        bool crossWidthIsDefinite = true)
     {
         var style = box.ComputedStyle;
         float fs = style.FontSize.Value;
@@ -468,22 +401,14 @@ public class FlexLayout
         float rowGap = (style.RowGap.IsAuto ? style.Gap : style.RowGap).ToPixels(contentHeight, fs);
         float columnGap = (style.ColumnGap.IsAuto ? style.Gap : style.ColumnGap).ToPixels(contentHeight, fs);
 
-        // 收集所有非绝对定位子元素。
+        // 收集所有非绝对定位子元素（含文本节点，见 ISSUE-086）。
         var allChildren = new List<LayoutBox>();
         foreach (var child in box.Children)
             if (!BlockLayout.IsOutOfFlow(child)) allChildren.Add(child);
 
-        // 无 flex 项目且无文本内容：提前返回。
-        bool hasOwnText = ownTextHeight > 0;
-        if (allChildren.Count == 0 && !hasOwnText)
+        // 无 flex 项目：提前返回。
+        if (allChildren.Count == 0)
         {
-            return;
-        }
-
-        // 无子元素但有文本：交叉轴（宽）取文本宽度。
-        if (allChildren.Count == 0 && hasOwnText)
-        {
-            maxCrossSize = Math.Max(maxCrossSize, ownTextWidth);
             return;
         }
 
@@ -501,7 +426,7 @@ public class FlexLayout
         {
             float lineCrossSize = 0;
             LayoutFlexLine(box, line, currentX, contentY, contentHeight, contentWidth, rowGap, false, heightIsIndefinite,
-                style.JustifyContent, style.AlignItems, ref lineCrossSize, crossWidthIsDefinite, ownTextWidth, ownTextHeight);
+                style.JustifyContent, style.AlignItems, ref lineCrossSize, crossWidthIsDefinite);
             maxCrossSize = Math.Max(maxCrossSize, lineCrossSize);
             currentX += lineCrossSize + columnGap;
         }
@@ -668,24 +593,13 @@ public class FlexLayout
     private void LayoutFlexLine(LayoutBox box, List<LayoutBox> lineChildren, float lineX, float lineY,
         float lineMainSize, float lineCrossSize, float gap, bool isRow, bool mainSizeIsIndefinite,
         JustifyContent justifyContent, AlignItems alignItems, ref float resultCrossSize,
-        bool crossSizeIsDefinite = true, float ownTextWidth = 0, float ownTextHeight = 0)
+        bool crossSizeIsDefinite = true)
     {
-        // 文本作为匿名 flex 项的尺寸（行方向主轴=宽，列方向主轴=高）。
-        bool hasOwnText = (isRow ? ownTextWidth : ownTextHeight) > 0;
-        float ownTextMainSize = isRow ? ownTextWidth : ownTextHeight;
-        float ownTextCrossSize = isRow ? ownTextHeight : ownTextWidth;
-
-        // 第一遍：计算 flex-basis。
+        // 第一遍：计算 flex-basis。文本节点（TextNode）作为普通 flex 项参与（见 ISSUE-086）。
         var childInfos = new List<FlexChildInfo>();
         float totalFlexBasisSize = 0;
         float totalFlexGrow = 0;
         float totalFlexShrinkWeighted = 0;
-
-        // 文本作为匿名 flex 项（flex-grow=0, flex-shrink=0），排在子元素之前。
-        if (hasOwnText)
-        {
-            totalFlexBasisSize += ownTextMainSize;
-        }
 
         foreach (var child in lineChildren)
         {
@@ -708,8 +622,8 @@ public class FlexLayout
             totalFlexShrinkWeighted += childStyle.FlexShrink * flexBasis;
         }
 
-        // gap 占用主轴空间：n 个项目间有 n-1 个 gap（文本也算一项）。
-        int totalItems = lineChildren.Count + (hasOwnText ? 1 : 0);
+        // gap 占用主轴空间：n 个项目间有 n-1 个 gap。
+        int totalItems = lineChildren.Count;
         float totalGapSize = Math.Max(0, totalItems - 1) * gap;
         float freeSpace = lineMainSize - totalFlexBasisSize - totalGapSize;
 
@@ -764,14 +678,6 @@ public class FlexLayout
         float lineCross = isRow ? lineY : lineX;
         float currentMain = lineStart;
         float maxCross = 0;
-
-        // 文本作为第一项，从 lineStart 开始，占据 ownTextMainSize 的主轴空间。
-        // 文本不参与 flex-grow/shrink，保持固定尺寸。
-        if (hasOwnText)
-        {
-            currentMain += ownTextMainSize + gap;
-            maxCross = Math.Max(maxCross, ownTextCrossSize);
-        }
 
         foreach (var info in childInfos)
         {
@@ -876,63 +782,23 @@ public class FlexLayout
 
         // 主轴对齐 (justify-content)：仅当本行无 flex-grow 时应用（grow 已占满主轴）。
         // gap 已计入 totalMainUsed，使对齐基于含间距的实际占用。
-        // 返回主轴对齐偏移，用于文本的 TextContentOffset。
-        float mainAlignmentOffset = 0;
         if (totalFlexGrow == 0 && lineMainSize > 0)
         {
             float totalMainUsed = currentMain - lineStart - gap; // 去掉末尾多余 gap
-            mainAlignmentOffset = ApplyLineJustifyContent(childInfos, lineStart, lineMainSize, totalMainUsed, isRow, justifyContent, totalItems, hasOwnText);
+            ApplyLineJustifyContent(childInfos, lineStart, lineMainSize, totalMainUsed, isRow, justifyContent, totalItems);
         }
 
-        // 交叉轴对齐 (align-items)。返回交叉轴对齐偏移，用于文本的 TextContentOffset。
+        // 交叉轴对齐 (align-items)。
         float crossExtent = lineCrossSize > 0 ? Math.Max(lineCrossSize, maxCross) : maxCross;
-        float crossAlignmentOffset = ApplyLineAlignItems(childInfos, lineCross, crossExtent, isRow, alignItems, ownTextCrossSize, hasOwnText);
-
-        // 将文本的对齐偏移存储到容器的 LayoutBox（供 RenderEngine 使用）。
-        if (hasOwnText)
-        {
-            box.TextContentOffsetX = isRow ? mainAlignmentOffset : crossAlignmentOffset;
-            box.TextContentOffsetY = isRow ? crossAlignmentOffset : mainAlignmentOffset;
-        }
+        ApplyLineAlignItems(childInfos, lineCross, crossExtent, isRow, alignItems);
 
         resultCrossSize = maxCross;
     }
 
-    /// <summary>
-    /// 计算单个匿名项（如直接文本）在主轴上的 justify-content 偏移。
-    /// 对单项而言 space-between 等价 flex-start，space-around / space-evenly 等价 center，
-    /// 与 <see cref="ApplyLineJustifyContent"/> 中 line.Count==1 的行为一致。
-    /// </summary>
-    private static float AlignMainAxis(float containerSize, float contentSize, JustifyContent justify)
+    /// <summary>对一行/列的子元素应用 justify-content（主轴对齐）。</summary>
+    private void ApplyLineJustifyContent(List<FlexChildInfo> line, float start, float containerSize, float contentSize, bool isRow, JustifyContent justifyContent, int totalItems)
     {
-        if (containerSize <= 0) return 0;
-        float free = containerSize - contentSize;
-        return justify switch
-        {
-            Common.JustifyContent.FlexEnd => free,
-            Common.JustifyContent.Center => free / 2f,
-            Common.JustifyContent.SpaceAround => free / 2f,
-            Common.JustifyContent.SpaceEvenly => free / 2f,
-            _ => 0f, // FlexStart / SpaceBetween(单项)
-        };
-    }
-
-    /// <summary>计算单个匿名项（如直接文本）在交叉轴上的 align-items 偏移。</summary>
-    private static float AlignCrossAxis(float crossSize, float itemCrossSize, AlignItems align)
-    {
-        if (crossSize <= 0) return 0;
-        return align switch
-        {
-            Common.AlignItems.FlexEnd => crossSize - itemCrossSize,
-            Common.AlignItems.Center => (crossSize - itemCrossSize) / 2f,
-            _ => 0f, // FlexStart / Stretch（文本无法拉伸，锚定起点）/ Baseline
-        };
-    }
-
-    /// <summary>对一行/列的子元素应用 justify-content（主轴对齐）。返回主轴对齐偏移。</summary>
-    private float ApplyLineJustifyContent(List<FlexChildInfo> line, float start, float containerSize, float contentSize, bool isRow, JustifyContent justifyContent, int totalItems, bool hasOwnText)
-    {
-        if (line.Count == 0) return 0;
+        if (line.Count == 0) return;
 
         float spacing = 0, offset = 0;
         switch (justifyContent)
@@ -948,35 +814,18 @@ public class FlexLayout
                 spacing = (containerSize - contentSize) / (totalItems + 1); offset = spacing; break;
         }
 
-        // 如果有文本（第0项），子元素从第1项开始；否则从第0项开始。
-        int startIndex = hasOwnText ? 1 : 0;
         for (int i = 0; i < line.Count; i++)
         {
-            float itemOffset = offset + spacing * (startIndex + i);
+            float itemOffset = offset + spacing * i;
             if (Math.Abs(itemOffset) < 0.01f) continue;
             if (isRow) OffsetSubtree(line[i].Child, itemOffset, 0);
             else OffsetSubtree(line[i].Child, 0, itemOffset);
         }
-
-        return offset;
     }
 
-    /// <summary>对一行/列的子元素应用 align-items（交叉轴对齐）。返回文本的交叉轴对齐偏移。</summary>
-    private float ApplyLineAlignItems(List<FlexChildInfo> line, float crossStart, float crossSize, bool isRow, AlignItems alignItems, float ownTextCrossSize, bool hasOwnText)
+    /// <summary>对一行/列的子元素应用 align-items（交叉轴对齐）。</summary>
+    private void ApplyLineAlignItems(List<FlexChildInfo> line, float crossStart, float crossSize, bool isRow, AlignItems alignItems)
     {
-        float textCrossOffset = 0;
-
-        // 计算文本的交叉轴偏移
-        if (hasOwnText)
-        {
-            textCrossOffset = alignItems switch
-            {
-                Common.AlignItems.FlexEnd => crossSize - ownTextCrossSize,
-                Common.AlignItems.Center => (crossSize - ownTextCrossSize) / 2,
-                _ => 0f, // FlexStart / Stretch（文本无法拉伸）/ Baseline
-            };
-        }
-
         foreach (var info in line)
         {
             var child = info.Child;
@@ -988,6 +837,8 @@ public class FlexLayout
                 case Common.AlignItems.FlexEnd: offset = crossSize - childCrossSize; break;
                 case Common.AlignItems.Center: offset = (crossSize - childCrossSize) / 2; break;
                 case Common.AlignItems.Stretch:
+                    // 文本节点不可拉伸（其尺寸由文本决定），锚定起点。
+                    if (child.Type == LayoutType.Text) break;
                     if (isRow)
                     {
                         if (child.ComputedStyle.Height.IsAuto)
@@ -1017,7 +868,5 @@ public class FlexLayout
                 else OffsetSubtree(child, offset, 0);
             }
         }
-
-        return textCrossOffset;
     }
 }

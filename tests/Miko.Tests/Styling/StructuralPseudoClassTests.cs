@@ -208,4 +208,51 @@ public class StructuralPseudoClassTests
         new StyleResolver().Resolve(first, [sheet]).BackgroundColor.ShouldBe(Color.Transparent);
         new StyleResolver().Resolve(second, [sheet]).BackgroundColor.ShouldBe(Color.Red);
     }
+
+    // ISSUE-086：文本节点（TextNode）不计入 :first-child / :last-child 子序号，与 CSS 规范一致。
+
+    [Fact]
+    public void FirstChild_ShouldIgnoreLeadingTextNode()
+    {
+        // <div>lead text<span/></div>：span 前有文本节点，但 span 仍是 :first-child。
+        var parent = new DivElement { TextContent = "lead text" };
+        var span = new SpanElement();
+        parent.AddChild(span);
+
+        // 子节点：[TextNode, span]
+        parent.Children[0].ShouldBeOfType<TextNode>();
+        new FirstChildSelector().Matches(span).ShouldBeTrue();
+        new FirstChildSelector().Matches(parent.Children[0]).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void LastChild_ShouldIgnoreTrailingTextNode()
+    {
+        // <div><span/>trailing</div>：span 后有文本节点，但 span 仍是 :last-child。
+        var parent = new DivElement();
+        var span = new SpanElement();
+        parent.AddChild(span);
+        parent.AddChild(new TextNode("trailing"));
+
+        new LastChildSelector().Matches(span).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Empty_ShouldNotMatchElementWithText()
+    {
+        var withText = new DivElement { TextContent = "x" };
+        var trulyEmpty = new DivElement();
+
+        new EmptySelector().Matches(withText).ShouldBeFalse();
+        new EmptySelector().Matches(trulyEmpty).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Empty_ShouldNotMatchElementWithOnlyElementChild()
+    {
+        var parent = new DivElement();
+        parent.AddChild(new SpanElement());
+
+        new EmptySelector().Matches(parent).ShouldBeFalse();
+    }
 }

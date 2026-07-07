@@ -11,6 +11,7 @@ public static class LayoutDispatcher
     private static readonly InlineLayout _inlineLayout = new();
     private static readonly FlexLayout _flexLayout = new();
     private static readonly TableLayout _tableLayout = new();
+    private static readonly TextLayout _textLayout = new();
 
     /// <summary>
     /// 根据盒子类型执行相应的布局算法
@@ -41,6 +42,10 @@ public static class LayoutDispatcher
                 // TableRow 和 TableCell 由 TableLayout 直接布局
                 // 如果单独调用，使用 Block 布局作为后备
                 _blockLayout.Layout(box, constraints, x, y);
+                break;
+
+            case LayoutType.Text:
+                _textLayout.Layout(box, constraints, x, y);
                 break;
         }
     }

@@ -133,7 +133,14 @@ public class ComponentUnderTest
 
     private string GetTextContentRecursive(Element element)
     {
-        var text = element.TextContent ?? "";
+        // 自 ISSUE-086 起，文本以 TextNode 子节点承载。仅在遍历到 TextNode 叶子时取其文本，
+        // 避免同时读取父元素 TextContent（facade 会聚合子 TextNode）与递归子节点造成重复计数。
+        if (element is Miko.Core.DomElements.TextNode textNode)
+        {
+            return textNode.Text;
+        }
+
+        var text = "";
         foreach (var child in element.Children)
         {
             text += GetTextContentRecursive(child);

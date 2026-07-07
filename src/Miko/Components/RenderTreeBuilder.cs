@@ -202,10 +202,18 @@ public class RenderTreeBuilder
         if (string.IsNullOrEmpty(str)) return;
         var decoded = WebUtility.HtmlDecode(str);
         var element = _stack.Peek();
-        // Razor emits one AddContent call per content fragment (literal text and
-        // expressions). Append so consecutive fragments concatenate instead of
-        // overwriting each other (e.g. "Clicked " + _count + " times").
-        element.TextContent = element.TextContent is null ? decoded : element.TextContent + decoded;
+        // 文本以有序 TextNode 子节点形式追加，保留与已打开的子元素的交错顺序（见 ISSUE-086）。
+        // Razor 会为每段内容（字面文本与表达式）发射一次 AddContent。相邻的纯文本片段合并到
+        // 同一末尾 TextNode（如 "Clicked " + _count + " times" 拼接为一段），但被子元素分隔的
+        // 文本会形成各自独立的 TextNode，从而正确表达 text1 <span/> text3。
+        if (element.Children.Count > 0 && element.Children[^1] is TextNode lastText)
+        {
+            lastText.Text += decoded;
+        }
+        else
+        {
+            element.AddChild(new TextNode(decoded));
+        }
     }
 
     public void AddMarkupContent(int seq, string? markup)
@@ -284,8 +292,9 @@ public class RenderTreeBuilder
             if (m.Groups["text"].Success)
             {
                 var text = m.Groups["text"].Value.Trim();
+                // 文本以有序 TextNode 追加，保留与标签的交错顺序（见 ISSUE-086）。
                 if (text.Length > 0 && localStack.Count > 0)
-                    localStack.Peek().TextContent = text;
+                    localStack.Peek().AddChild(new TextNode(text));
                 continue;
             }
 
