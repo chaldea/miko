@@ -584,6 +584,27 @@ public class RenderEngine
                 textRect = new RectF(content.X, content.Y, content.Width, lineBoxHeight);
             }
 
+            // flex 容器的直接文本作为匿名 flex 项参与 justify-content/align-items（见 ISSUE-085）。
+            // FlexLayout 记录的对齐位移在此叠加到文本绘制矩形上（非 flex 容器偏移为 0）。
+            // 重要：当文本已经通过 flex 对齐偏移后，textRect 的宽度应收缩为文本实际宽度，
+            // 避免 TextAlign 在容器全宽内再次居中造成叠加偏移（见 ISSUE-085 问题2）。
+            if (box.TextContentOffsetX != 0f || box.TextContentOffsetY != 0f)
+            {
+                float actualTextWidth = Utils.TextMeasurer.MeasureTextWidth(
+                    element.TextContent, style.FontFamily, style.FontSize.Value, style.FontWeight);
+
+                // 像素对齐：将偏移后的坐标四舍五入到整数像素，避免亚像素渲染导致文本模糊/锯齿。
+                // 文本渲染对亚像素位置非常敏感，即使0.5px的偏移也会显著影响抗锯齿效果。
+                float newX = MathF.Round(textRect.X + box.TextContentOffsetX);
+                float newY = MathF.Round(textRect.Y + box.TextContentOffsetY);
+
+                textRect = new RectF(
+                    newX,
+                    newY,
+                    actualTextWidth,  // 收缩到文本实际宽度，TextAlign 在此宽度内对齐（通常无额外偏移）
+                    textRect.Height);
+            }
+
             // 根据 WhiteSpace 属性决定是否使用多行文本绘制
             bool shouldWrap = Utils.TextWrapper.ShouldWrap(style.WhiteSpace);
             bool needsMultiline = false;

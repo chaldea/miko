@@ -118,8 +118,15 @@ public class BlockLayout
             contentWidth = Math.Min(contentWidth, max);
         }
 
-        // 解析 margin auto：当元素有明确宽度时，auto margin 占据剩余空间
-        if ((marginLeftAuto || marginRightAuto) && !style.Width.IsAuto && containerWidth > 0)
+        // 解析 margin auto：当元素宽度确定且小于容器时，auto margin 占据剩余空间。
+        // 宽度确定的两种情形：
+        //   1. 显式设置了 width；
+        //   2. width 为 auto，但被 max-width 夹取到比“填满容器”更窄（此时 contentWidth
+        //      已在上面的 min/max 处理中定型，剩余空间应由 auto margin 吸收，实现居中）。
+        // 注意：width auto 且未被 max-width 约束时会填满容器，剩余空间为 0，auto margin 无效果，
+        // 因此下面的 remainingSpace 计算天然覆盖这种情况，无需额外分支。
+        bool hasDefiniteWidth = !style.Width.IsAuto || !style.MaxWidth.IsAuto;
+        if ((marginLeftAuto || marginRightAuto) && hasDefiniteWidth && containerWidth > 0)
         {
             float usedWidth = contentWidth + box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
             float remainingSpace = Math.Max(0, containerWidth - usedWidth
@@ -285,10 +292,10 @@ public class BlockLayout
         }
         else if (isReplaced)
         {
-            // height auto 的 replaced 元素：width 指定时按纵横比反推高，否则用内禀高。
-            contentHeight = style.Width.IsAuto
-                ? intrinsicH
-                : contentWidth * intrinsicH / intrinsicW;
+            // height auto 的 replaced 元素：按内禀纵横比从最终内容宽度反推高。
+            // contentWidth 已应用 min/max-width 夹取，因此 max-width 约束会等比缩放
+            // 高度（auto 宽未被夹取时 contentWidth==intrinsicW，结果即内禀高）。见 ISSUE-083。
+            contentHeight = contentWidth * intrinsicH / intrinsicW;
         }
         else if (constraints.AvailableHeight.HasValue &&
                  (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
