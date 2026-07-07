@@ -586,12 +586,16 @@ public class RenderEngine
 
             // flex 容器的直接文本作为匿名 flex 项参与 justify-content/align-items（见 ISSUE-085）。
             // FlexLayout 记录的对齐位移在此叠加到文本绘制矩形上（非 flex 容器偏移为 0）。
+            // 重要：当文本已经通过 flex 对齐偏移后，textRect 的宽度应收缩为文本实际宽度，
+            // 避免 TextAlign 在容器全宽内再次居中造成叠加偏移（见 ISSUE-085 问题2）。
             if (box.TextContentOffsetX != 0f || box.TextContentOffsetY != 0f)
             {
+                float actualTextWidth = Utils.TextMeasurer.MeasureTextWidth(
+                    element.TextContent, style.FontFamily, style.FontSize.Value, style.FontWeight);
                 textRect = new RectF(
                     textRect.X + box.TextContentOffsetX,
                     textRect.Y + box.TextContentOffsetY,
-                    textRect.Width,
+                    actualTextWidth,  // 收缩到文本实际宽度，TextAlign 在此宽度内对齐（通常无额外偏移）
                     textRect.Height);
             }
 
