@@ -1,4 +1,5 @@
 using Miko.Common;
+using Miko.Styling;
 using Miko.Testing;
 using Miko.Ionic.Components;
 using Shouldly;
@@ -54,6 +55,30 @@ public class IonIconTests : IonicComponentTestBase
         cut.Root.TagName.ShouldBe("div");
         cut.Root.Class.ShouldBe("md ion-icon");
         cut.Root.Children.Count.ShouldBe(0); // Icon is rendered via background-image, not children
+    }
+
+    [Fact]
+    public void IonIcon_PreservesColor_WhenMergingIconStyle()
+    {
+        // Color drives the icon tint (CSS fill: currentColor) and must survive the
+        // background-image merge — the icon style only sets background properties.
+        var cut = Context.Render<IonIcon>(parameters => parameters
+            .Add(nameof(IonIcon.Icon), "triangle")
+            .Add(nameof(IonIcon.Style), new Style { Color = Color.FromRgb(255, 255, 255) }));
+
+        cut.Root.Style.ShouldNotBeNull();
+        cut.Root.Style!.BackgroundImage.ShouldNotBeNull();
+        cut.Root.Style.Color.ShouldBe(Color.FromRgb(255, 255, 255));
+    }
+
+    [Fact]
+    public void IonIcon_MarksBackgroundImageAsTemplate()
+    {
+        // Ionicons glyphs are monochrome masks — the resolved image must be tintable.
+        var cut = Context.Render<IonIcon>(parameters =>
+            parameters.Add(nameof(IonIcon.Icon), "triangle"));
+
+        cut.Root.Style!.BackgroundImage!.IsTemplate.ShouldBeTrue();
     }
 
     [Fact]

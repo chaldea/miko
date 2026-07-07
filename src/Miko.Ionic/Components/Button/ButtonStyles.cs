@@ -1,4 +1,4 @@
-using Miko.Animation;
+﻿using Miko.Animation;
 using Miko.Common;
 using Miko.Styling;
 
@@ -75,6 +75,11 @@ internal static class ButtonStyles
                 JustifyContent = JustifyContent.Center,
                 Width = Length.Percent(100),
                 Height = Length.Percent(100),
+                // Ionic's .button-native uses `min-height: inherit` — the native surface takes
+                // whatever min-height the host resolved. Miko has no `inherit` keyword, so we mirror
+                // the host value here (and in every variant below that changes the host min-height).
+                // Without this, changing the host min-height (icon-only / small / large) leaves the
+                // native surface stuck at the default, so it no longer fills the host (ISSUE: #4).
                 MinHeight = t.ButtonMinHeight,
                 PaddingTop = t.ButtonPaddingTop,
                 PaddingBottom = t.ButtonPaddingBottom,
@@ -100,6 +105,16 @@ internal static class ButtonStyles
                 Height = Length.Percent(100),
                 ZIndex = 1,
             },
+
+            // Slots — start/end marker spans don't shrink (button.scss ::slotted([slot=start|end])).
+            [$".ion-button.{mode} .ion-slot-start"] = new() { Display = Display.Flex, FlexShrink = 0 },
+            [$".ion-button.{mode} .ion-slot-end"] = new() { Display = Display.Flex, FlexShrink = 0 },
+            [$".ion-button.{mode} .ion-slot-icon-only"] = new() { Display = Display.Flex, FlexShrink = 0 },
+
+            // Slotted icons carry a small side gap toward the label (button.scss ::slotted(ion-icon[slot=…])).
+            // start icon: gap on its trailing (right) edge; end icon: gap on its leading (left) edge.
+            [$".ion-button.{mode} .ion-slot-start .ion-icon"] = new() { MarginRight = Length.Em(0.3f) },
+            [$".ion-button.{mode} .ion-slot-end .ion-icon"] = new() { MarginLeft = Length.Em(0.3f) },
         };
 
         // --- Fill variants -------------------------------------------------------------------
@@ -158,6 +173,7 @@ internal static class ButtonStyles
         };
         css[$".ion-button.{mode}.button-small .button-native"] = new()
         {
+            MinHeight = t.ButtonSmallMinHeight,   // mirror host min-height (Ionic: min-height: inherit)
             PaddingTop = t.ButtonSmallPaddingTop,
             PaddingBottom = t.ButtonSmallPaddingBottom,
             PaddingLeft = t.ButtonSmallPaddingX,
@@ -172,6 +188,7 @@ internal static class ButtonStyles
         };
         css[$".ion-button.{mode}.button-large .button-native"] = new()
         {
+            MinHeight = t.ButtonLargeMinHeight,   // mirror host min-height (Ionic: min-height: inherit)
             PaddingTop = t.ButtonLargePaddingTop,
             PaddingBottom = t.ButtonLargePaddingBottom,
             PaddingLeft = t.ButtonLargePaddingX,
@@ -198,10 +215,60 @@ internal static class ButtonStyles
         };
         css[$".ion-button.{mode}.button-has-icon-only .button-native"] = new()
         {
+            // Mirror the icon-only host min-height (Ionic: min-height: inherit) so the square native
+            // surface follows the host instead of staying at the default 36px (ISSUE: #4).
+            MinHeight = Length.Px(t.ButtonIconOnlyMinSize),
             PaddingTop = Length.Px(0),
             PaddingBottom = Length.Px(0),
             PaddingLeft = Length.Px(0),
             PaddingRight = Length.Px(0),
+        };
+        // The icon-only icon is larger than a start/end icon (button.*.scss
+        // ::slotted(ion-icon[slot="icon-only"])).
+        css[$".ion-button.{mode}.button-has-icon-only .ion-slot-icon-only .ion-icon"] = new()
+        {
+            Width = Length.Px(t.ButtonIconOnlyIconSize),
+            Height = Length.Px(t.ButtonIconOnlyIconSize),
+        };
+
+        // Small icon-only: a smaller square with a smaller icon
+        // (:host(.button-small.button-has-icon-only) and its slotted icon).
+        css[$".ion-button.{mode}.button-small.button-has-icon-only"] = new()
+        {
+            MinWidth = Length.Px(t.ButtonSmallIconOnlyMinSize),
+            MinHeight = Length.Px(t.ButtonSmallIconOnlyMinSize),
+        };
+        // Mirror the small icon-only host min-height onto the native surface (Ionic: min-height:
+        // inherit). Needs its own 3-class rule: `.button-small .button-native` and
+        // `.button-has-icon-only .button-native` collide at equal specificity, so neither carries the
+        // small-icon-only value (ISSUE: #4).
+        css[$".ion-button.{mode}.button-small.button-has-icon-only .button-native"] = new()
+        {
+            MinHeight = Length.Px(t.ButtonSmallIconOnlyMinSize),
+        };
+        css[$".ion-button.{mode}.button-small.button-has-icon-only .ion-slot-icon-only .ion-icon"] = new()
+        {
+            Width = Length.Px(t.ButtonSmallIconOnlyIconSize),
+            Height = Length.Px(t.ButtonSmallIconOnlyIconSize),
+        };
+
+        // Large icon-only: a larger square with a larger icon
+        // (:host(.button-large.button-has-icon-only) and its slotted icon).
+        css[$".ion-button.{mode}.button-large.button-has-icon-only"] = new()
+        {
+            MinWidth = Length.Px(t.ButtonLargeIconOnlyMinSize),
+            MinHeight = Length.Px(t.ButtonLargeIconOnlyMinSize),
+        };
+        // Mirror the large icon-only host min-height onto the native surface (Ionic: min-height:
+        // inherit); same equal-specificity collision as the small case above (ISSUE: #4).
+        css[$".ion-button.{mode}.button-large.button-has-icon-only .button-native"] = new()
+        {
+            MinHeight = Length.Px(t.ButtonLargeIconOnlyMinSize),
+        };
+        css[$".ion-button.{mode}.button-large.button-has-icon-only .ion-slot-icon-only .ion-icon"] = new()
+        {
+            Width = Length.Px(t.ButtonLargeIconOnlyIconSize),
+            Height = Length.Px(t.ButtonLargeIconOnlyIconSize),
         };
 
         // --- Strong --------------------------------------------------------------------------

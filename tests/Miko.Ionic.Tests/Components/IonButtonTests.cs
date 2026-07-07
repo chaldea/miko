@@ -139,6 +139,239 @@ public class IonButtonTests : IonicComponentTestBase
         cut.Root.Class.ShouldNotContain("button-has-icon-only");
     }
 
+    // --- Slots (icon-only / start / end) -------------------------------------------------
+
+    [Fact]
+    public void IonButton_RendersStartSlot_BeforeLabel_WrappedInMarker()
+    {
+        var cut = Context.Render<IonButton>(p =>
+        {
+            p.Add(nameof(IonButton.Start), (RenderFragment)(b => b.AddContent(0, "S")));
+            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent(0, "Label")));
+        });
+
+        var inner = cut.Root.Children[0].Children[0];
+        // start marker span comes first, then the default label content.
+        inner.Children[0].Class.ShouldBe("ion-slot-start");
+        inner.Children[0].TextContent.ShouldBe("S");
+        cut.GetTextContent().ShouldContain("Label");
+    }
+
+    [Fact]
+    public void IonButton_RendersEndSlot_AfterLabel_WrappedInMarker()
+    {
+        var cut = Context.Render<IonButton>(p =>
+        {
+            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent(0, "Label")));
+            p.Add(nameof(IonButton.End), (RenderFragment)(b => b.AddContent(0, "E")));
+        });
+
+        var inner = cut.Root.Children[0].Children[0];
+        var last = inner.Children[^1];
+        last.Class.ShouldBe("ion-slot-end");
+        last.TextContent.ShouldBe("E");
+    }
+
+    [Fact]
+    public void IonButton_RendersIconOnlySlot_WrappedInMarker()
+    {
+        var cut = Context.Render<IonButton>(p =>
+            p.Add(nameof(IonButton.IconOnly), (RenderFragment)(b =>
+            {
+                b.OpenComponent<IonIcon>(0);
+                b.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
+                b.CloseComponent();
+            })));
+
+        var inner = cut.Root.Children[0].Children[0];
+        inner.Children[0].Class.ShouldBe("ion-slot-icon-only");
+    }
+
+    [Fact]
+    public void IonButton_StampsIconOnlyMarker_WhenIconOnlySlotUsed()
+    {
+        // The icon-only slot alone (no text) makes the host a square icon button.
+        var cut = Context.Render<IonButton>(p =>
+            p.Add(nameof(IonButton.IconOnly), (RenderFragment)(b =>
+            {
+                b.OpenComponent<IonIcon>(0);
+                b.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
+                b.CloseComponent();
+            })));
+
+        cut.Root.Class.ShouldContain("button-has-icon-only");
+    }
+
+    private static ComponentUnderTest RenderIconOnlyButton(TestContext ctx,
+        Action<ComponentParameterBuilder<IonButton>>? configure = null)
+        => ctx.Render<IonButton>(p =>
+        {
+            p.Add(nameof(IonButton.IconOnly), (RenderFragment)(b =>
+            {
+                b.OpenComponent<IonIcon>(0);
+                b.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
+                b.CloseComponent();
+            }));
+            configure?.Invoke(p);
+        });
+
+    [Fact]
+    public void IonButton_IconOnly_HostIsSquare()
+    {
+        // :host(.button-has-icon-only) — square min-width == min-height.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context);
+        var style = cut.GetComputedStyle(cut.Root)!;
+
+        style.MinWidth.Value.ShouldBe(40f);
+        style.MinHeight.Value.ShouldBe(40f);
+        style.MinWidth.Value.ShouldBe(style.MinHeight.Value);
+    }
+
+    [Fact]
+    public void IonButton_IconOnly_NativeHasZeroPadding()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context);
+        var native = cut.Root.Children[0];
+        var style = cut.GetComputedStyle(native)!;
+
+        style.PaddingLeft.Value.ShouldBe(0f);
+        style.PaddingRight.Value.ShouldBe(0f);
+        style.PaddingTop.Value.ShouldBe(0f);
+        style.PaddingBottom.Value.ShouldBe(0f);
+    }
+
+    [Fact]
+    public void IonButton_IconOnly_SizesTheIcon()
+    {
+        // ::slotted(ion-icon[slot="icon-only"]) — the icon-only icon is larger than the default box.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context);
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+        var style = cut.GetComputedStyle(icon)!;
+
+        // md default icon-only icon size.
+        style.Width.Value.ShouldBe(22.4f);
+        style.Height.Value.ShouldBe(22.4f);
+    }
+
+    [Fact]
+    public void IonButton_SmallIconOnly_UsesSmallerSquareAndIcon()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context, p => p.Add(nameof(IonButton.Size), "small"));
+        var hostStyle = cut.GetComputedStyle(cut.Root)!;
+        var iconStyle = cut.GetComputedStyle(cut.Root.FindByClass("ion-icon")[0])!;
+
+        hostStyle.MinWidth.Value.ShouldBe(28f);
+        hostStyle.MinHeight.Value.ShouldBe(28f);
+        iconStyle.Width.Value.ShouldBe(16f);
+    }
+
+    [Fact]
+    public void IonButton_LargeIconOnly_UsesLargerSquareAndIcon()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context, p => p.Add(nameof(IonButton.Size), "large"));
+        var hostStyle = cut.GetComputedStyle(cut.Root)!;
+        var iconStyle = cut.GetComputedStyle(cut.Root.FindByClass("ion-icon")[0])!;
+
+        hostStyle.MinWidth.Value.ShouldBe(50f);
+        hostStyle.MinHeight.Value.ShouldBe(50f);
+        iconStyle.Width.Value.ShouldBe(28f);
+    }
+
+    // --- Native surface min-height mirrors the host (Ionic: min-height: inherit) --------------
+    // In Ionic .button-native uses `min-height: inherit`, so it follows whatever min-height the
+    // host resolved. Miko has no `inherit` keyword, so ButtonStyles mirrors the host value onto
+    // the native surface in every variant that changes it. These guard that the native surface
+    // never lags behind the host (issues/ion-button.md #4).
+
+    [Fact]
+    public void IonButton_Default_NativeMinHeightMatchesHost()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderButton(Context);
+        var native = cut.Root.Children[0];
+
+        // md default host min-height is 36px; the native surface mirrors it.
+        cut.GetComputedStyle(native)!.MinHeight.Value.ShouldBe(36f);
+    }
+
+    [Fact]
+    public void IonButton_IconOnly_NativeMinHeightMatchesHost()
+    {
+        // The bug in #4: the icon-only host grows to 40px but the native surface stayed at 36px.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context);
+        var hostStyle = cut.GetComputedStyle(cut.Root)!;
+        var nativeStyle = cut.GetComputedStyle(cut.Root.Children[0])!;
+
+        hostStyle.MinHeight.Value.ShouldBe(40f);
+        nativeStyle.MinHeight.Value.ShouldBe(hostStyle.MinHeight.Value);
+    }
+
+    [Fact]
+    public void IonButton_SmallIconOnly_NativeMinHeightMatchesHost()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context, p => p.Add(nameof(IonButton.Size), "small"));
+        var hostStyle = cut.GetComputedStyle(cut.Root)!;
+        var nativeStyle = cut.GetComputedStyle(cut.Root.Children[0])!;
+
+        hostStyle.MinHeight.Value.ShouldBe(28f);
+        nativeStyle.MinHeight.Value.ShouldBe(hostStyle.MinHeight.Value);
+    }
+
+    [Fact]
+    public void IonButton_LargeIconOnly_NativeMinHeightMatchesHost()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context, p => p.Add(nameof(IonButton.Size), "large"));
+        var hostStyle = cut.GetComputedStyle(cut.Root)!;
+        var nativeStyle = cut.GetComputedStyle(cut.Root.Children[0])!;
+
+        hostStyle.MinHeight.Value.ShouldBe(50f);
+        nativeStyle.MinHeight.Value.ShouldBe(hostStyle.MinHeight.Value);
+    }
+
+    [Fact]
+    public void IonButton_OmitsSlotMarkers_WhenNoSlotContent()
+    {
+        var cut = RenderButton(Context);
+        var inner = cut.Root.Children[0].Children[0];
+        inner.FindByClass("ion-slot-start").ShouldBeEmpty();
+        inner.FindByClass("ion-slot-end").ShouldBeEmpty();
+        inner.FindByClass("ion-slot-icon-only").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void IonButton_StartSlotMarker_DoesNotShrink()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonButton>(p =>
+        {
+            p.Add(nameof(IonButton.Start), (RenderFragment)(b => b.AddContent(0, "S")));
+            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent(0, "Label")));
+        });
+
+        var inner = cut.Root.Children[0].Children[0];
+        var startMarker = inner.Children[0];
+        var style = cut.GetComputedStyle(startMarker)!;
+        style.FlexShrink.ShouldBe(0f);
+    }
+
     // --- Key style assertions (theme-driven) ---------------------------------------------
 
     [Fact]

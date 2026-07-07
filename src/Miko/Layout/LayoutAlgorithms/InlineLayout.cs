@@ -161,6 +161,50 @@ public class InlineLayout
             contentWidth = maxWidth;
         }
 
+        // 先应用 min/max-width 约束，得到确定的内容宽度，再据此重排子元素与计算高度。
+        // border-box 下 min/max-width 约束的是 border-box 宽度，需先扣除水平 padding+border
+        // 再与内容宽度比较（与 Width 的 border-box 处理保持一致，参见 BlockLayout）。
+        bool isBorderBox = style.BoxSizing == BoxSizing.BorderBox;
+        float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
+        float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
+
+        if (!style.MinWidth.IsAuto)
+        {
+            float min = style.MinWidth.ToPixels(containerWidth, fs);
+            if (isBorderBox) min = Math.Max(0, min - horizontalExtra);
+            contentWidth = Math.Max(contentWidth, min);
+        }
+        if (!style.MaxWidth.IsAuto)
+        {
+            float max = style.MaxWidth.ToPixels(containerWidth, fs);
+            if (isBorderBox) max = Math.Max(0, max - horizontalExtra);
+            contentWidth = Math.Min(contentWidth, max);
+        }
+
+        // 宽度确定后（显式宽度，或 auto 宽度被 min/max-width 夹取为定值），以该确定宽度
+        // 重排在流子元素，使子元素的 width:100% 能解析到父内容宽度（浏览器行为）。
+        // 高度传 null 保持不确定——min-height 撑起的高度不使百分比高度可解析（见 ISSUE-078）。
+        // 注意：auto 宽度且无 min/max-width 时不重排，保持 shrink-to-fit 的内容尺寸（见 ISSUE-077）。
+        bool widthIsDefinite = !widthIsAuto || !style.MinWidth.IsAuto || !style.MaxWidth.IsAuto;
+        if (widthIsDefinite && contentWidth > 0 && box.Children.Count > 0)
+        {
+            float childX = contentX + ownTextWidth;
+            float relaidLineHeight = ownTextHeight;
+            foreach (var child in box.Children)
+            {
+                if (BlockLayout.IsOutOfFlow(child))
+                {
+                    LayoutChild(child, new LayoutConstraints(null, null), childX, contentY);
+                    continue;
+                }
+
+                LayoutChild(child, new LayoutConstraints(contentWidth, null), childX, contentY);
+                childX = child.BoxModel.MarginBox.Right;
+                relaidLineHeight = Math.Max(relaidLineHeight, child.BoxModel.MarginBox.Height);
+            }
+            lineHeight = relaidLineHeight;
+        }
+
         if (!heightIsAuto)
         {
             contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
@@ -193,6 +237,20 @@ public class InlineLayout
         {
             // 有子元素时，lineHeight 已取文本高度与子元素高度的较大值
             contentHeight = lineHeight;
+        }
+
+        // 应用 min/max-height 约束（min/max-width 已在重排子元素前处理）。
+        if (!style.MinHeight.IsAuto)
+        {
+            float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+            if (isBorderBox) min = Math.Max(0, min - verticalExtra);
+            contentHeight = Math.Max(contentHeight, min);
+        }
+        if (!style.MaxHeight.IsAuto)
+        {
+            float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+            if (isBorderBox) max = Math.Max(0, max - verticalExtra);
+            contentHeight = Math.Min(contentHeight, max);
         }
 
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);

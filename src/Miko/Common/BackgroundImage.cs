@@ -32,6 +32,14 @@ public class BackgroundImage
     public BackgroundSize Size { get; set; } = BackgroundSize.Auto;
     public BackgroundPosition Position { get; set; } = BackgroundPosition.LeftTop;
 
+    /// <summary>
+    /// Marks this image as a monochrome "template" (e.g. an Ionicons SVG glyph) whose shape
+    /// should be tinted with the element's <c>color</c> at draw time — mirroring CSS
+    /// <c>fill: currentColor</c>. The image's alpha channel is used as a mask; its own RGB is
+    /// ignored. Colorful images (logos, photos) must leave this <c>false</c> so they render as-is.
+    /// </summary>
+    public bool IsTemplate { get; set; }
+
     private BackgroundImage() { }
 
     public static BackgroundImage FromFile(string path)

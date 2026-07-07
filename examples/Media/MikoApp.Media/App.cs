@@ -26,7 +26,7 @@ public static class App
         });
 
         // 注册图片加载，并指定本程序集用于解析 res://（占位图为嵌入资源）。
-        builder.UseImageLoading(typeof(App).Assembly);
+        builder.AddResourceAssembly(typeof(App).Assembly);
 
         builder.AddDevTools();
         builder.AddStyleSheet(GlobalStyles.Create());

@@ -532,7 +532,7 @@ public class Painter
     /// <summary>
     /// 绘制图片
     /// </summary>
-    public void DrawImage(SKBitmap bitmap, RectF rect)
+    public void DrawImage(SKBitmap bitmap, RectF rect, Color? tint = null)
     {
         if (bitmap == null) return;
 
@@ -540,6 +540,10 @@ public class Painter
         // 将 SKBitmap 转换为 SKImage 以使用支持 SKSamplingOptions 的 API
         using var image = SKImage.FromBitmap(bitmap);
         using var paint = new SKPaint { IsAntialias = true };
+        // 模板图标（如 Ionicons）用元素的 color 着色：以图像 alpha 作为遮罩，
+        // 用 SrcIn 混合替换其 RGB，对应 CSS 的 fill: currentColor。
+        if (tint is { } t)
+            paint.ColorFilter = SKColorFilter.CreateBlendMode(t.ToSKColor(), SKBlendMode.SrcIn);
         var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
         _canvas.DrawImage(image, rect.ToSKRect(), sampling, paint);
     }
