@@ -270,3 +270,19 @@ issues/**
 ## VitePress documentation site
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+
+## Agent-first assets are authored once under /agent and injected into the template
+## packages at pack time (see templates/Miko.Templates.csproj). Never commit copies of
+## them under the template source dirs — the packer supplies them from /agent.
+templates/MikoRazorApp/.miko/
+templates/MikoRazorApp/.claude/
+templates/MikoRazorApp/.codex/
+templates/MikoRazorApp/.cursor/
+templates/MikoRazorApp/CLAUDE.md
+templates/MikoRazorApp/AGENTS.md
+templates/MikoMultiplatformApp/.miko/
+templates/MikoMultiplatformApp/.claude/
+templates/MikoMultiplatformApp/.codex/
+templates/MikoMultiplatformApp/.cursor/
+templates/MikoMultiplatformApp/CLAUDE.md
+templates/MikoMultiplatformApp/AGENTS.md

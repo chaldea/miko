@@ -36,6 +36,22 @@
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!--
+    Agent-first assets live in a single authoritative source at the repo root (../agent).
+    They are injected into BOTH template content roots at pack time so there is exactly one
+    copy in the repo (nothing is duplicated under the templates source dirs in source
+    control). The per-agent .template.config modifiers still control which of these ship on
+    scaffold via the agent option. agent/README.md documents the source itself and is not
+    shipped.
+  -->
+  <ItemGroup>
+    <_AgentAsset Include="..\agent\**\*" Exclude="..\agent\README.md" />
+    <Content Include="@(_AgentAsset)"
+             PackagePath="content\MikoRazorApp\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Content Include="@(_AgentAsset)"
+             PackagePath="content\MikoMultiplatformApp\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <!-- This is a content-only package; nothing here should be compiled. -->
   <ItemGroup>
     <Compile Remove="**\*" />

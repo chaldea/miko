@@ -1,0 +1,32 @@
+---
+description: Miko UI framework rules — how to author pages, styles, and components. Apply when editing .razor, GlobalStyles, or App.cs.
+globs:
+  - "**/*.razor"
+  - "**/GlobalStyles*.cs"
+  - "**/App.cs"
+  - "**/_Imports.razor"
+alwaysApply: false
+---
+
+# Miko UI rules
+
+This project renders UI with **Miko** — Razor components compiled and drawn with SkiaSharp. It is **not** the web: no HTML/CSS runtime, styles are C# objects, and only a fixed element set exists.
+
+## Read the reference first
+
+Agent-optimized docs live under `.miko/` at the project root. Entry point: `.miko/llms.txt`.
+
+- `.miko/overview.md` — mental model + hard constraints. Read first.
+- `.miko/elements/index.md` — the exact DOM element set (check before using any tag).
+- `.miko/components/index.md` — Ionic components + parent/child rules.
+- `.miko/styling.md` — the typed `Style` object, `Length`, `Color`, `StyleSheet` + `CssObject`.
+- `.miko/layout.md`, `.miko/events.md`, `.miko/razor.md`, `.miko/project.md`.
+- `.miko/examples/` — counter / tabs / sidemenu.
+
+## Rules
+
+- **Add a page**: create `Pages/Foo.razor` with `@page "/foo"`. Routes are auto-discovered.
+- **Styles are C# objects**, never CSS strings. Use `GlobalStyles.cs` (`StyleSheet` + `CssObject`) or an inline `Style` object. Never write `style="color:red"`.
+- **No `inherit` keyword** — set non-inherited properties explicitly.
+- **Only listed elements exist.** There is no `<textarea>`, `<form>`, `<header>`, `<section>`, `<em>`, `<br>`, `<hr>`. Use `<div>`/`<span>` (see `.miko/elements/index.md`).
+- **Ionic** components require `builder.AddIonic()` + `@using Miko.Ionic.Components`, take a `Style` object (not a string), and follow parent/child rules (e.g. `IonItem` inside `IonList`).

@@ -56,7 +56,23 @@
     "useBlank":    { "type": "computed", "value": "(layout == \"blank\")" },
     "useSidemenu": { "type": "computed", "value": "(layout == \"sidemenu\")" },
     "useTabs":     { "type": "computed", "value": "(layout == \"tabs\")" },
-    "useIonic":    { "type": "computed", "value": "(layout == \"sidemenu\" || layout == \"tabs\")" }
+    "useIonic":    { "type": "computed", "value": "(layout == \"sidemenu\" || layout == \"tabs\")" },
+    "agent": {
+      "type": "parameter",
+      "datatype": "choice",
+      "description": "Scaffold AI-agent config and Miko docs for the given assistant.",
+      "defaultValue": "none",
+      "choices": [
+        { "choice": "none",   "description": "No agent config (default)." },
+        { "choice": "claude", "description": "Claude Code: .claude/, .miko/ docs, CLAUDE.md." },
+        { "choice": "codex",  "description": "Codex: .codex/, .miko/ docs, AGENTS.md." },
+        { "choice": "cursor", "description": "Cursor: .cursor/, .miko/ docs." }
+      ]
+    },
+    "agentNone":   { "type": "computed", "value": "(agent == \"none\")" },
+    "agentClaude": { "type": "computed", "value": "(agent == \"claude\")" },
+    "agentCodex":  { "type": "computed", "value": "(agent == \"codex\")" },
+    "agentCursor": { "type": "computed", "value": "(agent == \"cursor\")" }
   },
   "sources": [
     {
@@ -68,6 +84,29 @@
             "**/*.user",
             "nuget.config"
           ]
+        },
+        {
+          "condition": "(agentNone)",
+          "exclude": [
+            ".miko/**",
+            ".claude/**",
+            ".codex/**",
+            ".cursor/**",
+            "CLAUDE.md",
+            "AGENTS.md"
+          ]
+        },
+        {
+          "condition": "(!agentClaude)",
+          "exclude": [ ".claude/**", "CLAUDE.md" ]
+        },
+        {
+          "condition": "(!agentCodex)",
+          "exclude": [ ".codex/**", "AGENTS.md" ]
+        },
+        {
+          "condition": "(!agentCursor)",
+          "exclude": [ ".cursor/**" ]
         },
         {
           "condition": "(useBlank)",
