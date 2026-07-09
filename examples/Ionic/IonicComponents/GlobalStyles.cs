@@ -40,7 +40,8 @@ internal class GlobalStyles
             {
                 Padding = new Padding(10),
                 MarginBottom = Length.Px(4),
-                Color = Color.White
+                Color = Color.White,
+                Cursor = Cursor.Pointer,
             },
             ["p"] = new()
             {
@@ -67,6 +68,11 @@ internal class GlobalStyles
                 FlexDirection = FlexDirection.Column,
                 AlignItems = AlignItems.Stretch,
                 JustifyContent = JustifyContent.Center,
+                MinHeight = Percent(100),
+            },
+            [".container-block"] = new()
+            {
+                Display = Display.Block,
                 MinHeight = Percent(100),
             },
             [".wd-400"] = new ()

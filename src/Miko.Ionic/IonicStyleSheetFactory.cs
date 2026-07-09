@@ -1,4 +1,5 @@
-using Miko.Ionic.Components;
+﻿using Miko.Ionic.Components;
+using Miko.Ionic.Styles;
 using Miko.Styling;
 
 namespace Miko.Ionic;
@@ -52,6 +53,7 @@ public static class IonicStyleSheetFactory
 
     private static void AddMode(StyleSheet sheet, string mode, IonicTheme t)
     {
+        sheet.Add(GlobalStyle.GenStyle());
         sheet.Add(PageStyles.GenStyle(mode, t));
         sheet.Add(TabStyles.GenStyle(mode, t));
         sheet.Add(IconStyles.GenStyle(mode, t));
@@ -74,5 +76,7 @@ public static class IonicStyleSheetFactory
         sheet.Add(InfiniteScrollStyles.GenStyle(mode, t));
         sheet.Add(RefresherStyles.GenStyle(mode, t));
         sheet.Add(SelectStyles.GenStyle(mode, t));
+        sheet.Add(CheckboxStyles.GenStyle(mode, t));
+        sheet.Add(InputStyles.GenStyle(mode, t));
     }
 }

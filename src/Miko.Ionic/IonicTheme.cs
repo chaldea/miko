@@ -309,6 +309,66 @@ public class IonicTheme
     public float SelectBorderRadius { get; set; } = 4f;
     public float SelectRoundBorderRadius { get; set; } = 999f;
 
+    // Checkbox (checkbox.scss / checkbox.md.scss / checkbox.ios.scss + their *.vars.scss).
+    // The visual box (.checkbox-icon) is a bordered square that fills with the checked color and
+    // fades in the checkmark when checked/indeterminate. md is a small square (18px, ~2px radius);
+    // ios is a larger circle (22px, 50% radius).
+    /// <summary>Box side length (md 18px, ios 22px).</summary>
+    public float CheckboxSize { get; set; } = 18f;
+    /// <summary>Box border width (2px both modes).</summary>
+    public float CheckboxBorderWidth { get; set; } = 2f;
+    /// <summary>Box corner radius (md size*.125 ≈ 2.25px, ios 50% → half the size for a circle).</summary>
+    public Length CheckboxBorderRadius { get; set; } = Length.Px(2.25f);
+    /// <summary>Box border color when unchecked (md rgba(text,.60), ios rgba(text,.23)).</summary>
+    public Color CheckboxBorderColorOff { get; set; }
+    /// <summary>Box background when unchecked (item background — white).</summary>
+    public Color CheckboxBackgroundOff { get; set; }
+    /// <summary>Box background / border color when checked (primary).</summary>
+    public Color CheckboxBackgroundChecked { get; set; }
+    /// <summary>Checkmark tint when checked (primary contrast — white).</summary>
+    public Color CheckboxCheckmarkColor { get; set; }
+    /// <summary>Opacity of the whole disabled checkbox host (ios) / its label (md).</summary>
+    public float CheckboxDisabledOpacity { get; set; } = 0.38f;
+
+    // Input (input.scss / input.md.scss / input.ios.scss + their *.vars.scss). A full-width text
+    // field that lives inside an ion-item; the label sits beside/above the native input, an
+    // optional bottom row carries helper/error text and a character counter, and md draws a 2px
+    // focus highlight bar under the field. Tokens mirror the input's SCSS custom properties and the
+    // per-mode item border/font values.
+    /// <summary>Input font size (md 16px, ios 17px — SCSS uses <c>inherit</c>; we resolve to the item font).</summary>
+    public float InputFontSize { get; set; } = 16f;
+    /// <summary>Host min-height (44px both modes; grows to 56px for floating/stacked labels — handled in CSS).</summary>
+    public float InputMinHeight { get; set; } = 44f;
+    /// <summary>Input text color (<c>--color</c>, resolves to the item text color — black).</summary>
+    public Color InputTextColor { get; set; }
+    /// <summary>Placeholder text color (<c>--placeholder-color</c>).</summary>
+    public Color InputPlaceholderColor { get; set; }
+    /// <summary>Label text color (the neutral form-control label color).</summary>
+    public Color InputLabelColor { get; set; }
+    /// <summary>Field background (<c>--background</c>, transparent by default).</summary>
+    public Color InputBackground { get; set; }
+    /// <summary>Bottom border color below the field when helper/error/counter is shown
+    /// (<c>--border-color</c>: md <c>$item-md-border-color</c>, ios <c>$item-ios-border-color</c>).</summary>
+    public Color InputBorderColor { get; set; }
+    /// <summary>Focus highlight / caret color (<c>--highlight-color-focused</c> = primary).</summary>
+    public Color InputHighlightColor { get; set; }
+    /// <summary>Helper text color (neutral step-300).</summary>
+    public Color InputHelperColor { get; set; }
+    /// <summary>Error text color (<c>--highlight-color-invalid</c> = danger).</summary>
+    public Color InputErrorColor { get; set; }
+    /// <summary>Highlight bar height (<c>--highlight-height</c>: md 2px, ios 0px — ios has no bar).</summary>
+    public float InputHighlightHeight { get; set; } = 2f;
+    /// <summary>Field corner radius (<c>--border-radius</c>: used by fill/shape variants; round = 16px).</summary>
+    public float InputBorderRadius { get; set; } = 4f;
+    /// <summary>Field start padding (<c>--padding-start</c>, 0 by default; 16px for solid/outline fills).</summary>
+    public float InputPaddingStart { get; set; } = 0f;
+    /// <summary>Field end padding (<c>--padding-end</c>, 0 by default; 16px for solid/outline fills).</summary>
+    public float InputPaddingEnd { get; set; } = 0f;
+    /// <summary>Clear button icon color (text-color step-400).</summary>
+    public Color InputClearIconColor { get; set; }
+    /// <summary>Opacity of the whole disabled input host (md .38, ios .3).</summary>
+    public float InputDisabledOpacity { get; set; } = 0.38f;
+
     // Brand palette shared by both modes (ionic.theme.default.scss).
     private static void ApplyBrandColors(IonicTheme t)
     {
@@ -578,6 +638,38 @@ public class IonicTheme
         t.SelectBorderRadius = 4f;
         t.SelectRoundBorderRadius = 999f;
 
+        // Checkbox (checkbox.md.scss / checkbox.md.vars.scss): 18px square, 2px border,
+        // radius size*.125 (2.25px), unchecked border rgba(text,.60), white fill; checked fills
+        // with primary and shows a white checkmark. Disabled dims the label to .38.
+        t.CheckboxSize = 18f;
+        t.CheckboxBorderWidth = 2f;
+        t.CheckboxBorderRadius = Length.Px(18f * 0.125f);        // calc(var(--size) * .125)
+        t.CheckboxBorderColorOff = new Color(0, 0, 0, 153);      // rgba(text,.60)
+        t.CheckboxBackgroundOff = Color.FromHex("ffffff");        // $item-md-background
+        t.CheckboxBackgroundChecked = t.Primary;                  // --checkbox-background-checked
+        t.CheckboxCheckmarkColor = Color.FromHex("ffffff");       // ion-color(primary, contrast)
+        t.CheckboxDisabledOpacity = 0.38f;                        // $form-control-md-disabled-opacity
+
+        // Input (input.md.scss / input.md.vars.scss): 16px text; 44px min-height; 1px item bottom
+        // border rgba(0,0,0,.07); 2px primary highlight bar; radius 4 (used by fills/round). Text and
+        // background inherit the item's black-on-transparent; disabled dims the host to .38.
+        t.InputFontSize = 16f;
+        t.InputMinHeight = 44f;
+        t.InputTextColor = Color.FromHex("000000");               // --color → item text
+        t.InputPlaceholderColor = Color.FromHex("666666");        // step-400 neutral placeholder
+        t.InputLabelColor = Color.FromHex("666666");              // neutral form-control label
+        t.InputBackground = Color.Transparent;                    // --background: transparent
+        t.InputBorderColor = new Color(0, 0, 0, 18);              // $item-md-border-color rgba(0,0,0,.07)
+        t.InputHighlightColor = t.Primary;                        // --highlight-color-focused: primary
+        t.InputHelperColor = Color.FromHex("666666");             // $text-color-step-300
+        t.InputErrorColor = t.Danger;                             // --highlight-color-invalid: danger
+        t.InputHighlightHeight = 2f;                              // --highlight-height: 2px
+        t.InputBorderRadius = 4f;
+        t.InputPaddingStart = 0f;
+        t.InputPaddingEnd = 0f;
+        t.InputClearIconColor = Color.FromHex("666666");          // $text-color-step-400
+        t.InputDisabledOpacity = 0.38f;                           // $input-md-disabled-opacity
+
         return t;
     }
 
@@ -810,6 +902,38 @@ public class IonicTheme
         t.SelectPaddingBottom = 8f;
         t.SelectBorderRadius = 10f;
         t.SelectRoundBorderRadius = 999f;
+
+        // Checkbox (checkbox.ios.scss / checkbox.ios.vars.scss): 22px circle, 2px border, 50% radius
+        // (a circle), unchecked border rgba(text,.23), white fill; checked fills with primary and
+        // shows a white checkmark. Disabled dims the whole host to .3.
+        t.CheckboxSize = 22f;
+        t.CheckboxBorderWidth = 2f;
+        t.CheckboxBorderRadius = Length.Px(11f);                  // 50% of 22px → a circle
+        t.CheckboxBorderColorOff = new Color(0, 0, 0, 59);       // rgba(text,.23)
+        t.CheckboxBackgroundOff = Color.FromHex("ffffff");        // $item-ios-background
+        t.CheckboxBackgroundChecked = t.Primary;                  // --checkbox-background-checked
+        t.CheckboxCheckmarkColor = Color.FromHex("ffffff");       // ion-color(primary, contrast)
+        t.CheckboxDisabledOpacity = 0.3f;                         // $form-control-ios-disabled-opacity
+
+        // Input (input.ios.scss / input.ios.vars.scss): 17px text; 44px min-height; hairline item
+        // bottom border rgba(0,0,0,.2); NO highlight bar (ios --highlight-height: 0); radius 4.
+        // Disabled dims the host to .3.
+        t.InputFontSize = 17f;
+        t.InputMinHeight = 44f;
+        t.InputTextColor = Color.FromHex("000000");               // --color → item text
+        t.InputPlaceholderColor = Color.FromHex("666666");        // step-400 neutral placeholder
+        t.InputLabelColor = Color.FromHex("666666");              // neutral form-control label
+        t.InputBackground = Color.Transparent;                    // --background: transparent
+        t.InputBorderColor = new Color(0, 0, 0, 51);              // $item-ios-border-color rgba(0,0,0,.2)
+        t.InputHighlightColor = t.Primary;                        // --highlight-color-focused: primary
+        t.InputHelperColor = Color.FromHex("666666");             // $text-color-step-300
+        t.InputErrorColor = t.Danger;                             // --highlight-color-invalid: danger
+        t.InputHighlightHeight = 0f;                              // ios --highlight-height: 0px
+        t.InputBorderRadius = 4f;
+        t.InputPaddingStart = 0f;
+        t.InputPaddingEnd = 0f;
+        t.InputClearIconColor = Color.FromHex("666666");          // $text-color-step-400
+        t.InputDisabledOpacity = 0.3f;                            // $input-ios-disabled-opacity
 
         return t;
     }

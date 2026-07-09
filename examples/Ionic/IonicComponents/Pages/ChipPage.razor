@@ -1,0 +1,52 @@
+@page "/chip"
+
+<h1>IonChip</h1>
+
+<p>
+    Chips represent complex entities in small blocks, such as a contact. A chip can contain several different elements such as avatars, text, and icons.
+</p>
+
+<h2>Basic Usage</h2>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonChip>Default</IonChip>
+            <IonChip Disabled>Default</IonChip>
+            <IonChip Outline>Default</IonChip>
+        </div>
+    </div>
+</div>
+
+<h2>Slotting Components and Icons</h2>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonChip>
+                <IonIcon Icon="@Ionicons.Pin" Color="primary"></IonIcon>
+                <IonLabel>Icon Chip</IonLabel>
+                <IonIcon Icon="@Ionicons.Close"></IonIcon>
+            </IonChip>
+        </div>
+    </div>
+</div>
+
+<h2>Colors</h2>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonChip>Default</IonChip>
+            <IonChip Color="primary">Primary</IonChip>
+            <IonChip Color="secondary">Secondary</IonChip>
+            <IonChip Color="tertiary">Tertiary</IonChip>
+            <IonChip Color="success">Success</IonChip>
+            <IonChip Color="warning">Warning</IonChip>
+            <IonChip Color="danger">Danger</IonChip>
+            <IonChip Color="light">Light</IonChip>
+            <IonChip Color="medium">Medium</IonChip>
+            <IonChip Color="dark">Dark</IonChip>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,110 @@
+@page "/input"
+
+<h1>IonInput</h1>
+
+<p>
+    The input component is a wrapper to the HTML input element with custom styling and additional
+    functionality. It accepts most standard HTML attributes and its label can be placed relative
+    to the input using the labelPlacement property.
+</p>
+
+<h2>Basic Usage</h2>
+
+<div class="playground">
+    <div class="playground-container">
+        <IonList>
+            <IonItem>
+                <IonInput Label="Default input"></IonInput>
+            </IonItem>
+
+            <IonItem>
+                <IonInput Label="Input with placeholder" Placeholder="Enter company name"></IonInput>
+            </IonItem>
+
+            <IonItem>
+                <IonInput Label="Input with value" Value="121 S Pinckney St #300"></IonInput>
+            </IonItem>
+
+            <IonItem>
+                <IonInput Label="Readonly input" Value="Madison" Readonly="true"></IonInput>
+            </IonItem>
+
+            <IonItem>
+                <IonInput Label="Disabled input" Value="53703" Disabled="true"></IonInput>
+            </IonItem>
+        </IonList>
+    </div>
+</div>
+
+<h2>Label Placement</h2>
+
+<p>
+    Developers can use the labelPlacement property to control how the label is placed relative to
+    the input.
+</p>
+
+<div class="playground">
+    <div class="playground-container">
+        <IonList>
+            <IonItem>
+                <IonInput Label="Start" LabelPlacement="start" Value="Value"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Label="End" LabelPlacement="end" Value="Value"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Label="Fixed" LabelPlacement="fixed" Value="Value"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Label="Stacked" LabelPlacement="stacked" Value="Value"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Label="Floating" LabelPlacement="floating" Value="Value"></IonInput>
+            </IonItem>
+        </IonList>
+    </div>
+</div>
+
+<h2>Filled Inputs</h2>
+
+<p>
+    Material Design offers filled styles for an input. The fill property can be set to
+    <code>"solid"</code> or <code>"outline"</code>.
+</p>
+
+<div class="playground">
+    <div class="playground-container">
+        <IonList>
+            <IonItem>
+                <IonInput Label="Solid" LabelPlacement="stacked" Fill="solid" Placeholder="Enter text"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Label="Outline" LabelPlacement="stacked" Fill="outline" Placeholder="Enter text"></IonInput>
+            </IonItem>
+        </IonList>
+    </div>
+</div>
+
+<h2>Helper &amp; Error Text</h2>
+
+<div class="playground">
+    <div class="playground-container">
+        <IonList>
+            <IonItem>
+                <IonInput Label="Name"
+                          Placeholder="Enter your name"
+                          HelperText="Enter your full legal name"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Label="Bio"
+                          Placeholder="Say something"
+                          Counter="true"
+                          Maxlength="100"></IonInput>
+            </IonItem>
+        </IonList>
+    </div>
+</div>
+
+@code {
+
+}
