@@ -67,24 +67,25 @@ public class EnabledSelector : PseudoClassSelector
 }
 
 /// <summary>
-/// :first-child 伪类选择器
+/// :first-child 伪类选择器。
+/// 依据 CSS 规范，子序号只计元素子节点，文本节点（TextNode）不计入（见 ISSUE-086）。
 /// </summary>
 public class FirstChildSelector : PseudoClassSelector
 {
     public override bool Matches(Element element)
     {
-        return element.Parent?.Children.FirstOrDefault() == element;
+        return element.Parent?.Children.FirstOrDefault(c => c is not TextNode) == element;
     }
 }
 
 /// <summary>
-/// :last-child 伪类选择器
+/// :last-child 伪类选择器。文本节点不计入子序号（见 ISSUE-086）。
 /// </summary>
 public class LastChildSelector : PseudoClassSelector
 {
     public override bool Matches(Element element)
     {
-        return element.Parent?.Children.LastOrDefault() == element;
+        return element.Parent?.Children.LastOrDefault(c => c is not TextNode) == element;
     }
 }
 
@@ -128,13 +129,16 @@ public class NotSelector : PseudoClassSelector
 }
 
 /// <summary>
-/// :empty 伪类选择器 - 匹配没有子元素且没有文本内容的元素
+/// :empty 伪类选择器 - 匹配没有子元素且没有文本内容的元素。
+/// 文本以 TextNode 子节点承载（见 ISSUE-086），因此需排除文本节点后判断是否还有元素子节点，
+/// 并确认无非空直接文本（TextContent facade 聚合直接文本节点）。
 /// </summary>
 public class EmptySelector : PseudoClassSelector
 {
     public override bool Matches(Element element)
     {
-        return element.Children.Count == 0 && string.IsNullOrEmpty(element.TextContent);
+        bool hasElementChild = element.Children.Any(c => c is not TextNode);
+        return !hasElementChild && string.IsNullOrEmpty(element.TextContent);
     }
 }
 

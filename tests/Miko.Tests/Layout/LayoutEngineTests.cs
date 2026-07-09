@@ -3397,7 +3397,9 @@ public class LayoutEngineTests
 
         var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
 
-        var childBox = layoutRoot.Children[0];
+        // 子节点顺序：文本节点在前（Children[0]），block 子元素在后（Children[1]）。
+        layoutRoot.Children[0].Element.ShouldBeOfType<TextNode>();
+        var childBox = layoutRoot.Children[1];
 
         // The child block must be positioned below the parent's own text line,
         // not at the very top (which would overlap the text).
@@ -3435,7 +3437,9 @@ public class LayoutEngineTests
 
         var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
 
-        var spanBox = layoutRoot.Children[0];
+        // 子节点顺序：文本节点在前（Children[0]），span 在后（Children[1]）。
+        layoutRoot.Children[0].Element.ShouldBeOfType<TextNode>();
+        var spanBox = layoutRoot.Children[1];
 
         // The span should be on the same line as the parent's text,
         // positioned horizontally after the text width, not below it.

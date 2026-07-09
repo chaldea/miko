@@ -116,7 +116,9 @@ public enum LayoutType
     Anonymous,
     Table,
     TableRow,
-    TableCell
+    TableCell,
+    // 匿名文本节点（TextNode）：仅测量文本外接矩形写入 Content，无 padding/border/margin。
+    Text
 }
 
 /// <summary>

@@ -16,6 +16,7 @@ public class LayoutEngine
     private readonly InlineLayout _inlineLayout = new();
     private readonly FlexLayout _flexLayout = new();
     private readonly TableLayout _tableLayout = new();
+    private readonly TextLayout _textLayout = new();
 
     // 当前布局的安全区边距。在样式计算阶段用于折算各元素的 env(safe-area-inset-*) 长度。
     // 不内缩视口本身——视口始终为全屏，仅“声明了 env() 的内容元素”据此添加内边距，
@@ -231,6 +232,13 @@ public class LayoutEngine
 
         var layoutBox = element.LayoutBox;
 
+        // 文本节点：始终使用 Text 布局（匿名行内文本盒），不受 display 影响。
+        if (element is TextNode)
+        {
+            layoutBox.Type = LayoutType.Text;
+            return layoutBox;
+        }
+
         // 根据 display 属性确定布局类型
         layoutBox.Type = layoutBox.ComputedStyle.Display switch
         {
@@ -326,6 +334,7 @@ public class LayoutEngine
             matchedStyle = merged;
         }
 
+        // content 文本通过 facade setter 变为 pseudoElement 的 TextNode 子节点（见 ISSUE-086）。
         var pseudoElement = new PseudoElement { TextContent = matchedStyle.Content, Type = type };
         var computedStyle = ComputedStyle.FromStyle(matchedStyle);
         computedStyle.ResolveSafeArea(_safeArea);
@@ -352,7 +361,40 @@ public class LayoutEngine
 
         if (computedStyle.Display == Display.None) return null;
 
+        // 为 content 文本节点建盒并挂到伪元素盒下，使其作为普通行内子盒被布局/绘制。
+        foreach (var child in pseudoElement.Children)
+        {
+            if (child is TextNode)
+            {
+                var textStyle = ComputedStyle.FromStyle(new Style());
+                InheritComputedStyle(textStyle, computedStyle);
+                child.LayoutBox = new LayoutBox
+                {
+                    Element = child,
+                    ComputedStyle = textStyle,
+                    Type = LayoutType.Text
+                };
+                box.Children.Add(child.LayoutBox);
+            }
+        }
+
         return box;
+    }
+
+    /// <summary>
+    /// 把父计算样式的可继承文本属性复制到子（用于伪元素 content 文本节点等无独立样式解析的场景）。
+    /// Miko 无 CSS inherit 关键字，需显式镜像（见 memory: miko-no-inherit-keyword）。
+    /// </summary>
+    private static void InheritComputedStyle(ComputedStyle target, ComputedStyle parent)
+    {
+        target.Color = parent.Color;
+        target.FontFamily = parent.FontFamily;
+        target.FontSize = parent.FontSize;
+        target.FontWeight = parent.FontWeight;
+        target.TextAlign = parent.TextAlign;
+        target.LineHeight = parent.LineHeight;
+        target.WhiteSpace = parent.WhiteSpace;
+        target.TextDecoration = parent.TextDecoration;
     }
 
     /// <summary>
@@ -384,6 +426,10 @@ public class LayoutEngine
                 // TableRow 和 TableCell 由 TableLayout 直接布局
                 // 如果单独调用，使用 Block 布局作为后备
                 _blockLayout.Layout(box, constraints, x, y);
+                break;
+
+            case LayoutType.Text:
+                _textLayout.Layout(box, constraints, x, y);
                 break;
         }
     }

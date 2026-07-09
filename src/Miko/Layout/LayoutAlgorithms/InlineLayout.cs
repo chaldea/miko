@@ -42,53 +42,22 @@ public class InlineLayout
         float contentX = x + box.BoxModel.Margin.Left + box.BoxModel.Border.Left + box.BoxModel.Padding.Left;
         float contentY = y + box.BoxModel.Margin.Top + box.BoxModel.Border.Top + box.BoxModel.Padding.Top;
 
-        // 当元素同时拥有 TextContent 和子元素时，文本作为匿名 inline 盒
-        // 排在子元素之前，子元素从文本宽度之后开始排列（与 BlockLayout 保持一致）。
-        float ownTextWidth = 0;
-        float ownTextHeight = 0;
-        bool hasOwnText = !string.IsNullOrEmpty(box.Element.TextContent);
+        // 文本节点作为普通行内子盒参与，交错顺序由子节点列表表达（见 ISSUE-086），
+        // 不再需要把父元素的 TextContent 作为「排在子元素之前的匿名盒」特殊处理。
+        float currentX = contentX;
+        float lineHeight = 0;
+        float maxWidth = 0;
 
-        if (hasOwnText)
+        // 文本节点可用的换行宽度：当行内元素自身有宽度约束时，文本应在剩余宽度内换行
+        // （见 ISSUE-079）。auto 宽度且无约束时传 null，文本单行测量（shrink-to-fit）。
+        float? textWrapWidth = null;
+        if (constraints.AvailableWidth.HasValue && constraints.AvailableWidth.Value > 0)
         {
-            // 行高优先使用显式 line-height（如 1.5 × 字体大小），否则取字体自然度量。
-            float resolvedLineHeight = BlockLayout.ResolveLineHeight(style);
-
-            // 如果元素有明确的宽度约束，使用多行测量（支持自动换行）
-            if (constraints.AvailableWidth.HasValue && constraints.AvailableWidth.Value > 0)
-            {
-                // 减去 padding 和 border 得到可用内容宽度
-                float availableContentWidth = constraints.AvailableWidth.Value
-                    - box.BoxModel.Padding.Horizontal
-                    - box.BoxModel.Border.Horizontal;
-
-                var (wrappedWidth, wrappedHeight) = TextMeasurer.MeasureTextWithWrap(
-                    box.Element.TextContent,
-                    style.FontFamily,
-                    style.FontSize.Value,
-                    style.FontWeight,
-                    availableContentWidth,
-                    resolvedLineHeight,
-                    style.WhiteSpace);
-
-                ownTextWidth = wrappedWidth;
-                ownTextHeight = wrappedHeight;
-            }
-            else
-            {
-                // 没有宽度约束，使用单行测量
-                var (textWidth, _) = TextMeasurer.MeasureText(
-                    box.Element.TextContent,
-                    style.FontFamily,
-                    style.FontSize.Value,
-                    style.FontWeight);
-                ownTextWidth = textWidth;
-                ownTextHeight = resolvedLineHeight;
-            }
+            textWrapWidth = constraints.AvailableWidth.Value
+                - box.BoxModel.Padding.Horizontal
+                - box.BoxModel.Border.Horizontal;
+            if (textWrapWidth < 0) textWrapWidth = 0;
         }
-
-        float currentX = contentX + ownTextWidth;
-        float lineHeight = ownTextHeight;
-        float maxWidth = ownTextWidth;
 
         // 简化实现：单行布局，不处理换行
         foreach (var child in box.Children)
@@ -102,7 +71,10 @@ public class InlineLayout
                 continue;
             }
 
-            var childConstraints = new LayoutConstraints(null, null);
+            // 文本节点传入换行宽度以支持自动换行；其它行内子元素保持 null 约束（shrink-to-fit）。
+            var childConstraints = child.Type == LayoutType.Text
+                ? new LayoutConstraints(textWrapWidth, null)
+                : new LayoutConstraints(null, null);
             LayoutChild(child, childConstraints, currentX, contentY);
 
             currentX = child.BoxModel.MarginBox.Right;
@@ -150,14 +122,9 @@ public class InlineLayout
                 contentWidth = h * intrinsicW / intrinsicH;
             }
         }
-        else if (box.Children.Count == 0 && hasOwnText)
-        {
-            // 只有文本内容、没有子元素：宽度即文本宽度
-            contentWidth = ownTextWidth;
-        }
         else
         {
-            // 有子元素（可能同时有文本）：maxWidth 已包含文本宽度作为起始偏移
+            // auto 宽度：内容宽度即行内子盒（含文本节点）排列后的最大宽度。
             contentWidth = maxWidth;
         }
 
@@ -188,8 +155,8 @@ public class InlineLayout
         bool widthIsDefinite = !widthIsAuto || !style.MinWidth.IsAuto || !style.MaxWidth.IsAuto;
         if (widthIsDefinite && contentWidth > 0 && box.Children.Count > 0)
         {
-            float childX = contentX + ownTextWidth;
-            float relaidLineHeight = ownTextHeight;
+            float childX = contentX;
+            float relaidLineHeight = 0;
             foreach (var child in box.Children)
             {
                 if (BlockLayout.IsOutOfFlow(child))
@@ -228,14 +195,9 @@ public class InlineLayout
             // 也优先采用单行高度，避免被 option 撑高或塌缩为 0（参见 ISSUE-040）。
             contentHeight = formControlHeight;
         }
-        else if (box.Children.Count == 0 && hasOwnText)
-        {
-            // 只有文本内容、没有子元素：高度即文本高度
-            contentHeight = ownTextHeight;
-        }
         else
         {
-            // 有子元素时，lineHeight 已取文本高度与子元素高度的较大值
+            // auto 高度：内容高度即行内子盒（含文本节点）行高的最大值。
             contentHeight = lineHeight;
         }
 

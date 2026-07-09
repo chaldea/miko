@@ -81,7 +81,9 @@ public class InlineMixedContentTests
         var layout = _layoutEngine.Layout(button, DefaultStyleSheets(), 800, 600);
 
         float textWidth = MeasureWidth("Notifications");
-        var spanBox = layout.Children[0];
+        // 子节点顺序：文本节点在前（Children[0]），span 在后（Children[1]）。
+        layout.Children[0].Element.ShouldBeOfType<TextNode>();
+        var spanBox = layout.Children[1];
 
         // ISSUE-037: 之前 button 宽度只等于 span 的宽度，忽略了 "Notifications" 文本。
         // 正确行为：内容宽度应当同时包含文本宽度与 span 宽度。
@@ -102,7 +104,9 @@ public class InlineMixedContentTests
         var layout = _layoutEngine.Layout(button, DefaultStyleSheets(), 800, 600);
 
         float textWidth = MeasureWidth("Notifications");
-        var spanBox = layout.Children[0];
+        // 子节点顺序：文本节点在前（Children[0]），span 在后（Children[1]）。
+        layout.Children[0].Element.ShouldBeOfType<TextNode>();
+        var spanBox = layout.Children[1];
 
         spanBox.BoxModel.MarginBox.Left.ShouldBe(
             layout.BoxModel.Content.Left + textWidth, 0.5f,
