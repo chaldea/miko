@@ -19,7 +19,14 @@ public static class SimulatorHostExtensions
 
         var loggerFactory = context.Services.GetService<ILoggerFactory>();
         var logger = loggerFactory?.CreateLogger<SimulatorHost>();
-        return new SimulatorHost(context, options, logger);
+        var host = new SimulatorHost(context, options, logger);
+
+        // 通知所有观察者（如 Miko.McpServer 的 MCP 服务器启动器）宿主已就绪。
+        // 观察者按 DI 注册顺序回调，可拿到宿主引用建立调试通道。
+        foreach (var observer in context.Services.GetServices<ISimulatorHostObserver>())
+            observer.OnHostStarted(host);
+
+        return host;
     }
 
     /// <summary>从应用上下文创建模拟器宿主并启动（阻塞直到窗口关闭）。</summary>

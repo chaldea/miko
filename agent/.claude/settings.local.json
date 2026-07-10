@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Read(*)",
+      "WebSearch",
+      "mcp__miko"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "enabledMcpjsonServers": [
+    "miko"
+  ]
+}

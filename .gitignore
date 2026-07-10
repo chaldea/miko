@@ -286,3 +286,8 @@ templates/MikoMultiplatformApp/.codex/
 templates/MikoMultiplatformApp/.cursor/
 templates/MikoMultiplatformApp/CLAUDE.md
 templates/MikoMultiplatformApp/AGENTS.md
+
+## The agent-first Claude config ships a settings.local.json (a Claude Code permissions
+## preset for scaffolded apps). A common global gitignore blocks **/.claude/settings.local.json;
+## re-include the authoritative source copy under /agent so it packs into the template.
+!agent/.claude/settings.local.json

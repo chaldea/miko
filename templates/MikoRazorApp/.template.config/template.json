@@ -82,7 +82,9 @@
             "bin/**",
             "obj/**",
             "**/*.user",
-            "nuget.config"
+            "nuget.config",
+            ".mcp.json",
+            ".claude/settings.local.json"
           ]
         },
         {

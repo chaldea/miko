@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "miko": {
+      "type": "http",
+      "url": "http://localhost:5800"
+    }
+  }
+}

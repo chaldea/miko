@@ -88,13 +88,14 @@
             ".claude/**",
             ".codex/**",
             ".cursor/**",
+            ".mcp.json",
             "CLAUDE.md",
             "AGENTS.md"
           ]
         },
         {
           "condition": "(!agentClaude)",
-          "exclude": [ ".claude/**", "CLAUDE.md" ]
+          "exclude": [ ".claude/**", ".mcp.json", "CLAUDE.md" ]
         },
         {
           "condition": "(!agentCodex)",

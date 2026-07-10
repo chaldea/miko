@@ -3,7 +3,10 @@
 This directory is the **single authoritative source** for Miko's agent-facing assets. Nothing here is duplicated anywhere else in the repo:
 
 - `.miko/` — agent-optimized Miko reference docs (`llms.txt`, elements, components, styling, examples…).
-- `.claude/`, `.codex/`, `.cursor/` — per-assistant config skeletons.
+- `.claude/`, `.codex/`, `.cursor/` — per-assistant config skeletons. `.claude/` also carries a
+  `settings.local.json` (a Claude Code permissions preset that pre-approves the `miko` MCP server).
+- `.mcp.json` — MCP client config pointing Claude Code at the Miko MCP debug server
+  (`http://localhost:5800`, started by the simulator head via `AddMikoMcpServer()`). Claude-only.
 - `CLAUDE.md`, `AGENTS.md` — project-root entry files that point an agent at `.miko/`.
 - `README.md` — this file (documents the source; **not** shipped in any package).
 
@@ -24,9 +27,11 @@ dotnet new miko-razor --agent codex  -o MyApp
 dotnet new miko-razor --agent cursor -o MyApp
 ```
 
-`--agent` values: `none` (default — nothing scaffolded), `claude` (`.claude/` + `CLAUDE.md`),
-`codex` (`.codex/` + `AGENTS.md`), `cursor` (`.cursor/`). Every non-`none` value also
-scaffolds `.miko/`.
+`--agent` values: `none` (default — nothing scaffolded), `claude` (`.claude/` + `.mcp.json` +
+`CLAUDE.md`), `codex` (`.codex/` + `AGENTS.md`), `cursor` (`.cursor/`). Every non-`none` value
+also scaffolds `.miko/`. The `.mcp.json` / `.claude/settings.local.json` MCP wiring ships only
+with `--agent claude` on the multiplatform template (which has the simulator head that hosts the
+MCP server).
 
 ## Editing
 

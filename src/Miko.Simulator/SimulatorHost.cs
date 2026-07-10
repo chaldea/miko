@@ -87,6 +87,59 @@ public sealed class SimulatorHost
 
     private volatile bool _panelNeedsRebuild = true;
 
+    // 跨线程调用队列：MCP 等后台线程通过 InvokeOnRenderThread 投递操作，
+    // 在渲染线程每帧开头排空执行，保证 DOM/GL 只被渲染线程触碰。
+    private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _renderThreadQueue = new();
+
+    // 公共访问器，供SimulatorService使用。
+    public DeviceProfile CurrentDevice => _device;
+    public IReadOnlyList<DeviceProfile> AvailableDevices => _options.Devices;
+    public Orientation CurrentOrientation => _orientation;
+    public bool SafeAreaEnabled => _safeAreaEnabled;
+    public SKSurface? AppSurface => _appSurface;
+
+    /// <summary>应用交互控制器，供调试服务转发模拟输入（点击/滚动等）。</summary>
+    public MikoInteractionController AppController => _appController;
+
+    /// <summary>当前设备的像素密度（逻辑坐标 → 物理像素的缩放系数）。</summary>
+    public float DeviceScale => _device.Scale;
+
+    /// <summary>
+    /// 在渲染线程上执行 <paramref name="action"/> 并阻塞等待完成。
+    /// 供 MCP 等后台线程安全地读取/修改 DOM，避免与渲染循环竞争。
+    /// </summary>
+    public void InvokeOnRenderThread(Action action)
+    {
+        using var done = new ManualResetEventSlim(false);
+        Exception? error = null;
+        _renderThreadQueue.Enqueue(() =>
+        {
+            try { action(); }
+            catch (Exception ex) { error = ex; }
+            finally { done.Set(); }
+        });
+        done.Wait();
+        if (error != null) throw error;
+    }
+
+    /// <summary>在渲染线程上执行 <paramref name="func"/> 并返回其结果（阻塞等待）。</summary>
+    public T InvokeOnRenderThread<T>(Func<T> func)
+    {
+        T result = default!;
+        InvokeOnRenderThread(() => { result = func(); });
+        return result;
+    }
+
+    // 渲染线程每帧开头排空队列。
+    private void DrainRenderThreadQueue()
+    {
+        while (_renderThreadQueue.TryDequeue(out var action))
+        {
+            try { action(); }
+            catch (Exception ex) { _logger.LogError(ex, "Error in render-thread queued action"); }
+        }
+    }
+
     public SimulatorHost(MikoAppContext appContext, SimulatorOptions options, ILogger<SimulatorHost>? logger = null)
     {
         _appContext = appContext;
@@ -321,6 +374,9 @@ public sealed class SimulatorHost
     {
         if (_grContext == null || _gl == null || _appSurface == null) return;
 
+        // 排空跨线程调用队列（MCP 等后台线程投递的 DOM 读写操作），在任何渲染前于本线程执行。
+        DrainRenderThreadQueue();
+
         // 最小化时窗口为 0×0。用 0 尺寸创建 GRBackendRenderTarget / SKSurface 会返回 null，
         // 解引用 Canvas 将抛异常并污染 GRContext，导致恢复后再也无法渲染（ISSUE-067 现象）。
         // 直接跳过本帧——恢复时尺寸恢复正常，渲染随之恢复。
@@ -425,9 +481,9 @@ public sealed class SimulatorHost
             _device,
             _orientation,
             _safeAreaEnabled,
-            onSelectDevice: SelectDevice,
-            onSetOrientation: SetOrientation,
-            onToggleSafeArea: ToggleSafeArea);
+            onSelectDevice: d => SelectDeviceInternal(d),
+            onSetOrientation: o => SetOrientationInternal(o),
+            onToggleSafeArea: ToggleSafeAreaInternal);
 
         var styleSheets = new List<Styling.StyleSheet> { SimulatorStyleSheet.Create() };
         using var tempSurface = SKSurface.Create(new SKImageInfo(Math.Max(1, PanelWidth), Math.Max(1, _windowHeight)));
@@ -438,7 +494,12 @@ public sealed class SimulatorHost
     // 模拟状态变更
     // ---------------------------------------------------------------------
 
-    private void SelectDevice(DeviceProfile device)
+    // 公共方法，供SimulatorService调用。
+    public void SelectDevice(DeviceProfile device) => SelectDeviceInternal(device);
+    public void SetOrientation(Orientation orientation) => SetOrientationInternal(orientation);
+    public void ToggleSafeArea(bool enabled) => ToggleSafeAreaInternal(enabled);
+
+    private void SelectDeviceInternal(DeviceProfile device)
     {
         if (device.Name == _device.Name) return;
         var platformChanged = device.Platform != _device.Platform;
@@ -457,7 +518,7 @@ public sealed class SimulatorHost
         _logger.LogInformation("Simulated device changed to {Device}", device);
     }
 
-    private void SetOrientation(Orientation orientation)
+    private void SetOrientationInternal(Orientation orientation)
     {
         if (orientation == _orientation) return;
         _orientation = orientation;
@@ -466,7 +527,7 @@ public sealed class SimulatorHost
         _logger.LogInformation("Orientation changed to {Orientation}", orientation);
     }
 
-    private void ToggleSafeArea(bool enabled)
+    private void ToggleSafeAreaInternal(bool enabled)
     {
         if (enabled == _safeAreaEnabled) return;
         _safeAreaEnabled = enabled;

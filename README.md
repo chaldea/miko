@@ -83,20 +83,10 @@ Razor components  ─►  Miko source generator  ─►  native SkiaSharp render
 - 🅱️ **Bootstrap-style component library** — ready-made buttons, cards, alerts,
   accordions, and more.
 - 🛠️ **Dev tools** — inspect the DOM and layout tree at runtime.
+- 🤖 **Agent-first** — ships AI-agent docs and an MCP debug server so assistants like
+  Claude Code can read the DOM, inspect styles, and drive a running app (see below).
 - 🖥️ **Cross-platform & AOT-aware** — one codebase on Windows, macOS, Linux, Android, and iOS,
   built for trimmed / Native AOT publishing.
-
----
-
-## Packages
-
-| Package                                                              | Description                                                      |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [`Miko`](https://www.nuget.org/packages/Miko)                        | Core rendering engine: DOM, styling, layout, and painting.       |
-| [`Miko.Bootstrap`](https://www.nuget.org/packages/Miko.Bootstrap)    | Bootstrap-style Razor component library and styles.              |
-| [`Miko.DevTools`](https://www.nuget.org/packages/Miko.DevTools)      | Runtime debugging tools for the DOM and layout tree.             |
-| [`Miko.Razor.Compiler`](https://www.nuget.org/packages/Miko.Razor.Compiler) | Source generator that compiles `.razor` components and routes. |
-| [`Miko.Templates`](https://www.nuget.org/packages/Miko.Templates)    | `dotnet new` templates for scaffolding Miko apps.                |
 
 ---
 
@@ -169,6 +159,43 @@ builder.EnableHotReload();
 var app = builder.Build();
 app.Run();
 ```
+
+### Build and debug with agent-first mode
+
+Miko is designed to be built **with an AI coding agent**, not just by hand. Scaffold a new app
+with the `--agent` option and the agent gets everything it needs to write and debug Miko UI:
+
+```bash
+dotnet new miko-multiplatform --layout tabs --agent claude -o MyApp
+```
+
+`--agent` accepts `claude`, `codex`, or `cursor` (default `none`). Each scaffolds two things:
+
+**1. Agent-optimized docs.** A Miko reference written for agents (`.miko/`) plus the matching
+assistant config (`.claude/` + `CLAUDE.md`, `.codex/` + `AGENTS.md`, or `.cursor/`), so the
+agent knows Miko's constraints — typed C# styles, the real element set — before it writes UI.
+
+**2. A live MCP debug server.** The simulator head exposes the running app over the
+[Model Context Protocol](https://modelcontextprotocol.io) so the agent can inspect and drive it
+in real time — read the DOM tree and computed styles, get an element's box model, simulate
+clicks, switch the simulated device/orientation, and capture screenshots. It is wired up in the
+simulator startup project and starts only when you call it:
+
+```csharp
+using Miko.McpServer;
+
+var context = App.CreateContext(builder => builder.AddMikoMcpServer());
+context.RunSimulator();   // also listens on http://localhost:5800
+```
+
+Scaffolding with `--agent claude` also writes the matching `.mcp.json` and Claude Code
+permissions so the `miko` MCP server is available the moment you run the simulator:
+
+```bash
+dotnet run --project MyApp.Simulator
+```
+
+See the [MCP server guide](https://chaldea.github.io/miko/) for the full tool list.
 
 ### Use the engine directly
 
