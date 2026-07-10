@@ -8,6 +8,9 @@ on:
     branches: [ main ]
     # Documentation-only changes must not republish NuGet packages (which would bump
     # the version for every doc edit). The VitePress site is built/deployed by docs.yml.
+    # Note: agent-first assets under /agent ARE shipped inside the template package, so a
+    # markdown edit there rides along with the next code change's publish rather than
+    # triggering its own version bump.
     paths-ignore:
       - 'docs/**'
       - 'package.json'
@@ -51,6 +54,7 @@ jobs:
             src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj \
             src/Miko.Windowing/Miko.Windowing.csproj \
             src/Miko.Simulator/Miko.Simulator.csproj \
+            src/Miko.McpServer/Miko.McpServer.csproj \
             src/Miko.Android/Miko.Android.csproj \
             src/Miko.iOS/Miko.iOS.csproj
           do
@@ -71,6 +75,10 @@ jobs:
           grep -REn 'PackageReference Include="Miko' templates/ || true
 
       - name: Pack template package
+        # The agent-first assets (agent/.miko, agent/.claude, agent/.codex, agent/.cursor,
+        # CLAUDE.md, AGENTS.md) live only under /agent. Miko.Templates.csproj injects them
+        # into both template content roots at pack time, so no copy step is needed here —
+        # the checkout already includes /agent.
         run: dotnet pack templates/Miko.Templates.csproj -c $CONFIGURATION -p:Version=$VERSION -o "$ARTIFACTS"
 
       - name: Push to NuGet feed

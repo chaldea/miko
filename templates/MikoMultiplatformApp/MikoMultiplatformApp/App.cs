@@ -16,7 +16,13 @@ public static class App
     /// <summary>
     /// Builds an app context with the shared configuration.
     /// </summary>
-    public static MikoAppContext CreateContext()
+    /// <param name="configure">
+    /// Optional hook for a platform head to add head-specific services before the
+    /// context is built — e.g. the simulator head enabling the MCP debug server via
+    /// <c>builder.AddMikoMcpServer()</c>. Kept as a callback so the shared app assembly
+    /// does not reference head-only packages (Miko.McpServer / Miko.Simulator).
+    /// </param>
+    public static MikoAppContext CreateContext(Action<MikoAppBuilder>? configure = null)
     {
         var builder = MikoAppBuilder.CreateDefault();
 
@@ -39,6 +45,8 @@ public static class App
         builder.UseDefaultLayout<MainLayout>();
 
         builder.EnableHotReload();
+
+        configure?.Invoke(builder);
 
         return builder.Build();
     }

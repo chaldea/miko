@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>Miko.McpServer</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Miko</Authors>
+    <Description>MCP (Model Context Protocol) debug server for Miko. Exposes a running app's Simulator and DevTools capabilities (DOM, styles, box model, simulated clicks, device switching, screenshots) over standard MCP so AI agents like Claude Code can inspect and drive the app.</Description>
+    <PackageTags>miko;mcp;model-context-protocol;devtools;agent;debugging;ui</PackageTags>
+    <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- The official MCP SDK currently ships as prerelease only; suppress the
+         "stable package with prerelease dependency" pack warning until it GAs. -->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Miko\Miko.csproj" />
+    <ProjectReference Include="..\Miko.DevTools\Miko.DevTools.csproj" />
+    <ProjectReference Include="..\Miko.Simulator\Miko.Simulator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.0.0-preview.2" />
+  </ItemGroup>
+
+</Project>

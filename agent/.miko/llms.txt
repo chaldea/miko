@@ -1,0 +1,37 @@
+# Miko
+
+> Miko is a native, cross-platform UI rendering engine for .NET. You author the UI as **Razor components** (`.razor`) and Miko draws every pixel with **SkiaSharp** — there is no browser, no WebView, and no HTML/CSS runtime. A source generator (`Miko.Razor.Compiler`) compiles `.razor` into native draw calls.
+
+This file is the entry point for AI agents building Miko apps. Read `overview.md` first, then the topic you need. All docs are plain Markdown optimized for machine reading: dense tables, minimal prose, minimal-but-complete code.
+
+## Read these first
+
+- [Overview](overview.md): what Miko is, the render pipeline, and the hard constraints that differ from a browser (no CSS text, no `inherit`, typed `Style` objects). **Start here.**
+- [Project](project.md): the shape of a generated app, `MikoAppBuilder`, routing, layouts, hot reload.
+- [Razor](razor.md): authoring `.razor` components — `@page`, `@code`, `@bind`, `@onclick`, `EventCallback`, lifecycle.
+
+## Building UI
+
+- [Styling](styling.md): the typed `Style` object, `Length`, `Color`, box model, `StyleSheet` + `CssObject`, selectors, cascade.
+- [Layout](layout.md): `Display` (block/inline/flex/table), flexbox, `Position`, `Overflow`.
+- [Events](events.md): DOM-style capture/bubble events and handler signatures.
+
+## Reference
+
+- [Elements](elements/index.md): every built-in DOM element (`<div>`, `<h1>`, `<input>`, `<img>`, tables, lists…) with its tag, properties, and types. Includes the list of HTML elements Miko does **not** have.
+- [Components (Ionic)](components/index.md): the `Miko.Ionic` component library (`<IonButton>`, `<IonList>`, `<IonTabs>`…) with parameters and parent/child rules. Requires `builder.AddIonic()`.
+
+## Examples
+
+- [Examples index](examples/index.md)
+- [Counter page](examples/counter.md): the minimal blank-layout page.
+- [Tabs layout](examples/tabs.md): Ionic bottom tab bar with routed tab pages.
+- [Side menu layout](examples/sidemenu.md): Ionic slide-in drawer over a page.
+
+## Rules of thumb for agents
+
+1. Author UI in `.razor` files under `Pages/`. A file with `@page "/route"` becomes a route automatically.
+2. Styles are **C# objects**, not CSS strings. Set them in a `StyleSheet` (see styling.md) or inline via the `Style` property. There is no `style="color:red"` string parsing.
+3. Only the elements listed in `elements/index.md` exist. There is **no** `<textarea>`, `<form>`, `<header>`, `<section>`, `<em>`, `<br>`, `<hr>`. Use `<div>`/`<span>` instead.
+4. Ionic components require `builder.AddIonic()` and `@using Miko.Ionic.Components`. Respect the parent/child rules (e.g. `<IonItem>` must be inside `<IonList>`).
+5. Miko has no CSS `inherit` keyword for non-inherited properties — set values explicitly on each element.

@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MikoAppBlank\MikoAppBlank.csproj" />
     <ProjectReference Include="..\..\..\..\src\Miko.Simulator\Miko.Simulator.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Miko.McpServer\Miko.McpServer.csproj" />
   </ItemGroup>
 
 </Project>

@@ -5,6 +5,7 @@
     <Project Path="src/Miko.DevTools/Miko.DevTools.csproj" />
     <Project Path="src/Miko.Ionic/Miko.Ionic.csproj" />
     <Project Path="src/Miko.iOS/Miko.iOS.csproj" />
+    <Project Path="src/Miko.McpServer/Miko.McpServer.csproj" />
     <Project Path="src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj" />
     <Project Path="src/Miko.Simulator/Miko.Simulator.csproj" />
     <Project Path="src/Miko.SourceGenerators/Miko.SourceGenerators.csproj" />
@@ -14,6 +15,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Miko.Ionic.Tests/Miko.Ionic.Tests.csproj" />
+    <Project Path="tests/Miko.McpServer.Tests/Miko.McpServer.Tests.csproj" />
     <Project Path="tests/Miko.Tests/Miko.Tests.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">

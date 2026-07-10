@@ -1,3 +1,4 @@
+using Miko.McpServer;
 using Miko.Simulator;
 using MikoAppBlank;
 
@@ -8,7 +9,11 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        var context = App.CreateContext();
+        // Enable the MCP debug server (dev builds only). It starts a local HTTP
+        // endpoint (default http://localhost:5800) once the simulator window is
+        // up, exposing DOM/style/screenshot/device tools to MCP clients such as
+        // Claude Code. See docs/mcp-server.md.
+        var context = App.CreateContext(builder => builder.AddMikoMcpServer());
 
         // Hot reload is wired up inside the shared app assembly, same as the desktop head.
         App.InitializeHotReload(context);
