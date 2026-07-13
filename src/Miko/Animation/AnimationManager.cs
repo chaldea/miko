@@ -465,65 +465,69 @@ public class AnimationManager
     {
         element.Style ??= new Style();
 
-        if (from.Opacity != null || to.Opacity != null)
+        // 关键帧样式绕过 StyleResolver，无元素变量作用域上下文，因此持有变量引用的属性
+        // 通过 ValueOrNull()/RefValueOrNull() 取回“具体值或 null”，为 null 时跳过插值。
+        var fromOpacity = from.Opacity.ValueOrNull();
+        var toOpacity = to.Opacity.ValueOrNull();
+        if (fromOpacity != null || toOpacity != null)
         {
-            float fromVal = from.Opacity ?? 1f;
-            float toVal = to.Opacity ?? 1f;
+            float fromVal = fromOpacity ?? 1f;
+            float toVal = toOpacity ?? 1f;
             element.Style.Opacity = Lerp(fromVal, toVal, progress);
         }
 
-        InterpolateLengthProperty(element, from.Width, to.Width, progress, (s, v) => s.Width = v);
-        InterpolateLengthProperty(element, from.Height, to.Height, progress, (s, v) => s.Height = v);
+        InterpolateLengthProperty(element, from.Width.ValueOrNull(), to.Width.ValueOrNull(), progress, (s, v) => s.Width = v);
+        InterpolateLengthProperty(element, from.Height.ValueOrNull(), to.Height.ValueOrNull(), progress, (s, v) => s.Height = v);
 
-        InterpolateLengthProperty(element, from.MarginTop, to.MarginTop, progress, (s, v) => s.MarginTop = v);
-        InterpolateLengthProperty(element, from.MarginRight, to.MarginRight, progress, (s, v) => s.MarginRight = v);
-        InterpolateLengthProperty(element, from.MarginBottom, to.MarginBottom, progress, (s, v) => s.MarginBottom = v);
-        InterpolateLengthProperty(element, from.MarginLeft, to.MarginLeft, progress, (s, v) => s.MarginLeft = v);
+        InterpolateLengthProperty(element, from.MarginTop.ValueOrNull(), to.MarginTop.ValueOrNull(), progress, (s, v) => s.MarginTop = v);
+        InterpolateLengthProperty(element, from.MarginRight.ValueOrNull(), to.MarginRight.ValueOrNull(), progress, (s, v) => s.MarginRight = v);
+        InterpolateLengthProperty(element, from.MarginBottom.ValueOrNull(), to.MarginBottom.ValueOrNull(), progress, (s, v) => s.MarginBottom = v);
+        InterpolateLengthProperty(element, from.MarginLeft.ValueOrNull(), to.MarginLeft.ValueOrNull(), progress, (s, v) => s.MarginLeft = v);
 
-        InterpolateLengthProperty(element, from.PaddingTop, to.PaddingTop, progress, (s, v) => s.PaddingTop = v);
-        InterpolateLengthProperty(element, from.PaddingRight, to.PaddingRight, progress, (s, v) => s.PaddingRight = v);
-        InterpolateLengthProperty(element, from.PaddingBottom, to.PaddingBottom, progress, (s, v) => s.PaddingBottom = v);
-        InterpolateLengthProperty(element, from.PaddingLeft, to.PaddingLeft, progress, (s, v) => s.PaddingLeft = v);
+        InterpolateLengthProperty(element, from.PaddingTop.ValueOrNull(), to.PaddingTop.ValueOrNull(), progress, (s, v) => s.PaddingTop = v);
+        InterpolateLengthProperty(element, from.PaddingRight.ValueOrNull(), to.PaddingRight.ValueOrNull(), progress, (s, v) => s.PaddingRight = v);
+        InterpolateLengthProperty(element, from.PaddingBottom.ValueOrNull(), to.PaddingBottom.ValueOrNull(), progress, (s, v) => s.PaddingBottom = v);
+        InterpolateLengthProperty(element, from.PaddingLeft.ValueOrNull(), to.PaddingLeft.ValueOrNull(), progress, (s, v) => s.PaddingLeft = v);
 
-        InterpolateLengthProperty(element, from.Top, to.Top, progress, (s, v) => s.Top = v);
-        InterpolateLengthProperty(element, from.Right, to.Right, progress, (s, v) => s.Right = v);
-        InterpolateLengthProperty(element, from.Bottom, to.Bottom, progress, (s, v) => s.Bottom = v);
-        InterpolateLengthProperty(element, from.Left, to.Left, progress, (s, v) => s.Left = v);
+        InterpolateLengthProperty(element, from.Top.ValueOrNull(), to.Top.ValueOrNull(), progress, (s, v) => s.Top = v);
+        InterpolateLengthProperty(element, from.Right.ValueOrNull(), to.Right.ValueOrNull(), progress, (s, v) => s.Right = v);
+        InterpolateLengthProperty(element, from.Bottom.ValueOrNull(), to.Bottom.ValueOrNull(), progress, (s, v) => s.Bottom = v);
+        InterpolateLengthProperty(element, from.Left.ValueOrNull(), to.Left.ValueOrNull(), progress, (s, v) => s.Left = v);
 
-        InterpolateLengthProperty(element, from.FontSize, to.FontSize, progress, (s, v) => s.FontSize = v);
-        InterpolateLengthProperty(element, from.BorderWidth, to.BorderWidth, progress, (s, v) => s.BorderWidth = v);
+        InterpolateLengthProperty(element, from.FontSize.ValueOrNull(), to.FontSize.ValueOrNull(), progress, (s, v) => s.FontSize = v);
+        InterpolateLengthProperty(element, from.BorderWidth.ValueOrNull(), to.BorderWidth.ValueOrNull(), progress, (s, v) => s.BorderWidth = v);
 
-        InterpolateLengthProperty(element, from.BorderTopLeftRadius, to.BorderTopLeftRadius, progress, (s, v) => s.BorderTopLeftRadius = v);
-        InterpolateLengthProperty(element, from.BorderTopRightRadius, to.BorderTopRightRadius, progress, (s, v) => s.BorderTopRightRadius = v);
-        InterpolateLengthProperty(element, from.BorderBottomRightRadius, to.BorderBottomRightRadius, progress, (s, v) => s.BorderBottomRightRadius = v);
-        InterpolateLengthProperty(element, from.BorderBottomLeftRadius, to.BorderBottomLeftRadius, progress, (s, v) => s.BorderBottomLeftRadius = v);
+        InterpolateLengthProperty(element, from.BorderTopLeftRadius.ValueOrNull(), to.BorderTopLeftRadius.ValueOrNull(), progress, (s, v) => s.BorderTopLeftRadius = v);
+        InterpolateLengthProperty(element, from.BorderTopRightRadius.ValueOrNull(), to.BorderTopRightRadius.ValueOrNull(), progress, (s, v) => s.BorderTopRightRadius = v);
+        InterpolateLengthProperty(element, from.BorderBottomRightRadius.ValueOrNull(), to.BorderBottomRightRadius.ValueOrNull(), progress, (s, v) => s.BorderBottomRightRadius = v);
+        InterpolateLengthProperty(element, from.BorderBottomLeftRadius.ValueOrNull(), to.BorderBottomLeftRadius.ValueOrNull(), progress, (s, v) => s.BorderBottomLeftRadius = v);
 
-        if (from.BackgroundColor != null || to.BackgroundColor != null)
+        var fromBg = from.BackgroundColor.ValueOrNull();
+        var toBg = to.BackgroundColor.ValueOrNull();
+        if (fromBg != null || toBg != null)
         {
-            var fromColor = from.BackgroundColor ?? Color.Transparent;
-            var toColor = to.BackgroundColor ?? Color.Transparent;
-            element.Style.BackgroundColor = LerpColor(fromColor, toColor, progress);
+            element.Style.BackgroundColor = LerpColor(fromBg ?? Color.Transparent, toBg ?? Color.Transparent, progress);
         }
 
-        if (from.Color != null || to.Color != null)
+        var fromColor = from.Color.ValueOrNull();
+        var toColor = to.Color.ValueOrNull();
+        if (fromColor != null || toColor != null)
         {
-            var fromColor = from.Color ?? Color.Black;
-            var toColor = to.Color ?? Color.Black;
-            element.Style.Color = LerpColor(fromColor, toColor, progress);
+            element.Style.Color = LerpColor(fromColor ?? Color.Black, toColor ?? Color.Black, progress);
         }
 
-        if (from.BorderColor != null || to.BorderColor != null)
+        var fromBorderColor = from.BorderColor.ValueOrNull();
+        var toBorderColor = to.BorderColor.ValueOrNull();
+        if (fromBorderColor != null || toBorderColor != null)
         {
-            var fromColor = from.BorderColor ?? Color.Transparent;
-            var toColor = to.BorderColor ?? Color.Transparent;
-            element.Style.BorderColor = LerpColor(fromColor, toColor, progress);
+            element.Style.BorderColor = LerpColor(fromBorderColor ?? Color.Transparent, toBorderColor ?? Color.Transparent, progress);
         }
 
-        if (from.Transform != null || to.Transform != null)
+        var fromTransform = from.Transform.RefValueOrNull();
+        var toTransform = to.Transform.RefValueOrNull();
+        if (fromTransform != null || toTransform != null)
         {
-            var fromTransform = from.Transform ?? Transform.None;
-            var toTransform = to.Transform ?? Transform.None;
-            element.Style.Transform = LerpTransform(fromTransform, toTransform, progress);
+            element.Style.Transform = LerpTransform(fromTransform ?? Transform.None, toTransform ?? Transform.None, progress);
         }
     }
 

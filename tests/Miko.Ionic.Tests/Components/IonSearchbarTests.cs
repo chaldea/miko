@@ -238,7 +238,7 @@ public class IonSearchbarTests : IonicComponentTestBase
         // md input: 2px radius and a 3-layer elevation shadow.
         style.BorderTopLeftRadius.Value.ShouldBe(2f);
         style.BoxShadow.ShouldNotBeNull();
-        style.BoxShadow!.Count.ShouldBe(3);
+        style.BoxShadow!.Value.Value.Count.ShouldBe(3);
     }
 
     [Fact]
@@ -252,7 +252,7 @@ public class IonSearchbarTests : IonicComponentTestBase
 
         // ios input: 10px radius, translucent fill, no shadow.
         style.BorderTopLeftRadius.Value.ShouldBe(10f);
-        (style.BoxShadow == null || style.BoxShadow.Count == 0).ShouldBeTrue();
+        (style.BoxShadow == null || style.BoxShadow.Value.Value.Count == 0).ShouldBeTrue();
     }
 
     [Fact]

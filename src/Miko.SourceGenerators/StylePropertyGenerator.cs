@@ -75,7 +75,10 @@ public class StylePropertyGenerator : IIncrementalGenerator
     private static bool IsShorthandProperty(string name)
     {
         return name is "Padding" or "Margin" or "Border" or "BorderTop" or "BorderRight"
-            or "BorderBottom" or "BorderLeft" or "BorderRadius" or "Overflow" or "Flex";
+            or "BorderBottom" or "BorderLeft" or "BorderRadius" or "Overflow" or "Flex"
+            // Vars（自定义变量字典）不参与通用的合并/应用逻辑：它按键手动合并
+            // （见 Style.Merge），且不是 StyleProperty<T>?，不能走统一的解析路径。
+            or "Vars";
     }
 
     private static bool IsCollectionType(ITypeSymbol type)
@@ -179,16 +182,13 @@ public class StylePropertyGenerator : IIncrementalGenerator
 
         foreach (var prop in styleInfo.Properties)
         {
-            if (prop.IsNullable && prop.IsValueType)
-            {
-                // 可空值类型：if (style.Display.HasValue) Display = style.Display.Value;
-                sb.AppendLine($"        if (style.{prop.Name}.HasValue) {prop.Name} = style.{prop.Name}.Value;");
-            }
-            else
-            {
-                // 引用类型：if (style.FontFamily != null) FontFamily = style.FontFamily;
-                sb.AppendLine($"        if (style.{prop.Name} != null) {prop.Name} = style.{prop.Name};");
-            }
+            // 每个后备属性现为 StyleProperty<T>?（联合“具体值 | 变量引用”）。
+            // 先解出变量引用（针对当前变量作用域），成功取得具体值后再写入 ComputedStyle 的非空遮蔽。
+            // 未解析（作用域缺失且无 fallback）则不写入 → 保持 ComputedStyle 默认/继承值。
+            var local = "__sp_" + prop.Name;
+            var value = "__v_" + prop.Name;
+            sb.AppendLine(
+                $"        if (style.{prop.Name} is {{ }} {local} && TryResolveStyleProperty({local}, out var {value})) {prop.Name} = {value};");
         }
 
         sb.AppendLine("    }");

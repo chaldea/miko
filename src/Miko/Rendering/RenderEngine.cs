@@ -358,10 +358,12 @@ public class RenderEngine
         if (_painter == null) return;
 
         var style = box.ComputedStyle;
-        if (style.BoxShadow == null || style.BoxShadow.Count == 0) return;
+        // BoxShadow 未被 ComputedStyle 遮蔽，仍是基类的 StyleProperty<List<BoxShadow>>?。
+        var boxShadow = style.BoxShadow.RefValueOrNull();
+        if (boxShadow == null || boxShadow.Count == 0) return;
 
         _painter.DrawBoxShadow(
-            style.BoxShadow,
+            boxShadow,
             box.BoxModel.BorderBox,
             style.BorderTopLeftRadius.Value,
             style.BorderTopRightRadius.Value,

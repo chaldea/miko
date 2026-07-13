@@ -728,20 +728,21 @@ public class Painter
     {
         // 默认值（当没有伪元素样式时使用）
         // 使用 ToPixels() 正确解析 rem/em/percent 等单位
-        float trackHeight = trackStyle?.Height?.ToPixels(rect.Height, fontSize) ?? 4;
-        Color trackColor = trackStyle?.BackgroundColor ?? Color.LightGray;
-        float trackBorderRadius = trackStyle?.BorderTopLeftRadius?.ToPixels(trackHeight, fontSize) ?? 2;
+        // 伪元素样式为基类 Style，属性为 StyleProperty<T>?，经 ValueOrNull() 取回具体值。
+        float trackHeight = trackStyle?.Height.ValueOrNull()?.ToPixels(rect.Height, fontSize) ?? 4;
+        Color trackColor = trackStyle?.BackgroundColor.ValueOrNull() ?? Color.LightGray;
+        float trackBorderRadius = trackStyle?.BorderTopLeftRadius.ValueOrNull()?.ToPixels(trackHeight, fontSize) ?? 2;
 
-        Color progressColor = progressStyle?.BackgroundColor ?? Color.Gray;
+        Color progressColor = progressStyle?.BackgroundColor.ValueOrNull() ?? Color.Gray;
 
         // thumb 尺寸 - 使用 rect.Width 作为容器尺寸（用于百分比）
-        float thumbWidth = thumbStyle?.Width?.ToPixels(rect.Width, fontSize) ?? 16;
-        float thumbHeight = thumbStyle?.Height?.ToPixels(rect.Height, fontSize) ?? 16;
+        float thumbWidth = thumbStyle?.Width.ValueOrNull()?.ToPixels(rect.Width, fontSize) ?? 16;
+        float thumbHeight = thumbStyle?.Height.ValueOrNull()?.ToPixels(rect.Height, fontSize) ?? 16;
         float thumbSize = Math.Max(thumbWidth, thumbHeight); // 使用较大值作为尺寸
-        Color thumbColor = thumbStyle?.BackgroundColor ?? Color.Gray;
-        float thumbBorderRadius = thumbStyle?.BorderTopLeftRadius?.ToPixels(thumbSize, fontSize) ?? thumbSize / 2;
-        float thumbBorderWidth = thumbStyle?.BorderWidth?.ToPixels(thumbSize, fontSize) ?? 0;
-        Color? thumbBorderColor = thumbStyle?.BorderTopColor;
+        Color thumbColor = thumbStyle?.BackgroundColor.ValueOrNull() ?? Color.Gray;
+        float thumbBorderRadius = thumbStyle?.BorderTopLeftRadius.ValueOrNull()?.ToPixels(thumbSize, fontSize) ?? thumbSize / 2;
+        float thumbBorderWidth = thumbStyle?.BorderWidth.ValueOrNull()?.ToPixels(thumbSize, fontSize) ?? 0;
+        Color? thumbBorderColor = thumbStyle?.BorderTopColor.ValueOrNull();
 
         // 计算滑块轨道的位置
         float trackY = rect.Top + (rect.Height - trackHeight) / 2;

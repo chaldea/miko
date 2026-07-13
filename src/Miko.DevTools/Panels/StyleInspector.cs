@@ -138,8 +138,9 @@ internal static class StyleInspector
         if (cs.ZIndex != 0)
             AddRow(container, "z-index", cs.ZIndex.ToString());
 
-        if (cs.BoxShadow != null && cs.BoxShadow.Count > 0)
-            AddRow(container, "box-shadow", FormatBoxShadow(cs.BoxShadow));
+        var boxShadow = cs.BoxShadow.RefValueOrNull();
+        if (boxShadow != null && boxShadow.Count > 0)
+            AddRow(container, "box-shadow", FormatBoxShadow(boxShadow));
 
         return container;
     }

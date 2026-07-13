@@ -42,7 +42,7 @@ public class NavigationTransitionTests : IDisposable
                 Height = Length.Px(40),
                 BackgroundColor = Color.FromRgb(13, 110, 253),
                 Color = Color.White,
-                Transitions = [Transition.For(x => x.BackgroundColor).Duration(0.15f).Linear()]
+                Transitions = new List<Transition> { Transition.For(x => x.BackgroundColor).Duration(0.15f).Linear() }
             },
             // 模拟 .form-control：无 transition、无实色背景
             [".form-control"] = new CssObject

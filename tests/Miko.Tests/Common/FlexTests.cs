@@ -83,7 +83,7 @@ public class FlexTests
 
         style.FlexGrow.ShouldBe(0);
         style.FlexShrink.ShouldBe(0);
-        style.FlexBasis!.Value.IsAuto.ShouldBeTrue();
+        style.FlexBasis!.Value.Value.IsAuto.ShouldBeTrue();
     }
 
     [Fact]
@@ -93,6 +93,6 @@ public class FlexTests
 
         style.FlexGrow.ShouldBe(1);
         style.FlexShrink.ShouldBe(1);
-        style.FlexBasis!.Value.IsAuto.ShouldBeTrue();
+        style.FlexBasis!.Value.Value.IsAuto.ShouldBeTrue();
     }
 }

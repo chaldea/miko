@@ -73,7 +73,7 @@ public class IonSpinnerTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonSpinner>(p => p.Add(nameof(IonSpinner.Duration), 2500));
 
-        var animation = cut.Root.Style!.Animations.ShouldHaveSingleItem();
+        var animation = cut.Root.Style!.Animations!.Value.Value.ShouldHaveSingleItem();
         animation.Name.ShouldBe("ion-spinner-rotate");
         animation.Duration.ShouldBe(2.5f);
         animation.Infinite.ShouldBeTrue();
@@ -86,7 +86,7 @@ public class IonSpinnerTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonSpinner>(p => p.Add(nameof(IonSpinner.Paused), true));
 
-        cut.Root.Style!.Animations.ShouldHaveSingleItem().PlayState.ShouldBe(AnimationPlayState.Paused);
+        cut.Root.Style!.Animations!.Value.Value.ShouldHaveSingleItem().PlayState.ShouldBe(AnimationPlayState.Paused);
     }
 
     [Fact]

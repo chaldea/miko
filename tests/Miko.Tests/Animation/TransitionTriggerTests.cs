@@ -37,7 +37,7 @@ public class TransitionTriggerTests : IDisposable
                 Width = Length.Px(100),
                 Height = Length.Px(50),
                 MaxHeight = Length.Px(0),
-                Transitions = [Transition.For(x => x.MaxHeight).Duration(0.5f).Linear()]
+                Transitions = new List<Transition> { Transition.For(x => x.MaxHeight).Duration(0.5f).Linear() }
             },
             [".box.open"] = new CssObject
             {
@@ -75,7 +75,7 @@ public class TransitionTriggerTests : IDisposable
                 Width = Length.Px(100),
                 Height = Length.Px(50),
                 MaxHeight = Length.Px(0),
-                Transitions = [Transition.For(x => x.MaxHeight).Duration(1f).Linear()]
+                Transitions = new List<Transition> { Transition.For(x => x.MaxHeight).Duration(1f).Linear() }
             },
             [".box.open"] = new CssObject
             {
@@ -101,7 +101,7 @@ public class TransitionTriggerTests : IDisposable
 
         // MaxHeight 应该在中间值附近
         box.Style.ShouldNotBeNull();
-        box.Style!.MaxHeight!.Value.Value.ShouldBe(100f, 1f);
+        box.Style!.MaxHeight!.Value.Value.Value.ShouldBe(100f, 1f);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class TransitionTriggerTests : IDisposable
                 Width = Length.Px(100),
                 Height = Length.Px(50),
                 MaxHeight = Length.Px(0),
-                Transitions = [Transition.For(x => x.MaxHeight).Duration(0.5f).Linear()]
+                Transitions = new List<Transition> { Transition.For(x => x.MaxHeight).Duration(0.5f).Linear() }
             },
             [".box.open"] = new CssObject
             {
@@ -139,7 +139,7 @@ public class TransitionTriggerTests : IDisposable
         engine.AnimationManager.Update(0.6f);
 
         engine.AnimationManager.HasActiveAnimations.ShouldBeFalse();
-        box.Style!.MaxHeight!.Value.Value.ShouldBe(200f, 1f);
+        box.Style!.MaxHeight!.Value.Value.Value.ShouldBe(200f, 1f);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class TransitionTriggerTests : IDisposable
                 Width = Length.Px(100),
                 Height = Length.Px(50),
                 Padding = new Padding(0, 16),
-                Transitions = [Transition.For(x => x.Padding).Duration(1f).Linear()]
+                Transitions = new List<Transition> { Transition.For(x => x.Padding).Duration(1f).Linear() }
             },
             [".box.open"] = new CssObject
             {
@@ -179,7 +179,7 @@ public class TransitionTriggerTests : IDisposable
         engine.AnimationManager.Update(0.5f);
 
         // PaddingTop 应该在中间值
-        box.Style!.PaddingTop!.Value.Value.ShouldBe(8f, 1f);
+        box.Style!.PaddingTop!.Value.Value.Value.ShouldBe(8f, 1f);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public class TransitionTriggerTests : IDisposable
                 Width = Length.Px(100),
                 Height = Length.Px(50),
                 MaxHeight = Length.Px(0),
-                Transitions = [Transition.For(x => x.MaxHeight).Duration(1f).Linear()]
+                Transitions = new List<Transition> { Transition.For(x => x.MaxHeight).Duration(1f).Linear() }
             },
             [".box.open"] = new CssObject
             {
@@ -215,14 +215,14 @@ public class TransitionTriggerTests : IDisposable
 
         // 模拟 0.3 秒
         engine.AnimationManager.Update(0.3f);
-        float valueAt03 = box.Style!.MaxHeight!.Value.Value;
+        float valueAt03 = box.Style!.MaxHeight!.Value.Value.Value;
 
         // 再次 Render 不应重新触发 transition
         engine.Render(_canvas);
         engine.AnimationManager.Update(0.1f);
 
         // 值应该继续从 0.3s 的位置前进，而不是重新从 0 开始
-        float valueAt04 = box.Style!.MaxHeight!.Value.Value;
+        float valueAt04 = box.Style!.MaxHeight!.Value.Value.Value;
         valueAt04.ShouldBeGreaterThan(valueAt03);
     }
 
@@ -237,7 +237,7 @@ public class TransitionTriggerTests : IDisposable
                 Width = Length.Px(100),
                 Height = Length.Px(50),
                 MaxHeight = Length.Px(0),
-                Transitions = [Transition.For(x => x.MaxHeight).Duration(0.5f).Ease()]
+                Transitions = new List<Transition> { Transition.For(x => x.MaxHeight).Duration(0.5f).Ease() }
             },
             [".box.open"] = new CssObject
             {
@@ -283,7 +283,7 @@ public class TransitionTriggerTests : IDisposable
                 Width = Length.Px(100),
                 Height = Length.Px(50),
                 Left = Length.Px(-100),
-                Transitions = [Transition.For(x => x.Left).Duration(1f).Linear()]
+                Transitions = new List<Transition> { Transition.For(x => x.Left).Duration(1f).Linear() }
             },
             [".box.open"] = new CssObject
             {
@@ -304,12 +304,12 @@ public class TransitionTriggerTests : IDisposable
 
         // Halfway through a linear -100 → 0 slide.
         engine.AnimationManager.Update(0.5f);
-        box.Style!.Left!.Value.Value.ShouldBe(-50f, 1f);
+        box.Style!.Left!.Value.Value.Value.ShouldBe(-50f, 1f);
 
         // Completes at 0.
         engine.AnimationManager.Update(0.6f);
         engine.AnimationManager.HasActiveAnimations.ShouldBeFalse();
-        box.Style!.Left!.Value.Value.ShouldBe(0f, 1f);
+        box.Style!.Left!.Value.Value.Value.ShouldBe(0f, 1f);
     }
 
     [Fact]
@@ -324,7 +324,7 @@ public class TransitionTriggerTests : IDisposable
                 Position = Position.Absolute,
                 Width = Length.Px(100), Height = Length.Px(50),
                 Right = Length.Px(-100),
-                Transitions = [Transition.For(x => x.Right).Duration(0.5f).Linear()]
+                Transitions = new List<Transition> { Transition.For(x => x.Right).Duration(0.5f).Linear() }
             },
             [".box.open"] = new CssObject { Right = Length.Px(0) }
         });
@@ -353,7 +353,7 @@ public class TransitionTriggerTests : IDisposable
                 Width = Length.Px(100),
                 Height = Length.Px(50),
                 Opacity = 1f,
-                Transitions = [Transition.For(x => x.Opacity).Duration(0.5f).Linear()]
+                Transitions = new List<Transition> { Transition.For(x => x.Opacity).Duration(0.5f).Linear() }
             },
             [".box.faded"] = new CssObject
             {
@@ -399,7 +399,7 @@ public class TransitionTriggerTests : IDisposable
                 Height = Length.Px(50),
                 MaxHeight = Length.Px(300),
                 BackgroundColor = Color.FromHex("f3f3f3"),
-                Transitions = [Transition.For(x => x.MaxHeight).Duration(0.5f).Ease()]
+                Transitions = new List<Transition> { Transition.For(x => x.MaxHeight).Duration(0.5f).Ease() }
             },
             [".box.closed"] = new CssObject
             {
@@ -425,6 +425,6 @@ public class TransitionTriggerTests : IDisposable
 
         // 首帧 inline style 应该是起始值 300，不是目标值 0
         box.Style.ShouldNotBeNull();
-        box.Style!.MaxHeight!.Value.Value.ShouldBe(300f, 1f);
+        box.Style!.MaxHeight!.Value.Value.Value.ShouldBe(300f, 1f);
     }
 }

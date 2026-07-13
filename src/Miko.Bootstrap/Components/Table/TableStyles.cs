@@ -236,7 +236,7 @@ internal static class TableStyles
             Color = t.TableColor,
             BackgroundColor = t.TableBg,
             BorderBottomWidth = t.TableBorderWidth,
-            BoxShadow = [new BoxShadow(0, 0, 0, Px(9999), t.TableAccentBg)]
+            BoxShadow = new List<BoxShadow> { new BoxShadow(0, 0, 0, Px(9999), t.TableAccentBg) }
         };
     }
 }

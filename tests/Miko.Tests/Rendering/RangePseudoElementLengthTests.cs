@@ -47,8 +47,8 @@ public class RangePseudoElementLengthTests
         thumbStyle.BorderTopLeftRadius.ShouldBe(Length.Rem(0.75f));
 
         // 验证单位类型
-        thumbStyle.Width!.Value.Unit.ShouldBe(LengthUnit.Rem);
-        thumbStyle.Height!.Value.Unit.ShouldBe(LengthUnit.Rem);
+        thumbStyle.Width!.Value.Value.Unit.ShouldBe(LengthUnit.Rem);
+        thumbStyle.Height!.Value.Value.Unit.ShouldBe(LengthUnit.Rem);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class RangePseudoElementLengthTests
         trackStyle.Height.ShouldBe(Length.Em(0.5f));
         trackStyle.BorderTopLeftRadius.ShouldBe(Length.Em(0.25f));
 
-        trackStyle.Height!.Value.Unit.ShouldBe(LengthUnit.Em);
+        trackStyle.Height!.Value.Value.Unit.ShouldBe(LengthUnit.Em);
     }
 
     [Fact]
@@ -121,8 +121,8 @@ public class RangePseudoElementLengthTests
         thumbStyle.Width.ShouldBe(Length.Percent(10));
         thumbStyle.Height.ShouldBe(Length.Percent(50));
 
-        thumbStyle.Width!.Value.Unit.ShouldBe(LengthUnit.Percent);
-        thumbStyle.Height!.Value.Unit.ShouldBe(LengthUnit.Percent);
+        thumbStyle.Width!.Value.Value.Unit.ShouldBe(LengthUnit.Percent);
+        thumbStyle.Height!.Value.Value.Unit.ShouldBe(LengthUnit.Percent);
     }
 
     [Fact]
@@ -225,6 +225,6 @@ public class RangePseudoElementLengthTests
 
         // 验证计算结果（假设 root font-size = 16px）
         Length.RootFontSize = 16;
-        thumbStyle.Width!.Value.ToPixels(100, 16).ShouldBe(20f);  // 1rem (16px) + 4px = 20px
+        thumbStyle.Width!.Value.Value.ToPixels(100, 16).ShouldBe(20f);  // 1rem (16px) + 4px = 20px
     }
 }

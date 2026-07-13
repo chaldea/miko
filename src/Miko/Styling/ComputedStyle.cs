@@ -121,6 +121,33 @@ public partial class ComputedStyle : Style
 
     public new string? Content { get; set; }
 
+    /// <summary>
+    /// 本元素生效的完整自定义变量作用域（继承自祖先 + 本元素定义）。
+    /// 由 <see cref="StyleResolver"/> 在计算前注入，供本元素解析 <c>Var(...)</c> 引用，
+    /// 并供后代继承（读取父 <see cref="ComputedStyle"/> 的该字段）。
+    /// </summary>
+    public Dictionary<string, VarValue>? Vars { get; set; }
+
+    /// <summary>
+    /// 解析一个 <see cref="StyleProperty{T}"/>：具体值直接返回；变量引用则查当前
+    /// <see cref="Vars"/> 作用域，未命中时用引用自带的 fallback，仍未命中返回 false
+    /// （调用方据此保持默认/继承值）。
+    /// </summary>
+    internal bool TryResolveStyleProperty<T>(StyleProperty<T> property, out T value)
+    {
+        if (property.TryGetValue(out value))
+            return true;
+
+        var reference = property.VarRef;
+        if (Vars != null && Vars.TryGetValue(reference.Name, out var resolved) && resolved.TryGet(out value))
+            return true;
+
+        if (reference.Fallback is { } fallback && fallback.TryGet(out value))
+            return true;
+
+        value = default!;
+        return false;
+    }
 
     /// <summary>
     /// 从样式对象创建计算样式
@@ -130,50 +157,55 @@ public partial class ComputedStyle : Style
     /// 父元素的计算字体大小（px），用于解析本元素 font-size 中的 em 分量
     /// （CSS 中 font-size 的 em 相对于父元素字体大小）。null 时回退到 RootFontSize。
     /// </param>
-    public static ComputedStyle FromStyle(Style? style, float? parentFontSizePx = null)
+    /// <param name="varScope">
+    /// 本元素生效的自定义变量作用域。用于解析 <paramref name="style"/> 中的 <c>Var(...)</c> 引用，
+    /// 并记录到结果的 <see cref="Vars"/> 上供后代继承。
+    /// </param>
+    public static ComputedStyle FromStyle(Style? style, float? parentFontSizePx = null,
+        Dictionary<string, VarValue>? varScope = null)
     {
         var computed = new ComputedStyle();
+        // 先设作用域：ApplyStylePropertiesGenerated 与下方特例都会经 TryResolveStyleProperty
+        // 读取它来解析变量引用。
+        computed.Vars = varScope;
 
         if (style != null)
         {
-            // 调用生成的通用属性赋值
+            // 调用生成的通用属性赋值（内部对每个属性解析变量引用）
             computed.ApplyStylePropertiesGenerated(style);
 
             // 特殊处理：font-size 的 em 单位需要相对父元素解析
-            if (style.FontSize.HasValue)
+            if (style.FontSize is { } fontSizeProp && computed.TryResolveStyleProperty(fontSizeProp, out var fontSize))
             {
-                computed.FontSize = Length.Px(style.FontSize.Value.ToPixels(0, parentFontSizePx));
+                computed.FontSize = Length.Px(fontSize.ToPixels(0, parentFontSizePx));
             }
 
             // 特殊处理：边框宽度的统一属性回退逻辑
-            if (!style.BorderTopWidth.HasValue && style.BorderWidth.HasValue)
-                computed.BorderTopWidth = style.BorderWidth.Value;
-            if (!style.BorderRightWidth.HasValue && style.BorderWidth.HasValue)
-                computed.BorderRightWidth = style.BorderWidth.Value;
-            if (!style.BorderBottomWidth.HasValue && style.BorderWidth.HasValue)
-                computed.BorderBottomWidth = style.BorderWidth.Value;
-            if (!style.BorderLeftWidth.HasValue && style.BorderWidth.HasValue)
-                computed.BorderLeftWidth = style.BorderWidth.Value;
+            if (style.BorderWidth is { } borderWidthProp && computed.TryResolveStyleProperty(borderWidthProp, out var borderWidth))
+            {
+                if (style.BorderTopWidth == null) computed.BorderTopWidth = borderWidth;
+                if (style.BorderRightWidth == null) computed.BorderRightWidth = borderWidth;
+                if (style.BorderBottomWidth == null) computed.BorderBottomWidth = borderWidth;
+                if (style.BorderLeftWidth == null) computed.BorderLeftWidth = borderWidth;
+            }
 
             // 特殊处理：边框颜色的统一属性回退逻辑
-            if (!style.BorderTopColor.HasValue && style.BorderColor.HasValue)
-                computed.BorderTopColor = style.BorderColor.Value;
-            if (!style.BorderRightColor.HasValue && style.BorderColor.HasValue)
-                computed.BorderRightColor = style.BorderColor.Value;
-            if (!style.BorderBottomColor.HasValue && style.BorderColor.HasValue)
-                computed.BorderBottomColor = style.BorderColor.Value;
-            if (!style.BorderLeftColor.HasValue && style.BorderColor.HasValue)
-                computed.BorderLeftColor = style.BorderColor.Value;
+            if (style.BorderColor is { } borderColorProp && computed.TryResolveStyleProperty(borderColorProp, out var borderColor))
+            {
+                if (style.BorderTopColor == null) computed.BorderTopColor = borderColor;
+                if (style.BorderRightColor == null) computed.BorderRightColor = borderColor;
+                if (style.BorderBottomColor == null) computed.BorderBottomColor = borderColor;
+                if (style.BorderLeftColor == null) computed.BorderLeftColor = borderColor;
+            }
 
             // 特殊处理：边框样式的统一属性回退逻辑
-            if (!style.BorderTopStyle.HasValue && style.BorderStyle.HasValue)
-                computed.BorderTopStyle = style.BorderStyle.Value;
-            if (!style.BorderRightStyle.HasValue && style.BorderStyle.HasValue)
-                computed.BorderRightStyle = style.BorderStyle.Value;
-            if (!style.BorderBottomStyle.HasValue && style.BorderStyle.HasValue)
-                computed.BorderBottomStyle = style.BorderStyle.Value;
-            if (!style.BorderLeftStyle.HasValue && style.BorderStyle.HasValue)
-                computed.BorderLeftStyle = style.BorderStyle.Value;
+            if (style.BorderStyle is { } borderStyleProp && computed.TryResolveStyleProperty(borderStyleProp, out var borderStyle))
+            {
+                if (style.BorderTopStyle == null) computed.BorderTopStyle = borderStyle;
+                if (style.BorderRightStyle == null) computed.BorderRightStyle = borderStyle;
+                if (style.BorderBottomStyle == null) computed.BorderBottomStyle = borderStyle;
+                if (style.BorderLeftStyle == null) computed.BorderLeftStyle = borderStyle;
+            }
         }
 
         return computed;
