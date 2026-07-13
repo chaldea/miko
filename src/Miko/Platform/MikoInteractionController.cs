@@ -399,6 +399,12 @@ public sealed class MikoInteractionController
         {
             HandleInputClick(inputElement);
         }
+        else if (target is TextAreaElement textAreaElement)
+        {
+            CloseAllSelects();
+            SetFocusCore(textAreaElement);
+            textAreaElement.MoveCursorToEnd();
+        }
         else if (target is SelectElement selectElement2)
         {
             HandleSelectClick(selectElement2);
@@ -596,22 +602,22 @@ public sealed class MikoInteractionController
                 if (handler(key)) return true;
             }
 
-            if (_focusedElement is not InputElement input) return false;
-            if (input.Type != InputType.Text && input.Type != InputType.Password) return false;
+            if (_focusedElement is not ITextEditable editable || !editable.IsEditable) return false;
+            var editableElement = (Element)_focusedElement;
 
             var keyName = key.ToString();
             bool ctrl = mods.HasFlag(MikoKeyModifiers.Control);
 
             var keyArgs = new KeyboardEventArgs
             {
-                Target = input,
+                Target = editableElement,
                 Key = keyName,
                 CtrlKey = ctrl,
                 ShiftKey = mods.HasFlag(MikoKeyModifiers.Shift),
                 AltKey = mods.HasFlag(MikoKeyModifiers.Alt),
                 Bubbles = true
             };
-            DispatchWithSyncContext(input, EventTypes.KeyDown, keyArgs);
+            DispatchWithSyncContext(editableElement, EventTypes.KeyDown, keyArgs);
 
             ProcessKeyAction(key);
             return false;
@@ -638,40 +644,48 @@ public sealed class MikoInteractionController
 
     private void ProcessKeyAction(MikoKey key)
     {
-        if (_focusedElement is not InputElement input) return;
-        if (input.Type != InputType.Text && input.Type != InputType.Password) return;
+        if (_focusedElement is not ITextEditable editable || !editable.IsEditable) return;
+        var element = (Element)_focusedElement;
 
         switch (key)
         {
             case MikoKey.Backspace:
-                if (input.Backspace())
-                    DispatchInputEvent(input);
+                if (editable.Backspace())
+                    DispatchInputEvent(element, editable);
                 break;
             case MikoKey.Delete:
-                if (input.Delete())
-                    DispatchInputEvent(input);
+                if (editable.Delete())
+                    DispatchInputEvent(element, editable);
                 break;
             case MikoKey.Left:
-                if (input.CursorPosition > 0)
+                if (editable.CursorPosition > 0)
                 {
-                    input.CursorPosition--;
-                    input.IsDirty = true;
+                    editable.CursorPosition--;
+                    element.IsDirty = true;
                 }
                 break;
             case MikoKey.Right:
-                if (input.CursorPosition < (input.Value ?? string.Empty).Length)
+                if (editable.CursorPosition < (editable.Value ?? string.Empty).Length)
                 {
-                    input.CursorPosition++;
-                    input.IsDirty = true;
+                    editable.CursorPosition++;
+                    element.IsDirty = true;
                 }
                 break;
             case MikoKey.Home:
-                input.CursorPosition = 0;
-                input.IsDirty = true;
+                editable.CursorPosition = 0;
+                element.IsDirty = true;
                 break;
             case MikoKey.End:
-                input.MoveCursorToEnd();
-                input.IsDirty = true;
+                editable.MoveCursorToEnd();
+                element.IsDirty = true;
+                break;
+            case MikoKey.Enter:
+                // 多行控件（textarea）回车插入换行；单行控件不处理（可用于表单提交，由上层处理）。
+                if (editable.IsMultiline)
+                {
+                    editable.InsertText("\n");
+                    DispatchInputEvent(element, editable);
+                }
                 break;
         }
     }
@@ -681,27 +695,27 @@ public sealed class MikoInteractionController
     {
         lock (_sync)
         {
-            if (_focusedElement is not InputElement input) return;
-            if (input.Type != InputType.Text && input.Type != InputType.Password) return;
+            if (_focusedElement is not ITextEditable editable || !editable.IsEditable) return;
+            var element = (Element)_focusedElement;
 
             foreach (var character in text)
             {
                 if (char.IsControl(character)) continue;
-                input.InsertText(character.ToString());
+                editable.InsertText(character.ToString());
             }
-            DispatchInputEvent(input);
+            DispatchInputEvent(element, editable);
         }
     }
 
-    private void DispatchInputEvent(InputElement input)
+    private void DispatchInputEvent(Element element, ITextEditable editable)
     {
         var inputArgs = new InputEventArgs
         {
-            Target = input,
-            Data = input.Value ?? string.Empty,
+            Target = element,
+            Data = editable.Value ?? string.Empty,
             Bubbles = true
         };
-        DispatchWithSyncContext(input, EventTypes.Input, inputArgs);
+        DispatchWithSyncContext(element, EventTypes.Input, inputArgs);
     }
 
     private void DispatchChange(Element element)

@@ -458,7 +458,7 @@ public class Painter
     /// <summary>
     /// 绘制多行文本（支持换行）
     /// </summary>
-    public void DrawMultilineText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, float lineHeight, WhiteSpace whiteSpace, VerticalAlign verticalAlign = VerticalAlign.Top)
+    public void DrawMultilineText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, float lineHeight, WhiteSpace whiteSpace, VerticalAlign verticalAlign = VerticalAlign.Top, bool breakLongWords = false)
     {
         if (string.IsNullOrEmpty(text) || color.A == 0) return;
 
@@ -466,7 +466,7 @@ public class Painter
         var processedText = Utils.TextWrapper.ProcessText(text, whiteSpace);
 
         // 分行
-        var lines = Utils.TextWrapper.WrapText(processedText, fontFamily, fontSize, fontWeight, rect.Width, whiteSpace);
+        var lines = Utils.TextWrapper.WrapText(processedText, fontFamily, fontSize, fontWeight, rect.Width, whiteSpace, breakLongWords);
 
         if (lines.Count == 0) return;
 

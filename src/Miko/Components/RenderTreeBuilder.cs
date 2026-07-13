@@ -23,10 +23,13 @@ public class RenderTreeBuilder
         ["p"] = () => new ParagraphElement(),
         ["button"] = () => new ButtonElement(),
         ["input"] = () => new InputElement(),
+        ["textarea"] = () => new TextAreaElement(),
         ["select"] = () => new SelectElement(),
         ["option"] = () => new OptionElement(),
         ["optgroup"] = () => new OptGroupElement(),
         ["label"] = () => new LabelElement(),
+        ["br"] = () => new BrElement(),
+        ["hr"] = () => new HrElement(),
         ["h1"] = () => new H1Element(),
         ["h2"] = () => new H2Element(),
         ["h3"] = () => new H3Element(),
@@ -39,6 +42,9 @@ public class RenderTreeBuilder
         ["img"] = () => new ImageElement(),
         ["video"] = () => new VideoElement(),
         ["table"] = () => new TableElement(),
+        ["caption"] = () => new CaptionElement(),
+        ["colgroup"] = () => new ColgroupElement(),
+        ["col"] = () => new ColElement(),
         ["thead"] = () => new TheadElement(),
         ["tbody"] = () => new TbodyElement(),
         ["tfoot"] = () => new TfootElement(),
@@ -59,12 +65,30 @@ public class RenderTreeBuilder
     public void CloseElement()
     {
         var element = _stack.Pop();
+        NormalizeTextArea(element);
         if (_stack.Count > 0)
             _stack.Peek().AddChild(element);
         else
             // 顶层元素：经 AttachToTree 处理多根（多个顶层元素并入一个透明片段），
             // 避免后一个根覆盖前一个（如 <video/> 之后再跟条件块时丢失 video）。
             AttachToTree(element);
+    }
+
+    /// <summary>
+    /// HTML 中 textarea 的初始文本写在标签内容里（<c>&lt;textarea&gt;初始值&lt;/textarea&gt;</c>），
+    /// 而非 value 属性。这里把其子文本节点回收进 <see cref="TextAreaElement.Value"/> 并移除，
+    /// 使这些文本作为可编辑内容由元素统一渲染，而不是作为普通子节点参与布局。
+    /// 若 value 属性已显式提供，则以属性为准，仅清理子文本节点。
+    /// </summary>
+    private static void NormalizeTextArea(Element element)
+    {
+        if (element is not TextAreaElement textArea) return;
+        var childText = textArea.TextContent;
+        if (textArea.Value is null && !string.IsNullOrEmpty(childText))
+        {
+            textArea.Value = childText;
+        }
+        textArea.Children.RemoveAll(c => c is TextNode);
     }
 
     public void AddAttribute(int seq, string name, string? value)
@@ -101,6 +125,16 @@ public class RenderTreeBuilder
                 img.Source = value; break;
             case "placeholder" when element is ImageElement placeholderImg:
                 placeholderImg.Placeholder = value; break;
+            case "placeholder" when element is TextAreaElement textArea:
+                textArea.Placeholder = value; break;
+            case "value" when element is TextAreaElement valueTextArea:
+                valueTextArea.Value = value; break;
+            case "rows" when element is TextAreaElement rowsTextArea:
+                if (int.TryParse(value, out var rows)) rowsTextArea.Rows = rows;
+                break;
+            case "cols" when element is TextAreaElement colsTextArea:
+                if (int.TryParse(value, out var cols)) colsTextArea.Cols = cols;
+                break;
             case "src" when element is VideoElement video:
                 video.Source = value; break;
             case "poster" when element is VideoElement video:
@@ -307,6 +341,7 @@ public class RenderTreeBuilder
                 if (localStack.Count > 0)
                 {
                     var el = localStack.Pop();
+                    NormalizeTextArea(el);
                     if (localStack.Count > 0)
                         localStack.Peek().AddChild(el);
                     else
@@ -342,6 +377,7 @@ public class RenderTreeBuilder
         while (localStack.Count > 0)
         {
             var el = localStack.Pop();
+            NormalizeTextArea(el);
             if (localStack.Count > 0)
                 localStack.Peek().AddChild(el);
             else

@@ -77,8 +77,9 @@ public class BlockLayout
         else if (constraints.IsInfiniteWidth || containerWidth <= 0)
         {
             // 当没有可用宽度约束时（如在 flex row 容器中），根据内容计算宽度（shrink-to-fit）。
-            // 以 null 约束预布局在流子元素（含文本节点），取其行内排列后的最右边界作为内容宽度。
-            contentWidth = MeasureInlineChildrenWidth(box);
+            // textarea 有由 cols 决定的固有宽度；否则以 null 约束预布局在流子元素（含文本节点），
+            // 取其行内排列后的最右边界作为内容宽度。
+            contentWidth = GetTextFormControlContentWidth(box) ?? MeasureInlineChildrenWidth(box);
         }
         else
         {
@@ -206,6 +207,18 @@ public class BlockLayout
                        && !IsOutOfFlow(box.Children[i]))
                 {
                     var inlineChild = box.Children[i];
+
+                    // 遇到强制换行标记（br）：结束当前行盒，其后的行内内容排到新的一行。
+                    // br 自身不占宽度，但会贡献至少一行的高度（保证空 br 也能换行）。
+                    if (IsForcedLineBreak(inlineChild))
+                    {
+                        var brConstraints = new LayoutConstraints(0, null);
+                        LayoutChild(inlineChild, brConstraints, lineX, currentY);
+                        lineHeight = Math.Max(lineHeight, ResolveLineHeight(box.ComputedStyle));
+                        i++;
+                        break;
+                    }
+
                     // 传入父内容宽度作为可用宽度，使 inline-block 子元素的百分比宽度
                     // 能相对包含块解析（auto 宽度仍由内容决定，不受影响）。
                     var childConstraints = new LayoutConstraints(childAvailableWidth, childAvailableHeight);
@@ -351,6 +364,16 @@ public class BlockLayout
                        && !IsOutOfFlow(box.Children[i]))
                 {
                     var inlineChild = box.Children[i];
+
+                    // 强制换行标记（br）：结束当前行盒（见主布局逻辑说明）。
+                    if (IsForcedLineBreak(inlineChild))
+                    {
+                        LayoutChild(inlineChild, new LayoutConstraints(0, null), lineX, currentY);
+                        lineHeight = Math.Max(lineHeight, ResolveLineHeight(box.ComputedStyle));
+                        i++;
+                        break;
+                    }
+
                     // 传入父内容宽度，使 inline-block 子元素的百分比宽度能相对包含块解析。
                     var childConstraints = new LayoutConstraints(childAvailableWidth, null);
                     LayoutChild(inlineChild, childConstraints, lineX, currentY);
@@ -421,6 +444,13 @@ public class BlockLayout
     }
 
     /// <summary>
+    /// 该盒子是否为强制换行标记（<c>&lt;br&gt;</c>）。br 是行内级空元素，本身不产生可见盒，
+    /// 但在行内流中会结束当前行盒，使其后的行内内容排到新的一行。
+    /// </summary>
+    internal static bool IsForcedLineBreak(LayoutBox child)
+        => child.Element is Miko.Core.DomElements.BrElement;
+
+    /// <summary>
     /// replaced 元素（video / img）的内禀尺寸（CSS 像素）。
     /// 媒体已加载时返回真实尺寸；video 未知时回退到 HTML 默认 300×150。
     /// img 未加载完成时返回 (0, 0)（无内禀尺寸，需 CSS 显式定尺寸以避免加载前后的重排抖动）。
@@ -452,17 +482,21 @@ public class BlockLayout
     }
 
     /// <summary>
-    /// 是否为“单行文本表单控件”：其盒子高度应由一行文本撑起，且其子元素不在常规流中
-    /// 参与盒子高度（如 select 的 option 由下拉层叠加渲染，不计入闭合态的高度）。
-    /// 目前包括 input（文本类）与 select。
+    /// 是否为“文本表单控件”：其盒子高度应由文本（行高/字体度量）撑起，且其子元素不在常规流中
+    /// 参与盒子高度（如 select 的 option 由下拉层叠加渲染，不计入闭合态的高度；textarea 的文本
+    /// 由元素自身渲染，不作为子节点参与布局）。
+    /// 目前包括 input（文本类）、select 与 textarea。
     /// </summary>
     internal static bool IsTextFormControl(LayoutBox box)
         => box.Element is Miko.Core.DomElements.InputElement
-        || box.Element is Miko.Core.DomElements.SelectElement;
+        || box.Element is Miko.Core.DomElements.SelectElement
+        || box.Element is Miko.Core.DomElements.TextAreaElement;
 
     /// <summary>
-    /// 单行文本表单控件（input[text/password]、select）在自动高度时，
-    /// 其内容高度应由一行文本占据：优先取显式行高（line-height），否则取字体度量高度。
+    /// 文本表单控件在自动高度时的内容高度：
+    /// - input[text/password]、select：由一行文本占据（一行高度）；
+    /// - textarea：由其 <see cref="Core.DomElements.TextAreaElement.Rows"/> 行文本占据（多行高度）。
+    /// 优先取显式行高（line-height），否则取字体度量高度。
     /// 返回 null 表示该盒子不适用此规则（应回退到常规的内容高度计算）。
     /// </summary>
     internal static float? GetTextFormControlContentHeight(LayoutBox box)
@@ -470,7 +504,34 @@ public class BlockLayout
         if (!IsTextFormControl(box))
             return null;
 
-        return ResolveLineHeight(box.ComputedStyle);
+        float lineHeight = ResolveLineHeight(box.ComputedStyle);
+
+        // textarea 高度由可见行数（rows）撑起。
+        if (box.Element is Miko.Core.DomElements.TextAreaElement textArea)
+            return lineHeight * Math.Max(1, textArea.Rows);
+
+        return lineHeight;
+    }
+
+    /// <summary>
+    /// textarea 在自动宽度时的内容宽度：由其 <see cref="Core.DomElements.TextAreaElement.Cols"/>
+    /// 列数乘以字体平均字符宽度得到（对齐浏览器 <c>&lt;textarea cols&gt;</c> 的固有宽度语义）。
+    /// 返回 null 表示该盒子不适用此规则（应回退到常规的内容宽度计算）。
+    /// </summary>
+    /// <remarks>
+    /// 浏览器以字体的“平均字符宽度”（约等于数字 '0' 的字宽）× cols 作为 textarea 的固有内容宽度。
+    /// Miko 无字体 avgCharWidth 度量接口，这里以字符 '0' 的实测宽度近似平均字宽，与浏览器观感一致。
+    /// </remarks>
+    internal static float? GetTextFormControlContentWidth(LayoutBox box)
+    {
+        if (box.Element is not Miko.Core.DomElements.TextAreaElement textArea)
+            return null;
+
+        var style = box.ComputedStyle;
+        float avgCharWidth = TextMeasurer.MeasureTextWidth(
+            "0", style.FontFamily, style.FontSize.Value, style.FontWeight);
+
+        return avgCharWidth * Math.Max(1, textArea.Cols);
     }
 
     /// <summary>

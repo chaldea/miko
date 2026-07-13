@@ -126,6 +126,11 @@ public static class TextWrapper
     /// <param name="fontWeight">字体粗细</param>
     /// <param name="availableWidth">可用宽度</param>
     /// <param name="whiteSpace">WhiteSpace 样式</param>
+    /// <param name="breakLongWords">
+    /// 是否对超过整行宽度的连续长单词做逐字符断行（对齐 CSS <c>overflow-wrap: anywhere</c>）。
+    /// textarea 等表单控件采用软换行：任何超出内容宽度的内容都应换行而非溢出，故传 true；
+    /// 普通文本节点默认 false，仅在单词（空格）边界换行，保持既有行为。
+    /// </param>
     /// <returns>分行后的文本列表</returns>
     public static List<string> WrapText(
         string text,
@@ -133,7 +138,8 @@ public static class TextWrapper
         float fontSize,
         FontWeight fontWeight,
         float availableWidth,
-        WhiteSpace whiteSpace)
+        WhiteSpace whiteSpace,
+        bool breakLongWords = false)
     {
         var lines = new List<string>();
 
@@ -160,7 +166,7 @@ public static class TextWrapper
                 continue;
             }
 
-            WrapParagraph(paragraph, fontFamily, fontSize, fontWeight, availableWidth, lines);
+            WrapParagraph(paragraph, fontFamily, fontSize, fontWeight, availableWidth, lines, breakLongWords);
         }
 
         return lines;
@@ -172,7 +178,8 @@ public static class TextWrapper
         float fontSize,
         FontWeight fontWeight,
         float availableWidth,
-        List<string> lines)
+        List<string> lines,
+        bool breakLongWords = false)
     {
         if (availableWidth <= 0)
         {
@@ -207,25 +214,63 @@ public static class TextWrapper
                 // 保存当前行并开始新行
                 lines.Add(currentLine.ToString());
                 currentLine.Clear();
-                currentLine.Append(word);
-                currentWidth = TextMeasurer.MeasureTextWidth(word, fontFamily, fontSize, fontWeight);
+                currentWidth = 0;
             }
-            else
+
+            // 单词自身就超过整行宽度：按字符断行（overflow-wrap: anywhere）。
+            // 仅在启用 breakLongWords 时执行，否则保持旧行为（长单词整体溢出）。
+            float soloWordWidth = TextMeasurer.MeasureTextWidth(word, fontFamily, fontSize, fontWeight);
+            if (breakLongWords && currentLine.Length == 0 && soloWordWidth > availableWidth)
             {
-                // 继续添加到当前行
-                if (currentLine.Length > 0)
-                {
-                    currentLine.Append(' ');
-                }
-                currentLine.Append(word);
-                currentWidth += wordWidth;
+                BreakLongWord(word, fontFamily, fontSize, fontWeight, availableWidth, lines, currentLine, ref currentWidth);
+                continue;
             }
+
+            // 继续添加到当前行
+            if (currentLine.Length > 0)
+            {
+                currentLine.Append(' ');
+                currentWidth += TextMeasurer.MeasureTextWidth(" ", fontFamily, fontSize, fontWeight);
+            }
+            currentLine.Append(word);
+            currentWidth += soloWordWidth;
         }
 
         // 添加最后一行
         if (currentLine.Length > 0)
         {
             lines.Add(currentLine.ToString());
+        }
+    }
+
+    /// <summary>
+    /// 逐字符断开一个超过整行宽度的长单词，填满每一行。最后一段（未满一行）不落盘，
+    /// 而是留在 <paramref name="currentLine"/> 中，以便后续单词能继续拼接在同一行。
+    /// </summary>
+    private static void BreakLongWord(
+        string word,
+        string fontFamily,
+        float fontSize,
+        FontWeight fontWeight,
+        float availableWidth,
+        List<string> lines,
+        System.Text.StringBuilder currentLine,
+        ref float currentWidth)
+    {
+        foreach (var ch in word)
+        {
+            float charWidth = TextMeasurer.MeasureTextWidth(ch.ToString(), fontFamily, fontSize, fontWeight);
+
+            // 当前行放不下这个字符（且行内已有内容）：换行。
+            if (currentLine.Length > 0 && currentWidth + charWidth > availableWidth)
+            {
+                lines.Add(currentLine.ToString());
+                currentLine.Clear();
+                currentWidth = 0;
+            }
+
+            currentLine.Append(ch);
+            currentWidth += charWidth;
         }
     }
 }

@@ -553,6 +553,13 @@ public class RenderEngine
             return;
         }
 
+        // 渲染多行文本框
+        if (element is TextAreaElement textAreaElement)
+        {
+            RenderTextAreaElement(box, textAreaElement);
+            return;
+        }
+
         // 渲染下拉选择框
         if (element is SelectElement selectElement)
         {
@@ -816,6 +823,7 @@ public class RenderEngine
                 break;
 
             case InputType.Password:
+                _painter.SaveClip(box.BoxModel.PaddingBox);
                 if (!string.IsNullOrEmpty(inputElement.Value))
                 {
                     _painter.DrawPasswordText(
@@ -843,15 +851,24 @@ public class RenderEngine
                     var maskedText = new string('●', (inputElement.Value ?? string.Empty).Length);
                     _painter.DrawTextCursor(contentRect, maskedText, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight);
                 }
+                _painter.Restore();
                 break;
 
             case InputType.Text:
             default:
+                // 单行输入：内容超出内容宽度后，按光标位置水平滚动，使光标始终可见；
+                // 超出内容盒的文本被裁剪不显示（对齐浏览器 input 的行为）。
+                _painter.SaveClip(box.BoxModel.PaddingBox);
                 if (!string.IsNullOrEmpty(inputElement.Value))
                 {
+                    float scrollX = ComputeInputScrollOffset(
+                        inputElement.Value, inputElement.CursorPosition, contentRect.Width,
+                        style.FontFamily, style.FontSize.Value, style.FontWeight, isFocused);
+                    var scrolledRect = new RectF(
+                        contentRect.X - scrollX, contentRect.Y, contentRect.Width + scrollX, contentRect.Height);
                     _painter.DrawText(
                         inputElement.Value,
-                        contentRect,
+                        scrolledRect,
                         style.Color,
                         style.FontFamily,
                         style.FontSize.Value,
@@ -859,26 +876,145 @@ public class RenderEngine
                         TextAlign.Left,
                         VerticalAlign.Middle
                     );
+                    if (isFocused)
+                    {
+                        _painter.DrawTextCursor(scrolledRect, inputElement.Value, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight);
+                    }
                 }
-                else if (!string.IsNullOrEmpty(inputElement.Placeholder) && !isFocused)
+                else
                 {
-                    _painter.DrawText(
-                        inputElement.Placeholder,
-                        contentRect,
-                        Color.Gray,
-                        style.FontFamily,
-                        style.FontSize.Value,
-                        style.FontWeight,
-                        TextAlign.Left,
-                        VerticalAlign.Middle
-                    );
+                    if (!string.IsNullOrEmpty(inputElement.Placeholder) && !isFocused)
+                    {
+                        _painter.DrawText(
+                            inputElement.Placeholder,
+                            contentRect,
+                            Color.Gray,
+                            style.FontFamily,
+                            style.FontSize.Value,
+                            style.FontWeight,
+                            TextAlign.Left,
+                            VerticalAlign.Middle
+                        );
+                    }
+                    if (isFocused)
+                    {
+                        _painter.DrawTextCursor(contentRect, string.Empty, 0, style.FontFamily, style.FontSize.Value, style.FontWeight);
+                    }
                 }
-                if (isFocused)
-                {
-                    _painter.DrawTextCursor(contentRect, inputElement.Value ?? string.Empty, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight);
-                }
+                _painter.Restore();
                 break;
         }
+    }
+
+    /// <summary>
+    /// 计算单行输入框的水平滚动偏移：当光标前文本宽度超过内容宽度时，向左滚动使光标落在内容盒右边缘，
+    /// 保持光标可见；否则不滚动（从文本起始处显示，右侧超出部分被裁剪）。
+    /// 仅在聚焦时滚动跟随光标；未聚焦时从起始处显示（offset=0）。
+    /// </summary>
+    private static float ComputeInputScrollOffset(
+        string text, int cursorPosition, float contentWidth,
+        string fontFamily, float fontSize, FontWeight fontWeight, bool isFocused)
+    {
+        if (!isFocused || contentWidth <= 0) return 0;
+
+        int pos = Math.Clamp(cursorPosition, 0, text.Length);
+        float caretX = Utils.TextMeasurer.MeasureTextWidth(
+            text.Substring(0, pos), fontFamily, fontSize, fontWeight);
+
+        return caretX > contentWidth ? caretX - contentWidth : 0;
+    }
+
+    /// <summary>
+    /// 渲染多行文本框元素 (textarea)。
+    ///
+    /// 文本在内容盒内按行盒自顶向下多行绘制（white-space: pre-wrap），过长的行在内容宽度内换行。
+    /// 无内容且未聚焦时绘制灰色占位符。聚焦时在光标所在行/列绘制文本光标。
+    /// </summary>
+    private void RenderTextAreaElement(LayoutBox box, TextAreaElement textArea)
+    {
+        if (_painter == null) return;
+
+        var style = box.ComputedStyle;
+        var contentRect = box.BoxModel.Content;
+        bool isFocused = textArea.HasState(Miko.Core.ElementState.Focus);
+        float lineHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);
+
+        // 裁剪到内容盒（padding box 内）：超出内容宽/高的软换行文本与光标不应溢出控件绘制。
+        // textarea 采用软换行，任何超出内容宽度的内容都换行（breakLongWords: true），
+        // 但换行后总高度仍可能超过可见高度，故仍需裁剪。
+        _painter.SaveClip(box.BoxModel.PaddingBox);
+
+        if (!string.IsNullOrEmpty(textArea.Value))
+        {
+            _painter.DrawMultilineText(
+                textArea.Value,
+                contentRect,
+                style.Color,
+                style.FontFamily,
+                style.FontSize.Value,
+                style.FontWeight,
+                TextAlign.Left,
+                lineHeight,
+                Common.WhiteSpace.PreWrap,
+                VerticalAlign.Top,
+                breakLongWords: true);
+        }
+        else if (!string.IsNullOrEmpty(textArea.Placeholder) && !isFocused)
+        {
+            _painter.DrawMultilineText(
+                textArea.Placeholder,
+                contentRect,
+                Color.Gray,
+                style.FontFamily,
+                style.FontSize.Value,
+                style.FontWeight,
+                TextAlign.Left,
+                lineHeight,
+                Common.WhiteSpace.PreWrap,
+                VerticalAlign.Top,
+                breakLongWords: true);
+        }
+
+        if (isFocused)
+        {
+            RenderTextAreaCursor(box, textArea, lineHeight);
+        }
+
+        _painter.Restore();
+    }
+
+    /// <summary>
+    /// 绘制 textarea 的文本光标。textarea 采用软换行，因此光标所在的视觉行/列需按与绘制一致的
+    /// 换行规则（含逐字符断行）重新计算：先取光标前文本，按内容宽度软换行后，光标定位在最后一段
+    /// 视觉行的行尾。
+    /// </summary>
+    private void RenderTextAreaCursor(LayoutBox box, TextAreaElement textArea, float lineHeight)
+    {
+        if (_painter == null) return;
+
+        var style = box.ComputedStyle;
+        var contentRect = box.BoxModel.Content;
+        var value = textArea.Value ?? string.Empty;
+        int pos = Math.Clamp(textArea.CursorPosition, 0, value.Length);
+        var before = value.Substring(0, pos);
+
+        // 与绘制一致：按内容宽度对“光标前文本”软换行（含长单词逐字符断行），
+        // 视觉行号为换行结果的行数-1，当前列文本为最后一段视觉行。
+        var processed = Utils.TextWrapper.ProcessText(before, Common.WhiteSpace.PreWrap);
+        var lines = Utils.TextWrapper.WrapText(
+            processed, style.FontFamily, style.FontSize.Value, style.FontWeight,
+            contentRect.Width, Common.WhiteSpace.PreWrap, breakLongWords: true);
+
+        int lineIndex = lines.Count > 0 ? lines.Count - 1 : 0;
+        // 若光标前文本以显式换行结尾，WrapText 会为末尾空段补一行；此处直接取最后一段作为当前行。
+        var currentLine = lines.Count > 0 ? lines[^1] : string.Empty;
+
+        float lineTop = contentRect.Top + lineIndex * lineHeight;
+        // 复用单行光标绘制：以当前行文本 + 光标位于该行末尾，定位在当前行的行盒内。
+        var cursorRect = new RectF(contentRect.X, lineTop, contentRect.Width, lineHeight);
+        _painter.DrawTextCursor(
+            cursorRect, currentLine, currentLine.Length,
+            style.FontFamily, style.FontSize.Value, style.FontWeight);
     }
 
     /// <summary>
