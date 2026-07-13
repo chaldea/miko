@@ -36,7 +36,7 @@ public class ButtonElement : Element
 /// <summary>
 /// 输入框元素
 /// </summary>
-public class InputElement : Element
+public class InputElement : Element, ITextEditable
 {
     public override string TagName => "input";
 
@@ -44,6 +44,16 @@ public class InputElement : Element
     /// 输入框类型，默认为 Text
     /// </summary>
     public InputType Type { get; set; } = InputType.Text;
+
+    /// <summary>
+    /// input 仅在文本 / 密码类型下接受键盘文本编辑。
+    /// </summary>
+    public bool IsEditable => Type is InputType.Text or InputType.Password;
+
+    /// <summary>
+    /// input 始终为单行控件。
+    /// </summary>
+    public bool IsMultiline => false;
 
     /// <summary>
     /// 输入框的值
@@ -74,6 +84,109 @@ public class InputElement : Element
     /// 当前数值（用于 Range）
     /// </summary>
     public float NumericValue { get; set; } = 50;
+
+    /// <summary>
+    /// 光标位置（字符索引）
+    /// </summary>
+    public int CursorPosition { get; set; }
+
+    /// <summary>
+    /// 插入文本到当前光标位置
+    /// </summary>
+    public void InsertText(string text)
+    {
+        var current = Value ?? string.Empty;
+        var pos = Math.Clamp(CursorPosition, 0, current.Length);
+        Value = current.Insert(pos, text);
+        CursorPosition = pos + text.Length;
+        IsDirty = true;
+    }
+
+    /// <summary>
+    /// 删除光标前一个字符
+    /// </summary>
+    public bool Backspace()
+    {
+        var current = Value ?? string.Empty;
+        if (CursorPosition > 0 && current.Length > 0)
+        {
+            var pos = Math.Clamp(CursorPosition, 0, current.Length);
+            Value = current.Remove(pos - 1, 1);
+            CursorPosition = pos - 1;
+            IsDirty = true;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 删除光标后一个字符
+    /// </summary>
+    public bool Delete()
+    {
+        var current = Value ?? string.Empty;
+        if (CursorPosition < current.Length)
+        {
+            Value = current.Remove(CursorPosition, 1);
+            IsDirty = true;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 将光标移动到文本末尾
+    /// </summary>
+    public void MoveCursorToEnd()
+    {
+        CursorPosition = (Value ?? string.Empty).Length;
+    }
+}
+
+/// <summary>
+/// 多行文本输入框元素 (textarea)。
+///
+/// 与 <see cref="InputElement"/>（单行）不同，textarea 支持多行文本：其内容高度默认由
+/// <see cref="Rows"/> 行文本撑起（见 UA 默认样式），并支持插入换行符。文本编辑逻辑
+/// （插入 / 删除 / 光标移动）与 <see cref="InputElement"/> 保持一致的语义。
+///
+/// HTML 中 textarea 的初始文本写在标签内容里而非 value 属性，因此
+/// <see cref="Miko.Components.RenderTreeBuilder"/> 会把其子文本节点回收进 <see cref="Value"/>，
+/// 使这些文本不作为普通子节点参与布局，而是作为可编辑内容由本元素统一渲染。
+/// </summary>
+public class TextAreaElement : Element, ITextEditable
+{
+    public override string TagName => "textarea";
+
+    /// <summary>
+    /// 文本内容
+    /// </summary>
+    public string? Value { get; set; }
+
+    /// <summary>
+    /// textarea 始终接受键盘文本编辑。
+    /// </summary>
+    public bool IsEditable => true;
+
+    /// <summary>
+    /// textarea 是多行控件（回车插入换行）。
+    /// </summary>
+    public bool IsMultiline => true;
+
+    /// <summary>
+    /// 占位符文本
+    /// </summary>
+    public string? Placeholder { get; set; }
+
+    /// <summary>
+    /// 可见行数（默认 2，与浏览器一致），用于自动高度计算
+    /// </summary>
+    public int Rows { get; set; } = 2;
+
+    /// <summary>
+    /// 可见列数（默认 20，与浏览器一致），用于自动宽度计算
+    /// </summary>
+    public int Cols { get; set; } = 20;
 
     /// <summary>
     /// 光标位置（字符索引）

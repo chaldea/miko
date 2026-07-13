@@ -239,6 +239,43 @@ public class StyleResolver
                 ApplyInputDefaultStyles(element, style);
                 break;
 
+            case "textarea":
+                // Browser default: display: inline-block, 1px solid border, white background,
+                // 允许换行（white-space: pre-wrap）与滚动。高度由 rows 行文本在布局阶段撑起
+                // （见 BlockLayout.GetTextFormControlContentHeight），此处不写死像素高度。
+                style.Display ??= Common.Display.InlineBlock;
+                style.BoxSizing ??= Common.BoxSizing.BorderBox;
+                style.PaddingTop ??= Common.Length.Px(2);
+                style.PaddingRight ??= Common.Length.Px(2);
+                style.PaddingBottom ??= Common.Length.Px(2);
+                style.PaddingLeft ??= Common.Length.Px(2);
+                style.BorderWidth ??= Common.Length.Px(1);
+                style.BorderStyle ??= Common.BorderStyle.Solid;
+                style.BorderColor ??= Common.Color.Gray;
+                style.BackgroundColor ??= Common.Color.White;
+                style.WhiteSpace ??= Common.WhiteSpace.PreWrap;
+                break;
+
+            case "br":
+                // Browser default: display: inline。br 是强制换行标记，不产生可见盒，
+                // 由 BlockLayout 识别并结束当前行盒（见 IsForcedLineBreak）。
+                style.Display ??= Common.Display.Inline;
+                break;
+
+            case "hr":
+                // Browser default: display: block, margin: 0.5em auto, border + inset 线条。
+                // Miko 无 border 的 3D inset 样式，用一条 1px 实线上边框绘制分隔线，
+                // 内容高度为 0，因此直接复用既有的边框绘制路径。
+                style.Display ??= Common.Display.Block;
+                style.MarginTop ??= Common.Length.Px(8);      // ~0.5em at 16px
+                style.MarginBottom ??= Common.Length.Px(8);
+                style.MarginLeft ??= Common.Length.Auto;
+                style.MarginRight ??= Common.Length.Auto;
+                style.BorderTopWidth ??= Common.Length.Px(1);
+                style.BorderTopStyle ??= Common.BorderStyle.Solid;
+                style.BorderTopColor ??= Common.Color.Gray;
+                break;
+
             case "img":
                 // Browser default: display: inline, border: 0
                 style.Display ??= Common.Display.Inline;

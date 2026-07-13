@@ -124,8 +124,8 @@ public class InlineLayout
         }
         else
         {
-            // auto 宽度：内容宽度即行内子盒（含文本节点）排列后的最大宽度。
-            contentWidth = maxWidth;
+            // auto 宽度：textarea 由 cols 列数撑起固有宽度；否则为行内子盒（含文本节点）排列后的最大宽度。
+            contentWidth = BlockLayout.GetTextFormControlContentWidth(box) ?? maxWidth;
         }
 
         // 先应用 min/max-width 约束，得到确定的内容宽度，再据此重排子元素与计算高度。
