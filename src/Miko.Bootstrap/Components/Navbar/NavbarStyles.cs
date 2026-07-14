@@ -49,7 +49,7 @@ public class NavbarToken
     public Length NavbarTogglerPaddingY { get; set; }
     public Length NavbarTogglerPaddingX { get; set; }
     public Length NavbarTogglerFontSize { get; set; }
-    public BackgroundImage NavbarTogglerIconBg { get; set; }
+    public BackgroundImage? NavbarTogglerIconBg { get; set; }
     public Color NavbarTogglerBorderColor { get; set; }
     public float NavbarTogglerBorderRadius { get; set; }
     public Length NavbarTogglerFocusWidth { get; set; }

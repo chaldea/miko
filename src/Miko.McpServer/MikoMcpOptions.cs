@@ -1,4 +1,4 @@
-﻿namespace Miko.McpServer;
+namespace Miko.McpServer;
 
 /// <summary>
 /// Miko MCP 服务器配置。

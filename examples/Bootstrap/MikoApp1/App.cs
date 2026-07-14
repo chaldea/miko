@@ -1,4 +1,4 @@
-﻿using Miko.Examples.Bootstrap.Examples;
+using Miko.Examples.Bootstrap.Examples;
 using Miko.Hosting;
 using Microsoft.Extensions.Logging;
 

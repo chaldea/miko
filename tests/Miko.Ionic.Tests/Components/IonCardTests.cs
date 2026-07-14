@@ -32,7 +32,7 @@ public class IonCardTests : IonicComponentTestBase
             p.Add(nameof(IonCard.ChildContent), Body);
         });
 
-        cut.Root.Class.ShouldContain("ion-activatable");
+        cut.Root.ShouldHaveClass("ion-activatable");
         cut.Root.Children[0].TagName.ShouldBe("button");
         cut.Root.Children[0].Class.ShouldBe("card-native");
     }
@@ -82,7 +82,7 @@ public class IonCardTests : IonicComponentTestBase
         cut.Root.Children[0].OnClick!.Invoke(new MouseEventArgs { Target = cut.Root.Children[0] });
 
         clicked.ShouldBeFalse();
-        cut.Root.Class.ShouldContain("card-disabled");
+        cut.Root.ShouldHaveClass("card-disabled");
     }
 
     [Fact]
@@ -132,8 +132,8 @@ public class IonCardTests : IonicComponentTestBase
             p.Add(nameof(IonCardHeader.Color), "primary");
         });
 
-        cut.Root.Class.ShouldContain("card-header-translucent");
-        cut.Root.Class.ShouldContain("ion-color-primary");
+        cut.Root.ShouldHaveClass("card-header-translucent");
+        cut.Root.ShouldHaveClass("ion-color-primary");
     }
 
     [Fact]
@@ -168,8 +168,8 @@ public class IonCardTests : IonicComponentTestBase
             p.AddChildContent(Text("Colored Title"));
         });
 
-        cut.Root.Class.ShouldContain("ion-color");
-        cut.Root.Class.ShouldContain("ion-color-primary");
+        cut.Root.ShouldHaveClass("ion-color");
+        cut.Root.ShouldHaveClass("ion-color-primary");
     }
 
     [Fact]
@@ -191,8 +191,8 @@ public class IonCardTests : IonicComponentTestBase
             p.AddChildContent(Text("Colored Subtitle"));
         });
 
-        cut.Root.Class.ShouldContain("ion-color");
-        cut.Root.Class.ShouldContain("ion-color-danger");
+        cut.Root.ShouldHaveClass("ion-color");
+        cut.Root.ShouldHaveClass("ion-color-danger");
     }
 
     [Fact]
@@ -202,8 +202,8 @@ public class IonCardTests : IonicComponentTestBase
 
         var cut = Context.Render<IonCardTitle>(p => p.AddChildContent(Text("iOS Title")));
 
-        cut.Root.Class.ShouldContain("ios");
-        cut.Root.Class.ShouldContain("ion-card-title");
+        cut.Root.ShouldHaveClass("ios");
+        cut.Root.ShouldHaveClass("ion-card-title");
     }
 
     [Fact]
@@ -213,8 +213,8 @@ public class IonCardTests : IonicComponentTestBase
 
         var cut = Context.Render<IonCardSubtitle>(p => p.AddChildContent(Text("iOS Subtitle")));
 
-        cut.Root.Class.ShouldContain("ios");
-        cut.Root.Class.ShouldContain("ion-card-subtitle");
+        cut.Root.ShouldHaveClass("ios");
+        cut.Root.ShouldHaveClass("ion-card-subtitle");
     }
 
     [Fact]

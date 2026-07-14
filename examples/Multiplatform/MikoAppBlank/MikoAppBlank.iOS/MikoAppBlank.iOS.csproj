@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MikoAppBlank\MikoAppBlank.csproj" />
-    <PackageReference Include="Miko.iOS" Version="0.0.12" />
+    <ProjectReference Include="..\..\..\..\src\Miko.iOS\Miko.iOS.csproj" />
   </ItemGroup>
 
 </Project>

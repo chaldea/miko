@@ -1,4 +1,4 @@
-﻿using Miko.Animation;
+using Miko.Animation;
 using Miko.Common;
 using Miko.Styling;
 
@@ -123,7 +123,7 @@ internal static class ButtonStyles
         {
             BackgroundColor = t.ButtonSolidBackground,
             Color = t.ButtonSolidColor,
-            BoxShadow = t.ButtonSolidBoxShadow.Count > 0 ? t.ButtonSolidBoxShadow : null,
+            BoxShadow = t.ButtonSolidBoxShadow.Count > 0 ? (StyleProperty<List<BoxShadow>>?)t.ButtonSolidBoxShadow : null,
         };
 
         // Outline: transparent fill, primary border + label.

@@ -34,7 +34,7 @@ public class IonItemOptionTests : IonicComponentTestBase
         var cut = Context.Render<IonItemOption>(parameters =>
             parameters.Add(nameof(IonItemOption.Disabled), true));
 
-        cut.Root.Class.ShouldContain("item-option-disabled");
+        cut.Root.ShouldHaveClass("item-option-disabled");
     }
 
     [Fact]

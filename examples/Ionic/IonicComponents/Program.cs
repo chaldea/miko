@@ -1,4 +1,4 @@
-﻿using Miko.Windowing;
+using Miko.Windowing;
 
 namespace MikoApp1.Razor;
 

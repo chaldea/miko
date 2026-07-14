@@ -39,9 +39,9 @@ public class IonChipTests : IonicComponentTestBase
             p.Add(nameof(IonChip.Color), "success");
         });
 
-        cut.Root.Class.ShouldContain("chip-outline");
-        cut.Root.Class.ShouldContain("chip-disabled");
-        cut.Root.Class.ShouldContain("ion-color-success");
+        cut.Root.ShouldHaveClass("chip-outline");
+        cut.Root.ShouldHaveClass("chip-disabled");
+        cut.Root.ShouldHaveClass("ion-color-success");
     }
 
     [Fact]

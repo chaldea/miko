@@ -15,10 +15,10 @@ public class IonFooterTests : IonicComponentTestBase
 
         // Assert - DOM structure
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldContain("md");
-        cut.Root.Class.ShouldContain("ion-footer");
-        cut.Root.Class.ShouldContain("footer-md");
-        cut.Root.Class.ShouldContain("footer-toolbar-padding");
+        cut.Root.ShouldHaveClass("md");
+        cut.Root.ShouldHaveClass("ion-footer");
+        cut.Root.ShouldHaveClass("footer-md");
+        cut.Root.ShouldHaveClass("footer-toolbar-padding");
     }
 
     [Fact]
@@ -39,8 +39,8 @@ public class IonFooterTests : IonicComponentTestBase
         var cut = Context.Render<IonFooter>(p => p.Add(nameof(IonFooter.Translucent), true));
 
         // Assert
-        cut.Root.Class.ShouldContain("footer-translucent");
-        cut.Root.Class.ShouldContain("footer-translucent-md");
+        cut.Root.ShouldHaveClass("footer-translucent");
+        cut.Root.ShouldHaveClass("footer-translucent-md");
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public class IonFooterTests : IonicComponentTestBase
         var cut = Context.Render<IonFooter>(p => p.Add(nameof(IonFooter.Translucent), true));
 
         // Assert - iOS mode with translucent renders footer-background div
-        cut.Root.Class.ShouldContain("ios");
-        cut.Root.Class.ShouldContain("footer-translucent-ios");
+        cut.Root.ShouldHaveClass("ios");
+        cut.Root.ShouldHaveClass("footer-translucent-ios");
         cut.Root.Children.Count.ShouldBe(1);
         cut.Root.Children[0].TagName.ShouldBe("div");
         cut.Root.Children[0].Class.ShouldBe("footer-background");
@@ -67,7 +67,7 @@ public class IonFooterTests : IonicComponentTestBase
         var cut = Context.Render<IonFooter>(p => p.Add(nameof(IonFooter.Translucent), true));
 
         // Assert - MD mode doesn't render footer-background
-        cut.Root.Class.ShouldContain("md");
+        cut.Root.ShouldHaveClass("md");
         cut.Root.Children.Count.ShouldBe(0);
     }
 
@@ -78,7 +78,7 @@ public class IonFooterTests : IonicComponentTestBase
         var cut = Context.Render<IonFooter>(p => p.Add(nameof(IonFooter.Collapse), "fade"));
 
         // Assert
-        cut.Root.Class.ShouldContain("footer-collapse-fade");
+        cut.Root.ShouldHaveClass("footer-collapse-fade");
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class IonFooterTests : IonicComponentTestBase
         var cut = Context.Render<IonFooter>();
 
         // Assert
-        cut.Root.Class.ShouldNotContain("footer-collapse");
+        cut.Root.ShouldNotHaveClass("footer-collapse");
     }
 
     [Fact]
@@ -101,9 +101,9 @@ public class IonFooterTests : IonicComponentTestBase
         var cut = Context.Render<IonFooter>();
 
         // Assert
-        cut.Root.Class.ShouldContain("ios");
-        cut.Root.Class.ShouldContain("ion-footer");
-        cut.Root.Class.ShouldContain("footer-ios");
+        cut.Root.ShouldHaveClass("ios");
+        cut.Root.ShouldHaveClass("ion-footer");
+        cut.Root.ShouldHaveClass("footer-ios");
     }
 
     [Fact]
@@ -113,9 +113,9 @@ public class IonFooterTests : IonicComponentTestBase
         var cut = Context.Render<IonFooter>();
 
         // Assert
-        cut.Root.Class.ShouldContain("md");
-        cut.Root.Class.ShouldContain("ion-footer");
-        cut.Root.Class.ShouldContain("footer-md");
+        cut.Root.ShouldHaveClass("md");
+        cut.Root.ShouldHaveClass("ion-footer");
+        cut.Root.ShouldHaveClass("footer-md");
     }
 
     [Fact]
@@ -132,12 +132,12 @@ public class IonFooterTests : IonicComponentTestBase
         });
 
         // Assert
-        cut.Root.Class.ShouldContain("ios");
-        cut.Root.Class.ShouldContain("ion-footer");
-        cut.Root.Class.ShouldContain("footer-ios");
-        cut.Root.Class.ShouldContain("footer-translucent");
-        cut.Root.Class.ShouldContain("footer-translucent-ios");
-        cut.Root.Class.ShouldContain("footer-toolbar-padding");
-        cut.Root.Class.ShouldContain("footer-collapse-fade");
+        cut.Root.ShouldHaveClass("ios");
+        cut.Root.ShouldHaveClass("ion-footer");
+        cut.Root.ShouldHaveClass("footer-ios");
+        cut.Root.ShouldHaveClass("footer-translucent");
+        cut.Root.ShouldHaveClass("footer-translucent-ios");
+        cut.Root.ShouldHaveClass("footer-toolbar-padding");
+        cut.Root.ShouldHaveClass("footer-collapse-fade");
     }
 }

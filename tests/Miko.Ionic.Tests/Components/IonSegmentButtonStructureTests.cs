@@ -49,11 +49,11 @@ public class IonSegmentButtonStructureTests
 
         var host = cut.Root;
         host.TagName.ShouldBe("div");
-        host.Class.ShouldContain("ion-segment-button");
+        host.ShouldHaveClass("ion-segment-button");
 
         // Children: [0] = .button-native, [1] = .segment-button-indicator (siblings).
         host.Children[0].Class.ShouldBe("button-native");
-        host.Children[1].Class.ShouldContain("segment-button-indicator");
+        host.Children[1].ShouldHaveClass("segment-button-indicator");
 
         // The indicator must NOT be inside the native button.
         host.Children[0].FindByClass("segment-button-indicator").Count.ShouldBe(0);

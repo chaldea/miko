@@ -74,6 +74,6 @@ public class IonButtonsTests : IonicComponentTestBase
         // Assert - DOM structure is the component contract
         cut.Root.TagName.ShouldBe("div");
         cut.Root.Class.ShouldNotBeNull();
-        cut.Root.Class.ShouldContain("ion-buttons");
+        cut.Root.ShouldHaveClass("ion-buttons");
     }
 }

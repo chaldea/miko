@@ -81,7 +81,7 @@ internal static class MenuStyles
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Column,
                 BackgroundColor = t.MenuBackground,
-                BoxShadow = t.MenuBoxShadow.Count > 0 ? t.MenuBoxShadow : null,
+                BoxShadow = t.MenuBoxShadow.Count > 0 ? (StyleProperty<List<BoxShadow>>?)t.MenuBoxShadow : null,
                 BorderRight = t.MenuBorderWidth > 0
                     ? new BorderSide(Length.Px(t.MenuBorderWidth), BorderStyle.Solid, t.MenuBorderColor)
                     : new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),

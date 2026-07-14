@@ -1,4 +1,4 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 
 namespace Miko.Common;
 

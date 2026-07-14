@@ -30,7 +30,7 @@ public class IonInfiniteScrollTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonInfiniteScroll>(p => p.Add(nameof(IonInfiniteScroll.Loading), true));
 
-        cut.Root.Class.ShouldContain("infinite-scroll-loading");
+        cut.Root.ShouldHaveClass("infinite-scroll-loading");
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class IonInfiniteScrollTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonInfiniteScroll>(p => p.Add(nameof(IonInfiniteScroll.Position), "top"));
 
-        cut.Root.Class.ShouldContain("infinite-scroll-top");
+        cut.Root.ShouldHaveClass("infinite-scroll-top");
     }
 
     [Fact]

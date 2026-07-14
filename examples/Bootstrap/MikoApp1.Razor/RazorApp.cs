@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Miko.Bootstrap;
 using Miko.DevTools;
 using Miko.Hosting;

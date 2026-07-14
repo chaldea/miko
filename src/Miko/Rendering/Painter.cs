@@ -1319,7 +1319,7 @@ public class Painter
 
     public void Concat(SKMatrix matrix)
     {
-        _canvas.Concat(ref matrix);
+        _canvas.Concat(in matrix);
     }
 
     /// <summary>

@@ -68,7 +68,7 @@ public class IonSegmentButtonIndicatorTests
 
         // The indicator is a SIBLING of the native button (the host's second child), not nested
         // inside it — matching Ionic's host structure.
-        cut.Root.Children[1].Class.ShouldContain("segment-button-indicator");
+        cut.Root.Children[1].ShouldHaveClass("segment-button-indicator");
         cut.Root.Children[0].FindByClass("segment-button-indicator").Count.ShouldBe(0);
     }
 

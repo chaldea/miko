@@ -70,17 +70,17 @@ public class IonToolbarTests : IonicComponentTestBase
 
         // Container holds, in source order: start, secondary, toolbar-content (default slot),
         // primary, end. CSS order would reorder these visually per mode, but the DOM is fixed.
-        var classes = container.Children.Select(c => c.Class).ToList();
-        classes.Count.ShouldBe(5);
-        classes[0].ShouldContain("ion-buttons");      // Start slot
-        classes[1].ShouldContain("ion-buttons");      // Secondary slot
-        classes[2].ShouldContain("toolbar-content");  // default ChildContent wrapper
-        classes[3].ShouldContain("ion-buttons");      // Primary slot
-        classes[4].ShouldContain("ion-buttons");      // End slot
+        var slots = container.Children;
+        slots.Count.ShouldBe(5);
+        slots[0].ShouldHaveClass("ion-buttons");      // Start slot
+        slots[1].ShouldHaveClass("ion-buttons");      // Secondary slot
+        slots[2].ShouldHaveClass("toolbar-content");  // default ChildContent wrapper
+        slots[3].ShouldHaveClass("ion-buttons");      // Primary slot
+        slots[4].ShouldHaveClass("ion-buttons");      // End slot
 
         // The default slot content (the title) sits inside toolbar-content.
         var content = cut.FindByClass("toolbar-content").ShouldHaveSingleItem();
-        content.Children.ShouldHaveSingleItem().Class.ShouldContain("ion-title");
+        content.Children.ShouldHaveSingleItem().ShouldHaveClass("ion-title");
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class IonToolbarTests : IonicComponentTestBase
         // The container always carries the toolbar-content wrapper; with no slots set it is the
         // only child and is itself empty.
         var container = cut.FindByClass("toolbar-container").ShouldHaveSingleItem();
-        container.Children.ShouldHaveSingleItem().Class.ShouldContain("toolbar-content");
+        container.Children.ShouldHaveSingleItem().ShouldHaveClass("toolbar-content");
         cut.FindByClass("toolbar-content").ShouldHaveSingleItem().Children.Count.ShouldBe(0);
     }
 
@@ -111,7 +111,7 @@ public class IonToolbarTests : IonicComponentTestBase
 
         // Start should be first, End should be last
         var container = cut.FindByClass("toolbar-container").ShouldHaveSingleItem();
-        container.Children[0].Class.ShouldContain("ion-buttons"); // Start
-        container.Children[^1].Class.ShouldContain("ion-buttons"); // End
+        container.Children[0].ShouldHaveClass("ion-buttons"); // Start
+        container.Children[^1].ShouldHaveClass("ion-buttons"); // End
     }
 }

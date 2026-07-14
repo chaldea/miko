@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;

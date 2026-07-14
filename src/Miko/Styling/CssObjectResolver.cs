@@ -1,4 +1,4 @@
-﻿using Miko.Styling.Selectors;
+using Miko.Styling.Selectors;
 
 namespace Miko.Styling;
 

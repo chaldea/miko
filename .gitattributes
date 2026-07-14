@@ -1,0 +1,31 @@
+# Enforce LF line endings for source and project files on all platforms.
+# Overrides core.autocrlf=true so files stay LF on checkout (see .editorconfig).
+
+# Source code
+*.cs        text eol=lf
+*.razor     text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+
+# Project and MSBuild files
+*.csproj    text eol=lf
+*.props     text eol=lf
+*.targets   text eol=lf
+*.slnx      text eol=lf
+*.items     text eol=lf
+*.nuspec    text eol=lf
+*.config    text eol=lf
+*.manifest  text eol=lf
+
+# Data and config
+*.json      text eol=lf
+*.xml       text eol=lf
+*.resx      text eol=lf
+*.plist     text eol=lf
+*.md        text eol=lf
+*.editorconfig text eol=lf
+
+# Binary assets (never normalize)
+*.png       binary
+*.woff      binary
+*.woff2     binary

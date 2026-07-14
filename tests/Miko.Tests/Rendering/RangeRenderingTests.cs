@@ -186,6 +186,6 @@ public class RangeRenderingTests
         rangeBox.ComputedStyle.Width.ShouldBe(Length.Px(300));
 
         // 伪元素有自己独立的样式
-        range.PseudoElementStyles[PseudoElementType.RangeTrack].BackgroundColor.ShouldBe(Color.Blue);
+        range.PseudoElementStyles.ShouldNotBeNull()[PseudoElementType.RangeTrack].BackgroundColor.ShouldBe(Color.Blue);
     }
 }

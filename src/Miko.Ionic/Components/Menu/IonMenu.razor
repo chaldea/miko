@@ -65,7 +65,7 @@
         var hostState = IsOpen ? "open" : (_backdropMounted ? "closing" : "idle");
 
         // Build host class with ClassMapper-like pattern but store in field since we have multiple elements
-        var hostClassParts = new List<string> { ClassName, Mode, "ion-menu-host", $"ion-menu-host-{side}", $"ion-menu-host-{hostState}" };
+        var hostClassParts = new List<string?> { ClassName, Mode, "ion-menu-host", $"ion-menu-host-{side}", $"ion-menu-host-{hostState}" };
         _hostClass = string.Join(" ", hostClassParts.Where(c => !string.IsNullOrWhiteSpace(c)));
 
         _innerClass = IsOpen

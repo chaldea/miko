@@ -1,4 +1,4 @@
-﻿using Miko.Hosting;
+using Miko.Hosting;
 
 namespace MikoApp1;
 

@@ -21,15 +21,15 @@ public class IonBackButtonTests : IonicComponentTestBase
         var cut = RenderBackButton(Context, p => p.Add(nameof(IonBackButton.DefaultHref), "/home"));
 
         // Assert
-        cut.Root.Class.ShouldContain("ion-back-button");
+        cut.Root.ShouldHaveClass("ion-back-button");
         cut.Root.Children.Count.ShouldBe(1);
 
         var button = cut.Root.Children[0];
-        button.Class.ShouldContain("button-native");
+        button.ShouldHaveClass("button-native");
         button.Children.Count.ShouldBe(1);
 
         var inner = button.Children[0];
-        inner.Class.ShouldContain("button-inner");
+        inner.ShouldHaveClass("button-inner");
         // inner should contain icon + optional text span
         inner.Children.Count.ShouldBeGreaterThanOrEqualTo(1);
     }
@@ -41,7 +41,7 @@ public class IonBackButtonTests : IonicComponentTestBase
         var cut = RenderBackButton(Context);
 
         // Assert
-        cut.Root.Class.ShouldNotContain("show-back-button");
+        cut.Root.ShouldNotHaveClass("show-back-button");
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class IonBackButtonTests : IonicComponentTestBase
         var cut = RenderBackButton(Context, p => p.Add(nameof(IonBackButton.DefaultHref), "/home"));
 
         // Assert
-        cut.Root.Class.ShouldContain("show-back-button");
+        cut.Root.ShouldHaveClass("show-back-button");
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class IonBackButtonTests : IonicComponentTestBase
         });
 
         // Assert
-        cut.Root.Class.ShouldContain("back-button-disabled");
+        cut.Root.ShouldHaveClass("back-button-disabled");
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class IonBackButtonTests : IonicComponentTestBase
         });
 
         // Assert
-        cut.Root.Class.ShouldContain("ion-color-primary");
+        cut.Root.ShouldHaveClass("ion-color-primary");
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class IonBackButtonTests : IonicComponentTestBase
         var cut = RenderBackButton(Context, p => p.Add(nameof(IonBackButton.DefaultHref), "/home"));
 
         // Assert - MD mode should have icon-only by default
-        cut.Root.Class.ShouldContain("back-button-has-icon-only");
+        cut.Root.ShouldHaveClass("back-button-has-icon-only");
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public class IonBackButtonTests : IonicComponentTestBase
         // Assert - the icon element should be present
         var inner = cut.Root.Children[0].Children[0];
         var icon = inner.Children[0];
-        icon.Class.ShouldContain("back-button-icon");
+        icon.ShouldHaveClass("back-button-icon");
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class IonBackButtonTests : IonicComponentTestBase
         });
 
         // Assert - should NOT have icon-only class
-        cut.Root.Class.ShouldNotContain("back-button-has-icon-only");
+        cut.Root.ShouldNotHaveClass("back-button-has-icon-only");
 
         // Should have both icon and text
         var inner = cut.Root.Children[0].Children[0];

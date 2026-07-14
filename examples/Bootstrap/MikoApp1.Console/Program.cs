@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Miko.Core;
 using Miko.Examples.Bootstrap;
 using Miko.Examples.Bootstrap.Examples;

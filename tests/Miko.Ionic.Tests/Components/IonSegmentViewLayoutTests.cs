@@ -141,7 +141,7 @@ public class IonSegmentViewLayoutTests : IonicComponentTestBase
         var hidden = cut.FindById("favorites");
         active.ShouldNotBeNull();
         hidden.ShouldNotBeNull();
-        hidden!.Class.ShouldContain("segment-content-hidden");
+        hidden!.ShouldHaveClass("segment-content-hidden");
 
         var activeBox = cut.GetBoxModel(active!);
         var hiddenBox = cut.GetBoxModel(hidden);
