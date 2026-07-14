@@ -20,7 +20,8 @@ public class TextLayout
     public void Layout(LayoutBox box, LayoutConstraints constraints, float x, float y)
     {
         var style = box.ComputedStyle;
-        var text = box.Element.TextContent;
+        // 应用 text-transform 后再测量，确保尺寸与绘制一致（大写通常更宽）。
+        var text = TextTransformer.Apply(box.Element.TextContent, style.TextTransform);
 
         // 文本节点无 margin / border / padding。
         box.BoxModel.Margin = new EdgeSizes(0, 0, 0, 0);
@@ -35,6 +36,10 @@ public class TextLayout
 
         // 行高优先使用显式 line-height，否则取字体自然度量（与其它布局算法一致）。
         float resolvedLineHeight = BlockLayout.ResolveLineHeight(style);
+
+        // letter-spacing 与长单词断行（word-break / overflow-wrap）参与测量。
+        float letterSpacing = style.LetterSpacing.ToPixels(0, style.FontSize.Value);
+        bool breakLongWords = TextWrapper.ShouldBreakLongWords(style.WordBreak, style.OverflowWrap);
 
         float width;
         float height;
@@ -52,7 +57,9 @@ public class TextLayout
                 style.FontWeight,
                 constraints.AvailableWidth.Value,
                 resolvedLineHeight,
-                style.WhiteSpace);
+                style.WhiteSpace,
+                breakLongWords,
+                letterSpacing);
 
             width = wrappedWidth;
             height = wrappedHeight;
@@ -64,7 +71,7 @@ public class TextLayout
                 style.FontFamily,
                 style.FontSize.Value,
                 style.FontWeight);
-            width = textWidth;
+            width = textWidth + TextMeasurer.LetterSpacingExtent(text, letterSpacing);
             height = resolvedLineHeight;
         }
 

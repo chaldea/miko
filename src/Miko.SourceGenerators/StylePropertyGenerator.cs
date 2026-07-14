@@ -91,6 +91,7 @@ public class StylePropertyGenerator : IIncrementalGenerator
     {
         return name is "Padding" or "Margin" or "Border" or "BorderTop" or "BorderRight"
             or "BorderBottom" or "BorderLeft" or "BorderRadius" or "Overflow" or "Flex"
+            or "Outline"
             // Vars（自定义变量字典）不参与通用的合并/应用逻辑：它按键手动合并
             // （见 Style.Merge），且不是 StyleProperty<T>?，不能走统一的解析路径。
             or "Vars";
@@ -131,6 +132,15 @@ public class StylePropertyGenerator : IIncrementalGenerator
         "LineHeight",
         "PointerEvents",
         "WhiteSpace",
+        // 文本相关的 CSS 可继承属性
+        "TextTransform",
+        "LetterSpacing",
+        "OverflowWrap",
+        "WordBreak",
+        // visibility 在 CSS 中可继承（子元素可通过 visibility:visible 覆盖被隐藏的父元素）
+        "Visibility",
+        // user-select 规范上非继承，但实际会向下传播；此处按继承处理以贴合作者预期
+        "UserSelect",
     };
 
     private static void Execute(SourceProductionContext context, StyleInfo styleInfo)

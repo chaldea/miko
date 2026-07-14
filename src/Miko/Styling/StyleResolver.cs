@@ -130,6 +130,17 @@ public class StyleResolver
         // WhiteSpace 在 CSS 中可继承：文本节点（TextNode）依赖它决定是否换行（如 nowrap），
         // 因此必须从父元素继承，否则匿名文本会退回默认 Normal 而错误换行（见 ISSUE-086）。
         style.WhiteSpace ??= parentStyle.WhiteSpace;
+
+        // 文本相关的可继承属性（须与 StylePropertyGenerator.InheritableProperties 保持一致）。
+        // text-transform / letter-spacing / overflow-wrap / word-break 在 CSS 中均可继承。
+        style.TextTransform ??= parentStyle.TextTransform;
+        style.LetterSpacing ??= parentStyle.LetterSpacing;
+        style.OverflowWrap ??= parentStyle.OverflowWrap;
+        style.WordBreak ??= parentStyle.WordBreak;
+        // visibility 可继承（子元素可用 visibility:visible 覆盖被隐藏的父元素）。
+        style.Visibility ??= parentStyle.Visibility;
+        // user-select 规范上非继承，但实际会向下传播；按继承处理以贴合作者预期。
+        style.UserSelect ??= parentStyle.UserSelect;
     }
 
     /// <summary>

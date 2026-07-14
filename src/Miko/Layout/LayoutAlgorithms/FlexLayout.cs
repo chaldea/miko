@@ -356,10 +356,8 @@ public class FlexLayout
         float columnGap = (style.ColumnGap.IsAuto ? style.Gap : style.ColumnGap).ToPixels(contentWidth, fs);
         float rowGap = (style.RowGap.IsAuto ? style.Gap : style.RowGap).ToPixels(contentWidth, fs);
 
-        // 收集所有非绝对定位子元素（含文本节点，见 ISSUE-086）。
-        var allChildren = new List<LayoutBox>();
-        foreach (var child in box.Children)
-            if (!BlockLayout.IsOutOfFlow(child)) allChildren.Add(child);
+        // 收集所有非绝对定位子元素（含文本节点，见 ISSUE-086），并按 order 稳定排序。
+        var allChildren = CollectFlexItems(box);
 
         // 无 flex 项目：提前返回。
         if (allChildren.Count == 0)
@@ -368,16 +366,25 @@ public class FlexLayout
         }
 
         // 如果不换行，所有子元素在一行；否则按宽度 + gap 分行。
-        var lines = style.FlexWrap == FlexWrap.Wrap
+        // wrap-reverse 与 wrap 一样分行，仅交叉轴方向相反（在下方反转行序）。
+        var lines = style.FlexWrap != FlexWrap.Nowrap
             ? PartitionIntoLines(allChildren, contentWidth, columnGap, true, widthIsIndefinite)
             : new List<List<LayoutBox>> { allChildren };
 
+        // wrap-reverse：交叉轴上行序反转（第一行排在交叉轴末端）。
+        if (style.FlexWrap == FlexWrap.WrapReverse) lines.Reverse();
+
+        // 逐行布局，记录每行起始 Y 与实际交叉尺寸，供 align-content 事后调整。
+        var lineStarts = new List<float>(lines.Count);
+        var lineCrossSizes = new List<float>(lines.Count);
         float currentY = contentY;
         foreach (var line in lines)
         {
             float lineCrossSize = 0;
+            lineStarts.Add(currentY);
             LayoutFlexLine(box, line, contentX, currentY, contentWidth, contentHeight, columnGap, true, widthIsIndefinite,
                 style.JustifyContent, style.AlignItems, ref lineCrossSize, crossHeightIsDefinite);
+            lineCrossSizes.Add(lineCrossSize);
             maxCrossSize = Math.Max(maxCrossSize, lineCrossSize);
             currentY += lineCrossSize + rowGap;
         }
@@ -385,9 +392,105 @@ public class FlexLayout
         // 移除最后一行后多余的 rowGap。
         if (lines.Count > 0) currentY -= rowGap;
 
+        // align-content：多行且交叉轴（高度）尺寸确定时，在剩余空间内重新分布各行（沿 Y 平移子树）。
+        ApplyAlignContent(lines, lineStarts, lineCrossSizes, style.AlignContent, contentHeight,
+            currentY - contentY, crossHeightIsDefinite, isRow: true);
+
         // 容器交叉轴尺寸由所有行的总高决定（未指定高度时）。
         // 注：justify-content / align-items 已在每行内 (LayoutFlexLine) 应用。
         maxCrossSize = currentY - contentY;
+    }
+
+    /// <summary>
+    /// 收集参与 flex 布局的子项（排除脱离文档流者），并按 CSS <c>order</c> 稳定排序：
+    /// order 值小的在前，相同 order 保持 DOM 顺序。
+    /// </summary>
+    private static List<LayoutBox> CollectFlexItems(LayoutBox box)
+    {
+        var items = new List<LayoutBox>();
+        foreach (var child in box.Children)
+            if (!BlockLayout.IsOutOfFlow(child)) items.Add(child);
+
+        // 是否存在非零 order：无则跳过排序，保持原有顺序与性能。
+        bool anyOrder = false;
+        foreach (var item in items)
+            if (item.ComputedStyle.Order != 0) { anyOrder = true; break; }
+
+        if (!anyOrder) return items;
+
+        // 稳定排序（保持相同 order 的 DOM 顺序）。
+        return items
+            .Select((c, i) => (c, i))
+            .OrderBy(t => t.c.ComputedStyle.Order)
+            .ThenBy(t => t.i)
+            .Select(t => t.c)
+            .ToList();
+    }
+
+    /// <summary>
+    /// 应用 CSS <c>align-content</c>：当存在多行/多列且交叉轴尺寸确定、有剩余空间时，
+    /// 在交叉轴方向重新分布各行/列（通过平移每行/列的子树实现）。
+    /// 单行/列、交叉轴尺寸不确定、或 FlexStart（默认起点排布）时不做任何调整。
+    /// </summary>
+    /// <param name="lines">已布局的行（行方向）或列（列方向）。</param>
+    /// <param name="lineStarts">各行/列布局时的起始交叉坐标（Y 或 X）。</param>
+    /// <param name="lineCrossSizes">各行/列的实际交叉尺寸。</param>
+    /// <param name="crossContentSize">容器交叉轴内容尺寸（行方向为 contentHeight，列方向为 contentWidth）。</param>
+    /// <param name="usedCrossSize">已用交叉尺寸（含行/列间 gap）。</param>
+    /// <param name="crossIsDefinite">交叉轴尺寸是否确定（否则无剩余空间可分配）。</param>
+    /// <param name="isRow">行方向（沿 Y 平移）为 true，列方向（沿 X 平移）为 false。</param>
+    private static void ApplyAlignContent(
+        List<List<LayoutBox>> lines, List<float> lineStarts, List<float> lineCrossSizes,
+        AlignContent alignContent, float crossContentSize, float usedCrossSize,
+        bool crossIsDefinite, bool isRow)
+    {
+        // 仅在交叉轴尺寸确定、多行、且有正剩余空间时才分布。
+        // 内容溢出（free ≤ 0）时不调整，各行保持自起点排布，避免负偏移导致意外上溢。
+        if (!crossIsDefinite || lines.Count <= 1) return;
+        float free = crossContentSize - usedCrossSize;
+        if (free <= 0.01f) return;
+
+        int n = lines.Count;
+        float offset = 0;      // 首行/列相对其当前位置的额外偏移。
+        float spacing = 0;     // 行/列之间额外增加的间距。
+
+        switch (alignContent)
+        {
+            case AlignContent.FlexStart:
+                return; // 默认排布，无需调整。
+            case AlignContent.FlexEnd:
+                offset = free;
+                break;
+            case AlignContent.Center:
+                offset = free / 2f;
+                break;
+            case AlignContent.SpaceBetween:
+                spacing = n > 1 ? free / (n - 1) : 0;
+                break;
+            case AlignContent.SpaceAround:
+                spacing = free / n;
+                offset = spacing / 2f;
+                break;
+            case AlignContent.Stretch:
+                // 简化实现：stretch 等分剩余空间为行间距（不改变行内子项交叉尺寸），
+                // 使各行均匀铺满交叉轴。
+                spacing = free / n;
+                offset = spacing / 2f;
+                break;
+        }
+
+        for (int i = 0; i < n; i++)
+        {
+            // 目标起点 = 原布局起点 + 首偏移 + 前面各行/列累计的额外间距。
+            float target = lineStarts[i] + offset + spacing * i;
+            float delta = target - lineStarts[i];
+            if (Math.Abs(delta) < 0.01f) continue;
+            foreach (var child in lines[i])
+            {
+                if (isRow) OffsetSubtree(child, 0, delta);
+                else OffsetSubtree(child, delta, 0);
+            }
+        }
     }
 
     private void LayoutColumnDirection(LayoutBox box, float contentX, float contentY,
@@ -401,10 +504,8 @@ public class FlexLayout
         float rowGap = (style.RowGap.IsAuto ? style.Gap : style.RowGap).ToPixels(contentHeight, fs);
         float columnGap = (style.ColumnGap.IsAuto ? style.Gap : style.ColumnGap).ToPixels(contentHeight, fs);
 
-        // 收集所有非绝对定位子元素（含文本节点，见 ISSUE-086）。
-        var allChildren = new List<LayoutBox>();
-        foreach (var child in box.Children)
-            if (!BlockLayout.IsOutOfFlow(child)) allChildren.Add(child);
+        // 收集所有非绝对定位子元素（含文本节点，见 ISSUE-086），并按 order 稳定排序。
+        var allChildren = CollectFlexItems(box);
 
         // 无 flex 项目：提前返回。
         if (allChildren.Count == 0)
@@ -417,22 +518,35 @@ public class FlexLayout
         bool heightIsIndefinite = !heightIsDefinite;
 
         // 如果不换行或高度未定，所有子元素在一列；否则按高度 + gap 分列。
-        var lines = (style.FlexWrap == FlexWrap.Wrap && !heightIsIndefinite)
+        // wrap-reverse 与 wrap 一样分列，仅交叉轴方向相反（在下方反转列序）。
+        var lines = (style.FlexWrap != FlexWrap.Nowrap && !heightIsIndefinite)
             ? PartitionIntoLines(allChildren, contentHeight, rowGap, false, heightIsIndefinite)
             : new List<List<LayoutBox>> { allChildren };
 
+        // wrap-reverse：交叉轴上列序反转（第一列排在交叉轴末端）。
+        if (style.FlexWrap == FlexWrap.WrapReverse) lines.Reverse();
+
+        // 逐列布局，记录每列起始 X 与实际交叉尺寸，供 align-content 事后调整。
+        var lineStarts = new List<float>(lines.Count);
+        var lineCrossSizes = new List<float>(lines.Count);
         float currentX = contentX;
         foreach (var line in lines)
         {
             float lineCrossSize = 0;
+            lineStarts.Add(currentX);
             LayoutFlexLine(box, line, currentX, contentY, contentHeight, contentWidth, rowGap, false, heightIsIndefinite,
                 style.JustifyContent, style.AlignItems, ref lineCrossSize, crossWidthIsDefinite);
+            lineCrossSizes.Add(lineCrossSize);
             maxCrossSize = Math.Max(maxCrossSize, lineCrossSize);
             currentX += lineCrossSize + columnGap;
         }
 
         // 移除最后一列后多余的 columnGap。
         if (lines.Count > 0) currentX -= columnGap;
+
+        // align-content：多列且交叉轴（宽度）尺寸确定时，在剩余空间内重新分布各列（沿 X 平移子树）。
+        ApplyAlignContent(lines, lineStarts, lineCrossSizes, style.AlignContent, contentWidth,
+            currentX - contentX, crossWidthIsDefinite, isRow: false);
 
         // 容器交叉轴尺寸由所有列的总宽决定（未指定宽度时）。
         // 注：justify-content / align-items 已在每列内 (LayoutFlexLine) 应用。
@@ -823,16 +937,33 @@ public class FlexLayout
         }
     }
 
-    /// <summary>对一行/列的子元素应用 align-items（交叉轴对齐）。</summary>
+    /// <summary>
+    /// 将 <see cref="AlignSelf"/> 映射到等效的 <see cref="AlignItems"/>；
+    /// <c>Auto</c> 时回退到容器的 align-items。
+    /// </summary>
+    private static AlignItems ResolveItemAlign(AlignSelf alignSelf, AlignItems containerAlign)
+        => alignSelf switch
+        {
+            AlignSelf.FlexStart => AlignItems.FlexStart,
+            AlignSelf.FlexEnd => AlignItems.FlexEnd,
+            AlignSelf.Center => AlignItems.Center,
+            AlignSelf.Stretch => AlignItems.Stretch,
+            AlignSelf.Baseline => AlignItems.Baseline,
+            _ => containerAlign, // Auto
+        };
+
+    /// <summary>对一行/列的子元素应用 align-items（交叉轴对齐），并允许每个子项用 align-self 覆盖。</summary>
     private void ApplyLineAlignItems(List<FlexChildInfo> line, float crossStart, float crossSize, bool isRow, AlignItems alignItems)
     {
         foreach (var info in line)
         {
             var child = info.Child;
+            // 每个子项可通过 align-self 覆盖容器的 align-items。
+            AlignItems effectiveAlign = ResolveItemAlign(child.ComputedStyle.AlignSelf, alignItems);
             float childCrossSize = isRow ? child.BoxModel.MarginBox.Height : child.BoxModel.MarginBox.Width;
             float offset = 0;
 
-            switch (alignItems)
+            switch (effectiveAlign)
             {
                 case Common.AlignItems.FlexEnd: offset = crossSize - childCrossSize; break;
                 case Common.AlignItems.Center: offset = (crossSize - childCrossSize) / 2; break;

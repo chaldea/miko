@@ -197,6 +197,25 @@ public abstract class Element
         }
     }
 
+    /// <summary>
+    /// 元素文本是否可被用户选择，反映 CSS <c>user-select</c>（<c>none</c> → 不可选）。
+    /// 优先读取已计算样式（<c>user-select</c> 已随级联继承，故父级 <c>none</c> 也会传递到此）；
+    /// 布局尚未产生计算样式时回退到父元素链，缺省视为可选。
+    /// <para>供交互层在实现文本选择/拖选时查询：命中 <c>user-select: none</c> 的元素不应开始或
+    /// 扩展选择（见 <see cref="Platform.MikoInteractionController"/>）。</para>
+    /// </summary>
+    public bool IsSelectable
+    {
+        get
+        {
+            var computed = LayoutBox?.ComputedStyle;
+            if (computed != null)
+                return computed.UserSelect != Miko.Common.UserSelect.None;
+            // 无计算样式时回退到父链（构造期/未布局场景）。
+            return Parent?.IsSelectable ?? true;
+        }
+    }
+
     public abstract string TagName { get; }
 
     /// <summary>

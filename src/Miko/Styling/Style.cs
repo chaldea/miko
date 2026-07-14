@@ -207,6 +207,29 @@ public partial class Style
         }
     }
 
+    // 轮廓（outline）：绘制在边框盒之外，不占据布局空间。复用 BorderStyle 表示线型。
+    public StyleProperty<Length>? OutlineWidth { get; set; }
+    public StyleProperty<Color>? OutlineColor { get; set; }
+    public StyleProperty<BorderStyle>? OutlineStyle { get; set; }
+    public StyleProperty<Length>? OutlineOffset { get; set; }
+
+    /// <summary>
+    /// 轮廓简写属性。设置宽度/线型/颜色（不含 outline-offset，需单独设置）。
+    /// </summary>
+    public Outline Outline
+    {
+        get => new Outline(
+            OutlineWidth.ValueOrNull() ?? Length.Px(0),
+            OutlineStyle.ValueOrNull() ?? Common.BorderStyle.None,
+            OutlineColor.ValueOrNull() ?? Common.Color.Transparent);
+        set
+        {
+            OutlineWidth = value.Width;
+            OutlineStyle = value.Style;
+            OutlineColor = value.Color;
+        }
+    }
+
     // 圆角
     public StyleProperty<Length>? BorderTopLeftRadius { get; set; }
     public StyleProperty<Length>? BorderTopRightRadius { get; set; }
@@ -256,6 +279,11 @@ public partial class Style
     public StyleProperty<Length>? LetterSpacing { get; set; }
     public StyleProperty<VerticalAlign>? VerticalAlign { get; set; }
 
+    // 文本换行与溢出
+    public StyleProperty<OverflowWrap>? OverflowWrap { get; set; }
+    public StyleProperty<WordBreak>? WordBreak { get; set; }
+    public StyleProperty<TextOverflow>? TextOverflow { get; set; }
+
     // 表格布局算法（仅对 Display.Table 生效）
     public StyleProperty<TableLayoutAlgorithm>? TableLayout { get; set; }
 
@@ -270,6 +298,7 @@ public partial class Style
     public StyleProperty<FlexWrap>? FlexWrap { get; set; }
     public StyleProperty<AlignSelf>? AlignSelf { get; set; }
     public StyleProperty<AlignContent>? AlignContent { get; set; }
+    public StyleProperty<int>? Order { get; set; }
     public StyleProperty<Length>? Gap { get; set; }
     public StyleProperty<Length>? RowGap { get; set; }
     public StyleProperty<Length>? ColumnGap { get; set; }

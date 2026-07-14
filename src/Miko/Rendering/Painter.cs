@@ -158,6 +158,64 @@ public class Painter
     }
 
     /// <summary>
+    /// 绘制轮廓（outline）。轮廓绘制在边框盒之外，不占据布局空间。
+    /// <para>轮廓矩形 = <paramref name="borderBox"/> 向外扩张 <c>offset</c>，描边居中于该矩形边缘
+    /// （即向内外各延伸 width/2）。复用 <see cref="BorderStyle"/> 的 dotted/dashed 线型。</para>
+    /// </summary>
+    /// <param name="borderBox">元素的边框盒。</param>
+    /// <param name="width">轮廓宽度（像素）。</param>
+    /// <param name="color">轮廓颜色。</param>
+    /// <param name="style">轮廓线型（复用边框线型）。</param>
+    /// <param name="offset">轮廓与边框盒之间的间距（CSS outline-offset，可为负）。</param>
+    /// <param name="topLeftRadius">对应边框圆角，用于绘制圆角轮廓。</param>
+    public void DrawOutline(RectF borderBox, float width, Color color, BorderStyle style, float offset,
+        float topLeftRadius = 0, float topRightRadius = 0, float bottomRightRadius = 0, float bottomLeftRadius = 0)
+    {
+        if (width <= 0 || color.A == 0 || style == BorderStyle.None) return;
+
+        using var paint = new SKPaint
+        {
+            Color = color.ToSKColor(),
+            StrokeWidth = width,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+
+        switch (style)
+        {
+            case BorderStyle.Dotted:
+                paint.PathEffect = SKPathEffect.CreateDash(new[] { width, width }, 0);
+                break;
+            case BorderStyle.Dashed:
+                paint.PathEffect = SKPathEffect.CreateDash(new[] { width * 3, width * 2 }, 0);
+                break;
+        }
+
+        // 描边中心线位于边框盒外扩 (offset + width/2) 处，使轮廓内缘正好距边框盒 offset。
+        float expand = offset + width / 2f;
+        var strokeRect = new SKRect(
+            borderBox.Left - expand,
+            borderBox.Top - expand,
+            borderBox.Right + expand,
+            borderBox.Bottom + expand
+        );
+
+        bool hasRadius = topLeftRadius > 0 || topRightRadius > 0 || bottomRightRadius > 0 || bottomLeftRadius > 0;
+        if (hasRadius)
+        {
+            // 圆角轮廓：半径随外扩量增大，保持与边框圆角同心。
+            using var path = CreateRoundRectPath(strokeRect,
+                topLeftRadius + expand, topRightRadius + expand,
+                bottomRightRadius + expand, bottomLeftRadius + expand);
+            _canvas.DrawPath(path, paint);
+        }
+        else
+        {
+            _canvas.DrawRect(strokeRect, paint);
+        }
+    }
+
+    /// <summary>
     /// 绘制边框（每边可以有不同的样式）
     /// </summary>
     public void DrawBorderSides(
@@ -395,9 +453,11 @@ public class Painter
     }
 
     /// <summary>
-    /// 绘制文本
+    /// 绘制文本。
     /// </summary>
-    public void DrawText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, VerticalAlign verticalAlign = VerticalAlign.Top)
+    /// <param name="letterSpacing">CSS letter-spacing（像素），每个字符后追加的额外间距。</param>
+    /// <param name="textOverflow">单行溢出呈现方式；<c>Ellipsis</c> 时超出 rect 宽度的文本以省略号收尾。</param>
+    public void DrawText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, VerticalAlign verticalAlign = VerticalAlign.Top, float letterSpacing = 0, TextOverflow textOverflow = TextOverflow.Clip)
     {
         if (string.IsNullOrEmpty(text) || color.A == 0) return;
 
@@ -413,12 +473,15 @@ public class Painter
             IsAntialias = true
         };
 
-        // 计算总宽度用于对齐
-        float totalWidth = 0;
-        foreach (var run in textRuns)
+        // 计算总宽度用于对齐（含 letter-spacing）。
+        float totalWidth = MeasureRunsWidth(textRuns, fontSize, paint, letterSpacing);
+
+        // text-overflow: ellipsis —— 文本超出 rect 宽度时截断并追加省略号。
+        // 仅在单行、宽度受限场景生效（RenderEngine 保证配合 overflow:hidden + nowrap 调用）。
+        if (textOverflow == TextOverflow.Ellipsis && rect.Width > 0 && totalWidth > rect.Width + 0.5f)
         {
-            using var font = CreateHighQualityFont(run.Typeface, fontSize);
-            totalWidth += font.MeasureText(run.Text, paint);
+            DrawTextWithEllipsis(text, rect, color, fontFamily, fontSize, fontWeight, textAlign, verticalAlign, letterSpacing, paint);
+            return;
         }
 
         // 计算起始X位置
@@ -450,15 +513,105 @@ public class Painter
         foreach (var run in textRuns)
         {
             using var font = CreateHighQualityFont(run.Typeface, fontSize);
-            _canvas.DrawText(run.Text, x, y, SKTextAlign.Left, font, paint);
-            x += font.MeasureText(run.Text, paint);
+            x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
+        }
+    }
+
+    /// <summary>
+    /// 测量若干文本段的总宽度（含 letter-spacing）。
+    /// </summary>
+    private static float MeasureRunsWidth(IReadOnlyList<TextRun> runs, float fontSize, SKPaint paint, float letterSpacing)
+    {
+        float total = 0;
+        foreach (var run in runs)
+        {
+            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            total += font.MeasureText(run.Text, paint);
+            if (letterSpacing != 0) total += letterSpacing * run.Text.Length;
+        }
+        return total;
+    }
+
+    /// <summary>
+    /// 绘制一个文本段并返回其后的 X 位置。letter-spacing 非零时逐字符绘制以插入额外间距。
+    /// </summary>
+    private float DrawRun(string text, float x, float y, SKFont font, SKPaint paint, float letterSpacing)
+    {
+        if (letterSpacing == 0)
+        {
+            _canvas.DrawText(text, x, y, SKTextAlign.Left, font, paint);
+            return x + font.MeasureText(text, paint);
+        }
+
+        foreach (var ch in text)
+        {
+            var s = ch.ToString();
+            _canvas.DrawText(s, x, y, SKTextAlign.Left, font, paint);
+            x += font.MeasureText(s, paint) + letterSpacing;
+        }
+        return x;
+    }
+
+    /// <summary>
+    /// 以省略号（…）收尾绘制溢出文本：逐段/逐字符累加，直到再加一个字符会超出
+    /// <c>rect.Width - 省略号宽度</c>，然后绘制已容纳部分 + 省略号。
+    /// 省略场景固定左对齐（与浏览器一致）。
+    /// </summary>
+    private void DrawTextWithEllipsis(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, VerticalAlign verticalAlign, float letterSpacing, SKPaint paint)
+    {
+        const string ellipsis = "…"; // …
+        var fontManager = FontManager.Instance;
+        var fallbackResolver = new FontFallbackResolver(fontManager);
+
+        using var baseFont = CreateHighQualityFont(fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight)[0].Typeface, fontSize);
+        float ellipsisWidth = baseFont.MeasureText(ellipsis, paint);
+        float budget = rect.Width - ellipsisWidth;
+
+        // 逐字符累加，直到放不下（预留省略号宽度）。
+        var sb = new System.Text.StringBuilder();
+        float used = 0;
+        foreach (var ch in text)
+        {
+            var runs = fallbackResolver.ResolveTextRuns(ch.ToString(), fontFamily, fontWeight);
+            float chWidth = runs.Count > 0
+                ? MeasureRunsWidth(runs, fontSize, paint, letterSpacing)
+                : 0;
+            if (used + chWidth > budget && sb.Length > 0)
+                break;
+            sb.Append(ch);
+            used += chWidth;
+        }
+
+        var truncated = sb.ToString() + ellipsis;
+        var truncatedRuns = fallbackResolver.ResolveTextRuns(truncated, fontFamily, fontWeight);
+        if (truncatedRuns.Count == 0) return;
+
+        // 基线 Y（与 DrawText 一致）。
+        using var baselineFont = CreateHighQualityFont(truncatedRuns[0].Typeface, fontSize);
+        float y;
+        if (verticalAlign == VerticalAlign.Middle)
+        {
+            float textHeight = baselineFont.Metrics.Descent - baselineFont.Metrics.Ascent;
+            float centeredTop = rect.Top + (rect.Height - textHeight) / 2;
+            y = centeredTop - baselineFont.Metrics.Ascent;
+        }
+        else
+        {
+            y = rect.Top - baselineFont.Metrics.Ascent;
+        }
+
+        float x = rect.Left;
+        foreach (var run in truncatedRuns)
+        {
+            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
         }
     }
 
     /// <summary>
     /// 绘制多行文本（支持换行）
     /// </summary>
-    public void DrawMultilineText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, float lineHeight, WhiteSpace whiteSpace, VerticalAlign verticalAlign = VerticalAlign.Top, bool breakLongWords = false)
+    public void DrawMultilineText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, float lineHeight, WhiteSpace whiteSpace, VerticalAlign verticalAlign = VerticalAlign.Top, bool breakLongWords = false, float letterSpacing = 0)
     {
         if (string.IsNullOrEmpty(text) || color.A == 0) return;
 
@@ -495,13 +648,8 @@ public class Painter
                 var fallbackResolver = new FontFallbackResolver(fontManager);
                 var textRuns = fallbackResolver.ResolveTextRuns(line, fontFamily, fontWeight);
 
-                // 计算行宽度用于水平对齐
-                float lineWidth = 0;
-                foreach (var run in textRuns)
-                {
-                    using var font = CreateHighQualityFont(run.Typeface, fontSize);
-                    lineWidth += font.MeasureText(run.Text, paint);
-                }
+                // 计算行宽度用于水平对齐（含 letter-spacing）。
+                float lineWidth = MeasureRunsWidth(textRuns, fontSize, paint, letterSpacing);
 
                 // 计算起始X位置
                 float x = textAlign switch
@@ -520,8 +668,7 @@ public class Painter
                 foreach (var run in textRuns)
                 {
                     using var font = CreateHighQualityFont(run.Typeface, fontSize);
-                    _canvas.DrawText(run.Text, x, y, SKTextAlign.Left, font, paint);
-                    x += font.MeasureText(run.Text, paint);
+                    x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
                 }
             }
 

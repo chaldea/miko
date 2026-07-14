@@ -114,14 +114,44 @@ internal static class StyleInspector
         AddRow(container, "line-height", FormatLineHeight(cs.LineHeight));
         AddRow(container, "text-align", cs.TextAlign.ToString().ToLower());
 
+        // 文本排版补充属性（仅在非默认时显示，避免冗余）。
+        if (cs.TextTransform != Common.TextTransform.None)
+            AddRow(container, "text-transform", cs.TextTransform.ToString().ToLower());
+        if (cs.LetterSpacing.Value != 0)
+            AddRow(container, "letter-spacing", FormatLength(cs.LetterSpacing));
+        if (cs.OverflowWrap != Common.OverflowWrap.Normal)
+            AddRow(container, "overflow-wrap", ToCssKeyword(cs.OverflowWrap.ToString()));
+        if (cs.WordBreak != Common.WordBreak.Normal)
+            AddRow(container, "word-break", ToCssKeyword(cs.WordBreak.ToString()));
+        if (cs.TextOverflow != Common.TextOverflow.Clip)
+            AddRow(container, "text-overflow", cs.TextOverflow.ToString().ToLower());
+
         if (cs.Display == Common.Display.Flex)
         {
             AddRow(container, "flex-direction", cs.FlexDirection.ToString().ToLower());
             AddRow(container, "justify-content", cs.JustifyContent.ToString().ToLower());
             AddRow(container, "align-items", cs.AlignItems.ToString().ToLower());
-            AddRow(container, "flex-wrap", cs.FlexWrap.ToString().ToLower());
+            AddRow(container, "align-content", cs.AlignContent.ToString().ToLower());
+            AddRow(container, "flex-wrap", ToCssKeyword(cs.FlexWrap.ToString()));
             AddRow(container, "flex-grow", cs.FlexGrow.ToString("0.##"));
             AddRow(container, "flex-shrink", cs.FlexShrink.ToString("0.##"));
+        }
+
+        if (cs.AlignSelf != Common.AlignSelf.Auto)
+            AddRow(container, "align-self", cs.AlignSelf.ToString().ToLower());
+        if (cs.Order != 0)
+            AddRow(container, "order", cs.Order.ToString());
+
+        if (cs.Visibility != Common.Visibility.Visible)
+            AddRow(container, "visibility", cs.Visibility.ToString().ToLower());
+        if (cs.UserSelect != Common.UserSelect.Auto)
+            AddRow(container, "user-select", cs.UserSelect.ToString().ToLower());
+
+        if (cs.HasVisibleOutline)
+        {
+            AddRow(container, "outline", $"{FormatLength(cs.OutlineWidth)} {cs.OutlineStyle.ToString().ToLower()} {FormatColor(cs.OutlineColor)}");
+            if (cs.OutlineOffset.Value != 0)
+                AddRow(container, "outline-offset", FormatLength(cs.OutlineOffset));
         }
 
         if (cs.Opacity < 1f)
@@ -182,6 +212,23 @@ internal static class StyleInspector
         if (color.A == 0) return "transparent";
         if (color.A == 255) return $"rgb({color.R}, {color.G}, {color.B})";
         return $"rgba({color.R}, {color.G}, {color.B}, {color.A / 255f:0.##})";
+    }
+
+    /// <summary>
+    /// 将 PascalCase 枚举名转为 CSS 关键字（在大写字母前插入连字符并转小写），
+    /// 例如 <c>BreakWord</c> → <c>break-word</c>，<c>WrapReverse</c> → <c>wrap-reverse</c>。
+    /// </summary>
+    private static string ToCssKeyword(string pascal)
+    {
+        if (string.IsNullOrEmpty(pascal)) return pascal;
+        var sb = new System.Text.StringBuilder(pascal.Length + 4);
+        for (int i = 0; i < pascal.Length; i++)
+        {
+            char c = pascal[i];
+            if (i > 0 && char.IsUpper(c)) sb.Append('-');
+            sb.Append(char.ToLowerInvariant(c));
+        }
+        return sb.ToString();
     }
 
     private static LayoutBox? FindLayoutBox(LayoutBox? root, Element element)

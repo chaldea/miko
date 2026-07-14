@@ -66,6 +66,16 @@ public partial class ComputedStyle : Style
     public new Length BorderBottomRightRadius { get; set; } = Length.Px(0);
     public new Length BorderBottomLeftRadius { get; set; } = Length.Px(0);
 
+    // 轮廓（outline）计算值。默认无轮廓（style=None、width=0）。
+    public new Length OutlineWidth { get; set; } = Length.Px(0);
+    public new Color OutlineColor { get; set; } = Color.Black;
+    public new BorderStyle OutlineStyle { get; set; } = Common.BorderStyle.None;
+    public new Length OutlineOffset { get; set; } = Length.Px(0);
+
+    /// <summary>轮廓是否可见（有非 None 线型、正宽度、非全透明颜色）。</summary>
+    public bool HasVisibleOutline =>
+        OutlineStyle != Common.BorderStyle.None && OutlineWidth.Value > 0 && OutlineColor.A > 0;
+
     public new Color BackgroundColor { get; set; } = Color.Transparent;
     public new BackgroundImage? BackgroundImage { get; set; }
     public new BackgroundRepeat BackgroundRepeat { get; set; } = Common.BackgroundRepeat.Repeat;
@@ -88,12 +98,18 @@ public partial class ComputedStyle : Style
     public new TextTransform TextTransform { get; set; } = Common.TextTransform.None;
     public new FontStyle FontStyle { get; set; } = Common.FontStyle.Normal;
     public new WhiteSpace WhiteSpace { get; set; } = Common.WhiteSpace.Normal;
+    public new Length LetterSpacing { get; set; } = Length.Px(0);  // normal = 0
+    public new OverflowWrap OverflowWrap { get; set; } = Common.OverflowWrap.Normal;
+    public new WordBreak WordBreak { get; set; } = Common.WordBreak.Normal;
+    public new TextOverflow TextOverflow { get; set; } = Common.TextOverflow.Clip;
     public new Visibility Visibility { get; set; } = Common.Visibility.Visible;
+    public new UserSelect UserSelect { get; set; } = Common.UserSelect.Auto;
     public new Cursor Cursor { get; set; } = Common.Cursor.Default;
     public new PointerEvents PointerEvents { get; set; } = Common.PointerEvents.Auto;
     public new FlexWrap FlexWrap { get; set; } = Common.FlexWrap.Nowrap;
     public new AlignSelf AlignSelf { get; set; } = Common.AlignSelf.Auto;
     public new AlignContent AlignContent { get; set; } = Common.AlignContent.FlexStart;
+    public new int Order { get; set; } = 0;
 
     // Gap 默认 0；RowGap/ColumnGap 默认 Auto，表示"未单独设置"，回退到 Gap。
     public new Length Gap { get; set; } = Length.Px(0);
