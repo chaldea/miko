@@ -171,6 +171,43 @@ public enum TextDecoration
 }
 
 public enum TextTransform { None, Uppercase, Lowercase, Capitalize }
+
+/// <summary>
+/// CSS <c>overflow-wrap</c>（旧称 <c>word-wrap</c>）：控制是否允许在单词内部断行以避免溢出。
+/// </summary>
+public enum OverflowWrap
+{
+    /// <summary>仅在正常的换行点（如空格）断行，长单词允许溢出。</summary>
+    Normal,
+    /// <summary>当单词整体放不下一行时，允许在其内部断行。</summary>
+    BreakWord,
+    /// <summary>可在任意字符间断行（软换行机会，包括收缩容器时）。</summary>
+    Anywhere
+}
+
+/// <summary>
+/// CSS <c>word-break</c>：控制断行时如何处理单词内部的断点。
+/// </summary>
+public enum WordBreak
+{
+    /// <summary>默认换行规则（仅在允许的断点处断行）。</summary>
+    Normal,
+    /// <summary>允许在任意字符间断行（等价于强制长单词逐字符断行）。</summary>
+    BreakAll,
+    /// <summary>对 CJK 文本不在字符间断行（对本引擎的拉丁文本等同 Normal）。</summary>
+    KeepAll
+}
+
+/// <summary>
+/// CSS <c>text-overflow</c>：单行文本溢出容器时的呈现方式（需配合 overflow: hidden + white-space: nowrap）。
+/// </summary>
+public enum TextOverflow
+{
+    /// <summary>在内容盒边缘裁剪溢出文本。</summary>
+    Clip,
+    /// <summary>用省略号（…）表示被裁剪的溢出文本。</summary>
+    Ellipsis
+}
 public enum FontStyle { Normal, Italic, Oblique }
 public enum WhiteSpace { Normal, Nowrap, Pre, PreWrap, PreLine }
 public enum Cursor { Default, Pointer, Text, Wait, NotAllowed, Move, Help }

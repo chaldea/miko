@@ -43,11 +43,11 @@ public class IonicStyleSheetTests
         var ios = FirstMatch(sheet, Div("ios ion-header"))!.Style;
 
         md.BoxShadow.ShouldNotBeNull();
-        md.BoxShadow!.Count.ShouldBeGreaterThan(0);
+        md.BoxShadow!.Value.Value.Count.ShouldBeGreaterThan(0);
 
         // iOS: hairline bottom border with a visible width; MD: zero-width border.
         ios.BorderBottomWidth.ShouldNotBeNull();
-        ios.BorderBottomWidth!.Value.Value.ShouldBeGreaterThan(0f);
+        ios.BorderBottomWidth!.Value.Value.Value.ShouldBeGreaterThan(0f);
     }
 
     [Fact]

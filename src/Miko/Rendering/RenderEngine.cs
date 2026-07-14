@@ -113,17 +113,28 @@ public class RenderEngine
             ApplyTransform(box);
         }
 
-        // 1. 绘制盒阴影（在背景之前）
-        RenderBoxShadow(box);
+        // visibility: hidden / collapse —— 本盒自身不绘制（背景/边框/轮廓/内容），
+        // 但仍占据布局空间且继续递归子元素（子元素可用 visibility: visible 覆盖）。
+        // 这与 display: none（完全从布局树移除）不同。
+        bool isVisible = box.ComputedStyle.Visibility == Visibility.Visible;
 
-        // 2. 绘制背景
-        RenderBackground(box);
+        if (isVisible)
+        {
+            // 1. 绘制盒阴影（在背景之前）
+            RenderBoxShadow(box);
 
-        // 3. 绘制边框
-        RenderBorder(box);
+            // 2. 绘制背景
+            RenderBackground(box);
 
-        // 4. 绘制内容
-        RenderContent(box);
+            // 3. 绘制边框
+            RenderBorder(box);
+
+            // 3b. 绘制轮廓（在边框之外，不占布局空间）
+            RenderOutline(box);
+
+            // 4. 绘制内容
+            RenderContent(box);
+        }
 
         // 4. 递归绘制子元素
         // SelectElement 的子元素（Option）不参与正常树渲染，由 overlay pass 统一绘制下拉层
@@ -358,10 +369,12 @@ public class RenderEngine
         if (_painter == null) return;
 
         var style = box.ComputedStyle;
-        if (style.BoxShadow == null || style.BoxShadow.Count == 0) return;
+        // BoxShadow 未被 ComputedStyle 遮蔽，仍是基类的 StyleProperty<List<BoxShadow>>?。
+        var boxShadow = style.BoxShadow.RefValueOrNull();
+        if (boxShadow == null || boxShadow.Count == 0) return;
 
         _painter.DrawBoxShadow(
-            style.BoxShadow,
+            boxShadow,
             box.BoxModel.BorderBox,
             style.BorderTopLeftRadius.Value,
             style.BorderTopRightRadius.Value,
@@ -538,6 +551,32 @@ public class RenderEngine
     }
 
     /// <summary>
+    /// 渲染轮廓（CSS outline）。轮廓绘制在边框盒之外，遵循 outline-offset，不影响布局。
+    /// </summary>
+    private void RenderOutline(LayoutBox box)
+    {
+        if (_painter == null) return;
+
+        var style = box.ComputedStyle;
+        if (!style.HasVisibleOutline) return;
+
+        float width = style.OutlineWidth.ToPixels(0, style.FontSize.Value);
+        float offset = style.OutlineOffset.ToPixels(0, style.FontSize.Value);
+
+        _painter.DrawOutline(
+            box.BoxModel.BorderBox,
+            width,
+            style.OutlineColor,
+            style.OutlineStyle,
+            offset,
+            style.BorderTopLeftRadius.Value,
+            style.BorderTopRightRadius.Value,
+            style.BorderBottomRightRadius.Value,
+            style.BorderBottomLeftRadius.Value
+        );
+    }
+
+    /// <summary>
     /// 渲染内容
     /// </summary>
     private void RenderContent(LayoutBox box)
@@ -599,11 +638,16 @@ public class RenderEngine
     {
         if (_painter == null) return;
 
-        var text = box.Element.TextContent;
+        var style = box.ComputedStyle;
+        // 应用 text-transform（与布局测量一致）。
+        var text = Utils.TextTransformer.Apply(box.Element.TextContent, style.TextTransform);
         if (string.IsNullOrEmpty(text)) return;
 
-        var style = box.ComputedStyle;
         var content = box.BoxModel.Content;
+
+        // letter-spacing 与长单词断行（word-break / overflow-wrap）。
+        float letterSpacing = style.LetterSpacing.ToPixels(0, style.FontSize.Value);
+        bool breakLongWords = Utils.TextWrapper.ShouldBreakLongWords(style.WordBreak, style.OverflowWrap);
 
         // text-align 的对齐参照：
         // - 当文本节点是父元素唯一的在流内容时（无其它行内兄弟），以父内容盒作为对齐容器，
@@ -645,7 +689,7 @@ public class RenderEngine
             var wrapRect = new RectF(MathF.Round(alignX), MathF.Round(content.Y), alignWidth, content.Height);
             _painter.DrawMultilineText(
                 text, wrapRect, style.Color, style.FontFamily, style.FontSize.Value, style.FontWeight,
-                style.TextAlign, lineHeight, style.WhiteSpace, VerticalAlign.Top);
+                style.TextAlign, lineHeight, style.WhiteSpace, VerticalAlign.Top, breakLongWords, letterSpacing);
 
             if (style.TextDecoration != Common.TextDecoration.None)
             {
@@ -655,17 +699,44 @@ public class RenderEngine
             return;
         }
 
+        // text-overflow: ellipsis 仅在单行不换行（white-space: nowrap）且父容器裁剪溢出
+        // （overflow != visible）时生效，与 CSS 一致。
+        var textOverflow = ResolveTextOverflow(box, style);
+
         // 单行：在对齐容器宽度内按 text-align 水平对齐，垂直居中于文本节点行盒。
         var textRect = new RectF(MathF.Round(alignX), MathF.Round(content.Y), alignWidth, content.Height);
         _painter.DrawText(
             text, textRect, style.Color, style.FontFamily, style.FontSize.Value, style.FontWeight,
-            style.TextAlign, VerticalAlign.Middle);
+            style.TextAlign, VerticalAlign.Middle, letterSpacing, textOverflow);
 
         if (style.TextDecoration != Common.TextDecoration.None)
         {
             _painter.DrawTextDecoration(text, textRect, style.Color, style.FontFamily,
                 style.FontSize.Value, style.FontWeight, style.TextAlign, style.TextDecoration, VerticalAlign.Middle);
         }
+    }
+
+    /// <summary>
+    /// 解析文本节点生效的 <c>text-overflow</c>。CSS 中 <c>text-overflow</c> 设在裁剪溢出的
+    /// 块容器上（非文本节点），且仅在单行不换行时生效。因此这里从父元素读取 text-overflow，
+    /// 并要求父元素 white-space: nowrap 且水平方向裁剪溢出（overflow-x != visible）。
+    /// 不满足条件时返回 <see cref="TextOverflow.Clip"/>（不省略）。
+    /// </summary>
+    private static TextOverflow ResolveTextOverflow(LayoutBox box, ComputedStyle textStyle)
+    {
+        // 文本节点不换行时 white-space 由继承得到，与父元素一致；直接检查文本节点即可。
+        if (textStyle.WhiteSpace != WhiteSpace.Nowrap && textStyle.WhiteSpace != WhiteSpace.Pre)
+            return TextOverflow.Clip;
+
+        var parentStyle = box.Element.Parent?.LayoutBox?.ComputedStyle;
+        if (parentStyle == null) return TextOverflow.Clip;
+
+        if (parentStyle.TextOverflow != TextOverflow.Ellipsis) return TextOverflow.Clip;
+
+        // 需要水平裁剪（overflow-x 非 visible）才会触发省略号。
+        if (parentStyle.OverflowX == Overflow.Visible) return TextOverflow.Clip;
+
+        return TextOverflow.Ellipsis;
     }
 
     /// <summary>

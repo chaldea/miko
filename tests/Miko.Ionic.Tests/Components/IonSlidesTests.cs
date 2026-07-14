@@ -134,7 +134,7 @@ public class IonSlidesTests : IonicComponentTestBase
         var wrapper = cut.Root.Children[0];
         wrapper.Style.ShouldNotBeNull();
         wrapper.Style!.Transform.ShouldNotBeNull();
-        var fn = wrapper.Style.Transform!.Functions[0].ShouldBeOfType<Miko.Animation.TransformFunction.TranslateX>();
+        var fn = wrapper.Style.Transform!.Value.Value.Functions[0].ShouldBeOfType<Miko.Animation.TransformFunction.TranslateX>();
         fn.X.Value.ShouldBe(-200f);
         fn.X.Unit.ShouldBe(Miko.Common.LengthUnit.Percent);
     }

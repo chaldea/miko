@@ -151,6 +151,7 @@ internal static class CssObjectResolver
 
     private static bool HasAnyProperty(Style style)
     {
-        return style.HasAnyProperty();
+        // 只含自定义变量定义（Vars）而无任何普通属性的规则也应产出（如 .btn-icon 场景）。
+        return style.HasAnyPropertyOrVars();
     }
 }

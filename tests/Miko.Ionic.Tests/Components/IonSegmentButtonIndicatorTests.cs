@@ -106,7 +106,7 @@ public class IonSegmentButtonIndicatorTests
         bg.Height.Value.ShouldBe(2f);
         bg.BackgroundColor.ShouldBe(theme.Primary);
         bg.BorderTopLeftRadius.Value.ShouldBe(0f);
-        (bg.BoxShadow == null || bg.BoxShadow.Count == 0).ShouldBeTrue();
+        (bg.BoxShadow == null || bg.BoxShadow.Value.Value.Count == 0).ShouldBeTrue();
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class IonSegmentButtonIndicatorTests
         bg.BorderTopLeftRadius.Value.ShouldBe(7f);
         bg.BackgroundColor.ShouldBe(Color.FromHex("ffffff"));
         bg.BoxShadow.ShouldNotBeNull();
-        bg.BoxShadow!.Count.ShouldBeGreaterThan(0);
+        bg.BoxShadow!.Value.Value.Count.ShouldBeGreaterThan(0);
     }
 
     [Fact]

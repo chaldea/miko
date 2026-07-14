@@ -147,16 +147,16 @@ internal static class FormStyles
                 BackgroundColor = t.BS.BodyBg,
                 Border = new Border(t.BS.BorderWidth, BorderStyle.Solid, t.BS.BorderColor),
                 BorderRadius = t.BS.BorderRadius,
-                Transitions = [
+                Transitions = new List<Transition> {
                     Transition.For(x => x.BorderColor).Duration(0.15f).EaseInOut(),
                     Transition.For(x => x.BoxShadow).Duration(0.15f).EaseInOut(),
-                ],
+                },
                 ["&:focus"] = new()
                 {
                     Color = t.BS.BodyColor,
                     BackgroundColor = t.BS.BodyBg,
-                    BorderColor = "#86b7fe",
-                    BoxShadow = [new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f))]
+                    BorderColor = (Color)"#86b7fe",
+                    BoxShadow = new List<BoxShadow> { new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f)) }
                 },
                 ["&:disabled"] = new()
                 {
@@ -170,12 +170,12 @@ internal static class FormStyles
                 Display = Display.Block,
                 Width = Percent(100),
                 Padding = new Padding(Rem(0.375f), 0),
-                MarginBottom = 0,
+                MarginBottom = Length.Px(0),
                 LineHeight = Rem(1.5f),
                 Color = t.BS.BorderColor,
                 BackgroundColor = Transparent,
                 Border = new Border(0, BorderStyle.Solid, Transparent),
-                BorderWidth = t.BS.BorderWidth,
+                BorderWidth = Length.Px(t.BS.BorderWidth),
 
                 ["&:focus"] = new()
                 {
@@ -184,8 +184,8 @@ internal static class FormStyles
 
                 ["&.form-control-sm,&.form-control-lg"] = new()
                 {
-                    PaddingRight = 0,
-                    PaddingLeft = 0,
+                    PaddingRight = Length.Px(0),
+                    PaddingLeft = Length.Px(0),
                 }
             },
 
@@ -258,16 +258,16 @@ internal static class FormStyles
                 // BackgroundSize = BackgroundSize.From(Px(16), Px(12)),
                 Border = new Border(Px(t.BS.BorderWidth), BorderStyle.Solid, t.BS.BorderColor),
                 BorderRadius = t.BS.BorderRadius,
-                Transitions = [
+                Transitions = new List<Transition> {
                     Transition.For(x => x.BorderColor).Duration(0.15f).EaseInOut(),
                     Transition.For(x => x.BoxShadow).Duration(0.15f).EaseInOut(),
-                ],
+                },
 
                 ["&:focus"] = new()
                 {
-                    BorderColor = "#86b7fe",
+                    BorderColor = (Color)"#86b7fe",
                     // Outline = 0,
-                    BoxShadow = [new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f))]
+                    BoxShadow = new List<BoxShadow> { new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f)) }
                 },
 
                 ["&:disabled"] = new()
@@ -312,7 +312,7 @@ internal static class FormStyles
             [".form-check-reverse"] = new()
             {
                 MarginRight = Em(1.5f),
-                PaddingLeft = 0,
+                PaddingLeft = Length.Px(0),
                 TextAlign = TextAlign.Right,
                 [".form-check-input"] = new()
                 {
@@ -355,13 +355,13 @@ internal static class FormStyles
                 {
                     BorderColor = t.InputFocusBorderColor,
                     // Outline = 0,
-                    BoxShadow = [new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f))]
+                    BoxShadow = new List<BoxShadow> { new BoxShadow(0, 0, 0, Rem(0.25f), Rgba(13, 110, 253, 0.25f)) }
                 },
 
                 ["&:checked"] = new()
                 {
-                    BackgroundColor = "#0d6efd",
-                    BorderColor = "#0d6efd"
+                    BackgroundColor = (Color)"#0d6efd",
+                    BorderColor = (Color)"#0d6efd"
                 },
 
                 ["&:disabled"] = new()
@@ -394,15 +394,15 @@ internal static class FormStyles
                 {
                     Width = Rem(1f),
                     Height = Rem(1f),
-                    // MarginTop = 
-                    BackgroundColor = "#0d6efd",
+                    // MarginTop =
+                    BackgroundColor = (Color)"#0d6efd",
                     Border = new Border(0),
                     BorderRadius = Rem(1f),
-                    Transitions = [
+                    Transitions = new List<Transition> {
                         Transition.For(x => x.BackgroundColor).Duration(0.15f).EaseInOut(),
                         Transition.For(x => x.BorderColor).Duration(0.15f).EaseInOut(),
                         Transition.For(x => x.BoxShadow).Duration(0.15f).EaseInOut(),
-                    ]
+                    }
                 },
 
                 ["&::range-track"] = new()
@@ -458,8 +458,8 @@ internal static class FormStyles
                 {
                     ["> :not(:last-child):not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating)"] = new()
                     {
-                        BorderTopRightRadius = 0,
-                        BorderBottomRightRadius = 0,
+                        BorderTopRightRadius = Length.Px(0),
+                        BorderBottomRightRadius = Length.Px(0),
                     }
                 },
 
@@ -467,22 +467,22 @@ internal static class FormStyles
                 {
                     ["> :not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating)"] = new()
                     {
-                        BorderTopRightRadius = 0,
-                        BorderBottomRightRadius = 0,
+                        BorderTopRightRadius = Length.Px(0),
+                        BorderBottomRightRadius = Length.Px(0),
                     }
                 },
 
                 ["> :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback)"] = new()
                 {
-                    MarginLeft = -1 * t.BS.BorderWidth,
-                    BorderTopLeftRadius = 0,
-                    BorderBottomLeftRadius = 0,
+                    MarginLeft = Length.Px(-1 * t.BS.BorderWidth),
+                    BorderTopLeftRadius = Length.Px(0),
+                    BorderBottomLeftRadius = Length.Px(0),
                 },
 
                 ["> .form-floating:not(:first-child) > .form-control,> .form-floating:not(:first-child) > .form-select"] = new()
                 {
-                    BorderTopLeftRadius = 0,
-                    BorderBottomLeftRadius = 0,
+                    BorderTopLeftRadius = Length.Px(0),
+                    BorderBottomLeftRadius = Length.Px(0),
                 }
             },
 

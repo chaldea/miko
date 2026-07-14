@@ -96,7 +96,7 @@ public class IonCardTests : IonicComponentTestBase
         style.MarginTop.ShouldBe(Length.Px(10));
         style.BorderTopLeftRadius.Value.ShouldBe(4f);
         style.BoxShadow.ShouldNotBeNull();
-        style.BoxShadow!.Count.ShouldBe(3);
+        style.BoxShadow!.Value.Value.Count.ShouldBe(3);
     }
 
     [Fact]

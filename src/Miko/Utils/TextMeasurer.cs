@@ -174,7 +174,9 @@ public static class TextMeasurer
         FontWeight fontWeight,
         float maxWidth,
         float? lineHeight = null,
-        WhiteSpace whiteSpace = WhiteSpace.Normal)
+        WhiteSpace whiteSpace = WhiteSpace.Normal,
+        bool breakLongWords = false,
+        float letterSpacing = 0)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -193,47 +195,34 @@ public static class TextMeasurer
         {
             // 不允许换行，直接测量单行
             var (singleWidth, _) = MeasureText(text, fontFamily, fontSize, fontWeight);
-            return (singleWidth, effectiveLineHeight);
+            return (singleWidth + LetterSpacingExtent(text, letterSpacing), effectiveLineHeight);
         }
 
-        // 简单的分词换行算法：按空格分割单词
-        var words = text.Split(new[] { ' ', '\t' }, StringSplitOptions.None);
-        var lines = new List<string>();
-        var currentLine = "";
-        float currentLineWidth = 0;
+        // 复用 TextWrapper 的换行算法（支持显式换行符与长单词逐字符断行），
+        // 与绘制路径（Painter.DrawMultilineText）保持一致，避免两套换行逻辑产生差异。
+        var processed = TextWrapper.ProcessText(text, whiteSpace);
+        var lines = TextWrapper.WrapText(processed, fontFamily, fontSize, fontWeight, maxWidth, whiteSpace, breakLongWords);
+
         float maxActualWidth = 0;
-
-        foreach (var word in words)
+        foreach (var line in lines)
         {
-            var testLine = string.IsNullOrEmpty(currentLine) ? word : currentLine + " " + word;
-            var testWidth = MeasureTextWidth(testLine, fontFamily, fontSize, fontWeight);
-
-            if (testWidth <= maxWidth || string.IsNullOrEmpty(currentLine))
-            {
-                // 当前行可以容纳这个单词
-                currentLine = testLine;
-                currentLineWidth = testWidth;
-            }
-            else
-            {
-                // 需要换行
-                lines.Add(currentLine);
-                maxActualWidth = Math.Max(maxActualWidth, currentLineWidth);
-                currentLine = word;
-                currentLineWidth = MeasureTextWidth(word, fontFamily, fontSize, fontWeight);
-            }
-        }
-
-        // 添加最后一行
-        if (!string.IsNullOrEmpty(currentLine))
-        {
-            lines.Add(currentLine);
-            maxActualWidth = Math.Max(maxActualWidth, currentLineWidth);
+            float w = MeasureTextWidth(line, fontFamily, fontSize, fontWeight) + LetterSpacingExtent(line, letterSpacing);
+            maxActualWidth = Math.Max(maxActualWidth, w);
         }
 
         int lineCount = Math.Max(1, lines.Count);
         float totalHeight = lineCount * effectiveLineHeight;
 
         return (maxActualWidth, totalHeight);
+    }
+
+    /// <summary>
+    /// letter-spacing 为文本增加的总宽度：每个字符后追加一个间距（含末字符，与 CSS 一致）。
+    /// 返回 <c>letterSpacing × 字符数</c>，letterSpacing 为 0 时为 0（不影响既有测量）。
+    /// </summary>
+    public static float LetterSpacingExtent(string? text, float letterSpacing)
+    {
+        if (letterSpacing == 0 || string.IsNullOrEmpty(text)) return 0;
+        return letterSpacing * text.Length;
     }
 }

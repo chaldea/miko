@@ -145,7 +145,7 @@ internal static class RebootStyles
             {
                 BorderColor = t.BorderColor,
                 BorderStyle = BorderStyle.Solid,
-                BorderWidth = 0,
+                BorderWidth = Length.Px(0),
             },
             ["label"] = new()
             {

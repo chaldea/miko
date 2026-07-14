@@ -102,6 +102,24 @@ public static class TextWrapper
     }
 
     /// <summary>
+    /// 依据 CSS <c>word-break</c> 与 <c>overflow-wrap</c> 判断是否需要对超过整行宽度的
+    /// 连续长单词做逐字符断行。
+    /// <list type="bullet">
+    /// <item><c>word-break: break-all</c> → 允许在任意字符间断行。</item>
+    /// <item><c>overflow-wrap: break-word</c> 或 <c>anywhere</c> → 当单词整体放不下时允许内部断行。</item>
+    /// </list>
+    /// 其余情况（默认）返回 false，长单词整体溢出。
+    /// </summary>
+    public static bool ShouldBreakLongWords(WordBreak wordBreak, OverflowWrap overflowWrap)
+    {
+        if (wordBreak == WordBreak.BreakAll)
+            return true;
+        if (overflowWrap == OverflowWrap.BreakWord || overflowWrap == OverflowWrap.Anywhere)
+            return true;
+        return false;
+    }
+
+    /// <summary>
     /// 判断是否允许自动换行
     /// </summary>
     public static bool ShouldWrap(WhiteSpace whiteSpace)

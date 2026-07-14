@@ -78,7 +78,7 @@ public class IonIconTests : IonicComponentTestBase
         var cut = Context.Render<IonIcon>(parameters =>
             parameters.Add(nameof(IonIcon.Icon), "triangle"));
 
-        cut.Root.Style!.BackgroundImage!.IsTemplate.ShouldBeTrue();
+        cut.Root.Style!.BackgroundImage!.Value.Value.IsTemplate.ShouldBeTrue();
     }
 
     [Fact]

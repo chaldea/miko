@@ -982,9 +982,10 @@ public class MikoEngine
 
     private void ScanAndStartAnimations(Element element)
     {
-        if (element.Style?.Animations != null)
+        var animations = element.Style?.Animations.RefValueOrNull();
+        if (animations != null)
         {
-            foreach (var animation in element.Style.Animations)
+            foreach (var animation in animations)
             {
                 _logger.LogDebug("ScanAndStartAnimations: found animation \"{Name}\" on <{Tag} id=\"{Id}\">",
                     animation.Name, element.TagName, element.Id ?? "");

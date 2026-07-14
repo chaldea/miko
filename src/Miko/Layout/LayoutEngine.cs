@@ -334,9 +334,13 @@ public class LayoutEngine
             matchedStyle = merged;
         }
 
+        // 伪元素继承其宿主元素的自定义变量作用域，使 content:/color: 等的 Var(...) 可解析。
+        var hostVarScope = element.LayoutBox?.ComputedStyle?.Vars;
+        var computedStyle = ComputedStyle.FromStyle(matchedStyle, varScope: hostVarScope);
         // content 文本通过 facade setter 变为 pseudoElement 的 TextNode 子节点（见 ISSUE-086）。
-        var pseudoElement = new PseudoElement { TextContent = matchedStyle.Content, Type = type };
-        var computedStyle = ComputedStyle.FromStyle(matchedStyle);
+        // Content 可能是 Var(...) 引用，用计算样式解析后的具体值。
+        computedStyle.TryResolveStyleProperty(matchedStyle.Content ?? default, out string? resolvedContent);
+        var pseudoElement = new PseudoElement { TextContent = resolvedContent, Type = type };
         computedStyle.ResolveSafeArea(_safeArea);
 
         pseudoElement.LayoutBox = new LayoutBox

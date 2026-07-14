@@ -37,10 +37,10 @@ public class AnimationManagerTests
         _manager.TrackPropertyChange(element, nameof(Style.Opacity), 1f, 0f, transition);
 
         _manager.Update(0.5f);
-        element.Style!.Opacity!.Value.ShouldBe(0.5f, 0.01f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0.5f, 0.01f);
 
         _manager.Update(0.5f);
-        element.Style!.Opacity!.Value.ShouldBe(0f, 0.01f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0f, 0.01f);
     }
 
     [Fact]
@@ -52,10 +52,10 @@ public class AnimationManagerTests
         _manager.TrackPropertyChange(element, nameof(Style.Opacity), 1f, 0f, transition);
 
         _manager.Update(0.3f);
-        element.Style!.Opacity!.Value.ShouldBe(1f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(1f);
 
         _manager.Update(0.7f);
-        element.Style!.Opacity!.Value.ShouldBe(0.5f, 0.05f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0.5f, 0.05f);
     }
 
     [Fact]
@@ -67,9 +67,9 @@ public class AnimationManagerTests
         _manager.TrackColorChange(element, nameof(Style.BackgroundColor), Color.Black, Color.White, transition);
 
         _manager.Update(0.5f);
-        element.Style!.BackgroundColor!.Value.R.ShouldBeInRange((byte)120, (byte)135);
-        element.Style!.BackgroundColor!.Value.G.ShouldBeInRange((byte)120, (byte)135);
-        element.Style!.BackgroundColor!.Value.B.ShouldBeInRange((byte)120, (byte)135);
+        element.Style!.BackgroundColor!.Value.Value.R.ShouldBeInRange((byte)120, (byte)135);
+        element.Style!.BackgroundColor!.Value.Value.G.ShouldBeInRange((byte)120, (byte)135);
+        element.Style!.BackgroundColor!.Value.Value.B.ShouldBeInRange((byte)120, (byte)135);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public class AnimationManagerTests
         _manager.TrackPropertyChange(element, nameof(Style.Opacity), 1f, 0f, transition);
         _manager.Update(1f);
 
-        element.Style!.Opacity!.Value.ShouldBe(0f, 0.01f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0f, 0.01f);
         _manager.HasActiveAnimations.ShouldBeFalse();
     }
 
@@ -118,7 +118,7 @@ public class AnimationManagerTests
         _manager.StartAnimation(element, animation);
         _manager.Update(0.5f);
 
-        element.Style!.Opacity!.Value.ShouldBe(0.5f, 0.05f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0.5f, 0.05f);
     }
 
     [Fact]
@@ -137,13 +137,13 @@ public class AnimationManagerTests
         _manager.StartAnimation(element, animation);
 
         _manager.Update(0.25f);
-        element.Style!.Opacity!.Value.ShouldBe(0.5f, 0.05f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0.5f, 0.05f);
 
         _manager.Update(0.25f);
-        element.Style!.Opacity!.Value.ShouldBe(1f, 0.05f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(1f, 0.05f);
 
         _manager.Update(0.25f);
-        element.Style!.Opacity!.Value.ShouldBe(0.5f, 0.05f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0.5f, 0.05f);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class AnimationManagerTests
         _manager.HasActiveAnimations.ShouldBeTrue();
 
         _manager.Update(0.5f);
-        element.Style!.Opacity!.Value.ShouldBe(0.5f, 0.05f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0.5f, 0.05f);
     }
 
     [Fact]
@@ -185,10 +185,10 @@ public class AnimationManagerTests
         _manager.StartAnimation(element, animation);
 
         _manager.Update(1f);
-        element.Style!.Opacity!.Value.ShouldBe(1f, 0.05f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(1f, 0.05f);
 
         _manager.Update(0.5f);
-        element.Style!.Opacity!.Value.ShouldBe(0.5f, 0.05f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0.5f, 0.05f);
     }
 
     [Fact]
@@ -220,7 +220,7 @@ public class AnimationManagerTests
         _manager.TrackPropertyChange(element, nameof(Style.Opacity), 0.5f, 0f, transition);
 
         _manager.Update(1f);
-        element.Style!.Opacity!.Value.ShouldBe(0f, 0.01f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(0f, 0.01f);
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public class AnimationManagerTests
         _manager.StartAnimation(element, animation);
         _manager.Update(1f);
 
-        element.Style!.Opacity!.Value.ShouldBe(1f, 0.01f);
+        element.Style!.Opacity!.Value.Value.ShouldBe(1f, 0.01f);
     }
 
     [Fact]
@@ -257,8 +257,8 @@ public class AnimationManagerTests
         _manager.StartAnimation(element, animation);
         _manager.Update(0.5f);
 
-        element.Style!.BackgroundColor!.Value.R.ShouldBeInRange((byte)120, (byte)135);
-        element.Style!.BackgroundColor!.Value.B.ShouldBeInRange((byte)120, (byte)135);
+        element.Style!.BackgroundColor!.Value.Value.R.ShouldBeInRange((byte)120, (byte)135);
+        element.Style!.BackgroundColor!.Value.Value.B.ShouldBeInRange((byte)120, (byte)135);
     }
 
     [Fact]
@@ -286,7 +286,7 @@ public class AnimationManagerTests
 
         _manager.Update(0.5f);
 
-        var transform = element.Style!.Transform!;
+        var transform = element.Style!.Transform!.Value.Value;
         transform.Functions.Count.ShouldBe(1);
         var rotate = transform.Functions[0].ShouldBeOfType<TransformFunction.Rotate>();
         rotate.Degrees.ShouldBe(90f, 1f);
@@ -304,7 +304,7 @@ public class AnimationManagerTests
 
         _manager.Update(1f);
 
-        var transform = element.Style!.Transform!;
+        var transform = element.Style!.Transform!.Value.Value;
         var rotate = transform.Functions[0].ShouldBeOfType<TransformFunction.Rotate>();
         rotate.Degrees.ShouldBe(-180f, 0.1f);
         _manager.HasActiveAnimations.ShouldBeFalse();

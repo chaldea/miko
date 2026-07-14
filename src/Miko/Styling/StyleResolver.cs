@@ -77,16 +77,41 @@ public class StyleResolver
 
         // 7. 从父元素继承可继承属性（仅填补 UA 也未提供的属性）
         float? parentFontSizePx = null;
-        if (element.Parent != null && element.Parent.LayoutBox?.ComputedStyle != null)
+        Dictionary<string, VarValue>? parentVarScope = null;
+        var parentComputed = element.Parent?.LayoutBox?.ComputedStyle;
+        if (parentComputed != null)
         {
-            var parentComputed = element.Parent.LayoutBox.ComputedStyle;
             InheritFromParent(baseStyle, parentComputed);
             // 父元素的计算字体大小（始终为 px），作为本元素 font-size 中 em 的解析基准。
             parentFontSizePx = parentComputed.FontSize.Value;
+            // 父元素的变量作用域（自定义属性沿 DOM 树继承）。
+            parentVarScope = parentComputed.Vars;
         }
 
-        // 8. 转换为计算样式（传入父字体大小以正确解析 font-size 中的 em）
-        return ComputedStyle.FromStyle(baseStyle, parentFontSizePx);
+        // 8. 构建本元素的变量作用域：继承父作用域，本元素定义的变量覆盖同名项。
+        var varScope = BuildVarScope(parentVarScope, baseStyle.Vars);
+
+        // 9. 转换为计算样式（传入父字体大小以正确解析 font-size 中的 em；传入变量作用域解析 Var 引用；
+        //    传入父计算样式以解析 inherit/unset 等全局关键词）
+        return ComputedStyle.FromStyle(baseStyle, parentFontSizePx, varScope, parentComputed);
+    }
+
+    /// <summary>
+    /// 构建元素生效的自定义变量作用域：先继承父作用域，再叠加本元素定义（同名覆盖）。
+    /// 无任何变量时返回 null，避免为每个元素分配空字典。
+    /// </summary>
+    private static Dictionary<string, VarValue>? BuildVarScope(
+        Dictionary<string, VarValue>? parentScope, Dictionary<string, VarValue>? ownVars)
+    {
+        if (ownVars == null || ownVars.Count == 0)
+            return parentScope;
+
+        var scope = parentScope != null
+            ? new Dictionary<string, VarValue>(parentScope)
+            : new Dictionary<string, VarValue>();
+        foreach (var kv in ownVars)
+            scope[kv.Key] = kv.Value;   // 本元素定义覆盖继承
+        return scope;
     }
 
     /// <summary>
@@ -105,6 +130,17 @@ public class StyleResolver
         // WhiteSpace 在 CSS 中可继承：文本节点（TextNode）依赖它决定是否换行（如 nowrap），
         // 因此必须从父元素继承，否则匿名文本会退回默认 Normal 而错误换行（见 ISSUE-086）。
         style.WhiteSpace ??= parentStyle.WhiteSpace;
+
+        // 文本相关的可继承属性（须与 StylePropertyGenerator.InheritableProperties 保持一致）。
+        // text-transform / letter-spacing / overflow-wrap / word-break 在 CSS 中均可继承。
+        style.TextTransform ??= parentStyle.TextTransform;
+        style.LetterSpacing ??= parentStyle.LetterSpacing;
+        style.OverflowWrap ??= parentStyle.OverflowWrap;
+        style.WordBreak ??= parentStyle.WordBreak;
+        // visibility 可继承（子元素可用 visibility:visible 覆盖被隐藏的父元素）。
+        style.Visibility ??= parentStyle.Visibility;
+        // user-select 规范上非继承，但实际会向下传播；按继承处理以贴合作者预期。
+        style.UserSelect ??= parentStyle.UserSelect;
     }
 
     /// <summary>

@@ -147,7 +147,7 @@ public class TransformRenderingTests : IDisposable
             Width = Length.Px(20),
             Height = Length.Px(20),
             BackgroundColor = Color.Red,
-            Transitions = [Transition.For(nameof(Style.Transform), 1f, TimingFunction.Linear)],
+            Transitions = new List<Transition> { Transition.For(nameof(Style.Transform), 1f, TimingFunction.Linear) },
         };
 
         var styleSheet = new StyleSheet();
@@ -177,8 +177,8 @@ public class TransformRenderingTests : IDisposable
         root.PseudoElementStyles!.ContainsKey(PseudoElementType.After).ShouldBeTrue();
         var pseudoStyle = root.PseudoElementStyles[PseudoElementType.After];
         pseudoStyle.Transform.ShouldNotBeNull();
-        pseudoStyle.Transform!.Functions.Count.ShouldBeGreaterThan(0);
-        var rotate = pseudoStyle.Transform.Functions[0]
+        pseudoStyle.Transform!.Value.Value.Functions.Count.ShouldBeGreaterThan(0);
+        var rotate = pseudoStyle.Transform!.Value.Value.Functions[0]
             .ShouldBeOfType<TransformFunction.Rotate>();
         rotate.Degrees.ShouldBe(-90f, 1f);
     }
@@ -211,8 +211,8 @@ public class TransformRenderingTests : IDisposable
         parent.PseudoElementStyles.ShouldNotBeNull();
         var style = parent.PseudoElementStyles![PseudoElementType.After];
         style.Transform.ShouldNotBeNull();
-        style.Transform!.Functions.Count.ShouldBe(1);
-        var r = style.Transform.Functions[0].ShouldBeOfType<TransformFunction.Rotate>();
+        style.Transform!.Value.Value.Functions.Count.ShouldBe(1);
+        var r = style.Transform!.Value.Value.Functions[0].ShouldBeOfType<TransformFunction.Rotate>();
         r.Degrees.ShouldBe(-90f, 1f);
     }
 
@@ -230,7 +230,7 @@ public class TransformRenderingTests : IDisposable
                 Width = Length.Px(20),
                 Height = Length.Px(20),
                 BackgroundColor = Color.Red,
-                Transitions = [Transition.For(nameof(Style.Transform), 1f, TimingFunction.Linear)],
+                Transitions = new List<Transition> { Transition.For(nameof(Style.Transform), 1f, TimingFunction.Linear) },
             }
         });
         styleSheet.PseudoElementRules.Add(new PseudoElementRule
@@ -267,8 +267,8 @@ public class TransformRenderingTests : IDisposable
         root2.PseudoElementStyles!.ContainsKey(PseudoElementType.After).ShouldBeTrue();
         var pseudoStyle = root2.PseudoElementStyles[PseudoElementType.After];
         pseudoStyle.Transform.ShouldNotBeNull();
-        pseudoStyle.Transform!.Functions.Count.ShouldBeGreaterThan(0);
-        var rotate = pseudoStyle.Transform.Functions[0]
+        pseudoStyle.Transform!.Value.Value.Functions.Count.ShouldBeGreaterThan(0);
+        var rotate = pseudoStyle.Transform!.Value.Value.Functions[0]
             .ShouldBeOfType<TransformFunction.Rotate>();
         rotate.Degrees.ShouldBe(-90f, 1f);
     }
@@ -286,7 +286,7 @@ public class TransformRenderingTests : IDisposable
             {
                 Width = Length.Px(20),
                 Height = Length.Px(20),
-                Transitions = [Transition.For(nameof(Style.Transform), 1f, TimingFunction.Linear)],
+                Transitions = new List<Transition> { Transition.For(nameof(Style.Transform), 1f, TimingFunction.Linear) },
             }
         });
         styleSheet.PseudoElementRules.Add(new PseudoElementRule
@@ -322,8 +322,8 @@ public class TransformRenderingTests : IDisposable
         panel.PseudoElementStyles.ShouldNotBeNull();
         var pseudoStyle = panel.PseudoElementStyles![PseudoElementType.After];
         pseudoStyle.Transform.ShouldNotBeNull();
-        pseudoStyle.Transform!.Functions.Count.ShouldBeGreaterThan(0);
-        var rotate = pseudoStyle.Transform.Functions[0]
+        pseudoStyle.Transform!.Value.Value.Functions.Count.ShouldBeGreaterThan(0);
+        var rotate = pseudoStyle.Transform!.Value.Value.Functions[0]
             .ShouldBeOfType<TransformFunction.Rotate>();
         rotate.Degrees.ShouldBe(-90f, 1f);
     }
