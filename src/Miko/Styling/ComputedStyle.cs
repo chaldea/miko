@@ -1,4 +1,4 @@
-﻿using Miko.Animation;
+using Miko.Animation;
 using Miko.Common;
 
 namespace Miko.Styling;

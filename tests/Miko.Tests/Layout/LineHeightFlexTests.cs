@@ -1,4 +1,4 @@
-﻿using Miko.Common;
+using Miko.Common;
 using Miko.Core.DomElements;
 using Miko.Layout;
 using Miko.Styling;

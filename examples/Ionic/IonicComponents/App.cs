@@ -1,4 +1,4 @@
-﻿using IonicComponents;
+using IonicComponents;
 using Microsoft.Extensions.Logging;
 using Miko.DevTools;
 using Miko.Hosting;

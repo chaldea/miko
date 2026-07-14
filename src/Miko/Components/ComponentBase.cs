@@ -1,4 +1,4 @@
-﻿using Miko.Core;
+using Miko.Core;
 using Miko.Layout;
 using Miko.Routing;
 using System.Diagnostics.CodeAnalysis;

@@ -1,4 +1,4 @@
-﻿using Miko.Common;
+using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;

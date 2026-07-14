@@ -1,4 +1,4 @@
-﻿namespace Miko.Common;
+namespace Miko.Common;
 
 public readonly struct BackgroundSize : IEquatable<BackgroundSize>
 {

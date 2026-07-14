@@ -1,4 +1,4 @@
-﻿using Miko.Bootstrap.Components;
+using Miko.Bootstrap.Components;
 using Miko.Bootstrap.Styles;
 using Miko.Styling;
 

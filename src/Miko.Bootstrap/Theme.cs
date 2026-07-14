@@ -1,4 +1,4 @@
-﻿using Miko.Common;
+using Miko.Common;
 
 namespace Miko.Bootstrap;
 

@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MikoAppSidemenu\MikoAppSidemenu.csproj" />
-    <PackageReference Include="Miko.Android" Version="0.0.12" />
+    <ProjectReference Include="..\..\..\..\src\Miko.Android\Miko.Android.csproj" />
   </ItemGroup>
 
 </Project>
