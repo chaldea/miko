@@ -1,59 +1,87 @@
 namespace Miko.Styling;
 
 /// <summary>
-/// 样式属性的联合值：要么是一个具体值 <typeparamref name="T"/>，要么是一个变量引用
-/// <see cref="Styling.VarReference"/>（如 <c>Color = Var("--button-color")</c>）。
+/// 样式属性的联合值，三选一：具体值 <typeparamref name="T"/>、变量引用
+/// <see cref="Styling.VarReference"/>（如 <c>Color = Var("--button-color")</c>），
+/// 或一个 CSS 全局关键词 <see cref="StyleKeyword"/>（如 <c>Color = Initial</c>）。
 /// <para>
 /// 通过隐式转换，既有写法 <c>Color = Color.Red</c> / <c>Width = Length.Px(100)</c> 保持不变；
-/// 变量写法 <c>Color = Var("--x")</c> 经 <see cref="VarReference"/> 隐式转换成立。
+/// 变量写法 <c>Color = Var("--x")</c> 经 <see cref="VarReference"/> 隐式转换成立；
+/// 关键词写法 <c>Color = Initial</c> 经 <see cref="StyleKeyword"/> 隐式转换成立。
 /// </para>
 /// </summary>
 public readonly struct StyleProperty<T>
 {
+    /// <summary>联合体判别式：当前 <see cref="StyleProperty{T}"/> 持有的是哪一路。</summary>
+    private enum Slot : byte { Value, Var, Keyword }
+
     private readonly T _value;
     private readonly VarReference _var;
-    private readonly bool _isVar;
+    private readonly StyleKeyword _keyword;
+    private readonly Slot _slot;
 
     public StyleProperty(T value)
     {
         _value = value;
         _var = default;
-        _isVar = false;
+        _keyword = default;
+        _slot = Slot.Value;
     }
 
     public StyleProperty(VarReference var)
     {
         _value = default!;
         _var = var;
-        _isVar = true;
+        _keyword = default;
+        _slot = Slot.Var;
     }
 
-    /// <summary>是否为变量引用（而非具体值）。</summary>
-    public bool IsVar => _isVar;
+    public StyleProperty(StyleKeyword keyword)
+    {
+        _value = default!;
+        _var = default;
+        _keyword = keyword;
+        _slot = Slot.Keyword;
+    }
+
+    /// <summary>是否为变量引用（而非具体值或关键词）。</summary>
+    public bool IsVar => _slot == Slot.Var;
+
+    /// <summary>是否为 CSS 全局关键词（而非具体值或变量引用）。</summary>
+    public bool IsKeyword => _slot == Slot.Keyword;
 
     /// <summary>变量引用（仅当 <see cref="IsVar"/> 为 true 时有意义）。</summary>
     public VarReference VarRef => _var;
 
+    /// <summary>CSS 全局关键词（仅当 <see cref="IsKeyword"/> 为 true 时有意义）。</summary>
+    public StyleKeyword Keyword => _keyword;
+
     /// <summary>
-    /// 尝试取出具体值。当持有变量引用时返回 <c>false</c>（此时需先经作用域解析）。
+    /// 尝试取出具体值。当持有变量引用或关键词时返回 <c>false</c>（此时需先经作用域/级联解析）。
     /// </summary>
     public bool TryGetValue(out T value)
     {
         value = _value;
-        return !_isVar;
+        return _slot == Slot.Value;
     }
 
     /// <summary>
-    /// 具体值。仅在确定不是变量引用时使用（否则抛出）。主要用于测试断言与已解析场景。
+    /// 具体值。仅在确定为具体值时使用（否则抛出）。主要用于测试断言与已解析场景。
     /// </summary>
-    public T Value => _isVar
-        ? throw new InvalidOperationException("StyleProperty holds a variable reference; resolve it against a scope first.")
+    public T Value => _slot != Slot.Value
+        ? throw new InvalidOperationException("StyleProperty holds a variable reference or keyword; resolve it against a scope first.")
         : _value;
 
     public static implicit operator StyleProperty<T>(T value) => new(value);
     public static implicit operator StyleProperty<T>(VarReference var) => new(var);
+    public static implicit operator StyleProperty<T>(StyleKeyword keyword) => new(keyword);
 
-    public override string ToString() => _isVar ? $"var({_var.Name})" : _value?.ToString() ?? "";
+    public override string ToString() => _slot switch
+    {
+        Slot.Var => $"var({_var.Name})",
+        Slot.Keyword => _keyword.ToString(),
+        _ => _value?.ToString() ?? "",
+    };
 }
 
 /// <summary>

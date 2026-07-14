@@ -78,9 +78,9 @@ public class StyleResolver
         // 7. 从父元素继承可继承属性（仅填补 UA 也未提供的属性）
         float? parentFontSizePx = null;
         Dictionary<string, VarValue>? parentVarScope = null;
-        if (element.Parent != null && element.Parent.LayoutBox?.ComputedStyle != null)
+        var parentComputed = element.Parent?.LayoutBox?.ComputedStyle;
+        if (parentComputed != null)
         {
-            var parentComputed = element.Parent.LayoutBox.ComputedStyle;
             InheritFromParent(baseStyle, parentComputed);
             // 父元素的计算字体大小（始终为 px），作为本元素 font-size 中 em 的解析基准。
             parentFontSizePx = parentComputed.FontSize.Value;
@@ -91,8 +91,9 @@ public class StyleResolver
         // 8. 构建本元素的变量作用域：继承父作用域，本元素定义的变量覆盖同名项。
         var varScope = BuildVarScope(parentVarScope, baseStyle.Vars);
 
-        // 9. 转换为计算样式（传入父字体大小以正确解析 font-size 中的 em；传入变量作用域解析 Var 引用）
-        return ComputedStyle.FromStyle(baseStyle, parentFontSizePx, varScope);
+        // 9. 转换为计算样式（传入父字体大小以正确解析 font-size 中的 em；传入变量作用域解析 Var 引用；
+        //    传入父计算样式以解析 inherit/unset 等全局关键词）
+        return ComputedStyle.FromStyle(baseStyle, parentFontSizePx, varScope, parentComputed);
     }
 
     /// <summary>

@@ -125,18 +125,36 @@ public partial class ComputedStyle : Style
     /// 本元素生效的完整自定义变量作用域（继承自祖先 + 本元素定义）。
     /// 由 <see cref="StyleResolver"/> 在计算前注入，供本元素解析 <c>Var(...)</c> 引用，
     /// 并供后代继承（读取父 <see cref="ComputedStyle"/> 的该字段）。
+    /// <para>刻意遮蔽基类 <see cref="Style.Vars"/>：基类存“本节点声明的变量”，
+    /// 此处存“级联继承后本节点生效的完整作用域”。</para>
     /// </summary>
-    public Dictionary<string, VarValue>? Vars { get; set; }
+    public new Dictionary<string, VarValue>? Vars { get; set; }
+
+    /// <summary>
+    /// 本元素解析样式时的父元素计算样式。用于解析 CSS 全局关键词
+    /// <see cref="StyleKeyword.Inherit"/> / <see cref="StyleKeyword.Unset"/> 等（读取父属性值）。
+    /// 由 <see cref="FromStyle"/> 在应用属性前注入；根元素为 null。
+    /// </summary>
+    private ComputedStyle? _keywordResolutionParent;
 
     /// <summary>
     /// 解析一个 <see cref="StyleProperty{T}"/>：具体值直接返回；变量引用则查当前
     /// <see cref="Vars"/> 作用域，未命中时用引用自带的 fallback，仍未命中返回 false
     /// （调用方据此保持默认/继承值）。
+    /// <para>不含关键词消解——仅用于内部“变量/具体值”两路场景（如无父上下文的解析路径）。</para>
     /// </summary>
     internal bool TryResolveStyleProperty<T>(StyleProperty<T> property, out T value)
     {
         if (property.TryGetValue(out value))
             return true;
+
+        // 关键词但无“父属性值 + 是否可继承”上下文：无法就地消解，视为未解析。
+        // （带上下文的重载会正确处理；此重载仅供不涉及关键词的调用点复用。）
+        if (property.IsKeyword)
+        {
+            value = default!;
+            return false;
+        }
 
         var reference = property.VarRef;
         if (Vars != null && Vars.TryGetValue(reference.Name, out var resolved) && resolved.TryGet(out value))
@@ -145,6 +163,43 @@ public partial class ComputedStyle : Style
         if (reference.Fallback is { } fallback && fallback.TryGet(out value))
             return true;
 
+        value = default!;
+        return false;
+    }
+
+    /// <summary>
+    /// 解析一个 <see cref="StyleProperty{T}"/>，含 CSS 全局关键词消解。
+    /// 具体值/变量引用走 <see cref="TryResolveStyleProperty{T}(StyleProperty{T}, out T)"/>；关键词按语义解析：
+    /// <list type="bullet">
+    /// <item><c>initial</c> → 返回 false（保留 ComputedStyle 的初始/默认值）。</item>
+    /// <item><c>inherit</c> → 取 <paramref name="parentValue"/>（父元素该属性计算值）。</item>
+    /// <item><c>unset</c>/<c>revert</c>/<c>revert-layer</c> → 可继承属性等价于 inherit，否则等价于 initial。</item>
+    /// </list>
+    /// 无父元素（<see cref="_keywordResolutionParent"/> 为 null）时，inherit 类关键词退回默认（返回 false）。
+    /// </summary>
+    /// <param name="parentValue">父元素该属性的计算值（仅当需要继承时使用）。</param>
+    /// <param name="inheritable">该属性是否为 CSS 可继承属性（决定 unset/revert 的走向）。</param>
+    internal bool TryResolveStyleProperty<T>(StyleProperty<T> property, T parentValue, bool inheritable, out T value)
+    {
+        if (!property.IsKeyword)
+            return TryResolveStyleProperty(property, out value);
+
+        // 关键词消解为“是否继承父值”。
+        bool inherit = property.Keyword switch
+        {
+            StyleKeyword.Inherit => true,
+            StyleKeyword.Initial => false,
+            // unset / revert / revert-layer：可继承属性继承父值，否则回退初始值。
+            _ => inheritable,
+        };
+
+        if (inherit && _keywordResolutionParent != null)
+        {
+            value = parentValue;
+            return true;
+        }
+
+        // initial，或 inherit/unset 但无父元素：不写入 → 保留 ComputedStyle 默认值。
         value = default!;
         return false;
     }
@@ -161,27 +216,34 @@ public partial class ComputedStyle : Style
     /// 本元素生效的自定义变量作用域。用于解析 <paramref name="style"/> 中的 <c>Var(...)</c> 引用，
     /// 并记录到结果的 <see cref="Vars"/> 上供后代继承。
     /// </param>
+    /// <param name="parent">
+    /// 父元素的计算样式。用于解析 CSS 全局关键词 <c>inherit</c> / <c>unset</c> 等
+    /// （读取父属性值）。根元素为 null。
+    /// </param>
     public static ComputedStyle FromStyle(Style? style, float? parentFontSizePx = null,
-        Dictionary<string, VarValue>? varScope = null)
+        Dictionary<string, VarValue>? varScope = null, ComputedStyle? parent = null)
     {
         var computed = new ComputedStyle();
-        // 先设作用域：ApplyStylePropertiesGenerated 与下方特例都会经 TryResolveStyleProperty
-        // 读取它来解析变量引用。
+        // 先设作用域与父上下文：ApplyStylePropertiesGenerated 与下方特例都会经
+        // TryResolveStyleProperty 读取它们来解析变量引用与 inherit/unset 关键词。
         computed.Vars = varScope;
+        computed._keywordResolutionParent = parent;
 
         if (style != null)
         {
-            // 调用生成的通用属性赋值（内部对每个属性解析变量引用）
+            // 调用生成的通用属性赋值（内部对每个属性解析变量引用与全局关键词）
             computed.ApplyStylePropertiesGenerated(style);
 
-            // 特殊处理：font-size 的 em 单位需要相对父元素解析
-            if (style.FontSize is { } fontSizeProp && computed.TryResolveStyleProperty(fontSizeProp, out var fontSize))
+            // 特殊处理：font-size 的 em 单位需要相对父元素解析。font-size 可继承。
+            if (style.FontSize is { } fontSizeProp &&
+                computed.TryResolveStyleProperty(fontSizeProp, parent?.FontSize ?? default, inheritable: true, out var fontSize))
             {
                 computed.FontSize = Length.Px(fontSize.ToPixels(0, parentFontSizePx));
             }
 
-            // 特殊处理：边框宽度的统一属性回退逻辑
-            if (style.BorderWidth is { } borderWidthProp && computed.TryResolveStyleProperty(borderWidthProp, out var borderWidth))
+            // 特殊处理：边框宽度的统一属性回退逻辑。边框类简写不可继承。
+            if (style.BorderWidth is { } borderWidthProp &&
+                computed.TryResolveStyleProperty(borderWidthProp, parent?.BorderTopWidth ?? default, inheritable: false, out var borderWidth))
             {
                 if (style.BorderTopWidth == null) computed.BorderTopWidth = borderWidth;
                 if (style.BorderRightWidth == null) computed.BorderRightWidth = borderWidth;
@@ -190,7 +252,8 @@ public partial class ComputedStyle : Style
             }
 
             // 特殊处理：边框颜色的统一属性回退逻辑
-            if (style.BorderColor is { } borderColorProp && computed.TryResolveStyleProperty(borderColorProp, out var borderColor))
+            if (style.BorderColor is { } borderColorProp &&
+                computed.TryResolveStyleProperty(borderColorProp, parent?.BorderTopColor ?? default, inheritable: false, out var borderColor))
             {
                 if (style.BorderTopColor == null) computed.BorderTopColor = borderColor;
                 if (style.BorderRightColor == null) computed.BorderRightColor = borderColor;
@@ -199,7 +262,8 @@ public partial class ComputedStyle : Style
             }
 
             // 特殊处理：边框样式的统一属性回退逻辑
-            if (style.BorderStyle is { } borderStyleProp && computed.TryResolveStyleProperty(borderStyleProp, out var borderStyle))
+            if (style.BorderStyle is { } borderStyleProp &&
+                computed.TryResolveStyleProperty(borderStyleProp, parent?.BorderTopStyle ?? default, inheritable: false, out var borderStyle))
             {
                 if (style.BorderTopStyle == null) computed.BorderTopStyle = borderStyle;
                 if (style.BorderRightStyle == null) computed.BorderRightStyle = borderStyle;

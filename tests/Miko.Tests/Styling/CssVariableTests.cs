@@ -269,4 +269,58 @@ public class CssVariableTests
         // 本元素自身定义优先于继承 → 红。
         resolver.Resolve(btn, [sheet]).Color.ShouldBe(Color.Red);
     }
+
+    // ---- VarValue 联合体本身的类型往返（验证 Unsafe 位重解释的正确性） ----
+
+    [Fact]
+    public void VarValue_RoundTrips_AllValueTypes()
+    {
+        VarValue color = (Color)"#123456";
+        color.TryGet<Color>(out var c).ShouldBeTrue();
+        c.ShouldBe((Color)"#123456");
+
+        VarValue length = Length.Rem(2.5f);
+        length.TryGet<Length>(out var l).ShouldBeTrue();
+        l.ShouldBe(Length.Rem(2.5f));
+
+        VarValue f = 0.75f;
+        f.TryGet<float>(out var fv).ShouldBeTrue();
+        fv.ShouldBe(0.75f);
+
+        VarValue i = 42;
+        i.TryGet<int>(out var iv).ShouldBeTrue();
+        iv.ShouldBe(42);
+
+        VarValue s = "Segoe UI";
+        s.TryGet<string>(out var sv).ShouldBeTrue();
+        sv.ShouldBe("Segoe UI");
+    }
+
+    [Fact]
+    public void VarValue_RoundTrips_Enum_ViaBitReinterpret()
+    {
+        var v = VarValue.FromEnum(JustifyContent.SpaceBetween);
+        v.TryGet<JustifyContent>(out var jc).ShouldBeTrue();
+        jc.ShouldBe(JustifyContent.SpaceBetween);
+
+        var d = VarValue.FromEnum(Display.Flex);
+        d.TryGet<Display>(out var display).ShouldBeTrue();
+        display.ShouldBe(Display.Flex);
+    }
+
+    [Fact]
+    public void VarValue_TypeMismatch_ReturnsFalse()
+    {
+        VarValue color = (Color)"#FFFFFF";
+        color.TryGet<Length>(out _).ShouldBeFalse();
+        color.TryGet<int>(out _).ShouldBeFalse();
+
+        VarValue length = Length.Px(10);
+        length.TryGet<Color>(out _).ShouldBeFalse();
+
+        // 不同枚举类型精确校验：JustifyContent 不应被当作 Display 读取（零装箱下仍保持类型安全）。
+        var jc = VarValue.FromEnum(JustifyContent.Center);
+        jc.TryGet<Display>(out _).ShouldBeFalse();
+        jc.TryGet<JustifyContent>(out _).ShouldBeTrue();
+    }
 }
