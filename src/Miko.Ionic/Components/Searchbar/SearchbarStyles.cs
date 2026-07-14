@@ -158,7 +158,7 @@ internal static class SearchbarStyles
                 PaddingLeft = Length.Px(55),
                 PaddingRight = Length.Px(55),
                 BorderRadius = Radius(t.SearchbarInputBorderRadius),
-                BoxShadow = t.SearchbarInputBoxShadow.Count > 0 ? t.SearchbarInputBoxShadow : null,
+                BoxShadow = t.SearchbarInputBoxShadow.Count > 0 ? (StyleProperty<List<BoxShadow>>?)t.SearchbarInputBoxShadow : null,
             });
 
             // md search icon: 21px, pinned top:11px / left:16px.

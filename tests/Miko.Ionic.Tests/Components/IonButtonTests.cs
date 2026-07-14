@@ -33,7 +33,7 @@ public class IonButtonTests : IonicComponentTestBase
         var cut = RenderButton(Context);
 
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldContain("ion-button");
+        cut.Root.ShouldHaveClass("ion-button");
 
         var native = cut.Root.Children[0];
         native.TagName.ShouldBe("button");
@@ -66,7 +66,7 @@ public class IonButtonTests : IonicComponentTestBase
     public void IonButton_StampsFillClass(string fill, string expected)
     {
         var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Fill), fill));
-        cut.Root.Class.ShouldContain(expected);
+        cut.Root.ShouldHaveClass(expected);
     }
 
     [Theory]
@@ -75,7 +75,7 @@ public class IonButtonTests : IonicComponentTestBase
     public void IonButton_StampsExpandClass(string expand, string expected)
     {
         var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Expand), expand));
-        cut.Root.Class.ShouldContain(expected);
+        cut.Root.ShouldHaveClass(expected);
     }
 
     [Theory]
@@ -85,35 +85,35 @@ public class IonButtonTests : IonicComponentTestBase
     public void IonButton_StampsSizeClass(string size, string expected)
     {
         var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Size), size));
-        cut.Root.Class.ShouldContain(expected);
+        cut.Root.ShouldHaveClass(expected);
     }
 
     [Fact]
     public void IonButton_StampsRoundShapeClass()
     {
         var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Shape), "round"));
-        cut.Root.Class.ShouldContain("button-round");
+        cut.Root.ShouldHaveClass("button-round");
     }
 
     [Fact]
     public void IonButton_StampsStrongClass()
     {
         var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Strong), true));
-        cut.Root.Class.ShouldContain("button-strong");
+        cut.Root.ShouldHaveClass("button-strong");
     }
 
     [Fact]
     public void IonButton_StampsDisabledClass()
     {
         var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Disabled), true));
-        cut.Root.Class.ShouldContain("button-disabled");
+        cut.Root.ShouldHaveClass("button-disabled");
     }
 
     [Fact]
     public void IonButton_StampsColorClass()
     {
         var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Color), "danger"));
-        cut.Root.Class.ShouldContain("ion-color-danger");
+        cut.Root.ShouldHaveClass("ion-color-danger");
     }
 
     [Fact]
@@ -129,14 +129,14 @@ public class IonButtonTests : IonicComponentTestBase
                 b.CloseComponent();
             }));
 
-        cut.Root.Class.ShouldContain("button-has-icon-only");
+        cut.Root.ShouldHaveClass("button-has-icon-only");
     }
 
     [Fact]
     public void IonButton_OmitsIconOnlyMarker_ForTextButton()
     {
         var cut = RenderButton(Context);
-        cut.Root.Class.ShouldNotContain("button-has-icon-only");
+        cut.Root.ShouldNotHaveClass("button-has-icon-only");
     }
 
     // --- Slots (icon-only / start / end) -------------------------------------------------
@@ -199,7 +199,7 @@ public class IonButtonTests : IonicComponentTestBase
                 b.CloseComponent();
             })));
 
-        cut.Root.Class.ShouldContain("button-has-icon-only");
+        cut.Root.ShouldHaveClass("button-has-icon-only");
     }
 
     private static ComponentUnderTest RenderIconOnlyButton(TestContext ctx,

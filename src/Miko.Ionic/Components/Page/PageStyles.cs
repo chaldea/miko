@@ -45,7 +45,7 @@ internal static class PageStyles
                 Display = Display.Block,
                 Position = Position.Relative,
                 Width = Length.Percent(100),
-                BoxShadow = t.HeaderBoxShadow.Count > 0 ? t.HeaderBoxShadow : null,
+                BoxShadow = t.HeaderBoxShadow.Count > 0 ? (StyleProperty<List<BoxShadow>>?)t.HeaderBoxShadow : null,
                 BorderBottom = t.HeaderBorderWidth > 0
                     ? new BorderSide(Length.Px(t.HeaderBorderWidth), BorderStyle.Solid, t.HeaderBorderColor)
                     : new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),

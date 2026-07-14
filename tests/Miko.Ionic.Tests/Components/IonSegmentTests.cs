@@ -50,7 +50,7 @@ public class IonSegmentTests : IonicComponentTestBase
         // Assert - DOM structure is the component contract
         cut.Root.TagName.ShouldBe("div");
         cut.Root.Class.ShouldNotBeNull();
-        cut.Root.Class.ShouldContain("ion-segment");
+        cut.Root.ShouldHaveClass("ion-segment");
     }
 
     [Fact]
@@ -105,6 +105,6 @@ public class IonSegmentTests : IonicComponentTestBase
         });
 
         // Assert - Disabled class is applied (interaction blocking is verified in button tests)
-        cut.Root.Class.ShouldContain("segment-disabled");
+        cut.Root.ShouldHaveClass("segment-disabled");
     }
 }

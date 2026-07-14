@@ -63,7 +63,7 @@ public class FormToken
 
 
     public Color FormCheckBg { get; set; }
-    public BackgroundImage FormCheckBgImage { get; set; }
+    public BackgroundImage? FormCheckBgImage { get; set; }
 
     public Length FormLabelMarginBottom { get; set; }
     public Color FormLabelColor { get; set; }
@@ -330,7 +330,7 @@ internal static class FormStyles
                 MarginTop = Em(0.25f),
                 VerticalAlign = VerticalAlign.Top,
                 BackgroundColor = t.FormCheckBg,
-                BackgroundImage = t.FormCheckBgImage,
+                BackgroundImage = t.FormCheckBgImage is { } formCheckBgImage ? (StyleProperty<BackgroundImage>?)formCheckBgImage : null,
                 BackgroundRepeat = BackgroundRepeat.NoRepeat,
                 BackgroundPosition = BackgroundPosition.Center,
                 BackgroundSize = BackgroundSize.Contain,

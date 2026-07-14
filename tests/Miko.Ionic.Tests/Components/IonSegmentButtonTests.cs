@@ -56,7 +56,7 @@ public class IonSegmentButtonTests : IonicComponentTestBase
         // Assert - The host (ion-segment-button) should have the checked class
         var buttonElement = FindButtonInTree(cut.Root);
         buttonElement.ShouldNotBeNull();
-        buttonElement.Class.ShouldContain("segment-button-checked");
+        buttonElement.ShouldHaveClass("segment-button-checked");
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class IonSegmentButtonTests : IonicComponentTestBase
         // Assert - The host should NOT have the checked class
         var buttonElement = FindButtonInTree(cut.Root);
         buttonElement.ShouldNotBeNull();
-        buttonElement.Class.ShouldNotContain("segment-button-checked");
+        buttonElement.ShouldNotHaveClass("segment-button-checked");
         buttonElement.Class.ShouldBe("md ion-segment-button");
     }
 
@@ -92,7 +92,7 @@ public class IonSegmentButtonTests : IonicComponentTestBase
         });
 
         // Assert - Key style/class attribute
-        cut.Root.Class.ShouldContain("segment-button-disabled");
+        cut.Root.ShouldHaveClass("segment-button-disabled");
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class IonSegmentButtonTests : IonicComponentTestBase
         });
 
         // Assert
-        cut.Root.Class.ShouldContain("segment-button-layout-icon-top");
+        cut.Root.ShouldHaveClass("segment-button-layout-icon-top");
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class IonSegmentButtonTests : IonicComponentTestBase
         // <button class="button-native"> (holding .button-inner) and the indicator sibling.
         cut.Root.TagName.ShouldBe("div");
         cut.Root.Class.ShouldNotBeNull();
-        cut.Root.Class.ShouldContain("ion-segment-button");
+        cut.Root.ShouldHaveClass("ion-segment-button");
 
         var native = cut.Root.Children[0];
         native.TagName.ShouldBe("button");

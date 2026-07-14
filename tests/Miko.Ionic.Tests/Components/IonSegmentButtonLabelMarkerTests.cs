@@ -56,10 +56,10 @@ public class IonSegmentButtonLabelMarkerTests
         using var ctx = ContextFor(HostPlatform.Android);
         var cut = RenderButton(ctx, LabelChild());
 
-        cut.Root.Class.ShouldContain("segment-button-has-label");
-        cut.Root.Class.ShouldContain("segment-button-has-label-only");
-        cut.Root.Class.ShouldNotContain("segment-button-has-icon");
-        cut.Root.Class.ShouldNotContain("segment-button-has-icon-only");
+        cut.Root.ShouldHaveClass("segment-button-has-label");
+        cut.Root.ShouldHaveClass("segment-button-has-label-only");
+        cut.Root.ShouldNotHaveClass("segment-button-has-icon");
+        cut.Root.ShouldNotHaveClass("segment-button-has-icon-only");
     }
 
     [Fact]
@@ -68,10 +68,10 @@ public class IonSegmentButtonLabelMarkerTests
         using var ctx = ContextFor(HostPlatform.Android);
         var cut = RenderButton(ctx, content: null);
 
-        cut.Root.Class.ShouldNotContain("segment-button-has-label");
-        cut.Root.Class.ShouldNotContain("segment-button-has-label-only");
-        cut.Root.Class.ShouldNotContain("segment-button-has-icon");
-        cut.Root.Class.ShouldNotContain("segment-button-has-icon-only");
+        cut.Root.ShouldNotHaveClass("segment-button-has-label");
+        cut.Root.ShouldNotHaveClass("segment-button-has-label-only");
+        cut.Root.ShouldNotHaveClass("segment-button-has-icon");
+        cut.Root.ShouldNotHaveClass("segment-button-has-icon-only");
     }
 
     [Fact]
@@ -80,10 +80,10 @@ public class IonSegmentButtonLabelMarkerTests
         using var ctx = ContextFor(HostPlatform.Android);
         var cut = RenderButton(ctx, IconChild());
 
-        cut.Root.Class.ShouldContain("segment-button-has-icon");
-        cut.Root.Class.ShouldContain("segment-button-has-icon-only");
-        cut.Root.Class.ShouldNotContain("segment-button-has-label");
-        cut.Root.Class.ShouldNotContain("segment-button-has-label-only");
+        cut.Root.ShouldHaveClass("segment-button-has-icon");
+        cut.Root.ShouldHaveClass("segment-button-has-icon-only");
+        cut.Root.ShouldNotHaveClass("segment-button-has-label");
+        cut.Root.ShouldNotHaveClass("segment-button-has-label-only");
     }
 
     [Fact]
@@ -100,10 +100,10 @@ public class IonSegmentButtonLabelMarkerTests
             });
         });
 
-        cut.Root.Class.ShouldContain("segment-button-has-label");
-        cut.Root.Class.ShouldContain("segment-button-has-icon");
-        cut.Root.Class.ShouldNotContain("segment-button-has-label-only");
-        cut.Root.Class.ShouldNotContain("segment-button-has-icon-only");
+        cut.Root.ShouldHaveClass("segment-button-has-label");
+        cut.Root.ShouldHaveClass("segment-button-has-icon");
+        cut.Root.ShouldNotHaveClass("segment-button-has-label-only");
+        cut.Root.ShouldNotHaveClass("segment-button-has-icon-only");
     }
 
     [Fact]

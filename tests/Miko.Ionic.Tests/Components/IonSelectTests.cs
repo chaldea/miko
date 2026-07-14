@@ -40,7 +40,7 @@ public class IonSelectTests : IonicComponentTestBase
         var cut = RenderSelect(Context, p => p.Add(nameof(IonSelect.Placeholder), "Pick one"));
 
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldContain("md ion-select");
+        cut.Root.ShouldHaveClass("md ion-select");
 
         var wrapper = cut.FindByClass("select-wrapper").Single();
         wrapper.TagName.ShouldBe("label");
@@ -75,11 +75,11 @@ public class IonSelectTests : IonicComponentTestBase
             p.Add(nameof(IonSelect.Color), "danger");
         });
 
-        cut.Root.Class.ShouldContain("select-label-placement-start");
-        cut.Root.Class.ShouldContain("select-fill-outline");
-        cut.Root.Class.ShouldContain("select-shape-round");
-        cut.Root.Class.ShouldContain("select-justify-space-between");
-        cut.Root.Class.ShouldContain("ion-color-danger");
+        cut.Root.ShouldHaveClass("select-label-placement-start");
+        cut.Root.ShouldHaveClass("select-fill-outline");
+        cut.Root.ShouldHaveClass("select-shape-round");
+        cut.Root.ShouldHaveClass("select-justify-space-between");
+        cut.Root.ShouldHaveClass("ion-color-danger");
         cut.GetTextContent().ShouldContain("Status");
     }
 
@@ -91,7 +91,7 @@ public class IonSelectTests : IonicComponentTestBase
         var select = cut.FindByClass("select-native").Single().ShouldBeOfType<SelectElement>();
         select.Value.ShouldBe("b");
         select.SelectedIndex.ShouldBe(1);
-        cut.Root.Class.ShouldContain("has-value");
+        cut.Root.ShouldHaveClass("has-value");
         cut.FindByClass("select-text").Single().TextContent.ShouldBe("Beta");
     }
 
@@ -112,7 +112,7 @@ public class IonSelectTests : IonicComponentTestBase
     {
         var cut = RenderSelect(Context, p => p.Add(nameof(IonSelect.Disabled), true));
 
-        cut.Root.Class.ShouldContain("select-disabled");
+        cut.Root.ShouldHaveClass("select-disabled");
         cut.FindByClass("select-native").Single().IsDisabled.ShouldBeTrue();
     }
 
@@ -152,7 +152,7 @@ public class IonSelectTests : IonicComponentTestBase
 
         var option = cut.Root.ShouldBeOfType<OptionElement>();
         option.TagName.ShouldBe("option");
-        option.Class.ShouldContain("ion-select-option");
+        option.ShouldHaveClass("ion-select-option");
         option.Value.ShouldBe("x");
         option.Selected.ShouldBeTrue();
         option.IsDisabled.ShouldBeTrue();

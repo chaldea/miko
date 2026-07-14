@@ -27,7 +27,7 @@ public class IonRefresherTests : IonicComponentTestBase
         var cut = Context.Render<IonRefresher>(p => p.Add(nameof(IonRefresher.State), state));
 
         foreach (var cls in expectedClasses.Split(' '))
-            cut.Root.Class.ShouldContain(cls);
+            cut.Root.ShouldHaveClass(cls);
     }
 
     [Fact]
@@ -39,8 +39,8 @@ public class IonRefresherTests : IonicComponentTestBase
             p.Add(nameof(IonRefresher.State), "refreshing");
         });
 
-        cut.Root.Class.ShouldContain("refresher-disabled");
-        cut.Root.Class.ShouldNotContain("refresher-active");
+        cut.Root.ShouldHaveClass("refresher-disabled");
+        cut.Root.ShouldNotHaveClass("refresher-active");
     }
 
     [Fact]

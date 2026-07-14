@@ -31,7 +31,7 @@ public class IonSearchbarTests : IonicComponentTestBase
         var cut = RenderBar(Context);
 
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldContain("ion-searchbar");
+        cut.Root.ShouldHaveClass("ion-searchbar");
 
         var container = cut.Root.Children[0];
         container.Class.ShouldBe("searchbar-input-container");
@@ -86,17 +86,17 @@ public class IonSearchbarTests : IonicComponentTestBase
         var cut = RenderBar(Context);
         // shouldAlignLeft starts true; with no value there is no has-value class (the clear button
         // stays hidden because the CSS reveal rule keys on has-value + should-show-clear).
-        cut.Root.Class.ShouldContain("searchbar-left-aligned");
-        cut.Root.Class.ShouldNotContain("searchbar-has-value");
+        cut.Root.ShouldHaveClass("searchbar-left-aligned");
+        cut.Root.ShouldNotHaveClass("searchbar-has-value");
     }
 
     [Fact]
     public void IonSearchbar_StampsHasValue_WhenValueSet()
     {
         var cut = RenderBar(Context, p => p.Add(nameof(IonSearchbar.Value), "hello"));
-        cut.Root.Class.ShouldContain("searchbar-has-value");
+        cut.Root.ShouldHaveClass("searchbar-has-value");
         // default showClearButton="always" → should-show-clear is stamped.
-        cut.Root.Class.ShouldContain("searchbar-should-show-clear");
+        cut.Root.ShouldHaveClass("searchbar-should-show-clear");
     }
 
     [Fact]
@@ -107,22 +107,22 @@ public class IonSearchbarTests : IonicComponentTestBase
             p.Add(nameof(IonSearchbar.Value), "hello");
             p.Add(nameof(IonSearchbar.ShowClearButton), "never");
         });
-        cut.Root.Class.ShouldContain("searchbar-has-value");
-        cut.Root.Class.ShouldNotContain("searchbar-should-show-clear");
+        cut.Root.ShouldHaveClass("searchbar-has-value");
+        cut.Root.ShouldNotHaveClass("searchbar-should-show-clear");
     }
 
     [Fact]
     public void IonSearchbar_StampsDisabledClass()
     {
         var cut = RenderBar(Context, p => p.Add(nameof(IonSearchbar.Disabled), true));
-        cut.Root.Class.ShouldContain("searchbar-disabled");
+        cut.Root.ShouldHaveClass("searchbar-disabled");
     }
 
     [Fact]
     public void IonSearchbar_StampsAnimatedClass()
     {
         var cut = RenderBar(Context, p => p.Add(nameof(IonSearchbar.Animated), true));
-        cut.Root.Class.ShouldContain("searchbar-animated");
+        cut.Root.ShouldHaveClass("searchbar-animated");
     }
 
     [Theory]
@@ -132,16 +132,16 @@ public class IonSearchbarTests : IonicComponentTestBase
     {
         var cut = RenderBar(Context, p => p.Add(nameof(IonSearchbar.ShowCancelButton), mode));
         if (expected)
-            cut.Root.Class.ShouldContain("searchbar-should-show-cancel");
+            cut.Root.ShouldHaveClass("searchbar-should-show-cancel");
         else
-            cut.Root.Class.ShouldNotContain("searchbar-should-show-cancel");
+            cut.Root.ShouldNotHaveClass("searchbar-should-show-cancel");
     }
 
     [Fact]
     public void IonSearchbar_StampsColorClass()
     {
         var cut = RenderBar(Context, p => p.Add(nameof(IonSearchbar.Color), "danger"));
-        cut.Root.Class.ShouldContain("ion-color-danger");
+        cut.Root.ShouldHaveClass("ion-color-danger");
     }
 
     [Fact]
@@ -274,13 +274,13 @@ public class IonSearchbarTests : IonicComponentTestBase
         // :host(.has-value.should-show-clear) .clear-button reveal rule does not match and the
         // button keeps its base display:none (and is therefore absent from the layout tree).
         var empty = RenderBar(Context);
-        empty.Root.Class.ShouldNotContain("searchbar-has-value");
+        empty.Root.ShouldNotHaveClass("searchbar-has-value");
 
         // With a value (default showClearButton="always") the host carries both has-value and
         // should-show-clear, so the clear button is laid out as display:block.
         var filled = RenderBar(Context, p => p.Add(nameof(IonSearchbar.Value), "x"));
-        filled.Root.Class.ShouldContain("searchbar-has-value");
-        filled.Root.Class.ShouldContain("searchbar-should-show-clear");
+        filled.Root.ShouldHaveClass("searchbar-has-value");
+        filled.Root.ShouldHaveClass("searchbar-should-show-clear");
         var filledClear = cut_ClearStyle(filled);
         filledClear.Display.ShouldBe(Display.Block);
     }
@@ -292,8 +292,8 @@ public class IonSearchbarTests : IonicComponentTestBase
         // has-focus, so the cancel button keeps its base display:none (excluded from the layout
         // tree). Asserting the driving host state rather than the (unlaid-out) computed display.
         var cut = RenderBar(Context);
-        cut.Root.Class.ShouldNotContain("searchbar-should-show-cancel");
-        cut.Root.Class.ShouldNotContain("searchbar-has-focus");
+        cut.Root.ShouldNotHaveClass("searchbar-should-show-cancel");
+        cut.Root.ShouldNotHaveClass("searchbar-has-focus");
     }
 
     [Fact]

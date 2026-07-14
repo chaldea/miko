@@ -65,7 +65,7 @@ public class MikoDispatcherTests
     }
 
     [Fact]
-    public void Post_FromMultipleThreads_ShouldBeThreadSafe()
+    public async Task Post_FromMultipleThreads_ShouldBeThreadSafe()
     {
         var dispatcher = new MikoDispatcher();
         var count = 0;
@@ -80,7 +80,7 @@ public class MikoDispatcherTests
             }
         })).ToArray();
 
-        Task.WaitAll(tasks);
+        await Task.WhenAll(tasks);
         dispatcher.Drain();
 
         count.ShouldBe(threads * actionsPerThread);

@@ -24,7 +24,7 @@ internal static class CardStyles
                 FontSize = Length.Px(t.CardFontSize),
                 LineHeight = t.CardLineHeight,
                 BorderRadius = new BorderRadius(Length.Px(t.CardBorderRadius)),
-                BoxShadow = t.CardBoxShadow.Count > 0 ? t.CardBoxShadow : null,
+                BoxShadow = t.CardBoxShadow.Count > 0 ? (StyleProperty<List<BoxShadow>>?)t.CardBoxShadow : null,
                 Overflow = Overflow.Hidden,
             },
 

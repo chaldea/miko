@@ -80,6 +80,7 @@ public class StylePropertyGenerator : IIncrementalGenerator
                 Type = propertyType.ToDisplayString(),
                 IsNullable = isNullable,
                 IsValueType = propertyType.IsValueType,
+                InnerIsReferenceType = IsInnerReferenceType(propertyType),
                 ShadowedByComputedStyle = shadowedNames.Contains(property.Name)
             });
         }
@@ -101,6 +102,26 @@ public class StylePropertyGenerator : IIncrementalGenerator
     {
         var typeName = type.ToDisplayString();
         return typeName.StartsWith("System.Collections.Generic.List<");
+    }
+
+    /// <summary>
+    /// 判断后备属性内层解析类型 <c>T</c> 是否为引用类型。
+    /// 后备属性形如 <c>StyleProperty&lt;T&gt;?</c>（<c>StyleProperty</c> 本身是结构体，故外层恒为值类型），
+    /// 或集合 <c>List&lt;...&gt;</c>（引用类型）。仅引用类型的父计算值可空，需在读取处补 <c>?? default!</c>。
+    /// </summary>
+    private static bool IsInnerReferenceType(ITypeSymbol propertyType)
+    {
+        // 去掉可空注解，取回底层类型（对可空值类型是 Nullable<...>，对可空引用类型是其自身）。
+        var underlying = propertyType;
+        if (underlying is INamedTypeSymbol { IsGenericType: true, ConstructedFrom.SpecialType: SpecialType.System_Nullable_T } nullable)
+            underlying = nullable.TypeArguments[0];
+
+        // StyleProperty<T>?：取内层 T 的引用性。
+        if (underlying is INamedTypeSymbol { Name: "StyleProperty", IsGenericType: true } sp)
+            return sp.TypeArguments[0].IsReferenceType;
+
+        // 其余（如 List<...> 集合属性）按其自身引用性判定。
+        return underlying.IsReferenceType;
     }
 
     /// <summary>
@@ -248,8 +269,17 @@ public class StylePropertyGenerator : IIncrementalGenerator
             // 父属性值：inherit/unset 关键词消解时读取。仅 ComputedStyle 遮蔽的属性有已解析计算值可读；
             // 未遮蔽的属性无计算值可继承，恒传 default!（关键词只会退回默认）。
             // 显式提供泛型实参 <inner> 消除 default 分支带来的类型推断歧义；default! 抑制可空告警。
+            // 引用类型的遮蔽属性其计算值本身可空，故对读取结果再补 ?? default! 以匹配非空的 parentValue 形参。
+            string ParentRead()
+            {
+                var read = $"_keywordResolutionParent.{prop.Name}";
+                if (prop.InnerIsReferenceType)
+                    read += " ?? default!";
+                return $"_keywordResolutionParent != null ? {read} : default!";
+            }
+
             var parentValue = prop.ShadowedByComputedStyle
-                ? $"_keywordResolutionParent != null ? _keywordResolutionParent.{prop.Name} : default!"
+                ? ParentRead()
                 : "default!";
             var inheritable = InheritableProperties.Contains(prop.Name) ? "true" : "false";
             sb.AppendLine(

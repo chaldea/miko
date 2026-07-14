@@ -52,7 +52,7 @@ public class IonSegmentContentTests : IonicComponentTestBase
         var contentElement = FindContentInTree(cut.Root);
         contentElement.ShouldNotBeNull();
         contentElement.Class.ShouldBe("md ion-segment-content");
-        contentElement.Class.ShouldNotContain("segment-content-hidden");
+        contentElement.ShouldNotHaveClass("segment-content-hidden");
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class IonSegmentContentTests : IonicComponentTestBase
         // Assert - The content should have the hidden class
         var contentElement = FindContentInTree(cut.Root);
         contentElement.ShouldNotBeNull();
-        contentElement.Class.ShouldContain("segment-content-hidden");
+        contentElement.ShouldHaveClass("segment-content-hidden");
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class IonSegmentContentTests : IonicComponentTestBase
         cut.Root.TagName.ShouldBe("div");
         cut.Root.Id.ShouldBe("test");
         cut.Root.Class.ShouldNotBeNull();
-        cut.Root.Class.ShouldContain("ion-segment-content");
+        cut.Root.ShouldHaveClass("ion-segment-content");
     }
 
     [Fact]
