@@ -11,7 +11,7 @@ namespace Miko.Tests.Core;
 /// P0 新增标签（textarea、br、hr）及表格 caption/colgroup/col 工厂注册的测试。
 /// 覆盖：工厂注册、UA 默认样式、以及 br 的强制换行与 textarea 的多行高度布局行为。
 /// </summary>
-public class P0ElementsTests
+public class TextElementsTests
 {
     private readonly LayoutEngine _layoutEngine = new();
     private readonly StyleResolver _styleResolver = new();

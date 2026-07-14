@@ -10,12 +10,12 @@ namespace Miko.Tests.Rendering;
 /// <summary>
 /// ISSUE-088：outline 绘制测试 —— 轮廓画在边框盒之外，并遵循 outline-offset。
 /// </summary>
-public class Issue088OutlineRenderingTests : IDisposable
+public class OutlineRenderingTests : IDisposable
 {
     private readonly SKBitmap _canvasBitmap;
     private readonly SKCanvas _canvas;
 
-    public Issue088OutlineRenderingTests()
+    public OutlineRenderingTests()
     {
         _canvasBitmap = new SKBitmap(400, 400);
         _canvas = new SKCanvas(_canvasBitmap);

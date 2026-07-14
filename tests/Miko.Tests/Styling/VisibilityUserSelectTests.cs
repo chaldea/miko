@@ -11,7 +11,7 @@ namespace Miko.Tests.Styling;
 /// <summary>
 /// ISSUE-088：Visibility 与 UserSelect 的解析、继承效果及引擎级行为。
 /// </summary>
-public class Issue088VisibilityUserSelectTests
+public class VisibilityUserSelectTests
 {
     [Fact]
     public void FromStyle_Visibility_ResolvesAndDefaultsToVisible()

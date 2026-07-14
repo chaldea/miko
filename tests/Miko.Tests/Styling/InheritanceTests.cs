@@ -10,7 +10,7 @@ namespace Miko.Tests.Styling;
 /// ISSUE-088：新增可继承属性（text-transform、letter-spacing、overflow-wrap、
 /// word-break、visibility、user-select）应从父元素级联继承。
 /// </summary>
-public class Issue088InheritanceTests
+public class InheritanceTests
 {
     private static ComputedStyle ResolveChildUnder(Style parentStyle)
     {

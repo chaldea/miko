@@ -7,7 +7,7 @@ namespace Miko.Tests.Styling;
 /// <summary>
 /// ISSUE-088：outline 属性（outline 简写、outline-width/color/style/offset）解析测试。
 /// </summary>
-public class Issue088OutlineTests
+public class OutlineTests
 {
     [Fact]
     public void FromStyle_OutlineLonghands_Resolve()

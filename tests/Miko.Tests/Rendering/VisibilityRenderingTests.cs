@@ -11,12 +11,12 @@ namespace Miko.Tests.Rendering;
 /// ISSUE-088：visibility 绘制行为 —— hidden 元素自身不绘制，但仍占布局空间且子元素可用
 /// visibility: visible 覆盖显示。
 /// </summary>
-public class Issue088VisibilityRenderingTests : IDisposable
+public class VisibilityRenderingTests : IDisposable
 {
     private readonly SKBitmap _canvasBitmap;
     private readonly SKCanvas _canvas;
 
-    public Issue088VisibilityRenderingTests()
+    public VisibilityRenderingTests()
     {
         _canvasBitmap = new SKBitmap(400, 400);
         _canvas = new SKCanvas(_canvasBitmap);
