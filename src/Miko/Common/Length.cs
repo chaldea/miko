@@ -17,6 +17,7 @@ public struct Length
 
     // 各单位分量。最终像素值 =
     //   px + rem*RootFontSize + em*fontSize + number*fontSize + percent/100*containerSize
+    //   + vw/100*viewportWidth + vh/100*viewportHeight（由 ResolveViewport 在样式计算阶段折算）
     //   + safe* * 对应方向的安全区 inset（在样式计算阶段由 ResolveSafeArea 折算）。
     // number 为无单位系数（用于无单位 line-height，按字体大小缩放）。
     private float _px;
@@ -24,6 +25,10 @@ public struct Length
     private float _rem;
     private float _percent;
     private float _number;
+    // CSS 视窗单位系数：vw 相对视口宽度、vh 相对视口高度（1vw = 视口宽度的 1%）。在已知视口尺寸前
+    // 不参与 ToPixels；由 ResolveViewport 在样式计算阶段折算进 _px 后清零，使其后的布局透明无感。
+    private float _vw;
+    private float _vh;
     // CSS env(safe-area-inset-*) 系数（通常为 1，可用 calc 缩放）。在已知安全区边距前不参与
     // ToPixels；由 ResolveSafeArea 在样式计算阶段折算进 _px 后清零，使其后的布局透明无感。
     private float _safeTop;
@@ -35,6 +40,7 @@ public struct Length
     public Length(float value, LengthUnit unit = LengthUnit.Px)
     {
         _px = _em = _rem = _percent = _number = 0;
+        _vw = _vh = 0;
         _safeTop = _safeRight = _safeBottom = _safeLeft = 0;
         _isAuto = false;
 
@@ -45,6 +51,8 @@ public struct Length
             case LengthUnit.Rem: _rem = value; break;
             case LengthUnit.Percent: _percent = value; break;
             case LengthUnit.Number: _number = value; break;
+            case LengthUnit.Vw: _vw = value; break;
+            case LengthUnit.Vh: _vh = value; break;
             case LengthUnit.Auto: _isAuto = true; break;
         }
     }
@@ -53,6 +61,10 @@ public struct Length
     public static Length Percent(float value) => new Length(value, LengthUnit.Percent);
     public static Length Rem(float value) => new Length(value, LengthUnit.Rem);
     public static Length Em(float value) => new Length(value, LengthUnit.Em);
+    /// <summary>视窗宽度单位：<c>1vw</c> = 视口宽度的 1%。由 <see cref="ResolveViewport"/> 折算成 px。</summary>
+    public static Length Vw(float value) => new Length(value, LengthUnit.Vw);
+    /// <summary>视窗高度单位：<c>1vh</c> = 视口高度的 1%。由 <see cref="ResolveViewport"/> 折算成 px。</summary>
+    public static Length Vh(float value) => new Length(value, LengthUnit.Vh);
     /// <summary>无单位数值（如无单位 line-height）：解析为 系数 × 字体大小。</summary>
     public static Length Number(float value) => new Length(value, LengthUnit.Number);
     public static Length Auto => new Length(0, LengthUnit.Auto);
@@ -87,6 +99,8 @@ public struct Length
             if (_rem != 0) nonZero++;
             if (_percent != 0) nonZero++;
             if (_number != 0) nonZero++;
+            if (_vw != 0) nonZero++;
+            if (_vh != 0) nonZero++;
             if (_safeTop != 0) nonZero++;
             if (_safeRight != 0) nonZero++;
             if (_safeBottom != 0) nonZero++;
@@ -105,10 +119,12 @@ public struct Length
         get
         {
             if (_isAuto) return 0;
-            if (_em != 0 && _px == 0 && _rem == 0 && _percent == 0 && _number == 0) return _em;
-            if (_rem != 0 && _px == 0 && _em == 0 && _percent == 0 && _number == 0) return _rem;
-            if (_percent != 0 && _px == 0 && _em == 0 && _rem == 0 && _number == 0) return _percent;
-            if (_number != 0 && _px == 0 && _em == 0 && _rem == 0 && _percent == 0) return _number;
+            if (_em != 0 && _px == 0 && _rem == 0 && _percent == 0 && _number == 0 && _vw == 0 && _vh == 0) return _em;
+            if (_rem != 0 && _px == 0 && _em == 0 && _percent == 0 && _number == 0 && _vw == 0 && _vh == 0) return _rem;
+            if (_percent != 0 && _px == 0 && _em == 0 && _rem == 0 && _number == 0 && _vw == 0 && _vh == 0) return _percent;
+            if (_number != 0 && _px == 0 && _em == 0 && _rem == 0 && _percent == 0 && _vw == 0 && _vh == 0) return _number;
+            if (_vw != 0 && _px == 0 && _em == 0 && _rem == 0 && _percent == 0 && _number == 0 && _vh == 0) return _vw;
+            if (_vh != 0 && _px == 0 && _em == 0 && _rem == 0 && _percent == 0 && _number == 0 && _vw == 0) return _vh;
             return _px;
         }
     }
@@ -121,10 +137,12 @@ public struct Length
         get
         {
             if (_isAuto) return LengthUnit.Auto;
-            if (_em != 0 && _px == 0 && _rem == 0 && _percent == 0 && _number == 0) return LengthUnit.Em;
-            if (_rem != 0 && _px == 0 && _em == 0 && _percent == 0 && _number == 0) return LengthUnit.Rem;
-            if (_percent != 0 && _px == 0 && _em == 0 && _rem == 0 && _number == 0) return LengthUnit.Percent;
-            if (_number != 0 && _px == 0 && _em == 0 && _rem == 0 && _percent == 0) return LengthUnit.Number;
+            if (_em != 0 && _px == 0 && _rem == 0 && _percent == 0 && _number == 0 && _vw == 0 && _vh == 0) return LengthUnit.Em;
+            if (_rem != 0 && _px == 0 && _em == 0 && _percent == 0 && _number == 0 && _vw == 0 && _vh == 0) return LengthUnit.Rem;
+            if (_percent != 0 && _px == 0 && _em == 0 && _rem == 0 && _number == 0 && _vw == 0 && _vh == 0) return LengthUnit.Percent;
+            if (_number != 0 && _px == 0 && _em == 0 && _rem == 0 && _percent == 0 && _vw == 0 && _vh == 0) return LengthUnit.Number;
+            if (_vw != 0 && _px == 0 && _em == 0 && _rem == 0 && _percent == 0 && _number == 0 && _vh == 0) return LengthUnit.Vw;
+            if (_vh != 0 && _px == 0 && _em == 0 && _rem == 0 && _percent == 0 && _number == 0 && _vw == 0) return LengthUnit.Vh;
             return LengthUnit.Px;
         }
     }
@@ -132,6 +150,36 @@ public struct Length
     /// <summary>该长度是否含未折算的 env(safe-area-inset-*) 分量。</summary>
     public bool HasSafeAreaComponent =>
         _safeTop != 0 || _safeRight != 0 || _safeBottom != 0 || _safeLeft != 0;
+
+    /// <summary>该长度是否含未折算的视窗单位（vw/vh）分量。</summary>
+    public bool HasViewportComponent => _vw != 0 || _vh != 0;
+
+    /// <summary>
+    /// 折算视窗单位（vw/vh）分量：<c>vw</c> 乘视口宽度、<c>vh</c> 乘视口高度（各按 1% 计），
+    /// 并入 px 分量后清零视窗系数。其余分量（px/em/rem/percent/number/safe*）保持不变，
+    /// 因此可与 calc 风格的复合长度共存（如 <c>calc(100vw - 240px)</c>）。
+    /// 在样式计算阶段（已知视口尺寸时）调用一次即可，之后该长度的 ToPixels 行为与普通长度完全一致。
+    /// </summary>
+    /// <param name="viewportWidth">视口宽度（逻辑像素），用于折算 vw。</param>
+    /// <param name="viewportHeight">视口高度（逻辑像素），用于折算 vh。</param>
+    public Length ResolveViewport(float viewportWidth, float viewportHeight)
+    {
+        if (_isAuto || !HasViewportComponent) return this;
+
+        return new Length
+        {
+            _px = _px + _vw / 100f * viewportWidth + _vh / 100f * viewportHeight,
+            _em = _em,
+            _rem = _rem,
+            _percent = _percent,
+            _number = _number,
+            // 视窗分量已折算进 _px，清零避免重复折算。
+            _safeTop = _safeTop,
+            _safeRight = _safeRight,
+            _safeBottom = _safeBottom,
+            _safeLeft = _safeLeft,
+        };
+    }
 
     /// <summary>
     /// 折算 env(safe-area-inset-*) 分量：将各方向系数乘以对应的安全区边距并并入 px 分量，
@@ -154,6 +202,8 @@ public struct Length
             _rem = _rem,
             _percent = _percent,
             _number = _number,
+            _vw = _vw,
+            _vh = _vh,
             // 安全区分量已折算进 _px，清零避免重复折算。
         };
     }
@@ -195,6 +245,8 @@ public struct Length
             _rem = x._rem + y._rem,
             _percent = x._percent + y._percent,
             _number = x._number + y._number,
+            _vw = x._vw + y._vw,
+            _vh = x._vh + y._vh,
             _safeTop = x._safeTop + y._safeTop,
             _safeRight = x._safeRight + y._safeRight,
             _safeBottom = x._safeBottom + y._safeBottom,
@@ -212,6 +264,8 @@ public struct Length
             _rem = x._rem - y._rem,
             _percent = x._percent - y._percent,
             _number = x._number - y._number,
+            _vw = x._vw - y._vw,
+            _vh = x._vh - y._vh,
             _safeTop = x._safeTop - y._safeTop,
             _safeRight = x._safeRight - y._safeRight,
             _safeBottom = x._safeBottom - y._safeBottom,
@@ -229,6 +283,8 @@ public struct Length
             _rem = -x._rem,
             _percent = -x._percent,
             _number = -x._number,
+            _vw = -x._vw,
+            _vh = -x._vh,
             _safeTop = -x._safeTop,
             _safeRight = -x._safeRight,
             _safeBottom = -x._safeBottom,
@@ -247,6 +303,8 @@ public struct Length
             _rem = x._rem * factor,
             _percent = x._percent * factor,
             _number = x._number * factor,
+            _vw = x._vw * factor,
+            _vh = x._vh * factor,
             _safeTop = x._safeTop * factor,
             _safeRight = x._safeRight * factor,
             _safeBottom = x._safeBottom * factor,
@@ -266,6 +324,8 @@ public struct Length
             _rem = x._rem / divisor,
             _percent = x._percent / divisor,
             _number = x._number / divisor,
+            _vw = x._vw / divisor,
+            _vh = x._vh / divisor,
             _safeTop = x._safeTop / divisor,
             _safeRight = x._safeRight / divisor,
             _safeBottom = x._safeBottom / divisor,
@@ -292,6 +352,8 @@ public struct Length
                 LengthUnit.Rem => $"{_rem}rem",
                 LengthUnit.Percent => $"{_percent}%",
                 LengthUnit.Number => $"{_number}",
+                LengthUnit.Vw => $"{_vw}vw",
+                LengthUnit.Vh => $"{_vh}vh",
                 _ => Value.ToString()
             };
         }
@@ -303,6 +365,8 @@ public struct Length
         if (_number != 0) parts.Add($"{_number}");
         if (_px != 0) parts.Add($"{_px}px");
         if (_percent != 0) parts.Add($"{_percent}%");
+        if (_vw != 0) parts.Add($"{_vw}vw");
+        if (_vh != 0) parts.Add($"{_vh}vh");
         if (_safeTop != 0) parts.Add(SafeAreaString("top", _safeTop));
         if (_safeRight != 0) parts.Add(SafeAreaString("right", _safeRight));
         if (_safeBottom != 0) parts.Add(SafeAreaString("bottom", _safeBottom));

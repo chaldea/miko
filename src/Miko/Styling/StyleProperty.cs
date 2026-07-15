@@ -1,23 +1,26 @@
 namespace Miko.Styling;
 
 /// <summary>
-/// 样式属性的联合值，三选一：具体值 <typeparamref name="T"/>、变量引用
-/// <see cref="Styling.VarReference"/>（如 <c>Color = Var("--button-color")</c>），
-/// 或一个 CSS 全局关键词 <see cref="StyleKeyword"/>（如 <c>Color = Initial</c>）。
+/// 样式属性的联合值，四选一：具体值 <typeparamref name="T"/>、变量引用
+/// <see cref="Styling.VarReference"/>（如 <c>Color = Var("--button-color")</c>）、
+/// 一个 CSS 全局关键词 <see cref="StyleKeyword"/>（如 <c>Color = Initial</c>），
+/// 或一个延迟求值的 calc 表达式 <see cref="CalcValue{T}"/>（如 <c>MarginLeft = -1 * Var("--bs-border-width")</c>）。
 /// <para>
 /// 通过隐式转换，既有写法 <c>Color = Color.Red</c> / <c>Width = Length.Px(100)</c> 保持不变；
 /// 变量写法 <c>Color = Var("--x")</c> 经 <see cref="VarReference"/> 隐式转换成立；
-/// 关键词写法 <c>Color = Initial</c> 经 <see cref="StyleKeyword"/> 隐式转换成立。
+/// 关键词写法 <c>Color = Initial</c> 经 <see cref="StyleKeyword"/> 隐式转换成立；
+/// calc 写法 <c>MarginLeft = -1 * Var("--x")</c> / <c>Calc(s =&gt; ...)</c> 经 <see cref="CalcValue{T}"/> 隐式转换成立。
 /// </para>
 /// </summary>
 public readonly struct StyleProperty<T>
 {
     /// <summary>联合体判别式：当前 <see cref="StyleProperty{T}"/> 持有的是哪一路。</summary>
-    private enum Slot : byte { Value, Var, Keyword }
+    private enum Slot : byte { Value, Var, Keyword, Calc }
 
     private readonly T _value;
     private readonly VarReference _var;
     private readonly StyleKeyword _keyword;
+    private readonly CalcValue<T> _calc;
     private readonly Slot _slot;
 
     public StyleProperty(T value)
@@ -25,6 +28,7 @@ public readonly struct StyleProperty<T>
         _value = value;
         _var = default;
         _keyword = default;
+        _calc = default;
         _slot = Slot.Value;
     }
 
@@ -33,6 +37,7 @@ public readonly struct StyleProperty<T>
         _value = default!;
         _var = var;
         _keyword = default;
+        _calc = default;
         _slot = Slot.Var;
     }
 
@@ -41,7 +46,17 @@ public readonly struct StyleProperty<T>
         _value = default!;
         _var = default;
         _keyword = keyword;
+        _calc = default;
         _slot = Slot.Keyword;
+    }
+
+    public StyleProperty(CalcValue<T> calc)
+    {
+        _value = default!;
+        _var = default;
+        _keyword = default;
+        _calc = calc;
+        _slot = Slot.Calc;
     }
 
     /// <summary>是否为变量引用（而非具体值或关键词）。</summary>
@@ -50,11 +65,27 @@ public readonly struct StyleProperty<T>
     /// <summary>是否为 CSS 全局关键词（而非具体值或变量引用）。</summary>
     public bool IsKeyword => _slot == Slot.Keyword;
 
+    /// <summary>是否为延迟求值的 calc 表达式。</summary>
+    public bool IsCalc => _slot == Slot.Calc;
+
     /// <summary>变量引用（仅当 <see cref="IsVar"/> 为 true 时有意义）。</summary>
     public VarReference VarRef => _var;
 
     /// <summary>CSS 全局关键词（仅当 <see cref="IsKeyword"/> 为 true 时有意义）。</summary>
     public StyleKeyword Keyword => _keyword;
+
+    /// <summary>
+    /// 对 calc 表达式求值（仅当 <see cref="IsCalc"/> 为 true 时有意义）。
+    /// 引用的变量在 <paramref name="scope"/> 中未解析时返回 <c>false</c>（调用方保留默认值）。
+    /// </summary>
+    public bool TryEvaluateCalc(Dictionary<string, VarValue>? scope, out T value)
+    {
+        if (_slot == Slot.Calc)
+            return _calc.TryEvaluate(scope, out value);
+
+        value = default!;
+        return false;
+    }
 
     /// <summary>
     /// 尝试取出具体值。当持有变量引用或关键词时返回 <c>false</c>（此时需先经作用域/级联解析）。
@@ -75,11 +106,13 @@ public readonly struct StyleProperty<T>
     public static implicit operator StyleProperty<T>(T value) => new(value);
     public static implicit operator StyleProperty<T>(VarReference var) => new(var);
     public static implicit operator StyleProperty<T>(StyleKeyword keyword) => new(keyword);
+    public static implicit operator StyleProperty<T>(CalcValue<T> calc) => new(calc);
 
     public override string ToString() => _slot switch
     {
         Slot.Var => $"var({_var.Name})",
         Slot.Keyword => _keyword.ToString(),
+        Slot.Calc => _calc.ToString(),
         _ => _value?.ToString() ?? "",
     };
 }

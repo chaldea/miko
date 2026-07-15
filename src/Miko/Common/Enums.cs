@@ -131,6 +131,10 @@ public enum LengthUnit
     Auto,
     Rem,
     Em,
+    /// <summary>视窗宽度单位：<c>1vw</c> = 视口宽度的 1%。</summary>
+    Vw,
+    /// <summary>视窗高度单位：<c>1vh</c> = 视口高度的 1%。</summary>
+    Vh,
     /// <summary>无单位数值。用于无单位 line-height：实际像素 = 该系数 × 字体大小。</summary>
     Number
 }
