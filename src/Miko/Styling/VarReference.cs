@@ -41,16 +41,6 @@ public static class Css
     /// <summary>创建带回退值的变量引用；变量在作用域内未定义时使用 <paramref name="fallback"/>。</summary>
     public static VarReference Var(string name, VarValue fallback) => new(name, fallback);
 
-    // ---- 视窗单位 ----
-    // vw/vh 相对整个视口解析（1vw = 视口宽度的 1%、1vh = 视口高度的 1%），在样式计算阶段折算成 px。
-    // 参与 calc：如 Width = Vw(100) - Length.Px(240)（对应 CSS calc(100vw - 240px)）。
-
-    /// <summary>视窗宽度长度：<c>Vw(100)</c> 等价于 CSS <c>100vw</c>。</summary>
-    public static Length Vw(float value) => Length.Vw(value);
-
-    /// <summary>视窗高度长度：<c>Vh(100)</c> 等价于 CSS <c>100vh</c>。</summary>
-    public static Length Vh(float value) => Length.Vh(value);
-
     // ---- calc(...) ----
     // 含变量的算术（如 -1 * Var("--x")）本身即为 CalcValue<T>，可直接赋给样式属性
     // （经 StyleProperty<T> 的隐式转换）。Calc 为可读的 CSS 风格别名/包装：

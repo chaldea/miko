@@ -4,7 +4,7 @@ using Miko.Layout;
 using Miko.Styling;
 using Miko.Styling.Selectors;
 using Shouldly;
-using static Miko.Styling.Css;
+using static Miko.Common.Length;
 
 namespace Miko.Tests.Layout;
 
