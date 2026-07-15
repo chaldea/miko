@@ -23,6 +23,9 @@ public class LayoutEngine
     // 从而全屏浮层（菜单遮罩等）仍覆盖整个屏幕（见 ISSUE-054）。
     private SafeAreaInsets _safeArea;
 
+    // 当前布局的视口尺寸。用于折算各元素（含伪元素）的 vw/vh 视窗单位（见 ISSUE-091）。
+    private ViewportInfo _viewport = new(0, 0);
+
     /// <summary>
     /// 执行布局计算
     /// </summary>
@@ -36,8 +39,9 @@ public class LayoutEngine
         _safeArea = safeArea;
 
         // 视口为全屏：env(safe-area-inset-*) 由各内容元素按需折算成内边距，浮层不受影响。
-        // 1. 样式计算：为每个元素计算最终样式（并折算其 env() 安全区分量）。
+        // 1. 样式计算：为每个元素计算最终样式（并折算其 env() 安全区分量与 vw/vh 视窗分量）。
         var viewport = new ViewportInfo(viewportWidth, viewportHeight);
+        _viewport = viewport;
         ComputeStyles(root, styleSheets, viewport);
 
         // 2. 构建布局树：根据 display 属性过滤和组织
@@ -170,6 +174,11 @@ public class LayoutEngine
     private void ComputeStyles(Element element, List<StyleSheet> styleSheets, ViewportInfo viewport)
     {
         var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport);
+
+        // 折算该元素声明的视窗单位（vw/vh）为像素。vw/vh 始终相对整个视口，与包含块无关，
+        // 故在此（样式计算阶段、已知视口时）一次折算，之后布局对其无感（font-size 中的 vw/vh
+        // 已由 StyleResolver 经 FromStyle 单独折算，须先于其 em 解析）。
+        computedStyle.ResolveViewport(viewport);
 
         // 折算该元素声明的 env(safe-area-inset-*) 长度为像素（桌面/零安全区时为空操作）。
         computedStyle.ResolveSafeArea(_safeArea);
@@ -335,12 +344,15 @@ public class LayoutEngine
         }
 
         // 伪元素继承其宿主元素的自定义变量作用域，使 content:/color: 等的 Var(...) 可解析。
+        // 传入视口以折算伪元素自身 font-size 中的 vw/vh（须先于其 em 解析）。
         var hostVarScope = element.LayoutBox?.ComputedStyle?.Vars;
-        var computedStyle = ComputedStyle.FromStyle(matchedStyle, varScope: hostVarScope);
+        var computedStyle = ComputedStyle.FromStyle(matchedStyle, varScope: hostVarScope, viewport: _viewport);
         // content 文本通过 facade setter 变为 pseudoElement 的 TextNode 子节点（见 ISSUE-086）。
         // Content 可能是 Var(...) 引用，用计算样式解析后的具体值。
         computedStyle.TryResolveStyleProperty(matchedStyle.Content ?? default, out string? resolvedContent);
         var pseudoElement = new PseudoElement { TextContent = resolvedContent, Type = type };
+        // 折算伪元素声明的 vw/vh 视窗分量与 env() 安全区分量（与普通元素一致）。
+        computedStyle.ResolveViewport(_viewport);
         computedStyle.ResolveSafeArea(_safeArea);
 
         pseudoElement.LayoutBox = new LayoutBox

@@ -164,6 +164,11 @@ public partial class ComputedStyle : Style
         if (property.TryGetValue(out value))
             return true;
 
+        // calc 表达式：对当前变量作用域求值；引用的变量未解析时返回 false（保留默认值，
+        // 与未解析的 Var(...) 行为一致）。
+        if (property.IsCalc)
+            return property.TryEvaluateCalc(Vars, out value);
+
         // 关键词但无“父属性值 + 是否可继承”上下文：无法就地消解，视为未解析。
         // （带上下文的重载会正确处理；此重载仅供不涉及关键词的调用点复用。）
         if (property.IsKeyword)
@@ -236,8 +241,14 @@ public partial class ComputedStyle : Style
     /// 父元素的计算样式。用于解析 CSS 全局关键词 <c>inherit</c> / <c>unset</c> 等
     /// （读取父属性值）。根元素为 null。
     /// </param>
+    /// <param name="viewport">
+    /// 视口尺寸。用于折算 font-size 中的 vw/vh 视窗单位（须先于其 em 解析）。
+    /// null 时 font-size 的视窗分量按 0 计（缺少视口上下文）。其余属性的 vw/vh 由
+    /// <see cref="ResolveViewport"/> 在样式计算阶段统一折算。
+    /// </param>
     public static ComputedStyle FromStyle(Style? style, float? parentFontSizePx = null,
-        Dictionary<string, VarValue>? varScope = null, ComputedStyle? parent = null)
+        Dictionary<string, VarValue>? varScope = null, ComputedStyle? parent = null,
+        ViewportInfo? viewport = null)
     {
         var computed = new ComputedStyle();
         // 先设作用域与父上下文：ApplyStylePropertiesGenerated 与下方特例都会经
@@ -254,6 +265,9 @@ public partial class ComputedStyle : Style
             if (style.FontSize is { } fontSizeProp &&
                 computed.TryResolveStyleProperty(fontSizeProp, parent?.FontSize ?? default, inheritable: true, out var fontSize))
             {
+                // vw/vh 相对视口解析，须先于 em（否则视窗分量会被 ToPixels 按 0 折算而丢失）。
+                if (viewport != null)
+                    fontSize = fontSize.ResolveViewport(viewport.Width, viewport.Height);
                 computed.FontSize = Length.Px(fontSize.ToPixels(0, parentFontSizePx));
             }
 
@@ -332,5 +346,64 @@ public partial class ComputedStyle : Style
         MaxWidth = MaxWidth.ResolveSafeArea(insets);
         MaxHeight = MaxHeight.ResolveSafeArea(insets);
         FlexBasis = FlexBasis.ResolveSafeArea(insets);
+    }
+
+    /// <summary>
+    /// 折算所有长度属性中的视窗单位（vw/vh）分量为像素。由布局引擎在样式计算阶段、
+    /// 已知视口尺寸时调用。仅影响显式使用了 vw/vh 的属性（其余长度原样返回），
+    /// 因此对未使用视窗单位的元素完全无副作用。
+    /// <para>
+    /// vw/vh 始终相对整个视口解析（1vw = 视口宽度的 1%、1vh = 视口高度的 1%），
+    /// 与包含块尺寸无关；因此可与 calc 复合长度共存（如 <c>calc(100vw - 240px)</c>）。
+    /// font-size 中的 vw/vh 由 <see cref="FromStyle"/> 单独折算（须先于其 em 解析），此处不再处理。
+    /// </para>
+    /// </summary>
+    public void ResolveViewport(ViewportInfo viewport)
+    {
+        float vw = viewport.Width;
+        float vh = viewport.Height;
+
+        PaddingTop = PaddingTop.ResolveViewport(vw, vh);
+        PaddingRight = PaddingRight.ResolveViewport(vw, vh);
+        PaddingBottom = PaddingBottom.ResolveViewport(vw, vh);
+        PaddingLeft = PaddingLeft.ResolveViewport(vw, vh);
+
+        MarginTop = MarginTop.ResolveViewport(vw, vh);
+        MarginRight = MarginRight.ResolveViewport(vw, vh);
+        MarginBottom = MarginBottom.ResolveViewport(vw, vh);
+        MarginLeft = MarginLeft.ResolveViewport(vw, vh);
+
+        Top = Top.ResolveViewport(vw, vh);
+        Right = Right.ResolveViewport(vw, vh);
+        Bottom = Bottom.ResolveViewport(vw, vh);
+        Left = Left.ResolveViewport(vw, vh);
+
+        Width = Width.ResolveViewport(vw, vh);
+        Height = Height.ResolveViewport(vw, vh);
+        MinWidth = MinWidth.ResolveViewport(vw, vh);
+        MinHeight = MinHeight.ResolveViewport(vw, vh);
+        MaxWidth = MaxWidth.ResolveViewport(vw, vh);
+        MaxHeight = MaxHeight.ResolveViewport(vw, vh);
+        FlexBasis = FlexBasis.ResolveViewport(vw, vh);
+
+        BorderTopWidth = BorderTopWidth.ResolveViewport(vw, vh);
+        BorderRightWidth = BorderRightWidth.ResolveViewport(vw, vh);
+        BorderBottomWidth = BorderBottomWidth.ResolveViewport(vw, vh);
+        BorderLeftWidth = BorderLeftWidth.ResolveViewport(vw, vh);
+
+        BorderTopLeftRadius = BorderTopLeftRadius.ResolveViewport(vw, vh);
+        BorderTopRightRadius = BorderTopRightRadius.ResolveViewport(vw, vh);
+        BorderBottomRightRadius = BorderBottomRightRadius.ResolveViewport(vw, vh);
+        BorderBottomLeftRadius = BorderBottomLeftRadius.ResolveViewport(vw, vh);
+
+        OutlineWidth = OutlineWidth.ResolveViewport(vw, vh);
+        OutlineOffset = OutlineOffset.ResolveViewport(vw, vh);
+
+        LineHeight = LineHeight.ResolveViewport(vw, vh);
+        LetterSpacing = LetterSpacing.ResolveViewport(vw, vh);
+
+        Gap = Gap.ResolveViewport(vw, vh);
+        RowGap = RowGap.ResolveViewport(vw, vh);
+        ColumnGap = ColumnGap.ResolveViewport(vw, vh);
     }
 }

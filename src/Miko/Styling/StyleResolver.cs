@@ -92,8 +92,8 @@ public class StyleResolver
         var varScope = BuildVarScope(parentVarScope, baseStyle.Vars);
 
         // 9. 转换为计算样式（传入父字体大小以正确解析 font-size 中的 em；传入变量作用域解析 Var 引用；
-        //    传入父计算样式以解析 inherit/unset 等全局关键词）
-        return ComputedStyle.FromStyle(baseStyle, parentFontSizePx, varScope, parentComputed);
+        //    传入父计算样式以解析 inherit/unset 等全局关键词；传入视口以折算 font-size 中的 vw/vh）
+        return ComputedStyle.FromStyle(baseStyle, parentFontSizePx, varScope, parentComputed, viewport);
     }
 
     /// <summary>
