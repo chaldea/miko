@@ -1008,69 +1008,67 @@ public class MikoEngine
     }
 
     /// <summary>
-    /// 将旧布局树的滚动状态恢复到新布局树
+    /// 将旧布局树的滚动状态恢复到新布局树。
+    ///
+    /// <para>滚动偏移属于「被滚动的内容」，而非「容器所在的槽位」。因此本方法在旧树与新树间
+    /// 按位置逐层对齐地行走，仅当某个可滚动容器的<b>整棵子树结构一致</b>时才恢复其滚动偏移
+    /// （见 ISSUE-092 问题2）：</para>
+    /// <list type="bullet">
+    /// <item>侧栏重新渲染（菜单项结构不变）→ 子树结构一致 → 恢复，菜单停留原位。</item>
+    /// <item>路由切换使 <c>.main-content</c> 内容从 button 页换成 accordion 页 → 子树结构不同
+    ///   → 不恢复，新内容从顶部开始（否则短内容会被旧的滚动偏移顶出可视区）。</item>
+    /// </list>
+    /// <para>结构签名只比较标签名与嵌套形状，忽略文本与属性等叶子值，因此仅有文本变化的
+    /// 重新渲染仍会被视为「同一内容」而正确恢复。</para>
     /// </summary>
     private static void RestoreScrollState(LayoutBox? oldRoot, LayoutBox? newRoot)
     {
         if (oldRoot == null || newRoot == null) return;
+        // 根节点必须同标签才对齐（否则整棵树语义不同，无从恢复）。
+        if (!IsSameElementIdentity(oldRoot.Element, newRoot.Element)) return;
         RestoreScrollStateRecursive(oldRoot, newRoot);
     }
 
     private static void RestoreScrollStateRecursive(LayoutBox oldBox, LayoutBox newBox)
     {
-        // 使用元素身份匹配逻辑（与 MapElementIdentityRecursive 一致），而非引用相等
-        if (IsSameElementIdentity(oldBox.Element, newBox.Element))
+        // 仅当该容器有非零滚动偏移时才需要恢复；此时再验证其承载的内容（整棵子树）结构一致
+        // ——结构一致，旧偏移才仍然有效。结构不同意味着「同一槽位、不同内容」（如路由切换后的
+        // .main-content），旧偏移不再对应任何内容，恢复它会把新内容顶出可视区。
+        // 将结构比较（O(子树大小)）延迟到确有偏移需要恢复时，避免对整棵树逐节点做深度比较。
+        if ((oldBox.ScrollTop != 0f || oldBox.ScrollLeft != 0f) && HasEquivalentStructure(oldBox, newBox))
         {
             newBox.ScrollTop = oldBox.ScrollTop;
             newBox.ScrollLeft = oldBox.ScrollLeft;
         }
 
-        // 逐个匹配子元素并向下递归。每个旧子元素只能被匹配一次，避免同标签的兄弟节点
-        // （如 .sidebar 与 .main-content 都是 <div>）把滚动状态错误地互相串位。
-        var consumed = new bool[oldBox.Children.Count];
-
-        foreach (var newChild in newBox.Children)
+        // 按位置逐一对齐子节点并向下递归；仅在标签相同（同一元素身份）时才配对，
+        // 避免把兄弟节点串位（如 .sidebar 与 .main-content 都是 <div>）。
+        int count = Math.Min(oldBox.Children.Count, newBox.Children.Count);
+        for (int i = 0; i < count; i++)
         {
-            int matchedIndex = FindMatchingOldChildIndex(oldBox.Children, consumed, newChild);
-            if (matchedIndex >= 0)
+            var oldChild = oldBox.Children[i];
+            var newChild = newBox.Children[i];
+            if (IsSameElementIdentity(oldChild.Element, newChild.Element))
             {
-                consumed[matchedIndex] = true;
-                RestoreScrollStateRecursive(oldBox.Children[matchedIndex], newChild);
+                RestoreScrollStateRecursive(oldChild, newChild);
             }
         }
     }
 
     /// <summary>
-    /// 在尚未被占用的旧子布局盒中，为 <paramref name="newChild"/> 找到最匹配者的索引。
-    /// 匹配优先级：ID 相同 &gt; 标签名 + Class 相同 &gt; 标签名相同。找不到返回 -1。
-    /// 位置（在过滤后的候选集中按顺序）作为最终裁决，确保同标签兄弟节点一一对应而非全部
-    /// 落到第一个匹配上（见 ISSUE-092 的滚动串位回归）。
+    /// 判断两棵布局子树是否<b>结构等价</b>：根标签相同、子节点数量相同，且每个对应位置的子树
+    /// 递归结构等价。只比较标签名与树形，忽略文本、属性、样式等叶子值——因此仅内容文本变化的
+    /// 重新渲染仍算等价（滚动应恢复），而整页替换（子树形状不同）不算等价（滚动应重置）。
     /// </summary>
-    private static int FindMatchingOldChildIndex(List<LayoutBox> oldChildren, bool[] consumed, LayoutBox newChild)
+    private static bool HasEquivalentStructure(LayoutBox a, LayoutBox b)
     {
-        int tagFallback = -1;
-        int classFallback = -1;
-
-        for (int i = 0; i < oldChildren.Count; i++)
+        if (!IsSameElementIdentity(a.Element, b.Element)) return false;
+        if (a.Children.Count != b.Children.Count) return false;
+        for (int i = 0; i < a.Children.Count; i++)
         {
-            if (consumed[i]) continue;
-            var oldElement = oldChildren[i].Element;
-            if (!IsSameElementIdentity(oldElement, newChild.Element)) continue;
-
-            // ID 精确匹配：立即返回。
-            if (!string.IsNullOrEmpty(newChild.Element.Id) && oldElement.Id == newChild.Element.Id)
-                return i;
-
-            // Class 匹配：记录首个候选（同标签且 Class 相同）。
-            if (classFallback < 0 && oldElement.Class == newChild.Element.Class)
-                classFallback = i;
-
-            // 标签名匹配：记录首个候选。
-            if (tagFallback < 0)
-                tagFallback = i;
+            if (!HasEquivalentStructure(a.Children[i], b.Children[i])) return false;
         }
-
-        return classFallback >= 0 ? classFallback : tagFallback;
+        return true;
     }
 
     /// <summary>

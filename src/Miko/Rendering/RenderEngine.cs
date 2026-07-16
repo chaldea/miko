@@ -373,13 +373,32 @@ public class RenderEngine
         var boxShadow = style.BoxShadow.RefValueOrNull();
         if (boxShadow == null || boxShadow.Count == 0) return;
 
+        var (tl, tr, br, bl) = ResolveBorderRadii(box);
         _painter.DrawBoxShadow(
             boxShadow,
             box.BoxModel.BorderBox,
-            style.BorderTopLeftRadius.Value,
-            style.BorderTopRightRadius.Value,
-            style.BorderBottomRightRadius.Value,
-            style.BorderBottomLeftRadius.Value
+            tl, tr, br, bl
+        );
+    }
+
+    /// <summary>
+    /// 将四角圆角（Length，可能含 rem/em/percent 单位）解析为像素值。
+    /// 百分比按 CSS 语义相对边框盒尺寸解析（水平角对宽度、垂直角对高度），
+    /// 由于绘制层每角仅接受单一半径，故取较小边作为百分比基准（使 50% 在正方形上得到圆形）。
+    /// </summary>
+    private static (float TopLeft, float TopRight, float BottomRight, float BottomLeft)
+        ResolveBorderRadii(LayoutBox box)
+    {
+        var style = box.ComputedStyle;
+        var borderBox = box.BoxModel.BorderBox;
+        float percentBase = Math.Min(borderBox.Width, borderBox.Height);
+        float fontSize = style.FontSize.ToPixels(0);
+
+        return (
+            style.BorderTopLeftRadius.ToPixels(percentBase, fontSize),
+            style.BorderTopRightRadius.ToPixels(percentBase, fontSize),
+            style.BorderBottomRightRadius.ToPixels(percentBase, fontSize),
+            style.BorderBottomLeftRadius.ToPixels(percentBase, fontSize)
         );
     }
 
@@ -393,13 +412,11 @@ public class RenderEngine
         var style = box.ComputedStyle;
         if (style.BackgroundColor.A > 0)
         {
+            var (tl, tr, br, bl) = ResolveBorderRadii(box);
             _painter.DrawBackground(
                 box.BoxModel.BorderBox,
                 style.BackgroundColor,
-                style.BorderTopLeftRadius.Value,
-                style.BorderTopRightRadius.Value,
-                style.BorderBottomRightRadius.Value,
-                style.BorderBottomLeftRadius.Value
+                tl, tr, br, bl
             );
         }
 
@@ -537,16 +554,14 @@ public class RenderEngine
 
         if (!hasVisibleBorder) return;
 
+        var (tl, tr, br, bl) = ResolveBorderRadii(box);
         _painter.DrawBorderSides(
             box.BoxModel.BorderBox,
             style.ComputedBorderTop,
             style.ComputedBorderRight,
             style.ComputedBorderBottom,
             style.ComputedBorderLeft,
-            style.BorderTopLeftRadius.Value,
-            style.BorderTopRightRadius.Value,
-            style.BorderBottomRightRadius.Value,
-            style.BorderBottomLeftRadius.Value
+            tl, tr, br, bl
         );
     }
 

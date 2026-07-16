@@ -375,6 +375,112 @@ public class ScrollRestorationTests
         newMainBox.ScrollTop.ShouldBe(0, "main-content scroll must NOT be cross-restored from sidebar");
     }
 
+    [Fact]
+    public void Initialize_ShouldNotRestoreScroll_WhenContainerContentChanges()
+    {
+        // 复现 ISSUE-092 问题2（Ionic 场景）：.main-content 是稳定的路由内容容器
+        // （同标签、同 class、同位置），但导航时其内部页面完全替换。
+        // 从长内容页（button，已滚动到底部）切到短内容页（accordion）时，
+        // 绝不能把 button 页的滚动偏移串到 accordion 页——否则短内容被顶出可视区。
+
+        // 长内容页：main-content 内含大量条目，产生滚动
+        var longContent = new DivElement
+        {
+            Class = "main-content",
+            Style = new Style
+            {
+                Width = Length.Px(600),
+                Height = Length.Px(300),
+                OverflowY = Overflow.Auto,
+            }
+        };
+        for (int i = 0; i < 20; i++)
+            longContent.AddChild(new DivElement
+            {
+                Class = "button",
+                Style = new Style { Height = Length.Px(50) },
+                TextContent = $"Button {i}"
+            });
+
+        var engine = new MikoEngine();
+        using var surface = SKSurface.Create(new SKImageInfo(600, 300));
+        engine.Initialize(longContent, new List<StyleSheet>(), surface.Canvas, 600, 300);
+
+        // 滚动到底部
+        engine.ScrollBy(300, 150, 0, 9999);
+        var scrolled = engine.GetCurrentLayout()!.ScrollTop;
+        scrolled.ShouldBeGreaterThan(0, "long content should be scrolled");
+
+        // 导航到短内容页：同样是 .main-content 容器，但内部结构完全不同（单个短卡片）
+        var shortContent = new DivElement
+        {
+            Class = "main-content",
+            Style = new Style
+            {
+                Width = Length.Px(600),
+                Height = Length.Px(300),
+                OverflowY = Overflow.Auto,
+            },
+            Children =
+            {
+                new DivElement
+                {
+                    Class = "accordion",
+                    Style = new Style { Height = Length.Px(80) },
+                    TextContent = "Accordion"
+                }
+            }
+        };
+
+        engine.Initialize(shortContent, new List<StyleSheet>(), surface.Canvas, 600, 300);
+
+        // 关键断言：内容替换后滚动必须重置为 0，短内容才能从顶部显示
+        engine.GetCurrentLayout()!.ScrollTop.ShouldBe(0,
+            "Scroll must reset when the container's content is replaced (button page -> accordion page)");
+    }
+
+    [Fact]
+    public void Initialize_ShouldRestoreScroll_WhenOnlyLeafTextChanges()
+    {
+        // 结构不变、仅叶子文本变化（如 StateHasChanged 重新渲染列表项文案）时，
+        // 应视为「同一内容」并恢复滚动位置。
+        static DivElement BuildList(string suffix)
+        {
+            var list = new DivElement
+            {
+                Class = "scroll-list",
+                Style = new Style
+                {
+                    Width = Length.Px(400),
+                    Height = Length.Px(300),
+                    OverflowY = Overflow.Auto,
+                }
+            };
+            for (int i = 0; i < 20; i++)
+                list.AddChild(new DivElement
+                {
+                    Class = "row",
+                    Style = new Style { Height = Length.Px(40) },
+                    TextContent = $"Row {i} {suffix}"  // 文本不同，但结构相同
+                });
+            return list;
+        }
+
+        var engine = new MikoEngine();
+        using var surface = SKSurface.Create(new SKImageInfo(400, 300));
+        engine.Initialize(BuildList("v1"), new List<StyleSheet>(), surface.Canvas, 400, 300);
+
+        engine.ScrollBy(200, 150, 0, 300);
+        var scrolled = engine.GetCurrentLayout()!.ScrollTop;
+        scrolled.ShouldBeGreaterThan(0);
+
+        // 重新渲染：结构一致，仅文本变化
+        engine.Initialize(BuildList("v2"), new List<StyleSheet>(), surface.Canvas, 400, 300);
+
+        engine.GetCurrentLayout()!.ScrollTop.ShouldBe(scrolled,
+            "Scroll should be restored when structure is unchanged and only leaf text differs");
+    }
+
     private LayoutBox? FindLayoutBoxById(LayoutBox root, string id)
     {
         if (root.Element.Id == id) return root;

@@ -1,4 +1,5 @@
 using Miko.Ionic.Components;
+using Miko.Ionic.Styles;
 using Miko.Styling;
 
 namespace Miko.Ionic;
@@ -52,6 +53,7 @@ public static class IonicStyleSheetFactory
 
     private static void AddMode(StyleSheet sheet, string mode, IonicTheme t)
     {
+        sheet.Add(GlobalStyle.GenStyle());
         sheet.Add(PageStyles.GenStyle(mode, t));
         sheet.Add(TabStyles.GenStyle(mode, t));
         sheet.Add(IconStyles.GenStyle(mode, t));
@@ -68,11 +70,34 @@ public static class IonicStyleSheetFactory
         sheet.Add(AvatarStyles.GenStyle(mode, t));
         sheet.Add(SpinnerStyles.GenStyle(mode, t));
         sheet.Add(BadgeStyles.GenStyle(mode, t));
+        sheet.Add(NoteStyles.GenStyle(mode, t));
+        sheet.Add(TextStyles.GenStyle(mode, t));
+        sheet.Add(ThumbnailStyles.GenStyle(mode, t));
+        sheet.Add(SkeletonTextStyles.GenStyle(mode, t));
         sheet.Add(ChipStyles.GenStyle(mode, t));
         sheet.Add(CardStyles.GenStyle(mode, t));
         sheet.Add(GridStyles.GenStyle(mode, t));
         sheet.Add(InfiniteScrollStyles.GenStyle(mode, t));
         sheet.Add(RefresherStyles.GenStyle(mode, t));
         sheet.Add(SelectStyles.GenStyle(mode, t));
+        sheet.Add(CheckboxStyles.GenStyle(mode, t));
+        sheet.Add(ToggleStyles.GenStyle(mode, t));
+        sheet.Add(RadioStyles.GenStyle(mode, t));
+        sheet.Add(RangeStyles.GenStyle(mode, t));
+        sheet.Add(InputStyles.GenStyle(mode, t));
+        sheet.Add(TextareaStyles.GenStyle(mode, t));
+        sheet.Add(ReorderStyles.GenStyle(mode, t));
+        sheet.Add(ProgressBarStyles.GenStyle(mode, t));
+        sheet.Add(FabStyles.GenStyle(mode, t));
+        sheet.Add(BreadcrumbStyles.GenStyle(mode, t));
+        sheet.Add(AccordionStyles.GenStyle(mode, t));
+        sheet.Add(ActionSheetStyles.GenStyle(mode, t));
+        sheet.Add(AlertStyles.GenStyle(mode, t));
+        sheet.Add(DatetimeStyles.GenStyle(mode, t));
+        sheet.Add(ModalStyles.GenStyle(mode, t));
+        sheet.Add(PopoverStyles.GenStyle(mode, t));
+        sheet.Add(PickerStyles.GenStyle(mode, t));
+        sheet.Add(LoadingStyles.GenStyle(mode, t));
+        sheet.Add(ToastStyles.GenStyle(mode, t));
     }
 }

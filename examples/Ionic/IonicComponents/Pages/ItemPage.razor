@@ -1,0 +1,55 @@
+@page "/item"
+
+<h1>IonItem</h1>
+
+<p>
+    Items are elements that can contain text, icons, avatars, images, inputs, and any other native or custom elements. Items should only be used as rows in a List with other items. Items can be swiped, deleted, reordered, edited, and more.
+</p>
+
+<h2>Basic Usage</h2>
+
+<p>
+    Items left align text and wrap when the text is wider than the item. We can modify this behavior using the CSS Utilities provided by Ionic Framework, such as using .ion-text-nowrap in the below example. See the CSS Utilities Documentation for more classes that can be added to an item to transform the text.
+</p>
+
+<div class="playground">
+    <div class="playground-container hi-auto">
+        <div class="container-block">
+            <IonItem>
+                <IonLabel>Basic Item</IonLabel>
+            </IonItem>
+
+            <IonItem>
+                <IonLabel>
+                    Multi-line text that should wrap when it is too long to fit on one line. Lorem ipsum dolor sit amet,
+                    consectetur adipiscing elit.
+                </IonLabel>
+            </IonItem>
+            
+            <IonItem>
+                <IonLabel>
+                    <h1>H1 Heading</h1>
+                    <p>Paragraph</p>
+                </IonLabel>
+            </IonItem>
+
+            <IonItem>
+                <IonLabel>
+                    <h2>H2 Heading</h2>
+                    <p>Paragraph</p>
+                </IonLabel>
+            </IonItem>
+
+            <IonItem>
+                <IonLabel>
+                    <h3>H3 Heading</h3>
+                    <p>Paragraph</p>
+                </IonLabel>
+            </IonItem>
+        </div>
+    </div>
+</div>
+
+@code {
+
+}

@@ -1,0 +1,96 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-fab>: an absolutely-positioned container holding one main <ion-fab-button>
+   and optional <ion-fab-list>s. When the fab is activated the main button turns into a close icon
+   and the lists reveal their buttons.
+   <ion-fab>                          <!-- host: absolute, the horizontal/vertical/edge classes -->
+     <slot></slot>                    <!-- ChildContent: the main button + any fab-lists -->
+   </ion-fab>
+   Ionic wires the activated state to descendants at runtime via DOM queries + @Watch. Miko has
+   neither, so the fab cascades a FabContext (activated + a toggle callback) that the main button
+   and the lists read to derive their own state classes — the same pattern IonSegment uses. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <CascadingValue TValue="FabContext" Value="_context">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>Where to align the fab horizontally: <c>"start"</c>, <c>"end"</c>, or
+    /// <c>"center"</c>. Stamped as <c>fab-horizontal-*</c>.</summary>
+    [Parameter] public string? Horizontal { get; set; }
+
+    /// <summary>Where to align the fab vertically: <c>"top"</c>, <c>"bottom"</c>, or
+    /// <c>"center"</c>. Stamped as <c>fab-vertical-*</c>.</summary>
+    [Parameter] public string? Vertical { get; set; }
+
+    /// <summary>If true, the fab sits on the edge of the header (<c>vertical="top"</c>) or footer
+    /// (<c>vertical="bottom"</c>). Stamped as <c>fab-edge</c>.</summary>
+    [Parameter] public bool Edge { get; set; }
+
+    /// <summary>If true, the main button shows the close icon and all fab-lists are visible. Two-way
+    /// bindable with <see cref="ActivatedChanged"/>.</summary>
+    [Parameter] public bool Activated { get; set; }
+
+    /// <summary>Raised with the new activated state when the fab is toggled.</summary>
+    [Parameter] public EventCallback<bool> ActivatedChanged { get; set; }
+
+    // ChildContent (the main IonFabButton + any IonFabLists) is inherited from ComponentBase.
+
+    // Whether the fab contains at least one fab-list. Ionic only toggles when a list is present
+    // (fab.tsx toggle()); we resolve this from the built subtree in Build().
+    private bool _hasList;
+
+    private FabContext _context = new();
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-fab")
+            .AddValue(Horizontal, "fab-horizontal-")
+            .AddValue(Vertical, "fab-vertical-")
+            .If(Edge, "fab-edge");
+
+        // Rebuild the cascaded context each render so descendants read the current activated state
+        // and a toggle callback bound to this fab instance.
+        _context = new FabContext
+        {
+            Activated = Activated,
+            Toggle = EventCallback.Factory.Create(this, ToggleAsync),
+        };
+    }
+
+    /// <summary>
+    /// After the subtree is built, detect whether the fab contains a fab-list. Ionic resolves this
+    /// at click time via <c>querySelector('ion-fab-list')</c>; here we scan the built tree once for
+    /// the <c>ion-fab-list</c> marker class so <see cref="ToggleAsync"/> can honor it.
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        _hasList = root.FindByClass("ion-fab-list").Count > 0;
+        return root;
+    }
+
+    /// <summary>Opens/closes the fab list container. Mirrors <c>fab.tsx</c> <c>toggle()</c>: only
+    /// flips when the fab actually has a list.</summary>
+    private async Task ToggleAsync()
+    {
+        if (!_hasList) return;
+        Activated = !Activated;
+        await ActivatedChanged.InvokeAsync(Activated);
+        StateHasChanged();
+    }
+
+    /// <summary>Closes an active fab list container (Ionic <c>close()</c>).</summary>
+    public async Task CloseAsync()
+    {
+        if (!Activated) return;
+        Activated = false;
+        await ActivatedChanged.InvokeAsync(Activated);
+        StateHasChanged();
+    }
+}

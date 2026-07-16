@@ -1,0 +1,52 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-reorder>: a drag handle placed inside a reorderable list item.
+   <ion-reorder class="{mode} ion-reorder [reorder-enabled] [reorder-hidden]">
+     <slot>                                <!-- ChildContent -->
+       <ion-icon class="reorder-icon" />   <!-- default handle icon when the slot is empty -->
+     </slot>
+   </ion-reorder>
+   In Ionic the handle is display:none until an ancestor reorder-group adds the reorder-enabled class
+   (`.reorder-enabled ion-reorder { display: block }`). Miko has no ancestor-class descendant
+   selector a child can react to, so instead the handle reads the enclosing group's cascaded context:
+   when the group is missing or disabled the handle stamps `reorder-hidden` (display:none); when the
+   group is enabled it stamps `reorder-enabled` (display:block). The default handle icon mirrors
+   reorder.tsx: reorder-three-outline (ios) / reorder-two-sharp (md). *@
+<div class="@ClassMapper.Class" style="@Style">
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+    else
+    {
+        <IonIcon Icon="@_reorderIcon" Class="reorder-icon" />
+    }
+</div>
+
+@code {
+    // ChildContent (custom handle content, Ionic's default slot; when omitted a default reorder icon
+    // is rendered) is inherited from ComponentBase.
+
+    /// <summary>Behavior state supplied by the enclosing <see cref="IonReorderGroup"/>. When null
+    /// (no group) or disabled, the handle is hidden.</summary>
+    [CascadingParameter] public IonReorderGroupContext? Group { get; set; }
+
+    // reorder.tsx: mode === 'ios' ? reorderThreeOutline : reorderTwoSharp.
+    private string _reorderIcon = Ionicons.ReorderTwoSharp;
+
+    // The handle is only interactive/visible inside an enabled (non-disabled) reorder group.
+    private bool Enabled => Group is not null && !Group.Disabled;
+
+    protected override void OnParametersSet()
+    {
+        _reorderIcon = Mode == "ios" ? Ionicons.ReorderThreeOutline : Ionicons.ReorderTwoSharp;
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-reorder")
+            .If(Enabled, "reorder-enabled")
+            .If(!Enabled, "reorder-hidden");
+    }
+}

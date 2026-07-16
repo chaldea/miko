@@ -1,0 +1,257 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@using Miko.Common
+@using Miko.Core
+@using Miko.Core.DomElements
+@using Miko.Events
+@* Mirrors Ionic's <ion-textarea> host structure (textarea.tsx render()). It is the multi-line
+   sibling of <ion-input> and reuses the same label / native-control / bottom-hint / highlight-bar
+   layout:
+   <ion-textarea>                                <!-- host: mode + placement + fill/shape + state classes -->
+     <label class="textarea-wrapper">            <!-- the flex line; also the click target -->
+       <div class="label-text-wrapper">          <!-- the label; display:none when empty -->
+         <div class="label-text">{Label}</div>
+       </div>
+       <div class="textarea-wrapper-inner">
+         @StartSlot
+         <div class="native-wrapper">
+           <textarea class="native-textarea">…</textarea>   <!-- the native multi-line field -->
+         </div>
+         @EndSlot
+       </div>
+       <div class="textarea-highlight" />        <!-- md only, fill != outline, not in an item -->
+     </label>
+     <div class="textarea-bottom">               <!-- only when helper/error text or counter -->
+       <div class="helper-text">…</div>
+       <div class="error-text">…</div>
+       <div class="counter">…</div>              <!-- counter && maxlength set -->
+     </div>
+   </ion-textarea>
+
+   Scope: the portable feature surface, matching IonInput. Browser-only concerns from textarea.tsx
+   have no Miko equivalent and are intentionally omitted — `debounce`, IME composition,
+   `clearOnEdit`, the `autoGrow` auto-resize pseudo-element trick (data-replicated-value), the
+   MutationObserver validity tracking (ion-valid/ion-invalid), ARIA attribute inheritance, and the
+   fill="outline" notch controller. The native value/placeholder/disabled/rows/readonly are applied
+   to the built TextAreaElement in Build() (same pattern IonInput / IonCheckbox use). *@
+<div class="@ClassMapper.Class" style="@Style">
+    <label class="textarea-wrapper" @onclick="HandleLabelClick">
+        <div class="@_labelWrapperClass">
+            @if (!string.IsNullOrEmpty(Label))
+            {
+                <div class="label-text">@Label</div>
+            }
+            else
+            {
+                @LabelContent
+            }
+        </div>
+        <div class="textarea-wrapper-inner">
+            @StartSlot
+            <div class="native-wrapper">
+                <textarea class="native-textarea" @oninput="HandleInput" @onchange="HandleChange">@Value</textarea>
+            </div>
+            @EndSlot
+        </div>
+        @if (ShowHighlight)
+        {
+            <div class="textarea-highlight"></div>
+        }
+    </label>
+    @if (HasBottomContent)
+    {
+        <div class="textarea-bottom">
+            @if (!string.IsNullOrEmpty(HelperText))
+            {
+                <div class="helper-text">@HelperText</div>
+            }
+            @if (!string.IsNullOrEmpty(ErrorText))
+            {
+                <div class="error-text">@ErrorText</div>
+            }
+            @if (ShowCounter)
+            {
+                <div class="counter">@_counterText</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the focus highlight tint.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>The value of the textarea.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised (with the new value) as the user types (two-way binding support).</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Raised each time the user modifies the value (Ionic <c>ionInput</c>).</summary>
+    [Parameter] public EventCallback<string?> OnInput { get; set; }
+
+    /// <summary>Raised when the value change is committed, i.e. on the native change (Ionic <c>ionChange</c>).</summary>
+    [Parameter] public EventCallback<string?> OnChange { get; set; }
+
+    /// <summary>Instructional text shown before the textarea has a value.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>The visible plaintext label associated with the textarea.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Custom label content (Ionic <c>slot="label"</c>), used when <see cref="Label"/> is
+    /// not set. Mirrors textarea.tsx renderLabel() where the <c>label</c> prop takes priority over
+    /// the slot.</summary>
+    [Parameter] public RenderFragment? LabelContent { get; set; }
+
+    /// <summary>Where the label sits relative to the textarea: <c>"start"</c> (default), <c>"end"</c>,
+    /// <c>"fixed"</c>, <c>"stacked"</c>, or <c>"floating"</c>.</summary>
+    [Parameter] public string LabelPlacement { get; set; } = "start";
+
+    /// <summary>The fill style: <c>"solid"</c> (filled) or <c>"outline"</c> (bordered).</summary>
+    [Parameter] public string? Fill { get; set; }
+
+    /// <summary>The shape. Use <c>"round"</c> for an increased corner radius.</summary>
+    [Parameter] public string? Shape { get; set; }
+
+    /// <summary>If true, the user cannot modify the value.</summary>
+    [Parameter] public bool Readonly { get; set; }
+
+    /// <summary>If true, the user cannot interact with the textarea.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>If true, a character counter is shown below the field. Requires <see cref="Maxlength"/>.</summary>
+    [Parameter] public bool Counter { get; set; }
+
+    /// <summary>The maximum number of characters. Used by the counter and passed to the native control.</summary>
+    [Parameter] public int? Maxlength { get; set; }
+
+    /// <summary>The number of visible text lines for the control (native <c>rows</c>). Defaults to 2.</summary>
+    [Parameter] public int Rows { get; set; } = 2;
+
+    /// <summary>If true, the textarea container grows and shrinks with its contents (Ionic
+    /// <c>autoGrow</c>). Marker only: stamped as a host class; Miko has no auto-resize pseudo-element
+    /// so no live growth happens here.</summary>
+    [Parameter] public bool AutoGrow { get; set; }
+
+    /// <summary>Helper text displayed below the textarea when no error is present.</summary>
+    [Parameter] public string? HelperText { get; set; }
+
+    /// <summary>Error text displayed below the textarea when the control is invalid.</summary>
+    [Parameter] public string? ErrorText { get; set; }
+
+    /// <summary>Form field name marker.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>Content shown at the leading edge of the textarea.</summary>
+    [Parameter] public RenderFragment? StartSlot { get; set; }
+
+    /// <summary>Content shown at the trailing edge of the textarea.</summary>
+    [Parameter] public RenderFragment? EndSlot { get; set; }
+
+    private string _labelWrapperClass = "label-text-wrapper";
+    private string _counterText = string.Empty;
+
+    private bool HasValue => !string.IsNullOrEmpty(Value);
+    private bool HasLabel => !string.IsNullOrEmpty(Label) || LabelContent is not null;
+    private bool HasBottomContent =>
+        !string.IsNullOrEmpty(HelperText) || !string.IsNullOrEmpty(ErrorText) || ShowCounter;
+    private bool ShowCounter => Counter && Maxlength is not null;
+    // Ionic only draws the md highlight bar when not using the outline fill (in the tests the
+    // textarea is not hosted inside an ion-item, so the in-item suppression does not apply here).
+    private bool ShowHighlight => Mode == "md" && Fill != "outline";
+
+    protected override void OnParametersSet()
+    {
+        var placement = NormalizeToken(LabelPlacement, "start");
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-textarea")
+            .Add($"textarea-label-placement-{placement}")
+            .If(HasValue, "has-value")
+            .If(Readonly, "textarea-readonly")
+            .If(Disabled, "textarea-disabled")
+            .If(AutoGrow, "textarea-auto-grow")
+            .AddValue(Fill, "textarea-fill-")
+            .AddValue(Shape, "textarea-shape-")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+
+        _labelWrapperClass = HasLabel
+            ? "label-text-wrapper"
+            : "label-text-wrapper label-text-wrapper-hidden";
+
+        // Default counter formatter: "{length} / {maxlength}" (port of input.utils getCounterText).
+        if (ShowCounter)
+        {
+            var length = Value?.Length ?? 0;
+            _counterText = $"{length} / {Maxlength}";
+        }
+    }
+
+    /// <summary>
+    /// After the subtree is built, wire the native textarea's value/placeholder/rows/disabled state.
+    /// The Razor builder recovers a <c>&lt;textarea&gt;</c>'s inner text into <see cref="TextAreaElement.Value"/>,
+    /// but the remaining attributes are applied here so behavior matches IonInput (the same pattern
+    /// IonInput / IonCheckbox use).
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+
+        if (root.FindByClass("native-textarea").FirstOrDefault() is TextAreaElement textarea)
+        {
+            textarea.Value = Value;
+            textarea.Placeholder = Placeholder;
+            textarea.Rows = Rows;
+            if (Disabled) textarea.SetState(ElementState.Disabled);
+        }
+
+        return root;
+    }
+
+    private async Task HandleInput(InputEventArgs args)
+    {
+        if (Disabled || Readonly) return;
+
+        var next = args.Data;
+        if (Value != next)
+        {
+            Value = next;
+            await ValueChanged.InvokeAsync(next);
+        }
+
+        await OnInput.InvokeAsync(next);
+    }
+
+    private async Task HandleChange(ChangeEventArgs args)
+    {
+        if (Disabled || Readonly) return;
+
+        var next = args.NewValue ?? (args.Target as TextAreaElement)?.Value;
+        if (Value != next)
+        {
+            Value = next;
+            await ValueChanged.InvokeAsync(next);
+        }
+
+        await OnChange.InvokeAsync(next);
+    }
+
+    // Ionic stops propagation when the label itself is clicked so the click is not double-counted;
+    // clicking the native textarea focuses it directly.
+    private void HandleLabelClick(MouseEventArgs args)
+    {
+        if (args.Target == args.CurrentTarget)
+        {
+            args.StopPropagation();
+        }
+    }
+
+    private static string NormalizeToken(string? value, string fallback)
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.ToLowerInvariant();
+}

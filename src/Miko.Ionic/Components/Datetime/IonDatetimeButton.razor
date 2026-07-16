@@ -1,0 +1,79 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-datetime-button> (datetime-button.tsx render()):
+   <ion-datetime-button class="{mode} {date|time}-active? datetime-button-disabled?">
+     [<button id="date-button" class="ion-activatable">DateText</button>]
+     [<button id="time-button" class="ion-activatable">TimeText</button>]
+   </ion-datetime-button>
+   The button pair opens an associated ion-datetime (by id) in Ionic; Miko has no live registry, so
+   this port renders the styled date/time buttons and raises OnDateClick / OnTimeClick for the host
+   to open its own IonDatetime. DateText/TimeText are supplied by the host (formatted from the
+   datetime's value). A button is only rendered when its text is present, matching Ionic. *@
+<div class="@ClassMapper.Class" style="@Style">
+    @if (!string.IsNullOrEmpty(DateText))
+    {
+        <button id="date-button" class="ion-activatable" @onclick="DateClickAsync">@DateText</button>
+    }
+    @if (!string.IsNullOrEmpty(TimeText))
+    {
+        <button id="time-button" class="ion-activatable" @onclick="TimeClickAsync">@TimeText</button>
+    }
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>).</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>The id of the <c>ion-datetime</c> this button controls (Ionic <c>datetime</c>). Kept
+    /// for API parity; the host wires the click callbacks in this port.</summary>
+    [Parameter] public string? Datetime { get; set; }
+
+    /// <summary>The formatted date label; when empty the date button is not rendered.</summary>
+    [Parameter] public string? DateText { get; set; }
+
+    /// <summary>The formatted time label; when empty the time button is not rendered.</summary>
+    [Parameter] public string? TimeText { get; set; }
+
+    /// <summary>Which button reads as active while the datetime is open: <c>"date"</c> or
+    /// <c>"time"</c>.</summary>
+    [Parameter] public string SelectedButton { get; set; } = "date";
+
+    /// <summary>Whether the associated datetime is currently open (stamps <c>{selected}-active</c>).</summary>
+    [Parameter] public bool DatetimeActive { get; set; }
+
+    /// <summary>If true, the buttons are dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Raised when the date button is tapped.</summary>
+    [Parameter] public EventCallback OnDateClick { get; set; }
+
+    /// <summary>Raised when the time button is tapped.</summary>
+    [Parameter] public EventCallback OnTimeClick { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        var selected = string.Equals(SelectedButton, "time", StringComparison.OrdinalIgnoreCase) ? "time" : "date";
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-datetime-button")
+            .If(DatetimeActive, $"{selected}-active")
+            .If(Disabled, "datetime-button-disabled")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+    }
+
+    private async Task DateClickAsync(MouseEventArgs _)
+    {
+        if (Disabled) return;
+        await OnDateClick.InvokeAsync();
+    }
+
+    private async Task TimeClickAsync(MouseEventArgs _)
+    {
+        if (Disabled) return;
+        await OnTimeClick.InvokeAsync();
+    }
+}

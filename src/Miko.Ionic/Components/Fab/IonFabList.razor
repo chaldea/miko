@@ -1,0 +1,57 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-fab-list> (fab-list.tsx / fab-list.scss): a column (or row) of mini fab
+   buttons that appears on one side of the main fab button when the fab is activated.
+   <ion-fab-list>                       <!-- host: hidden until active; the side + active classes -->
+     <slot></slot>                       <!-- ChildContent: the list's ion-fab-buttons -->
+   </ion-fab-list>
+   Reads the enclosing fab's activation from the cascaded FabContext to add fab-list-active, then
+   re-cascades a context marked InList (carrying the same activated flag) so its child buttons stamp
+   fab-button-in-list and show when the fab opens. Ionic staggers the buttons' reveal with a
+   per-index setTimeout; Miko has no timers, so the buttons appear together. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <CascadingValue TValue="FabContext" Value="_context">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>The side the list shows on relative to the main button (Ionic <c>side</c>):
+    /// <c>"start"</c>, <c>"end"</c>, <c>"top"</c>, or <c>"bottom"</c> (default). Stamped as
+    /// <c>fab-list-side-*</c>.</summary>
+    [Parameter] public string Side { get; set; } = "bottom";
+
+    /// <summary>If true, the list shows its buttons (Ionic <c>activated</c>). Normally derived from
+    /// the enclosing fab; can be set directly for a standalone list.</summary>
+    [Parameter] public bool Activated { get; set; }
+
+    // ChildContent (the list's IonFabButtons) is inherited from ComponentBase.
+
+    /// <summary>Activation state supplied by the enclosing <see cref="IonFab"/>.</summary>
+    [CascadingParameter] public FabContext? ParentFab { get; set; }
+
+    private FabContext _context = new();
+
+    protected override void OnParametersSet()
+    {
+        // The list is active when either explicitly set or the enclosing fab is activated.
+        var active = Activated || ParentFab?.Activated == true;
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-fab-list")
+            .AddValue(Side, "fab-list-side-")
+            .If(active, "fab-list-active");
+
+        // Re-cascade the fab context to this list's buttons marked InList, carrying the resolved
+        // active flag so the buttons stamp fab-button-in-list and show when the list is active.
+        _context = new FabContext
+        {
+            Activated = active,
+            InList = true,
+            Toggle = ParentFab?.Toggle ?? default,
+        };
+    }
+}

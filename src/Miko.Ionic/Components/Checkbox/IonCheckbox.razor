@@ -1,0 +1,179 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@using Miko.Common
+@* Mirrors Ionic's <ion-checkbox> host structure:
+   <ion-checkbox>                          <!-- host: the mode + placement + checked/disabled classes -->
+     <label class="checkbox-wrapper">      <!-- flex row/column depending on labelPlacement; the click target -->
+       <input type="checkbox" />           <!-- hidden native control kept for form parity (display:none) -->
+       <div class="label-text-wrapper">    <!-- the slotted label text; hidden (display:none) when empty -->
+         <slot />                          <!-- ChildContent -->
+         <div class="checkbox-bottom"> ...  <!-- helper / error text, only when set -->
+       </div>
+       <div class="native-wrapper">        <!-- wraps the visual checkbox box -->
+         <div class="checkbox-icon">       <!-- the bordered box; fills with the checked color when checked -->
+           <div class="checkbox-icon-mark" /> <!-- the checkmark (or minus when indeterminate), faded in when checked -->
+         </div>
+       </div>
+     </label>
+   </ion-checkbox>
+   Ionic paints the checkmark as an inline <svg><path>; Miko has no SVG path element, so the mark is a
+   template background image (checkmark / remove icon) tinted by --checkmark-color and faded from 0→1
+   opacity on the checked/indeterminate state. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <label class="checkbox-wrapper" @onclick="HandleClick">
+        <input type="checkbox" class="checkbox-native" />
+        <div class="label-text-wrapper">
+            @ChildContent
+            @if (HasBottomContent)
+            {
+                <div class="checkbox-bottom">
+                    @if (!string.IsNullOrEmpty(HelperText))
+                    {
+                        <div class="helper-text">@HelperText</div>
+                    }
+                    @if (!string.IsNullOrEmpty(ErrorText))
+                    {
+                        <div class="error-text">@ErrorText</div>
+                    }
+                </div>
+            }
+        </div>
+        <div class="native-wrapper">
+            <div class="checkbox-icon">
+                <div class="checkbox-icon-mark" style="@_markStyle"></div>
+            </div>
+        </div>
+    </label>
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the checked fill / border.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>If true, the checkbox is selected.</summary>
+    [Parameter] public bool Checked { get; set; }
+
+    /// <summary>Raised (with the new checked state) when the user toggles the checkbox.</summary>
+    [Parameter] public EventCallback<bool> CheckedChanged { get; set; }
+
+    /// <summary>Raised when the checked state changes as a result of a user action (Ionic <c>ionChange</c>).</summary>
+    [Parameter] public EventCallback<bool> IonChange { get; set; }
+
+    /// <summary>If true, the checkbox visually appears as indeterminate (a minus mark).</summary>
+    [Parameter] public bool Indeterminate { get; set; }
+
+    /// <summary>If true, the user cannot interact with the checkbox.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The value submitted with the form data when the checkbox participates in a form.</summary>
+    [Parameter] public string Value { get; set; } = "on";
+
+    /// <summary>Form field name marker.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>Where the label sits relative to the box: <c>"start"</c> (default), <c>"end"</c>,
+    /// <c>"fixed"</c>, or <c>"stacked"</c>.</summary>
+    [Parameter] public string LabelPlacement { get; set; } = "start";
+
+    /// <summary>How to pack the label and box within a line: <c>"start"</c>, <c>"end"</c>, or
+    /// <c>"space-between"</c>. Setting this changes the host <c>display</c> to block.</summary>
+    [Parameter] public string? Justify { get; set; }
+
+    /// <summary>Cross-axis alignment of the label and box: <c>"start"</c> or <c>"center"</c>.
+    /// Setting this changes the host <c>display</c> to block.</summary>
+    [Parameter] public string? Alignment { get; set; }
+
+    /// <summary>Helper text displayed below the label when no error is present.</summary>
+    [Parameter] public string? HelperText { get; set; }
+
+    /// <summary>Error text displayed below the label when the control is invalid.</summary>
+    [Parameter] public string? ErrorText { get; set; }
+
+    private Style? _markStyle;
+
+    private bool HasBottomContent => !string.IsNullOrEmpty(HelperText) || !string.IsNullOrEmpty(ErrorText);
+
+    protected override void OnParametersSet()
+    {
+        var placement = NormalizeToken(LabelPlacement, "start");
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-checkbox")
+            .Add($"checkbox-label-placement-{placement}")
+            .If(Checked, "checkbox-checked")
+            .If(Disabled, "checkbox-disabled")
+            .If(Indeterminate, "checkbox-indeterminate")
+            .AddValue(Justify, "checkbox-justify-")
+            .AddValue(Alignment, "checkbox-alignment-")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+
+        // The mark glyph: a minus when indeterminate, otherwise a checkmark. Supplied as a template
+        // background image so it is tinted by the computed --checkmark-color (see CheckboxStyles).
+        var image = IconResolver.Load(Indeterminate ? Ionicons.Remove : Ionicons.Checkmark);
+        _markStyle = image is null
+            ? null
+            : new Style
+            {
+                BackgroundImage = image,
+                BackgroundSize = BackgroundSize.Contain,
+                BackgroundPosition = BackgroundPosition.Center,
+                BackgroundRepeat = BackgroundRepeat.NoRepeat,
+            };
+    }
+
+    /// <summary>
+    /// After the subtree is built, sync the hidden native control's state and hide the label wrapper
+    /// when there is no slotted label content. Ionic derives <c>label-text-wrapper-hidden</c> from an
+    /// empty slot (via <c>textContent</c>); here we inspect the built label-text-wrapper for children.
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+
+        if (root.FindByClass("checkbox-native").FirstOrDefault() is InputElement input)
+        {
+            input.Type = InputType.Checkbox;
+            input.Checked = Checked;
+            if (Disabled) input.SetState(ElementState.Disabled);
+        }
+
+        if (root.FindByClass("label-text-wrapper").FirstOrDefault() is { } label && !HasLabelContent(label))
+        {
+            label.Class += " label-text-wrapper-hidden";
+        }
+
+        return root;
+    }
+
+    // A label is considered empty when its only child is the (conditionally rendered) checkbox-bottom
+    // hint block — i.e. no slotted label text/elements were provided.
+    private static bool HasLabelContent(Element label)
+    {
+        foreach (var child in label.Children)
+        {
+            if (child.HasClass("checkbox-bottom")) continue;
+            if (child is TextNode text && string.IsNullOrWhiteSpace(text.TextContent)) continue;
+            return true;
+        }
+        return false;
+    }
+
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled) return;
+
+        Checked = !Checked;
+        Indeterminate = false;
+
+        await CheckedChanged.InvokeAsync(Checked);
+        await IonChange.InvokeAsync(Checked);
+    }
+
+    private static string NormalizeToken(string? value, string fallback)
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.ToLowerInvariant();
+}

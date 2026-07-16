@@ -1,0 +1,182 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@using Miko.Common
+@* Mirrors Ionic's <ion-range> (a single-knob slider — the base port omits dual knobs, ticks, and
+   drag gestures):
+   <ion-range class="{mode} ion-range range-label-placement-{start|end|fixed|stacked}
+                     [range-has-pin] [range-disabled] [range-value-min|max] [ion-color ...]">
+     <label class="range-wrapper">
+       <div class="label-text-wrapper [label-text-wrapper-hidden]">
+         <div class="label-text">@Label</div>
+       </div>
+       <div class="native-wrapper">
+         @StartSlot
+         <div class="range-slider">
+           <div class="range-bar-container">
+             <div class="range-bar"></div>                          <!-- inactive track -->
+             <div class="range-bar range-bar-active" style="left:0; right:{100-pct}%"></div>
+           </div>
+           <div class="range-knob-handle" style="left:{pct}%">
+             <div class="range-pin">@value</div>                    <!-- if Pin -->
+             <div class="range-knob"></div>
+           </div>
+         </div>
+         @EndSlot
+       </div>
+     </label>
+   </ion-range>
+   The knob position and the active bar are computed from the value ratio (Value-Min)/(Max-Min).
+   This is a visual port: the knob does not drag. A track click sets the value proportionally when
+   the pointer position within the slider is known; otherwise it is a no-op (see HandleTrackClick). *@
+<div class="@ClassMapper.Class" style="@Style">
+    <label class="range-wrapper">
+        <div class="label-text-wrapper @(_hasLabel ? "" : "label-text-wrapper-hidden")">
+            @if (Label is not null)
+            {
+                <div class="label-text">@Label</div>
+            }
+            else
+            {
+                @LabelSlot
+            }
+        </div>
+        <div class="native-wrapper">
+            @StartSlot
+            <div class="range-slider" @onclick="HandleTrackClick">
+                <div class="range-bar-container">
+                    <div class="range-bar"></div>
+                    <div class="range-bar range-bar-active" style="@_activeBarStyle"></div>
+                </div>
+                <div class="range-knob-handle" style="@_knobStyle">
+                    @if (Pin)
+                    {
+                        <div class="range-pin">@FormatValue(Value)</div>
+                    }
+                    <div class="range-knob"></div>
+                </div>
+            </div>
+            @EndSlot
+        </div>
+    </label>
+</div>
+
+@code {
+    /// <summary>The current value. Bind two-way with <see cref="ValueChanged"/>.</summary>
+    [Parameter] public double Value { get; set; }
+
+    /// <summary>Raised with the new value when it changes.</summary>
+    [Parameter] public EventCallback<double> ValueChanged { get; set; }
+
+    /// <summary>Minimum value (default 0).</summary>
+    [Parameter] public double Min { get; set; } = 0;
+
+    /// <summary>Maximum value (default 100).</summary>
+    [Parameter] public double Max { get; set; } = 100;
+
+    /// <summary>The quantized step between allowed values (default 1).</summary>
+    [Parameter] public double Step { get; set; } = 1;
+
+    /// <summary>If true, the range is non-interactive and dimmed.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>If true, a pin (value bubble) is shown above the knob.</summary>
+    [Parameter] public bool Pin { get; set; }
+
+    /// <summary>If true, the knob snaps to tick marks along the bar (marker only in this port).</summary>
+    [Parameter] public bool Snaps { get; set; }
+
+    /// <summary>Named palette color (Ionic <c>color</c>). Stamped as an <c>ion-color-*</c> class.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Inline label text. When set, rendered as <c>.label-text</c>; otherwise
+    /// <see cref="LabelSlot"/> (Ionic's <c>slot="label"</c>) is used.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Where the label sits relative to the slider: <c>"start"</c> (default), <c>"end"</c>,
+    /// <c>"fixed"</c>, or <c>"stacked"</c>.</summary>
+    [Parameter] public string LabelPlacement { get; set; } = "start";
+
+    /// <summary>The label content when no inline <see cref="Label"/> is set (Ionic <c>slot="label"</c>).</summary>
+    [Parameter] public RenderFragment? LabelSlot { get; set; }
+
+    /// <summary>Content placed before the slider (Ionic <c>slot="start"</c>).</summary>
+    [Parameter] public RenderFragment? StartSlot { get; set; }
+
+    /// <summary>Content placed after the slider (Ionic <c>slot="end"</c>).</summary>
+    [Parameter] public RenderFragment? EndSlot { get; set; }
+
+    private Style? _knobStyle;
+    private Style? _activeBarStyle;
+    private bool _hasLabel;
+
+    protected override void OnParametersSet()
+    {
+        _hasLabel = Label is not null || LabelSlot is not null;
+
+        var placement = NormalizeToken(LabelPlacement, "start");
+        var value = ClampToRange(Value);
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-range")
+            .Add($"range-label-placement-{placement}")
+            .If(Pin, "range-has-pin")
+            .If(Disabled, "range-disabled")
+            .If(value <= Min, "range-value-min")
+            .If(value >= Max, "range-value-max")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+
+        // ratio in [0, 1]; knob sits at ratio% from the start, active bar fills up to it.
+        var ratio = ValueToRatio(value);
+        var pct = ratio * 100.0;
+
+        // Knob handle: left is the ratio percentage (its own negative half-width margin centers it).
+        _knobStyle = new Style { Left = Length.Percent((float)pct) };
+
+        // Active bar: anchored at the start (left:0), right offset is the remaining portion, so the
+        // filled width equals the ratio. Mirrors Ionic's barStyle { left: 0%, right: (100 - pct)% }.
+        _activeBarStyle = new Style
+        {
+            Left = Length.Percent(0),
+            Right = Length.Percent((float)(100.0 - pct)),
+        };
+    }
+
+    /// <summary>
+    /// Track click. A full drag isn't implemented in this visual port; when the click carries a
+    /// position within the slider we could map it to a value, but Miko's click args do not expose the
+    /// slider width here, so this is currently a no-op placeholder that keeps the DOM contract intact.
+    /// Kept as the wiring point for a future proportional-set / drag implementation.
+    /// </summary>
+    private Task HandleTrackClick(MouseEventArgs _)
+    {
+        // Intentionally visual-only: value changes are driven programmatically via Value/ValueChanged.
+        return Task.CompletedTask;
+    }
+
+    // ratio = clamp((value - min) / (max - min), 0, 1). Mirrors range.tsx valueToRatio.
+    private double ValueToRatio(double value)
+    {
+        var span = Max - Min;
+        if (span <= 0) return 0;
+        var ratio = (value - Min) / span;
+        return Math.Clamp(ratio, 0.0, 1.0);
+    }
+
+    private double ClampToRange(double value) => Math.Clamp(value, Min, Max);
+
+    // The pin shows the raw value; trim a trailing ".0" so integers read cleanly.
+    private static string FormatValue(double value)
+    {
+        var rounded = Math.Round(value, 2);
+        return rounded == Math.Truncate(rounded)
+            ? ((long)rounded).ToString()
+            : rounded.ToString();
+    }
+
+    private static string NormalizeToken(string? value, string fallback)
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.ToLowerInvariant();
+}

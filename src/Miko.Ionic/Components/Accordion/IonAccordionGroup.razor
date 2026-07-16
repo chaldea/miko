@@ -1,0 +1,121 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-accordion-group>: a block container owning which accordion(s) are expanded.
+   <ion-accordion-group class="{mode} accordion-group-expand-{compact|inset} ...">
+     <slot />   <!-- ChildContent: the IonAccordion children -->
+   </ion-accordion-group>
+   The group owns the expanded Value (a single string, or a list when Multiple) and cascades it
+   (plus a RequestToggle callback) to its accordions via CascadingValue<IonAccordionGroupContext>.
+   When an accordion's header is tapped it calls back through RequestToggleAsync, which applies the
+   single/multiple rules (accordion-group.tsx requestAccordionToggle) and re-emits ValueChanged. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <CascadingValue TValue="IonAccordionGroupContext" Value="_context">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>The expanded accordion value for single-select groups. Bind two-way with
+    /// <see cref="ValueChanged"/>. For multi-select use <see cref="Values"/>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new single-select value when it changes (null when collapsed).</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>The expanded accordion values for multi-select groups (<see cref="Multiple"/>).
+    /// Bind two-way with <see cref="ValuesChanged"/>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Raised with the new multi-select value set when it changes.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>If true, more than one accordion can be expanded at once.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>If true, the group is dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>If true, the group is non-interactive but not dimmed.</summary>
+    [Parameter] public bool Readonly { get; set; }
+
+    /// <summary>If true (default), accordions animate on expand/collapse (marker only here).</summary>
+    [Parameter] public bool Animated { get; set; } = true;
+
+    /// <summary>Expansion behavior: <c>"compact"</c> (default) or <c>"inset"</c>.</summary>
+    [Parameter] public string Expand { get; set; } = "compact";
+
+    /// <summary>Slot inside the header item to place the toggle icon: <c>"start"</c> or <c>"end"</c>.</summary>
+    [Parameter] public string ToggleIconSlot { get; set; } = "end";
+
+    private IonAccordionGroupContext _context = new();
+
+    protected override void OnParametersSet()
+    {
+        var expand = string.IsNullOrWhiteSpace(Expand) ? "compact" : Expand.ToLowerInvariant();
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-accordion-group")
+            .If(Disabled, "accordion-group-disabled")
+            .If(Readonly, "accordion-group-readonly")
+            .Add($"accordion-group-expand-{expand}");
+
+        _context = new IonAccordionGroupContext
+        {
+            Values = CurrentValues(),
+            Multiple = Multiple,
+            Disabled = Disabled,
+            Readonly = Readonly,
+            Animated = Animated,
+            Expand = expand,
+            ToggleIconSlot = string.IsNullOrWhiteSpace(ToggleIconSlot) ? "end" : ToggleIconSlot.ToLowerInvariant(),
+            RequestToggle = EventCallback.Factory.Create<(string, bool)>(this, RequestToggleAsync),
+        };
+    }
+
+    // The active expanded set, normalized from Value/Values regardless of Multiple.
+    private IReadOnlyList<string> CurrentValues()
+    {
+        if (Multiple)
+        {
+            return Values is not null ? Values.ToList() : new List<string>();
+        }
+        return string.IsNullOrEmpty(Value) ? new List<string>() : new List<string> { Value! };
+    }
+
+    /// <summary>
+    /// Applies Ionic's <c>requestAccordionToggle</c> rules: when expanding, add the value (single =
+    /// replace, multiple = append if absent); when collapsing, remove it (single = clear, multiple =
+    /// filter out). No-op when disabled/readonly. Emits the matching change callback.
+    /// </summary>
+    private async Task RequestToggleAsync((string Value, bool Expand) request)
+    {
+        if (Disabled || Readonly) return;
+
+        var (value, expand) = request;
+
+        if (Multiple)
+        {
+            var next = new List<string>(CurrentValues());
+            if (expand)
+            {
+                if (!next.Contains(value)) next.Add(value);
+            }
+            else
+            {
+                next.RemoveAll(v => v == value);
+            }
+            Values = next;
+            await ValuesChanged.InvokeAsync(next);
+        }
+        else
+        {
+            Value = expand ? value : null;
+            await ValueChanged.InvokeAsync(Value);
+        }
+
+        StateHasChanged();
+    }
+}

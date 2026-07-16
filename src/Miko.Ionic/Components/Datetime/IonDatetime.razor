@@ -1,0 +1,238 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@using System.Globalization
+@* Mirrors Ionic's <ion-datetime> in its default grid/calendar (date) presentation
+   (datetime.tsx render() → renderDatetime → renderHeader + renderCalendar + renderFooter):
+   <ion-datetime class="{mode} datetime-presentation-{presentation} datetime-size-{size} ...">
+     [<div class="datetime-header">                         <!-- when ShowDefaultTitle -->
+        <div class="datetime-title">Select Date</div>
+        <div class="datetime-selected-date">Wed, Jul 15</div>
+      </div>]
+     <div class="datetime-calendar">
+       <div class="calendar-header">
+         <div class="calendar-action-buttons">
+           <div class="calendar-month-year"><button class="calendar-month-year-toggle">July 2026 ▾</button></div>
+           <div class="calendar-next-prev"> prev / next buttons </div>
+         </div>
+         <div class="calendar-days-of-week"> <div class="day-of-week">S</div> ... </div>
+       </div>
+       <div class="calendar-body">
+         <div class="calendar-month"><div class="calendar-month-grid">
+           <div class="calendar-day-wrapper"><button class="calendar-day calendar-day-active? calendar-day-today?">n</button></div> ...
+         </div></div>
+       </div>
+     </div>
+     [<div class="datetime-footer"> Cancel / OK buttons </div>]   <!-- when ShowDefaultButtons -->
+   </ion-datetime>
+   The wheel/time views are out of scope for this structural port; the calendar (date) view is the
+   default and what <IonDatetime /> renders. Day selection updates Value and raises ValueChanged. *@
+<div class="@ClassMapper.Class" style="@Style">
+    @if (ShowDefaultTitle)
+    {
+        <div class="datetime-header">
+            <div class="datetime-title">Select Date</div>
+            <div class="datetime-selected-date">@SelectedDateText()</div>
+        </div>
+    }
+    <div class="datetime-calendar">
+        <div class="calendar-header">
+            <div class="calendar-action-buttons">
+                <div class="calendar-month-year">
+                    <button class="calendar-month-year-toggle ion-activatable ion-focusable">
+                        <span>@MonthYearLabel()</span>
+                    </button>
+                </div>
+                <div class="calendar-next-prev">
+                    <button class="calendar-nav-button" @onclick="PrevMonth">
+                        <IonIcon Icon="@Ionicons.ChevronBack" />
+                    </button>
+                    <button class="calendar-nav-button" @onclick="NextMonth">
+                        <IonIcon Icon="@Ionicons.ChevronForward" />
+                    </button>
+                </div>
+            </div>
+            <div class="calendar-days-of-week">
+                @foreach (var dow in IonCalendarDay.DaysOfWeek(FirstDayOfWeek))
+                {
+                    <div class="day-of-week">@dow</div>
+                }
+            </div>
+        </div>
+        <div class="calendar-body">
+            <div class="calendar-month">
+                <div class="calendar-month-grid">
+                    @foreach (var day in _monthDays)
+                    {
+                        <div class="calendar-day-wrapper">
+                            @if (day.IsPadding)
+                            {
+                                <button class="calendar-day calendar-day-padding"></button>
+                            }
+                            else
+                            {
+                                <button class="@DayClass(day)" @onclick="@(() => SelectDayAsync(day.Day!.Value))">@day.Day</button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    @if (ShowDefaultButtons)
+    {
+        <div class="datetime-footer">
+            <div class="datetime-buttons">
+                <div class="datetime-action-buttons">
+                    <button class="datetime-action-button" @onclick="CancelAsync">@CancelText</button>
+                    <div class="datetime-action-buttons-container">
+                        <button class="datetime-action-button" @onclick="ConfirmAsync">@DoneText</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>).</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Which view to show. Only the default <c>"date"</c> calendar grid is rendered in this
+    /// structural port; other values still stamp the presentation class for parity.</summary>
+    [Parameter] public string Presentation { get; set; } = "date";
+
+    /// <summary>The selected value as an ISO date string (<c>yyyy-MM-dd</c>). Bind two-way with
+    /// <see cref="ValueChanged"/>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new ISO date string when a day is selected.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Sizing: <c>"fixed"</c> or <c>"cover"</c> (Ionic <c>size</c>). Stamped as a class.</summary>
+    [Parameter] public string Size { get; set; } = "fixed";
+
+    /// <summary>The first day of the week (0 = Sunday, default). Ionic <c>firstDayOfWeek</c>.</summary>
+    [Parameter] public int FirstDayOfWeek { get; set; }
+
+    /// <summary>If true, the datetime is dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>If true, the datetime is non-interactive but not dimmed.</summary>
+    [Parameter] public bool Readonly { get; set; }
+
+    /// <summary>If true (default), the header title/selected-date is shown.</summary>
+    [Parameter] public bool ShowDefaultTitle { get; set; } = true;
+
+    /// <summary>If true, the footer Cancel/OK buttons are shown.</summary>
+    [Parameter] public bool ShowDefaultButtons { get; set; }
+
+    /// <summary>Cancel button label.</summary>
+    [Parameter] public string CancelText { get; set; } = "Cancel";
+
+    /// <summary>Confirm button label.</summary>
+    [Parameter] public string DoneText { get; set; } = "Done";
+
+    /// <summary>Raised when the confirm button is tapped, with the selected ISO date.</summary>
+    [Parameter] public EventCallback<string?> OnConfirm { get; set; }
+
+    /// <summary>Raised when the cancel button is tapped.</summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private DateTime _working;            // the month currently displayed
+    private DateTime? _active;            // the selected date
+    private readonly DateTime _today = DateTime.Today;
+    private IReadOnlyList<IonCalendarDay> _monthDays = Array.Empty<IonCalendarDay>();
+
+    protected override void OnParametersSet()
+    {
+        _active = ParseValue(Value);
+        // The displayed month defaults to the selected date, else today.
+        if (_working == default)
+        {
+            _working = _active ?? _today;
+        }
+
+        var presentation = string.IsNullOrWhiteSpace(Presentation) ? "date" : Presentation.ToLowerInvariant();
+        var size = string.IsNullOrWhiteSpace(Size) ? "fixed" : Size.ToLowerInvariant();
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-datetime")
+            .Add($"datetime-presentation-{presentation}")
+            .Add($"datetime-size-{size}")
+            .If(Disabled, "datetime-disabled")
+            .If(Readonly, "datetime-readonly")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+
+        RebuildMonth();
+    }
+
+    private void RebuildMonth()
+    {
+        _monthDays = IonCalendarDay.BuildMonth(_working.Year, _working.Month, FirstDayOfWeek % 7, _active, _today);
+    }
+
+    private string DayClass(IonCalendarDay day)
+    {
+        var cls = "calendar-day";
+        if (day.IsActive) cls += " calendar-day-active";
+        if (day.IsToday) cls += " calendar-day-today";
+        return cls;
+    }
+
+    private string MonthYearLabel() =>
+        _working.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+
+    private string SelectedDateText() =>
+        (_active ?? _today).ToString("ddd, MMM d", CultureInfo.InvariantCulture);
+
+    private void PrevMonth(MouseEventArgs _)
+    {
+        if (Disabled || Readonly) return;
+        _working = _working.AddMonths(-1);
+        RebuildMonth();
+        StateHasChanged();
+    }
+
+    private void NextMonth(MouseEventArgs _)
+    {
+        if (Disabled || Readonly) return;
+        _working = _working.AddMonths(1);
+        RebuildMonth();
+        StateHasChanged();
+    }
+
+    private async Task SelectDayAsync(int day)
+    {
+        if (Disabled || Readonly) return;
+        _active = new DateTime(_working.Year, _working.Month, day);
+        Value = _active.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        RebuildMonth();
+        await ValueChanged.InvokeAsync(Value);
+        StateHasChanged();
+    }
+
+    private async Task ConfirmAsync(MouseEventArgs _)
+    {
+        if (Disabled || Readonly) return;
+        await OnConfirm.InvokeAsync(Value);
+    }
+
+    private async Task CancelAsync(MouseEventArgs _)
+    {
+        if (Disabled || Readonly) return;
+        await OnCancel.InvokeAsync();
+    }
+
+    private static DateTime? ParseValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        // Accept a full ISO datetime or a bare date; only the date part matters for the calendar.
+        return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt)
+            ? dt.Date
+            : null;
+    }
+}

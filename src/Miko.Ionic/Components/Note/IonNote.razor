@@ -1,0 +1,25 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-note>: an inline muted-gray label (e.g. metadata beside a list item).
+   The host maps to a <span>; `ion-note` carries the mode font/color, and an `ion-color` class turns
+   the text the named palette color. *@
+<span class="@ClassMapper.Class" style="@Style">
+    @ChildContent
+</span>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the text color.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-note")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+    }
+}

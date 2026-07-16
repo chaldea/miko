@@ -1,0 +1,238 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-alert> (alert.tsx render()):
+   <ion-alert class="{mode} overlay-hidden?">
+     <ion-backdrop />
+     <div class="alert-wrapper ion-overlay-wrapper">
+       <div class="alert-head">
+         [<h2 class="alert-title">Header</h2>]
+         [<h2|h3 class="alert-sub-title">SubHeader</h2>]   <!-- h2 if no header, else h3 -->
+       </div>
+       [<div class="alert-message">Message</div>]
+       [inputs group: alert-input-group | alert-radio-group | alert-checkbox-group]
+       <div class="alert-button-group alert-button-group-vertical?">
+         <button class="alert-button alert-button-role-{role}?"><span class="alert-button-inner">Text</span></button> ...
+       </div>
+     </div>
+   </ion-alert>
+   Ionic's overlay controller wires `trigger`/`present()`; Miko has no controller, so the host
+   drives IsOpen (two-way) and the alert raises OnDidDismiss with the tapped button's role. The
+   button group goes vertical when there are more than two buttons (alert.tsx renderAlertButtons). *@
+<div class="@ClassMapper.Class" style="@Style">
+    <div class="ion-backdrop alert-backdrop" @onclick="OnBackdropTapAsync"></div>
+    <div class="alert-wrapper ion-overlay-wrapper">
+        <div class="alert-head">
+            @if (!string.IsNullOrEmpty(Header))
+            {
+                <h2 class="alert-title">@Header</h2>
+            }
+            @if (!string.IsNullOrEmpty(SubHeader) && string.IsNullOrEmpty(Header))
+            {
+                <h2 class="alert-sub-title">@SubHeader</h2>
+            }
+            else if (!string.IsNullOrEmpty(SubHeader))
+            {
+                <h3 class="alert-sub-title">@SubHeader</h3>
+            }
+        </div>
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <div class="alert-message">@Message</div>
+        }
+        @if (_inputKind == "radio")
+        {
+            <div class="alert-radio-group">
+                @foreach (var input in Inputs)
+                {
+                    <button class="@RadioClass(input)" @onclick="@(() => RadioClickAsync(input))">
+                        <div class="alert-button-inner">
+                            <div class="alert-radio-icon"><div class="alert-radio-inner"></div></div>
+                            <div class="alert-radio-label">@input.Label</div>
+                        </div>
+                    </button>
+                }
+            </div>
+        }
+        else if (_inputKind == "checkbox")
+        {
+            <div class="alert-checkbox-group">
+                @foreach (var input in Inputs)
+                {
+                    <button class="@CheckboxClass(input)" @onclick="@(() => CheckboxClickAsync(input))">
+                        <div class="alert-button-inner">
+                            <div class="alert-checkbox-icon"><div class="alert-checkbox-inner"></div></div>
+                            <div class="alert-checkbox-label">@input.Label</div>
+                        </div>
+                    </button>
+                }
+            </div>
+        }
+        else if (_inputKind == "text")
+        {
+            <div class="alert-input-group">
+                @foreach (var input in Inputs)
+                {
+                    <div class="alert-input-wrapper">
+                        <input class="@InputClass(input)" type="@input.Type" placeholder="@input.Placeholder" value="@input.Value" />
+                    </div>
+                }
+            </div>
+        }
+        <div class="@_buttonGroupClass">
+            @foreach (var button in _buttons)
+            {
+                <button class="@ButtonClass(button)" @onclick="@(() => ButtonClickAsync(button))">
+                    <span class="alert-button-inner">@button.Text</span>
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>The alert title.</summary>
+    [Parameter] public string? Header { get; set; }
+
+    /// <summary>The secondary title under the header.</summary>
+    [Parameter] public string? SubHeader { get; set; }
+
+    /// <summary>The body message.</summary>
+    [Parameter] public string? Message { get; set; }
+
+    /// <summary>The buttons to show. Use <see cref="IonAlertButton.FromText"/> to build them from
+    /// bare strings (Ionic <c>buttons={['Action']}</c>).</summary>
+    [Parameter] public IReadOnlyList<IonAlertButton> Buttons { get; set; } = Array.Empty<IonAlertButton>();
+
+    /// <summary>Optional inputs (all the same kind: text, radio, or checkbox).</summary>
+    [Parameter] public IReadOnlyList<IonAlertInput> Inputs { get; set; } = Array.Empty<IonAlertInput>();
+
+    /// <summary>Whether the alert is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
+    [Parameter] public bool IsOpen { get; set; }
+
+    /// <summary>Raised with the new open state when the alert opens/closes.</summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    /// <summary>If true (default), tapping the backdrop dismisses the alert.</summary>
+    [Parameter] public bool BackdropDismiss { get; set; } = true;
+
+    /// <summary>If true, the surface is translucent (marker only in this port).</summary>
+    [Parameter] public bool Translucent { get; set; }
+
+    /// <summary>Id of the element that opens the alert (Ionic <c>trigger</c>). Kept for API parity;
+    /// the host drives <see cref="IsOpen"/> in this port.</summary>
+    [Parameter] public string? Trigger { get; set; }
+
+    /// <summary>Raised when the alert dismisses, with the tapped button's role (or <c>"backdrop"</c>).</summary>
+    [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
+
+    private IReadOnlyList<IonAlertButton> _buttons = Array.Empty<IonAlertButton>();
+    private string _inputKind = "none";
+    private string _buttonGroupClass = "alert-button-group";
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-alert")
+            .If(!IsOpen, "overlay-hidden")
+            .If(Translucent, "alert-translucent");
+
+        _buttons = Buttons;
+
+        // The rendered group matches the first input's type (Ionic disallows mixing).
+        _inputKind = Inputs.Count == 0
+            ? "none"
+            : Inputs[0].IsRadio ? "radio"
+            : Inputs[0].IsCheckbox ? "checkbox"
+            : "text";
+
+        // More than two buttons stack vertically (alert.tsx alertButtonGroupClass).
+        _buttonGroupClass = _buttons.Count > 2
+            ? "alert-button-group alert-button-group-vertical"
+            : "alert-button-group";
+    }
+
+    // alert-button + role marker (alert.tsx buttonClass()).
+    private static string ButtonClass(IonAlertButton button)
+    {
+        var cls = "alert-button ion-focusable ion-activatable";
+        if (!string.IsNullOrEmpty(button.Role)) cls += $" alert-button-role-{button.Role.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(button.CssClass)) cls += $" {button.CssClass}";
+        return cls;
+    }
+
+    private static string RadioClass(IonAlertInput input)
+    {
+        var cls = "alert-tappable alert-radio alert-radio-button ion-focusable";
+        if (input.Checked) cls += " alert-radio-button-checked";
+        if (input.Disabled) cls += " alert-radio-button-disabled";
+        return cls;
+    }
+
+    private static string CheckboxClass(IonAlertInput input)
+    {
+        var cls = "alert-tappable alert-checkbox alert-checkbox-button ion-focusable";
+        if (input.Checked) cls += " alert-checkbox-button-checked";
+        if (input.Disabled) cls += " alert-checkbox-button-disabled";
+        return cls;
+    }
+
+    private static string InputClass(IonAlertInput input)
+    {
+        var cls = "alert-input";
+        if (input.Disabled) cls += " alert-input-disabled";
+        return cls;
+    }
+
+    private async Task ButtonClickAsync(IonAlertButton button)
+    {
+        button.Handler?.Invoke();
+        await DismissAsync(button.Role);
+    }
+
+    // Radios are single-select: checking one unchecks its siblings.
+    private void RadioClickAsync(IonAlertInput input)
+    {
+        if (input.Disabled) return;
+        foreach (var i in Inputs) i.Checked = ReferenceEquals(i, input);
+        StateHasChanged();
+    }
+
+    // Checkboxes toggle independently.
+    private void CheckboxClickAsync(IonAlertInput input)
+    {
+        if (input.Disabled) return;
+        input.Checked = !input.Checked;
+        StateHasChanged();
+    }
+
+    private async Task OnBackdropTapAsync(MouseEventArgs _)
+    {
+        if (!BackdropDismiss) return;
+        await DismissAsync("backdrop");
+    }
+
+    private async Task DismissAsync(string? role)
+    {
+        if (IsOpen)
+        {
+            IsOpen = false;
+            await IsOpenChanged.InvokeAsync(false);
+        }
+        // Data carries the current input values (checked radio value, or checked checkbox values).
+        object? data = CollectInputData();
+        await OnDidDismiss.InvokeAsync(new IonOverlayDismissEventArgs(role, data));
+    }
+
+    private object? CollectInputData()
+    {
+        if (Inputs.Count == 0) return null;
+        if (_inputKind == "radio")
+            return Inputs.FirstOrDefault(i => i.Checked)?.Value;
+        if (_inputKind == "checkbox")
+            return Inputs.Where(i => i.Checked).Select(i => i.Value).ToList();
+        return Inputs.Select(i => i.Value).ToList();
+    }
+}

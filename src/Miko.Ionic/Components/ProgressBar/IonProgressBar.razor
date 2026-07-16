@@ -1,0 +1,95 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@using Miko.Common
+@* Mirrors Ionic's <ion-progress-bar> host structure:
+   <ion-progress-bar class="{mode} ion-progress-bar progress-bar-{determinate|indeterminate} ...">
+     determinate:
+       <div class="progress-buffer-bar" style="width: buffer%" />   <!-- the track, only when buffer < 1 -->
+       <div class="progress" style="width: value%" />                <!-- the value fill -->
+     indeterminate:
+       <div class="progress-buffer-bar">
+         <div class="indeterminate-bar-primary"><span class="progress-indeterminate" /></div>
+         <div class="indeterminate-bar-secondary"><span class="progress-indeterminate" /></div>
+       </div>
+   Ionic scales the fill with `transform: scaleX(value)`; Miko has no `scaleX(var)` in a static
+   stylesheet, so the fill/buffer width is bound as an inline Length.Percent computed in @code.
+   The indeterminate stripes are rendered static (animation is a marker only). *@
+<div class="@ClassMapper.Class">
+    @if (IsIndeterminate)
+    {
+        <div class="progress-buffer-bar">
+            <div class="indeterminate-bar-primary">
+                <span class="progress-indeterminate"></span>
+            </div>
+            <div class="indeterminate-bar-secondary">
+                <span class="progress-indeterminate"></span>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (_showBuffer)
+        {
+            <div class="progress-buffer-bar" style="@_bufferStyle"></div>
+        }
+        <div class="progress" style="@_progressStyle"></div>
+    }
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the fill / track color.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Bar state: <c>"determinate"</c> (default, shows <see cref="Value"/>) or
+    /// <c>"indeterminate"</c> (an animated left-to-right stripe).</summary>
+    [Parameter] public string Type { get; set; } = "determinate";
+
+    /// <summary>How much of the active fill shows when determinate. Clamped to [0, 1] (default 0).</summary>
+    [Parameter] public double Value { get; set; }
+
+    /// <summary>Buffer amount. Clamped to [0, 1] (default 1). When &lt; 1 the buffer track shows.</summary>
+    [Parameter] public double Buffer { get; set; } = 1;
+
+    /// <summary>If true, reverse the progress bar direction.</summary>
+    [Parameter] public bool Reversed { get; set; }
+
+    private Style? _progressStyle;
+    private Style? _bufferStyle;
+    private bool _showBuffer;
+
+    private bool IsIndeterminate => string.Equals(Type, "indeterminate", StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnParametersSet()
+    {
+        var type = NormalizeToken(Type, "determinate");
+        var buffer = Clamp01(Buffer);
+        // A solid bar has no buffer track (buffer == 1); the iOS solid style keys off this class.
+        var progressSolid = buffer >= 1d;
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-progress-bar")
+            .Add($"progress-bar-{type}")
+            .If(Reversed, "progress-bar-reversed")
+            .If(progressSolid, "progress-bar-solid")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+
+        // Determinate: the fill width scales with value; the buffer track width with buffer.
+        // (Ionic uses transform: scaleX; we express the same proportion as a percentage width.)
+        var value = Clamp01(Value);
+        _progressStyle = new Style { Width = Length.Percent((float)(value * 100)) };
+        _showBuffer = !progressSolid;
+        _bufferStyle = _showBuffer
+            ? new Style { Width = Length.Percent((float)(buffer * 100)) }
+            : null;
+    }
+
+    private static double Clamp01(double v) => v < 0d ? 0d : v > 1d ? 1d : v;
+
+    private static string NormalizeToken(string? value, string fallback)
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.ToLowerInvariant();
+}

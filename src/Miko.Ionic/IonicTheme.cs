@@ -309,6 +309,369 @@ public class IonicTheme
     public float SelectBorderRadius { get; set; } = 4f;
     public float SelectRoundBorderRadius { get; set; } = 999f;
 
+    // Checkbox (checkbox.scss / checkbox.md.scss / checkbox.ios.scss + their *.vars.scss).
+    // The visual box (.checkbox-icon) is a bordered square that fills with the checked color and
+    // fades in the checkmark when checked/indeterminate. md is a small square (18px, ~2px radius);
+    // ios is a larger circle (22px, 50% radius).
+    /// <summary>Box side length (md 18px, ios 22px).</summary>
+    public float CheckboxSize { get; set; } = 18f;
+    /// <summary>Box border width (2px both modes).</summary>
+    public float CheckboxBorderWidth { get; set; } = 2f;
+    /// <summary>Box corner radius (md size*.125 ≈ 2.25px, ios 50% → half the size for a circle).</summary>
+    public Length CheckboxBorderRadius { get; set; } = Length.Px(2.25f);
+    /// <summary>Box border color when unchecked (md rgba(text,.60), ios rgba(text,.23)).</summary>
+    public Color CheckboxBorderColorOff { get; set; }
+    /// <summary>Box background when unchecked (item background — white).</summary>
+    public Color CheckboxBackgroundOff { get; set; }
+    /// <summary>Box background / border color when checked (primary).</summary>
+    public Color CheckboxBackgroundChecked { get; set; }
+    /// <summary>Checkmark tint when checked (primary contrast — white).</summary>
+    public Color CheckboxCheckmarkColor { get; set; }
+    /// <summary>Opacity of the whole disabled checkbox host (ios) / its label (md).</summary>
+    public float CheckboxDisabledOpacity { get; set; } = 0.38f;
+
+    // Fab (fab.scss / fab-button.scss / fab-button.md.scss / fab-button.ios.scss / fab-list.scss +
+    // their *.vars.scss). A floating action button: an absolutely-positioned container holding a
+    // round main button (56px) and optional fab-lists of mini buttons (40px). The main button fills
+    // with the primary color and carries an elevation shadow; list buttons use the light surface.
+    /// <summary>Main FAB button width/height (<c>$fab-size</c>, 56px both modes).</summary>
+    public float FabSize { get; set; } = 56f;
+    /// <summary>Mini FAB button width/height (<c>$fab-small-size</c>, 40px both modes).</summary>
+    public float FabSmallSize { get; set; } = 40f;
+    /// <summary>Margin of the FAB container from the viewport edge (<c>$fab-content-margin</c>, 10px).</summary>
+    public float FabContentMargin { get; set; } = 10f;
+    /// <summary>Margin between the main button and a fab-list (<c>$fab-list-margin</c>, 10px).</summary>
+    public float FabListMargin { get; set; } = 10f;
+    /// <summary>Margin applied to a mini FAB button (<c>$fab-button-small-margin</c>, 8px).</summary>
+    public float FabButtonSmallMargin { get; set; } = 8f;
+    /// <summary>Main button fill (<c>--background</c> = <c>ion-color(primary, base)</c>).</summary>
+    public Color FabBackground { get; set; }
+    /// <summary>Main button icon/text color (<c>--color</c> = <c>ion-color(primary, contrast)</c> — white).</summary>
+    public Color FabColor { get; set; }
+    /// <summary>Main button elevation (<c>--box-shadow</c>: md 3-layer; ios <c>0 4px 16px rgba(0,0,0,.12)</c>).</summary>
+    public List<BoxShadow> FabBoxShadow { get; set; } = new();
+    /// <summary>Slotted icon font size for the main button (md 24px, ios 28px).</summary>
+    public float FabIconFontSize { get; set; } = 24f;
+    /// <summary>Fill of a button inside a fab-list (<c>ion-color(light, base)</c>).</summary>
+    public Color FabListButtonBackground { get; set; }
+    /// <summary>Text/icon color of a button inside a fab-list (<c>ion-color(light, contrast)</c> — dark).</summary>
+    public Color FabListButtonColor { get; set; }
+    /// <summary>Slotted icon font size for a button inside a fab-list (18px both modes).</summary>
+    public float FabListButtonIconSize { get; set; } = 18f;
+
+    // Input (input.scss / input.md.scss / input.ios.scss + their *.vars.scss). A full-width text
+    // field that lives inside an ion-item; the label sits beside/above the native input, an
+    // optional bottom row carries helper/error text and a character counter, and md draws a 2px
+    // focus highlight bar under the field. Tokens mirror the input's SCSS custom properties and the
+    // per-mode item border/font values.
+    /// <summary>Input font size (md 16px, ios 17px — SCSS uses <c>inherit</c>; we resolve to the item font).</summary>
+    public float InputFontSize { get; set; } = 16f;
+    /// <summary>Host min-height (44px both modes; grows to 56px for floating/stacked labels — handled in CSS).</summary>
+    public float InputMinHeight { get; set; } = 44f;
+    /// <summary>Input text color (<c>--color</c>, resolves to the item text color — black).</summary>
+    public Color InputTextColor { get; set; }
+    /// <summary>Placeholder text color (<c>--placeholder-color</c>).</summary>
+    public Color InputPlaceholderColor { get; set; }
+    /// <summary>Label text color (the neutral form-control label color).</summary>
+    public Color InputLabelColor { get; set; }
+    /// <summary>Field background (<c>--background</c>, transparent by default).</summary>
+    public Color InputBackground { get; set; }
+    /// <summary>Bottom border color below the field when helper/error/counter is shown
+    /// (<c>--border-color</c>: md <c>$item-md-border-color</c>, ios <c>$item-ios-border-color</c>).</summary>
+    public Color InputBorderColor { get; set; }
+    /// <summary>Focus highlight / caret color (<c>--highlight-color-focused</c> = primary).</summary>
+    public Color InputHighlightColor { get; set; }
+    /// <summary>Helper text color (neutral step-300).</summary>
+    public Color InputHelperColor { get; set; }
+    /// <summary>Error text color (<c>--highlight-color-invalid</c> = danger).</summary>
+    public Color InputErrorColor { get; set; }
+    /// <summary>Highlight bar height (<c>--highlight-height</c>: md 2px, ios 0px — ios has no bar).</summary>
+    public float InputHighlightHeight { get; set; } = 2f;
+    /// <summary>Field corner radius (<c>--border-radius</c>: used by fill/shape variants; round = 16px).</summary>
+    public float InputBorderRadius { get; set; } = 4f;
+    /// <summary>Field start padding (<c>--padding-start</c>, 0 by default; 16px for solid/outline fills).</summary>
+    public float InputPaddingStart { get; set; } = 0f;
+    /// <summary>Field end padding (<c>--padding-end</c>, 0 by default; 16px for solid/outline fills).</summary>
+    public float InputPaddingEnd { get; set; } = 0f;
+    /// <summary>Clear button icon color (text-color step-400).</summary>
+    public Color InputClearIconColor { get; set; }
+    /// <summary>Opacity of the whole disabled input host (md .38, ios .3).</summary>
+    public float InputDisabledOpacity { get; set; } = 0.38f;
+
+    // Breadcrumb (breadcrumb.scss / breadcrumb.md.scss / breadcrumb.ios.scss + their *.vars.scss).
+    // A flex row of crumbs, each a native anchor/span followed by a separator ("/" on md, a forward
+    // chevron on ios). The last crumb is active (no separator). Tokens mirror the per-mode SCSS vars.
+    /// <summary>Crumb text color (<c>--color</c>).</summary>
+    public Color BreadcrumbColor { get; set; }
+    /// <summary>Active crumb text color (<c>--color-active</c>).</summary>
+    public Color BreadcrumbColorActive { get; set; }
+    /// <summary>Crumb font size (<c>$breadcrumb-font-size</c>, 16px both modes).</summary>
+    public float BreadcrumbFontSize { get; set; } = 16f;
+    /// <summary>Active crumb font weight (md 500, ios 600).</summary>
+    public FontWeight BreadcrumbActiveFontWeight { get; set; } = FontWeight.Medium;
+    /// <summary>Native element top/bottom padding (md 6px, ios 5px).</summary>
+    public float BreadcrumbPaddingY { get; set; } = 6f;
+    /// <summary>Native element start/end padding (12px both modes).</summary>
+    public float BreadcrumbPaddingX { get; set; } = 12f;
+    /// <summary>Native element corner radius (md 0, ios 4px).</summary>
+    public float BreadcrumbBorderRadius { get; set; }
+    /// <summary>Separator glyph color (<c>#73849a</c> both modes).</summary>
+    public Color BreadcrumbSeparatorColor { get; set; }
+    /// <summary>Separator start/end margin (10px both modes; md also lifts it -1px, elided here).</summary>
+    public float BreadcrumbSeparatorMarginX { get; set; } = 10f;
+    /// <summary>Slotted icon color (<c>--icon-color</c>).</summary>
+    public Color BreadcrumbIconColor { get; set; }
+    /// <summary>Slotted icon color when the crumb is active.</summary>
+    public Color BreadcrumbIconColorActive { get; set; }
+    /// <summary>Slotted icon font size (18px both modes).</summary>
+    public float BreadcrumbIconFontSize { get; set; } = 18f;
+    /// <summary>Collapsed-indicator background (md <c>#eef1f3</c>, ios <c>#e9edf3</c>).</summary>
+    public Color BreadcrumbIndicatorBackground { get; set; }
+    /// <summary>Collapsed-indicator icon/text color (<c>#73849a</c> both modes).</summary>
+    public Color BreadcrumbIndicatorColor { get; set; }
+
+    // Accordion (accordion.scss / accordion-group.scss + their *.vars.scss). A vertical group of
+    // collapsible panels: each accordion has a header row (an ion-item) and a content region that
+    // shows/hides on the group's selected value. Tokens mirror the shared accordion SCSS vars.
+    /// <summary>Accordion panel background (<c>$accordion-background-color</c>, white).</summary>
+    public Color AccordionBackground { get; set; }
+    /// <summary>Opacity of a disabled accordion's header/content (<c>0.4</c>).</summary>
+    public float AccordionDisabledOpacity { get; set; } = 0.4f;
+    /// <summary>Inset-group margin and inset expanded-panel radius (16px / md 6px).</summary>
+    public float AccordionInsetMargin { get; set; } = 16f;
+    /// <summary>Inset expanded-panel corner radius (md 6px).</summary>
+    public float AccordionInsetBorderRadius { get; set; } = 6f;
+    /// <summary>Inset panel elevation shadow (md 3-layer; ios none).</summary>
+    public List<BoxShadow> AccordionInsetBoxShadow { get; set; } = new();
+
+    // ActionSheet (action-sheet.scss / .md.scss / .ios.scss + their *.vars.scss). A bottom-anchored
+    // overlay: a scrollable group of full-width buttons under an optional title, with cancel buttons
+    // pulled into a separate group. md fills to the bottom edge with a flat surface; ios floats a
+    // rounded group with side margins and a separate rounded cancel group.
+    /// <summary>Backdrop dim color (black) — opacity applied separately per mode.</summary>
+    public Color ActionSheetBackdropColor { get; set; } = Color.FromHex("000000");
+    /// <summary>Backdrop opacity (md 0.32, ios 0.4).</summary>
+    public float ActionSheetBackdropOpacity { get; set; } = 0.32f;
+    /// <summary>Group surface background (md white, ios <c>#f9f9f9</c>).</summary>
+    public Color ActionSheetBackground { get; set; }
+    /// <summary>Group corner radius (md 0, ios 13px).</summary>
+    public float ActionSheetBorderRadius { get; set; }
+    /// <summary>Max width of the sheet (500px both modes).</summary>
+    public float ActionSheetMaxWidth { get; set; } = 500f;
+    /// <summary>Container side padding (md 0, ios 8px) — the ios float inset.</summary>
+    public float ActionSheetContainerPaddingX { get; set; }
+    /// <summary>Group top margin (ios 10px; md 0).</summary>
+    public float ActionSheetGroupMarginTop { get; set; }
+    /// <summary>Group bottom margin (ios 10px; md 0).</summary>
+    public float ActionSheetGroupMarginBottom { get; set; }
+    /// <summary>Title text color (md <c>rgba(0,0,0,.54)</c>, ios <c>#999999</c> step-600).</summary>
+    public Color ActionSheetTitleColor { get; set; }
+    /// <summary>Title font size (md 16px, ios 13px).</summary>
+    public float ActionSheetTitleFontSize { get; set; } = 16f;
+    /// <summary>Title vertical/side padding (md 20/16, ios 14/10).</summary>
+    public float ActionSheetTitlePaddingY { get; set; } = 20f;
+    public float ActionSheetTitlePaddingX { get; set; } = 16f;
+    /// <summary>Sub-title font size (md 14px, ios 13px).</summary>
+    public float ActionSheetSubTitleFontSize { get; set; } = 14f;
+    /// <summary>Button label color (md step-150 <c>#262626</c>, ios primary).</summary>
+    public Color ActionSheetButtonColor { get; set; }
+    /// <summary>Button min-height (md 52px, ios 56px).</summary>
+    public float ActionSheetButtonHeight { get; set; } = 52f;
+    /// <summary>Button font size (md 16px, ios 20px).</summary>
+    public float ActionSheetButtonFontSize { get; set; } = 16f;
+    /// <summary>Button vertical/side padding (md 12/16, ios 14/14).</summary>
+    public float ActionSheetButtonPaddingY { get; set; } = 12f;
+    public float ActionSheetButtonPaddingX { get; set; } = 16f;
+    /// <summary>Button icon size (md 24px, ios 28px).</summary>
+    public float ActionSheetIconFontSize { get; set; } = 24f;
+    /// <summary>Button content alignment: md left (flex-start), ios center.</summary>
+    public JustifyContent ActionSheetButtonJustify { get; set; } = JustifyContent.FlexStart;
+    /// <summary>Text alignment of title/buttons: md start, ios center.</summary>
+    public TextAlign ActionSheetTextAlign { get; set; } = TextAlign.Left;
+    /// <summary>Destructive button label color (danger).</summary>
+    public Color ActionSheetDestructiveColor { get; set; }
+    /// <summary>Divider between ios buttons (a hairline; md has none).</summary>
+    public Color ActionSheetButtonBorderColor { get; set; }
+    /// <summary>Cancel button font weight (ios 600; md normal).</summary>
+    public FontWeight ActionSheetCancelFontWeight { get; set; } = FontWeight.Normal;
+
+    // Alert (alert.scss / .md.scss / .ios.scss + their *.vars.scss). A centered modal card: a head
+    // (title + sub-title), an optional message, an optional inputs group (text / radio / checkbox),
+    // and a button group (row; column when >2 buttons). md left-aligns the head and right-aligns
+    // uppercase buttons; ios centers everything with hairline-divided buttons.
+    /// <summary>Backdrop dim color (black) — opacity applied separately.</summary>
+    public Color AlertBackdropColor { get; set; } = Color.FromHex("000000");
+    /// <summary>Backdrop opacity (md 0.32, ios 0.4).</summary>
+    public float AlertBackdropOpacity { get; set; } = 0.32f;
+    /// <summary>Card background (md white, ios <c>#f9f9f9</c>).</summary>
+    public Color AlertBackground { get; set; }
+    /// <summary>Card min width (md 250px, ios 250px).</summary>
+    public float AlertMinWidth { get; set; } = 250f;
+    /// <summary>Card max width (md 280px, ios 270px).</summary>
+    public float AlertMaxWidth { get; set; } = 280f;
+    /// <summary>Card corner radius (md 4px, ios 13px).</summary>
+    public float AlertBorderRadius { get; set; } = 4f;
+    /// <summary>Card elevation shadow (md 3-layer; ios none).</summary>
+    public List<BoxShadow> AlertBoxShadow { get; set; } = new();
+    /// <summary>Head vertical/side padding (md 20/23, ios 12/16).</summary>
+    public float AlertHeadPaddingY { get; set; } = 20f;
+    public float AlertHeadPaddingX { get; set; } = 23f;
+    /// <summary>Head text alignment (md start, ios center).</summary>
+    public TextAlign AlertHeadTextAlign { get; set; } = TextAlign.Left;
+    /// <summary>Title color (text color) / font-size (md 20, ios 17) / weight (md 500, ios 600).</summary>
+    public Color AlertTitleColor { get; set; }
+    public float AlertTitleFontSize { get; set; } = 20f;
+    public FontWeight AlertTitleFontWeight { get; set; } = FontWeight.Medium;
+    /// <summary>Sub-title color / font-size (md 16, ios 14).</summary>
+    public Color AlertSubTitleColor { get; set; }
+    public float AlertSubTitleFontSize { get; set; } = 16f;
+    /// <summary>Message vertical/side padding (md 20/24, ios 0-21/16) and color / font-size.</summary>
+    public float AlertMessagePaddingY { get; set; } = 20f;
+    public float AlertMessagePaddingX { get; set; } = 24f;
+    public Color AlertMessageColor { get; set; }
+    public float AlertMessageFontSize { get; set; } = 16f;
+    /// <summary>Button group padding (md 8px; ios 0) and its content justification.</summary>
+    public float AlertButtonGroupPadding { get; set; } = 8f;
+    public JustifyContent AlertButtonGroupJustify { get; set; } = JustifyContent.FlexEnd;
+    /// <summary>Button label color (primary), background (transparent), font size / weight.</summary>
+    public Color AlertButtonColor { get; set; }
+    public float AlertButtonFontSize { get; set; } = 14f;
+    public FontWeight AlertButtonFontWeight { get; set; } = FontWeight.Medium;
+    /// <summary>Button corner radius (md 2px, ios 0) and text transform (md uppercase, ios none).</summary>
+    public float AlertButtonBorderRadius { get; set; } = 2f;
+    public TextTransform AlertButtonTextTransform { get; set; } = TextTransform.None;
+    /// <summary>Button padding (md 10px, ios 8px) and side margin (md 8px between buttons).</summary>
+    public float AlertButtonPadding { get; set; } = 10f;
+    public float AlertButtonMarginX { get; set; } = 8f;
+    /// <summary>Divider between ios buttons (hairline; md none) and radio/checkbox group borders.</summary>
+    public Color AlertListBorderColor { get; set; }
+    /// <summary>Radio/checkbox unchecked circle border color and checked accent (primary).</summary>
+    public Color AlertControlBorderColorOff { get; set; }
+    public Color AlertControlAccent { get; set; }
+    /// <summary>Tappable radio/checkbox row min-height (md 48, ios 44).</summary>
+    public float AlertTappableHeight { get; set; } = 48f;
+
+    // Datetime (datetime.scss / .md.scss / .ios.scss + their *.vars.scss). The default calendar
+    // (date) view: a header (title + selected date), a calendar (month/year toggle + weekday row +
+    // a 7-column month grid of round day buttons), and an optional footer. md fills the header with
+    // the primary color and marks the active day with a solid primary circle; ios keeps a light
+    // header and marks the active day with a translucent primary circle.
+    /// <summary>Component background surface (md <c>#ffffff</c>, ios light <c>#f4f5f8</c>).</summary>
+    public Color DatetimeBackground { get; set; }
+    /// <summary>Header background (md primary; ios matches the surface).</summary>
+    public Color DatetimeHeaderBackground { get; set; }
+    /// <summary>Header title/selected-date color (md white on primary; ios dark).</summary>
+    public Color DatetimeHeaderColor { get; set; }
+    /// <summary>Title font size (md 12px, ios 14px).</summary>
+    public float DatetimeTitleFontSize { get; set; } = 12f;
+    /// <summary>Selected-date font size (md 34px, ios 16px).</summary>
+    public float DatetimeSelectedDateFontSize { get; set; } = 34f;
+    /// <summary>Weekday-row text color (a neutral gray).</summary>
+    public Color DatetimeDayOfWeekColor { get; set; }
+    /// <summary>Weekday-row font size (md 14px, ios 12px).</summary>
+    public float DatetimeDayOfWeekFontSize { get; set; } = 14f;
+    /// <summary>Month/year toggle text color (a neutral dark gray).</summary>
+    public Color DatetimeMonthYearColor { get; set; }
+    /// <summary>Day cell text color (near-black).</summary>
+    public Color DatetimeDayColor { get; set; }
+    /// <summary>Day cell width/height (md 42px, ios 40px).</summary>
+    public float DatetimeDaySize { get; set; } = 42f;
+    /// <summary>Day cell font size (md 14px, ios 20px).</summary>
+    public float DatetimeDayFontSize { get; set; } = 14f;
+    /// <summary>Active day background (md solid primary; ios translucent primary).</summary>
+    public Color DatetimeDayActiveBackground { get; set; }
+    /// <summary>Active day text color (md white contrast; ios primary).</summary>
+    public Color DatetimeDayActiveColor { get; set; }
+    /// <summary>Today text/border accent (primary).</summary>
+    public Color DatetimeTodayColor { get; set; }
+
+    // Datetime button (datetime-button.scss / .md.scss / .ios.scss). A pill button pair (date/time)
+    // with an 8px-radius light-gray fill and dark text; the active button turns the primary color.
+    /// <summary>Button fill (<c>#edeef0</c> both modes).</summary>
+    public Color DatetimeButtonBackground { get; set; } = Color.FromHex("edeef0");
+    /// <summary>Button text color (near-black).</summary>
+    public Color DatetimeButtonColor { get; set; } = Color.FromHex("000000");
+    /// <summary>Active button text color (primary).</summary>
+    public Color DatetimeButtonActiveColor { get; set; }
+    /// <summary>Button corner radius (8px both modes).</summary>
+    public float DatetimeButtonBorderRadius { get; set; } = 8f;
+    /// <summary>Button vertical/side padding (md 6/12, ios 7/13).</summary>
+    public float DatetimeButtonPaddingY { get; set; } = 6f;
+    public float DatetimeButtonPaddingX { get; set; } = 12f;
+    /// <summary>Button font size (16px both modes).</summary>
+    public float DatetimeButtonFontSize { get; set; } = 16f;
+
+    // Note (note.scss / note.md.vars.scss / note.ios.vars.scss). An inline muted-gray label
+    // (e.g. metadata beside a list item). md uses text-color-step-400; ios uses the lighter
+    // text-color-step-650. Both resolve to a 14px font (md dynamic-font(14); ios 0.875*16).
+    /// <summary>Note text color (<c>--color</c>: md <c>$text-color-step-400</c> ≈ #666666,
+    /// ios <c>$text-color-step-650</c> ≈ #a6a6a6).</summary>
+    public Color NoteColor { get; set; } = Color.FromHex("666666");
+    /// <summary>Note font size (md 14px, ios 14px).</summary>
+    public float NoteFontSize { get; set; } = 14f;
+
+    // Thumbnail (thumbnail.scss). A fixed 48px square holding a slotted image that fills it and is
+    // cropped (object-fit: cover). No per-mode difference (there is no thumbnail.md/.ios).
+    /// <summary>Thumbnail width/height (<c>--size</c>, 48px both modes).</summary>
+    public float ThumbnailSize { get; set; } = 48f;
+
+    // Skeleton text (skeleton-text.scss / skeleton-text.vars.scss). A placeholder gray bar shown
+    // while content loads. Background is rgba(text-color, .065); the animated variant pulses toward
+    // a lighter rgba(text-color, .135). Miko has no keyframe shimmer here, so the animated state is
+    // modeled as the lighter static fill plus the `skeleton-text-animated` marker class.
+    /// <summary>Skeleton bar background (<c>rgba(text-color, .065)</c> ≈ 0.065*255 alpha over black).</summary>
+    public Color SkeletonTextBackground { get; set; } = new Color(0, 0, 0, 17);      // rgba(0,0,0,.065)
+    /// <summary>Skeleton bar background while animated (<c>rgba(text-color, .135)</c>).</summary>
+    public Color SkeletonTextBackgroundAnimated { get; set; } = new Color(0, 0, 0, 34); // rgba(0,0,0,.135)
+
+    // Toggle (toggle.scss / toggle.md.scss / toggle.ios.scss + their *.vars.scss). A track
+    // (.toggle-icon) holding a sliding knob (.toggle-inner). The knob sits absolutely at the start
+    // of a full-width .toggle-icon-wrapper; when checked, the wrapper translates right so the knob
+    // slides to the end, and the track fills with the checked color. md is a short 36x14 pill with a
+    // 20px round knob that overhangs the track; ios is a taller 51x31 pill with a 27px knob that fits
+    // inside a 2px inset. Disabled dims the whole host.
+    /// <summary>Track width (md 36px, ios 51px).</summary>
+    public float ToggleTrackWidth { get; set; } = 36f;
+    /// <summary>Track height (md 14px, ios 31px).</summary>
+    public float ToggleTrackHeight { get; set; } = 14f;
+    /// <summary>Track corner radius (md = track-height 14px; ios = height*.5 = 15.5px — a full pill).</summary>
+    public Length ToggleBorderRadius { get; set; } = Length.Px(14);
+    /// <summary>Track background when off (md rgba(text,.39), ios rgba(text,.088)).</summary>
+    public Color ToggleTrackBackgroundOff { get; set; }
+    /// <summary>Track background when on (md primary @ .5 alpha, ios solid primary).</summary>
+    public Color ToggleTrackBackgroundOn { get; set; }
+    /// <summary>Knob width (md 20px, ios 27px = height - border*2).</summary>
+    public float ToggleHandleWidth { get; set; } = 20f;
+    /// <summary>Knob height (md 20px, ios 27px).</summary>
+    public float ToggleHandleHeight { get; set; } = 20f;
+    /// <summary>Knob corner radius (md 50% → half the knob for a circle; ios = width*.5 = 25.5px pill).</summary>
+    public Length ToggleHandleBorderRadius { get; set; } = Length.Px(10);
+    /// <summary>Knob background (white both modes).</summary>
+    public Color ToggleHandleBackground { get; set; } = Color.White;
+    /// <summary>Knob elevation shadow (md a 3-layer Material shadow; ios a soft 2-layer shadow).</summary>
+    public List<BoxShadow> ToggleHandleBoxShadow { get; set; } = new();
+    /// <summary>Horizontal inset of the knob inside the track (md 0; ios = border-width 2px).</summary>
+    public float ToggleHandleSpacing { get; set; }
+    /// <summary>Distance the knob slides on check (track-width - handle-width: md 16px, ios 24px).</summary>
+    public float ToggleHandleTravel { get; set; } = 16f;
+    /// <summary>Knob slide transition duration in seconds (md 0.16s, ios 0.30s).</summary>
+    public float ToggleTransitionDuration { get; set; } = 0.16f;
+    /// <summary>Opacity of the whole disabled toggle host (md .38, ios .3).</summary>
+    public float ToggleDisabledOpacity { get; set; } = 0.38f;
+
+    // ProgressBar (progress-bar.scss / .md.scss / .ios.scss + their *.vars.scss). A thin full-width
+    // bar. The .progress-buffer-bar is the track (buffer width); the .progress fill scales with value.
+    // Indeterminate renders two sliding stripe bars. Track background is primary @ .3; the fill is
+    // solid primary. md 4px tall square corners; ios 4px tall fully-rounded pill.
+    /// <summary>Bar height (4px both modes).</summary>
+    public float ProgressBarHeight { get; set; } = 4f;
+    /// <summary>Container corner radius (md 0; ios 9999px → a full pill).</summary>
+    public float ProgressBarBorderRadius { get; set; }
+    /// <summary>Track / buffer-bar background (<c>--background</c> = primary @ .3 alpha).</summary>
+    public Color ProgressBarBackground { get; set; }
+    /// <summary>Progress fill background (<c>--progress-background</c> = solid primary).</summary>
+    public Color ProgressBarProgressBackground { get; set; }
+
     // Brand palette shared by both modes (ionic.theme.default.scss).
     private static void ApplyBrandColors(IonicTheme t)
     {
@@ -578,6 +941,229 @@ public class IonicTheme
         t.SelectBorderRadius = 4f;
         t.SelectRoundBorderRadius = 999f;
 
+        // Checkbox (checkbox.md.scss / checkbox.md.vars.scss): 18px square, 2px border,
+        // radius size*.125 (2.25px), unchecked border rgba(text,.60), white fill; checked fills
+        // with primary and shows a white checkmark. Disabled dims the label to .38.
+        t.CheckboxSize = 18f;
+        t.CheckboxBorderWidth = 2f;
+        t.CheckboxBorderRadius = Length.Px(18f * 0.125f);        // calc(var(--size) * .125)
+        t.CheckboxBorderColorOff = new Color(0, 0, 0, 153);      // rgba(text,.60)
+        t.CheckboxBackgroundOff = Color.FromHex("ffffff");        // $item-md-background
+        t.CheckboxBackgroundChecked = t.Primary;                  // --checkbox-background-checked
+        t.CheckboxCheckmarkColor = Color.FromHex("ffffff");       // ion-color(primary, contrast)
+        t.CheckboxDisabledOpacity = 0.38f;                        // $form-control-md-disabled-opacity
+
+        // Fab (fab-button.md.scss / fab-button.md.vars.scss): 56px round primary button with a
+        // 3-layer Material elevation shadow and a 24px slotted icon; mini button 40px. List buttons
+        // use the light surface with a dark icon at 18px.
+        t.FabSize = 56f;
+        t.FabSmallSize = 40f;
+        t.FabContentMargin = 10f;
+        t.FabListMargin = 10f;
+        t.FabButtonSmallMargin = 8f;
+        t.FabBackground = t.Primary;                              // ion-color(primary, base)
+        t.FabColor = Color.FromHex("ffffff");                     // ion-color(primary, contrast)
+        t.FabBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 3, 5, -1, new Color(0, 0, 0, 51)),   // 0.2 * 255
+            new BoxShadow(0, 6, 10, 0, new Color(0, 0, 0, 36)),   // 0.14 * 255
+            new BoxShadow(0, 1, 18, 0, new Color(0, 0, 0, 31)),   // 0.12 * 255
+        };
+        t.FabIconFontSize = 24f;                                  // $fab-md-icon-font-size
+        t.FabListButtonBackground = t.Light;                      // ion-color(light, base)
+        t.FabListButtonColor = Color.FromHex("000000");           // ion-color(light, contrast)
+        t.FabListButtonIconSize = 18f;                            // $fab-md-list-button-icon-font-size
+
+        // Input (input.md.scss / input.md.vars.scss): 16px text; 44px min-height; 1px item bottom
+        // border rgba(0,0,0,.07); 2px primary highlight bar; radius 4 (used by fills/round). Text and
+        // background inherit the item's black-on-transparent; disabled dims the host to .38.
+        t.InputFontSize = 16f;
+        t.InputMinHeight = 44f;
+        t.InputTextColor = Color.FromHex("000000");               // --color → item text
+        t.InputPlaceholderColor = Color.FromHex("666666");        // step-400 neutral placeholder
+        t.InputLabelColor = Color.FromHex("666666");              // neutral form-control label
+        t.InputBackground = Color.Transparent;                    // --background: transparent
+        t.InputBorderColor = new Color(0, 0, 0, 18);              // $item-md-border-color rgba(0,0,0,.07)
+        t.InputHighlightColor = t.Primary;                        // --highlight-color-focused: primary
+        t.InputHelperColor = Color.FromHex("666666");             // $text-color-step-300
+        t.InputErrorColor = t.Danger;                             // --highlight-color-invalid: danger
+        t.InputHighlightHeight = 2f;                              // --highlight-height: 2px
+        t.InputBorderRadius = 4f;
+        t.InputPaddingStart = 0f;
+        t.InputPaddingEnd = 0f;
+        t.InputClearIconColor = Color.FromHex("666666");          // $text-color-step-400
+        t.InputDisabledOpacity = 0.38f;                           // $input-md-disabled-opacity
+
+        // Breadcrumb (breadcrumb.md.scss / breadcrumb.md.vars.scss): step-600 text, near-black active
+        // at weight 500, 6px/12px native padding (square corners), a "/" separator in step-550 gray
+        // with 10px side margins, step-550 icons.
+        t.BreadcrumbColor = Color.FromHex("677483");              // $breadcrumb-md-color
+        t.BreadcrumbColorActive = Color.FromHex("03060b");        // $breadcrumb-md-color-active
+        t.BreadcrumbFontSize = 16f;
+        t.BreadcrumbActiveFontWeight = FontWeight.Medium;         // md active weight 500
+        t.BreadcrumbPaddingY = 6f;
+        t.BreadcrumbPaddingX = 12f;
+        t.BreadcrumbBorderRadius = 0f;                            // md native has no radius
+        t.BreadcrumbSeparatorColor = Color.FromHex("73849a");     // $breadcrumb-separator-color
+        t.BreadcrumbSeparatorMarginX = 10f;
+        t.BreadcrumbIconColor = Color.FromHex("7d8894");          // $breadcrumb-md-icon-color
+        t.BreadcrumbIconColorActive = Color.FromHex("222d3a");    // $breadcrumb-md-icon-color-active
+        t.BreadcrumbIconFontSize = 18f;
+        t.BreadcrumbIndicatorBackground = Color.FromHex("eef1f3"); // $breadcrumb-md-indicator-background
+        t.BreadcrumbIndicatorColor = Color.FromHex("73849a");     // step-550
+
+        // Accordion (accordion.md.vars.scss): white panels, 0.4 disabled opacity, 16px inset margin,
+        // 6px inset radius with a 3-layer Material elevation shadow on inset panels.
+        t.AccordionBackground = Color.FromHex("ffffff");
+        t.AccordionDisabledOpacity = 0.4f;
+        t.AccordionInsetMargin = 16f;
+        t.AccordionInsetBorderRadius = 6f;
+        t.AccordionInsetBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 3, 1, -2, new Color(0, 0, 0, 51)),  // 0.2 * 255
+            new BoxShadow(0, 2, 2, 0, new Color(0, 0, 0, 36)),   // 0.14 * 255
+            new BoxShadow(0, 1, 5, 0, new Color(0, 0, 0, 31)),   // 0.12 * 255
+        };
+
+        // ActionSheet (action-sheet.md.scss / .md.vars.scss): a flat white group filling to the
+        // bottom edge; left-aligned title in rgba(0,0,0,.54) and left-aligned buttons in step-150
+        // dark text. No group radius/margins; a subtle backdrop (0.32).
+        t.ActionSheetBackdropColor = Color.FromHex("000000");
+        t.ActionSheetBackdropOpacity = 0.32f;
+        t.ActionSheetBackground = Color.FromHex("ffffff");        // $overlay-md-background-color
+        t.ActionSheetBorderRadius = 0f;
+        t.ActionSheetMaxWidth = 500f;
+        t.ActionSheetContainerPaddingX = 0f;
+        t.ActionSheetGroupMarginTop = 0f;
+        t.ActionSheetGroupMarginBottom = 0f;
+        t.ActionSheetTitleColor = new Color(0, 0, 0, 138);        // rgba(text,.54)
+        t.ActionSheetTitleFontSize = 16f;
+        t.ActionSheetTitlePaddingY = 20f;                         // top 20 / bottom 17 → use 20 top
+        t.ActionSheetTitlePaddingX = 16f;
+        t.ActionSheetSubTitleFontSize = 14f;
+        t.ActionSheetButtonColor = Color.FromHex("262626");        // $text-color-step-150
+        t.ActionSheetButtonHeight = 52f;
+        t.ActionSheetButtonFontSize = 16f;
+        t.ActionSheetButtonPaddingY = 12f;
+        t.ActionSheetButtonPaddingX = 16f;
+        t.ActionSheetIconFontSize = 24f;
+        t.ActionSheetButtonJustify = JustifyContent.FlexStart;    // md left-aligns content
+        t.ActionSheetTextAlign = TextAlign.Left;
+        t.ActionSheetDestructiveColor = t.Danger;
+        t.ActionSheetButtonBorderColor = Color.Transparent;       // md has no button divider
+        t.ActionSheetCancelFontWeight = FontWeight.Normal;
+
+        // Alert (alert.md.scss / .md.vars.scss): a 4px-radius white card with a 3-layer Material
+        // shadow; left-aligned head (20px/500 title, 16px sub-title), step-450 message; a right-
+        // aligned button row with 2px-radius, uppercase, primary-colored buttons. Radio/checkbox
+        // controls use a step-550 unchecked border and the primary accent.
+        t.AlertBackdropColor = Color.FromHex("000000");
+        t.AlertBackdropOpacity = 0.32f;
+        t.AlertBackground = Color.FromHex("ffffff");              // $overlay-md-background-color
+        t.AlertMinWidth = 250f;
+        t.AlertMaxWidth = 280f;
+        t.AlertBorderRadius = 4f;
+        t.AlertBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 11, 15, -7, new Color(0, 0, 0, 51)), // rgba(0,0,0,.2)
+            new BoxShadow(0, 24, 38, 3, new Color(0, 0, 0, 36)),  // rgba(0,0,0,.14)
+            new BoxShadow(0, 9, 46, 8, new Color(0, 0, 0, 31)),   // rgba(0,0,0,.12)
+        };
+        t.AlertHeadPaddingY = 20f;
+        t.AlertHeadPaddingX = 23f;
+        t.AlertHeadTextAlign = TextAlign.Left;
+        t.AlertTitleColor = Color.FromHex("000000");              // $text-color
+        t.AlertTitleFontSize = 20f;
+        t.AlertTitleFontWeight = FontWeight.Medium;               // 500
+        t.AlertSubTitleColor = Color.FromHex("000000");
+        t.AlertSubTitleFontSize = 16f;
+        t.AlertMessagePaddingY = 20f;
+        t.AlertMessagePaddingX = 24f;
+        t.AlertMessageColor = Color.FromHex("737373");            // $text-color-step-450
+        t.AlertMessageFontSize = 16f;
+        t.AlertButtonGroupPadding = 8f;
+        t.AlertButtonGroupJustify = JustifyContent.FlexEnd;       // right-aligned row
+        t.AlertButtonColor = t.Primary;                           // ion-color(primary, base)
+        t.AlertButtonFontSize = 14f;
+        t.AlertButtonFontWeight = FontWeight.Medium;              // 500
+        t.AlertButtonBorderRadius = 2f;
+        t.AlertButtonTextTransform = TextTransform.Uppercase;     // md uppercases labels
+        t.AlertButtonPadding = 10f;
+        t.AlertButtonMarginX = 8f;
+        t.AlertListBorderColor = Color.FromHex("d9d9d9");         // $background-color-step-150
+        t.AlertControlBorderColorOff = Color.FromHex("737373");   // $background-color-step-550
+        t.AlertControlAccent = t.Primary;
+        t.AlertTappableHeight = 48f;                              // $item-md-min-height
+
+        // Datetime (datetime.md.scss / .md.vars.scss): white surface, a primary-filled header with a
+        // white 12px title and a 34px selected date; step-500 weekdays at 14px; 42px round day cells;
+        // the active day is a solid primary circle with white text; today shows a primary border/text.
+        t.DatetimeBackground = Color.FromHex("ffffff");           // step-100 → white
+        t.DatetimeHeaderBackground = t.Primary;                   // md header is the brand color
+        t.DatetimeHeaderColor = Color.FromHex("ffffff");          // primary contrast
+        t.DatetimeTitleFontSize = 12f;
+        t.DatetimeSelectedDateFontSize = 34f;
+        t.DatetimeDayOfWeekColor = Color.FromHex("808080");       // $text-color-step-500
+        t.DatetimeDayOfWeekFontSize = 14f;
+        t.DatetimeMonthYearColor = Color.FromHex("595959");       // $text-color-step-350
+        t.DatetimeDayColor = Color.FromHex("000000");
+        t.DatetimeDaySize = 42f;
+        t.DatetimeDayFontSize = 14f;
+        t.DatetimeDayActiveBackground = t.Primary;                // solid primary circle
+        t.DatetimeDayActiveColor = Color.FromHex("ffffff");       // white on primary
+        t.DatetimeTodayColor = t.Primary;
+
+        // Datetime button (datetime-button.md.scss): 6px/12px padding, light-gray pill, primary when active.
+        t.DatetimeButtonBackground = Color.FromHex("edeef0");     // step-300 fallback
+        t.DatetimeButtonColor = Color.FromHex("000000");
+        t.DatetimeButtonActiveColor = t.Primary;
+        t.DatetimeButtonBorderRadius = 8f;
+        t.DatetimeButtonPaddingY = 6f;
+        t.DatetimeButtonPaddingX = 12f;
+        t.DatetimeButtonFontSize = 16f;
+
+        // Note (note.md.vars.scss): muted gray text (text-color-step-400 ≈ #666666), 14px.
+        t.NoteColor = Color.FromHex("666666");                    // $text-color-step-400
+        t.NoteFontSize = 14f;                                     // dynamic-font(14px)
+
+        // Thumbnail (thumbnail.scss): 48px square, no per-mode difference.
+        t.ThumbnailSize = 48f;
+
+        // Skeleton text (skeleton-text.vars.scss): rgba(text,.065) fill; animated pulses to rgba(text,.135).
+        t.SkeletonTextBackground = new Color(0, 0, 0, 17);        // rgba(0,0,0,.065)
+        t.SkeletonTextBackgroundAnimated = new Color(0, 0, 0, 34); // rgba(0,0,0,.135)
+
+        // Toggle (toggle.md.scss / toggle.md.vars.scss): 36x14 track, radius = track-height (14px);
+        // off track rgba(text,.39); on track primary @ .5 alpha; 20px round white knob (radius 10 =
+        // 50%) with a 3-layer Material shadow, no inset, sliding 16px (track-width - handle-width);
+        // 160ms slide; disabled dims the host to .38.
+        t.ToggleTrackWidth = 36f;
+        t.ToggleTrackHeight = 14f;
+        t.ToggleBorderRadius = Length.Px(14);                     // = $toggle-md-track-height
+        t.ToggleTrackBackgroundOff = new Color(0, 0, 0, 99);      // rgba(text,.39)
+        t.ToggleTrackBackgroundOn = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 128); // primary @ .5
+        t.ToggleHandleWidth = 20f;
+        t.ToggleHandleHeight = 20f;
+        t.ToggleHandleBorderRadius = Length.Px(10);               // 50% of a 20px knob → a circle
+        t.ToggleHandleBackground = Color.White;
+        t.ToggleHandleBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 3, 1, -2, new Color(0, 0, 0, 51)),   // rgba(0,0,0,.2)
+            new BoxShadow(0, 2, 2, 0, new Color(0, 0, 0, 36)),    // rgba(0,0,0,.14)
+            new BoxShadow(0, 1, 5, 0, new Color(0, 0, 0, 31)),    // rgba(0,0,0,.12)
+        };
+        t.ToggleHandleSpacing = 0f;                               // --handle-spacing: 0
+        t.ToggleHandleTravel = 36f - 20f;                         // track-width - handle-width = 16px
+        t.ToggleTransitionDuration = 0.16f;                       // $toggle-md-transition-duration
+        t.ToggleDisabledOpacity = 0.38f;                          // $form-control-md-disabled-opacity
+
+        // ProgressBar (progress-bar.md.scss / .md.vars.scss): 4px tall, square corners; track/buffer
+        // primary @ .3 alpha; fill solid primary.
+        t.ProgressBarHeight = 4f;
+        t.ProgressBarBorderRadius = 0f;                           // md has no radius
+        t.ProgressBarBackground = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 77);   // primary @ .3
+        t.ProgressBarProgressBackground = t.Primary;
+
         return t;
     }
 
@@ -810,6 +1396,217 @@ public class IonicTheme
         t.SelectPaddingBottom = 8f;
         t.SelectBorderRadius = 10f;
         t.SelectRoundBorderRadius = 999f;
+
+        // Checkbox (checkbox.ios.scss / checkbox.ios.vars.scss): 22px circle, 2px border, 50% radius
+        // (a circle), unchecked border rgba(text,.23), white fill; checked fills with primary and
+        // shows a white checkmark. Disabled dims the whole host to .3.
+        t.CheckboxSize = 22f;
+        t.CheckboxBorderWidth = 2f;
+        t.CheckboxBorderRadius = Length.Px(11f);                  // 50% of 22px → a circle
+        t.CheckboxBorderColorOff = new Color(0, 0, 0, 59);       // rgba(text,.23)
+        t.CheckboxBackgroundOff = Color.FromHex("ffffff");        // $item-ios-background
+        t.CheckboxBackgroundChecked = t.Primary;                  // --checkbox-background-checked
+        t.CheckboxCheckmarkColor = Color.FromHex("ffffff");       // ion-color(primary, contrast)
+        t.CheckboxDisabledOpacity = 0.3f;                         // $form-control-ios-disabled-opacity
+
+        // Fab (fab-button.ios.scss / fab-button.ios.vars.scss): 56px round primary button with a
+        // soft single-layer shadow and a larger 28px slotted icon; mini button 40px. List buttons
+        // use the light surface with a dark icon at 18px.
+        t.FabSize = 56f;
+        t.FabSmallSize = 40f;
+        t.FabContentMargin = 10f;
+        t.FabListMargin = 10f;
+        t.FabButtonSmallMargin = 8f;
+        t.FabBackground = t.Primary;                              // ion-color(primary, base)
+        t.FabColor = Color.FromHex("ffffff");                     // ion-color(primary, contrast)
+        t.FabBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 4, 16, 0, new Color(0, 0, 0, 31)),   // 0 4px 16px rgba(0,0,0,.12)
+        };
+        t.FabIconFontSize = 28f;                                  // $fab-ios-icon-font-size
+        t.FabListButtonBackground = t.Light;                      // ion-color(light, base)
+        t.FabListButtonColor = Color.FromHex("000000");           // ion-color(light, contrast)
+        t.FabListButtonIconSize = 18f;                            // $fab-ios-list-button-icon-font-size
+
+        // Input (input.ios.scss / input.ios.vars.scss): 17px text; 44px min-height; hairline item
+        // bottom border rgba(0,0,0,.2); NO highlight bar (ios --highlight-height: 0); radius 4.
+        // Disabled dims the host to .3.
+        t.InputFontSize = 17f;
+        t.InputMinHeight = 44f;
+        t.InputTextColor = Color.FromHex("000000");               // --color → item text
+        t.InputPlaceholderColor = Color.FromHex("666666");        // step-400 neutral placeholder
+        t.InputLabelColor = Color.FromHex("666666");              // neutral form-control label
+        t.InputBackground = Color.Transparent;                    // --background: transparent
+        t.InputBorderColor = new Color(0, 0, 0, 51);              // $item-ios-border-color rgba(0,0,0,.2)
+        t.InputHighlightColor = t.Primary;                        // --highlight-color-focused: primary
+        t.InputHelperColor = Color.FromHex("666666");             // $text-color-step-300
+        t.InputErrorColor = t.Danger;                             // --highlight-color-invalid: danger
+        t.InputHighlightHeight = 0f;                              // ios --highlight-height: 0px
+        t.InputBorderRadius = 4f;
+        t.InputPaddingStart = 0f;
+        t.InputPaddingEnd = 0f;
+        t.InputClearIconColor = Color.FromHex("666666");          // $text-color-step-400
+        t.InputDisabledOpacity = 0.3f;                            // $input-ios-disabled-opacity
+
+        // Breadcrumb (breadcrumb.ios.scss / breadcrumb.ios.vars.scss): darker step-850 text, near-black
+        // active at weight 600, 5px/12px native padding with a 4px radius, a chevron separator in
+        // step-550 gray, step-400 icons. Collapsed indicator uses a slightly bluer light fill.
+        t.BreadcrumbColor = Color.FromHex("2d4665");              // $breadcrumb-ios-color
+        t.BreadcrumbColorActive = Color.FromHex("03060b");        // $breadcrumb-ios-color-active
+        t.BreadcrumbFontSize = 16f;
+        t.BreadcrumbActiveFontWeight = FontWeight.SemiBold;       // ios active weight 600
+        t.BreadcrumbPaddingY = 5f;
+        t.BreadcrumbPaddingX = 12f;
+        t.BreadcrumbBorderRadius = 4f;                            // ios native has a 4px radius
+        t.BreadcrumbSeparatorColor = Color.FromHex("73849a");     // $breadcrumb-separator-color
+        t.BreadcrumbSeparatorMarginX = 10f;
+        t.BreadcrumbIconColor = Color.FromHex("92a0b3");          // $breadcrumb-ios-icon-color
+        t.BreadcrumbIconColorActive = Color.FromHex("242d39");    // $breadcrumb-ios-icon-color-active
+        t.BreadcrumbIconFontSize = 18f;
+        t.BreadcrumbIndicatorBackground = Color.FromHex("e9edf3"); // $breadcrumb-ios-indicator-background
+        t.BreadcrumbIndicatorColor = Color.FromHex("73849a");     // step-550
+
+        // Accordion (accordion.ios / accordion.vars.scss): white panels, 0.4 disabled opacity, 16px
+        // inset margin. iOS inset panels have no elevation shadow (they use item hairline borders).
+        t.AccordionBackground = Color.FromHex("ffffff");
+        t.AccordionDisabledOpacity = 0.4f;
+        t.AccordionInsetMargin = 16f;
+        t.AccordionInsetBorderRadius = 6f;
+        t.AccordionInsetBoxShadow = new List<BoxShadow>();       // ios: no elevation on inset panels
+
+        // ActionSheet (action-sheet.ios.scss / .ios.vars.scss): a floating rounded group with 8px
+        // side padding and 10px top/bottom margins; centered title in step-600 gray and centered
+        // buttons in the primary color, split by hairline dividers. Destructive = danger, cancel is
+        // its own bold rounded group. Backdrop is heavier (0.4).
+        t.ActionSheetBackdropColor = Color.FromHex("000000");
+        t.ActionSheetBackdropOpacity = 0.4f;
+        t.ActionSheetBackground = Color.FromHex("f9f9f9");        // $overlay-ios-background-color
+        t.ActionSheetBorderRadius = 13f;
+        t.ActionSheetMaxWidth = 500f;
+        t.ActionSheetContainerPaddingX = 8f;
+        t.ActionSheetGroupMarginTop = 10f;
+        t.ActionSheetGroupMarginBottom = 10f;
+        t.ActionSheetTitleColor = Color.FromHex("999999");        // $text-color-step-600
+        t.ActionSheetTitleFontSize = 13f;
+        t.ActionSheetTitlePaddingY = 14f;
+        t.ActionSheetTitlePaddingX = 10f;
+        t.ActionSheetSubTitleFontSize = 13f;
+        t.ActionSheetButtonColor = t.Primary;                     // ion-color(primary, base)
+        t.ActionSheetButtonHeight = 56f;
+        t.ActionSheetButtonFontSize = 20f;
+        t.ActionSheetButtonPaddingY = 14f;
+        t.ActionSheetButtonPaddingX = 14f;
+        t.ActionSheetIconFontSize = 28f;
+        t.ActionSheetButtonJustify = JustifyContent.Center;       // ios centers content
+        t.ActionSheetTextAlign = TextAlign.Center;
+        t.ActionSheetDestructiveColor = t.Danger;
+        t.ActionSheetButtonBorderColor = new Color(0, 0, 0, 20);  // rgba(text,.08) hairline divider
+        t.ActionSheetCancelFontWeight = FontWeight.SemiBold;      // ios cancel 600
+
+        // Alert (alert.ios.scss / .ios.vars.scss): a 13px-radius #f9f9f9 card with no shadow;
+        // centered head (17px/600 title, 14px step-400 sub-title), 13px message; a button row split
+        // by hairline dividers, primary-colored, not uppercased. Backdrop is heavier (0.4).
+        t.AlertBackdropColor = Color.FromHex("000000");
+        t.AlertBackdropOpacity = 0.4f;
+        t.AlertBackground = Color.FromHex("f9f9f9");              // $overlay-ios-background-color
+        t.AlertMinWidth = 250f;
+        t.AlertMaxWidth = 270f;
+        t.AlertBorderRadius = 13f;
+        t.AlertBoxShadow = new List<BoxShadow>();                 // ios alert has no elevation
+        t.AlertHeadPaddingY = 12f;
+        t.AlertHeadPaddingX = 16f;
+        t.AlertHeadTextAlign = TextAlign.Center;
+        t.AlertTitleColor = Color.FromHex("000000");              // $text-color
+        t.AlertTitleFontSize = 17f;
+        t.AlertTitleFontWeight = FontWeight.SemiBold;             // 600
+        t.AlertSubTitleColor = Color.FromHex("666666");           // $text-color-step-400
+        t.AlertSubTitleFontSize = 14f;
+        t.AlertMessagePaddingY = 12f;                             // top 0 / bottom 21 → use 12 avg
+        t.AlertMessagePaddingX = 16f;
+        t.AlertMessageColor = Color.FromHex("000000");            // $text-color
+        t.AlertMessageFontSize = 13f;
+        t.AlertButtonGroupPadding = 0f;                           // ios group has no padding
+        t.AlertButtonGroupJustify = JustifyContent.Center;
+        t.AlertButtonColor = t.Primary;                          // ion-color(primary, base)
+        t.AlertButtonFontSize = 17f;
+        t.AlertButtonFontWeight = FontWeight.Normal;
+        t.AlertButtonBorderRadius = 0f;                          // ios buttons are square, divided
+        t.AlertButtonTextTransform = TextTransform.None;         // ios keeps label case
+        t.AlertButtonPadding = 8f;
+        t.AlertButtonMarginX = 0f;
+        t.AlertListBorderColor = new Color(0, 0, 0, 51);         // rgba(text,.2) hairline
+        t.AlertControlBorderColorOff = Color.FromHex("bfbfbf");   // $background-color-step-250
+        t.AlertControlAccent = t.Primary;
+        t.AlertTappableHeight = 44f;                             // $item-ios-min-height
+
+        // Datetime (datetime.ios.scss / .ios.vars.scss): a light (ion-color light) surface with a
+        // matching (non-primary) header, dark title; gray weekdays at 12px; 40px round day cells;
+        // the active day is a translucent-primary circle with primary text; today shows primary text.
+        t.DatetimeBackground = t.Light;                          // ion-color(light) surface
+        t.DatetimeHeaderBackground = t.Light;                    // ios header matches the surface
+        t.DatetimeHeaderColor = Color.FromHex("000000");         // dark title on the light header
+        t.DatetimeTitleFontSize = 14f;
+        t.DatetimeSelectedDateFontSize = 16f;
+        t.DatetimeDayOfWeekColor = Color.FromHex("808080");      // neutral gray
+        t.DatetimeDayOfWeekFontSize = 12f;
+        t.DatetimeMonthYearColor = Color.FromHex("000000");
+        t.DatetimeDayColor = Color.FromHex("000000");
+        t.DatetimeDaySize = 40f;
+        t.DatetimeDayFontSize = 20f;
+        t.DatetimeDayActiveBackground = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 51); // primary @ .2
+        t.DatetimeDayActiveColor = t.Primary;                    // primary text on the translucent circle
+        t.DatetimeTodayColor = t.Primary;
+
+        // Datetime button (datetime-button.ios.scss): 7px/13px padding, light-gray pill, primary when active.
+        t.DatetimeButtonBackground = Color.FromHex("edeef0");
+        t.DatetimeButtonColor = Color.FromHex("000000");
+        t.DatetimeButtonActiveColor = t.Primary;
+        t.DatetimeButtonBorderRadius = 8f;
+        t.DatetimeButtonPaddingY = 7f;
+        t.DatetimeButtonPaddingX = 13f;
+        t.DatetimeButtonFontSize = 16f;
+
+        // Note (note.ios.vars.scss): lighter gray text (text-color-step-650 ≈ #a6a6a6), 14px
+        // (dynamic-font-min(0.875, 16px) → 0.875 * 16).
+        t.NoteColor = Color.FromHex("a6a6a6");                    // $text-color-step-650
+        t.NoteFontSize = 14f;                                     // 0.875 * 16px
+
+        // Thumbnail (thumbnail.scss): 48px square, no per-mode difference.
+        t.ThumbnailSize = 48f;
+
+        // Skeleton text (skeleton-text.vars.scss): rgba(text,.065) fill; animated pulses to rgba(text,.135).
+        t.SkeletonTextBackground = new Color(0, 0, 0, 17);        // rgba(0,0,0,.065)
+        t.SkeletonTextBackgroundAnimated = new Color(0, 0, 0, 34); // rgba(0,0,0,.135)
+
+        // Toggle (toggle.ios.scss / toggle.ios.vars.scss): 51x31 track, radius = height*.5 (15.5px,
+        // a full pill); off track rgba(text,.088); on track solid primary; 27px round white knob
+        // (= height - border*2; radius = width*.5 = 25.5px) with a soft 2-layer shadow, inset 2px,
+        // sliding 24px (track-width - handle-width); 300ms slide; disabled dims the host to .3.
+        t.ToggleTrackWidth = 51f;
+        t.ToggleTrackHeight = 31f;
+        t.ToggleBorderRadius = Length.Px(15.5f);                  // $toggle-ios-height * 0.5
+        t.ToggleTrackBackgroundOff = new Color(0, 0, 0, 22);      // rgba(text,.088)
+        t.ToggleTrackBackgroundOn = t.Primary;                    // ion-color(primary, base)
+        t.ToggleHandleWidth = 27f;                                // height - border*2 = 31 - 4
+        t.ToggleHandleHeight = 27f;
+        t.ToggleHandleBorderRadius = Length.Px(25.5f);            // $toggle-ios-width * 0.5
+        t.ToggleHandleBackground = Color.White;
+        t.ToggleHandleBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 3, 4, 0, new Color(0, 0, 0, 15)),    // 0 3px 4px rgba(0,0,0,.06)
+            new BoxShadow(0, 3, 8, 0, new Color(0, 0, 0, 15)),    // 0 3px 8px rgba(0,0,0,.06)
+        };
+        t.ToggleHandleSpacing = 2f;                               // = $toggle-ios-border-width
+        t.ToggleHandleTravel = 51f - 27f;                         // track-width - handle-width = 24px
+        t.ToggleTransitionDuration = 0.30f;                       // $toggle-ios-transition-duration
+        t.ToggleDisabledOpacity = 0.3f;                           // $toggle-ios-disabled-opacity
+
+        // ProgressBar (progress-bar.ios.scss / .ios.vars.scss): 4px tall, fully-rounded (9999px);
+        // track/buffer primary @ .3 alpha; fill solid primary.
+        t.ProgressBarHeight = 4f;
+        t.ProgressBarBorderRadius = 9999f;                        // $progress-bar-ios-border-radius
+        t.ProgressBarBackground = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 77);   // primary @ .3
+        t.ProgressBarProgressBackground = t.Primary;
 
         return t;
     }

@@ -1,0 +1,121 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-popover> (popover.tsx render()):
+   <ion-popover class="{mode} popover-side-{side} popover-translucent? popover-nested? overlay-hidden?" role="dialog">
+     <ion-backdrop />                                <!-- tappable dim layer (omitted for nested popovers) -->
+     <div class="popover-wrapper ion-overlay-wrapper">
+       [<div class="popover-arrow" />]               <!-- omitted when Arrow=false -->
+       <div class="popover-content">
+         <slot />                                     <!-- @ChildContent -->
+       </div>
+     </div>
+   </ion-popover>
+   Ionic's overlay controller wires `trigger` / `present(event)` and computes the popover position
+   relative to the trigger at runtime. Miko has no controller and does no runtime positioning here,
+   so the host drives IsOpen (two-way), the popover renders centered/static, and it raises
+   OnWillDismiss then OnDidDismiss. `Side` stamps the direction class (used for the arrow rotation);
+   the actual anchor math is a marker in this static port. The host is always mounted; when closed it
+   carries `overlay-hidden` (display:none). *@
+<div class="@ClassMapper.Class" style="@Style" role="dialog">
+    @if (ShowBackdrop)
+    {
+        <div class="ion-backdrop popover-backdrop" @onclick="OnBackdropTapAsync"></div>
+    }
+    <div class="popover-wrapper ion-overlay-wrapper">
+        @if (Arrow)
+        {
+            <div class="popover-arrow"></div>
+        }
+        <div class="popover-content">
+            @ChildContent
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>Whether the popover is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
+    [Parameter] public bool IsOpen { get; set; }
+
+    /// <summary>Raised with the new open state when the popover opens/closes.</summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    /// <summary>Id of the element that opens the popover (Ionic <c>trigger</c>). Kept for API parity;
+    /// the host drives <see cref="IsOpen"/> in this port.</summary>
+    [Parameter] public string? Trigger { get; set; }
+
+    /// <summary>How the trigger opens the popover: <c>"click"</c> (default), <c>"context-menu"</c>,
+    /// or <c>"hover"</c> (Ionic <c>triggerAction</c>). Stored for API parity; there is no runtime
+    /// trigger wiring in this static port.</summary>
+    [Parameter] public string TriggerAction { get; set; } = "click";
+
+    /// <summary>If true (default), tapping the backdrop dismisses the popover.</summary>
+    [Parameter] public bool BackdropDismiss { get; set; } = true;
+
+    /// <summary>If true (default), the backdrop is rendered. When false the backdrop element is
+    /// omitted.</summary>
+    [Parameter] public bool ShowBackdrop { get; set; } = true;
+
+    /// <summary>Which side of the trigger the popover is anchored to: <c>"top"</c> / <c>"right"</c> /
+    /// <c>"bottom"</c> (default) / <c>"left"</c> / <c>"start"</c> / <c>"end"</c>. Stamps
+    /// <c>popover-side-{side}</c> (drives the arrow rotation); the anchor math is a marker here.</summary>
+    [Parameter] public string Side { get; set; } = "bottom";
+
+    /// <summary>How the popover content aligns with the trigger point: <c>"start"</c> / <c>"center"</c>
+    /// / <c>"end"</c> (Ionic <c>alignment</c>). Stored for API parity; positioning is a marker here.</summary>
+    [Parameter] public string? Alignment { get; set; }
+
+    /// <summary>If true (default), the arrow pointing at the trigger is rendered. When false the
+    /// <c>.popover-arrow</c> element is omitted (Ionic <c>arrow</c>).</summary>
+    [Parameter] public bool Arrow { get; set; } = true;
+
+    /// <summary>If true, the ios popover uses a translucent (blurred) surface (Ionic
+    /// <c>translucent</c>). Stamps <c>popover-translucent</c>; a marker in this port.</summary>
+    [Parameter] public bool Translucent { get; set; }
+
+    /// <summary>Whether the popover can be dismissed by the backdrop/escape. Alias for
+    /// <see cref="BackdropDismiss"/> semantics; kept for API parity.</summary>
+    [Parameter] public bool Dismissable { get; set; } = true;
+
+    // ChildContent (the popover body, rendered inside .popover-content) is inherited from ComponentBase.
+
+    /// <summary>Raised before the popover dismisses (Ionic <c>ionPopoverWillDismiss</c>).</summary>
+    [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnWillDismiss { get; set; }
+
+    /// <summary>Raised after the popover dismisses (Ionic <c>ionPopoverDidDismiss</c>), with the role
+    /// (<c>"backdrop"</c> on a backdrop tap, otherwise the caller's role).</summary>
+    [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        var side = string.IsNullOrEmpty(Side) ? "bottom" : Side.ToLowerInvariant();
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-popover")
+            .Add($"popover-side-{side}")
+            .If(Translucent, "popover-translucent")
+            .If(!IsOpen, "overlay-hidden");
+    }
+
+    private async Task OnBackdropTapAsync(MouseEventArgs _)
+    {
+        if (!BackdropDismiss || !Dismissable) return;
+        await DismissAsync("backdrop", null);
+    }
+
+    /// <summary>Dismisses the popover, raising <see cref="OnWillDismiss"/> then
+    /// <see cref="OnDidDismiss"/>. The host may call this to close the popover programmatically.</summary>
+    public async Task DismissAsync(string? role = null, object? data = null)
+    {
+        var detail = new IonOverlayDismissEventArgs(role, data);
+        await OnWillDismiss.InvokeAsync(detail);
+        if (IsOpen)
+        {
+            IsOpen = false;
+            await IsOpenChanged.InvokeAsync(false);
+        }
+        await OnDidDismiss.InvokeAsync(detail);
+    }
+}

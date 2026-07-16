@@ -1,0 +1,108 @@
+@page "/fab"
+
+<h1>IonFab</h1>
+
+<p>
+    Fabs are container elements that contain one or more fab buttons. They should be placed in a fixed position that does not scroll with the content. Fabs should have one main fab button. Fabs can also contain one or more fab lists which contain related buttons that show when the main fab button is clicked.
+</p>
+
+<h2>Basic Usage</h2>
+
+<div class="playground">
+    <div class="playground-container fab-demo-container">
+        <IonFab Vertical="bottom" Horizontal="end">
+            <IonFabButton>
+                <IonIcon Icon="@Ionicons.Add" />
+            </IonFabButton>
+        </IonFab>
+    </div>
+</div>
+
+<h2>Positioning</h2>
+
+<p>Use horizontal and vertical to place the fab. Below: top-start, top-end, and center.</p>
+
+<div class="playground">
+    <div class="playground-container fab-demo-container">
+        <IonFab Vertical="top" Horizontal="start">
+            <IonFabButton Color="secondary">
+                <IonIcon Icon="@Ionicons.Add" />
+            </IonFabButton>
+        </IonFab>
+        <IonFab Vertical="top" Horizontal="end">
+            <IonFabButton Color="danger">
+                <IonIcon Icon="@Ionicons.Add" />
+            </IonFabButton>
+        </IonFab>
+        <IonFab Vertical="center" Horizontal="center">
+            <IonFabButton>
+                <IonIcon Icon="@Ionicons.Add" />
+            </IonFabButton>
+        </IonFab>
+    </div>
+</div>
+
+<h2>Mini &amp; Disabled</h2>
+
+<div class="playground">
+    <div class="playground-container fab-demo-container">
+        <IonFab Vertical="center" Horizontal="start">
+            <IonFabButton Size="small">
+                <IonIcon Icon="@Ionicons.Add" />
+            </IonFabButton>
+        </IonFab>
+        <IonFab Vertical="center" Horizontal="end">
+            <IonFabButton Disabled="true">
+                <IonIcon Icon="@Ionicons.Add" />
+            </IonFabButton>
+        </IonFab>
+    </div>
+</div>
+
+<h2>Fab Lists</h2>
+
+<p>
+    A fab with ion-fab-lists on each side. Shown activated so the mini buttons are
+    revealed; tapping the main button toggles the close icon and the lists.
+</p>
+
+<div class="playground">
+    <div class="playground-container fab-demo-container">
+        <IonFab Vertical="center" Horizontal="center" Activated="true">
+            <IonFabButton>
+                <IonIcon Icon="@Ionicons.Add" />
+            </IonFabButton>
+            <IonFabList Side="top">
+                <IonFabButton>
+                    <IonIcon Icon="@Ionicons.ChevronUp" />
+                </IonFabButton>
+            </IonFabList>
+            <IonFabList Side="end">
+                <IonFabButton>
+                    <IonIcon Icon="@Ionicons.ChevronForward" />
+                </IonFabButton>
+                <IonFabButton>
+                    <IonIcon Icon="@Ionicons.ChevronForward" />
+                </IonFabButton>
+            </IonFabList>
+            <IonFabList Side="bottom">
+                <IonFabButton>
+                    <IonIcon Icon="@Ionicons.ChevronDown" />
+                </IonFabButton>
+            </IonFabList>
+            <IonFabList Side="start">
+                <IonFabButton>
+                    <IonIcon Icon="@Ionicons.ChevronBack" />
+                </IonFabButton>
+                <IonFabButton>
+                    <IonIcon Icon="@Ionicons.ChevronBack" />
+                </IonFabButton>
+            </IonFabList>
+        </IonFab>
+    </div>
+</div>
+
+@code {
+    // Uses Miko.Ionic.Ionicons name constants (see the @using in _Imports if configured, otherwise
+    // fully-qualified). The page is a static demo; interactive toggling works when run in the host.
+}

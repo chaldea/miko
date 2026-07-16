@@ -1,0 +1,154 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-action-sheet> (action-sheet.tsx render()):
+   <ion-action-sheet class="{mode} overlay-hidden? action-sheet-translucent?">
+     <ion-backdrop />                                   <!-- tappable dim layer -->
+     <div class="action-sheet-wrapper ion-overlay-wrapper">
+       <div class="action-sheet-container">
+         <div class="action-sheet-group">
+           [<div class="action-sheet-title action-sheet-has-sub-title?">Header<div class="action-sheet-sub-title">Sub</div></div>]
+           <button class="action-sheet-button action-sheet-{role}?">
+             <span class="action-sheet-button-inner"> [icon] Text </span>
+           </button> ...
+         </div>
+         [<div class="action-sheet-group action-sheet-group-cancel"> <button class="action-sheet-button action-sheet-cancel"> ... </button> </div>]
+       </div>
+     </div>
+   </ion-action-sheet>
+   Ionic's overlay controller wires `trigger` / `present()` at runtime; Miko has no controller, so
+   the host drives IsOpen (two-way) and the sheet raises OnDidDismiss with the tapped button's role
+   and data. The host is always mounted; when closed it carries `overlay-hidden` (display:none). *@
+<div class="@ClassMapper.Class" style="@Style">
+    <div class="ion-backdrop action-sheet-backdrop" @onclick="OnBackdropTapAsync"></div>
+    <div class="action-sheet-wrapper ion-overlay-wrapper">
+        <div class="action-sheet-container">
+            <div class="action-sheet-group">
+                @if (!string.IsNullOrEmpty(Header))
+                {
+                    <div class="@_titleClass">
+                        @Header
+                        @if (!string.IsNullOrEmpty(SubHeader))
+                        {
+                            <div class="action-sheet-sub-title">@SubHeader</div>
+                        }
+                    </div>
+                }
+                @foreach (var button in _optionButtons)
+                {
+                    <button class="@ButtonClass(button)" @onclick="@(() => ButtonClickAsync(button))">
+                        <span class="action-sheet-button-inner">
+                            @if (!string.IsNullOrEmpty(button.Icon))
+                            {
+                                <IonIcon Icon="@button.Icon" Class="action-sheet-icon" />
+                            }
+                            @button.Text
+                        </span>
+                    </button>
+                }
+            </div>
+            @if (_cancelButton is not null)
+            {
+                <div class="action-sheet-group action-sheet-group-cancel">
+                    <button class="@ButtonClass(_cancelButton)" @onclick="@(() => ButtonClickAsync(_cancelButton))">
+                        <span class="action-sheet-button-inner">
+                            @if (!string.IsNullOrEmpty(_cancelButton.Icon))
+                            {
+                                <IonIcon Icon="@_cancelButton.Icon" Class="action-sheet-icon" />
+                            }
+                            @_cancelButton.Text
+                        </span>
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>The optional title shown above the buttons.</summary>
+    [Parameter] public string? Header { get; set; }
+
+    /// <summary>The optional sub-title shown under the header.</summary>
+    [Parameter] public string? SubHeader { get; set; }
+
+    /// <summary>The buttons to show. Cancel-role buttons are pulled into a separate bottom group.</summary>
+    [Parameter] public IReadOnlyList<IonActionSheetButton> Buttons { get; set; } = Array.Empty<IonActionSheetButton>();
+
+    /// <summary>Whether the sheet is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
+    [Parameter] public bool IsOpen { get; set; }
+
+    /// <summary>Raised with the new open state when the sheet opens/closes.</summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    /// <summary>If true (default), tapping the backdrop dismisses the sheet.</summary>
+    [Parameter] public bool BackdropDismiss { get; set; } = true;
+
+    /// <summary>If true, the ios group uses a translucent (blurred) surface. Marker only in this port.</summary>
+    [Parameter] public bool Translucent { get; set; }
+
+    /// <summary>Id of the element that opens the sheet (Ionic <c>trigger</c>). Kept for API parity;
+    /// the host drives <see cref="IsOpen"/> in this port.</summary>
+    [Parameter] public string? Trigger { get; set; }
+
+    /// <summary>Raised when the sheet dismisses, with the tapped button's role and data (null role /
+    /// data on a backdrop dismiss).</summary>
+    [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
+
+    private IReadOnlyList<IonActionSheetButton> _optionButtons = Array.Empty<IonActionSheetButton>();
+    private IonActionSheetButton? _cancelButton;
+    private string _titleClass = "action-sheet-title";
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-action-sheet")
+            .If(!IsOpen, "overlay-hidden")
+            .If(Translucent, "action-sheet-translucent");
+
+        // Split the buttons: cancel-role buttons render in their own bottom group.
+        _cancelButton = Buttons.FirstOrDefault(b => b.IsCancel);
+        _optionButtons = Buttons.Where(b => !b.IsCancel).ToList();
+
+        _titleClass = string.IsNullOrEmpty(SubHeader)
+            ? "action-sheet-title"
+            : "action-sheet-title action-sheet-has-sub-title";
+    }
+
+    // action-sheet-button + role/state markers (action-sheet.tsx buttonClass()).
+    private string ButtonClass(IonActionSheetButton button)
+    {
+        var cls = "action-sheet-button";
+        if (!button.Disabled) cls += " ion-activatable ion-focusable";
+        if (!string.IsNullOrEmpty(button.Role)) cls += $" action-sheet-{button.Role.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(button.CssClass)) cls += $" {button.CssClass}";
+        return cls;
+    }
+
+    private async Task ButtonClickAsync(IonActionSheetButton button)
+    {
+        // Disabled non-cancel buttons do nothing; cancel buttons are never disabled.
+        if (button.Disabled && !button.IsCancel) return;
+
+        button.Handler?.Invoke();
+        await DismissAsync(button.Role, button.Data);
+    }
+
+    private async Task OnBackdropTapAsync(MouseEventArgs _)
+    {
+        if (!BackdropDismiss) return;
+        await DismissAsync("backdrop", null);
+    }
+
+    private async Task DismissAsync(string? role, object? data)
+    {
+        if (IsOpen)
+        {
+            IsOpen = false;
+            await IsOpenChanged.InvokeAsync(false);
+        }
+        await OnDidDismiss.InvokeAsync(new IonOverlayDismissEventArgs(role, data));
+    }
+}

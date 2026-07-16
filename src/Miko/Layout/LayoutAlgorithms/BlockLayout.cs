@@ -191,7 +191,13 @@ public class BlockLayout
             // 最终位置由 LayoutEngine 的定位阶段修正。
             if (IsOutOfFlow(child))
             {
-                var childConstraints = new LayoutConstraints(childAvailableWidth, childAvailableHeight);
+                // width:auto 的绝对/固定定位元素按 CSS 收缩到内容（shrink-to-fit），
+                // 而非撑满父元素可用宽度 —— 传入无限宽约束触发内容测量分支。
+                // 显式宽度（含百分比）仍相对父内容宽度解析，因此保留可用宽度。
+                float? childWidthConstraint = child.ComputedStyle.Width.IsAuto
+                    ? null
+                    : childAvailableWidth;
+                var childConstraints = new LayoutConstraints(childWidthConstraint, childAvailableHeight);
                 LayoutChild(child, childConstraints, contentX, currentY);
                 i++;
                 continue;

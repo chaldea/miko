@@ -1,0 +1,62 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-picker-column-option> (picker-column-option.tsx render()):
+   <ion-picker-column-option class="{mode} ion-picker-column-option option-active? option-disabled? ion-color?">
+     <div class="picker-column-option-button" role="button">
+       <slot></slot>                      <!-- ChildContent: the option label, e.g. "Javascript" -->
+     </div>
+   </ion-picker-column-option>
+   Ionic renders the host as a custom element and the clickable surface as an inner div. Miko has no
+   custom elements, so the host itself is the native <button> (the clickable surface); the option
+   label is its content. The option reads the column's cascaded context: it is active when its Value
+   is the column's selected value (Ionic's `option-active` class, applied by picker-column while
+   scrolling / on the active item). Clicking asks the column to select this value via RequestSelect —
+   the no-op-when-disabled mirror of picker-column-option.tsx onClick(). *@
+<button class="@ClassMapper.Class" style="@Style" @onclick="HandleClick">
+    @ChildContent
+</button>
+
+@code {
+    /// <summary>The option's value; becomes the column's selected value when tapped, and identifies
+    /// the option in the column's active-state check.</summary>
+    [Parameter] public string Value { get; set; } = string.Empty;
+
+    /// <summary>If true, this option cannot be selected (dimmed, non-interactive).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Named palette color (Ionic <c>color</c>, defaults to <c>"primary"</c>): tints the
+    /// option when active.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Selection state supplied by the enclosing <see cref="IonPickerColumn"/>.</summary>
+    [CascadingParameter] public IonPickerColumnContext? Column { get; set; }
+
+    /// <summary>True when this option's value is the column's selected value.</summary>
+    public bool Active { get; private set; }
+
+    protected override void OnParametersSet()
+    {
+        Active = Column?.IsSelected(Value) == true;
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-picker-column-option")
+            .If(Active, "option-active")
+            .If(Disabled, "option-disabled")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+    }
+
+    /// <summary>
+    /// Option click: ask the column to select this value. Mirrors <c>picker-column-option.tsx</c>
+    /// <c>onClick()</c> — no-op when this option or the whole column is disabled; otherwise requests
+    /// selection through the cascaded column context.
+    /// </summary>
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled || Column is null || Column.Disabled) return;
+        await Column.RequestSelect.InvokeAsync(Value);
+    }
+}

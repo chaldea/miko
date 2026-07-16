@@ -1,0 +1,56 @@
+@page "/checkbox"
+
+<h1>IonCheckbox</h1>
+
+<p>
+    Checkboxes allow the selection of multiple options from a set of options. They appear as checked (ticked) when activated. Clicking on a checkbox will toggle the checked property. They can also be checked programmatically by setting the checked property.
+</p>
+
+<h2>Basic Usage</h2>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonCheckbox>I agree to the terms and conditions</IonCheckbox>
+            <IonCheckbox Checked="true">Checked</IonCheckbox>
+            <IonCheckbox Indeterminate="true">Indeterminate</IonCheckbox>
+            <IonCheckbox Disabled="true">Disabled</IonCheckbox>
+        </div>
+    </div>
+</div>
+
+<h2>Label Placement</h2>
+
+<p>
+    Developers can use the labelPlacement property to control how the label is placed relative to the control. This property mirrors the flexbox flex-direction property.
+</p>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonCheckbox LabelPlacement="start">Label at the Start</IonCheckbox>
+            <IonCheckbox LabelPlacement="end">Label at the End</IonCheckbox>
+            <IonCheckbox LabelPlacement="fixed">Fixed Width Label</IonCheckbox>
+            <IonCheckbox LabelPlacement="stacked">Stacked Label</IonCheckbox>
+        </div>
+    </div>
+</div>
+
+<h2>Alignment</h2>
+
+<p>
+    Developers can use the alignment property to control how the label and control are aligned on the cross axis. This property mirrors the flexbox align-items property.
+</p>
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="container-row">
+            <IonCheckbox LabelPlacement="stacked" Alignment="start">Start Alignment</IonCheckbox>
+            <IonCheckbox LabelPlacement="stacked" Alignment="center">Center Alignment</IonCheckbox>
+        </div>
+    </div>
+</div>
+
+@code {
+
+}

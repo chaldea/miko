@@ -1,0 +1,73 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-breadcrumbs>: a flex-wrap row of <ion-breadcrumb>s.
+   <ion-breadcrumbs class="{mode} ...">
+     <slot />   <!-- ChildContent: the IonBreadcrumb children -->
+   </ion-breadcrumbs>
+   Ionic's setBreadcrumbSeparator() walks the slotted breadcrumbs after render and stamps the last
+   one (no separator, active if none was) and gives the rest a separator. Miko has no live DOM, so
+   we replicate that in Build() by post-processing the built subtree. The color is cascaded so each
+   breadcrumb can stamp the in-breadcrumbs-color marker. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <CascadingValue TValue="IonBreadcrumbContext" Value="_context">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>) applied to the breadcrumbs.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    private IonBreadcrumbContext _context = new();
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-breadcrumbs")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+
+        _context = new IonBreadcrumbContext { Color = Color };
+    }
+
+    /// <summary>
+    /// After the subtree is built, resolve the per-breadcrumb <c>last</c>/<c>active</c>/separator
+    /// state that Ionic computes imperatively in <c>setBreadcrumbSeparator()</c>. We can only do
+    /// this once every child breadcrumb exists in the tree, so it runs here rather than in a
+    /// cascaded value.
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+
+        // Only the direct breadcrumb hosts, in document order.
+        var crumbs = root.FindByClass("ion-breadcrumb");
+        if (crumbs.Count == 0) return root;
+
+        // If no breadcrumb was explicitly marked active, the last one becomes active (Ionic default).
+        var hasActive = crumbs.Any(c => c.HasClass("breadcrumb-active"));
+
+        for (int i = 0; i < crumbs.Count; i++)
+        {
+            var crumb = crumbs[i];
+            var isLast = i == crumbs.Count - 1;
+
+            if (isLast)
+            {
+                // The last breadcrumb shows no trailing separator.
+                var separator = crumb.Children.FirstOrDefault(c => c.HasClass("breadcrumb-separator"));
+                if (separator is not null) crumb.RemoveChild(separator);
+
+                if (!hasActive && !crumb.HasClass("breadcrumb-active"))
+                {
+                    crumb.Class += " breadcrumb-active";
+                }
+            }
+        }
+
+        return root;
+    }
+}
