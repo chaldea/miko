@@ -31,8 +31,7 @@
     /// <summary>The name of the control, submitted with the form data.</summary>
     [Parameter] public string? Name { get; set; }
 
-    /// <summary>The radios placed inside the group (Ionic's default slot).</summary>
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    // ChildContent (the radios placed inside the group, Ionic's default slot) is inherited from ComponentBase.
 
     private IonRadioGroupContext _context = new();
 

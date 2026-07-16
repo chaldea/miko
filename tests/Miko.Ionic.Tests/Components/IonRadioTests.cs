@@ -99,7 +99,7 @@ public class IonRadioTests : IonicComponentTestBase
 
         var cut = RenderGroup(Context, Radio("a"));
 
-        cut.FindByClass("ion-radio").Single().Class.ShouldContain("ios ion-radio");
+        cut.FindByClass("ion-radio").Single().ShouldHaveClass("ios ion-radio");
     }
 
     [Theory]

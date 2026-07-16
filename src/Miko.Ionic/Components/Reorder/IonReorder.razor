@@ -24,9 +24,8 @@
 </div>
 
 @code {
-    /// <summary>Custom handle content (Ionic's default slot). When omitted a default reorder icon is
-    /// rendered.</summary>
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    // ChildContent (custom handle content, Ionic's default slot; when omitted a default reorder icon
+    // is rendered) is inherited from ComponentBase.
 
     /// <summary>Behavior state supplied by the enclosing <see cref="IonReorderGroup"/>. When null
     /// (no group) or disabled, the handle is hidden.</summary>

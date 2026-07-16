@@ -76,8 +76,7 @@
     /// <see cref="BackdropDismiss"/> semantics; kept for API parity.</summary>
     [Parameter] public bool Dismissable { get; set; } = true;
 
-    /// <summary>The popover body. Renders inside <c>.popover-content</c>.</summary>
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    // ChildContent (the popover body, rendered inside .popover-content) is inherited from ComponentBase.
 
     /// <summary>Raised before the popover dismisses (Ionic <c>ionPopoverWillDismiss</c>).</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnWillDismiss { get; set; }

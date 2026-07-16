@@ -65,8 +65,7 @@
     /// Setting this changes the host <c>display</c> to block.</summary>
     [Parameter] public string? Alignment { get; set; }
 
-    /// <summary>The label text (Ionic's default slot).</summary>
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    // ChildContent (the label text, Ionic's default slot) is inherited from ComponentBase.
 
     /// <summary>Selection state supplied by the enclosing <see cref="IonRadioGroup"/>. When absent,
     /// the radio is never checked (Ionic radios only track selection through a group).</summary>

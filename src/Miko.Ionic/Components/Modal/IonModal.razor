@@ -63,9 +63,8 @@
     /// content is always in the tree (hidden via <c>overlay-hidden</c> when closed).</summary>
     [Parameter] public bool KeepContentsMounted { get; set; }
 
-    /// <summary>The modal body. Renders inside <c>.modal-wrapper</c> — usually an
-    /// <c>IonHeader</c> + <c>IonContent</c>.</summary>
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    // ChildContent (the modal body, rendered inside .modal-wrapper — usually an
+    // IonHeader + IonContent) is inherited from ComponentBase.
 
     /// <summary>Raised before the modal dismisses (Ionic <c>ionModalWillDismiss</c>).</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnWillDismiss { get; set; }

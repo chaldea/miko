@@ -29,8 +29,7 @@
     /// to the same surface.</summary>
     [Parameter] public EventCallback<(int From, int To)> OnItemReorder { get; set; }
 
-    /// <summary>The reorderable list items, each typically containing an <see cref="IonReorder"/>.</summary>
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    // ChildContent (the reorderable list items, each typically containing an IonReorder) is inherited from ComponentBase.
 
     private IonReorderGroupContext _context = new();
 
