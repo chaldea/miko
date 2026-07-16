@@ -3,11 +3,23 @@
 <div class="layout">
     <div class="sidebar">
         <h2 class="title" @onclick="@(() => NavigateTo("/"))">Miko Ionic</h2>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/accordion"))"><span>IonAccordion</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/action-sheet"))"><span>IonActionSheet</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/alert"))"><span>IonAlert</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/avatar"))"><span>IonAvatar</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/breadcrumb"))"><span>IonBreadcrumb</span></div>
         <div class="nav-item" @onclick="@(() => NavigateTo("/button"))"><span>IonButton</span></div>
         <div class="nav-item" @onclick="@(() => NavigateTo("/card"))"><span>IonCard</span></div>
         <div class="nav-item" @onclick="@(() => NavigateTo("/checkbox"))"><span>IonCheckbox</span></div>
         <div class="nav-item" @onclick="@(() => NavigateTo("/chip"))"><span>IonChip</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/datetime"))"><span>IonDatetime</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/fab"))"><span>IonFab</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/grid"))"><span>IonGrid</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/icon"))"><span>IonIcon</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/infinite-scroll"))"><span>IonInfiniteScroll</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/input"))"><span>IonInput</span></div>
         <div class="nav-item" @onclick="@(() => NavigateTo("/item"))"><span>IonItem</span></div>
+        <div class="nav-item" @onclick="@(() => NavigateTo("/label"))"><span>IonLabel</span></div>
     </div>
     <div class="main-content">
         @Body

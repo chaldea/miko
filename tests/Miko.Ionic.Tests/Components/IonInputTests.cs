@@ -28,8 +28,8 @@ public class IonInputTests : IonicComponentTestBase
         var cut = RenderInput(Context, label: "Company name");
 
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldContain("md ion-input");
-        cut.Root.Class.ShouldContain("input-label-placement-start");
+        cut.Root.ShouldHaveClass("md ion-input");
+        cut.Root.ShouldHaveClass("input-label-placement-start");
 
         var wrapper = cut.FindByClass("input-wrapper").Single();
         wrapper.TagName.ShouldBe("label");
@@ -63,7 +63,7 @@ public class IonInputTests : IonicComponentTestBase
     {
         var cut = RenderInput(Context, p => p.Add(nameof(IonInput.LabelPlacement), placement));
 
-        cut.Root.Class.ShouldContain(expected);
+        cut.Root.ShouldHaveClass(expected);
     }
 
     [Fact]
@@ -76,10 +76,10 @@ public class IonInputTests : IonicComponentTestBase
             p.Add(nameof(IonInput.Color), "danger");
         });
 
-        cut.Root.Class.ShouldContain("input-fill-outline");
-        cut.Root.Class.ShouldContain("input-shape-round");
-        cut.Root.Class.ShouldContain("ion-color");
-        cut.Root.Class.ShouldContain("ion-color-danger");
+        cut.Root.ShouldHaveClass("input-fill-outline");
+        cut.Root.ShouldHaveClass("input-shape-round");
+        cut.Root.ShouldHaveClass("ion-color");
+        cut.Root.ShouldHaveClass("ion-color-danger");
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class IonInputTests : IonicComponentTestBase
         var cut = RenderInput(Context, label: null);
 
         cut.FindByClass("label-text-wrapper").Single()
-            .Class.ShouldContain("label-text-wrapper-hidden");
+            .ShouldHaveClass("label-text-wrapper-hidden");
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class IonInputTests : IonicComponentTestBase
         var cut = RenderInput(Context, label: "Name");
 
         cut.FindByClass("label-text-wrapper").Single()
-            .Class.ShouldNotContain("label-text-wrapper-hidden");
+            .ShouldNotHaveClass("label-text-wrapper-hidden");
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class IonInputTests : IonicComponentTestBase
     {
         var cut = RenderInput(Context, p => p.Add(nameof(IonInput.Value), "121 S Pinckney St"));
 
-        cut.Root.Class.ShouldContain("has-value");
+        cut.Root.ShouldHaveClass("has-value");
         cut.FindByClass("native-input").Single()
             .ShouldBeOfType<InputElement>().Value.ShouldBe("121 S Pinckney St");
     }
@@ -140,7 +140,7 @@ public class IonInputTests : IonicComponentTestBase
     {
         var cut = RenderInput(Context);
 
-        cut.Root.Class.ShouldNotContain("has-value");
+        cut.Root.ShouldNotHaveClass("has-value");
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class IonInputTests : IonicComponentTestBase
             p.Add(nameof(IonInput.Readonly), true);
         });
 
-        cut.Root.Class.ShouldContain("input-readonly");
+        cut.Root.ShouldHaveClass("input-readonly");
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public class IonInputTests : IonicComponentTestBase
             p.Add(nameof(IonInput.Disabled), true);
         });
 
-        cut.Root.Class.ShouldContain("input-disabled");
+        cut.Root.ShouldHaveClass("input-disabled");
         cut.FindByClass("native-input").Single().IsDisabled.ShouldBeTrue();
     }
 

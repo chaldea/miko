@@ -1,0 +1,84 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-breadcrumb>:
+   <ion-breadcrumb class="{mode} breadcrumb-active? ...">   <!-- host: flex row, align-items center -->
+     <a|span class="breadcrumb-native">                    <!-- <a> when Href set, else <span> -->
+       <slot name="start" />                               <!-- StartSlot -->
+       <slot />                                            <!-- ChildContent (the label) -->
+       <slot name="end" />                                 <!-- EndSlot -->
+     </a|span>
+     <span class="breadcrumb-separator">/</span>           <!-- md: "/", ios: chevron; stripped from the last one -->
+   </ion-breadcrumb>
+   The separator is always rendered here; the enclosing IonBreadcrumbs strips it from the last
+   breadcrumb (and marks that one active) in its Build() post-pass, matching Ionic's
+   setBreadcrumbSeparator(). Href turns the host into a link (clickable). *@
+<div class="@ClassMapper.Class" style="@Style">
+    @if (Href is not null)
+    {
+        <a class="breadcrumb-native" href="@Href">
+            @StartSlot
+            @ChildContent
+            @EndSlot
+        </a>
+    }
+    else
+    {
+        <span class="breadcrumb-native">
+            @StartSlot
+            @ChildContent
+            @EndSlot
+        </span>
+    }
+    <span class="breadcrumb-separator">
+        @if (Mode == "ios")
+        {
+            <IonIcon Icon="@Ionicons.ChevronForwardOutline" />
+        }
+        else
+        {
+            <span>/</span>
+        }
+    </span>
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>URL the breadcrumb points to. When set the native element is a link (clickable).</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>If true, the breadcrumb takes on the active look. The enclosing
+    /// <see cref="IonBreadcrumbs"/> sets this on the last breadcrumb when none is explicitly active.</summary>
+    [Parameter] public bool Active { get; set; }
+
+    /// <summary>If true, the breadcrumb is dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Content shown before the label (Ionic <c>slot="start"</c>).</summary>
+    [Parameter] public RenderFragment? StartSlot { get; set; }
+
+    /// <summary>Content shown after the label (Ionic <c>slot="end"</c>).</summary>
+    [Parameter] public RenderFragment? EndSlot { get; set; }
+
+    /// <summary>Cascaded from the enclosing <see cref="IonBreadcrumbs"/> (carries its color).</summary>
+    [CascadingParameter] public IonBreadcrumbContext? BreadcrumbsContext { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        var clickable = Href is not null;
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-breadcrumb")
+            .If(Active, "breadcrumb-active")
+            .If(Disabled, "breadcrumb-disabled")
+            .If(BreadcrumbsContext?.Color is not null, "in-breadcrumbs-color")
+            .If(clickable, "ion-activatable")
+            .If(clickable, "ion-focusable")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+    }
+}

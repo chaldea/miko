@@ -60,6 +60,7 @@ internal static class TabStyles
                 PaddingBottom = Length.SafeAreaInsetBottom,
                 PaddingLeft = Length.SafeAreaInsetLeft,
                 PaddingRight = Length.SafeAreaInsetRight,
+                BoxSizing = BoxSizing.ContentBox,
             },
 
             // slot="bottom" (default): border on top.

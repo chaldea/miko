@@ -1,4 +1,4 @@
-﻿using Miko.Ionic.Components;
+using Miko.Ionic.Components;
 using Miko.Ionic.Styles;
 using Miko.Styling;
 
@@ -78,5 +78,11 @@ public static class IonicStyleSheetFactory
         sheet.Add(SelectStyles.GenStyle(mode, t));
         sheet.Add(CheckboxStyles.GenStyle(mode, t));
         sheet.Add(InputStyles.GenStyle(mode, t));
+        sheet.Add(FabStyles.GenStyle(mode, t));
+        sheet.Add(BreadcrumbStyles.GenStyle(mode, t));
+        sheet.Add(AccordionStyles.GenStyle(mode, t));
+        sheet.Add(ActionSheetStyles.GenStyle(mode, t));
+        sheet.Add(AlertStyles.GenStyle(mode, t));
+        sheet.Add(DatetimeStyles.GenStyle(mode, t));
     }
 }

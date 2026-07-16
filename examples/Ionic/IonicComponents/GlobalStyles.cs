@@ -19,12 +19,13 @@ internal class GlobalStyles
             },
             [".sidebar"] = new()
             {
-                Width = Length.Px(200),
+                Width = Length.Px(250),
                 FlexShrink = 0,
                 Height = Length.Percent(100),
                 Padding = new Padding(16),
                 BackgroundColor = Color.FromRgb(52, 58, 64),
-                Color = Color.White
+                Color = Color.White,
+                OverflowY = Overflow.Scroll,
             },
             [".title"] = new()
             {
@@ -83,6 +84,14 @@ internal class GlobalStyles
             [".hi-auto"] = new ()
             {
                 Height = Auto,
+            },
+            // A positioned demo stage for the absolutely-positioned FAB. position:relative makes the
+            // fab anchor to this box (via its horizontal/vertical classes) instead of the viewport.
+            [".fab-demo-container"] = new()
+            {
+                Position = Position.Relative,
+                Display = Display.Block,
+                Height = Px(260),
             },
             ["img"] = new CssObject()
             {

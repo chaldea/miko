@@ -1,0 +1,109 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-fab-button> host structure (fab-button.tsx / fab-button.scss):
+   <ion-fab-button>                     <!-- host: the round box, color/size/state classes -->
+     <button class="button-native">     <!-- the painted clickable surface (radius 50%, bg, shadow) -->
+       <ion-icon class="close-icon" />   <!-- the close glyph; opacity 0 → 1 when the fab is active -->
+       <span class="button-inner">       <!-- the slotted content (usually an ion-icon) -->
+         <slot></slot>                    <!-- ChildContent -->
+       </span>
+     </button>
+   </ion-fab-button>
+   Two roles: (1) the MAIN button directly under an <ion-fab> — clicking it toggles the fab (turning
+   into the close icon when active); (2) a LIST button under an <ion-fab-list> — marked in-list and
+   shown when the enclosing fab opens. The role is read from the cascaded FabContext: InList marks a
+   list button; Activated (on a main button) drives the close-active swap and (on a list button) the
+   show state. Ionic renders an <a> when href is set; like IonButton this port keeps the <button>
+   surface and exposes Href as a marker only. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <button class="button-native" @onclick="HandleClick">
+        <IonIcon Icon="@CloseIcon" Class="close-icon" />
+        <span class="button-inner">
+            @ChildContent
+        </span>
+    </button>
+</div>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as <c>ion-color</c> + <c>ion-color-*</c>.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>If true, the button shows the close icon (Ionic <c>activated</c>). Normally derived
+    /// from the enclosing fab, but can be set directly for a standalone button.</summary>
+    [Parameter] public bool Activated { get; set; }
+
+    /// <summary>If true, the user cannot interact with the button (Ionic <c>disabled</c>).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Size (Ionic <c>size</c>): <c>"small"</c> for a mini fab button. Stamped as
+    /// <c>fab-button-small</c>.</summary>
+    [Parameter] public string? Size { get; set; }
+
+    /// <summary>If true, the button is translucent on iOS (Ionic <c>translucent</c>). Kept as a
+    /// marker class for parity.</summary>
+    [Parameter] public bool Translucent { get; set; }
+
+    /// <summary>If true, a list button is shown (Ionic <c>show</c>). Normally derived from the
+    /// enclosing fab-list's activated state.</summary>
+    [Parameter] public bool Show { get; set; }
+
+    /// <summary>Link target (Ionic <c>href</c>). Kept as a marker for API parity; the renderer does
+    /// not perform navigation.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Button type (Ionic <c>type</c>): <c>"submit"</c>, <c>"reset"</c>, or
+    /// <c>"button"</c> (default).</summary>
+    [Parameter] public string Type { get; set; } = "button";
+
+    /// <summary>Icon name shown when the button is the active close button (Ionic <c>closeIcon</c>).
+    /// Defaults to the Ionicons <c>close</c> glyph.</summary>
+    [Parameter] public string CloseIcon { get; set; } = Ionicons.Close;
+
+    /// <summary>Raised when the button is tapped (skipped when disabled). Fires before the fab
+    /// toggle.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    // ChildContent (usually an IonIcon) is inherited from ComponentBase.
+
+    /// <summary>Activation/toggle state supplied by the enclosing <see cref="IonFab"/> /
+    /// <see cref="IonFabList"/>.</summary>
+    [CascadingParameter] public FabContext? FabContext { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // In-list buttons come from a fab-list's re-cascaded context. Their close-active/show state
+        // is driven by the enclosing fab's activated flag; the main button uses the same flag for
+        // the close-icon swap. Explicit Activated/Show params still work for standalone buttons.
+        var inList = FabContext?.InList == true;
+        var activated = Activated || (!inList && FabContext?.Activated == true);
+        var show = Show || (inList && FabContext?.Activated == true);
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-fab-button")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color)
+            .AddValue(Size, "fab-button-")
+            .If(inList, "fab-button-in-list")
+            .If(inList && Translucent, "fab-button-translucent-in-list")
+            .If(activated, "fab-button-close-active")
+            .If(show, "fab-button-show")
+            .If(Translucent, "fab-button-translucent")
+            .If(Disabled, "fab-button-disabled");
+    }
+
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled) return;
+        await OnClick.InvokeAsync();
+        // Mirrors fab-button.tsx onClick → fab.toggle(): tapping any fab button asks the enclosing
+        // fab to toggle (a no-op when the fab has no list).
+        if (FabContext is not null)
+        {
+            await FabContext.Toggle.InvokeAsync();
+        }
+    }
+}

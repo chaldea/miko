@@ -30,8 +30,8 @@ public class IonCheckboxTests : IonicComponentTestBase
         var cut = RenderCheckbox(Context, label: "I agree to the terms");
 
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldContain("md ion-checkbox");
-        cut.Root.Class.ShouldContain("checkbox-label-placement-start");
+        cut.Root.ShouldHaveClass("md ion-checkbox");
+        cut.Root.ShouldHaveClass("checkbox-label-placement-start");
 
         var wrapper = cut.FindByClass("checkbox-wrapper").Single();
         wrapper.TagName.ShouldBe("label");
@@ -66,7 +66,7 @@ public class IonCheckboxTests : IonicComponentTestBase
     {
         var cut = RenderCheckbox(Context, p => p.Add(nameof(IonCheckbox.LabelPlacement), placement));
 
-        cut.Root.Class.ShouldContain(expected);
+        cut.Root.ShouldHaveClass(expected);
     }
 
     [Fact]
@@ -79,10 +79,10 @@ public class IonCheckboxTests : IonicComponentTestBase
             p.Add(nameof(IonCheckbox.Color), "danger");
         });
 
-        cut.Root.Class.ShouldContain("checkbox-justify-space-between");
-        cut.Root.Class.ShouldContain("checkbox-alignment-center");
-        cut.Root.Class.ShouldContain("ion-color");
-        cut.Root.Class.ShouldContain("ion-color-danger");
+        cut.Root.ShouldHaveClass("checkbox-justify-space-between");
+        cut.Root.ShouldHaveClass("checkbox-alignment-center");
+        cut.Root.ShouldHaveClass("ion-color");
+        cut.Root.ShouldHaveClass("ion-color-danger");
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class IonCheckboxTests : IonicComponentTestBase
         var cut = RenderCheckbox(Context, label: null);
 
         cut.FindByClass("label-text-wrapper").Single()
-            .Class.ShouldContain("label-text-wrapper-hidden");
+            .ShouldHaveClass("label-text-wrapper-hidden");
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class IonCheckboxTests : IonicComponentTestBase
         var cut = RenderCheckbox(Context, label: "Accept");
 
         cut.FindByClass("label-text-wrapper").Single()
-            .Class.ShouldNotContain("label-text-wrapper-hidden");
+            .ShouldNotHaveClass("label-text-wrapper-hidden");
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public class IonCheckboxTests : IonicComponentTestBase
     {
         var cut = RenderCheckbox(Context, p => p.Add(nameof(IonCheckbox.Checked), true));
 
-        cut.Root.Class.ShouldContain("checkbox-checked");
+        cut.Root.ShouldHaveClass("checkbox-checked");
         cut.FindByClass("checkbox-native").Single().ShouldBeOfType<InputElement>().Checked.ShouldBeTrue();
     }
 
@@ -141,7 +141,7 @@ public class IonCheckboxTests : IonicComponentTestBase
     {
         var cut = RenderCheckbox(Context);
 
-        cut.Root.Class.ShouldNotContain("checkbox-checked");
+        cut.Root.ShouldNotHaveClass("checkbox-checked");
         cut.FindByClass("checkbox-native").Single().ShouldBeOfType<InputElement>().Checked.ShouldBeFalse();
     }
 
@@ -150,7 +150,7 @@ public class IonCheckboxTests : IonicComponentTestBase
     {
         var cut = RenderCheckbox(Context, p => p.Add(nameof(IonCheckbox.Indeterminate), true));
 
-        cut.Root.Class.ShouldContain("checkbox-indeterminate");
+        cut.Root.ShouldHaveClass("checkbox-indeterminate");
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public class IonCheckboxTests : IonicComponentTestBase
     {
         var cut = RenderCheckbox(Context, p => p.Add(nameof(IonCheckbox.Disabled), true));
 
-        cut.Root.Class.ShouldContain("checkbox-disabled");
+        cut.Root.ShouldHaveClass("checkbox-disabled");
         cut.FindByClass("checkbox-native").Single().IsDisabled.ShouldBeTrue();
     }
 
