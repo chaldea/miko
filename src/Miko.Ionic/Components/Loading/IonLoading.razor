@@ -1,0 +1,104 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-loading> (loading.tsx render()):
+   <ion-loading class="{mode} overlay-hidden? loading-translucent?" role="dialog">
+     <ion-backdrop visible=showBackdrop tappable=backdropDismiss />
+     <div class="loading-wrapper ion-overlay-wrapper">
+       [<div class="loading-spinner"><ion-spinner name=spinner /></div>]   <!-- if a spinner is shown -->
+       [<div class="loading-content">Message</div>]                        <!-- if Message is set -->
+     </div>
+   </ion-loading>
+   Ionic's overlay controller wires `trigger` / `present()` at runtime; Miko has no controller, so
+   the host drives IsOpen (two-way) and the indicator raises OnDidDismiss (role null on a normal
+   dismiss, "backdrop" when the backdrop is tapped). The host is always mounted; when closed it
+   carries `overlay-hidden` (display:none). Loading blocks input by default (backdrop is NOT
+   tappable — BackdropDismiss defaults to false). *@
+<div class="@ClassMapper.Class" style="@Style" role="dialog">
+    @if (ShowBackdrop)
+    {
+        <div class="ion-backdrop loading-backdrop" @onclick="OnBackdropTapAsync"></div>
+    }
+    <div class="loading-wrapper ion-overlay-wrapper">
+        @if (!string.IsNullOrEmpty(_spinner))
+        {
+            <div class="loading-spinner">
+                <IonSpinner Name="@_spinner" />
+            </div>
+        }
+        @if (Message is not null)
+        {
+            <div class="loading-content">@Message</div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>Optional text content shown beside/under the spinner.</summary>
+    [Parameter] public string? Message { get; set; }
+
+    /// <summary>The spinner preset name (see <see cref="IonSpinner"/>). When null it falls back to
+    /// the per-mode default (<c>"lines"</c> on ios, <c>"crescent"</c> on md — loading.tsx
+    /// <c>componentWillLoad</c>). Pass an empty string to hide the spinner entirely.</summary>
+    [Parameter] public string? Spinner { get; set; }
+
+    /// <summary>Number of milliseconds before auto-dismissing (Ionic <c>duration</c>). Marker only:
+    /// the auto-dismiss timer is not wired in this static port, but the value is kept for parity.</summary>
+    [Parameter] public int Duration { get; set; }
+
+    /// <summary>Whether the indicator is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
+    [Parameter] public bool IsOpen { get; set; }
+
+    /// <summary>Raised with the new open state when the indicator opens/closes.</summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    /// <summary>If true, tapping the backdrop dismisses the indicator. Defaults to <c>false</c>
+    /// (loading blocks interaction — loading.tsx <c>backdropDismiss = false</c>).</summary>
+    [Parameter] public bool BackdropDismiss { get; set; }
+
+    /// <summary>If true (default), a backdrop is shown behind the indicator (loading.tsx
+    /// <c>showBackdrop = true</c>).</summary>
+    [Parameter] public bool ShowBackdrop { get; set; } = true;
+
+    /// <summary>If true, the surface is translucent (ios blur). Marker only in this port.</summary>
+    [Parameter] public bool Translucent { get; set; }
+
+    /// <summary>Id of the element that opens the indicator (Ionic <c>trigger</c>). Kept for API
+    /// parity; the host drives <see cref="IsOpen"/> in this port.</summary>
+    [Parameter] public string? Trigger { get; set; }
+
+    /// <summary>Raised when the indicator dismisses (null role on a normal dismiss, <c>"backdrop"</c>
+    /// when the backdrop is tapped).</summary>
+    [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
+
+    private string? _spinner;
+
+    protected override void OnParametersSet()
+    {
+        // A null Spinner resolves to the per-mode default; an explicit "" hides the spinner.
+        _spinner = Spinner ?? (Mode == "ios" ? "lines" : "crescent");
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-loading")
+            .If(!IsOpen, "overlay-hidden")
+            .If(Translucent, "loading-translucent");
+    }
+
+    private async Task OnBackdropTapAsync(MouseEventArgs _)
+    {
+        if (!BackdropDismiss) return;
+        await DismissAsync("backdrop");
+    }
+
+    private async Task DismissAsync(string? role)
+    {
+        if (IsOpen)
+        {
+            IsOpen = false;
+            await IsOpenChanged.InvokeAsync(false);
+        }
+        await OnDidDismiss.InvokeAsync(new IonOverlayDismissEventArgs(role, null));
+    }
+}

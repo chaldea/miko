@@ -601,6 +601,77 @@ public class IonicTheme
     /// <summary>Button font size (16px both modes).</summary>
     public float DatetimeButtonFontSize { get; set; } = 16f;
 
+    // Note (note.scss / note.md.vars.scss / note.ios.vars.scss). An inline muted-gray label
+    // (e.g. metadata beside a list item). md uses text-color-step-400; ios uses the lighter
+    // text-color-step-650. Both resolve to a 14px font (md dynamic-font(14); ios 0.875*16).
+    /// <summary>Note text color (<c>--color</c>: md <c>$text-color-step-400</c> ≈ #666666,
+    /// ios <c>$text-color-step-650</c> ≈ #a6a6a6).</summary>
+    public Color NoteColor { get; set; } = Color.FromHex("666666");
+    /// <summary>Note font size (md 14px, ios 14px).</summary>
+    public float NoteFontSize { get; set; } = 14f;
+
+    // Thumbnail (thumbnail.scss). A fixed 48px square holding a slotted image that fills it and is
+    // cropped (object-fit: cover). No per-mode difference (there is no thumbnail.md/.ios).
+    /// <summary>Thumbnail width/height (<c>--size</c>, 48px both modes).</summary>
+    public float ThumbnailSize { get; set; } = 48f;
+
+    // Skeleton text (skeleton-text.scss / skeleton-text.vars.scss). A placeholder gray bar shown
+    // while content loads. Background is rgba(text-color, .065); the animated variant pulses toward
+    // a lighter rgba(text-color, .135). Miko has no keyframe shimmer here, so the animated state is
+    // modeled as the lighter static fill plus the `skeleton-text-animated` marker class.
+    /// <summary>Skeleton bar background (<c>rgba(text-color, .065)</c> ≈ 0.065*255 alpha over black).</summary>
+    public Color SkeletonTextBackground { get; set; } = new Color(0, 0, 0, 17);      // rgba(0,0,0,.065)
+    /// <summary>Skeleton bar background while animated (<c>rgba(text-color, .135)</c>).</summary>
+    public Color SkeletonTextBackgroundAnimated { get; set; } = new Color(0, 0, 0, 34); // rgba(0,0,0,.135)
+
+    // Toggle (toggle.scss / toggle.md.scss / toggle.ios.scss + their *.vars.scss). A track
+    // (.toggle-icon) holding a sliding knob (.toggle-inner). The knob sits absolutely at the start
+    // of a full-width .toggle-icon-wrapper; when checked, the wrapper translates right so the knob
+    // slides to the end, and the track fills with the checked color. md is a short 36x14 pill with a
+    // 20px round knob that overhangs the track; ios is a taller 51x31 pill with a 27px knob that fits
+    // inside a 2px inset. Disabled dims the whole host.
+    /// <summary>Track width (md 36px, ios 51px).</summary>
+    public float ToggleTrackWidth { get; set; } = 36f;
+    /// <summary>Track height (md 14px, ios 31px).</summary>
+    public float ToggleTrackHeight { get; set; } = 14f;
+    /// <summary>Track corner radius (md = track-height 14px; ios = height*.5 = 15.5px — a full pill).</summary>
+    public Length ToggleBorderRadius { get; set; } = Length.Px(14);
+    /// <summary>Track background when off (md rgba(text,.39), ios rgba(text,.088)).</summary>
+    public Color ToggleTrackBackgroundOff { get; set; }
+    /// <summary>Track background when on (md primary @ .5 alpha, ios solid primary).</summary>
+    public Color ToggleTrackBackgroundOn { get; set; }
+    /// <summary>Knob width (md 20px, ios 27px = height - border*2).</summary>
+    public float ToggleHandleWidth { get; set; } = 20f;
+    /// <summary>Knob height (md 20px, ios 27px).</summary>
+    public float ToggleHandleHeight { get; set; } = 20f;
+    /// <summary>Knob corner radius (md 50% → half the knob for a circle; ios = width*.5 = 25.5px pill).</summary>
+    public Length ToggleHandleBorderRadius { get; set; } = Length.Px(10);
+    /// <summary>Knob background (white both modes).</summary>
+    public Color ToggleHandleBackground { get; set; } = Color.White;
+    /// <summary>Knob elevation shadow (md a 3-layer Material shadow; ios a soft 2-layer shadow).</summary>
+    public List<BoxShadow> ToggleHandleBoxShadow { get; set; } = new();
+    /// <summary>Horizontal inset of the knob inside the track (md 0; ios = border-width 2px).</summary>
+    public float ToggleHandleSpacing { get; set; }
+    /// <summary>Distance the knob slides on check (track-width - handle-width: md 16px, ios 24px).</summary>
+    public float ToggleHandleTravel { get; set; } = 16f;
+    /// <summary>Knob slide transition duration in seconds (md 0.16s, ios 0.30s).</summary>
+    public float ToggleTransitionDuration { get; set; } = 0.16f;
+    /// <summary>Opacity of the whole disabled toggle host (md .38, ios .3).</summary>
+    public float ToggleDisabledOpacity { get; set; } = 0.38f;
+
+    // ProgressBar (progress-bar.scss / .md.scss / .ios.scss + their *.vars.scss). A thin full-width
+    // bar. The .progress-buffer-bar is the track (buffer width); the .progress fill scales with value.
+    // Indeterminate renders two sliding stripe bars. Track background is primary @ .3; the fill is
+    // solid primary. md 4px tall square corners; ios 4px tall fully-rounded pill.
+    /// <summary>Bar height (4px both modes).</summary>
+    public float ProgressBarHeight { get; set; } = 4f;
+    /// <summary>Container corner radius (md 0; ios 9999px → a full pill).</summary>
+    public float ProgressBarBorderRadius { get; set; }
+    /// <summary>Track / buffer-bar background (<c>--background</c> = primary @ .3 alpha).</summary>
+    public Color ProgressBarBackground { get; set; }
+    /// <summary>Progress fill background (<c>--progress-background</c> = solid primary).</summary>
+    public Color ProgressBarProgressBackground { get; set; }
+
     // Brand palette shared by both modes (ionic.theme.default.scss).
     private static void ApplyBrandColors(IonicTheme t)
     {
@@ -1051,6 +1122,48 @@ public class IonicTheme
         t.DatetimeButtonPaddingX = 12f;
         t.DatetimeButtonFontSize = 16f;
 
+        // Note (note.md.vars.scss): muted gray text (text-color-step-400 ≈ #666666), 14px.
+        t.NoteColor = Color.FromHex("666666");                    // $text-color-step-400
+        t.NoteFontSize = 14f;                                     // dynamic-font(14px)
+
+        // Thumbnail (thumbnail.scss): 48px square, no per-mode difference.
+        t.ThumbnailSize = 48f;
+
+        // Skeleton text (skeleton-text.vars.scss): rgba(text,.065) fill; animated pulses to rgba(text,.135).
+        t.SkeletonTextBackground = new Color(0, 0, 0, 17);        // rgba(0,0,0,.065)
+        t.SkeletonTextBackgroundAnimated = new Color(0, 0, 0, 34); // rgba(0,0,0,.135)
+
+        // Toggle (toggle.md.scss / toggle.md.vars.scss): 36x14 track, radius = track-height (14px);
+        // off track rgba(text,.39); on track primary @ .5 alpha; 20px round white knob (radius 10 =
+        // 50%) with a 3-layer Material shadow, no inset, sliding 16px (track-width - handle-width);
+        // 160ms slide; disabled dims the host to .38.
+        t.ToggleTrackWidth = 36f;
+        t.ToggleTrackHeight = 14f;
+        t.ToggleBorderRadius = Length.Px(14);                     // = $toggle-md-track-height
+        t.ToggleTrackBackgroundOff = new Color(0, 0, 0, 99);      // rgba(text,.39)
+        t.ToggleTrackBackgroundOn = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 128); // primary @ .5
+        t.ToggleHandleWidth = 20f;
+        t.ToggleHandleHeight = 20f;
+        t.ToggleHandleBorderRadius = Length.Px(10);               // 50% of a 20px knob → a circle
+        t.ToggleHandleBackground = Color.White;
+        t.ToggleHandleBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 3, 1, -2, new Color(0, 0, 0, 51)),   // rgba(0,0,0,.2)
+            new BoxShadow(0, 2, 2, 0, new Color(0, 0, 0, 36)),    // rgba(0,0,0,.14)
+            new BoxShadow(0, 1, 5, 0, new Color(0, 0, 0, 31)),    // rgba(0,0,0,.12)
+        };
+        t.ToggleHandleSpacing = 0f;                               // --handle-spacing: 0
+        t.ToggleHandleTravel = 36f - 20f;                         // track-width - handle-width = 16px
+        t.ToggleTransitionDuration = 0.16f;                       // $toggle-md-transition-duration
+        t.ToggleDisabledOpacity = 0.38f;                          // $form-control-md-disabled-opacity
+
+        // ProgressBar (progress-bar.md.scss / .md.vars.scss): 4px tall, square corners; track/buffer
+        // primary @ .3 alpha; fill solid primary.
+        t.ProgressBarHeight = 4f;
+        t.ProgressBarBorderRadius = 0f;                           // md has no radius
+        t.ProgressBarBackground = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 77);   // primary @ .3
+        t.ProgressBarProgressBackground = t.Primary;
+
         return t;
     }
 
@@ -1452,6 +1565,48 @@ public class IonicTheme
         t.DatetimeButtonPaddingY = 7f;
         t.DatetimeButtonPaddingX = 13f;
         t.DatetimeButtonFontSize = 16f;
+
+        // Note (note.ios.vars.scss): lighter gray text (text-color-step-650 ≈ #a6a6a6), 14px
+        // (dynamic-font-min(0.875, 16px) → 0.875 * 16).
+        t.NoteColor = Color.FromHex("a6a6a6");                    // $text-color-step-650
+        t.NoteFontSize = 14f;                                     // 0.875 * 16px
+
+        // Thumbnail (thumbnail.scss): 48px square, no per-mode difference.
+        t.ThumbnailSize = 48f;
+
+        // Skeleton text (skeleton-text.vars.scss): rgba(text,.065) fill; animated pulses to rgba(text,.135).
+        t.SkeletonTextBackground = new Color(0, 0, 0, 17);        // rgba(0,0,0,.065)
+        t.SkeletonTextBackgroundAnimated = new Color(0, 0, 0, 34); // rgba(0,0,0,.135)
+
+        // Toggle (toggle.ios.scss / toggle.ios.vars.scss): 51x31 track, radius = height*.5 (15.5px,
+        // a full pill); off track rgba(text,.088); on track solid primary; 27px round white knob
+        // (= height - border*2; radius = width*.5 = 25.5px) with a soft 2-layer shadow, inset 2px,
+        // sliding 24px (track-width - handle-width); 300ms slide; disabled dims the host to .3.
+        t.ToggleTrackWidth = 51f;
+        t.ToggleTrackHeight = 31f;
+        t.ToggleBorderRadius = Length.Px(15.5f);                  // $toggle-ios-height * 0.5
+        t.ToggleTrackBackgroundOff = new Color(0, 0, 0, 22);      // rgba(text,.088)
+        t.ToggleTrackBackgroundOn = t.Primary;                    // ion-color(primary, base)
+        t.ToggleHandleWidth = 27f;                                // height - border*2 = 31 - 4
+        t.ToggleHandleHeight = 27f;
+        t.ToggleHandleBorderRadius = Length.Px(25.5f);            // $toggle-ios-width * 0.5
+        t.ToggleHandleBackground = Color.White;
+        t.ToggleHandleBoxShadow = new List<BoxShadow>
+        {
+            new BoxShadow(0, 3, 4, 0, new Color(0, 0, 0, 15)),    // 0 3px 4px rgba(0,0,0,.06)
+            new BoxShadow(0, 3, 8, 0, new Color(0, 0, 0, 15)),    // 0 3px 8px rgba(0,0,0,.06)
+        };
+        t.ToggleHandleSpacing = 2f;                               // = $toggle-ios-border-width
+        t.ToggleHandleTravel = 51f - 27f;                         // track-width - handle-width = 24px
+        t.ToggleTransitionDuration = 0.30f;                       // $toggle-ios-transition-duration
+        t.ToggleDisabledOpacity = 0.3f;                           // $toggle-ios-disabled-opacity
+
+        // ProgressBar (progress-bar.ios.scss / .ios.vars.scss): 4px tall, fully-rounded (9999px);
+        // track/buffer primary @ .3 alpha; fill solid primary.
+        t.ProgressBarHeight = 4f;
+        t.ProgressBarBorderRadius = 9999f;                        // $progress-bar-ios-border-radius
+        t.ProgressBarBackground = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 77);   // primary @ .3
+        t.ProgressBarProgressBackground = t.Primary;
 
         return t;
     }

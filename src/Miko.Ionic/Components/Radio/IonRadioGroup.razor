@@ -1,0 +1,83 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-radio-group>: a container owning which radio is selected (single-select).
+   <ion-radio-group class="{mode} ion-radio-group" role="radiogroup">
+     <slot />   <!-- ChildContent: the IonRadio children -->
+   </ion-radio-group>
+   The group owns the selected Value (a single string) and cascades it (plus a RequestSelect
+   callback) to its radios via CascadingValue<IonRadioGroupContext>. A radio derives its checked
+   state from Value == its own value, and on click calls back through RequestSelectAsync, which
+   applies Ionic's onClick rules (select the value, or clear it when it is already selected and
+   AllowEmptySelection is set) and re-emits ValueChanged. *@
+<div class="@ClassMapper.Class" style="@Style" role="radiogroup">
+    <CascadingValue TValue="IonRadioGroupContext" Value="_context">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>The selected radio value. Bind two-way with <see cref="ValueChanged"/>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new selected value when it changes (null when cleared).</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>If true, a checked radio can be tapped again to clear the selection.</summary>
+    [Parameter] public bool AllowEmptySelection { get; set; }
+
+    /// <summary>If true, the radios in the group are non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The name of the control, submitted with the form data.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>The radios placed inside the group (Ionic's default slot).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IonRadioGroupContext _context = new();
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-radio-group");
+
+        _context = new IonRadioGroupContext
+        {
+            Value = Value,
+            Disabled = Disabled,
+            AllowEmptySelection = AllowEmptySelection,
+            RequestSelect = EventCallback.Factory.Create<string>(this, RequestSelectAsync),
+        };
+    }
+
+    /// <summary>
+    /// Applies Ionic's radio-group <c>onClick</c> rules: selecting a new value replaces the current
+    /// selection; re-selecting the current value clears it only when <see cref="AllowEmptySelection"/>
+    /// is set (otherwise it is a no-op, since a radio's checked state cannot be toggled off). No-op
+    /// when the group is disabled. Emits <see cref="ValueChanged"/> on change.
+    /// </summary>
+    private async Task RequestSelectAsync(string value)
+    {
+        if (Disabled) return;
+
+        if (value != Value)
+        {
+            Value = value;
+            await ValueChanged.InvokeAsync(Value);
+        }
+        else if (AllowEmptySelection)
+        {
+            Value = null;
+            await ValueChanged.InvokeAsync(Value);
+        }
+        else
+        {
+            return;
+        }
+
+        StateHasChanged();
+    }
+}

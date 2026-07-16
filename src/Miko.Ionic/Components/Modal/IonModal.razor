@@ -1,0 +1,113 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-modal> (modal.tsx render()):
+   <ion-modal class="{mode} modal-default|modal-card|modal-sheet overlay-hidden?" role="dialog">
+     <ion-backdrop />                                <!-- tappable dim layer -->
+     [<div class="modal-shadow" />]                  <!-- ios only -->
+     <div class="modal-wrapper ion-overlay-wrapper"> <!-- the centered card -->
+       <slot />                                       <!-- @ChildContent: usually IonHeader + IonContent -->
+     </div>
+   </ion-modal>
+   Ionic's overlay controller wires `trigger` / `present()` at runtime; Miko has no controller, so
+   the host drives IsOpen (two-way) and the modal raises OnWillDismiss then OnDidDismiss. The host is
+   always mounted; when closed it carries `overlay-hidden` (display:none). ChildContent is the modal
+   body and renders inside `.modal-wrapper`. Card/sheet gestures + precise breakpoints are out of
+   scope here — the sheet params are kept as markers (see comments) and the modal renders as a
+   centered card. *@
+<div class="@ClassMapper.Class" style="@Style" role="dialog">
+    @if (ShowBackdrop)
+    {
+        <div class="ion-backdrop modal-backdrop" @onclick="OnBackdropTapAsync"></div>
+    }
+    @if (Mode == "ios")
+    {
+        <div class="modal-shadow"></div>
+    }
+    <div class="modal-wrapper ion-overlay-wrapper">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    /// <summary>Whether the modal is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
+    [Parameter] public bool IsOpen { get; set; }
+
+    /// <summary>Raised with the new open state when the modal opens/closes.</summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    /// <summary>If true (default), tapping the backdrop dismisses the modal.</summary>
+    [Parameter] public bool BackdropDismiss { get; set; } = true;
+
+    /// <summary>If true (default), the backdrop is rendered behind the modal. When false the
+    /// backdrop element is omitted (there is nothing to dim/tap).</summary>
+    [Parameter] public bool ShowBackdrop { get; set; } = true;
+
+    /// <summary>Id of the element that opens the modal (Ionic <c>trigger</c>). Kept for API parity;
+    /// the host drives <see cref="IsOpen"/> in this port.</summary>
+    [Parameter] public string? Trigger { get; set; }
+
+    /// <summary>The element the modal is presented from (Ionic <c>presentingElement</c>). A marker
+    /// only — this port always renders a centered card modal (no ios card-modal stack effect).</summary>
+    [Parameter] public object? Presenting { get; set; }
+
+    /// <summary>Sheet-modal snap points, 0..1 (Ionic <c>breakpoints</c>). A marker only — sheet
+    /// gestures/snapping are out of scope; the modal renders as a centered card.</summary>
+    [Parameter] public double[]? Breakpoints { get; set; }
+
+    /// <summary>Initial sheet-modal snap point (Ionic <c>initialBreakpoint</c>). A marker only —
+    /// see <see cref="Breakpoints"/>.</summary>
+    [Parameter] public double? InitialBreakpoint { get; set; }
+
+    /// <summary>Keep the child content mounted while the modal is closed (Ionic
+    /// <c>keepContentsMounted</c>). A marker only — in this port the host is always mounted, so the
+    /// content is always in the tree (hidden via <c>overlay-hidden</c> when closed).</summary>
+    [Parameter] public bool KeepContentsMounted { get; set; }
+
+    /// <summary>The modal body. Renders inside <c>.modal-wrapper</c> — usually an
+    /// <c>IonHeader</c> + <c>IonContent</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Raised before the modal dismisses (Ionic <c>ionModalWillDismiss</c>).</summary>
+    [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnWillDismiss { get; set; }
+
+    /// <summary>Raised after the modal dismisses (Ionic <c>ionModalDidDismiss</c>), with the role
+    /// (<c>"backdrop"</c> on a backdrop tap, otherwise the caller's role).</summary>
+    [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // isSheetModal in modal.tsx is `breakpoints && initialBreakpoint` — mirror the class stamp.
+        var isSheet = Breakpoints is { Length: > 0 } && InitialBreakpoint is not null;
+        var isCard = Presenting is not null && Mode == "ios";
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-modal")
+            .If(!isCard && !isSheet, "modal-default")
+            .If(isCard, "modal-card")
+            .If(isSheet, "modal-sheet")
+            .If(!IsOpen, "overlay-hidden");
+    }
+
+    private async Task OnBackdropTapAsync(MouseEventArgs _)
+    {
+        if (!BackdropDismiss) return;
+        await DismissAsync("backdrop", null);
+    }
+
+    /// <summary>Dismisses the modal, raising <see cref="OnWillDismiss"/> then
+    /// <see cref="OnDidDismiss"/>. The host may call this to close the modal programmatically.</summary>
+    public async Task DismissAsync(string? role = null, object? data = null)
+    {
+        var detail = new IonOverlayDismissEventArgs(role, data);
+        await OnWillDismiss.InvokeAsync(detail);
+        if (IsOpen)
+        {
+            IsOpen = false;
+            await IsOpenChanged.InvokeAsync(false);
+        }
+        await OnDidDismiss.InvokeAsync(detail);
+    }
+}

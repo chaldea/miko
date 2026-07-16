@@ -1,0 +1,19 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-thumbnail>: a fixed 48px square that clips a slotted image (typically an
+   <img> / <ion-img>) to fill and crop it (object-fit: cover). ios and md share the same geometry,
+   so the mode class is stamped only for selector parity with the rest of the component suite. *@
+<div class="@ClassMapper.Class" style="@Style">
+    @ChildContent
+</div>
+
+@code {
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-thumbnail");
+    }
+}

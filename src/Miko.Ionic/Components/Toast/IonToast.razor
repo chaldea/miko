@@ -1,0 +1,171 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-toast> (toast.tsx render()):
+   <ion-toast class="{mode} overlay-hidden? [ion-color ion-color-{color}] toast-translucent?">
+     <div class="toast-wrapper toast-{position} toast-layout-baseline">
+       <div class="toast-container">
+         [start button group: <div class="toast-button-group toast-button-group-start"> <button class="toast-button ...">...</button> </div>]
+         [<ion-icon class="toast-icon" icon=Icon />]
+         <div class="toast-content">
+           [<div class="toast-header">Header</div>]
+           [<div class="toast-message">Message</div>]
+         </div>
+         [end button group: <div class="toast-button-group toast-button-group-end"> ... </div>]
+       </div>
+     </div>
+   </ion-toast>
+   A toast is a non-blocking notification: it has NO backdrop. Ionic's overlay controller wires
+   `trigger` / `present()`; Miko has no controller, so the host drives IsOpen (two-way) and the
+   toast raises OnDidDismiss with the tapped button's role. Cancel-role buttons dismiss without
+   running as a normal action; other buttons run their handler then dismiss. The host is always
+   mounted; when closed it carries `overlay-hidden` (display:none). *@
+<div class="@ClassMapper.Class" style="@Style">
+    <div class="@_wrapperClass">
+        <div class="toast-container">
+            @if (_startButtons.Count > 0)
+            {
+                <div class="toast-button-group toast-button-group-start">
+                    @foreach (var button in _startButtons)
+                    {
+                        <button class="@ButtonClass(button)" @onclick="@(() => ButtonClickAsync(button))">
+                            <div class="toast-button-inner">
+                                @if (!string.IsNullOrEmpty(button.Icon))
+                                {
+                                    <IonIcon Icon="@button.Icon" Class="toast-button-icon" />
+                                }
+                                @button.Text
+                            </div>
+                        </button>
+                    }
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <IonIcon Icon="@Icon" Class="toast-icon" />
+            }
+            <div class="toast-content">
+                @if (Header is not null)
+                {
+                    <div class="toast-header">@Header</div>
+                }
+                @if (Message is not null)
+                {
+                    <div class="toast-message">@Message</div>
+                }
+            </div>
+            @if (_endButtons.Count > 0)
+            {
+                <div class="toast-button-group toast-button-group-end">
+                    @foreach (var button in _endButtons)
+                    {
+                        <button class="@ButtonClass(button)" @onclick="@(() => ButtonClickAsync(button))">
+                            <div class="toast-button-inner">
+                                @if (!string.IsNullOrEmpty(button.Icon))
+                                {
+                                    <IonIcon Icon="@button.Icon" Class="toast-button-icon" />
+                                }
+                                @button.Text
+                            </div>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>The body message.</summary>
+    [Parameter] public string? Message { get; set; }
+
+    /// <summary>Optional bold header shown above the message.</summary>
+    [Parameter] public string? Header { get; set; }
+
+    /// <summary>Where the toast sits: <c>"top"</c>, <c>"middle"</c>, or <c>"bottom"</c> (default).</summary>
+    [Parameter] public string Position { get; set; } = "bottom";
+
+    /// <summary>Optional leading icon (an Ionicons name) shown before the content.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .
+    /// Stamps <c>ion-color ion-color-{color}</c> so the color-scoped rules tint the wrapper.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>The buttons to show. Split into start/end groups by <see cref="IonToastButton.Side"/>.</summary>
+    [Parameter] public IReadOnlyList<IonToastButton> Buttons { get; set; } = Array.Empty<IonToastButton>();
+
+    /// <summary>Number of milliseconds before auto-dismissing (Ionic <c>duration</c>). Marker only:
+    /// the auto-dismiss timer is not wired in this static port, but the value is kept for parity.</summary>
+    [Parameter] public int Duration { get; set; }
+
+    /// <summary>Whether the toast is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
+    [Parameter] public bool IsOpen { get; set; }
+
+    /// <summary>Raised with the new open state when the toast opens/closes.</summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    /// <summary>If true, the surface is translucent (ios blur). Marker only in this port.</summary>
+    [Parameter] public bool Translucent { get; set; }
+
+    /// <summary>Id of the element that opens the toast (Ionic <c>trigger</c>). Kept for API parity;
+    /// the host drives <see cref="IsOpen"/> in this port.</summary>
+    [Parameter] public string? Trigger { get; set; }
+
+    /// <summary>Raised when the toast dismisses, with the tapped button's role (or null).</summary>
+    [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
+
+    private IReadOnlyList<IonToastButton> _startButtons = Array.Empty<IonToastButton>();
+    private IReadOnlyList<IonToastButton> _endButtons = Array.Empty<IonToastButton>();
+    private string _wrapperClass = "toast-wrapper ion-overlay-wrapper toast-bottom toast-layout-baseline";
+
+    protected override void OnParametersSet()
+    {
+        var position = string.IsNullOrEmpty(Position) ? "bottom" : Position.ToLowerInvariant();
+
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-toast")
+            .If(!IsOpen, "overlay-hidden")
+            .If(!string.IsNullOrEmpty(Color), "ion-color")
+            .AddColor(Color)
+            .If(Translucent, "toast-translucent");
+
+        _wrapperClass = $"toast-wrapper ion-overlay-wrapper toast-{position} toast-layout-baseline";
+
+        // Start group = side "start"; everything else (including undefined) goes end (toast.tsx).
+        _startButtons = Buttons.Where(b => b.IsStart).ToList();
+        _endButtons = Buttons.Where(b => !b.IsStart).ToList();
+    }
+
+    // toast-button + icon-only/role/state markers (toast.tsx buttonClass()).
+    private static string ButtonClass(IonToastButton button)
+    {
+        var cls = "toast-button ion-focusable ion-activatable";
+        if (button.IsIconOnly) cls += " toast-button-icon-only";
+        if (!string.IsNullOrEmpty(button.Role)) cls += $" toast-button-{button.Role.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(button.CssClass)) cls += $" {button.CssClass}";
+        return cls;
+    }
+
+    private async Task ButtonClickAsync(IonToastButton button)
+    {
+        // Cancel buttons dismiss without running as a normal action; others run then dismiss.
+        if (!button.IsCancel)
+        {
+            button.Handler?.Invoke();
+        }
+        await DismissAsync(button.Role);
+    }
+
+    private async Task DismissAsync(string? role)
+    {
+        if (IsOpen)
+        {
+            IsOpen = false;
+            await IsOpenChanged.InvokeAsync(false);
+        }
+        await OnDidDismiss.InvokeAsync(new IonOverlayDismissEventArgs(role, null));
+    }
+}

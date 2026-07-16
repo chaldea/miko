@@ -1,0 +1,51 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-picker> (picker.tsx render()):
+   <ion-picker class="{mode} ion-picker picker-has-multiple-columns?">
+     <input />                             <!-- hidden numeric input for keyboard entry; omitted here -->
+     <div class="picker-before"></div>     <!-- top fade gradient marker -->
+     <div class="picker-after"></div>      <!-- bottom fade gradient marker -->
+     <div class="picker-highlight"></div>  <!-- the centered selection band -->
+     <slot></slot>                         <!-- ChildContent: the IonPickerColumn children -->
+   </ion-picker>
+   The picker is mostly a styled flex container: it lays its columns out in a row and paints a
+   center highlight band plus top/bottom fade gradients. Ionic's input-mode / scroll / haptics logic
+   is runtime DOM behavior with no Miko equivalent, so it is omitted. The `picker-has-multiple-columns`
+   marker is computed in Build() by counting the .ion-picker-column descendants (like
+   IonBreadcrumbs' Build() post-pass), since it can only be known once the children exist. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <div class="picker-before"></div>
+    <div class="picker-after"></div>
+    <div class="picker-highlight"></div>
+    @ChildContent
+</div>
+
+@code {
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-picker");
+    }
+
+    /// <summary>
+    /// After the subtree is built, stamp <c>picker-has-multiple-columns</c> when more than one
+    /// column exists. Ionic derives this from the number of slotted <c>ion-picker-column</c>s at
+    /// runtime; here we count the built <c>.ion-picker-column</c> descendants, which is only possible
+    /// once every child column is in the tree.
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+
+        var columns = root.FindByClass("ion-picker-column");
+        if (columns.Count > 1)
+        {
+            root.Class += " picker-has-multiple-columns";
+        }
+
+        return root;
+    }
+}

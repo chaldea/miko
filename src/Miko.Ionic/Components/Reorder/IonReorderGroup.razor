@@ -1,0 +1,51 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-reorder-group>: the container that owns whether its nested reorder handles
+   are enabled.
+   <ion-reorder-group class="{mode} ion-reorder-group [reorder-list-active] [reorder-group-disabled]">
+     <slot />   <!-- ChildContent: the list items, each containing an IonReorder handle -->
+   </ion-reorder-group>
+   The group cascades a IonReorderGroupContext { Disabled } down to its IonReorder children so each
+   handle can decide whether to show. Ionic defaults `disabled` to true (the group must be explicitly
+   enabled to allow reordering); this port keeps that default.
+
+   NOTE: this is a structural / visual port only. The live drag-to-reorder gesture (pointer tracking,
+   item translation, ionItemReorder/ionReorderEnd completion) is NOT implemented — Miko has no gesture
+   engine here. OnItemReorder is exposed as a marker callback so consuming code can compile against the
+   same surface, but it is never raised. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <CascadingValue TValue="IonReorderGroupContext" Value="_context">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>If true (default, matching Ionic), the reorder handles are hidden and the group is
+    /// non-interactive. Set to false to reveal the handles.</summary>
+    [Parameter] public bool Disabled { get; set; } = true;
+
+    /// <summary>Marker for Ionic's <c>ionItemReorder</c> / <c>ionReorderEnd</c> event. Never raised in
+    /// this base port because the drag gesture is not implemented; present so consuming code can bind
+    /// to the same surface.</summary>
+    [Parameter] public EventCallback<(int From, int To)> OnItemReorder { get; set; }
+
+    /// <summary>The reorderable list items, each typically containing an <see cref="IonReorder"/>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IonReorderGroupContext _context = new();
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-reorder-group")
+            .If(Disabled, "reorder-group-disabled");
+
+        _context = new IonReorderGroupContext
+        {
+            Disabled = Disabled,
+        };
+    }
+}

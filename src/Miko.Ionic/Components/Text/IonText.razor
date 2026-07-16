@@ -1,0 +1,25 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-text>: a minimal inline wrapper whose only job is to color its slotted
+   content with the named palette color (via the `ion-color` class). It has no styling of its own
+   beyond that — so with no `color` it renders transparently around its children. *@
+<span class="@ClassMapper.Class" style="@Style">
+    @ChildContent
+</span>
+
+@code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the text color.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-text")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+    }
+}

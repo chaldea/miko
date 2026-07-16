@@ -1,0 +1,30 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-skeleton-text>: a placeholder gray bar shown while content loads.
+   <ion-skeleton-text>            <!-- host: the mode + optional skeleton-text-animated class -->
+     <span>&#160;</span>         <!-- an inline-block spacer (a non-breaking space) giving the bar its height -->
+   </ion-skeleton-text>
+   The host paints the gray fill (rgba(text,.065)); the animated variant swaps to the lighter
+   rgba(text,.135) fill (Ionic uses a keyframe shimmer gradient, which Miko has no direct analog for,
+   so the animated state is modeled as the lighter static fill plus the marker class).
+   Ionic's markup uses a literal &nbsp;; here the inner span holds a U+00A0 so the layout matches
+   without relying on HTML entity decoding in the Razor compiler. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <span> </span>
+</div>
+
+@code {
+    /// <summary>If true, the skeleton bar is marked animated (Ionic <c>animated</c>). Stamps the
+    /// <c>skeleton-text-animated</c> class the stylesheet maps to the lighter pulse fill.</summary>
+    [Parameter] public bool Animated { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-skeleton-text")
+            .If(Animated, "skeleton-text-animated");
+    }
+}

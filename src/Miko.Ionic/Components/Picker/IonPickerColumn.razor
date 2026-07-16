@@ -1,0 +1,84 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-picker-column> (picker-column.tsx render()):
+   <ion-picker-column class="{mode} ion-picker-column picker-column-disabled? ion-color? ...">
+     <slot name="prefix"></slot>          <!-- SlotPrefix -->
+     <div class="picker-opts">            <!-- the scrollable option list -->
+       <slot></slot>                      <!-- ChildContent: the IonPickerColumnOption children -->
+     </div>
+     <slot name="suffix"></slot>          <!-- SlotSuffix -->
+   </ion-picker-column>
+   The column owns the single selected Value and cascades it (plus a RequestSelect callback) to its
+   options via CascadingValue<IonPickerColumnContext>. Options match the context by type. When an
+   option is tapped it calls back through SelectAsync, which sets Value and re-emits ValueChanged so
+   the host can update the shared selected value — exactly the single-select column→option cascade of
+   IonAccordionGroup. Ionic's scroll-snap wheel / IntersectionObserver / keyboard logic is runtime DOM
+   behavior with no Miko equivalent, so it is omitted; selection here is click-driven.
+   The empty spacer rows Ionic renders inside .picker-opts (to allow the first/last option to scroll
+   to center) are omitted since there is no scroll wheel. *@
+<div class="@ClassMapper.Class" style="@Style">
+    @SlotPrefix
+    <div class="picker-opts">
+        <CascadingValue TValue="IonPickerColumnContext" Value="_context">
+            @ChildContent
+        </CascadingValue>
+    </div>
+    @SlotSuffix
+</div>
+
+@code {
+    /// <summary>The column's selected option value. Bind two-way with <see cref="ValueChanged"/>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new value when an option is tapped.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>If true, the whole column is dimmed and non-interactive.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Named palette color (Ionic <c>color</c>, defaults to <c>"primary"</c>): tints the
+    /// active option.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Content shown on the left of the options (Ionic <c>slot="prefix"</c>).</summary>
+    [Parameter] public RenderFragment? SlotPrefix { get; set; }
+
+    /// <summary>Content shown on the right of the options (Ionic <c>slot="suffix"</c>).</summary>
+    [Parameter] public RenderFragment? SlotSuffix { get; set; }
+
+    private IonPickerColumnContext _context = new();
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(ClassName)
+            .Add(Mode)
+            .Add("ion-picker-column")
+            .If(Disabled, "picker-column-disabled")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+
+        // Rebuild the cascaded context each render so options read the current Value and a
+        // RequestSelect callback bound to this column instance.
+        _context = new IonPickerColumnContext
+        {
+            Value = Value,
+            Disabled = Disabled,
+            RequestSelect = EventCallback.Factory.Create<string>(this, SelectAsync),
+        };
+    }
+
+    /// <summary>
+    /// Invoked by a child option to request becoming the selected one. Mirrors Ionic's
+    /// <c>setValue()</c> — no-op when the column is disabled or the value is unchanged; otherwise sets
+    /// <see cref="Value"/> and emits <see cref="ValueChanged"/>.
+    /// </summary>
+    private async Task SelectAsync(string value)
+    {
+        if (Disabled || value == Value) return;
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
+        StateHasChanged();
+    }
+}
