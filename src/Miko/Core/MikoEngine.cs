@@ -92,6 +92,9 @@ public class MikoEngine
 
     public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight)
     {
+        // Capture old layout for scroll position restoration (ISSUE-092)
+        var oldLayout = _currentLayout;
+
         // Transfer old LayoutBox references to new elements for transition detection
         if (_root != null)
         {
@@ -114,12 +117,17 @@ public class MikoEngine
 
         _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
 
+        // Restore scroll positions from old layout (ISSUE-092)
+        RestoreScrollState(oldLayout, _currentLayout);
+
         if (oldStyles.Elements.Count > 0 || oldStyles.PseudoElements.Count > 0)
         {
             bool transitionsTriggered = DetectAndTriggerTransitions(root, oldStyles);
             if (transitionsTriggered)
             {
                 _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
+                // Restore scroll state again after re-layout
+                RestoreScrollState(oldLayout, _currentLayout);
             }
         }
 
@@ -1010,23 +1018,59 @@ public class MikoEngine
 
     private static void RestoreScrollStateRecursive(LayoutBox oldBox, LayoutBox newBox)
     {
-        if (oldBox.Element == newBox.Element)
+        // 使用元素身份匹配逻辑（与 MapElementIdentityRecursive 一致），而非引用相等
+        if (IsSameElementIdentity(oldBox.Element, newBox.Element))
         {
             newBox.ScrollTop = oldBox.ScrollTop;
             newBox.ScrollLeft = oldBox.ScrollLeft;
         }
 
+        // 逐个匹配子元素并向下递归。每个旧子元素只能被匹配一次，避免同标签的兄弟节点
+        // （如 .sidebar 与 .main-content 都是 <div>）把滚动状态错误地互相串位。
+        var consumed = new bool[oldBox.Children.Count];
+
         foreach (var newChild in newBox.Children)
         {
-            foreach (var oldChild in oldBox.Children)
+            int matchedIndex = FindMatchingOldChildIndex(oldBox.Children, consumed, newChild);
+            if (matchedIndex >= 0)
             {
-                if (oldChild.Element == newChild.Element)
-                {
-                    RestoreScrollStateRecursive(oldChild, newChild);
-                    break;
-                }
+                consumed[matchedIndex] = true;
+                RestoreScrollStateRecursive(oldBox.Children[matchedIndex], newChild);
             }
         }
+    }
+
+    /// <summary>
+    /// 在尚未被占用的旧子布局盒中，为 <paramref name="newChild"/> 找到最匹配者的索引。
+    /// 匹配优先级：ID 相同 &gt; 标签名 + Class 相同 &gt; 标签名相同。找不到返回 -1。
+    /// 位置（在过滤后的候选集中按顺序）作为最终裁决，确保同标签兄弟节点一一对应而非全部
+    /// 落到第一个匹配上（见 ISSUE-092 的滚动串位回归）。
+    /// </summary>
+    private static int FindMatchingOldChildIndex(List<LayoutBox> oldChildren, bool[] consumed, LayoutBox newChild)
+    {
+        int tagFallback = -1;
+        int classFallback = -1;
+
+        for (int i = 0; i < oldChildren.Count; i++)
+        {
+            if (consumed[i]) continue;
+            var oldElement = oldChildren[i].Element;
+            if (!IsSameElementIdentity(oldElement, newChild.Element)) continue;
+
+            // ID 精确匹配：立即返回。
+            if (!string.IsNullOrEmpty(newChild.Element.Id) && oldElement.Id == newChild.Element.Id)
+                return i;
+
+            // Class 匹配：记录首个候选（同标签且 Class 相同）。
+            if (classFallback < 0 && oldElement.Class == newChild.Element.Class)
+                classFallback = i;
+
+            // 标签名匹配：记录首个候选。
+            if (tagFallback < 0)
+                tagFallback = i;
+        }
+
+        return classFallback >= 0 ? classFallback : tagFallback;
     }
 
     /// <summary>
