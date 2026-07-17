@@ -157,7 +157,10 @@ public class FlexLayout
         // 未约束的容器宽度计算，导致子元素超出容器（见 ISSUE-081 IonCard 在 Flex 容器中宽度问题）。
         bool isBorderBoxW_Early = style.BoxSizing == BoxSizing.BorderBox;
         float horizontalExtra_Early = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
-        if (!style.MaxWidth.IsAuto)
+        // 百分比 max-width 针对不确定宽度的包含块应退化为"无约束"，而非折算为 0 把内容夹取归零
+        // （见 ISSUE-094；与 widthPercentAgainstIndefinite 的百分比宽度退化一致）。
+        bool widthCbIndefinite = constraints.IsInfiniteWidth || (constraints.AvailableWidth ?? 0) <= 0;
+        if (!style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
         {
             float max = style.MaxWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBoxW_Early) max = Math.Max(0, max - horizontalExtra_Early);
@@ -300,15 +303,16 @@ public class FlexLayout
         }
 
         // 7. 应用 min-width/max-width 约束
+        // 百分比 min/max-width 针对不确定宽度的包含块退化为"无约束"（见 ISSUE-094）。
         bool isBorderBoxW = style.BoxSizing == BoxSizing.BorderBox;
         float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
-        if (!style.MinWidth.IsAuto)
+        if (!style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
         {
             float min = style.MinWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBoxW) min = Math.Max(0, min - horizontalExtra);
             contentWidth = Math.Max(contentWidth, min);
         }
-        if (!style.MaxWidth.IsAuto)
+        if (!style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
         {
             float max = style.MaxWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBoxW) max = Math.Max(0, max - horizontalExtra);
