@@ -1019,7 +1019,8 @@ public class MikoEngine
     ///   → 不恢复，新内容从顶部开始（否则短内容会被旧的滚动偏移顶出可视区）。</item>
     /// </list>
     /// <para>结构签名只比较标签名与嵌套形状，忽略文本与属性等叶子值，因此仅有文本变化的
-    /// 重新渲染仍会被视为「同一内容」而正确恢复。</para>
+    /// 重新渲染仍会被视为「同一内容」而正确恢复。结构比较基于 <b>DOM 子树</b>（而非布局子树），
+    /// 使 <c>display:none</c> 的展开/折叠（如 IonAccordion 面板）不被误判为内容替换而重置滚动。</para>
     /// </summary>
     private static void RestoreScrollState(LayoutBox? oldRoot, LayoutBox? newRoot)
     {
@@ -1035,7 +1036,14 @@ public class MikoEngine
         // ——结构一致，旧偏移才仍然有效。结构不同意味着「同一槽位、不同内容」（如路由切换后的
         // .main-content），旧偏移不再对应任何内容，恢复它会把新内容顶出可视区。
         // 将结构比较（O(子树大小)）延迟到确有偏移需要恢复时，避免对整棵树逐节点做深度比较。
-        if ((oldBox.ScrollTop != 0f || oldBox.ScrollLeft != 0f) && HasEquivalentStructure(oldBox, newBox))
+        //
+        // 注意：这里比较的是 DOM 子树（Element）而非布局子树（LayoutBox）。display:none 的元素
+        // 会被布局树过滤掉，因此若按布局树比较，展开/折叠 IonAccordion 面板（切换其内容盒的
+        // display）会被误判为「内容替换」，从而重置外层可滚动容器的滚动条（见 ion-accordion 问题1）。
+        // DOM 子树在 display 切换下保持稳定（内容元素始终在树中，仅计算 display 变化），既能在
+        // 折叠/展开时正确恢复滚动，又能在真正的路由内容替换（DOM 子树形状不同）时正确重置。
+        if ((oldBox.ScrollTop != 0f || oldBox.ScrollLeft != 0f) &&
+            HasEquivalentDomStructure(oldBox.Element, newBox.Element))
         {
             newBox.ScrollTop = oldBox.ScrollTop;
             newBox.ScrollLeft = oldBox.ScrollLeft;
@@ -1056,17 +1064,22 @@ public class MikoEngine
     }
 
     /// <summary>
-    /// 判断两棵布局子树是否<b>结构等价</b>：根标签相同、子节点数量相同，且每个对应位置的子树
-    /// 递归结构等价。只比较标签名与树形，忽略文本、属性、样式等叶子值——因此仅内容文本变化的
-    /// 重新渲染仍算等价（滚动应恢复），而整页替换（子树形状不同）不算等价（滚动应重置）。
+    /// 判断两棵 <b>DOM 子树</b>（<see cref="Element"/>）是否<b>结构等价</b>：根标签相同、
+    /// 子节点数量相同，且每个对应位置的子树递归结构等价。只比较标签名与树形，忽略文本、属性、
+    /// 样式等叶子值——因此仅内容文本变化的重新渲染仍算等价（滚动应恢复），而整页替换（子树
+    /// 形状不同）不算等价（滚动应重置）。
+    /// <para>刻意比较 DOM 树而非布局树：<c>display:none</c> 的元素会从布局树中被过滤，故折叠
+    /// 一个 IonAccordion 面板会改变外层可滚动容器的布局子树形状，若按布局树比较将被误判为
+    /// 「内容替换」而重置滚动条。DOM 树在 display 切换下保持不变（内容元素始终存在），因此
+    /// 展开/折叠面板时能正确恢复滚动，同时真正的路由内容替换仍被正确识别。</para>
     /// </summary>
-    private static bool HasEquivalentStructure(LayoutBox a, LayoutBox b)
+    private static bool HasEquivalentDomStructure(Element a, Element b)
     {
-        if (!IsSameElementIdentity(a.Element, b.Element)) return false;
+        if (!IsSameElementIdentity(a, b)) return false;
         if (a.Children.Count != b.Children.Count) return false;
         for (int i = 0; i < a.Children.Count; i++)
         {
-            if (!HasEquivalentStructure(a.Children[i], b.Children[i])) return false;
+            if (!HasEquivalentDomStructure(a.Children[i], b.Children[i])) return false;
         }
         return true;
     }

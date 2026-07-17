@@ -799,6 +799,15 @@ public class FlexLayout
             var childStyle = child.ComputedStyle;
             float childFs = childStyle.FontSize.Value;
 
+            // 交叉轴是否 stretch：仅当有效 align（align-self 覆盖 align-items）为 Stretch
+            // 且交叉轴尺寸为 auto 时，子元素才填满该行的交叉尺寸。文本节点不可拉伸。
+            // 非 stretch 且交叉轴 auto 的子元素应 shrink-to-fit（内容尺寸），而非撑满交叉轴
+            // （见 ISSUE-093 问题1：align-items:center 的 auto 宽度列项应收缩包裹）。
+            AlignItems effectiveAlign = ResolveItemAlign(childStyle.AlignSelf, alignItems);
+            bool crossSizeIsAuto = isRow ? childStyle.Height.IsAuto : childStyle.Width.IsAuto;
+            bool crossStretches = effectiveAlign == AlignItems.Stretch
+                && crossSizeIsAuto && child.Type != LayoutType.Text;
+
             // 处理 auto margin。
             float extraMarginBefore = 0, extraMarginAfter = 0;
             if (hasAutoMargins)
@@ -825,7 +834,9 @@ public class FlexLayout
                 // 交叉轴（高）可用尺寸：仅当容器高度为确定尺寸时才作为确定包含块传给子元素，
                 // 以解析子元素 height:100%。容器高度为 auto（即便被 min-height 抬升到 lineCrossSize>0）
                 // 时传 null，使子元素百分比高度退化为内容尺寸（见 ISSUE-078）。
-                float? childAvailableHeight = crossSizeIsDefinite && lineCrossSize > 0 ? lineCrossSize : null;
+                // 交叉轴为 auto 且非 stretch 时也传 null，让子元素按内容 shrink-to-fit（见 ISSUE-093 问题1）。
+                float? childAvailableHeight = crossSizeIsDefinite && lineCrossSize > 0
+                    && (crossStretches || !crossSizeIsAuto) ? lineCrossSize : null;
 
                 // dispatch 把 margin-box 原点放到 currentMain；置子前不再修正坐标。
                 if (needsResize || !info.UsedAutoSize)
@@ -864,7 +875,9 @@ public class FlexLayout
                 // 交叉轴（宽）可用尺寸：仅当容器宽度为确定尺寸时才作为确定包含块传给子元素，
                 // 以解析子元素 width:100%。容器宽度为 auto（即便被 min-width 抬升到 lineCrossSize>0）
                 // 时传 null，使子元素百分比宽度退化为内容尺寸（见 ISSUE-078）。
-                float? childAvailableWidth = crossSizeIsDefinite && lineCrossSize > 0 ? lineCrossSize : null;
+                // 交叉轴为 auto 且非 stretch 时也传 null，让子元素按内容 shrink-to-fit（见 ISSUE-093 问题1）。
+                float? childAvailableWidth = crossSizeIsDefinite && lineCrossSize > 0
+                    && (crossStretches || !crossSizeIsAuto) ? lineCrossSize : null;
 
                 if (needsResize || !info.UsedAutoSize)
                 {
@@ -969,7 +982,8 @@ public class FlexLayout
                 case Common.AlignItems.Center: offset = (crossSize - childCrossSize) / 2; break;
                 case Common.AlignItems.Stretch:
                     // 文本节点不可拉伸（其尺寸由文本决定），锚定起点。
-                    if (child.Type == LayoutType.Text) break;
+                    // 强制换行元素（br）不产生可见盒，交叉轴保持 0 尺寸不拉伸（见 ISSUE-093 问题2）。
+                    if (child.Type == LayoutType.Text || BlockLayout.IsForcedLineBreak(child)) break;
                     if (isRow)
                     {
                         if (child.ComputedStyle.Height.IsAuto)

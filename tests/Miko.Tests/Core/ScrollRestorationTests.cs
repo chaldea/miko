@@ -481,6 +481,83 @@ public class ScrollRestorationTests
             "Scroll should be restored when structure is unchanged and only leaf text differs");
     }
 
+    [Fact]
+    public void Initialize_ShouldRestoreScroll_WhenDescendantTogglesDisplayNone()
+    {
+        // 复现 ion-accordion 问题1：可滚动容器 .root 内含一个折叠面板，其内容盒在折叠时为
+        // display:none、展开时可见。切换该后代的 display 会改变 .root 的<b>布局</b>子树形状
+        // （display:none 的盒子被从布局树过滤），但 DOM 子树保持不变（内容元素始终在树中）。
+        // 展开/折叠面板时，绝不能重置外层 .root 的滚动条。
+        static DivElement BuildRoot(bool expanded)
+        {
+            // 内容盒：折叠时 display:none，展开时为块级（始终存在于 DOM 中）。
+            var content = new DivElement
+            {
+                Class = "accordion-content",
+                Style = new Style
+                {
+                    Display = expanded ? Display.Block : Display.None,
+                    Height = Length.Px(120),
+                },
+                TextContent = "Panel content"
+            };
+
+            var accordion = new DivElement { Class = "accordion" };
+            accordion.AddChild(new DivElement
+            {
+                Class = "accordion-header",
+                Style = new Style { Height = Length.Px(48) },
+                TextContent = "Header"
+            });
+            accordion.AddChild(content);
+
+            // 高内容块，使 .root 产生可滚动溢出。
+            var container = new DivElement
+            {
+                Class = "container",
+                Style = new Style { Height = Length.Px(600) },
+                TextContent = "Demo"
+            };
+
+            var root = new DivElement
+            {
+                Class = "root",
+                Style = new Style
+                {
+                    Width = Length.Px(500),
+                    Height = Length.Px(500),
+                    OverflowY = Overflow.Scroll,
+                }
+            };
+            root.AddChild(container);
+            root.AddChild(accordion);
+            return root;
+        }
+
+        var engine = new MikoEngine();
+        using var surface = SKSurface.Create(new SKImageInfo(500, 500));
+        // 初始：面板折叠。
+        engine.Initialize(BuildRoot(expanded: false), new List<StyleSheet>(), surface.Canvas, 500, 500);
+
+        // 滚动 .root 到底部。
+        engine.ScrollBy(250, 250, 0, 9999);
+        var scrolled = engine.GetCurrentLayout()!.ScrollTop;
+        scrolled.ShouldBeGreaterThan(0, "root should be scrolled to the bottom");
+
+        // 展开面板：内容盒从 display:none 变为可见（模拟 IonAccordion 展开触发重建）。
+        engine.Initialize(BuildRoot(expanded: true), new List<StyleSheet>(), surface.Canvas, 500, 500);
+
+        // 关键断言：展开面板不得重置 .root 的滚动条。
+        engine.GetCurrentLayout()!.ScrollTop.ShouldBe(scrolled,
+            "Expanding an accordion panel must not reset the outer scroll position");
+
+        // 再次折叠面板：内容盒回到 display:none。
+        engine.Initialize(BuildRoot(expanded: false), new List<StyleSheet>(), surface.Canvas, 500, 500);
+
+        engine.GetCurrentLayout()!.ScrollTop.ShouldBe(scrolled,
+            "Collapsing an accordion panel must not reset the outer scroll position");
+    }
+
     private LayoutBox? FindLayoutBoxById(LayoutBox root, string id)
     {
         if (root.Element.Id == id) return root;
