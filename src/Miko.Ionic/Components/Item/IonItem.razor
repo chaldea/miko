@@ -1,23 +1,181 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@* Mirrors Ionic's <ion-item> host structure (item.tsx render()):
+   <ion-item>                              <!-- host: lines / color / activatable / disabled -->
+     <TagType class="item-native">         <!-- native surface: button if Button, a if Href, else div -->
+       <slot name="start" />               <!-- leading content (LTR left) -->
+       <div class="item-inner">            <!-- arranges the row -->
+         <div class="input-wrapper">        <!-- wraps the default slot -->
+           <slot />                          <!-- default label content -->
+         </div>
+         <slot name="end" />                <!-- trailing content (LTR right) -->
+         <ion-icon class="item-detail-icon" /> <!-- detail chevron, when showDetail -->
+       </div>
+     </TagType>
+   </ion-item>
+   The named slots map to RenderFragment parameters (Start / End), each wrapped in a marker span
+   (ion-slot-start / ion-slot-end) so the slot styles apply — mirroring Ionic's ::slotted([slot=…]).
+   The default slot maps to ChildContent, rendered inside .input-wrapper.
+   Ionic renders a <button> when `button` is set, an <a> when `href` is set, else a <div>; this
+   port keeps that TagType switch (navigation itself is out of scope for the renderer).
+   The detail chevron shows when `detail` is true, or (when detail is unset) on iOS for a
+   clickable item — matching Ionic's `showDetail = detail ?? (mode === 'ios' && clickable)`. *@
 <div class="@ClassMapper.Class" style="@Style">
-    @ChildContent
+    @if (IsClickable && string.IsNullOrEmpty(Href))
+    {
+        <button class="item-native" @onclick="HandleClick">
+            @if (Start is not null)
+            {
+                <span class="ion-slot-start">@Start</span>
+            }
+            <div class="item-inner">
+                <div class="input-wrapper">@ChildContent</div>
+                @if (End is not null)
+                {
+                    <span class="ion-slot-end">@End</span>
+                }
+                @if (ShowDetail)
+                {
+                    <IonIcon Icon="@DetailIcon" Class="item-detail-icon" />
+                }
+            </div>
+        </button>
+    }
+    else if (IsClickable)
+    {
+        <a class="item-native" href="@Href" @onclick="HandleClick">
+            @if (Start is not null)
+            {
+                <span class="ion-slot-start">@Start</span>
+            }
+            <div class="item-inner">
+                <div class="input-wrapper">@ChildContent</div>
+                @if (End is not null)
+                {
+                    <span class="ion-slot-end">@End</span>
+                }
+                @if (ShowDetail)
+                {
+                    <IonIcon Icon="@DetailIcon" Class="item-detail-icon" />
+                }
+            </div>
+        </a>
+    }
+    else
+    {
+        <div class="item-native">
+            @if (Start is not null)
+            {
+                <span class="ion-slot-start">@Start</span>
+            }
+            <div class="item-inner">
+                <div class="input-wrapper">@ChildContent</div>
+                @if (End is not null)
+                {
+                    <span class="ion-slot-end">@End</span>
+                }
+                @if (ShowDetail)
+                {
+                    <IonIcon Icon="@DetailIcon" Class="item-detail-icon" />
+                }
+            </div>
+        </div>
+    }
 </div>
 
 @code {
-    /// <summary>
-    /// Divider behavior. <c>"none"</c> drops the bottom divider; any other value (or null)
-    /// keeps the default hairline. Mirrors Ionic's <c>lines</c> attribute on <c>ion-item</c>.
-    /// </summary>
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as <c>ion-color</c> + <c>ion-color-*</c> classes the stylesheet maps to fill / text
+    /// color.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>When true, the item renders a clickable <c>button</c> native surface and becomes
+    /// activatable (Ionic <c>button</c>).</summary>
+    [Parameter] public bool Button { get; set; }
+
+    /// <summary>When set, forces the detail chevron on (<c>true</c>) or off (<c>false</c>). When
+    /// null, Ionic shows it only on iOS for a clickable item. Mirrors Ionic <c>detail</c>.</summary>
+    [Parameter] public bool? Detail { get; set; }
+
+    /// <summary>Icon used for the detail chevron (Ionic <c>detailIcon</c>). Defaults to
+    /// <c>chevron-forward</c>.</summary>
+    [Parameter] public string DetailIcon { get; set; } = Ionicons.ChevronForward;
+
+    /// <summary>When true, the item is dimmed and non-interactive (Ionic <c>disabled</c>).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Link target (Ionic <c>href</c>). When set, the native surface is an <c>a</c> and the
+    /// item is clickable. The renderer does not perform navigation.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>How the bottom border is displayed (Ionic <c>lines</c>): <c>"full"</c>,
+    /// <c>"inset"</c>, or <c>"none"</c>. Null uses the theme default hairline.</summary>
     [Parameter] public string? Lines { get; set; }
+
+    /// <summary>Native button type when the item is a button (Ionic <c>type</c>): <c>"button"</c>
+    /// (default), <c>"submit"</c>, or <c>"reset"</c>. Kept as a marker for API parity.</summary>
+    [Parameter] public string Type { get; set; } = "button";
+
+    /// <summary>Default slot content — the item's label. Redeclared so the compiler treats it as a
+    /// named top-level slot that can coexist with <see cref="Start"/> / <see cref="End"/>.</summary>
+    [Parameter] public new RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Content for Ionic's <c>start</c> slot — placed before the label (left in LTR).
+    /// Typically a leading icon or avatar.</summary>
+    [Parameter] public RenderFragment? Start { get; set; }
+
+    /// <summary>Content for Ionic's <c>end</c> slot — placed after the label (right in LTR).
+    /// Typically a trailing note or control.</summary>
+    [Parameter] public RenderFragment? End { get; set; }
+
+    /// <summary>Raised when a clickable item is tapped (skipped when disabled).</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>True when the item renders a clickable native surface (button or anchor).</summary>
+    private bool IsClickable => Button || !string.IsNullOrEmpty(Href);
+
+    /// <summary>Whether the detail chevron should render: the explicit <see cref="Detail"/> value,
+    /// or (when unset) iOS + clickable — mirroring Ionic's <c>showDetail</c>.</summary>
+    private bool ShowDetail => Detail ?? (Mode == "ios" && IsClickable);
 
     protected override void OnParametersSet()
     {
+        var lines = string.IsNullOrEmpty(Lines) ? null : Lines.ToLowerInvariant();
+
         ClassMapper
             .Clear()
-            .Add(ClassName)
+            .Add(Class)
             .Add(Mode)
             .Add("ion-item")
-            .If(string.Equals(Lines, "none", StringComparison.OrdinalIgnoreCase), "ion-item-lines-none");
+            .If(lines is null, "item-lines-default")
+            .AddValue(lines, "item-lines-")
+            .If(IsClickable, "ion-activatable")
+            .If(Disabled, "item-disabled")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+    }
+
+    /// <summary>
+    /// After the subtree is built, flag the disabled state on the host and its native surface so
+    /// the <c>:disabled</c> stylesheet rules and hit-testing apply (mirrors <see cref="IonCard"/>).
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        if (Disabled)
+        {
+            root.SetState(ElementState.Disabled);
+            if (root.FindByClass("item-native").FirstOrDefault() is { } native)
+            {
+                native.SetState(ElementState.Disabled);
+            }
+        }
+        return root;
+    }
+
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled) return;
+        await OnClick.InvokeAsync();
     }
 }

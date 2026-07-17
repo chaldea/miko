@@ -20,7 +20,9 @@ public class IonItemOptionsTests : IonicComponentTestBase
             parameters.Add(nameof(IonItemOptions.ChildContent), MinimalChild));
 
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("md ion-item-options ion-item-options-end");
+        // Host carries our anchored-edge class (ion-item-options-end) plus Ionic's internal
+        // styling classes (item-options-{mode} / item-options-end).
+        cut.Root.Class.ShouldBe("md ion-item-options item-options-md ion-item-options-end item-options-end");
     }
 
     [Fact]
@@ -32,7 +34,7 @@ public class IonItemOptionsTests : IonicComponentTestBase
             parameters.Add(nameof(IonItemOptions.ChildContent), MinimalChild);
         });
 
-        cut.Root.Class.ShouldBe("md ion-item-options ion-item-options-start");
+        cut.Root.Class.ShouldBe("md ion-item-options item-options-md ion-item-options-start item-options-start");
     }
 
     [Fact]

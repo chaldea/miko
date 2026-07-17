@@ -34,7 +34,7 @@ public abstract class IonicComponentBase : ComponentBase
     /// <summary>
     /// Additional CSS class names to apply to the component's root element.
     /// </summary>
-    [Parameter] public string? ClassName { get; set; }
+    [Parameter] public string? Class { get; set; }
 
     /// <summary>
     /// Inline styles to apply to the component's root element.

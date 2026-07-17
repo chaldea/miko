@@ -12,8 +12,11 @@
     {
         ClassMapper
             .Clear()
-            .Add(ClassName)
+            .Add(Class)
             .Add(Mode)
-            .Add("ion-item-group");
+            .Add("ion-item-group")
+            // Ionic stamps `item-group-{mode}` on the host purely for internal styling
+            // (item-group.tsx). Mirror it so mode-scoped group rules can target it.
+            .Add($"item-group-{Mode}");
     }
 }

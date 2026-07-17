@@ -20,7 +20,8 @@ public class IonItemGroupTests : IonicComponentTestBase
             parameters.Add(nameof(IonItemGroup.ChildContent), MinimalChild));
 
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("md ion-item-group");
+        // Host carries ion-item-group plus Ionic's internal item-group-{mode} styling class.
+        cut.Root.Class.ShouldBe("md ion-item-group item-group-md");
     }
 
     [Fact]
@@ -31,7 +32,7 @@ public class IonItemGroupTests : IonicComponentTestBase
         var cut = Context.Render<IonItemGroup>(parameters =>
             parameters.Add(nameof(IonItemGroup.ChildContent), MinimalChild));
 
-        cut.Root.Class.ShouldBe("ios ion-item-group");
+        cut.Root.Class.ShouldBe("ios ion-item-group item-group-ios");
     }
 
     [Fact]

@@ -48,42 +48,29 @@ internal class GlobalStyles
             {
                 LineHeight = Px(32),
             },
-            [".playground-container"] = new()
+            [".playground"] = new()
             {
-                Border = new Border(1, BorderStyle.Solid, "#dee3ea"),
-                BorderRadius = new BorderRadius(Rem(0.4f)),
-                Display = Display.Block,
-                Height = Px(200),
+                [".playground-container"] = new()
+                {
+                    Border = new Border(1, BorderStyle.Solid, "#dee3ea"),
+                    BorderRadius = new BorderRadius(Rem(0.4f)),
+                    Display = Display.Block,
+                },
+                [".playground-preview"] = new()
+                {
+                    Position = Position.Relative,
+                    Display = Display.Flex,
+                    AlignItems = AlignItems.Center,
+                    JustifyContent = JustifyContent.Center,
+                    Margin = new Margin(Px(18), Px(0)),
+                    Padding = new Padding(Px(16), Px(0)),
+                },
             },
-            [".container-row"] = new ()
+            [".container"] = new()
             {
                 Display = Display.Flex,
-                FlexDirection = FlexDirection.Row,
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.Center,
-                MinHeight = Percent(100),
-            },
-            [".container-column"] = new()
-            {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Column,
-                AlignItems = AlignItems.Stretch,
-                JustifyContent = JustifyContent.Center,
-                MinHeight = Percent(100),
-            },
-            [".container-block"] = new()
-            {
-                Display = Display.Block,
-                MinHeight = Percent(100),
-            },
-            [".wd-400"] = new ()
-            {
-                MaxWidth = Px(400),
-                Margin = new Margin(Px(0), Auto),
-            },
-            [".hi-auto"] = new ()
-            {
-                Height = Auto,
             },
             // A positioned demo stage for the absolutely-positioned FAB. position:relative makes the
             // fab anchor to this box (via its horizontal/vertical classes) instead of the viewport.
@@ -96,6 +83,35 @@ internal class GlobalStyles
             ["img"] = new CssObject()
             {
                 MaxWidth = Percent(100),
+            },
+            [".sc-ion-label-md-h"] = new ()
+            {
+                ["h1,h2,h3,h4,h5,h6"] = new()
+                {
+                    TextOverflow = Css.Inherit,
+                },
+                ["h1"] = new()
+                {
+                    MarginLeft = Px(0),
+                    MarginRight = Px(0),
+                    MarginTop = Px(2),
+                    MarginBottom = Px(2),
+                    FontSize = Rem(1.5f),
+                    FontWeight = FontWeight.Normal,
+                },
+                ["p"] = new()
+                {
+                    MarginLeft = Px(0),
+                    MarginRight = Px(0),
+                    MarginTop = Px(0),
+                    MarginBottom = Px(2),
+                    FontSize = Rem(0.875f),
+                    LineHeight = Rem(1.25f),
+                },
+                ["&>p"] = new()
+                {
+                    Color = (Color)"#666666",
+                }
             }
         });
 

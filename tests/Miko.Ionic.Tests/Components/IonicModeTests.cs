@@ -79,7 +79,9 @@ public class IonicModeTests
     {
         using var ctx = ContextFor(HostPlatform.Ios);
         var cut = ctx.Render<IonItem>(p => p.Add(nameof(IonItem.Lines), "none"));
-        cut.Root.Class.ShouldBe("ios ion-item ion-item-lines-none");
+        // Ionic stamps `item-lines-{lines}` on the host (item.tsx); with an explicit lines value
+        // the `item-lines-default` marker is not applied.
+        cut.Root.Class.ShouldBe("ios ion-item item-lines-none");
     }
 
     [Fact]

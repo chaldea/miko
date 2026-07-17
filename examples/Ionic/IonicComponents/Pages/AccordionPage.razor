@@ -5,3 +5,267 @@
 <p>
     Accordions provide collapsible sections in your content to reduce vertical space while providing a way of organizing and grouping information. All ion-accordion components should be grouped inside ion-accordion-group components.
 </p>
+
+<h2>Basic Usage</h2>
+
+<Playground Width="Px(300)" Height="Px(210)">
+    <IonAccordionGroup>
+        <IonAccordion Value="first">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>First Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    First Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="second">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Second Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Second Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="third">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Third Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Third Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+    </IonAccordionGroup>
+</Playground>
+
+<h2>Toggle Accordions</h2>
+
+<p>
+    Which accordion is open is controlled by setting the value property on ion-accordion-group. Setting this property allows developers to programmatically expand or collapse certain accordions.
+</p>
+
+<Playground Width="Px(300)" Height="Px(400)" Direction="FlexDirection.Column">
+    <IonAccordionGroup Value="@_accordionGroup">
+        <IonAccordion Value="first">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>First Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    First Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="second">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Second Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Second Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="third">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Third Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Third Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+    </IonAccordionGroup>
+    <br />
+    <IonButton OnClick="ToggleAccordion">Toggle Second Accordion</IonButton>
+</Playground>
+
+<h2>Listen for Accordion State Changes</h2>
+
+<p>Developers can listen for the ionChange event to be notified when accordions expand or collapse.</p>
+
+<Playground Width="Px(300)" Height="Px(320)">
+    <IonAccordionGroup ValuesChanged="@AccordionGroupChange">
+        <IonAccordion Value="first">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>First Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    First Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="second">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Second Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Second Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="third">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Third Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Third Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+    </IonAccordionGroup>
+</Playground>
+
+<h2>Multiple Accordions</h2>
+
+<p>Developers can allow multiple accordions to be open at once with the multiple property.</p>
+
+<Playground Width="Px(300)" Height="Px(320)">
+    <IonAccordionGroup Multiple>
+        <IonAccordion Value="first">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>First Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    First Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="second">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Second Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Second Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="third">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Third Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Third Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+    </IonAccordionGroup>
+</Playground>
+
+<h2>Disabling Accordions</h2>
+
+<h3>Individual Accordion</h3>
+
+<p>
+    Individual accordions can be disabled with the disabled property on ion-accordion.
+</p>
+
+<Playground Width="Px(300)" Height="Px(320)">
+    <IonAccordionGroup>
+        <IonAccordion Value="first">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>First Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    First Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="second" Disabled>
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Second Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Second Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="third">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Third Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Third Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+    </IonAccordionGroup>
+</Playground>
+
+<h3>Accordion Group</h3>
+
+<p>
+    The accordion group can be disabled with the disabled property on ion-accordion-group.
+</p>
+
+<Playground Width="Px(300)" Height="Px(320)">
+    <IonAccordionGroup Disabled>
+        <IonAccordion Value="first">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>First Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    First Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="second">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Second Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Second Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+        <IonAccordion Value="third">
+            <HeaderSlot>
+                <IonItem Color="light"><IonLabel>Third Accordion</IonLabel></IonItem>
+            </HeaderSlot>
+            <ContentSlot>
+                <div class="ion-padding">
+                    Third Content
+                </div>
+            </ContentSlot>
+        </IonAccordion>
+    </IonAccordionGroup>
+</Playground>
+
+@code{
+
+    private string? _accordionGroup;
+
+    public void ToggleAccordion()
+    {
+        if (_accordionGroup == "second")
+        {
+            _accordionGroup = null;
+        }
+        else
+        {
+            _accordionGroup = "second";
+        }
+    }
+
+    public void AccordionGroupChange(IReadOnlyList<string> values)
+    {
+
+    }
+}

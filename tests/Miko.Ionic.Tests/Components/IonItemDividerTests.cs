@@ -62,4 +62,54 @@ public class IonItemDividerTests : IonicComponentTestBase
 
         cut.GetTextContent().ShouldContain("Section A");
     }
+
+    [Fact]
+    public void IonItemDivider_RendersInnerWrapperStructure()
+    {
+        var cut = Context.Render<IonItemDivider>(parameters =>
+            parameters.Add(nameof(IonItemDivider.ChildContent), MinimalChild));
+
+        // DOM contract: item-divider-inner > item-divider-wrapper (item-divider.tsx render()).
+        cut.FindByClass("item-divider-inner").Count.ShouldBe(1);
+        cut.FindByClass("item-divider-wrapper").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void IonItemDivider_StampsStickyClass_WhenSticky()
+    {
+        var cut = Context.Render<IonItemDivider>(parameters =>
+        {
+            parameters.Add(nameof(IonItemDivider.Sticky), true);
+            parameters.Add(nameof(IonItemDivider.ChildContent), MinimalChild);
+        });
+
+        cut.Root.ShouldHaveClass("item-divider-sticky");
+    }
+
+    [Fact]
+    public void IonItemDivider_StampsColorClasses_WhenColorProvided()
+    {
+        var cut = Context.Render<IonItemDivider>(parameters =>
+        {
+            parameters.Add(nameof(IonItemDivider.Color), "primary");
+            parameters.Add(nameof(IonItemDivider.ChildContent), MinimalChild);
+        });
+
+        cut.Root.ShouldHaveClass("ion-color");
+        cut.Root.ShouldHaveClass("ion-color-primary");
+    }
+
+    [Fact]
+    public void IonItemDivider_RendersStartAndEndSlots_AsMarkerSpans()
+    {
+        var cut = Context.Render<IonItemDivider>(parameters =>
+        {
+            parameters.Add(nameof(IonItemDivider.Start), (RenderFragment)(b => b.AddContent(0, "S")));
+            parameters.Add(nameof(IonItemDivider.End), (RenderFragment)(b => b.AddContent(0, "E")));
+            parameters.Add(nameof(IonItemDivider.ChildContent), MinimalChild);
+        });
+
+        cut.FindByClass("ion-slot-start").Count.ShouldBe(1);
+        cut.FindByClass("ion-slot-end").Count.ShouldBe(1);
+    }
 }
