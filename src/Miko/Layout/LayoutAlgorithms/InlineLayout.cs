@@ -215,6 +215,16 @@ public class InlineLayout
             contentHeight = Math.Min(contentHeight, max);
         }
 
+        // 强制换行元素（br）作为独立盒（如 flex 项）布局时，应生成一个行盒：宽 0、高一行行高。
+        // 在常规块级流中 br 由 BlockLayout 的 IsForcedLineBreak 特殊路径处理、不读此盒高；
+        // 而作为 flex 项时它是普通行内子盒，需占据一行的交叉/主轴尺寸，否则在列方向塌缩为 0
+        // 导致 br 不产生可见换行（见 ISSUE-093 问题2；对齐浏览器：br flex 项生成一个空行盒）。
+        if (BlockLayout.IsForcedLineBreak(box))
+        {
+            contentWidth = 0;
+            contentHeight = BlockLayout.ResolveLineHeight(style);
+        }
+
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);
     }
 
