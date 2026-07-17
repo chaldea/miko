@@ -91,15 +91,19 @@ public class BlockLayout
         // 应用 min/max 约束
         // border-box 下，min/max-width 约束的是 border-box 宽度，需先扣除水平 padding+border
         // 再与内容宽度比较（与上面 Width 的 border-box 处理保持一致）。
+        // 百分比 min/max-width 针对不确定宽度的包含块（如在 shrink-to-fit 路径下 containerWidth<=0）
+        // 应退化为"无约束"，而非折算为 0 把内容宽度夹取归零（见 ISSUE-094；与 ISSUE-077 的百分比宽度
+        // 退化处理一致）。
         bool isBorderBoxW = style.BoxSizing == BoxSizing.BorderBox;
+        bool widthCbIndefinite = constraints.IsInfiniteWidth || containerWidth <= 0;
         float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
-        if (!style.MinWidth.IsAuto)
+        if (!style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
         {
             float min = style.MinWidth.ToPixels(containerWidth, fs);
             if (isBorderBoxW) min = Math.Max(0, min - horizontalExtra);
             contentWidth = Math.Max(contentWidth, min);
         }
-        if (!style.MaxWidth.IsAuto)
+        if (!style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
         {
             float max = style.MaxWidth.ToPixels(containerWidth, fs);
             if (isBorderBoxW) max = Math.Max(0, max - horizontalExtra);

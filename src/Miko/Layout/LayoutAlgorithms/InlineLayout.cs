@@ -135,13 +135,19 @@ public class InlineLayout
         float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
         float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
 
-        if (!style.MinWidth.IsAuto)
+        // 百分比 min/max-width 针对不确定宽度的包含块退化为"无约束"，而非折算为 0 把内容夹取归零
+        // （见 ISSUE-094；与 widthPercentAgainstIndefinite 的百分比宽度退化一致）。
+        bool widthCbIndefinite = !constraints.AvailableWidth.HasValue || constraints.AvailableWidth.Value <= 0;
+        bool minWidthEffective = !style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite);
+        bool maxWidthEffective = !style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite);
+
+        if (minWidthEffective)
         {
             float min = style.MinWidth.ToPixels(containerWidth, fs);
             if (isBorderBox) min = Math.Max(0, min - horizontalExtra);
             contentWidth = Math.Max(contentWidth, min);
         }
-        if (!style.MaxWidth.IsAuto)
+        if (maxWidthEffective)
         {
             float max = style.MaxWidth.ToPixels(containerWidth, fs);
             if (isBorderBox) max = Math.Max(0, max - horizontalExtra);
@@ -152,7 +158,8 @@ public class InlineLayout
         // 重排在流子元素，使子元素的 width:100% 能解析到父内容宽度（浏览器行为）。
         // 高度传 null 保持不确定——min-height 撑起的高度不使百分比高度可解析（见 ISSUE-078）。
         // 注意：auto 宽度且无 min/max-width 时不重排，保持 shrink-to-fit 的内容尺寸（见 ISSUE-077）。
-        bool widthIsDefinite = !widthIsAuto || !style.MinWidth.IsAuto || !style.MaxWidth.IsAuto;
+        // 针对不确定包含块退化的百分比 min/max-width 不计入"确定宽度"（见 ISSUE-094）。
+        bool widthIsDefinite = !widthIsAuto || minWidthEffective || maxWidthEffective;
         if (widthIsDefinite && contentWidth > 0 && box.Children.Count > 0)
         {
             float childX = contentX;
