@@ -1,6 +1,8 @@
 using Miko.Animation;
 using Miko.Common;
+using Miko.Ionic.Styles;
 using Miko.Styling;
+using static Miko.Ionic.Styles.IonicMixins;
 
 namespace Miko.Ionic.Components;
 
@@ -68,6 +70,9 @@ internal static class ButtonStyles
             // Background/border/color come from the fill rules below; default here is the solid fill.
             [$".ion-button.{mode} .button-native"] = new()
             {
+                // Ionic 的 .button-native { @include text-inherit(); } —— 从宿主继承字体/颜色/字距等。
+                // 直接书写的属性（如下方的 Color/FontSize 覆盖，以及 MinHeight = Inherit）胜过混入。
+                ["..."] = TextInherit(),
                 Position = Position.Relative,
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Row,
@@ -80,7 +85,7 @@ internal static class ButtonStyles
                 // the host value here (and in every variant below that changes the host min-height).
                 // Without this, changing the host min-height (icon-only / small / large) leaves the
                 // native surface stuck at the default, so it no longer fills the host (ISSUE: #4).
-                MinHeight = t.ButtonMinHeight,
+                MinHeight = Inherit,
                 PaddingTop = t.ButtonPaddingTop,
                 PaddingBottom = t.ButtonPaddingBottom,
                 PaddingLeft = t.ButtonPaddingStart,

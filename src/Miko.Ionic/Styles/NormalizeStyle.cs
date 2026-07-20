@@ -59,20 +59,20 @@ namespace Miko.Ionic.Styles
                 // Forms
                 ["label, input, select, textarea"] = new()
                 {
-                    FontFamily = "inherit",
+                    FontFamily = Inherit,
                     LineHeight = new Length(1, LengthUnit.Number),
                 },
                 ["textarea"] = new()
                 {
                     Overflow = Overflow.Auto,
                     Height = Length.Auto,
-                    FontFamily = "inherit",
+                    FontFamily = Inherit,
                     // Color inherit not supported directly, using transparent as fallback
                 },
                 ["form, input, optgroup, select"] = new()
                 {
                     Margin = new Margin(Length.Px(0)),
-                    FontFamily = "inherit",
+                    FontFamily = Inherit,
                     // Color inherit not supported directly
                 },
                 ["input[type=\"button\"], input[type=\"reset\"], input[type=\"submit\"]"] = new()
@@ -86,7 +86,7 @@ namespace Miko.Ionic.Styles
                     Padding = new Padding(Length.Px(0)),
                     Border = new Border(Length.Px(0)),
                     BorderRadius = new BorderRadius(Length.Px(0)),
-                    FontFamily = "inherit",
+                    FontFamily = Inherit,
                     LineHeight = new Length(1, LengthUnit.Number),
                     TextTransform = TextTransform.None,
                     Cursor = Cursor.Pointer,

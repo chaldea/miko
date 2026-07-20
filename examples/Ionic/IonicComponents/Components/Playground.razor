@@ -18,6 +18,7 @@
     [Parameter] public Length? Height { get; set; }
     [Parameter] public Length? Width { get; set; }
     [Parameter] public FlexDirection Direction { get; set; } = FlexDirection.Row;
+    [Parameter] public bool Stretch { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -29,6 +30,7 @@
         {
             Width = Width,
             FlexDirection = Direction,
+            AlignItems = Stretch ? AlignItems.Stretch : null,
         };
     }
 }

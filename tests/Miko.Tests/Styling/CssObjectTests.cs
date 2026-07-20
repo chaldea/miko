@@ -267,4 +267,127 @@ public class CssObjectTests
         // Both .parent and .parent .child should have rules
         sheet.Rules.Count.ShouldBe(2);
     }
+
+    // --- Spread / merge operator ["..."] (ISSUE-095) --------------------------------------------
+
+    [Fact]
+    public void Spread_MergesMixinIntoRule()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".box"] = new()
+            {
+                ["..."] = new() { Color = Color.Red },
+                Display = Display.Flex,
+            }
+        });
+
+        var element = new DivElement { Class = "box" };
+        var resolved = new StyleResolver().Resolve(element, [sheet]);
+        resolved.Color.ShouldBe(Color.Red);       // filled by the mixin
+        resolved.Display.ShouldBe(Display.Flex);  // the rule's own property
+    }
+
+    [Fact]
+    public void Spread_DirectPropertyWinsOverMixin_MixinFirst()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".box"] = new()
+            {
+                ["..."] = new() { Color = Color.Red },
+                Color = Color.Blue,   // direct property wins
+            }
+        });
+
+        var element = new DivElement { Class = "box" };
+        new StyleResolver().Resolve(element, [sheet]).Color.ShouldBe(Color.Blue);
+    }
+
+    [Fact]
+    public void Spread_DirectPropertyWinsOverMixin_DirectFirst()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".box"] = new()
+            {
+                Color = Color.Blue,   // direct property wins regardless of source order
+                ["..."] = new() { Color = Color.Red },
+            }
+        });
+
+        var element = new DivElement { Class = "box" };
+        new StyleResolver().Resolve(element, [sheet]).Color.ShouldBe(Color.Blue);
+    }
+
+    [Fact]
+    public void Spread_MultipleMixins_FirstWins_AndNonOverlappingApply()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".box"] = new()
+            {
+                ["..."] = new() { Color = Color.Red, Width = Length.Px(10) },
+                ["..."] = new() { Color = Color.Green, Height = Length.Px(20) },
+            }
+        });
+
+        var element = new DivElement { Class = "box" };
+        var resolved = new StyleResolver().Resolve(element, [sheet]);
+        resolved.Color.ShouldBe(Color.Red);       // first mixin wins the shared property
+        resolved.Width.ShouldBe(Length.Px(10));   // only in first mixin
+        resolved.Height.ShouldBe(Length.Px(20));  // only in second mixin
+    }
+
+    [Fact]
+    public void Spread_MixinOnlyRule_IsEmitted()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".box"] = new()
+            {
+                ["..."] = new() { Display = Display.Block },
+            }
+        });
+
+        sheet.Rules.Count.ShouldBe(1);
+        var element = new DivElement { Class = "box" };
+        new StyleResolver().Resolve(element, [sheet]).Display.ShouldBe(Display.Block);
+    }
+
+    [Fact]
+    public void Spread_CoexistsWithNestedChild()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".parent"] = new()
+            {
+                ["..."] = new() { Color = Color.Red },
+                [".child"] = new() { Color = Color.Blue },
+            }
+        });
+
+        // One rule for .parent (with the merged mixin) and one for .parent .child.
+        sheet.Rules.Count.ShouldBe(2);
+
+        var parent = new DivElement { Class = "parent" };
+        var child = new DivElement { Class = "child" };
+        parent.AddChild(child);
+
+        new StyleResolver().Resolve(parent, [sheet]).Color.ShouldBe(Color.Red);
+        new StyleResolver().Resolve(child, [sheet]).Color.ShouldBe(Color.Blue);
+    }
+
+    [Fact]
+    public void Spread_ReadingSpreadKey_Throws()
+    {
+        var css = new CssObject { ["..."] = new() { Color = Color.Red } };
+        Should.Throw<InvalidOperationException>(() => _ = css["..."]);
+    }
 }

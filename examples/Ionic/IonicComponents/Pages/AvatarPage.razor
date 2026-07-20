@@ -3,9 +3,45 @@
 <h1>IonAvatar</h1>
 
 <p>
-    Avatars are circular components that usually wrap an image or icon. They can be used to represent a person or an object.
+    Avatars are circular components that usually wrap an image or icon. They can be used to represent a person or an
+    object.
 </p>
 
 <p>
-    Avatars can be used by themselves or inside of any element. If placed inside of an ion-chip or ion-item, the avatar will resize to fit the parent component. To position an avatar on the left or right side of an item, set the slot to start or end, respectively.
+    Avatars can be used by themselves or inside of any element. If placed inside of an ion-chip or ion-item, the avatar
+    will resize to fit the parent component. To position an avatar on the left or right side of an item, set the slot to
+    start or end, respectively.
 </p>
+
+<h2>Basic Usage</h2>
+
+<Playground Height="Px(200)">
+    <IonAvatar>
+        <img alt="Silhouette of a person's head" src="res://IonicComponents.Resources.avatar.svg" />
+    </IonAvatar>
+</Playground>
+
+<h2>Chip Avatar</h2>
+
+<Playground Height="Px(200)">
+    <IonChip>
+        <IonAvatar>
+            <img alt="Silhouette of a person's head" src="res://IonicComponents.Resources.avatar.svg" />
+        </IonAvatar>
+        <IonLabel>Chip Avatar</IonLabel>
+    </IonChip>
+</Playground>
+
+<h2>Item Avatar</h2>
+<Playground Width="Px(300)" Height="Px(200)">
+    <IonItem>
+        <Start>
+            <IonAvatar>
+                <img alt="Silhouette of a person's head" src="res://IonicComponents.Resources.avatar.svg" />
+            </IonAvatar>
+        </Start>
+        <ChildContent>
+            <IonLabel>Chip Avatar</IonLabel>
+        </ChildContent>
+    </IonItem>
+</Playground>

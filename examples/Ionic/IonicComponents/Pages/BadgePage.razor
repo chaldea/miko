@@ -3,5 +3,86 @@
 <h1>IonBadge</h1>
 
 <p>
-    Badges are inline block elements that usually appear near another element. Typically they contain a number or other characters. They can be used as a notification that there are additional items associated with an element and indicate how many items there are. Badges are hidden if no content is passed in.
+    Badges are inline block elements that usually appear near another element. Typically they contain a number or other
+    characters. They can be used as a notification that there are additional items associated with an element and
+    indicate how many items there are. Badges are hidden if no content is passed in.
 </p>
+
+<h2>Basic Usage</h2>
+
+<Playground Width="Px(300)" Height="Px(200)">
+    <IonList>
+        <IonItem>
+            <Start>
+                <IonBadge>11</IonBadge>
+            </Start>
+            <ChildContent>
+                <IonLabel>Badge in start slot</IonLabel>
+            </ChildContent>
+        </IonItem>
+        <IonItem>
+            <End>
+                <IonBadge>22</IonBadge>
+            </End>
+            <ChildContent>
+                <IonLabel>Badge in end slot</IonLabel>
+            </ChildContent>
+        </IonItem>
+    </IonList>
+</Playground>
+
+<h2>Badges in Tab Buttons</h2>
+<p>
+    Badges can be added inside a tab button, often used to indicate notifications or highlight additional items
+    associated with the element.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(200)">
+    <IonTabBar Color="light">
+        <IonTabButton Tab="tab1">
+            <IonIcon Icon="heart" />
+            <IonLabel>Favorites</IonLabel>
+            <IonBadge Color="danger"></IonBadge>
+        </IonTabButton>
+        <IonTabButton Tab="tab2">
+            <IonIcon Icon="musical-note" />
+            <IonLabel>Music</IonLabel>
+        </IonTabButton>
+        <IonTabButton Tab="tab3">
+            <IonIcon Icon="calendar" />
+            <IonLabel>Calendar</IonLabel>
+            <IonBadge Color="danger">47</IonBadge>
+        </IonTabButton>
+    </IonTabBar>
+</Playground>
+
+<h2>Theming</h2>
+
+<Playground Width="Px(300)" Height="Px(400)">
+    <IonList>
+      <IonItem>
+        <IonLabel>Followers</IonLabel>
+        <IonBadge Color="primary">22k</IonBadge>
+      </IonItem>
+      <IonItem>
+        <IonLabel>Likes</IonLabel>
+        <IonBadge Color="secondary">118k</IonBadge>
+      </IonItem>
+      <IonItem>
+        <IonLabel>Stars</IonLabel>
+        <IonBadge Color="tertiary">34k</IonBadge>
+      </IonItem>
+      <IonItem>
+        <IonLabel>Completed</IonLabel>
+        <IonBadge Color="success">80</IonBadge>
+      </IonItem>
+      <IonItem>
+        <IonLabel>Warnings</IonLabel>
+        <IonBadge Color="warning">70</IonBadge>
+      </IonItem>
+      <IonItem>
+        <IonLabel>Notifications</IonLabel>
+        <IonBadge Color="danger">1000</IonBadge>
+      </IonItem>
+    </IonList>
+</Playground>

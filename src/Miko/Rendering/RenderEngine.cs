@@ -132,8 +132,19 @@ public class RenderEngine
             // 3b. 绘制轮廓（在边框之外，不占布局空间）
             RenderOutline(box);
 
-            // 4. 绘制内容
-            RenderContent(box);
+            // 4. 绘制内容。overflow != visible 且带圆角时，内容（如图片位图）需裁剪到圆角内
+            //    ——否则方形位图会溢出圆角（如 ion-avatar 的 <img> border-radius:50% overflow:hidden）。
+            //    背景/边框已由 ResolveBorderRadii 自行成形，故裁剪只包住内容绘制。
+            if (ClipsContentToRoundedBox(box, out var tl, out var tr, out var brr, out var bl))
+            {
+                _painter.SaveClipRounded(box.BoxModel.PaddingBox, tl, tr, brr, bl);
+                RenderContent(box);
+                _painter.Restore();
+            }
+            else
+            {
+                RenderContent(box);
+            }
         }
 
         // 4. 递归绘制子元素
@@ -294,8 +305,18 @@ public class RenderEngine
         _currentScrollOffsetX += box.ScrollLeft;
         _currentScrollOffsetY += box.ScrollTop;
 
-        _painter.Save();
-        _painter.ClipRect(clipRect);
+        // 带圆角的裁剪盒（overflow != visible + border-radius）需按圆角路径裁剪子元素，
+        // 否则子内容会溢出圆角（如圆形 ion-avatar 内的方形子块）。
+        var (tl, tr, brr, bl) = ResolveBorderRadii(box);
+        if (tl > 0 || tr > 0 || brr > 0 || bl > 0)
+        {
+            _painter.SaveClipRounded(clipRect, tl, tr, brr, bl);
+        }
+        else
+        {
+            _painter.Save();
+            _painter.ClipRect(clipRect);
+        }
         _painter.Translate(-box.ScrollLeft, -box.ScrollTop);
 
         foreach (var child in box.Children)
@@ -400,6 +421,23 @@ public class RenderEngine
             style.BorderBottomRightRadius.ToPixels(percentBase, fontSize),
             style.BorderBottomLeftRadius.ToPixels(percentBase, fontSize)
         );
+    }
+
+    /// <summary>
+    /// 判断盒子是否需要把内容裁剪成圆角形状：overflow 非 visible（即会裁剪溢出）且存在非零圆角。
+    /// 满足时输出四角的像素半径。用于让图片/子内容跟随圆角裁剪（浏览器行为）。
+    /// </summary>
+    private static bool ClipsContentToRoundedBox(
+        LayoutBox box, out float topLeft, out float topRight, out float bottomRight, out float bottomLeft)
+    {
+        topLeft = topRight = bottomRight = bottomLeft = 0f;
+
+        var style = box.ComputedStyle;
+        if (style.OverflowX == Overflow.Visible && style.OverflowY == Overflow.Visible)
+            return false;
+
+        (topLeft, topRight, bottomRight, bottomLeft) = ResolveBorderRadii(box);
+        return topLeft > 0 || topRight > 0 || bottomRight > 0 || bottomLeft > 0;
     }
 
     /// <summary>

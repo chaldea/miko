@@ -737,6 +737,24 @@ public class Painter
     }
 
     /// <summary>
+    /// 保存画布状态并按圆角矩形裁剪（对应 overflow:hidden 且带 border-radius 的盒子）。
+    /// 任一角半径大于 0 时用圆角路径裁剪（抗锯齿），否则退化为普通矩形裁剪。
+    /// </summary>
+    public void SaveClipRounded(RectF rect, float topLeftRadius, float topRightRadius, float bottomRightRadius, float bottomLeftRadius)
+    {
+        _canvas.Save();
+        if (topLeftRadius > 0 || topRightRadius > 0 || bottomRightRadius > 0 || bottomLeftRadius > 0)
+        {
+            using var path = CreateRoundRectPath(rect.ToSKRect(), topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius);
+            _canvas.ClipPath(path, SKClipOperation.Intersect, antialias: true);
+        }
+        else
+        {
+            _canvas.ClipRect(rect.ToSKRect());
+        }
+    }
+
+    /// <summary>
     /// 清空画布
     /// </summary>
     public void Clear(Color color)

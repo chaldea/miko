@@ -163,6 +163,39 @@ public class IonAvatarTests : IonicComponentTestBase
     }
 
     [Fact]
+    public void IonAvatar_ImgChild_FillsHostSquare_SoCircularClipCoversIt()
+    {
+        // The circular clip (overflow:hidden + 50% radius) only matters if the <img> actually fills
+        // the host square — a smaller img would leave the corners empty regardless. This ties the
+        // render-layer rounded-clip fix to the avatar: the img lays out at the full 64px host box, so
+        // the rounded overflow clip trims its square content into a circle.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonAvatar>(parameters =>
+            parameters.Add(nameof(IonAvatar.ChildContent), (RenderFragment)(builder =>
+            {
+                builder.OpenElement(0, "img");
+                builder.CloseElement();
+            })));
+
+        var img = cut.Root.Children[0];
+
+        // The img fills the host's intrinsic 64px square...
+        var imgBox = cut.GetBoxModel(img);
+        imgBox.ShouldNotBeNull();
+        imgBox.Content.Width.ShouldBe(64f);
+        imgBox.Content.Height.ShouldBe(64f);
+
+        // ...and carries the geometry that drives the circular clip: hidden overflow + 50% radius.
+        var style = cut.GetComputedStyle(img);
+        style.ShouldNotBeNull();
+        style.OverflowX.ShouldBe(Miko.Common.Overflow.Hidden);
+        style.OverflowY.ShouldBe(Miko.Common.Overflow.Hidden);
+        style.BorderTopLeftRadius.ShouldBe(Miko.Common.Length.Percent(50));
+        style.BorderBottomRightRadius.ShouldBe(Miko.Common.Length.Percent(50));
+    }
+
+    [Fact]
     public void IonAvatar_SharedCircularGeometry_AcrossModes()
     {
         // Both modes render a circular block host (only the intrinsic size differs: md 64 / ios 48).
