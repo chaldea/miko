@@ -3,5 +3,98 @@
 <h1>IonBreadcrumb</h1>
 
 <p>
-    A Breadcrumb is a single navigation item that is a child of the Breadcrumbs component. A breadcrumb can link elsewhere in an app or it can be plain text. Each breadcrumb has a separator between it and the next breadcrumb and can optionally contain an icon.
+    A Breadcrumb is a single navigation item that is a child of the Breadcrumbs component. A breadcrumb can link
+    elsewhere in an app or it can be plain text. Each breadcrumb has a separator between it and the next breadcrumb and
+    can optionally contain an icon.
 </p>
+
+<h2>Basic Usage</h2>
+
+<Playground Width="Percent(100)" Height="Px(200)">
+    <IonBreadcrumbs>
+        <IonBreadcrumb Href="/home">Home</IonBreadcrumb>
+        <IonBreadcrumb Href="/electronics">Electronics</IonBreadcrumb>
+        <IonBreadcrumb Href="/cameras">Cameras</IonBreadcrumb>
+        <IonBreadcrumb Href="/film">Film</IonBreadcrumb>
+    </IonBreadcrumbs>
+</Playground>
+
+<h2>Using Icons</h2>
+<h3>Icons on Items</h3>
+
+<Playground Width="Percent(100)" Height="Px(300)" Direction="FlexDirection.Column">
+    <IonLabel>Icons at Start</IonLabel>
+    <IonBreadcrumbs>
+        <IonBreadcrumb Href="/home">
+            <Start>
+                <IonIcon Icon="home"></IonIcon>
+            </Start>
+            <ChildContent>
+                Home
+            </ChildContent>
+        </IonBreadcrumb>
+        <IonBreadcrumb Href="/electronics">
+            <Start>
+                <IonIcon Icon="flash"></IonIcon>
+            </Start>
+            <ChildContent>
+                Electronics
+            </ChildContent>
+        </IonBreadcrumb>
+        <IonBreadcrumb Href="/cameras">
+            <Start>
+                <IonIcon Icon="camera"></IonIcon>
+            </Start>
+            <ChildContent>
+                Cameras
+            </ChildContent>
+        </IonBreadcrumb>
+        <IonBreadcrumb Href="/film">
+            <Start>
+                <IonIcon Icon="film"></IonIcon>
+            </Start>
+            <ChildContent>
+                Film
+            </ChildContent>
+        </IonBreadcrumb>
+    </IonBreadcrumbs>
+
+    <IonLabel class="ion-margin-top">Icons at End</IonLabel>
+    
+    <IonBreadcrumbs>
+        <IonBreadcrumb Href="/home">
+            <End>
+                <IonIcon Icon="home"></IonIcon>
+            </End>
+            <ChildContent>
+                Home
+            </ChildContent>
+        </IonBreadcrumb>
+        <IonBreadcrumb Href="/electronics">
+            <End>
+                <IonIcon Icon="flash"></IonIcon>
+            </End>
+            <ChildContent>
+                Electronics
+            </ChildContent>
+        </IonBreadcrumb>
+        <IonBreadcrumb Href="/cameras">
+            <End>
+                <IonIcon Icon="camera"></IonIcon>
+            </End>
+            <ChildContent>
+                Cameras
+            </ChildContent>
+        </IonBreadcrumb>
+        <IonBreadcrumb Href="/film">
+            <End>
+                <IonIcon Icon="film"></IonIcon>
+            </End>
+            <ChildContent>
+                Film
+            </ChildContent>
+        </IonBreadcrumb>
+    </IonBreadcrumbs>
+</Playground>
+
+<h3>Custom Separators</h3>

@@ -1,25 +1,60 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-@* Mirrors Ionic's <ion-item-option>: a single swipe-reveal action button inside an
-   <ion-item-options>. It is a filled button (white label on a brand fill). The fill color is
-   chosen by the `color` attribute (Ionic's named palette: "primary", "danger", "success", …),
-   stamped as an ion-color-* class that the stylesheet maps to a background. With no color it
-   falls back to the theme's default (primary) option fill. *@
-<button class="@ClassMapper.Class" style="@Style" @onclick="HandleClick">
-    <span class="button-inner">
-        @ChildContent
-    </span>
-</button>
+@* Mirrors Ionic's <ion-item-option> host structure (item-option.tsx render()): a single
+   swipe-reveal action button inside an <ion-item-options>.
+   <ion-item-option>                         <!-- host: color / disabled / expandable / activatable -->
+     <TagType class="button-native">         <!-- native surface: a when Href set, else button -->
+       <span class="button-inner">           <!-- centers the option content -->
+         <div class="horizontal-wrapper">     <!-- wraps the default slot -->
+           <slot />                            <!-- default label / icon content -->
+         </div>
+       </span>
+     </TagType>
+   </ion-item-option>
+   The fill color is chosen by the `color` attribute (Ionic's named palette: "primary", "danger",
+   "success", …), stamped as ion-color / ion-color-* classes the stylesheet maps to a background.
+   With no color it falls back to the theme's default (primary) option fill. Ionic renders an <a>
+   when `href` is set; navigation itself is out of scope for the renderer. *@
+<div class="@ClassMapper.Class" style="@Style">
+    @if (string.IsNullOrEmpty(Href))
+    {
+        <button class="button-native" @onclick="HandleClick">
+            <span class="button-inner">
+                <div class="horizontal-wrapper">@ChildContent</div>
+            </span>
+        </button>
+    }
+    else
+    {
+        <a class="button-native" href="@Href" @onclick="HandleClick">
+            <span class="button-inner">
+                <div class="horizontal-wrapper">@ChildContent</div>
+            </span>
+        </a>
+    }
+</div>
 
 @code {
     /// <summary>Named palette color for the fill (e.g. <c>"primary"</c>, <c>"danger"</c>,
     /// <c>"success"</c>). Null uses the default option fill. Mirrors Ionic's <c>color</c>.</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>When true the option is dimmed and non-interactive.</summary>
+    /// <summary>When true the option is dimmed and non-interactive (Ionic <c>disabled</c>).</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Raised when the option is tapped.</summary>
+    /// <summary>When true the option expands to take the available width and cover the other
+    /// options (Ionic <c>expandable</c>).</summary>
+    [Parameter] public bool Expandable { get; set; }
+
+    /// <summary>Link target (Ionic <c>href</c>). When set, the native surface is an <c>a</c>.
+    /// The renderer does not perform navigation.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Native button type (Ionic <c>type</c>): <c>"button"</c> (default), <c>"submit"</c>,
+    /// or <c>"reset"</c>. Kept as a marker for API parity.</summary>
+    [Parameter] public string Type { get; set; } = "button";
+
+    /// <summary>Raised when the option is tapped (skipped when disabled).</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
     /// <summary>The edge supplied by the enclosing <see cref="IonItemOptions"/>.</summary>
@@ -30,10 +65,12 @@
     {
         ClassMapper
             .Clear()
-            .Add(ClassName)
+            .Add(Class)
             .Add(Mode)
             .Add("ion-item-option")
+            .Add("ion-activatable")
             .AddColor(Color)
+            .If(Expandable, "item-option-expandable")
             .If(Disabled, "item-option-disabled");
     }
 

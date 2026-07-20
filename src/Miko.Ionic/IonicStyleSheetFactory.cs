@@ -24,6 +24,7 @@ public static class IonicStyleSheetFactory
     public static StyleSheet CreateAllModes()
     {
         var sheet = new StyleSheet();
+        sheet.Add(GlobalStyle.GenStyle());
         AddMode(sheet, "md", IonicTheme.CreateMd());
         AddMode(sheet, "ios", IonicTheme.CreateIos());
         return sheet;
@@ -38,6 +39,7 @@ public static class IonicStyleSheetFactory
     public static StyleSheet Create(IonicTheme theme)
     {
         var sheet = new StyleSheet();
+        sheet.Add(GlobalStyle.GenStyle());
         if (theme.Mode == IonicMode.Ios)
         {
             AddMode(sheet, "md", IonicTheme.CreateMd());
@@ -53,7 +55,6 @@ public static class IonicStyleSheetFactory
 
     private static void AddMode(StyleSheet sheet, string mode, IonicTheme t)
     {
-        sheet.Add(GlobalStyle.GenStyle());
         sheet.Add(PageStyles.GenStyle(mode, t));
         sheet.Add(TabStyles.GenStyle(mode, t));
         sheet.Add(IconStyles.GenStyle(mode, t));

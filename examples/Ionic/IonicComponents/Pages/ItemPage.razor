@@ -27,25 +27,93 @@
             </IonItem>
             
             <IonItem>
-                <IonLabel>
+                <IonLabel Class="sc-ion-label-md-h">
                     <h1>H1 Heading</h1>
                     <p>Paragraph</p>
                 </IonLabel>
             </IonItem>
 
             <IonItem>
-                <IonLabel>
+                <IonLabel Class="sc-ion-label-md-h">
                     <h2>H2 Heading</h2>
                     <p>Paragraph</p>
                 </IonLabel>
             </IonItem>
 
             <IonItem>
-                <IonLabel>
+                <IonLabel Class="sc-ion-label-md-h">
                     <h3>H3 Heading</h3>
                     <p>Paragraph</p>
                 </IonLabel>
             </IonItem>
+        </div>
+    </div>
+</div>
+
+<h2>Buttons, Detail & Slots</h2>
+
+<p>
+    Setting Button makes the item tappable; Detail shows a trailing
+    chevron. Content can be placed in the leading (Start) and trailing
+    (End) slots, and Lines controls the bottom divider.
+</p>
+
+<div class="playground">
+    <div class="playground-container hi-auto">
+        <div class="container-block">
+            <IonList>
+                <IonItem Button="true" Detail="true">
+                    <IonLabel>Clickable item with detail arrow</IonLabel>
+                </IonItem>
+
+                <IonItem>
+                    <Start>
+                        <IonIcon Icon="@Ionicons.Star" />
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>Item with a start icon</IonLabel>
+                    </ChildContent>
+                    <End>
+                        <IonNote>End slot</IonNote>
+                    </End>
+                </IonItem>
+
+                <IonItem Lines="none">
+                    <IonLabel>Last item (lines="none")</IonLabel>
+                </IonItem>
+            </IonList>
+        </div>
+    </div>
+</div>
+
+<h2>Groups, Dividers & Sliding</h2>
+
+<div class="playground">
+    <div class="playground-container hi-auto">
+        <div class="container-block">
+            <IonList>
+                <IonItemGroup>
+                    <IonItemDivider>
+                        <IonLabel>Section A</IonLabel>
+                    </IonItemDivider>
+                    <IonItem>
+                        <IonLabel>A1</IonLabel>
+                    </IonItem>
+                    <IonItem>
+                        <IonLabel>A2</IonLabel>
+                    </IonItem>
+                </IonItemGroup>
+
+                <IonItemSliding Open="true">
+                    <IonItem>
+                        <IonLabel>Sliding item with end options</IonLabel>
+                    </IonItem>
+                    <IonItemOptions>
+                        <IonItemOption>Favorite</IonItemOption>
+                        <IonItemOption Color="danger">Delete</IonItemOption>
+                    </IonItemOptions>
+                </IonItemSliding>
+            </IonList>
         </div>
     </div>
 </div>

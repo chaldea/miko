@@ -1,0 +1,36 @@
+@namespace IonicComponents.Components
+@inherits IonicComponentBase
+
+<div class="playground">
+    <div class="playground-container">
+        <div class="playground-preview" style="@_preview">
+            <div class="container" style="@_container">
+                @ChildContent
+            </div>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    private Style? _preview;
+    private Style? _container;
+    [Parameter] public Length? Height { get; set; }
+    [Parameter] public Length? Width { get; set; }
+    [Parameter] public FlexDirection Direction { get; set; } = FlexDirection.Row;
+    [Parameter] public bool Stretch { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _preview = new Style()
+        {
+            Height = Height,
+        };
+        _container = new Style
+        {
+            Width = Width,
+            FlexDirection = Direction,
+            AlignItems = Stretch ? AlignItems.Stretch : null,
+        };
+    }
+}

@@ -18,13 +18,18 @@
     /// (default) or <c>"start"</c>.</summary>
     [Parameter] public string OpenSide { get; set; } = "end";
 
+    /// <summary>When true, the row cannot be slid (Ionic <c>disabled</c> disables the swipe
+    /// gesture). This port has no gesture, so it is stamped as a marker class for API parity.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
     protected override void OnParametersSet()
     {
         ClassMapper
             .Clear()
-            .Add(ClassName)
+            .Add(Class)
             .Add(Mode)
-            .Add("ion-item-sliding");
+            .Add("ion-item-sliding")
+            .If(Disabled, "item-sliding-disabled");
 
         if (Open)
         {

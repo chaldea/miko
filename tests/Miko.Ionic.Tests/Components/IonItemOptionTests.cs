@@ -9,14 +9,37 @@ namespace Miko.Ionic.Tests.Components;
 public class IonItemOptionTests : IonicComponentTestBase
 {
     [Fact]
-    public void IonItemOption_RendersAsButton_WithInner()
+    public void IonItemOption_RendersHostWithNativeButtonStructure()
     {
         var cut = Context.Render<IonItemOption>();
 
-        // DOM contract: a <button> host wrapping a .button-inner span.
-        cut.Root.TagName.ShouldBe("button");
-        cut.Root.Class.ShouldBe("md ion-item-option");
-        cut.Root.FindByClass("button-inner").Count.ShouldBe(1);
+        // DOM contract: a div host wrapping a native <button> > .button-inner > .horizontal-wrapper.
+        cut.Root.TagName.ShouldBe("div");
+        cut.Root.Class.ShouldBe("md ion-item-option ion-activatable");
+
+        var native = cut.FindByClass("button-native").Single();
+        native.TagName.ShouldBe("button");
+        cut.FindByClass("button-inner").Count.ShouldBe(1);
+        cut.FindByClass("horizontal-wrapper").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void IonItemOption_RendersAnchorNative_WhenHref()
+    {
+        var cut = Context.Render<IonItemOption>(parameters =>
+            parameters.Add(nameof(IonItemOption.Href), "/archive"));
+
+        var native = cut.FindByClass("button-native").Single();
+        native.TagName.ShouldBe("a");
+    }
+
+    [Fact]
+    public void IonItemOption_StampsExpandableClass_WhenExpandable()
+    {
+        var cut = Context.Render<IonItemOption>(parameters =>
+            parameters.Add(nameof(IonItemOption.Expandable), true));
+
+        cut.Root.ShouldHaveClass("item-option-expandable");
     }
 
     [Fact]
@@ -25,7 +48,7 @@ public class IonItemOptionTests : IonicComponentTestBase
         var cut = Context.Render<IonItemOption>(parameters =>
             parameters.Add(nameof(IonItemOption.Color), "danger"));
 
-        cut.Root.Class.ShouldBe("md ion-item-option ion-color-danger");
+        cut.Root.ShouldHaveClass("ion-color-danger");
     }
 
     [Fact]
@@ -79,13 +102,15 @@ public class IonItemOptionTests : IonicComponentTestBase
     [Fact]
     public void IonItemOption_InvokesOnClick_WhenTapped()
     {
-        // Interaction assertion: tapping the option fires its OnClick callback.
+        // Interaction assertion: tapping the option fires its OnClick callback. The click handler
+        // sits on the native surface (the host is a plain div).
         var clicked = false;
         var cut = Context.Render<IonItemOption>(parameters =>
             parameters.Add(nameof(IonItemOption.OnClick),
                 EventCallback.Factory.Create(this, () => clicked = true)));
 
-        cut.Root.OnClick!.Invoke(new MouseEventArgs { Target = cut.Root });
+        var native = cut.FindByClass("button-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
 
         clicked.ShouldBeTrue();
     }
@@ -101,9 +126,9 @@ public class IonItemOptionTests : IonicComponentTestBase
                 EventCallback.Factory.Create(this, () => clicked = true));
         });
 
-        cut.Root.OnClick!.Invoke(new MouseEventArgs { Target = cut.Root });
+        var native = cut.FindByClass("button-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
 
         clicked.ShouldBeFalse();
     }
 }
-

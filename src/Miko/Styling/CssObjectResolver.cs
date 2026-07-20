@@ -145,8 +145,16 @@ internal static class CssObjectResolver
 
     private static Style ExtractStyle(CssObject css)
     {
-        // CssObject 继承自 Style，直接克隆其样式属性
-        return css.Clone();
+        // CssObject 继承自 Style，直接克隆其“显式书写”的样式属性
+        var style = css.Clone();
+
+        // 合并通过 ["..."] 混入的样式（对应 SCSS 的 @include）。Merge 语义为 this-wins（??=）：
+        // 已在本规则显式设置的属性保留（直接书写者胜过混入），未设置的槽位由混入填充；
+        // 多个混入按书写顺序合并，故先书写的混入胜过后书写者。Merge 亦会按键合并 Vars。
+        foreach (var mixin in css.Mixins)
+            style.Merge(mixin);
+
+        return style;
     }
 
     private static bool HasAnyProperty(Style style)

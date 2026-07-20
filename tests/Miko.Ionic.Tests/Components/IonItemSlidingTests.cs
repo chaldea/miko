@@ -50,6 +50,18 @@ public class IonItemSlidingTests : IonicComponentTestBase
     }
 
     [Fact]
+    public void IonItemSliding_StampsDisabledClass_WhenDisabled()
+    {
+        var cut = Context.Render<IonItemSliding>(parameters =>
+        {
+            parameters.Add(nameof(IonItemSliding.Disabled), true);
+            parameters.Add(nameof(IonItemSliding.ChildContent), MinimalChild);
+        });
+
+        cut.Root.ShouldHaveClass("item-sliding-disabled");
+    }
+
+    [Fact]
     public void IonItemSliding_ClipsOverflow_FromStylesheet()
     {
         // Key style assertion: the host clips so the off-screen options stay hidden.

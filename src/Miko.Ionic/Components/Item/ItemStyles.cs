@@ -36,6 +36,7 @@ internal static class ItemStyles
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
+                JustifyContent = JustifyContent.SpaceBetween,
                 Width = Length.Percent(100),
                 MinHeight = Length.Px(t.ItemDividerMinHeight),
                 PaddingLeft = Length.Px(t.ItemPaddingStart),
@@ -45,6 +46,51 @@ internal static class ItemStyles
                 FontSize = Length.Px(t.ListHeaderFontSize),
                 FontWeight = FontWeight.Medium,
                 BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, t.ItemBorderColor),
+            },
+
+            // .item-divider-inner — arranges the divider content; grows to fill the host.
+            [$".ion-item-divider.{mode} .item-divider-inner"] = new()
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                FlexGrow = 1,
+                MinHeight = Length.Percent(100),
+            },
+
+            // .item-divider-wrapper — wraps the default slot (the label); grows to take the space.
+            [$".ion-item-divider.{mode} .item-divider-wrapper"] = new()
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                FlexGrow = 1,
+            },
+
+            // Slot markers used by ion-item / ion-item-divider (the start/end RenderFragments).
+            // The leading marker gets a trailing gap; the trailing marker a leading gap, so slotted
+            // content (icons, notes, controls) does not butt against the label.
+            [$".ion-item.{mode} .ion-slot-start"] = new()
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                MarginRight = Length.Px(16),
+            },
+            [$".ion-item.{mode} .ion-slot-end"] = new()
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                MarginLeft = Length.Px(16),
+            },
+            [$".ion-item-divider.{mode} .ion-slot-start"] = new()
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                MarginRight = Length.Px(16),
+            },
+            [$".ion-item-divider.{mode} .ion-slot-end"] = new()
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                MarginLeft = Length.Px(16),
             },
 
             // ion-item-sliding — the slide host. position:relative anchors the absolutely-placed
@@ -100,30 +146,56 @@ internal static class ItemStyles
                 Transform = new Transform(new TransformFunction.TranslateX(Length.Px(0))),
             },
 
-            // ion-item-option — a single filled action button. White label centered on the brand
-            // fill (default primary); the named-color variants below override the background.
+            // ion-item-option — the host: a single filled action button. White label centered on
+            // the brand fill (default primary); the named-color variants below override the fill.
             [$".ion-item-option.{mode}"] = new()
             {
                 Display = Display.Flex,
-                AlignItems = AlignItems.Center,
-                JustifyContent = JustifyContent.Center,
+                AlignItems = AlignItems.Stretch,
                 MinHeight = Length.Percent(100),
-                PaddingLeft = Length.Px(15),
-                PaddingRight = Length.Px(15),
                 BackgroundColor = t.ItemOptionBackground,
                 Color = t.ItemOptionColor,
                 FontSize = Length.Px(16),
                 FontWeight = FontWeight.Normal,
+            },
+
+            // .button-native — the clickable surface: fills the host, transparent over its fill,
+            // with the option's side padding.
+            [$".ion-item-option.{mode} .button-native"] = new()
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                JustifyContent = JustifyContent.Center,
+                Width = Length.Percent(100),
+                MinHeight = Length.Percent(100),
+                PaddingLeft = Length.Px(15),
+                PaddingRight = Length.Px(15),
+                BackgroundColor = Color.Transparent,
+                Color = t.ItemOptionColor,
                 BorderWidth = Length.Px(0),
                 Cursor = Cursor.Pointer,
             },
 
-            // .button-inner — centers the option's label/icon.
+            // .button-inner — centers the option's content.
             [$".ion-item-option.{mode} .button-inner"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.Center,
+            },
+
+            // .horizontal-wrapper — wraps the default slot content, centered.
+            [$".ion-item-option.{mode} .horizontal-wrapper"] = new()
+            {
+                Display = Display.Flex,
+                AlignItems = AlignItems.Center,
+                JustifyContent = JustifyContent.Center,
+            },
+
+            // Expandable option: grows to fill the available width and cover the other options.
+            [$".ion-item-option.{mode}.item-option-expandable"] = new()
+            {
+                FlexGrow = 1,
             },
 
             // Disabled option: dimmed and non-interactive.

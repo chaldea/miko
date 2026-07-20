@@ -23,9 +23,15 @@
 
         ClassMapper
             .Clear()
-            .Add(ClassName)
+            .Add(Class)
             .Add(Mode)
             .Add("ion-item-options")
-            .Add($"ion-item-options-{_side}");
+            // Ionic-internal styling classes from item-options.tsx: `item-options-{mode}` and
+            // `item-options-{start|end}` (mapped directly from the side — end→item-options-end).
+            // We also keep our own `ion-item-options-{side}` which the reveal/transform rules in
+            // ItemStyles target.
+            .Add($"item-options-{Mode}")
+            .Add($"ion-item-options-{_side}")
+            .Add($"item-options-{_side}");
     }
 }

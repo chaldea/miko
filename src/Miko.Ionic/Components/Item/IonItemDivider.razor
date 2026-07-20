@@ -1,19 +1,63 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-@* Mirrors Ionic's <ion-item-divider>: a section header row that sits between item groups.
-   Structurally it is a flex row like an item (leading content + label, vertically centered),
-   but with a tinted background and its own min-height/colors from the theme. *@
+@* Mirrors Ionic's <ion-item-divider> host structure (item-divider.tsx render()): a section header
+   row that sits between item groups.
+   <ion-item-divider>                       <!-- host: tinted fill + color / sticky classes -->
+     <slot name="start" />                  <!-- leading content (LTR left) -->
+     <div class="item-divider-inner">       <!-- arranges the divider content -->
+       <div class="item-divider-wrapper">    <!-- wraps the default slot -->
+         <slot />                             <!-- default label content -->
+       </div>
+       <slot name="end" />                   <!-- trailing content (LTR right) -->
+     </div>
+   </ion-item-divider>
+   Structurally a flex row like an item (leading content + label, vertically centered), with a
+   tinted background and its own min-height/colors from the theme. The named slots map to
+   RenderFragment parameters (Start / End) wrapped in marker spans; the default slot maps to
+   ChildContent inside .item-divider-wrapper. *@
 <div class="@ClassMapper.Class" style="@Style">
-    @ChildContent
+    @if (Start is not null)
+    {
+        <span class="ion-slot-start">@Start</span>
+    }
+    <div class="item-divider-inner">
+        <div class="item-divider-wrapper">@ChildContent</div>
+        @if (End is not null)
+        {
+            <span class="ion-slot-end">@End</span>
+        }
+    </div>
 </div>
 
 @code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as <c>ion-color</c> + <c>ion-color-*</c> classes the stylesheet maps to fill /
+    /// text color.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>When true, the divider stays pinned to the top of the scroll viewport until the next
+    /// divider replaces it (Ionic <c>sticky</c>, backed by <c>position: sticky</c>).</summary>
+    [Parameter] public bool Sticky { get; set; }
+
+    /// <summary>Default slot content — the divider's label. Redeclared so the compiler treats it as
+    /// a named top-level slot that can coexist with <see cref="Start"/> / <see cref="End"/>.</summary>
+    [Parameter] public new RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Content for Ionic's <c>start</c> slot — placed before the label (left in LTR).</summary>
+    [Parameter] public RenderFragment? Start { get; set; }
+
+    /// <summary>Content for Ionic's <c>end</c> slot — placed after the label (right in LTR).</summary>
+    [Parameter] public RenderFragment? End { get; set; }
+
     protected override void OnParametersSet()
     {
         ClassMapper
             .Clear()
-            .Add(ClassName)
+            .Add(Class)
             .Add(Mode)
-            .Add("ion-item-divider");
+            .Add("ion-item-divider")
+            .If(Sticky, "item-divider-sticky")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
     }
 }
