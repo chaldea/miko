@@ -94,7 +94,7 @@ internal static class StyleInspector
         var title = new DivElement { Class = "style-section-title", TextContent = "Computed Styles" };
         container.AddChild(title);
 
-        AddRow(container, "display", cs.Display.ToString().ToLower());
+        AddRow(container, "display", ToCssKeyword(cs.Display.ToString()));
         AddRow(container, "position", cs.Position.ToString().ToLower());
         AddRow(container, "width", FormatLength(cs.Width));
         AddRow(container, "height", FormatLength(cs.Height));
@@ -126,7 +126,7 @@ internal static class StyleInspector
         if (cs.TextOverflow != Common.TextOverflow.Clip)
             AddRow(container, "text-overflow", cs.TextOverflow.ToString().ToLower());
 
-        if (cs.Display == Common.Display.Flex)
+        if (cs.Display is Common.Display.Flex or Common.Display.InlineFlex)
         {
             AddRow(container, "flex-direction", cs.FlexDirection.ToString().ToLower());
             AddRow(container, "justify-content", cs.JustifyContent.ToString().ToLower());
@@ -135,6 +135,17 @@ internal static class StyleInspector
             AddRow(container, "flex-wrap", ToCssKeyword(cs.FlexWrap.ToString()));
             AddRow(container, "flex-grow", cs.FlexGrow.ToString("0.##"));
             AddRow(container, "flex-shrink", cs.FlexShrink.ToString("0.##"));
+        }
+
+        if (cs.Display == Common.Display.Grid)
+        {
+            if (cs.GridTemplateColumns != null)
+                AddRow(container, "grid-template-columns", string.Join(' ', cs.GridTemplateColumns));
+            if (cs.GridTemplateRows != null)
+                AddRow(container, "grid-template-rows", string.Join(' ', cs.GridTemplateRows));
+            AddRow(container, "justify-content", cs.JustifyContent.ToString().ToLower());
+            AddRow(container, "align-items", cs.AlignItems.ToString().ToLower());
+            AddRow(container, "align-content", cs.AlignContent.ToString().ToLower());
         }
 
         if (cs.AlignSelf != Common.AlignSelf.Auto)
