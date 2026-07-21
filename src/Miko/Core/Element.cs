@@ -10,8 +10,35 @@ namespace Miko.Core;
 /// </summary>
 public abstract class Element
 {
-    public string? Id { get; set; }
-    public string? Class { get; set; }
+    // 全局 DOM/样式变更版本号：任何影响样式匹配或布局结果的修改（结构、文本、class/id、
+    // 行内样式替换、元素状态、图片内禀尺寸等）都会使其递增。布局引擎据此判断上一次
+    // 布局结果是否仍然有效——版本未变且视口/样式表未变时整棵布局树可直接复用（ISSUE-096）。
+    private static long s_mutationVersion;
+
+    /// <summary>当前全局变更版本号（单调递增）。</summary>
+    public static long MutationVersion => Interlocked.Read(ref s_mutationVersion);
+
+    /// <summary>
+    /// 递增全局变更版本号。由元素自身的变更入口自动调用；引擎在元素外完成的
+    /// 布局相关写入（动画帧值、图片内禀尺寸等）也应调用，否则下一帧可能复用过期布局。
+    /// </summary>
+    internal static void BumpMutationVersion() => Interlocked.Increment(ref s_mutationVersion);
+
+    private string? _id;
+    private string? _class;
+    private Style? _style;
+
+    public string? Id
+    {
+        get => _id;
+        set { if (_id != value) { _id = value; IsDirty = true; BumpMutationVersion(); } }
+    }
+
+    public string? Class
+    {
+        get => _class;
+        set { if (_class != value) { _class = value; IsDirty = true; BumpMutationVersion(); } }
+    }
     public List<Element> Children { get; set; } = new();
     public Element? Parent { get; private set; }
 
@@ -19,7 +46,16 @@ public abstract class Element
     {
         Parent = parent;
     }
-    public Style? Style { get; set; }
+    /// <summary>
+    /// 行内样式。替换整个对象会递增变更版本号；但直接改写其属性（<c>Style.Width = ...</c>）
+    /// 不会被追踪——引擎内这样做的只有 AnimationManager（已显式递增版本号），
+    /// 用户代码若直接改写属性，需随后调用 <c>MikoEngine.InvalidateElement</c> 触发重排。
+    /// </summary>
+    public Style? Style
+    {
+        get => _style;
+        set { if (!ReferenceEquals(_style, value)) { _style = value; IsDirty = true; BumpMutationVersion(); } }
+    }
 
     // TextContent 的原始存储。仅由 TextNode（承载真实文本）与 TextContent facade 直接访问。
     // 普通元素不应直接写入此字段——文本应作为 TextNode 子节点存在，见 ISSUE-086。
@@ -91,6 +127,7 @@ public abstract class Element
                 Children.Insert(0, textNode);
             }
             IsDirty = true;
+            BumpMutationVersion();
         }
     }
 
@@ -162,6 +199,7 @@ public abstract class Element
         {
             State |= state;
             IsDirty = true;
+            BumpMutationVersion();
         }
     }
 
@@ -174,6 +212,7 @@ public abstract class Element
         {
             State &= ~state;
             IsDirty = true;
+            BumpMutationVersion();
         }
     }
 
@@ -231,6 +270,7 @@ public abstract class Element
         Children.Add(child);
         child.Parent = this;
         IsDirty = true;
+        BumpMutationVersion();
     }
 
     /// <summary>
@@ -242,6 +282,7 @@ public abstract class Element
         {
             child.Parent = null;
             IsDirty = true;
+            BumpMutationVersion();
             return true;
         }
         return false;

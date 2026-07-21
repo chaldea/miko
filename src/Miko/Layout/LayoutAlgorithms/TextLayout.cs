@@ -50,19 +50,49 @@ public class TextLayout
 
         if (canWrap && constraints.AvailableWidth.HasValue && constraints.AvailableWidth.Value > 0)
         {
-            var (wrappedWidth, wrappedHeight) = TextMeasurer.MeasureTextWithWrap(
-                text,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight,
-                constraints.AvailableWidth.Value,
-                resolvedLineHeight,
-                style.WhiteSpace,
-                breakLongWords,
-                letterSpacing);
+            float availWidth = constraints.AvailableWidth.Value;
+            var textNode = (TextNode)box.Element;
 
-            width = wrappedWidth;
-            height = wrappedHeight;
+            // 测量缓存（ISSUE-096）：以全部测量输入为键，命中则跳过换行算法的全部分配。
+            if (textNode.McText == text
+                && textNode.McFontFamily == style.FontFamily
+                && textNode.McFontSize == style.FontSize.Value
+                && textNode.McFontWeight == style.FontWeight
+                && textNode.McAvailWidth == availWidth
+                && textNode.McLineHeight == resolvedLineHeight
+                && textNode.McWhiteSpace == style.WhiteSpace
+                && textNode.McBreakLongWords == breakLongWords
+                && textNode.McLetterSpacing == letterSpacing)
+            {
+                (width, height) = textNode.McResult;
+            }
+            else
+            {
+                var (wrappedWidth, wrappedHeight) = TextMeasurer.MeasureTextWithWrap(
+                    text,
+                    style.FontFamily,
+                    style.FontSize.Value,
+                    style.FontWeight,
+                    availWidth,
+                    resolvedLineHeight,
+                    style.WhiteSpace,
+                    breakLongWords,
+                    letterSpacing);
+
+                textNode.McText = text;
+                textNode.McFontFamily = style.FontFamily;
+                textNode.McFontSize = style.FontSize.Value;
+                textNode.McFontWeight = style.FontWeight;
+                textNode.McAvailWidth = availWidth;
+                textNode.McLineHeight = resolvedLineHeight;
+                textNode.McWhiteSpace = style.WhiteSpace;
+                textNode.McBreakLongWords = breakLongWords;
+                textNode.McLetterSpacing = letterSpacing;
+                textNode.McResult = (wrappedWidth, wrappedHeight);
+
+                width = wrappedWidth;
+                height = wrappedHeight;
+            }
         }
         else
         {

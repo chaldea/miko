@@ -36,19 +36,19 @@ public class StyleResolutionBenchmarks
 
     [Benchmark]
     public LayoutBox Resolve_FewRules()
-        => _layoutEngine.Layout(_smallTree, _fewRules, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_smallTree, _fewRules, 800, 600); }
 
     [Benchmark]
     public LayoutBox Resolve_ManyRules()
-        => _layoutEngine.Layout(_largeTree, _manyRules, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_largeTree, _manyRules, 800, 600); }
 
     [Benchmark]
     public LayoutBox Resolve_ComplexSelectors()
-        => _layoutEngine.Layout(_largeTree, _complexSelectors, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_largeTree, _complexSelectors, 800, 600); }
 
     [Benchmark]
     public LayoutBox Resolve_DeepInheritance()
-        => _layoutEngine.Layout(_deepTree, _manyRules, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_deepTree, _manyRules, 800, 600); }
 
     private static List<StyleSheet> CreateComplexSelectorStyleSheet()
     {

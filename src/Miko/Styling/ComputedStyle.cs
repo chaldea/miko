@@ -132,8 +132,20 @@ public partial class ComputedStyle : Style
 
     public new Transform Transform { get; set; } = Transform.None;
     public new TransformOrigin TransformOrigin { get; set; } = TransformOrigin.Center;
-    public new List<Transition> Transitions { get; set; } = new();
-    public new List<KeyframeAnimation> Animations { get; set; } = new();
+
+    // Transitions / Animations 默认懒初始化（ISSUE-096）：绝大多数元素没有动画，
+    // 不为它们支付每次样式解析两个 List 的分配。读取方应使用 *OrNull 判空。
+    private List<Transition>? _transitions;
+    private List<KeyframeAnimation>? _animations;
+
+    public new List<Transition> Transitions { get => _transitions ??= new(); set => _transitions = value; }
+    public new List<KeyframeAnimation> Animations { get => _animations ??= new(); set => _animations = value; }
+
+    /// <summary>已定义的过渡列表（无过渡时为 null，热路径读取请用此属性避免懒分配）。</summary>
+    internal List<Transition>? TransitionsOrNull => _transitions;
+
+    /// <summary>已定义的动画列表（无动画时为 null，热路径读取请用此属性避免懒分配）。</summary>
+    internal List<KeyframeAnimation>? AnimationsOrNull => _animations;
 
     public new string? Content { get; set; }
 

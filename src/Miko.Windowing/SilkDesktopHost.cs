@@ -55,6 +55,10 @@ public sealed class SilkDesktopHost
     private Thread? _renderThread;
     private volatile bool _stopRequested;
 
+    // 首帧（以及初始化/图形重建后的帧）必须呈现一次，即使引擎报告无待办工作——
+    // 否则窗口在后端缓冲尚未绘制过时一直保持空白（ISSUE-096 空闲跳过逻辑的兜底）。
+    private volatile bool _needsPresent = true;
+
     // 渲染线程帧计时。
     private readonly Stopwatch _frameTimer = new();
     private float _lastFrameTime;
@@ -169,10 +173,20 @@ public sealed class SilkDesktopHost
             // 1. 排空输入队列（DOM 在此变更，与随后的渲染同线程）。
             DrainMessages();
 
-            // 2. 渲染一帧。
-            RenderFrame();
+            // 2. 稳态空闲检测：无任何视觉工作时跳过帧生产与缓冲交换，
+            //    避免每秒 60 次全量重绘造成的 GC 锯齿（ISSUE-096）。
+            //    输入事件在 DrainMessages 中已处理，会把新的工作产生出来。
+            if (!_needsPresent && !_controller.HasPendingWork)
+            {
+                Thread.Sleep(1);
+                continue;
+            }
 
-            // 3. 交换缓冲（我们接管了自动交换）。
+            // 3. 渲染一帧。
+            RenderFrame();
+            _needsPresent = false;
+
+            // 4. 交换缓冲（我们接管了自动交换）。
             _window!.GLContext?.SwapBuffers();
         }
 
@@ -273,6 +287,8 @@ public sealed class SilkDesktopHost
     {
         _width = width;
         _height = height;
+        // 尺寸变化后帧缓冲内容失效，必须强制呈现一帧（ISSUE-096 空闲跳过逻辑的兜底）。
+        _needsPresent = true;
         _gl?.Viewport(new Vector2D<int>(width, height));
         _controller.SetViewportSize(width, height);
         _logger.LogDebug("Viewport resized to {Width}x{Height}", width, height);

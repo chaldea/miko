@@ -367,6 +367,22 @@ public partial class Style
     partial void MergeGenerated(Style other);
 
     /// <summary>
+    /// 由 Source Generator 实现的属性清空逻辑
+    /// </summary>
+    partial void ResetGenerated();
+
+    /// <summary>
+    /// 清空所有属性与自定义变量，使实例回到初始状态。
+    /// 供 <see cref="StyleResolver"/> 在每次样式解析后回收池化实例，避免每个元素
+    /// 每次布局都新建 <see cref="Style"/>（见 ISSUE-096）。调用后不得再读取旧内容。
+    /// </summary>
+    public void Reset()
+    {
+        ResetGenerated();
+        Vars = null;
+    }
+
+    /// <summary>
     /// 是否包含任意已设置的属性或自定义变量定义。用于判断一条规则是否需要产出
     /// （仅含 <see cref="Vars"/> 定义、无任何普通属性的规则也应产出）。
     /// </summary>

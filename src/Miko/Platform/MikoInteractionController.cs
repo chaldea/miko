@@ -118,6 +118,17 @@ public sealed class MikoInteractionController
     public bool NeedsRebuild => _needsRebuild;
 
     /// <summary>
+    /// 是否有需要在下一帧呈现的视觉工作（DOM 重建请求，或引擎侧存在脏区域/动画/视频/
+    /// 排队的回调/布局输入变化）。平台宿主可在其为 false 时跳过帧生产（不交换缓冲）
+    /// 并短暂休眠——稳态下做到零分配、零 GPU 提交的空闲（ISSUE-096）。
+    /// 输入事件不经此判断：宿主每轮循环都应先排空输入队列，输入处理会把工作产生出来。
+    /// </summary>
+    public bool HasPendingWork
+    {
+        get { lock (_sync) { return _needsRebuild || _engine.HasPendingVisualWork; } }
+    }
+
+    /// <summary>
     /// 请求在下一帧重建整个 DOM 树（在锁保护下由 <see cref="RenderFrame"/> 执行）。
     /// 供平台宿主在影响整棵树的外部状态变化后调用——例如模拟器切换设备/平台后，
     /// 让 Ionic 组件以新的 mode 重新渲染。

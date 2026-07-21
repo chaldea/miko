@@ -252,6 +252,8 @@ public class AnimationManager
 
         _transitions.Add(activeTransition);
         applier(element, oldValue);
+        // 起始值直接写入行内样式（绕过 Element.Style setter 的版本追踪），显式递增版本号（ISSUE-096）。
+        Element.BumpMutationVersion();
     }
 
     public void TrackColorChangeWithApplier(Element element, string property, Color oldColor, Color newColor, Transition transition, Action<Element, Color> applier)
@@ -280,6 +282,7 @@ public class AnimationManager
 
         _transitions.Add(activeTransition);
         applier(element, oldColor);
+        Element.BumpMutationVersion();
     }
 
     public void TrackTransformChangeWithApplier(Element element, string property, Transform oldTransform, Transform newTransform, Transition transition, Action<Element, Transform> applier)
@@ -307,6 +310,7 @@ public class AnimationManager
 
         _transitions.Add(activeTransition);
         applier(element, oldTransform);
+        Element.BumpMutationVersion();
     }
 
     public void Update(float deltaTime)
@@ -314,6 +318,10 @@ public class AnimationManager
         _recentlyCompleted.Clear();
         UpdateTransitions(deltaTime);
         UpdateAnimations(deltaTime);
+        // 动画/过渡的帧值直接改写元素行内样式（绕过 Element.Style setter 的版本追踪），
+        // 显式递增全局变更版本号，使下一帧布局重新解析样式（ISSUE-096）。
+        if (_transitions.Count > 0 || _animations.Count > 0)
+            Element.BumpMutationVersion();
     }
 
     private void UpdateTransitions(float deltaTime)

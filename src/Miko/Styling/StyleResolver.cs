@@ -9,91 +9,127 @@ namespace Miko.Styling;
 /// </summary>
 public class StyleResolver
 {
+    // 池化的级联暂存样式（ISSUE-096）：Style 有约 100 个属性槽，新建成本高，
+    // 而每个元素每次布局都要经过本方法。Resolve 产生的 ComputedStyle 不引用
+    // baseStyle（FromStyle 只读取并拷贝已解析值；变量作用域在 BuildVarScope 中复制），
+    // 因此用后即可复位回收。取出/归还均用 Interlocked，保证并发 Resolve 也不会
+    // 共享同一实例（冲突时退化为新建/交由 GC）。
+    private Style? _pooledBaseStyle;
+
+    // 池化的规则匹配暂存列表（与 baseStyle 同理）。排序键中 index 唯一（规则的定义顺序），
+    // 比较器构成全序，因此可用分配为零的 List.Sort 替代 LINQ OrderBy（稳定性无关）。
+    private List<(StyleRule rule, int specificity, int index)>? _pooledRules;
+
+    private static readonly Comparison<(StyleRule rule, int specificity, int index)> RuleOrder =
+        static (a, b) =>
+        {
+            // 特异性高者优先；同特异性时定义顺序靠后（index 大）者优先。
+            int c = b.specificity.CompareTo(a.specificity);
+            return c != 0 ? c : b.index.CompareTo(a.index);
+        };
+
     /// <summary>
     /// 解析元素的最终样式
     /// </summary>
     public ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets, ViewportInfo? viewport = null)
     {
-        // 1. 收集所有匹配的规则（带有定义顺序索引）
-        var matchedRules = new List<(StyleRule rule, int specificity, int index)>();
-        int ruleIndex = 0;
+        // 1. 收集所有匹配的规则（带有定义顺序索引）；优先复用池化列表（见字段注释）
+        var matchedRules = Interlocked.Exchange(ref _pooledRules, null) ?? new();
+        matchedRules.Clear();
 
-        foreach (var sheet in styleSheets)
+        try
         {
-            foreach (var rule in sheet.Rules)
-            {
-                if (rule.Selector.Matches(element))
-                {
-                    matchedRules.Add((rule, rule.Selector.Specificity, ruleIndex));
-                }
-                ruleIndex++;
-            }
+            int ruleIndex = 0;
 
-            if (viewport != null)
+            foreach (var sheet in styleSheets)
             {
-                foreach (var mediaRule in sheet.MediaRules)
+                foreach (var rule in sheet.Rules)
                 {
-                    if (mediaRule.Condition.Matches(viewport))
+                    if (rule.Selector.Matches(element))
                     {
-                        foreach (var rule in mediaRule.Rules)
+                        matchedRules.Add((rule, rule.Selector.Specificity, ruleIndex));
+                    }
+                    ruleIndex++;
+                }
+
+                if (viewport != null)
+                {
+                    foreach (var mediaRule in sheet.MediaRules)
+                    {
+                        if (mediaRule.Condition.Matches(viewport))
                         {
-                            if (rule.Selector.Matches(element))
+                            foreach (var rule in mediaRule.Rules)
                             {
-                                matchedRules.Add((rule, rule.Selector.Specificity, ruleIndex));
+                                if (rule.Selector.Matches(element))
+                                {
+                                    matchedRules.Add((rule, rule.Selector.Specificity, ruleIndex));
+                                }
+                                ruleIndex++;
                             }
-                            ruleIndex++;
                         }
                     }
                 }
             }
+
+            // 2. 按特异性排序（特异性高的优先，同特异性时后定义的优先，因为 Merge 只在 null 时赋值）。
+            //    0/1 条规则无需排序；更多时用全序比较器做原地排序（零分配）。
+            if (matchedRules.Count > 1)
+                matchedRules.Sort(RuleOrder);
+
+            // 3. 取得基础样式（优先复用池化实例，见字段注释）
+            var baseStyle = Interlocked.Exchange(ref _pooledBaseStyle, null) ?? new Style();
+
+            try
+            {
+                // 4. 应用行内样式（最高优先级）
+                if (element.Style != null)
+                {
+                    baseStyle.Merge(element.Style);
+                }
+
+                // 5. 应用匹配的规则（按特异性从高到低，同特异性按定义顺序从后到前）
+                foreach (var (rule, _, _) in matchedRules)
+                {
+                    baseStyle.Merge(rule.Style);
+                }
+
+                // 6. 应用标签默认样式（UA stylesheet）。
+                //    必须在父元素继承之前：否则父元素的可继承属性（如 FontWeight=Normal）会先填入，
+                //    导致 UA 规则（如 th { font-weight: bold }）失效。
+                ApplyDefaultStyles(element, baseStyle);
+
+                // 7. 从父元素继承可继承属性（仅填补 UA 也未提供的属性）
+                float? parentFontSizePx = null;
+                Dictionary<string, VarValue>? parentVarScope = null;
+                var parentComputed = element.Parent?.LayoutBox?.ComputedStyle;
+                if (parentComputed != null)
+                {
+                    InheritFromParent(baseStyle, parentComputed);
+                    // 父元素的计算字体大小（始终为 px），作为本元素 font-size 中 em 的解析基准。
+                    parentFontSizePx = parentComputed.FontSize.Value;
+                    // 父元素的变量作用域（自定义属性沿 DOM 树继承）。
+                    parentVarScope = parentComputed.Vars;
+                }
+
+                // 8. 构建本元素的变量作用域：继承父作用域，本元素定义的变量覆盖同名项。
+                var varScope = BuildVarScope(parentVarScope, baseStyle.Vars);
+
+                // 9. 转换为计算样式（传入父字体大小以正确解析 font-size 中的 em；传入变量作用域解析 Var 引用；
+                //    传入父计算样式以解析 inherit/unset 等全局关键词；传入视口以折算 font-size 中的 vw/vh）
+                return ComputedStyle.FromStyle(baseStyle, parentFontSizePx, varScope, parentComputed, viewport);
+            }
+            finally
+            {
+                // 复位并归还池化实例；槽位被占时交由 GC（并发 Resolve 的罕见情形）。
+                baseStyle.Reset();
+                Interlocked.CompareExchange(ref _pooledBaseStyle, baseStyle, null);
+            }
         }
-
-        // 2. 按特异性排序（特异性高的优先，同特异性时后定义的优先，因为 Merge 只在 null 时赋值）
-        // 使用 OrderByDescending 保证稳定排序
-        var sortedRules = matchedRules
-            .OrderByDescending(r => r.specificity)
-            .ThenByDescending(r => r.index)
-            .ToList();
-
-        // 3. 创建基础样式（空）
-        var baseStyle = new Style();
-
-        // 4. 应用行内样式（最高优先级）
-        if (element.Style != null)
+        finally
         {
-            baseStyle.Merge(element.Style);
+            matchedRules.Clear();
+            Interlocked.CompareExchange(ref _pooledRules, matchedRules, null);
         }
-
-        // 5. 应用匹配的规则（按特异性从高到低，同特异性按定义顺序从后到前）
-        foreach (var (rule, _, _) in sortedRules)
-        {
-            baseStyle.Merge(rule.Style);
-        }
-
-        // 6. 应用标签默认样式（UA stylesheet）。
-        //    必须在父元素继承之前：否则父元素的可继承属性（如 FontWeight=Normal）会先填入，
-        //    导致 UA 规则（如 th { font-weight: bold }）失效。
-        ApplyDefaultStyles(element, baseStyle);
-
-        // 7. 从父元素继承可继承属性（仅填补 UA 也未提供的属性）
-        float? parentFontSizePx = null;
-        Dictionary<string, VarValue>? parentVarScope = null;
-        var parentComputed = element.Parent?.LayoutBox?.ComputedStyle;
-        if (parentComputed != null)
-        {
-            InheritFromParent(baseStyle, parentComputed);
-            // 父元素的计算字体大小（始终为 px），作为本元素 font-size 中 em 的解析基准。
-            parentFontSizePx = parentComputed.FontSize.Value;
-            // 父元素的变量作用域（自定义属性沿 DOM 树继承）。
-            parentVarScope = parentComputed.Vars;
-        }
-
-        // 8. 构建本元素的变量作用域：继承父作用域，本元素定义的变量覆盖同名项。
-        var varScope = BuildVarScope(parentVarScope, baseStyle.Vars);
-
-        // 9. 转换为计算样式（传入父字体大小以正确解析 font-size 中的 em；传入变量作用域解析 Var 引用；
-        //    传入父计算样式以解析 inherit/unset 等全局关键词；传入视口以折算 font-size 中的 vw/vh）
-        return ComputedStyle.FromStyle(baseStyle, parentFontSizePx, varScope, parentComputed, viewport);
     }
 
     /// <summary>
@@ -156,8 +192,20 @@ public class StyleResolver
         // because that would block inheritance — line-height is inheritable in CSS, and
         // the parent's value should fill in before falling back to ComputedStyle's default.
 
+        // 热路径（ISSUE-096）：TagName 按约定均为小写常量，逐字符检查后仅在大写时
+        // 才分配小写副本，避免每个元素每次解析都分配一个字符串。
+        var tagName = element.TagName;
+        foreach (var c in tagName)
+        {
+            if (char.IsUpper(c))
+            {
+                tagName = tagName.ToLowerInvariant();
+                break;
+            }
+        }
+
         // 根据标签名应用默认样式
-        switch (element.TagName.ToLower())
+        switch (tagName)
         {
             case "body":
                 // Browser default: margin: 8px

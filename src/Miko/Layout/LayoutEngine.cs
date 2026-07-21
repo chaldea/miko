@@ -26,6 +26,47 @@ public class LayoutEngine
     // 当前布局的视口尺寸。用于折算各元素（含伪元素）的 vw/vh 视窗单位（见 ISSUE-091）。
     private ViewportInfo _viewport = new(0, 0);
 
+    // ---- 布局结果缓存（ISSUE-096）----
+    // 一次完整布局的输入为：根元素、样式表列表、视口尺寸、安全区、以及全局变更版本号
+    // （Element.MutationVersion 覆盖结构/文本/class/行内样式/状态/图片尺寸等所有布局输入）。
+    // 这些输入全部未变时，重跑布局必然得到相同结果，因此直接复用上次的布局树，
+    // 稳态帧（仅视频新帧、滚动等绘制级失效）不再产生任何样式/布局分配。
+    private Element? _cachedRoot;
+    private List<StyleSheet>? _cachedStyleSheets;
+    private int _cachedStyleSheetCount;
+    private float _cachedViewportWidth;
+    private float _cachedViewportHeight;
+    private SafeAreaInsets _cachedSafeArea;
+    private long _cachedMutationVersion = -1;
+    private LayoutBox? _cachedResult;
+
+    /// <summary>
+    /// 使缓存的布局结果失效。一般无需调用——所有常规变更都会递增
+    /// <see cref="Element.MutationVersion"/> 而被自动检测。仅在引擎外发生了未被追踪的
+    /// 变化时（如运行时注册新字体改变了文本度量、直接改写样式表规则内容）调用。
+    /// </summary>
+    public void InvalidateCache()
+    {
+        _cachedRoot = null;
+        _cachedStyleSheets = null;
+        _cachedResult = null;
+        _cachedMutationVersion = -1;
+    }
+
+    /// <summary>判断给定输入下缓存的布局结果是否仍然有效（无需重排）。</summary>
+    public bool IsLayoutCurrent(Element? root, List<StyleSheet> styleSheets, float viewportWidth, float viewportHeight,
+        SafeAreaInsets safeArea = default)
+    {
+        return _cachedResult != null
+            && ReferenceEquals(_cachedRoot, root)
+            && ReferenceEquals(_cachedStyleSheets, styleSheets)
+            && _cachedStyleSheetCount == styleSheets.Count
+            && Math.Abs(_cachedViewportWidth - viewportWidth) < 0.01f
+            && Math.Abs(_cachedViewportHeight - viewportHeight) < 0.01f
+            && _cachedSafeArea == safeArea
+            && _cachedMutationVersion == Element.MutationVersion;
+    }
+
     /// <summary>
     /// 执行布局计算
     /// </summary>
@@ -36,6 +77,10 @@ public class LayoutEngine
     public LayoutBox Layout(Element root, List<StyleSheet> styleSheets, float viewportWidth, float viewportHeight,
         SafeAreaInsets safeArea = default)
     {
+        // 快速路径：布局输入全部未变，直接复用上次的布局树（零样式解析、零布局、零分配）。
+        if (IsLayoutCurrent(root, styleSheets, viewportWidth, viewportHeight, safeArea))
+            return _cachedResult!;
+
         _safeArea = safeArea;
 
         // 视口为全屏：env(safe-area-inset-*) 由各内容元素按需折算成内边距，浮层不受影响。
@@ -59,6 +104,17 @@ public class LayoutEngine
         // 4. 定位调整：处理 relative/absolute 定位的偏移。根包含块为整个视口。
         var viewportBlock = new RectF(0f, 0f, viewportWidth, viewportHeight);
         ApplyPositioning(layoutRoot, viewportBlock);
+
+        // 记录缓存键。变更版本号在布局完成后读取：布局期间用户代码（事件回调等）
+        // 造成的任何修改都会使版本号领先于缓存值，下一帧必然重排，不会复用到中间态。
+        _cachedRoot = root;
+        _cachedStyleSheets = styleSheets;
+        _cachedStyleSheetCount = styleSheets.Count;
+        _cachedViewportWidth = viewportWidth;
+        _cachedViewportHeight = viewportHeight;
+        _cachedSafeArea = safeArea;
+        _cachedMutationVersion = Element.MutationVersion;
+        _cachedResult = layoutRoot;
 
         return layoutRoot;
     }

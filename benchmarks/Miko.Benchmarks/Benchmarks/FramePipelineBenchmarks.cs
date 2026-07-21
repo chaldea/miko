@@ -42,6 +42,7 @@ public class FramePipelineBenchmarks
     [Benchmark(Description = "Full frame: realistic page (~90 elements)")]
     public void FullFrame_RealisticPage()
     {
+        _layoutEngine.InvalidateCache();
         var layout = _layoutEngine.Layout(_realisticPage, _realisticStyles, 1200, 800);
         _surface.Canvas.Clear(SKColors.White);
         _renderEngine.Render(layout);
@@ -50,6 +51,7 @@ public class FramePipelineBenchmarks
     [Benchmark(Description = "Full frame: large page (500 elements)")]
     public void FullFrame_LargePage()
     {
+        _layoutEngine.InvalidateCache();
         var layout = _layoutEngine.Layout(_largePage, _blockStyles, 800, 5000);
         _surface.Canvas.Clear(SKColors.White);
         _renderEngine.Render(layout);
@@ -58,6 +60,7 @@ public class FramePipelineBenchmarks
     [Benchmark(Description = "Incremental frame: realistic page, 1 dirty element")]
     public void IncrementalFrame_RealisticPage_SingleDirty()
     {
+        _layoutEngine.InvalidateCache();
         var layout = _layoutEngine.Layout(_realisticPage, _realisticStyles, 1200, 800);
         _surface.Canvas.Clear(SKColors.White);
         var dirtyRegions = new List<RectF> { new(50, 200, 300, 80) };
@@ -67,6 +70,7 @@ public class FramePipelineBenchmarks
     [Benchmark(Description = "Incremental frame: large page, 1 dirty element")]
     public void IncrementalFrame_LargePage_SingleDirty()
     {
+        _layoutEngine.InvalidateCache();
         var layout = _layoutEngine.Layout(_largePage, _blockStyles, 800, 5000);
         _surface.Canvas.Clear(SKColors.White);
         var dirtyRegions = new List<RectF> { new(100, 100, 200, 50) };

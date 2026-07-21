@@ -164,6 +164,10 @@ public class TransformRenderingTests : IDisposable
         // Now mutate the style to add Transform
         afterStyle.Transform = Transform.FromRotate(-180);
 
+        // 就地改写样式表规则内容不会被引擎自动检测（样式表按不可变约定对待，
+        // 见 ISSUE-096）：显式失效布局缓存，强制下一帧重新解析样式。
+        engine.InvalidateLayoutCache();
+
         root.IsDirty = true;
         engine.Render(_canvas);
 
