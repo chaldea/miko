@@ -48,9 +48,16 @@ public class TextLayout
                     || style.WhiteSpace == WhiteSpace.PreWrap
                     || style.WhiteSpace == WhiteSpace.PreLine;
 
-        if (canWrap && constraints.AvailableWidth.HasValue && constraints.AvailableWidth.Value > 0)
+        // pre 不做软换行，但保留的显式换行符（及 Tab 展开）需要多行测量路径，
+        // 否则多行 pre 文本会被按单行测量（高度塌缩为一行、宽度含换行符）。
+        bool needsMultilineMeasure = style.WhiteSpace == WhiteSpace.Pre;
+
+        if ((canWrap && constraints.AvailableWidth.HasValue && constraints.AvailableWidth.Value > 0)
+            || needsMultilineMeasure)
         {
-            float availWidth = constraints.AvailableWidth.Value;
+            // pre 无换行宽度概念（不软换行），可用宽度缺省时给一个足够大的值；
+            // MeasureTextWithWrap 的非换行路径只按显式换行符分行，不使用该宽度。
+            float availWidth = constraints.AvailableWidth is > 0 ? constraints.AvailableWidth.Value : float.MaxValue;
             var textNode = (TextNode)box.Element;
 
             // 测量缓存（ISSUE-096）：以全部测量输入为键，命中则跳过换行算法的全部分配。

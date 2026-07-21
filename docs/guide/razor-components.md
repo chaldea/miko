@@ -36,6 +36,40 @@ The familiar Razor building blocks work as expected: `@expression` interpolation
 `@if` / `@foreach` control flow, `@onclick` and other event directives, `@bind` data
 binding, and `@code` blocks for component logic.
 
+## Preformatted text & code blocks
+
+Ordinary markup whitespace is insignificant in Miko: the compiler trims the newlines and
+indentation between tags, and the engine collapses runs of spaces like a browser with
+`white-space: normal`. The `<pre>` element opts out of all of that — everything inside it
+is preserved verbatim (spaces, tabs, and line breaks), matching `white-space: pre`:
+
+```razor
+<pre><code language="csharp">public class Demo
+{
+    public string Id { get; set; }
+}</code></pre>
+```
+
+`<pre>` is a block element with a monospace font; `<code>` is its inline, semantic
+companion (also monospace) and carries two Miko-specific attributes:
+
+- `language` — the code language (`csharp`, `javascript`, `typescript`, `json`, `xml`,
+  `css`, `sql`, `python`, `bash`, plus common aliases like `c#`, `js`, `py`, `sh`).
+  Setting it enables syntax highlighting by default.
+- `highlight` — set to `"false"` to render the code without coloring.
+
+Highlighting is applied at paint time (the DOM keeps a single text node), uses a
+built-in regex-driven tokenizer with a VS Light+ palette, and needs no external assets.
+It is provided by the `Miko.Highlight.ISyntaxHighlighter` service — the built-in
+`SyntaxHighlighter` is registered by default, and you can replace it (custom palette,
+extra languages, a full parser) by registering your own implementation:
+
+```csharp
+builder.Services.AddSingleton<ISyntaxHighlighter, MyHighlighter>();
+// or
+builder.UseSyntaxHighlighter<MyHighlighter>();
+```
+
 ## Routing
 
 A component becomes a routable page when it declares a `@page` directive:

@@ -26,11 +26,48 @@ public static class TextWrapper
         {
             WhiteSpace.Normal => CollapseWhitespace(text, preserveNewlines: false),
             WhiteSpace.Nowrap => CollapseWhitespace(text, preserveNewlines: false),
-            WhiteSpace.Pre => text, // 保留所有空格和换行
+            WhiteSpace.Pre => PreparePreformatted(text), // 保留所有空格和换行（归一换行、展开 Tab）
             WhiteSpace.PreWrap => text, // 保留所有空格和换行
             WhiteSpace.PreLine => CollapseWhitespace(text, preserveNewlines: true),
             _ => text
         };
+    }
+
+    /// <summary>
+    /// <c>white-space: pre</c> 的预处理：把 <c>\r\n</c> / 孤立 <c>\r</c> 归一为 <c>\n</c>
+    /// （Windows 行尾的 Razor 源码会带入 <c>\r</c>，否则会作为多余字形参与测量与绘制），
+    /// 并把制表符按 tab-size 8 展开为空格（对齐浏览器默认 <c>tab-size: 8</c>，
+    /// SkiaSharp 本身不展开 <c>\t</c>）。无变化时返回原字符串引用，避免逐帧分配。
+    /// </summary>
+    private static string PreparePreformatted(string text, int tabSize = 8)
+    {
+        System.Text.StringBuilder? sb = null;
+        int column = 0;
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (c == '\r')
+            {
+                // \r\n 合并为单个 \n（跳过紧随的 \n，主循环会处理不到它）。
+                sb ??= new System.Text.StringBuilder(text.Length).Append(text, 0, i);
+                sb.Append('\n');
+                if (i + 1 < text.Length && text[i + 1] == '\n') i++;
+                column = 0;
+            }
+            else if (c == '\t')
+            {
+                int spaces = tabSize - (column % tabSize);
+                sb ??= new System.Text.StringBuilder(text.Length + spaces).Append(text, 0, i);
+                sb.Append(' ', spaces);
+                column += spaces;
+            }
+            else
+            {
+                sb?.Append(c);
+                column = c == '\n' ? 0 : column + 1;
+            }
+        }
+        return sb?.ToString() ?? text;
     }
 
     /// <summary>
@@ -166,10 +203,12 @@ public static class TextWrapper
             return lines;
         }
 
-        // 不换行的情况
+        // 不做软换行的情况（pre / nowrap）：仍按显式换行符分行。
+        // nowrap 的换行符已被 ProcessText 折叠为空格，split 恒为单行；
+        // pre 保留的换行符在这里形成真正的行（修复 pre 多行文本被当作单行绘制的缺陷）。
         if (!ShouldWrap(whiteSpace))
         {
-            lines.Add(text);
+            lines.AddRange(text.Split('\n'));
             return lines;
         }
 

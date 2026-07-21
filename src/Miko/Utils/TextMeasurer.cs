@@ -193,9 +193,18 @@ public static class TextMeasurer
 
         if (!shouldWrap)
         {
-            // 不允许换行，直接测量单行
-            var (singleWidth, _) = MeasureText(text, fontFamily, fontSize, fontWeight);
-            return (singleWidth + LetterSpacingExtent(text, letterSpacing), effectiveLineHeight);
+            // 不做软换行（pre / nowrap），但保留的显式换行符仍产生多行：
+            // 宽度取各行最大，高度按行数累计（nowrap 的换行已被 ProcessText 折叠，恒为单行）。
+            var nonWrapped = TextWrapper.ProcessText(text, whiteSpace);
+            var rawLines = nonWrapped.Split('\n');
+            float maxLineWidth = 0;
+            foreach (var line in rawLines)
+            {
+                float w = MeasureTextWidth(line, fontFamily, fontSize, fontWeight)
+                        + LetterSpacingExtent(line, letterSpacing);
+                maxLineWidth = Math.Max(maxLineWidth, w);
+            }
+            return (maxLineWidth, rawLines.Length * effectiveLineHeight);
         }
 
         // 复用 TextWrapper 的换行算法（支持显式换行符与长单词逐字符断行），

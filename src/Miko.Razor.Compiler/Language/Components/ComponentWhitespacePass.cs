@@ -266,6 +266,13 @@ internal sealed class ComponentWhitespacePass : ComponentIntermediateNodePassBas
 
     class Visitor : IntermediateNodeWalker
     {
+        // <pre> 子树的深度：pre 是预格式化元素（white-space: pre），其内部的所有空白
+        // （缩进、换行）都有语义，不能做任何裁剪——包括后代元素（如 <code>）的边缘空白，
+        // 以及 C# 代码块周围的空白。Miko 引擎历史上没有 white-space 排版，
+        // 本 pass 的裁剪 + 运行时的空白内容过滤正是为「忽略格式空白」服务的，
+        // 因此在 pre 内需要整体跳过（见 ISSUE-098）。
+        private int _preformattedDepth;
+
         public override void VisitMethodDeclaration(MethodDeclarationIntermediateNode node)
         {
             RemoveContiguousWhitespace(node.Children, TraversalDirection.Forwards);
@@ -275,6 +282,23 @@ internal sealed class ComponentWhitespacePass : ComponentIntermediateNodePassBas
 
         public override void VisitMarkupElement(MarkupElementIntermediateNode node)
         {
+            if (_preformattedDepth > 0
+                || string.Equals(node.TagName, "pre", StringComparison.OrdinalIgnoreCase))
+            {
+                // pre 子树：完全保留空白。直接走基类的子节点遍历，
+                // 绕过本 Visitor 的所有空白裁剪（含 VisitDefault 的 C# 块边缘裁剪）。
+                _preformattedDepth++;
+                try
+                {
+                    base.VisitDefault(node);
+                }
+                finally
+                {
+                    _preformattedDepth--;
+                }
+                return;
+            }
+
             RemoveContiguousWhitespace(node.Children, TraversalDirection.Forwards);
             RemoveContiguousWhitespace(node.Children, TraversalDirection.Backwards);
             TrimEdgeWhitespace(node.Children);
@@ -283,6 +307,13 @@ internal sealed class ComponentWhitespacePass : ComponentIntermediateNodePassBas
 
         public override void VisitTagHelperBody(TagHelperBodyIntermediateNode node)
         {
+            if (_preformattedDepth > 0)
+            {
+                // pre 子树内的组件体同样保留空白（见 VisitMarkupElement）。
+                base.VisitDefault(node);
+                return;
+            }
+
             RemoveContiguousWhitespace(node.Children, TraversalDirection.Forwards);
             RemoveContiguousWhitespace(node.Children, TraversalDirection.Backwards);
             TrimEdgeWhitespace(node.Children);

@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Fonts;
+using Miko.Highlight;
 using Miko.Styling;
 using SkiaSharp;
 
@@ -674,6 +675,143 @@ public class Painter
 
             currentY += lineHeight;
         }
+    }
+
+    /// <summary>
+    /// 绘制带语法高亮的文本（ISSUE-098）。
+    ///
+    /// 与 <see cref="DrawMultilineText"/> 结构一致（按显式换行符分行、逐行按 textAlign 对齐、
+    /// 顶部起始），但每行内部按 <paramref name="tokens"/> 的区间逐段换色绘制。
+    /// token 覆盖不到的区间使用 <paramref name="defaultColor"/>（元素自身颜色）。
+    /// 不做软换行——调用方保证文本已按 white-space 预处理（ProcessText），
+    /// 换行仅由 <c>\n</c> 产生；token 允许跨行（块注释、多行字符串），在行边界裁剪。
+    /// </summary>
+    /// <param name="text">预处理后的绘制文本（与 tokenize 所用文本一致，保证偏移对齐）。</param>
+    /// <param name="tokens">高亮 token 序列（按起点升序、互不重叠）。</param>
+    /// <param name="theme">高亮主题：token 类型 → 颜色的映射。</param>
+    public void DrawHighlightedText(
+        string text,
+        IReadOnlyList<CodeToken> tokens,
+        SyntaxTheme theme,
+        RectF rect,
+        Color defaultColor,
+        string fontFamily,
+        float fontSize,
+        FontWeight fontWeight,
+        TextAlign textAlign,
+        float lineHeight,
+        float letterSpacing = 0)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+
+        var fontManager = FontManager.Instance;
+        using var paint = new SKPaint { IsAntialias = true };
+
+        var lines = text.Split('\n');
+        float currentY = rect.Top;
+        int lineStart = 0;
+        int firstCandidateToken = 0;
+
+        foreach (var line in lines)
+        {
+            int lineEnd = lineStart + line.Length;
+
+            if (line.Length > 0)
+            {
+                // 行宽用于水平对齐（与 DrawMultilineText 一致）。
+                var lineResolver = new FontFallbackResolver(fontManager);
+                var lineRuns = lineResolver.ResolveTextRuns(line, fontFamily, fontWeight);
+                float lineWidth = MeasureRunsWidth(lineRuns, fontSize, paint, letterSpacing);
+                float x = textAlign switch
+                {
+                    TextAlign.Right => rect.Right - lineWidth,
+                    TextAlign.Center => rect.Left + (rect.Width - lineWidth) / 2,
+                    _ => rect.Left
+                };
+
+                // 跳过完全落在本行之前的 token（跨行 token 的终点超过行首则保留）。
+                while (firstCandidateToken < tokens.Count
+                       && tokens[firstCandidateToken].Start + tokens[firstCandidateToken].Length <= lineStart)
+                {
+                    firstCandidateToken++;
+                }
+
+                // 逐段绘制：token 覆盖的区间用 token 颜色，间隙用默认色。
+                int tokenIndex = firstCandidateToken;
+                int pos = lineStart;
+                while (pos < lineEnd)
+                {
+                    CodeTokenType type = CodeTokenType.Plain;
+                    int segEnd = lineEnd;
+                    if (tokenIndex < tokens.Count)
+                    {
+                        var token = tokens[tokenIndex];
+                        if (token.Start <= pos)
+                        {
+                            type = token.Type;
+                            segEnd = Math.Min(token.Start + token.Length, lineEnd);
+                        }
+                        else
+                        {
+                            // 间隙（Plain）到下一个 token 起点。
+                            segEnd = Math.Min(token.Start, lineEnd);
+                        }
+                    }
+
+                    if (segEnd > pos)
+                    {
+                        var color = type == CodeTokenType.Plain
+                            ? defaultColor
+                            : theme.ColorFor(type) ?? defaultColor;
+                        var segment = line.Substring(pos - lineStart, segEnd - pos);
+                        x = DrawColoredSegment(segment, color, x, currentY, fontFamily, fontSize, fontWeight, paint, letterSpacing);
+                    }
+
+                    pos = segEnd;
+                    if (tokenIndex < tokens.Count
+                        && tokens[tokenIndex].Start + tokens[tokenIndex].Length <= pos)
+                    {
+                        tokenIndex++;
+                    }
+                }
+            }
+
+            currentY += lineHeight;
+            lineStart = lineEnd + 1; // 跳过 '\n'
+        }
+    }
+
+    /// <summary>
+    /// 绘制一个着色文本段并返回推进后的 x。基线算法与 DrawMultilineText 一致
+    /// （行顶 + 首个 run 的 -Ascent），保证 token 段与普通文本混排时基线对齐。
+    /// </summary>
+    private float DrawColoredSegment(
+        string segment,
+        Color color,
+        float x,
+        float lineTop,
+        string fontFamily,
+        float fontSize,
+        FontWeight fontWeight,
+        SKPaint paint,
+        float letterSpacing)
+    {
+        if (segment.Length == 0 || color.A == 0) return x;
+
+        var resolver = new FontFallbackResolver(FontManager.Instance);
+        var runs = resolver.ResolveTextRuns(segment, fontFamily, fontWeight);
+        if (runs.Count == 0) return x;
+
+        paint.Color = color.ToSKColor();
+        using var baselineFont = CreateHighQualityFont(runs[0].Typeface, fontSize);
+        float y = lineTop - baselineFont.Metrics.Ascent;
+
+        foreach (var run in runs)
+        {
+            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
+        }
+        return x;
     }
 
     /// <summary>

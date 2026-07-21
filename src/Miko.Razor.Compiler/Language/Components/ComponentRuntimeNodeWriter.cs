@@ -21,6 +21,10 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
     private readonly ImmutableArray<IntermediateToken>.Builder _currentAttributeValues = ImmutableArray.CreateBuilder<IntermediateToken>();
     private int _sourceSequence;
 
+    // <pre> 子树深度：pre 是预格式化元素，其内部的空白文本（换行、缩进）有语义，
+    // 不能像普通标记那样跳过（见 WriteHtmlContent 与 ISSUE-098）。
+    private int _preformattedDepth;
+
     public ComponentRuntimeNodeWriter(RazorLanguageVersion version) : base(version)
     {
     }
@@ -224,10 +228,27 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
             ScopeStack.IncrementFormName();
         }
 
-        // Render body of the tag inside the scope
-        foreach (var child in node.Body)
+        // <pre> 子树的空白内容需要保留（预格式化），在渲染 body 期间跟踪深度。
+        bool isPre = string.Equals(node.TagName, "pre", StringComparison.OrdinalIgnoreCase);
+        if (isPre)
         {
-            context.RenderNode(child);
+            _preformattedDepth++;
+        }
+
+        try
+        {
+            // Render body of the tag inside the scope
+            foreach (var child in node.Body)
+            {
+                context.RenderNode(child);
+            }
+        }
+        finally
+        {
+            if (isPre)
+            {
+                _preformattedDepth--;
+            }
         }
 
         context.CodeWriter
@@ -293,7 +314,13 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
         // way a browser does, so emitting empty or whitespace-only text (the newlines and
         // indentation between markup) would add spurious layout content. Skip it entirely
         // — and don't consume a sequence number, keeping the generated code clean.
-        if (string.IsNullOrWhiteSpace(content))
+        // Exception: inside <pre> whitespace is significant (preformatted text), so it
+        // must be emitted for the engine's white-space: pre pipeline to preserve.
+        if (string.IsNullOrEmpty(content))
+        {
+            return;
+        }
+        if (_preformattedDepth == 0 && string.IsNullOrWhiteSpace(content))
         {
             return;
         }
