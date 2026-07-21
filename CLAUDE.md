@@ -143,7 +143,7 @@ The repository uses a single solution file:
 - `LayoutBox.cs`: Layout tree node with computed dimensions
 - `BoxModel.cs`: CSS box model (content, padding, border, margin)
 - `LayoutConstraints.cs`: Layout constraints passed from parent to child
-- `LayoutAlgorithms/`: Block, Inline, Flex, and Table layout implementations
+- `LayoutAlgorithms/`: Block, Inline, Flex, Grid, and Table layout implementations
 - `LayoutDispatcher.cs`: Routes layout calculations to appropriate algorithm
 
 **Rendering** (`src/Miko/Rendering/`)

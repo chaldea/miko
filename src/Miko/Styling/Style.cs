@@ -303,6 +303,23 @@ public partial class Style
     public StyleProperty<Length>? RowGap { get; set; }
     public StyleProperty<Length>? ColumnGap { get; set; }
 
+    // Grid 容器属性（仅对 Display.Grid 生效，见 ISSUE-097）
+    /// <summary>显式列轨道列表（grid-template-columns）。null = 无显式列模板（单列 auto 流）。</summary>
+    public StyleProperty<List<GridTrackSize>>? GridTemplateColumns { get; set; }
+    /// <summary>显式行轨道列表（grid-template-rows）。null = 无显式行模板（行按需隐式创建）。</summary>
+    public StyleProperty<List<GridTrackSize>>? GridTemplateRows { get; set; }
+    /// <summary>隐式行轨道尺寸（grid-auto-rows），默认 auto。</summary>
+    public StyleProperty<GridTrackSize>? GridAutoRows { get; set; }
+    /// <summary>隐式列轨道尺寸（grid-auto-columns），默认 auto。仅显式越界放置会产生隐式列。</summary>
+    public StyleProperty<GridTrackSize>? GridAutoColumns { get; set; }
+
+    // Grid 子项放置属性（grid-column-start/end、grid-row-start/end）。
+    // 1 起始的网格线编号；0（默认）= 自动放置；负的结束线相对显式轨道数解析（-1 = 最后一条线）。
+    public StyleProperty<int>? GridColumnStart { get; set; }
+    public StyleProperty<int>? GridColumnEnd { get; set; }
+    public StyleProperty<int>? GridRowStart { get; set; }
+    public StyleProperty<int>? GridRowEnd { get; set; }
+
     /// <summary>
     /// Box shadow layers. Multiple shadows are applied in order (first shadow is on top).
     /// Matches CSS box-shadow which supports comma-separated shadow definitions.

@@ -10,6 +10,7 @@ public static class LayoutDispatcher
     private static readonly BlockLayout _blockLayout = new();
     private static readonly InlineLayout _inlineLayout = new();
     private static readonly FlexLayout _flexLayout = new();
+    private static readonly GridLayout _gridLayout = new();
     private static readonly TableLayout _tableLayout = new();
     private static readonly TextLayout _textLayout = new();
 
@@ -30,7 +31,12 @@ public static class LayoutDispatcher
                 break;
 
             case LayoutType.Flex:
+            case LayoutType.InlineFlex:
                 _flexLayout.Layout(box, constraints, x, y);
+                break;
+
+            case LayoutType.Grid:
+                _gridLayout.Layout(box, constraints, x, y);
                 break;
 
             case LayoutType.Table:

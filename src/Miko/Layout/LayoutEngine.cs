@@ -15,6 +15,7 @@ public class LayoutEngine
     private readonly BlockLayout _blockLayout = new();
     private readonly InlineLayout _inlineLayout = new();
     private readonly FlexLayout _flexLayout = new();
+    private readonly GridLayout _gridLayout = new();
     private readonly TableLayout _tableLayout = new();
     private readonly TextLayout _textLayout = new();
 
@@ -311,6 +312,8 @@ public class LayoutEngine
             Display.Inline => LayoutType.Inline,
             Display.InlineBlock => LayoutType.InlineBlock,
             Display.Flex => LayoutType.Flex,
+            Display.InlineFlex => LayoutType.InlineFlex,
+            Display.Grid => LayoutType.Grid,
             Display.Table => LayoutType.Table,
             Display.TableRow => LayoutType.TableRow,
             Display.TableCell => LayoutType.TableCell,
@@ -424,6 +427,8 @@ public class LayoutEngine
             Display.Inline => LayoutType.Inline,
             Display.InlineBlock => LayoutType.InlineBlock,
             Display.Flex => LayoutType.Flex,
+            Display.InlineFlex => LayoutType.InlineFlex,
+            Display.Grid => LayoutType.Grid,
             Display.Table => LayoutType.Table,
             Display.TableRow => LayoutType.TableRow,
             Display.TableCell => LayoutType.TableCell,
@@ -486,7 +491,12 @@ public class LayoutEngine
                 break;
 
             case LayoutType.Flex:
+            case LayoutType.InlineFlex:
                 _flexLayout.Layout(box, constraints, x, y);
+                break;
+
+            case LayoutType.Grid:
+                _gridLayout.Layout(box, constraints, x, y);
                 break;
 
             case LayoutType.Table:

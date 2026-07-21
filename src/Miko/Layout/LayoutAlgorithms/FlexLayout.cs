@@ -55,8 +55,11 @@ public class FlexLayout
                 contentWidth = Math.Max(0, contentWidth);
             }
         }
-        else if (constraints.IsInfiniteWidth || containerWidth <= 0)
+        else if (constraints.IsInfiniteWidth || containerWidth <= 0
+                 || (box.Type == LayoutType.InlineFlex && widthIsAuto))
         {
+            // inline-flex 且宽度 auto：即便包含块宽度确定也走 shrink-to-fit——外层是行内级盒，
+            // 宽度由内容决定（对齐 inline-block 行为，见 ISSUE-097）；显式/百分比宽度仍走上面的分支。
             widthIsIndefinite = true;
             // 当没有可用宽度约束时（如在 flex row 容器中），根据内容计算宽度
             if (box.Children.Count == 0 && !string.IsNullOrEmpty(box.Element.TextContent))
@@ -256,13 +259,25 @@ public class FlexLayout
         {
             // 文本节点已作为 flex 子项计入 MarginBox 宽度，无需再单独测量文本（见 ISSUE-086）。
             float totalChildMainWidth = 0;
+            int itemCount = 0;
             foreach (var child in box.Children)
             {
                 if (BlockLayout.IsOutOfFlow(child)) continue;
                 totalChildMainWidth += child.BoxModel.MarginBox.Width;
+                itemCount++;
             }
 
-            contentWidth = totalChildMainWidth;
+            // 主轴 gap 计入收缩宽度（n 个项目间 n-1 个 gap；主轴不确定时 wrap 已退化为单行）。
+            // 百分比 gap 针对不确定主轴按 0 解析（与百分比长度的退化规则一致）。
+            float columnGap = (style.ColumnGap.IsAuto ? style.Gap : style.ColumnGap).ToPixels(0, fs);
+            contentWidth = totalChildMainWidth + columnGap * Math.Max(0, itemCount - 1);
+        }
+
+        // 4c. 列布局且宽度未定：收缩包裹到交叉轴（列）总宽度（与 4b 对称，见 ISSUE-097）。
+        // 单列时为最宽子项宽度；多列（wrap）时为各列宽度之和。
+        if (!isRow && widthIsIndefinite && widthIsAuto)
+        {
+            contentWidth = maxCrossSize;
         }
 
         // 5. 计算最终容器高度
@@ -370,8 +385,10 @@ public class FlexLayout
         }
 
         // 如果不换行，所有子元素在一行；否则按宽度 + gap 分行。
+        // 主尺寸不确定（shrink-to-fit，如 inline-flex auto 宽度）时没有可对照的可用宽度，
+        // 无法换行，退化为单行——与列方向 !heightIsIndefinite 的守卫对称（见 LayoutColumnDirection）。
         // wrap-reverse 与 wrap 一样分行，仅交叉轴方向相反（在下方反转行序）。
-        var lines = style.FlexWrap != FlexWrap.Nowrap
+        var lines = style.FlexWrap != FlexWrap.Nowrap && !widthIsIndefinite
             ? PartitionIntoLines(allChildren, contentWidth, columnGap, true, widthIsIndefinite)
             : new List<List<LayoutBox>> { allChildren };
 

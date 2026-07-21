@@ -448,8 +448,10 @@ public class BlockLayout
     internal static bool IsInlineOrInlineBlock(LayoutBox child)
     {
         // 文本节点（TextNode）是行内级盒，与 inline/inline-block 一起参与水平行内流。
+        // inline-flex 外层同为行内级（见 ISSUE-097），内层由 FlexLayout 布局。
         return child.Type == LayoutType.Inline
             || child.Type == LayoutType.InlineBlock
+            || child.Type == LayoutType.InlineFlex
             || child.Type == LayoutType.Text;
     }
 

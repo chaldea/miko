@@ -12,7 +12,11 @@ public enum Display
     None,
     Table,
     TableRow,
-    TableCell
+    TableCell,
+    // 行内级 flex 容器：外层按 inline-block 参与行内流（shrink-to-fit），内层按 flex 布局子项。
+    InlineFlex,
+    // 块级 grid 容器：子项按显式/自动放置进网格轨道。
+    Grid
 }
 
 /// <summary>
@@ -118,7 +122,11 @@ public enum LayoutType
     TableRow,
     TableCell,
     // 匿名文本节点（TextNode）：仅测量文本外接矩形写入 Content，无 padding/border/margin。
-    Text
+    Text,
+    // 行内级 flex 容器：外层行内级（参与行内行流），内层由 FlexLayout 布局（见 ISSUE-097）。
+    InlineFlex,
+    // grid 容器：由 GridLayout 布局（见 ISSUE-097）。
+    Grid
 }
 
 /// <summary>
