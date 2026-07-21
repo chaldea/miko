@@ -33,7 +33,15 @@ public sealed class TextNode : Element
     public string Text
     {
         get => RawTextContent ?? "";
-        set => RawTextContent = value;
+        set
+        {
+            if (RawTextContent != value)
+            {
+                RawTextContent = value;
+                IsDirty = true;
+                BumpMutationVersion();
+            }
+        }
     }
 
     /// <summary>
@@ -43,8 +51,24 @@ public sealed class TextNode : Element
     public override string? TextContent
     {
         get => RawTextContent;
-        set => RawTextContent = value;
+        set => Text = value ?? "";
     }
 
     public override string ToString() => $"#text(\"{Text}\")";
+
+    // ---- 多行测量缓存（ISSUE-096）----
+    // TextLayout 的换行测量（TextMeasurer.MeasureTextWithWrap）没有全局缓存，
+    // 每次布局都为每个文本节点分配 StringBuilder / 行列表。这里以全部测量输入为键
+    // 缓存最近一次结果：重排时输入通常不变（直接命中，零分配）；文本修改
+    // （Text setter）或样式/约束变化自然导致键不匹配而重算，无需显式失效。
+    internal string? McText;
+    internal string? McFontFamily;
+    internal float McFontSize;
+    internal Miko.Common.FontWeight McFontWeight;
+    internal float McAvailWidth;
+    internal float McLineHeight;
+    internal Miko.Common.WhiteSpace McWhiteSpace;
+    internal bool McBreakLongWords;
+    internal float McLetterSpacing;
+    internal (float Width, float Height) McResult;
 }

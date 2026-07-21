@@ -218,6 +218,22 @@ public class MikoEngine
 
         _renderEngine.SetCanvas(canvas);
 
+        // 快速路径（ISSUE-096）：布局输入（DOM/样式/视口/安全区）自上次布局后未变，
+        // 直接复用现有布局树。此时不可能有新的 transition 触发（transition 由样式变化引起，
+        // 而任何样式变化都会递增变更版本号），故一并跳过 transition 检测的整树扫描。
+        if (_currentLayout != null
+            && _layoutEngine.IsLayoutCurrent(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea))
+        {
+            // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
+            SyncVideoSessions(_root);
+            // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
+            SyncImageSources(_root);
+
+            _renderEngine.Render(_currentLayout);
+            _dirtyManager.Clear();
+            return;
+        }
+
         var oldStyles = CaptureTransitionableStyles(_root);
         var oldLayout = _currentLayout;
         _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
@@ -264,6 +280,33 @@ public class MikoEngine
     public bool HasPendingInvalidations
     {
         get { lock (_pendingInvalidationsLock) return _pendingInvalidations.Count > 0; }
+    }
+
+    /// <summary>
+    /// 引擎是否有未呈现的视觉工作（平台宿主据此决定是渲染新帧还是空闲等待，见 ISSUE-096）。
+    /// 为 false 时表示屏幕上已是最新内容：无脏区域、无待排队的回调、无运行中的动画、
+    /// 无播放中的视频，且布局输入（DOM/样式/视口/安全区）自上次渲染后未变。
+    /// 宿主的输入事件（指针、键盘、滚动）会直接修改元素状态/滚动偏移并标脏，
+    /// 因此无需额外计入。
+    /// </summary>
+    public bool HasPendingVisualWork
+    {
+        get
+        {
+            if (_root == null || _currentLayout == null) return true;   // 首帧尚未渲染
+            if (_dispatcher.HasPendingActions) return true;             // 排队回调可能修改 DOM
+            if (HasPendingInvalidations) return true;                   // 跨线程失效（视频帧、图片加载）
+            if (_dirtyManager.HasDirtyRegions()) return true;           // 已标脏未绘制
+            if (_animationManager.HasActiveAnimations) return true;     // 动画/过渡逐帧推进
+            // 布局输入已变（DOM/样式/视口/安全区）→ 需要重排重绘
+            if (!_layoutEngine.IsLayoutCurrent(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea)) return true;
+            // 加载中/播放中的视频会持续投递新帧
+            foreach (var session in _videoSessions.Values)
+            {
+                if (session.State is VideoSessionState.Loading or VideoSessionState.Playing) return true;
+            }
+            return false;
+        }
     }
 
     private void DrainPendingInvalidations()
@@ -363,6 +406,16 @@ public class MikoEngine
     }
 
     /// <summary>
+    /// 使缓存的布局结果失效，强制下一帧完整重排（ISSUE-096）。
+    /// 常规变更（DOM 结构、文本、class、行内样式替换、元素状态、视口、安全区、
+    /// <see cref="AddStyleSheet"/>）都会被自动检测，无需调用本方法。
+    /// 仅在引擎无法察觉的变更后调用——主要是**就地改写了已添加样式表的规则内容**
+    /// （样式表对象图按不可变约定对待；替换样式表列表本身会被自动检测），
+    /// 或运行时注册新字体导致文本度量变化。
+    /// </summary>
+    public void InvalidateLayoutCache() => _layoutEngine.InvalidateCache();
+
+    /// <summary>
     /// 添加样式表
     /// </summary>
     public void AddStyleSheet(StyleSheet styleSheet)
@@ -370,6 +423,7 @@ public class MikoEngine
         _styleSheets.Add(styleSheet);
 
         // 样式变化需要重新布局
+        Element.BumpMutationVersion();
         if (_root != null)
         {
             InvalidateElement(_root);
@@ -483,18 +537,19 @@ public class MikoEngine
         Dictionary<(Element, PseudoElementType), (StyleSnapshot, List<Transition>)> pseudos)
     {
         var layoutBox = element.LayoutBox;
-        if (layoutBox != null && layoutBox.ComputedStyle.Transitions.Count > 0)
+        // 热路径用 TransitionsOrNull 判空，避免为无过渡元素触发懒分配（ISSUE-096）。
+        if (layoutBox != null && layoutBox.ComputedStyle.TransitionsOrNull is { Count: > 0 } transitions)
         {
-            elements[element] = (CaptureSnapshot(layoutBox.ComputedStyle), layoutBox.ComputedStyle.Transitions);
+            elements[element] = (CaptureSnapshot(layoutBox.ComputedStyle), transitions);
         }
 
         if (layoutBox != null)
         {
             foreach (var child in layoutBox.Children)
             {
-                if (child.Element is PseudoElement pseudo && child.ComputedStyle.Transitions.Count > 0)
+                if (child.Element is PseudoElement pseudo && child.ComputedStyle.TransitionsOrNull is { Count: > 0 } pseudoTransitions)
                 {
-                    pseudos[(element, pseudo.Type)] = (CaptureSnapshot(child.ComputedStyle), child.ComputedStyle.Transitions);
+                    pseudos[(element, pseudo.Type)] = (CaptureSnapshot(child.ComputedStyle), pseudoTransitions);
                 }
             }
         }
@@ -856,6 +911,8 @@ public class MikoEngine
                 // 写入内禀尺寸并触发重排（auto 尺寸的 video 将按真实纵横比布局）。
                 video.IntrinsicWidth = loaded.Width;
                 video.IntrinsicHeight = loaded.Height;
+                // 内禀尺寸是布局输入：递增版本号使下一帧重排（区别于新帧到达的纯绘制失效）。
+                Element.BumpMutationVersion();
                 PostInvalidate(video);
                 break;
 
@@ -972,6 +1029,8 @@ public class MikoEngine
                 img.Bitmap = bmp;
                 img.IntrinsicWidth = bmp.Width;
                 img.IntrinsicHeight = bmp.Height;
+                // 内禀尺寸是布局输入（auto 尺寸的 img 按真实尺寸布局）：递增版本号触发重排。
+                Element.BumpMutationVersion();
             }
             // 即使失败也投递失效：让占位图/背景在下一帧稳定呈现。
             PostInvalidate(img);
@@ -1025,6 +1084,8 @@ public class MikoEngine
     private static void RestoreScrollState(LayoutBox? oldRoot, LayoutBox? newRoot)
     {
         if (oldRoot == null || newRoot == null) return;
+        // 布局树被缓存复用时新旧为同一对象，滚动偏移本就保留在盒子上，无需恢复（ISSUE-096）。
+        if (ReferenceEquals(oldRoot, newRoot)) return;
         // 根节点必须同标签才对齐（否则整棵树语义不同，无从恢复）。
         if (!IsSameElementIdentity(oldRoot.Element, newRoot.Element)) return;
         RestoreScrollStateRecursive(oldRoot, newRoot);

@@ -9,7 +9,13 @@ namespace Miko.Styling;
 /// 通过隐式转换，既有写法 <c>Color = Color.Red</c> / <c>Width = Length.Px(100)</c> 保持不变；
 /// 变量写法 <c>Color = Var("--x")</c> 经 <see cref="VarReference"/> 隐式转换成立；
 /// 关键词写法 <c>Color = Initial</c> 经 <see cref="StyleKeyword"/> 隐式转换成立；
-/// calc 写法 <c>MarginLeft = -1 * Var("--x")</c> / <c>Calc(s =&gt; ...)</c> 经 <see cref="CalcValue{T}"/> 隐式转换成立。
+/// calc 写法 <c>MarginLeft = -1 * Var("--x")</c> / <c>Calc(s = ...)</c> 经 <see cref="CalcValue{T}"/> 隐式转换成立。
+/// </para>
+/// <para>
+/// 存储布局（ISSUE-096）：具体值 <see cref="_value"/> + 单一辅助负载 <see cref="_aux"/>。
+/// 变量引用与 calc 表达式在样式中占比极低，共享同一个对象槽（装箱存放），
+/// 使常见路径（具体值/关键词）不背负它们的字段开销——<see cref="Style"/> 有约 100 个
+/// 本类型属性槽，槽体积直接决定每个元素每次样式解析的堆分配量。
 /// </para>
 /// </summary>
 public readonly struct StyleProperty<T>
@@ -18,44 +24,43 @@ public readonly struct StyleProperty<T>
     private enum Slot : byte { Value, Var, Keyword, Calc }
 
     private readonly T _value;
-    private readonly VarReference _var;
+
+    // 罕见路径的辅助负载：Slot.Var 时为装箱 VarReference，Slot.Calc 时为装箱 CalcValue<T>，
+    // Slot.Value / Slot.Keyword 时为 null。
+    private readonly object? _aux;
+
     private readonly StyleKeyword _keyword;
-    private readonly CalcValue<T> _calc;
     private readonly Slot _slot;
 
     public StyleProperty(T value)
     {
         _value = value;
-        _var = default;
+        _aux = null;
         _keyword = default;
-        _calc = default;
         _slot = Slot.Value;
     }
 
     public StyleProperty(VarReference var)
     {
         _value = default!;
-        _var = var;
+        _aux = var;
         _keyword = default;
-        _calc = default;
         _slot = Slot.Var;
     }
 
     public StyleProperty(StyleKeyword keyword)
     {
         _value = default!;
-        _var = default;
+        _aux = null;
         _keyword = keyword;
-        _calc = default;
         _slot = Slot.Keyword;
     }
 
     public StyleProperty(CalcValue<T> calc)
     {
         _value = default!;
-        _var = default;
+        _aux = calc;
         _keyword = default;
-        _calc = calc;
         _slot = Slot.Calc;
     }
 
@@ -69,7 +74,7 @@ public readonly struct StyleProperty<T>
     public bool IsCalc => _slot == Slot.Calc;
 
     /// <summary>变量引用（仅当 <see cref="IsVar"/> 为 true 时有意义）。</summary>
-    public VarReference VarRef => _var;
+    public VarReference VarRef => _slot == Slot.Var ? (VarReference)_aux! : default;
 
     /// <summary>CSS 全局关键词（仅当 <see cref="IsKeyword"/> 为 true 时有意义）。</summary>
     public StyleKeyword Keyword => _keyword;
@@ -81,7 +86,7 @@ public readonly struct StyleProperty<T>
     public bool TryEvaluateCalc(Dictionary<string, VarValue>? scope, out T value)
     {
         if (_slot == Slot.Calc)
-            return _calc.TryEvaluate(scope, out value);
+            return ((CalcValue<T>)_aux!).TryEvaluate(scope, out value);
 
         value = default!;
         return false;
@@ -110,9 +115,9 @@ public readonly struct StyleProperty<T>
 
     public override string ToString() => _slot switch
     {
-        Slot.Var => $"var({_var.Name})",
+        Slot.Var => $"var({((VarReference)_aux!).Name})",
         Slot.Keyword => _keyword.ToString(),
-        Slot.Calc => _calc.ToString(),
+        Slot.Calc => _aux!.ToString() ?? "",
         _ => _value?.ToString() ?? "",
     };
 }

@@ -43,29 +43,29 @@ public class LayoutBenchmarks
 
     [Benchmark]
     public LayoutBox BlockLayout_SmallTree()
-        => _layoutEngine.Layout(_smallTree, _blockStyles, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_smallTree, _blockStyles, 800, 600); }
 
     [Benchmark]
     public LayoutBox BlockLayout_LargeTree()
-        => _layoutEngine.Layout(_largeTree, _blockStyles, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_largeTree, _blockStyles, 800, 600); }
 
     [Benchmark]
     public LayoutBox BlockLayout_DeepNesting()
-        => _layoutEngine.Layout(_deepTree, _blockStyles, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_deepTree, _blockStyles, 800, 600); }
 
     [Benchmark]
     public LayoutBox FlexLayout_FewChildren()
-        => _layoutEngine.Layout(_flexSmall, _flexStyles, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_flexSmall, _flexStyles, 800, 600); }
 
     [Benchmark]
     public LayoutBox FlexLayout_ManyChildren()
-        => _layoutEngine.Layout(_flexLarge, _flexStyles, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_flexLarge, _flexStyles, 800, 600); }
 
     [Benchmark]
     public LayoutBox InlineLayout_ManyElements()
-        => _layoutEngine.Layout(_inlineTree, _inlineStyles, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_inlineTree, _inlineStyles, 800, 600); }
 
     [Benchmark]
     public LayoutBox MixedLayout_Realistic()
-        => _layoutEngine.Layout(_realisticPage, _realisticStyles, 800, 600);
+        { _layoutEngine.InvalidateCache(); return _layoutEngine.Layout(_realisticPage, _realisticStyles, 800, 600); }
 }

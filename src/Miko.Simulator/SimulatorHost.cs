@@ -87,6 +87,9 @@ public sealed class SimulatorHost
 
     private volatile bool _panelNeedsRebuild = true;
 
+    // 首帧与 resize 后必须呈现一次，即使引擎报告无待办工作（ISSUE-096 空闲跳过逻辑的兜底）。
+    private volatile bool _needsPresent = true;
+
     // 跨线程调用队列：MCP 等后台线程通过 InvokeOnRenderThread 投递操作，
     // 在渲染线程每帧开头排空执行，保证 DOM/GL 只被渲染线程触碰。
     private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _renderThreadQueue = new();
@@ -169,6 +172,9 @@ public sealed class SimulatorHost
             Title = _options.Title ?? $"{_appContext.Options.Title} — Simulator",
             Size = new Vector2D<int>(_windowWidth, _windowHeight),
             API = GraphicsAPI.Default,
+            // 手动交换缓冲：稳态空闲时（应用与面板均无视觉工作）整帧跳过绘制与交换，
+            // 避免每秒 60 次全量重绘造成的 GC 压力（ISSUE-096）。
+            ShouldSwapAutomatically = false,
         };
 
         _window = Window.Create(options);
@@ -348,6 +354,9 @@ public sealed class SimulatorHost
         _windowWidth = size.X;
         _windowHeight = size.Y;
 
+        // 尺寸变化后帧缓冲内容失效，必须强制呈现一帧（ISSUE-096 空闲跳过逻辑的兜底）。
+        _needsPresent = true;
+
         // 最小化时窗口尺寸为 0×0。此时不要把 0 尺寸推给 GL/面板引擎——
         // 用 0 尺寸创建渲染目标会失败，且会污染布局状态。恢复时会再次收到 Resize。
         if (size.X == 0 || size.Y == 0) return;
@@ -376,6 +385,18 @@ public sealed class SimulatorHost
 
         // 排空跨线程调用队列（MCP 等后台线程投递的 DOM 读写操作），在任何渲染前于本线程执行。
         DrainRenderThreadQueue();
+
+        // 稳态空闲检测（ISSUE-096）：应用与设置面板均无待呈现的视觉工作时，跳过整帧
+        // 绘制与缓冲交换（手动交换模式下窗口保持上一帧内容）。输入事件经 Silk 事件直接
+        // 驱动 DOM/状态变更，会把工作产生出来；首帧与 resize 后强制呈现一帧。
+        if (!_needsPresent
+            && !_panelNeedsRebuild
+            && !_appController.HasPendingWork
+            && !_panelEngine.HasPendingVisualWork)
+        {
+            return;
+        }
+        _needsPresent = false;
 
         // 最小化时窗口为 0×0。用 0 尺寸创建 GRBackendRenderTarget / SKSurface 会返回 null，
         // 解引用 Canvas 将抛异常并污染 GRContext，导致恢复后再也无法渲染（ISSUE-067 现象）。
@@ -414,6 +435,9 @@ public sealed class SimulatorHost
 
         canvas.Flush();
         _grContext.Flush();
+
+        // 手动交换缓冲（ShouldSwapAutomatically = false，见 Run 中窗口选项）。
+        _window.GLContext?.SwapBuffers();
     }
 
     // 把应用渲染进离屏画布。RenderFrame 持有输入/渲染锁，保证输入引发的 DOM 变更不与渲染竞争。
