@@ -53,6 +53,8 @@ public class RenderTreeBuilder
         ["td"] = () => new TdElement(),
         ["nav"] = () => new NavElement(),
         ["strong"] = () => new StrongElement(),
+        ["pre"] = () => new PreElement(),
+        ["code"] = () => new CodeElement(),
     };
 
     public void OpenElement(int seq, string tagName)
@@ -147,6 +149,10 @@ public class RenderTreeBuilder
                 video.Muted = ParseHtmlBool(value); break;
             case "controls" when element is VideoElement video:
                 video.Controls = ParseHtmlBool(value); break;
+            case "language" when element is CodeElement code:
+                code.Language = value; break;
+            case "highlight" when element is CodeElement code:
+                code.Highlight = ParseHtmlBool(value); break;
         }
     }
 
@@ -325,7 +331,14 @@ public class RenderTreeBuilder
         {
             if (m.Groups["text"].Success)
             {
-                var text = m.Groups["text"].Value.Trim();
+                // pre 子树内保留原始空白（预格式化语义）；其它场景裁剪标签间的格式空白。
+                var rawText = m.Groups["text"].Value;
+                bool inPre = false;
+                foreach (var open in localStack)
+                {
+                    if (open is PreElement) { inPre = true; break; }
+                }
+                var text = inPre ? rawText : rawText.Trim();
                 // 文本以有序 TextNode 追加，保留与标签的交错顺序（见 ISSUE-086）。
                 if (text.Length > 0 && localStack.Count > 0)
                     localStack.Peek().AddChild(new TextNode(text));

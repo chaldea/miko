@@ -437,7 +437,7 @@ public sealed class SimulatorHost
         _grContext.Flush();
 
         // 手动交换缓冲（ShouldSwapAutomatically = false，见 Run 中窗口选项）。
-        _window.GLContext?.SwapBuffers();
+        _window!.GLContext?.SwapBuffers();
     }
 
     // 把应用渲染进离屏画布。RenderFrame 持有输入/渲染锁，保证输入引发的 DOM 变更不与渲染竞争。

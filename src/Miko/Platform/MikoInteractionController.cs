@@ -85,6 +85,13 @@ public sealed class MikoInteractionController
         // 否则注入内置 ResourceManager，复用 DI 中的 HttpClient（若已注册）与入口程序集解析 res://。
         _engine.ImageLoader = serviceProvider.GetService<IImageLoader>();
 
+        // 语法高亮器：默认注册内置实现；应用可重新注册 ISyntaxHighlighter 覆盖
+        // （如自定义配色、新增语言或接入完整语法分析，见 ISSUE-098）。
+        if (serviceProvider.GetService<Highlight.ISyntaxHighlighter>() is { } syntaxHighlighter)
+        {
+            _engine.SyntaxHighlighter = syntaxHighlighter;
+        }
+
         if (_options.RouteAssemblies != null || _options.RouteConfigurator != null)
         {
             _router = new Router();

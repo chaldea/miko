@@ -40,6 +40,9 @@ public class MikoAppBuilder
         // 默认注册图片加载服务
         builder.Services.AddImageLoader();
 
+        // 默认注册语法高亮服务（应用可重新注册 ISyntaxHighlighter 覆盖，见 ISSUE-098）
+        builder.Services.AddSyntaxHighlighter();
+
         return builder;
     }
 

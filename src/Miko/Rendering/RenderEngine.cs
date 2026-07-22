@@ -27,6 +27,15 @@ public class RenderEngine
     /// 离屏/软件渲染下为 null，视频帧源应回退到 CPU 光栅图像。
     /// </summary>
     public GRContext? GraphicsContext { get; set; }
+
+    /// <summary>
+    /// 语法高亮器（<c>&lt;code language="..."&gt;</c> 的 token 着色）。默认内置
+    /// <see cref="Highlight.SyntaxHighlighter"/>；DI 场景下由
+    /// <see cref="Platform.MikoInteractionController"/> 在初始化时解析容器中的
+    /// <see cref="Highlight.ISyntaxHighlighter"/> 并覆盖此默认值（应用可重新注册接口
+    /// 以替换高亮实现，见 ISSUE-098）。
+    /// </summary>
+    public Highlight.ISyntaxHighlighter SyntaxHighlighter { get; set; } = new Highlight.SyntaxHighlighter();
     private List<RectF>? _dirtyRegions;
     private readonly List<(LayoutBox box, SelectElement select, float scrollOffsetX, float scrollOffsetY)> _pendingDropdowns = new();
     private float _currentScrollOffsetX;
@@ -726,13 +735,35 @@ public class RenderEngine
 
         // 是否需要多行绘制：文本宽度超过对齐容器宽度，或包含换行符。
         bool shouldWrap = Utils.TextWrapper.ShouldWrap(style.WhiteSpace);
-        bool needsMultiline = false;
+        // pre 统一走多行路径：保留的显式换行符产生多行，且多行路径会先经 ProcessText
+        // 完成 \r\n 归一与 Tab 展开（单行 pre 文本走该路径的绘制结果与单行路径一致）。
+        bool needsMultiline = style.WhiteSpace == Common.WhiteSpace.Pre;
         if (shouldWrap && alignWidth > 0)
         {
             var processedText = Utils.TextWrapper.ProcessText(text, style.WhiteSpace);
             var (singleLineWidth, _) = Utils.TextMeasurer.MeasureText(
                 processedText, style.FontFamily, style.FontSize.Value, style.FontWeight);
             needsMultiline = singleLineWidth > alignWidth + 0.5f || processedText.Contains('\n');
+        }
+
+        // 语法高亮（ISSUE-098）：父元素为 <code> 且高亮生效时按 token 着色绘制。
+        // DOM 保持单一文本节点，测量/布局不变，仅绘制阶段分段着色；
+        // DrawHighlightedText 自行按显式换行符分行，兼容单行与多行（不做软换行）。
+        if (box.Element.Parent is CodeElement { IsHighlightActive: true } codeElement)
+        {
+            var processed = Utils.TextWrapper.ProcessText(text, style.WhiteSpace);
+            var tokens = string.IsNullOrEmpty(processed)
+                ? null
+                : codeElement.GetHighlightTokens(processed, SyntaxHighlighter);
+            if (tokens != null)
+            {
+                float hlLineHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);
+                var hlRect = new RectF(MathF.Round(alignX), MathF.Round(content.Y), alignWidth, content.Height);
+                _painter.DrawHighlightedText(
+                    processed, tokens, SyntaxHighlighter.Theme, hlRect, style.Color, style.FontFamily,
+                    style.FontSize.Value, style.FontWeight, style.TextAlign, hlLineHeight, letterSpacing);
+                return;
+            }
         }
 
         if (needsMultiline)

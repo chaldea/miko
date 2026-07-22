@@ -437,6 +437,25 @@ public class StyleResolver
                 style.FontWeight ??= Common.FontWeight.Bold;
                 break;
 
+            case "pre":
+                // Browser default: display: block, font-family: monospace, white-space: pre,
+                // margin: 1em 0。空格/制表符/换行全部保留（见 TextWrapper.ProcessText 的 Pre 分支）。
+                style.Display ??= Common.Display.Block;
+                style.WhiteSpace ??= Common.WhiteSpace.Pre;
+                style.FontFamily ??= "Consolas, Courier New, monospace";
+                style.MarginTop ??= Common.Length.Px(16);    // 1em at 16px
+                style.MarginBottom ??= Common.Length.Px(16);
+                style.MarginLeft ??= Common.Length.Px(0);
+                style.MarginRight ??= Common.Length.Px(0);
+                break;
+
+            case "code":
+                // Browser default: display: inline（无显式 UA display 规则，取初始值 inline）,
+                // font-family: monospace。code 只是语义标签，格式由 pre 的 white-space 控制。
+                style.Display ??= Common.Display.Inline;
+                style.FontFamily ??= "Consolas, Courier New, monospace";
+                break;
+
             case "ul":
                 style.Display ??= Common.Display.Block;
                 style.MarginTop ??= Common.Length.Px(16);

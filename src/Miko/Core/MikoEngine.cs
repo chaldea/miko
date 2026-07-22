@@ -77,6 +77,17 @@ public class MikoEngine
         set => _renderEngine.GraphicsContext = value;
     }
 
+    /// <summary>
+    /// 语法高亮器（<c>&lt;code language="..."&gt;</c>）。默认内置实现；
+    /// 由 DI 容器注册（MikoAppBuilder.CreateDefault），应用可重新注册
+    /// <see cref="Highlight.ISyntaxHighlighter"/> 覆盖，初始化时解析并转发给渲染引擎。
+    /// </summary>
+    public Highlight.ISyntaxHighlighter SyntaxHighlighter
+    {
+        get => _renderEngine.SyntaxHighlighter;
+        set => _renderEngine.SyntaxHighlighter = value;
+    }
+
     // 已激活的视频会话，按元素身份索引；用于跨重建复用与移除时回收。
     private readonly Dictionary<VideoElement, IVideoSession> _videoSessions = new();
 
