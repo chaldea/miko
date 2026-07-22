@@ -46,6 +46,8 @@ public enum FlexDirection
 /// </summary>
 public enum JustifyContent
 {
+    /// <summary>CSS 初始值 normal：不在主轴分配剩余空间，行为等同 <see cref="FlexStart"/>。</summary>
+    Normal,
     FlexStart,
     FlexEnd,
     Center,
@@ -59,6 +61,8 @@ public enum JustifyContent
 /// </summary>
 public enum AlignItems
 {
+    /// <summary>CSS 初始值 normal：行为等同 <see cref="Stretch"/>。</summary>
+    Normal,
     FlexStart,
     FlexEnd,
     Center,
@@ -232,7 +236,18 @@ public enum Visibility { Visible, Hidden, Collapse }
 public enum PointerEvents { Auto, None }
 public enum FlexWrap { Nowrap, Wrap, WrapReverse }
 public enum AlignSelf { Auto, FlexStart, FlexEnd, Center, Stretch, Baseline }
-public enum AlignContent { FlexStart, FlexEnd, Center, SpaceBetween, SpaceAround, Stretch }
+/// <summary>多行/多列 flex 容器或 grid 容器的行/列级交叉轴分布。</summary>
+public enum AlignContent
+{
+    /// <summary>CSS 初始值 normal：行为等同 <see cref="Stretch"/>（等分剩余空间增大各行/列交叉尺寸）。</summary>
+    Normal,
+    FlexStart,
+    FlexEnd,
+    Center,
+    SpaceBetween,
+    SpaceAround,
+    Stretch
+}
 public enum UserSelect { Auto, None, Text, All }
 public enum VerticalAlign { Baseline, Top, Middle, Bottom, TextTop, TextBottom }
 public enum BoxSizing { ContentBox, BorderBox }

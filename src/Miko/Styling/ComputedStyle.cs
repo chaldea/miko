@@ -12,8 +12,10 @@ public partial class ComputedStyle : Style
     public new Display Display { get; set; } = Common.Display.Block;
     public new BoxSizing BoxSizing { get; set; } = Common.BoxSizing.ContentBox;
     public new FlexDirection FlexDirection { get; set; } = Common.FlexDirection.Row;
-    public new JustifyContent JustifyContent { get; set; } = Common.JustifyContent.FlexStart;
-    public new AlignItems AlignItems { get; set; } = Common.AlignItems.Stretch;
+    // CSS 初始值为 normal：justify-content 表现为 flex-start，align-items 表现为 stretch，
+    // 由布局算法在各消费点映射（见 FlexLayout/GridLayout）。
+    public new JustifyContent JustifyContent { get; set; } = Common.JustifyContent.Normal;
+    public new AlignItems AlignItems { get; set; } = Common.AlignItems.Normal;
 
     // Flex 子元素属性（CSS 默认值）
     public new float FlexGrow { get; set; } = 0f;
@@ -108,7 +110,7 @@ public partial class ComputedStyle : Style
     public new PointerEvents PointerEvents { get; set; } = Common.PointerEvents.Auto;
     public new FlexWrap FlexWrap { get; set; } = Common.FlexWrap.Nowrap;
     public new AlignSelf AlignSelf { get; set; } = Common.AlignSelf.Auto;
-    public new AlignContent AlignContent { get; set; } = Common.AlignContent.FlexStart;
+    public new AlignContent AlignContent { get; set; } = Common.AlignContent.Normal;
     public new int Order { get; set; } = 0;
 
     // Gap 默认 0；RowGap/ColumnGap 默认 Auto，表示"未单独设置"，回退到 Gap。

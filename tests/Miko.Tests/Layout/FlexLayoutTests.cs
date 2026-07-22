@@ -258,7 +258,9 @@ public class FlexLayoutTests
                             FlexDirection = FlexDirection.Column,
                             FlexWrap = FlexWrap.Wrap,
                             Gap = Length.Px(10),
-                            Height = Length.Px(150)
+                            Height = Length.Px(150),
+                            // 显式 FlexStart：隔离本用例意图（分列 + gap），排除默认 stretch 的列增大。
+                            AlignContent = AlignContent.FlexStart
                         }
                     },
                     new()

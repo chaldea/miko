@@ -50,6 +50,10 @@ public sealed class MikoInteractionController
     private bool _isDragging;
     private MikoEngine.ScrollbarHitResult? _draggingScrollbar;
 
+    // 当前悬停链：指针命中元素及其全部祖先（持有 ElementState.Hover）。
+    // CSS 中 :hover 匹配指针下的元素及其所有祖先，故以链为单位维护。
+    private readonly List<Element> _hoveredElements = new();
+
     // Serializes input handling against the render frame. On hosts that render on a
     // dedicated thread (Android GLThread, iOS CADisplayLink) the render thread walks the
     // DOM during layout (LayoutEngine.ComputeStyles enumerates Element.Children) while
@@ -346,8 +350,37 @@ public sealed class MikoInteractionController
                 return;
             }
 
-            UpdateCursor(x, y);
+            // 拖拽路径保持既有悬停不变（浏览器在拖拽期间也不更新 :hover）。
+            var target = _engine.HitTest(x, y);
+            UpdateHover(target);
+            UpdateCursor(target);
         }
+    }
+
+    /// <summary>
+    /// 维护 :hover 悬停状态：命中元素及其祖先链设置 <see cref="ElementState.Hover"/>；
+    /// 之前悬停链上不再悬停的元素清除该状态（CSS：:hover 匹配指针下的元素及其全部祖先）。
+    /// SetState/ClearState 会标脏并递增 MutationVersion，下一帧样式解析即按 :hover
+    /// 重新级联并重绘（见 ISSUE-099 问题5：此前 Hover 状态从未被设置，:hover 选择器
+    /// 永不命中）。
+    /// </summary>
+    private void UpdateHover(Element? target)
+    {
+        // 新悬停链：命中元素及其全部祖先。
+        var chain = new List<Element>();
+        for (var current = target; current != null; current = current.Parent)
+            chain.Add(current);
+
+        foreach (var element in _hoveredElements)
+            if (!chain.Contains(element))
+                element.ClearState(ElementState.Hover);
+
+        foreach (var element in chain)
+            if (!_hoveredElements.Contains(element))
+                element.SetState(ElementState.Hover);
+
+        _hoveredElements.Clear();
+        _hoveredElements.AddRange(chain);
     }
 
     /// <summary>
@@ -366,9 +399,8 @@ public sealed class MikoInteractionController
     /// <summary>
     /// 解析指针下元素的 CSS 光标并在变化时通过 <see cref="CursorChanged"/> 通知平台层。
     /// </summary>
-    private void UpdateCursor(float x, float y)
+    private void UpdateCursor(Element? target)
     {
-        var target = _engine.HitTest(x, y);
         var cursor = ResolveCursor(target);
 
         if (cursor == _currentCursor) return;

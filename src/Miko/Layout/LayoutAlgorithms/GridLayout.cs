@@ -176,11 +176,11 @@ public class GridLayout
             contentWidth = Math.Max(contentWidth, SumTrackSizes(colSizes, columnGap));
         }
 
-        // 8b. justify-content 为默认（FlexStart 充当 CSS normal）且宽度确定：
+        // 8b. justify-content 为默认（Normal 为 CSS 初始值；FlexStart 与其行为一致）且宽度确定：
         // 拉伸 auto 列轨道填满剩余空间（CSS §12.8 Stretch auto Tracks——
         // 无模板单列 auto 轨道据此填满容器宽度）。须在行轨道测量之前完成，
         // 使行测量使用拉伸后的最终列宽（文本/拉伸子项在正确宽度下换行）。
-        if (!widthIsIndefinite && style.JustifyContent == JustifyContent.FlexStart)
+        if (!widthIsIndefinite && style.JustifyContent is JustifyContent.Normal or JustifyContent.FlexStart)
         {
             StretchAutoTracks(colSizes, colAutoTracks, contentWidth - SumTrackSizes(colSizes, columnGap));
         }
@@ -274,10 +274,10 @@ public class GridLayout
             contentWidth = Math.Min(contentWidth, max);
         }
 
-        // 13b. align-content 为默认（FlexStart 充当 CSS normal）或 Stretch：
-        // 拉伸 auto 行轨道填满剩余空间（与 8b 同一规则；须在 min/max 夹取之后，
+        // 13b. align-content 为默认（Normal 为 CSS 初始值，行为同 Stretch；FlexStart 与其一致）
+        // 或显式 Stretch：拉伸 auto 行轨道填满剩余空间（与 8b 同一规则；须在 min/max 夹取之后，
         // 使 min-height 撑出的剩余空间也能被 auto 行吸收）。
-        if (style.AlignContent is AlignContent.FlexStart or AlignContent.Stretch)
+        if (style.AlignContent is AlignContent.Normal or AlignContent.FlexStart or AlignContent.Stretch)
         {
             StretchAutoTracks(rowSizes, rowAutoTracks, contentHeight - SumTrackSizes(rowSizes, rowGap));
         }
@@ -670,6 +670,7 @@ public class GridLayout
         {
             switch (justifyContent)
             {
+                // Normal/FlexStart：自起点排布（auto 轨道拉伸已在步骤 8b 处理）。
                 case JustifyContent.FlexEnd: offset = free; break;
                 case JustifyContent.Center: offset = free / 2f; break;
                 case JustifyContent.SpaceBetween:
@@ -709,6 +710,7 @@ public class GridLayout
         {
             switch (alignContent)
             {
+                // Normal/FlexStart/Stretch：自起点排布（auto 轨道拉伸已在步骤 13b 处理）。
                 case AlignContent.FlexEnd: offset = free; break;
                 case AlignContent.Center: offset = free / 2f; break;
                 case AlignContent.SpaceBetween:
@@ -846,7 +848,8 @@ public class GridLayout
 
     /// <summary>
     /// 将 <see cref="AlignSelf"/> 映射到等效的 <see cref="AlignItems"/>；
-    /// <c>Auto</c> 时回退到容器的 align-items（与 FlexLayout 同一语义）。
+    /// <c>Auto</c> 时回退到容器的 align-items；容器为 <c>Normal</c>（CSS 初始值）时表现为
+    /// stretch（与 FlexLayout 同一语义）。
     /// </summary>
     private static AlignItems ResolveItemAlign(AlignSelf alignSelf, AlignItems containerAlign)
         => alignSelf switch
@@ -856,7 +859,7 @@ public class GridLayout
             AlignSelf.Center => AlignItems.Center,
             AlignSelf.Stretch => AlignItems.Stretch,
             AlignSelf.Baseline => AlignItems.Baseline,
-            _ => containerAlign, // Auto
+            _ => containerAlign == AlignItems.Normal ? AlignItems.Stretch : containerAlign, // Auto
         };
 
     /// <summary>
