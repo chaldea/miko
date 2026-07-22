@@ -118,12 +118,14 @@ public class FlexPropertiesTests
     {
         // 容器 250px 宽、200px 高，3 个 100px 子项，wrap-reverse。
         // 每行 2 个：line0 = [0,1]，line1 = [2]。wrap-reverse 使 line1 排在交叉轴起点（Y=0）。
+        // align-content 显式 FlexStart：隔离本用例意图（行序反转），排除默认 stretch 的行增大。
         var container = new DivElement
         {
             Style = new Style
             {
                 Display = Display.Flex,
                 FlexWrap = FlexWrap.WrapReverse,
+                AlignContent = AlignContent.FlexStart,
                 Width = Length.Px(250),
                 Height = Length.Px(200)
             }

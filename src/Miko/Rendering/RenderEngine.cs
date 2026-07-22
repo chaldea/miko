@@ -712,12 +712,18 @@ public class RenderEngine
         bool breakLongWords = Utils.TextWrapper.ShouldBreakLongWords(style.WordBreak, style.OverflowWrap);
 
         // text-align 的对齐参照：
-        // - 当文本节点是父元素唯一的在流内容时（无其它行内兄弟），以父内容盒作为对齐容器，
-        //   使 center/right 生效（覆盖纯文本元素与 button 的居中场景）。
+        // - 父元素为 flex/grid 容器时：文本节点是 flex/grid 项目，已由 justify-content /
+        //   align-content 等容器对齐属性定位；CSS 中 text-align 只作用于块容器的行内内容，
+        //   不适用于 flex/grid 项目。必须按文本节点自身内容盒绘制，否则绘制期会把
+        //   flex 居中的文本重新锚定回父内容盒边缘（见 ISSUE-099 问题4：flex 按钮文本居左）。
+        // - 当文本节点是父元素唯一的在流内容、且父处于常规流（block/inline-block 等）时，
+        //   以父内容盒作为对齐容器，使 center/right 生效（覆盖纯文本元素与 button 的居中场景）。
         // - 否则（存在交错的兄弟元素，如 text1 <span/> text3），文本已由布局定位到其行内位置，
         //   按自身内容盒左对齐绘制，不再二次对齐（避免破坏交错顺序）。
         var parent = box.Element.Parent;
-        bool textNodeIsSoleInlineContent = parent != null && IsSoleInFlowInlineChild(box);
+        bool parentIsNormalFlow = parent?.LayoutBox?.Type
+            is not (Common.LayoutType.Flex or Common.LayoutType.InlineFlex or Common.LayoutType.Grid);
+        bool textNodeIsSoleInlineContent = parent != null && parentIsNormalFlow && IsSoleInFlowInlineChild(box);
 
         float alignX;
         float alignWidth;
