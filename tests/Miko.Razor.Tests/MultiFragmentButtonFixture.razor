@@ -1,0 +1,21 @@
+@namespace Miko.Razor.Tests
+@* ISSUE-100 fixture component: declares named RenderFragment slots (Start / End) but relies on the
+   inherited ComponentBase.ChildContent for the default slot — it must NOT redeclare ChildContent.
+   Mirrors Ionic's <IonButton>, whose default label content flows through the base ChildContent. *@
+<div class="mf-button">
+    @if (Start is not null)
+    {
+        <span class="mf-start">@Start</span>
+    }
+    <span class="mf-body">@ChildContent</span>
+    @if (End is not null)
+    {
+        <span class="mf-end">@End</span>
+    }
+</div>
+
+@code {
+    [Parameter] public RenderFragment? Start { get; set; }
+
+    [Parameter] public RenderFragment? End { get; set; }
+}

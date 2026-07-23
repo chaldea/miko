@@ -616,13 +616,10 @@ internal sealed class ComponentTagHelperDescriptorProvider : TagHelperDescriptor
             var currentType = type;
             do
             {
-                if (currentType.HasFullName(ComponentsApi.ComponentBase.MetadataName))
-                {
-                    // The ComponentBase base class doesn't have any [Parameter].
-                    // Bail out now to avoid walking through its many members, plus the members
-                    // of the System.Object base class.
-                    break;
-                }
+                // Unlike Blazor's ComponentBase, Miko's ComponentBase declares [Parameter] members
+                // (notably ChildContent), so we must walk its members to pick those up. We still stop
+                // once we've processed ComponentBase to avoid descending into System.Object's members.
+                var isComponentBase = currentType.HasFullName(ComponentsApi.ComponentBase.MetadataName);
 
                 foreach (var member in currentType.GetMembers())
                 {
@@ -694,6 +691,12 @@ internal sealed class ComponentTagHelperDescriptorProvider : TagHelperDescriptor
 
                     names.Add(property.Name);
                     results.Add((property, kind));
+                }
+
+                if (isComponentBase)
+                {
+                    // We've collected ComponentBase's [Parameter] members; stop before System.Object.
+                    break;
                 }
 
                 currentType = currentType.BaseType;

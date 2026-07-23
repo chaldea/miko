@@ -1,0 +1,10 @@
+@namespace Miko.Razor.Tests
+@* ISSUE-100 consumer: places content in the explicit <ChildContent> slot alongside the named
+   <Start> / <End> slots. Before the fix this raised RZ9996 ("Unrecognized child content …")
+   because the compiler stopped walking the inheritance chain at ComponentBase and never surfaced
+   its [Parameter] ChildContent, so no <ChildContent> child-content tag helper was synthesized. *@
+<MultiFragmentButtonFixture>
+    <Start>S</Start>
+    <ChildContent>Body</ChildContent>
+    <End>E</End>
+</MultiFragmentButtonFixture>
