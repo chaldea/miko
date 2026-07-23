@@ -14,8 +14,9 @@ namespace Miko.Layout.LayoutAlgorithms;
 ///   （容器内容尺寸大于网格总尺寸时生效）。默认模式（FlexStart，充当 CSS normal）与
 ///   <c>align-content: stretch</c> 按 CSS §12.8 拉伸 auto 轨道填满剩余空间——无模板的
 ///   单列 grid 因此填满容器宽度；其余显式模式（Center/FlexEnd/Space*）做轨道偏移分布；
-/// - 子项对齐：宽度 auto → 拉伸填满 grid area（CSS 默认 stretch，无 justify-items 时 inline 轴仅此与
-///   起点对齐两种）；块轴经 align-items / align-self（stretch 仅当高度 auto）；auto margin 吸收
+/// - 子项对齐：inline 轴经 justify-items / justify-self（ISSUE-101），块轴经 align-items / align-self；
+///   两轴 stretch 仅当对应尺寸 auto 且非文本节点（默认 normal→stretch，填满 grid area），
+///   start/center/end 下按内容尺寸（shrink-to-fit）再在 area 内对齐；auto margin 优先吸收
 ///   area 剩余空间（实现 margin:auto 居中）。
 ///
 /// 已知简化：
@@ -302,7 +303,7 @@ public class GridLayout
         // 16. 布局各 grid 子项到其 area。
         foreach (var item in placed)
         {
-            LayoutItem(item, colPos, colSizes, rowPos, rowSizes, style.AlignItems);
+            LayoutItem(item, colPos, colSizes, rowPos, rowSizes, style.AlignItems, style.JustifyItems);
         }
 
         // 17. 内容区与可滚动内容尺寸（滚动区域包含内边距，与 Block/Flex 一致）。
@@ -730,13 +731,15 @@ public class GridLayout
     }
 
     /// <summary>
-    /// 布局一个 grid 子项到其 area：宽度 auto 拉伸填满（文本除外），高度按有效 align
-    /// （align-self → align-items）stretch/对齐；auto margin 吸收 area 剩余空间。
+    /// 布局一个 grid 子项到其 area：inline（水平）轴按有效 justify（justify-self → justify-items）
+    /// stretch/对齐，block（垂直）轴按有效 align（align-self → align-items）stretch/对齐；
+    /// 两轴的 stretch 仅当对应尺寸为 auto 且非文本节点，其余情形按内容尺寸后再在 area 内对齐；
+    /// auto margin 优先吸收 area 剩余空间（margin:auto 居中）。
     /// </summary>
     private void LayoutItem(
         GridItemInfo item,
         float[] colPos, float[] colSizes, float[] rowPos, float[] rowSizes,
-        AlignItems containerAlignItems)
+        AlignItems containerAlignItems, JustifyItems containerJustifyItems)
     {
         var child = item.Child;
         var childStyle = child.ComputedStyle;
@@ -763,18 +766,25 @@ public class GridLayout
 
         bool widthIsAuto = childStyle.Width.IsAuto;
         bool heightIsAuto = childStyle.Height.IsAuto;
-        // 无 justify-items/justify-self：宽度 auto 的子项拉伸填满 area（CSS 默认 stretch），文本节点除外。
-        bool stretchWidth = widthIsAuto && !isText;
+        // 有效 justify/align：justify-self/align-self → justify-items/align-items（容器 Normal 时映射为 stretch）。
+        var effectiveJustify = ResolveItemJustify(childStyle.JustifySelf, containerJustifyItems);
         var effectiveAlign = ResolveItemAlign(childStyle.AlignSelf, containerAlignItems);
+        // inline 轴：justify 为 stretch（含 normal）且宽度 auto 时拉伸填满 area（文本节点除外）；
+        // 其余 justify（start/center/end）下宽度 auto 的子项按内容尺寸（shrink-to-fit）再在 area 内对齐。
+        bool stretchWidth = effectiveJustify == JustifyItems.Stretch && widthIsAuto && !isText;
         bool stretchHeight = effectiveAlign == AlignItems.Stretch && heightIsAuto && !isText;
 
         // stretch 轴上的 auto margin 无剩余空间可分，归零（CSS：stretch 优先于 auto margin）。
         if (stretchWidth) { mlAuto = false; mrAuto = false; }
         if (stretchHeight) { mtAuto = false; mbAuto = false; }
 
+        // 宽度约束：stretch 或显式宽度（含百分比，相对 area 解析）时传入 area 全宽；auto 宽度且
+        // 非 stretch 对齐时传 null 让子项收缩到内容尺寸（与 block 的 shrink-to-fit 一致），以便对齐生效。
+        // 文本节点始终以 area 全宽为约束（在该宽度内换行），不参与拉伸。
+        bool widthDefinite = stretchWidth || !widthIsAuto || isText;
+        float? widthConstraint = widthDefinite ? Math.Max(0, areaW) : (float?)null;
         // 高度约束：stretch 或显式高度（含百分比，相对 area 解析）时传入 area 全高
         // （margin 由子项自身布局扣除）；auto 高度保持内容决定。
-        float widthConstraint = Math.Max(0, areaW);
         float? heightConstraint = (stretchHeight || !heightIsAuto) ? Math.Max(0, areaH) : (float?)null;
 
         // dispatch 以 (x, y) 为子项 margin-box 原点：area 原点即 margin-box 原点
@@ -819,9 +829,25 @@ public class GridLayout
             child.BoxModel.Margin = new EdgeSizes(mt, child.BoxModel.Margin.Right, mb, child.BoxModel.Margin.Left);
         }
 
-        // 水平位置：起点对齐（stretch 已填满；auto margin 已计入 child 的 Margin，
-        // 使 border-box 偏移到 areaX + ml——margin-box 左缘保持 areaX）。
-        float dx = areaX - child.BoxModel.MarginBox.Left;
+        // 水平位置：有效 justify（存在水平 auto margin 时对齐已被 margin 吸收，margin-box 左缘
+        // 保持 areaX，border-box 经 ml 偏移居中；stretch 已填满，居中/末端偏移为 0）。
+        float targetMarginBoxLeft;
+        if (mlAuto || mrAuto)
+        {
+            targetMarginBoxLeft = areaX;
+        }
+        else
+        {
+            float marginBoxW = child.BoxModel.MarginBox.Width;
+            targetMarginBoxLeft = effectiveJustify switch
+            {
+                JustifyItems.FlexEnd => areaX + areaW - marginBoxW,
+                JustifyItems.Center => areaX + (areaW - marginBoxW) / 2f,
+                // FlexStart / Stretch / Normal：起点对齐。
+                _ => areaX,
+            };
+        }
+        float dx = targetMarginBoxLeft - child.BoxModel.MarginBox.Left;
         if (Math.Abs(dx) > 0.01f) OffsetSubtree(child, dx, 0);
 
         // 垂直位置：有效 align（存在竖直 auto margin 时对齐已被 margin 吸收，margin-box 顶缘
@@ -860,6 +886,21 @@ public class GridLayout
             AlignSelf.Stretch => AlignItems.Stretch,
             AlignSelf.Baseline => AlignItems.Baseline,
             _ => containerAlign == AlignItems.Normal ? AlignItems.Stretch : containerAlign, // Auto
+        };
+
+    /// <summary>
+    /// 将 <see cref="JustifySelf"/> 映射到等效的 <see cref="JustifyItems"/>；
+    /// <c>Auto</c> 时回退到容器的 justify-items；容器为 <c>Normal</c>（CSS 初始值）时表现为
+    /// stretch（与 <see cref="ResolveItemAlign"/> 同一语义，作用于 inline 轴）。
+    /// </summary>
+    private static JustifyItems ResolveItemJustify(JustifySelf justifySelf, JustifyItems containerJustify)
+        => justifySelf switch
+        {
+            JustifySelf.FlexStart => JustifyItems.FlexStart,
+            JustifySelf.FlexEnd => JustifyItems.FlexEnd,
+            JustifySelf.Center => JustifyItems.Center,
+            JustifySelf.Stretch => JustifyItems.Stretch,
+            _ => containerJustify == JustifyItems.Normal ? JustifyItems.Stretch : containerJustify, // Auto
         };
 
     /// <summary>

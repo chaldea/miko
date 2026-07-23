@@ -709,6 +709,186 @@ public class GridLayoutTests
         root.Children[0].BoxModel.Content.Width.ShouldBe(100);
     }
 
+    // ---------- justify-items / justify-self（inline 轴对齐，ISSUE-101）----------
+
+    [Fact]
+    public void GridItem_DefaultJustify_StretchesWidthToArea()
+    {
+        // 无 justify-items/justify-self（默认 normal → stretch）：宽度 auto 的子项填满 area 宽度。
+        var container = Grid();
+        container.AddChild(Item());
+
+        var root = _layoutEngine.Layout(container, Sheets(
+            ("grid", new Style
+            {
+                Display = Display.Grid,
+                GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(150) },
+                GridTemplateRows = new List<GridTrackSize> { GridTrackSize.Px(80) }
+            }),
+            ("it", new Style())), 800, 600);
+
+        root.Children[0].BoxModel.Content.X.ShouldBe(0);
+        root.Children[0].BoxModel.Content.Width.ShouldBe(150);
+    }
+
+    [Fact]
+    public void GridItem_JustifyItemsCenter_CentersWithinArea()
+    {
+        var container = Grid();
+        container.AddChild(Item());
+
+        var root = _layoutEngine.Layout(container, Sheets(
+            ("grid", new Style
+            {
+                Display = Display.Grid,
+                JustifyItems = JustifyItems.Center,
+                GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(100) },
+                GridTemplateRows = new List<GridTrackSize> { GridTrackSize.Px(80) }
+            }),
+            ("it", new Style { Width = Length.Px(40), Height = Length.Px(30) })), 800, 600);
+
+        // 显式宽度不拉伸，水平居中：(100-40)/2 = 30。
+        root.Children[0].BoxModel.Content.X.ShouldBe(30);
+        root.Children[0].BoxModel.Content.Width.ShouldBe(40);
+    }
+
+    [Fact]
+    public void GridItem_JustifyItemsFlexEnd_AlignsToInlineEnd()
+    {
+        var container = Grid();
+        container.AddChild(Item());
+
+        var root = _layoutEngine.Layout(container, Sheets(
+            ("grid", new Style
+            {
+                Display = Display.Grid,
+                JustifyItems = JustifyItems.FlexEnd,
+                GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(100) },
+                GridTemplateRows = new List<GridTrackSize> { GridTrackSize.Px(80) }
+            }),
+            ("it", new Style { Width = Length.Px(40), Height = Length.Px(30) })), 800, 600);
+
+        // 末端对齐：100-40 = 60。
+        root.Children[0].BoxModel.Content.X.ShouldBe(60);
+        root.Children[0].BoxModel.Content.Width.ShouldBe(40);
+    }
+
+    [Fact]
+    public void GridItem_JustifySelf_OverridesContainerJustifyItems()
+    {
+        // justify-self 覆盖容器的 justify-items。
+        var container = Grid();
+        container.AddChild(Item());
+
+        var root = _layoutEngine.Layout(container, Sheets(
+            ("grid", new Style
+            {
+                Display = Display.Grid,
+                JustifyItems = JustifyItems.FlexStart,
+                GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(100) },
+                GridTemplateRows = new List<GridTrackSize> { GridTrackSize.Px(80) }
+            }),
+            ("it", new Style { Width = Length.Px(40), Height = Length.Px(30), JustifySelf = JustifySelf.FlexEnd })), 800, 600);
+
+        // 容器 flex-start，但 justify-self:flex-end 生效：100-40 = 60。
+        root.Children[0].BoxModel.Content.X.ShouldBe(60);
+    }
+
+    [Fact]
+    public void GridItem_JustifySelfStretch_OverridesContainerCenter()
+    {
+        // justify-self:stretch 覆盖容器 center，auto 宽度重新拉伸填满 area。
+        var container = Grid();
+        container.AddChild(Item());
+
+        var root = _layoutEngine.Layout(container, Sheets(
+            ("grid", new Style
+            {
+                Display = Display.Grid,
+                JustifyItems = JustifyItems.Center,
+                GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(150) },
+                GridTemplateRows = new List<GridTrackSize> { GridTrackSize.Px(80) }
+            }),
+            ("it", new Style { JustifySelf = JustifySelf.Stretch })), 800, 600);
+
+        root.Children[0].BoxModel.Content.X.ShouldBe(0);
+        root.Children[0].BoxModel.Content.Width.ShouldBe(150);
+    }
+
+    [Fact]
+    public void GridItem_JustifyItemsCenter_AutoWidthShrinksToContentThenCenters()
+    {
+        // justify-items:center 且宽度 auto：子项收缩到内容尺寸（不再填满 area），再水平居中。
+        var container = Grid();
+        var inner = Item("inner");
+        var item = Item();
+        item.AddChild(inner);
+        container.AddChild(item);
+
+        var root = _layoutEngine.Layout(container, Sheets(
+            ("grid", new Style
+            {
+                Display = Display.Grid,
+                JustifyItems = JustifyItems.Center,
+                GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(200) },
+                GridTemplateRows = new List<GridTrackSize> { GridTrackSize.Px(80) }
+            }),
+            ("it", new Style()),
+            ("inner", new Style { Width = Length.Px(60), Height = Length.Px(20) })), 800, 600);
+
+        // auto 宽度收缩到内容宽 60，居中：(200-60)/2 = 70。
+        root.Children[0].BoxModel.Content.Width.ShouldBe(60);
+        root.Children[0].BoxModel.Content.X.ShouldBe(70);
+    }
+
+    [Fact]
+    public void GridItem_JustifyAndAlign_PositionInBothAxes()
+    {
+        // justify（inline）与 align（block）组合：子项在 area 内二维居中/末端定位。
+        var container = Grid();
+        container.AddChild(Item());
+
+        var root = _layoutEngine.Layout(container, Sheets(
+            ("grid", new Style
+            {
+                Display = Display.Grid,
+                JustifyItems = JustifyItems.Center,
+                AlignItems = AlignItems.FlexEnd,
+                GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(100) },
+                GridTemplateRows = new List<GridTrackSize> { GridTrackSize.Px(80) }
+            }),
+            ("it", new Style { Width = Length.Px(40), Height = Length.Px(30) })), 800, 600);
+
+        // inline 居中：(100-40)/2 = 30；block 末端：80-30 = 50。
+        root.Children[0].BoxModel.Content.X.ShouldBe(30);
+        root.Children[0].BoxModel.Content.Y.ShouldBe(50);
+    }
+
+    [Fact]
+    public void GridItem_JustifyItemsCenter_TextNodeNotStretchedButCentered()
+    {
+        // 文本节点不参与 inline 轴拉伸（保持自然宽度，在 area 宽内换行），
+        // 但与块轴 align 一致地参与对齐位移：justify-items:center 下水平居中。
+        var container = new DivElement { Class = "grid", TextContent = "text" };
+
+        var root = _layoutEngine.Layout(container, Sheets(
+            ("grid", new Style
+            {
+                Display = Display.Grid,
+                JustifyItems = JustifyItems.Center,
+                GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(200) }
+            })), 800, 600);
+
+        var textBox = root.Children[0];
+        textBox.Type.ShouldBe(LayoutType.Text);
+        float textWidth = Miko.Utils.TextMeasurer.MeasureTextWidth(
+            "text", textBox.ComputedStyle.FontFamily, 16f, textBox.ComputedStyle.FontWeight);
+        // 未拉伸：宽度为自然文本宽（< 200）。
+        textBox.BoxModel.Content.Width.ShouldBe(textWidth, 0.5f);
+        // 居中：(200 - textWidth) / 2。
+        textBox.BoxModel.Content.X.ShouldBe((200 - textWidth) / 2f, 0.5f);
+    }
+
     // ---------- 容器行为 ----------
 
     [Fact]

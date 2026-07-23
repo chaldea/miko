@@ -71,6 +71,27 @@ public enum AlignItems
 }
 
 /// <summary>
+/// Grid 容器内所有子项在各自 grid area 内的 inline（行内/水平）轴对齐（CSS <c>justify-items</c>）。
+/// 仅作用于 grid 布局；命名沿用 <see cref="AlignItems"/> 的 <c>FlexStart</c>/<c>FlexEnd</c> 约定
+/// （对应 CSS 的 <c>start</c>/<c>end</c>）。见 ISSUE-101。
+/// </summary>
+public enum JustifyItems
+{
+    /// <summary>CSS 初始值 normal：grid 子项行为等同 <see cref="Stretch"/>。</summary>
+    Normal,
+    FlexStart,
+    FlexEnd,
+    Center,
+    Stretch
+}
+
+/// <summary>
+/// 单个 grid 子项在自身 grid area 内的 inline 轴对齐（CSS <c>justify-self</c>），
+/// 覆盖容器的 <see cref="JustifyItems"/>；<c>Auto</c> 回退到容器设置。见 ISSUE-101。
+/// </summary>
+public enum JustifySelf { Auto, FlexStart, FlexEnd, Center, Stretch }
+
+/// <summary>
 /// 边框样式
 /// </summary>
 public enum BorderStyle

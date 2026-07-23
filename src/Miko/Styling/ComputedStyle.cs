@@ -111,6 +111,9 @@ public partial class ComputedStyle : Style
     public new FlexWrap FlexWrap { get; set; } = Common.FlexWrap.Nowrap;
     public new AlignSelf AlignSelf { get; set; } = Common.AlignSelf.Auto;
     public new AlignContent AlignContent { get; set; } = Common.AlignContent.Normal;
+    // Grid inline 轴对齐（CSS 初始值：justify-items normal → 表现为 stretch；justify-self auto → 回退容器）。
+    public new JustifyItems JustifyItems { get; set; } = Common.JustifyItems.Normal;
+    public new JustifySelf JustifySelf { get; set; } = Common.JustifySelf.Auto;
     public new int Order { get; set; } = 0;
 
     // Gap 默认 0；RowGap/ColumnGap 默认 Auto，表示"未单独设置"，回退到 Gap。

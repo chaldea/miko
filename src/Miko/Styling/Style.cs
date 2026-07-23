@@ -320,6 +320,12 @@ public partial class Style
     public StyleProperty<int>? GridRowStart { get; set; }
     public StyleProperty<int>? GridRowEnd { get; set; }
 
+    // Grid inline（行内/水平）轴对齐（仅对 Display.Grid 生效，见 ISSUE-101）。
+    /// <summary>所有 grid 子项在各自 area 内的 inline 轴对齐（justify-items），默认 normal（表现为 stretch）。</summary>
+    public StyleProperty<JustifyItems>? JustifyItems { get; set; }
+    /// <summary>单个 grid 子项在自身 area 内的 inline 轴对齐（justify-self），覆盖容器 justify-items；默认 auto。</summary>
+    public StyleProperty<JustifySelf>? JustifySelf { get; set; }
+
     /// <summary>
     /// Box shadow layers. Multiple shadows are applied in order (first shadow is on top).
     /// Matches CSS box-shadow which supports comma-separated shadow definitions.
