@@ -17,45 +17,381 @@ public partial class ComputedStyle : Style
     public new JustifyContent JustifyContent { get; set; } = Common.JustifyContent.Normal;
     public new AlignItems AlignItems { get; set; } = Common.AlignItems.Normal;
 
+    // 书写方向与书写模式（CSS 可继承，见 ISSUE-103）。计算样式以逻辑值
+    // （margin-inline-start、inline-size 等）为标准存储；物理属性（MarginLeft、Width 等）
+    // 是按这两个值映射到逻辑存储的门面，布局/绘制代码读取物理属性时无需感知书写模式。
+    public new Direction Direction { get; set; } = Common.Direction.Ltr;
+    public new WritingMode WritingMode { get; set; } = Common.WritingMode.HorizontalTb;
+
     // Flex 子元素属性（CSS 默认值）
     public new float FlexGrow { get; set; } = 0f;
     public new float FlexShrink { get; set; } = 1f;
     public new Length FlexBasis { get; set; } = Length.Auto;
 
-    public new Length Width { get; set; } = Length.Auto;
-    public new Length Height { get; set; } = Length.Auto;
-    public new Length MinWidth { get; set; } = Length.Px(0);
-    public new Length MinHeight { get; set; } = Length.Px(0);
-    public new Length MaxWidth { get; set; } = Length.Auto;
-    public new Length MaxHeight { get; set; } = Length.Auto;
+    // 尺寸：逻辑尺寸（inline-size / block-size）为标准存储，Width/Height 等物理属性为
+    // 按 writing-mode 映射的门面（horizontal-tb：inline 轴 = 水平；垂直书写：inline 轴 = 垂直）。
+    public new Length InlineSize { get; set; } = Length.Auto;
+    public new Length BlockSize { get; set; } = Length.Auto;
+    public new Length MinInlineSize { get; set; } = Length.Px(0);
+    public new Length MinBlockSize { get; set; } = Length.Px(0);
+    public new Length MaxInlineSize { get; set; } = Length.Auto;
+    public new Length MaxBlockSize { get; set; } = Length.Auto;
 
-    public new Length PaddingTop { get; set; } = Length.Px(0);
-    public new Length PaddingRight { get; set; } = Length.Px(0);
-    public new Length PaddingBottom { get; set; } = Length.Px(0);
-    public new Length PaddingLeft { get; set; } = Length.Px(0);
+    public new Length Width
+    {
+        get => WritingMode == Common.WritingMode.HorizontalTb ? InlineSize : BlockSize;
+        set
+        {
+            if (WritingMode == Common.WritingMode.HorizontalTb) InlineSize = value;
+            else BlockSize = value;
+        }
+    }
 
-    public new Length MarginTop { get; set; } = Length.Px(0);
-    public new Length MarginRight { get; set; } = Length.Px(0);
-    public new Length MarginBottom { get; set; } = Length.Px(0);
-    public new Length MarginLeft { get; set; } = Length.Px(0);
+    public new Length Height
+    {
+        get => WritingMode == Common.WritingMode.HorizontalTb ? BlockSize : InlineSize;
+        set
+        {
+            if (WritingMode == Common.WritingMode.HorizontalTb) BlockSize = value;
+            else InlineSize = value;
+        }
+    }
 
-    // 边框宽度（每边单独计算）
-    public new Length BorderTopWidth { get; set; } = Length.Px(0);
-    public new Length BorderRightWidth { get; set; } = Length.Px(0);
-    public new Length BorderBottomWidth { get; set; } = Length.Px(0);
-    public new Length BorderLeftWidth { get; set; } = Length.Px(0);
+    public new Length MinWidth
+    {
+        get => WritingMode == Common.WritingMode.HorizontalTb ? MinInlineSize : MinBlockSize;
+        set
+        {
+            if (WritingMode == Common.WritingMode.HorizontalTb) MinInlineSize = value;
+            else MinBlockSize = value;
+        }
+    }
 
-    // 边框颜色（每边单独计算）
-    public new Color BorderTopColor { get; set; } = Color.Black;
-    public new Color BorderRightColor { get; set; } = Color.Black;
-    public new Color BorderBottomColor { get; set; } = Color.Black;
-    public new Color BorderLeftColor { get; set; } = Color.Black;
+    public new Length MinHeight
+    {
+        get => WritingMode == Common.WritingMode.HorizontalTb ? MinBlockSize : MinInlineSize;
+        set
+        {
+            if (WritingMode == Common.WritingMode.HorizontalTb) MinBlockSize = value;
+            else MinInlineSize = value;
+        }
+    }
 
-    // 边框样式（每边单独计算）
-    public new BorderStyle BorderTopStyle { get; set; } = Common.BorderStyle.None;
-    public new BorderStyle BorderRightStyle { get; set; } = Common.BorderStyle.None;
-    public new BorderStyle BorderBottomStyle { get; set; } = Common.BorderStyle.None;
-    public new BorderStyle BorderLeftStyle { get; set; } = Common.BorderStyle.None;
+    public new Length MaxWidth
+    {
+        get => WritingMode == Common.WritingMode.HorizontalTb ? MaxInlineSize : MaxBlockSize;
+        set
+        {
+            if (WritingMode == Common.WritingMode.HorizontalTb) MaxInlineSize = value;
+            else MaxBlockSize = value;
+        }
+    }
+
+    public new Length MaxHeight
+    {
+        get => WritingMode == Common.WritingMode.HorizontalTb ? MaxBlockSize : MaxInlineSize;
+        set
+        {
+            if (WritingMode == Common.WritingMode.HorizontalTb) MaxBlockSize = value;
+            else MaxInlineSize = value;
+        }
+    }
+
+    // 内边距：逻辑边为标准存储，物理边为按书写模式/方向映射的门面（见 LogicalEdgeMap）。
+    public new Length PaddingInlineStart { get; set; } = Length.Px(0);
+    public new Length PaddingInlineEnd { get; set; } = Length.Px(0);
+    public new Length PaddingBlockStart { get; set; } = Length.Px(0);
+    public new Length PaddingBlockEnd { get; set; } = Length.Px(0);
+
+    public new Length PaddingTop
+    {
+        get => GetPaddingEdge(ToLogical(PhysicalEdge.Top));
+        set => SetPaddingEdge(ToLogical(PhysicalEdge.Top), value);
+    }
+
+    public new Length PaddingRight
+    {
+        get => GetPaddingEdge(ToLogical(PhysicalEdge.Right));
+        set => SetPaddingEdge(ToLogical(PhysicalEdge.Right), value);
+    }
+
+    public new Length PaddingBottom
+    {
+        get => GetPaddingEdge(ToLogical(PhysicalEdge.Bottom));
+        set => SetPaddingEdge(ToLogical(PhysicalEdge.Bottom), value);
+    }
+
+    public new Length PaddingLeft
+    {
+        get => GetPaddingEdge(ToLogical(PhysicalEdge.Left));
+        set => SetPaddingEdge(ToLogical(PhysicalEdge.Left), value);
+    }
+
+    // 外边距：同内边距，逻辑边为标准存储。
+    public new Length MarginInlineStart { get; set; } = Length.Px(0);
+    public new Length MarginInlineEnd { get; set; } = Length.Px(0);
+    public new Length MarginBlockStart { get; set; } = Length.Px(0);
+    public new Length MarginBlockEnd { get; set; } = Length.Px(0);
+
+    public new Length MarginTop
+    {
+        get => GetMarginEdge(ToLogical(PhysicalEdge.Top));
+        set => SetMarginEdge(ToLogical(PhysicalEdge.Top), value);
+    }
+
+    public new Length MarginRight
+    {
+        get => GetMarginEdge(ToLogical(PhysicalEdge.Right));
+        set => SetMarginEdge(ToLogical(PhysicalEdge.Right), value);
+    }
+
+    public new Length MarginBottom
+    {
+        get => GetMarginEdge(ToLogical(PhysicalEdge.Bottom));
+        set => SetMarginEdge(ToLogical(PhysicalEdge.Bottom), value);
+    }
+
+    public new Length MarginLeft
+    {
+        get => GetMarginEdge(ToLogical(PhysicalEdge.Left));
+        set => SetMarginEdge(ToLogical(PhysicalEdge.Left), value);
+    }
+
+    // 定位偏移：逻辑 inset 为标准存储。
+    public new Length InsetInlineStart { get; set; } = Length.Auto;
+    public new Length InsetInlineEnd { get; set; } = Length.Auto;
+    public new Length InsetBlockStart { get; set; } = Length.Auto;
+    public new Length InsetBlockEnd { get; set; } = Length.Auto;
+
+    public new Length Top
+    {
+        get => GetInsetEdge(ToLogical(PhysicalEdge.Top));
+        set => SetInsetEdge(ToLogical(PhysicalEdge.Top), value);
+    }
+
+    public new Length Right
+    {
+        get => GetInsetEdge(ToLogical(PhysicalEdge.Right));
+        set => SetInsetEdge(ToLogical(PhysicalEdge.Right), value);
+    }
+
+    public new Length Bottom
+    {
+        get => GetInsetEdge(ToLogical(PhysicalEdge.Bottom));
+        set => SetInsetEdge(ToLogical(PhysicalEdge.Bottom), value);
+    }
+
+    public new Length Left
+    {
+        get => GetInsetEdge(ToLogical(PhysicalEdge.Left));
+        set => SetInsetEdge(ToLogical(PhysicalEdge.Left), value);
+    }
+
+    /// <summary>当前书写模式/方向下物理边对应的逻辑边。</summary>
+    private LogicalEdge ToLogical(PhysicalEdge edge) => LogicalEdgeMap.ToLogical(edge, WritingMode, Direction);
+
+    private Length GetPaddingEdge(LogicalEdge edge) => edge switch
+    {
+        LogicalEdge.InlineStart => PaddingInlineStart,
+        LogicalEdge.InlineEnd => PaddingInlineEnd,
+        LogicalEdge.BlockStart => PaddingBlockStart,
+        _ => PaddingBlockEnd,
+    };
+
+    private void SetPaddingEdge(LogicalEdge edge, Length value)
+    {
+        switch (edge)
+        {
+            case LogicalEdge.InlineStart: PaddingInlineStart = value; break;
+            case LogicalEdge.InlineEnd: PaddingInlineEnd = value; break;
+            case LogicalEdge.BlockStart: PaddingBlockStart = value; break;
+            default: PaddingBlockEnd = value; break;
+        }
+    }
+
+    private Length GetMarginEdge(LogicalEdge edge) => edge switch
+    {
+        LogicalEdge.InlineStart => MarginInlineStart,
+        LogicalEdge.InlineEnd => MarginInlineEnd,
+        LogicalEdge.BlockStart => MarginBlockStart,
+        _ => MarginBlockEnd,
+    };
+
+    private void SetMarginEdge(LogicalEdge edge, Length value)
+    {
+        switch (edge)
+        {
+            case LogicalEdge.InlineStart: MarginInlineStart = value; break;
+            case LogicalEdge.InlineEnd: MarginInlineEnd = value; break;
+            case LogicalEdge.BlockStart: MarginBlockStart = value; break;
+            default: MarginBlockEnd = value; break;
+        }
+    }
+
+    private Length GetInsetEdge(LogicalEdge edge) => edge switch
+    {
+        LogicalEdge.InlineStart => InsetInlineStart,
+        LogicalEdge.InlineEnd => InsetInlineEnd,
+        LogicalEdge.BlockStart => InsetBlockStart,
+        _ => InsetBlockEnd,
+    };
+
+    private void SetInsetEdge(LogicalEdge edge, Length value)
+    {
+        switch (edge)
+        {
+            case LogicalEdge.InlineStart: InsetInlineStart = value; break;
+            case LogicalEdge.InlineEnd: InsetInlineEnd = value; break;
+            case LogicalEdge.BlockStart: InsetBlockStart = value; break;
+            default: InsetBlockEnd = value; break;
+        }
+    }
+
+    // 边框：逻辑边（inline/block × start/end）的宽度/颜色/样式为标准存储，
+    // 物理边属性为按书写模式/方向映射的门面（见 ISSUE-103）。
+    public new Length BorderInlineStartWidth { get; set; } = Length.Px(0);
+    public new Length BorderInlineEndWidth { get; set; } = Length.Px(0);
+    public new Length BorderBlockStartWidth { get; set; } = Length.Px(0);
+    public new Length BorderBlockEndWidth { get; set; } = Length.Px(0);
+
+    public new Color BorderInlineStartColor { get; set; } = Color.Black;
+    public new Color BorderInlineEndColor { get; set; } = Color.Black;
+    public new Color BorderBlockStartColor { get; set; } = Color.Black;
+    public new Color BorderBlockEndColor { get; set; } = Color.Black;
+
+    public new BorderStyle BorderInlineStartStyle { get; set; } = Common.BorderStyle.None;
+    public new BorderStyle BorderInlineEndStyle { get; set; } = Common.BorderStyle.None;
+    public new BorderStyle BorderBlockStartStyle { get; set; } = Common.BorderStyle.None;
+    public new BorderStyle BorderBlockEndStyle { get; set; } = Common.BorderStyle.None;
+
+    public new Length BorderTopWidth
+    {
+        get => GetBorderWidthEdge(ToLogical(PhysicalEdge.Top));
+        set => SetBorderWidthEdge(ToLogical(PhysicalEdge.Top), value);
+    }
+
+    public new Length BorderRightWidth
+    {
+        get => GetBorderWidthEdge(ToLogical(PhysicalEdge.Right));
+        set => SetBorderWidthEdge(ToLogical(PhysicalEdge.Right), value);
+    }
+
+    public new Length BorderBottomWidth
+    {
+        get => GetBorderWidthEdge(ToLogical(PhysicalEdge.Bottom));
+        set => SetBorderWidthEdge(ToLogical(PhysicalEdge.Bottom), value);
+    }
+
+    public new Length BorderLeftWidth
+    {
+        get => GetBorderWidthEdge(ToLogical(PhysicalEdge.Left));
+        set => SetBorderWidthEdge(ToLogical(PhysicalEdge.Left), value);
+    }
+
+    public new Color BorderTopColor
+    {
+        get => GetBorderColorEdge(ToLogical(PhysicalEdge.Top));
+        set => SetBorderColorEdge(ToLogical(PhysicalEdge.Top), value);
+    }
+
+    public new Color BorderRightColor
+    {
+        get => GetBorderColorEdge(ToLogical(PhysicalEdge.Right));
+        set => SetBorderColorEdge(ToLogical(PhysicalEdge.Right), value);
+    }
+
+    public new Color BorderBottomColor
+    {
+        get => GetBorderColorEdge(ToLogical(PhysicalEdge.Bottom));
+        set => SetBorderColorEdge(ToLogical(PhysicalEdge.Bottom), value);
+    }
+
+    public new Color BorderLeftColor
+    {
+        get => GetBorderColorEdge(ToLogical(PhysicalEdge.Left));
+        set => SetBorderColorEdge(ToLogical(PhysicalEdge.Left), value);
+    }
+
+    public new BorderStyle BorderTopStyle
+    {
+        get => GetBorderStyleEdge(ToLogical(PhysicalEdge.Top));
+        set => SetBorderStyleEdge(ToLogical(PhysicalEdge.Top), value);
+    }
+
+    public new BorderStyle BorderRightStyle
+    {
+        get => GetBorderStyleEdge(ToLogical(PhysicalEdge.Right));
+        set => SetBorderStyleEdge(ToLogical(PhysicalEdge.Right), value);
+    }
+
+    public new BorderStyle BorderBottomStyle
+    {
+        get => GetBorderStyleEdge(ToLogical(PhysicalEdge.Bottom));
+        set => SetBorderStyleEdge(ToLogical(PhysicalEdge.Bottom), value);
+    }
+
+    public new BorderStyle BorderLeftStyle
+    {
+        get => GetBorderStyleEdge(ToLogical(PhysicalEdge.Left));
+        set => SetBorderStyleEdge(ToLogical(PhysicalEdge.Left), value);
+    }
+
+    private Length GetBorderWidthEdge(LogicalEdge edge) => edge switch
+    {
+        LogicalEdge.InlineStart => BorderInlineStartWidth,
+        LogicalEdge.InlineEnd => BorderInlineEndWidth,
+        LogicalEdge.BlockStart => BorderBlockStartWidth,
+        _ => BorderBlockEndWidth,
+    };
+
+    private void SetBorderWidthEdge(LogicalEdge edge, Length value)
+    {
+        switch (edge)
+        {
+            case LogicalEdge.InlineStart: BorderInlineStartWidth = value; break;
+            case LogicalEdge.InlineEnd: BorderInlineEndWidth = value; break;
+            case LogicalEdge.BlockStart: BorderBlockStartWidth = value; break;
+            default: BorderBlockEndWidth = value; break;
+        }
+    }
+
+    private Color GetBorderColorEdge(LogicalEdge edge) => edge switch
+    {
+        LogicalEdge.InlineStart => BorderInlineStartColor,
+        LogicalEdge.InlineEnd => BorderInlineEndColor,
+        LogicalEdge.BlockStart => BorderBlockStartColor,
+        _ => BorderBlockEndColor,
+    };
+
+    private void SetBorderColorEdge(LogicalEdge edge, Color value)
+    {
+        switch (edge)
+        {
+            case LogicalEdge.InlineStart: BorderInlineStartColor = value; break;
+            case LogicalEdge.InlineEnd: BorderInlineEndColor = value; break;
+            case LogicalEdge.BlockStart: BorderBlockStartColor = value; break;
+            default: BorderBlockEndColor = value; break;
+        }
+    }
+
+    private BorderStyle GetBorderStyleEdge(LogicalEdge edge) => edge switch
+    {
+        LogicalEdge.InlineStart => BorderInlineStartStyle,
+        LogicalEdge.InlineEnd => BorderInlineEndStyle,
+        LogicalEdge.BlockStart => BorderBlockStartStyle,
+        _ => BorderBlockEndStyle,
+    };
+
+    private void SetBorderStyleEdge(LogicalEdge edge, BorderStyle value)
+    {
+        switch (edge)
+        {
+            case LogicalEdge.InlineStart: BorderInlineStartStyle = value; break;
+            case LogicalEdge.InlineEnd: BorderInlineEndStyle = value; break;
+            case LogicalEdge.BlockStart: BorderBlockStartStyle = value; break;
+            default: BorderBlockEndStyle = value; break;
+        }
+    }
 
     // 便捷属性：获取完整的边框侧
     public BorderSide ComputedBorderTop => new(BorderTopWidth, BorderTopStyle, BorderTopColor);
@@ -91,10 +427,7 @@ public partial class ComputedStyle : Style
     public new Length LineHeight { get; set; } = Length.Px(0);  // 0 = auto/normal
 
     public new Position Position { get; set; } = Common.Position.Static;
-    public new Length Top { get; set; } = Length.Auto;
-    public new Length Right { get; set; } = Length.Auto;
-    public new Length Bottom { get; set; } = Length.Auto;
-    public new Length Left { get; set; } = Length.Auto;
+    // 定位偏移 Top/Right/Bottom/Left 为逻辑 inset 存储的物理门面，已在上方与尺寸/边距一并定义。
 
     public new TextDecoration TextDecoration { get; set; } = Common.TextDecoration.None;
     public new TextTransform TextTransform { get; set; } = Common.TextTransform.None;
@@ -286,6 +619,15 @@ public partial class ComputedStyle : Style
 
         if (style != null)
         {
+            // direction / writing-mode 必须先于其余属性解析：物理盒属性（MarginLeft、Width 等）
+            // 是按书写模式映射到逻辑存储的门面，后续生成的赋值代码经门面读写，依赖这两个值（见 ISSUE-103）。
+            if (style.Direction is { } directionProp &&
+                computed.TryResolveStyleProperty(directionProp, parent?.Direction ?? default, inheritable: true, out var direction))
+                computed.Direction = direction;
+            if (style.WritingMode is { } writingModeProp &&
+                computed.TryResolveStyleProperty(writingModeProp, parent?.WritingMode ?? default, inheritable: true, out var writingMode))
+                computed.WritingMode = writingMode;
+
             // 调用生成的通用属性赋值（内部对每个属性解析变量引用与全局关键词）
             computed.ApplyStylePropertiesGenerated(style);
 
@@ -299,39 +641,82 @@ public partial class ComputedStyle : Style
                 computed.FontSize = Length.Px(fontSize.ToPixels(0, parentFontSizePx));
             }
 
-            // 特殊处理：边框宽度的统一属性回退逻辑。边框类简写不可继承。
+            // 特殊处理：边框宽度/颜色/样式的统一属性回退逻辑。边框类简写不可继承。
+            // 回退逐逻辑边进行：该逻辑边的逻辑槽位与对应物理槽位（按书写模式映射）均未设置时，
+            // 才用统一值填充该逻辑边（物理边门面与逻辑槽位最终落在同一存储上）。
+            var wm = computed.WritingMode;
+            var dir = computed.Direction;
             if (style.BorderWidth is { } borderWidthProp &&
                 computed.TryResolveStyleProperty(borderWidthProp, parent?.BorderTopWidth ?? default, inheritable: false, out var borderWidth))
             {
-                if (style.BorderTopWidth == null) computed.BorderTopWidth = borderWidth;
-                if (style.BorderRightWidth == null) computed.BorderRightWidth = borderWidth;
-                if (style.BorderBottomWidth == null) computed.BorderBottomWidth = borderWidth;
-                if (style.BorderLeftWidth == null) computed.BorderLeftWidth = borderWidth;
+                if (style.BorderInlineStartWidth == null && GetPhysicalBorderWidth(style, LogicalEdgeMap.ToPhysical(LogicalEdge.InlineStart, wm, dir)) == null)
+                    computed.BorderInlineStartWidth = borderWidth;
+                if (style.BorderInlineEndWidth == null && GetPhysicalBorderWidth(style, LogicalEdgeMap.ToPhysical(LogicalEdge.InlineEnd, wm, dir)) == null)
+                    computed.BorderInlineEndWidth = borderWidth;
+                if (style.BorderBlockStartWidth == null && GetPhysicalBorderWidth(style, LogicalEdgeMap.ToPhysical(LogicalEdge.BlockStart, wm, dir)) == null)
+                    computed.BorderBlockStartWidth = borderWidth;
+                if (style.BorderBlockEndWidth == null && GetPhysicalBorderWidth(style, LogicalEdgeMap.ToPhysical(LogicalEdge.BlockEnd, wm, dir)) == null)
+                    computed.BorderBlockEndWidth = borderWidth;
             }
 
             // 特殊处理：边框颜色的统一属性回退逻辑
             if (style.BorderColor is { } borderColorProp &&
                 computed.TryResolveStyleProperty(borderColorProp, parent?.BorderTopColor ?? default, inheritable: false, out var borderColor))
             {
-                if (style.BorderTopColor == null) computed.BorderTopColor = borderColor;
-                if (style.BorderRightColor == null) computed.BorderRightColor = borderColor;
-                if (style.BorderBottomColor == null) computed.BorderBottomColor = borderColor;
-                if (style.BorderLeftColor == null) computed.BorderLeftColor = borderColor;
+                if (style.BorderInlineStartColor == null && GetPhysicalBorderColor(style, LogicalEdgeMap.ToPhysical(LogicalEdge.InlineStart, wm, dir)) == null)
+                    computed.BorderInlineStartColor = borderColor;
+                if (style.BorderInlineEndColor == null && GetPhysicalBorderColor(style, LogicalEdgeMap.ToPhysical(LogicalEdge.InlineEnd, wm, dir)) == null)
+                    computed.BorderInlineEndColor = borderColor;
+                if (style.BorderBlockStartColor == null && GetPhysicalBorderColor(style, LogicalEdgeMap.ToPhysical(LogicalEdge.BlockStart, wm, dir)) == null)
+                    computed.BorderBlockStartColor = borderColor;
+                if (style.BorderBlockEndColor == null && GetPhysicalBorderColor(style, LogicalEdgeMap.ToPhysical(LogicalEdge.BlockEnd, wm, dir)) == null)
+                    computed.BorderBlockEndColor = borderColor;
             }
 
             // 特殊处理：边框样式的统一属性回退逻辑
             if (style.BorderStyle is { } borderStyleProp &&
                 computed.TryResolveStyleProperty(borderStyleProp, parent?.BorderTopStyle ?? default, inheritable: false, out var borderStyle))
             {
-                if (style.BorderTopStyle == null) computed.BorderTopStyle = borderStyle;
-                if (style.BorderRightStyle == null) computed.BorderRightStyle = borderStyle;
-                if (style.BorderBottomStyle == null) computed.BorderBottomStyle = borderStyle;
-                if (style.BorderLeftStyle == null) computed.BorderLeftStyle = borderStyle;
+                if (style.BorderInlineStartStyle == null && GetPhysicalBorderStyle(style, LogicalEdgeMap.ToPhysical(LogicalEdge.InlineStart, wm, dir)) == null)
+                    computed.BorderInlineStartStyle = borderStyle;
+                if (style.BorderInlineEndStyle == null && GetPhysicalBorderStyle(style, LogicalEdgeMap.ToPhysical(LogicalEdge.InlineEnd, wm, dir)) == null)
+                    computed.BorderInlineEndStyle = borderStyle;
+                if (style.BorderBlockStartStyle == null && GetPhysicalBorderStyle(style, LogicalEdgeMap.ToPhysical(LogicalEdge.BlockStart, wm, dir)) == null)
+                    computed.BorderBlockStartStyle = borderStyle;
+                if (style.BorderBlockEndStyle == null && GetPhysicalBorderStyle(style, LogicalEdgeMap.ToPhysical(LogicalEdge.BlockEnd, wm, dir)) == null)
+                    computed.BorderBlockEndStyle = borderStyle;
             }
         }
 
         return computed;
     }
+
+    /// <summary>读取 <paramref name="style"/> 中某物理边的边框宽度槽位（统一边框回退的判空用）。</summary>
+    private static StyleProperty<Length>? GetPhysicalBorderWidth(Style style, PhysicalEdge edge) => edge switch
+    {
+        PhysicalEdge.Top => style.BorderTopWidth,
+        PhysicalEdge.Right => style.BorderRightWidth,
+        PhysicalEdge.Bottom => style.BorderBottomWidth,
+        _ => style.BorderLeftWidth,
+    };
+
+    /// <summary>读取 <paramref name="style"/> 中某物理边的边框颜色槽位。</summary>
+    private static StyleProperty<Color>? GetPhysicalBorderColor(Style style, PhysicalEdge edge) => edge switch
+    {
+        PhysicalEdge.Top => style.BorderTopColor,
+        PhysicalEdge.Right => style.BorderRightColor,
+        PhysicalEdge.Bottom => style.BorderBottomColor,
+        _ => style.BorderLeftColor,
+    };
+
+    /// <summary>读取 <paramref name="style"/> 中某物理边的边框样式槽位。</summary>
+    private static StyleProperty<BorderStyle>? GetPhysicalBorderStyle(Style style, PhysicalEdge edge) => edge switch
+    {
+        PhysicalEdge.Top => style.BorderTopStyle,
+        PhysicalEdge.Right => style.BorderRightStyle,
+        PhysicalEdge.Bottom => style.BorderBottomStyle,
+        _ => style.BorderLeftStyle,
+    };
 
     /// <summary>
     /// 由 Source Generator 实现的样式属性应用逻辑
@@ -352,6 +737,8 @@ public partial class ComputedStyle : Style
     {
         if (insets.IsZero) return;
 
+        // 物理属性是逻辑存储的门面（ISSUE-103）：四边/两轴的物理枚举与逻辑存储一一对应，
+        // 因此逐物理属性读写即可覆盖全部逻辑槽位，无需（也不能重复）再列逻辑属性。
         PaddingTop = PaddingTop.ResolveSafeArea(insets);
         PaddingRight = PaddingRight.ResolveSafeArea(insets);
         PaddingBottom = PaddingBottom.ResolveSafeArea(insets);
@@ -416,6 +803,8 @@ public partial class ComputedStyle : Style
     {
         float vw = viewport.Width;
         float vh = viewport.Height;
+
+        // 与 ResolveSafeArea 同理：物理门面枚举已覆盖全部逻辑存储（ISSUE-103）。
 
         PaddingTop = PaddingTop.ResolveViewport(vw, vh);
         PaddingRight = PaddingRight.ResolveViewport(vw, vh);

@@ -177,6 +177,9 @@ public class StyleResolver
         style.Visibility ??= parentStyle.Visibility;
         // user-select 规范上非继承，但实际会向下传播；按继承处理以贴合作者预期。
         style.UserSelect ??= parentStyle.UserSelect;
+        // direction / writing-mode 在 CSS 中可继承（逻辑属性的映射基础，见 ISSUE-103）。
+        style.Direction ??= parentStyle.Direction;
+        style.WritingMode ??= parentStyle.WritingMode;
     }
 
     /// <summary>
