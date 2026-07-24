@@ -290,12 +290,15 @@ public class GridLayout
 
         // 15. 脱离文档流的子元素（absolute/fixed）不是 grid 项目：不占格，单独布局以获得尺寸，
         // 最终位置由 LayoutEngine 的定位阶段修正（与 FlexLayout 的处理一致）。
-        float? outOfFlowWidth = contentWidth > 0 ? contentWidth : (float?)null;
+        // width:auto 时传入无限宽约束触发 shrink-to-fit（与 BlockLayout 的脱离流处理一致）。
         float? outOfFlowHeight = contentHeight > 0 ? contentHeight : (float?)null;
         foreach (var child in box.Children)
         {
             if (BlockLayout.IsOutOfFlow(child))
             {
+                float? outOfFlowWidth = child.ComputedStyle.Width.IsAuto
+                    ? null
+                    : contentWidth > 0 ? contentWidth : (float?)null;
                 LayoutDispatcher.Dispatch(child, new LayoutConstraints(outOfFlowWidth, outOfFlowHeight), contentX, contentY);
             }
         }

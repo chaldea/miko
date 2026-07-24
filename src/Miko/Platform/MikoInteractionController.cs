@@ -54,6 +54,9 @@ public sealed class MikoInteractionController
     // CSS 中 :hover 匹配指针下的元素及其所有祖先，故以链为单位维护。
     private readonly List<Element> _hoveredElements = new();
 
+    // UpdateHover 的复用缓冲：指针移动是高频事件，链构建不得逐次分配（ISSUE-104 问题1）。
+    private readonly List<Element> _hoverChainBuffer = new();
+
     // Serializes input handling against the render frame. On hosts that render on a
     // dedicated thread (Android GLThread, iOS CADisplayLink) the render thread walks the
     // DOM during layout (LayoutEngine.ComputeStyles enumerates Element.Children) while
@@ -360,24 +363,33 @@ public sealed class MikoInteractionController
     /// <summary>
     /// 维护 :hover 悬停状态：命中元素及其祖先链设置 <see cref="ElementState.Hover"/>；
     /// 之前悬停链上不再悬停的元素清除该状态（CSS：:hover 匹配指针下的元素及其全部祖先）。
-    /// SetState/ClearState 会标脏并递增 MutationVersion，下一帧样式解析即按 :hover
-    /// 重新级联并重绘（见 ISSUE-099 问题5：此前 Hover 状态从未被设置，:hover 选择器
-    /// 永不命中）。
+    ///
+    /// 性能（ISSUE-104 问题1）：状态置/清是否标脏按"悬停相关性"门控——元素与所有
+    /// 样式表的 :hover 规则都无关时，其 Hover 状态不可能影响任何规则匹配，仅作标志位
+    /// 静默跟踪（不递增 MutationVersion），避免指针扫过普通元素就触发全量重排造成
+    /// 内存锯齿。相关元素（如命中 .btn:hover 的 .btn）仍走完整标脏，下一帧样式解析
+    /// 即按 :hover 重新级联（见 ISSUE-099 问题5）。链构建复用缓冲，指针移动热路径
+    /// 零分配。
     /// </summary>
     private void UpdateHover(Element? target)
     {
-        // 新悬停链：命中元素及其全部祖先。
-        var chain = new List<Element>();
+        // 新悬停链：命中元素及其全部祖先（复用缓冲）。
+        var chain = _hoverChainBuffer;
+        chain.Clear();
         for (var current = target; current != null; current = current.Parent)
             chain.Add(current);
 
         foreach (var element in _hoveredElements)
+        {
             if (!chain.Contains(element))
-                element.ClearState(ElementState.Hover);
+                element.ClearState(ElementState.Hover, _engine.IsHoverRelevant(element));
+        }
 
         foreach (var element in chain)
+        {
             if (!_hoveredElements.Contains(element))
-                element.SetState(ElementState.Hover);
+                element.SetState(ElementState.Hover, _engine.IsHoverRelevant(element));
+        }
 
         _hoveredElements.Clear();
         _hoveredElements.AddRange(chain);
@@ -479,12 +491,12 @@ public sealed class MikoInteractionController
                 break;
             case InputType.Checkbox:
                 inputElement.Checked = !inputElement.Checked;
-                inputElement.IsDirty = true;
+                _engine.InvalidateElement(inputElement);
                 DispatchChange(inputElement);
                 break;
             case InputType.Radio:
                 inputElement.Checked = true;
-                inputElement.IsDirty = true;
+                _engine.InvalidateElement(inputElement);
                 DispatchChange(inputElement);
                 break;
         }
@@ -711,23 +723,23 @@ public sealed class MikoInteractionController
                 if (editable.CursorPosition > 0)
                 {
                     editable.CursorPosition--;
-                    element.IsDirty = true;
+                    _engine.InvalidateElement(element);
                 }
                 break;
             case MikoKey.Right:
                 if (editable.CursorPosition < (editable.Value ?? string.Empty).Length)
                 {
                     editable.CursorPosition++;
-                    element.IsDirty = true;
+                    _engine.InvalidateElement(element);
                 }
                 break;
             case MikoKey.Home:
                 editable.CursorPosition = 0;
-                element.IsDirty = true;
+                _engine.InvalidateElement(element);
                 break;
             case MikoKey.End:
                 editable.MoveCursorToEnd();
-                element.IsDirty = true;
+                _engine.InvalidateElement(element);
                 break;
             case MikoKey.Enter:
                 // 多行控件（textarea）回车插入换行；单行控件不处理（可用于表单提交，由上层处理）。
@@ -759,6 +771,9 @@ public sealed class MikoInteractionController
 
     private void DispatchInputEvent(Element element, ITextEditable editable)
     {
+        // 文本内容已变更：标脏区域以调度重绘（同 ISSUE-104，IsDirty 标志无读取方）。
+        _engine.InvalidateElement(element);
+
         var inputArgs = new InputEventArgs
         {
             Target = element,
@@ -806,7 +821,10 @@ public sealed class MikoInteractionController
         if (Math.Abs(rangeInput.NumericValue - newValue) > 0.01f)
         {
             rangeInput.NumericValue = newValue;
-            rangeInput.IsDirty = true;
+            // 必须经引擎标脏区域：IsDirty 是无读取方的内部标志（见 Element.IsDirty），
+            // 仅靠它宿主渲染循环的稳态空闲检测（ISSUE-096）不会产生新帧，
+            // 滑块要等到 :hover 等其他状态变化碰巧触发重绘才移动（ISSUE-104）。
+            _engine.InvalidateElement(rangeInput);
             DispatchChange(rangeInput);
         }
     }

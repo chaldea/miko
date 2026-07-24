@@ -85,6 +85,56 @@ new BorderRadius(t, r, b, l)                       // per-corner
 See [Layout](/guide/layout) for how the content / padding / border / margin boxes are
 computed.
 
+## Logical properties
+
+Miko supports CSS logical properties for internationalization-friendly styles
+(`margin-inline-start`, `inline-size`, etc.). Logical values are the canonical storage in
+`ComputedStyle`: physical properties are resolved onto them during style computation
+using the element's `Direction` and `WritingMode`, and the physical computed properties
+(`MarginLeft`, `Width`, …) read back through that mapping — so layout and painting code
+is unchanged and existing physical styles behave exactly as before.
+
+| Physical                | Logical                                  |
+| ----------------------- | ---------------------------------------- |
+| `MarginLeft/Right`      | `MarginInlineStart/End`                  |
+| `MarginTop/Bottom`      | `MarginBlockStart/End`                   |
+| `PaddingLeft/Right`     | `PaddingInlineStart/End`                 |
+| `PaddingTop/Bottom`     | `PaddingBlockStart/End`                  |
+| `BorderLeft/Right`      | `BorderInlineStart/End`                  |
+| `BorderTop/Bottom`      | `BorderBlockStart/End`                   |
+| `Left/Right`            | `InsetInlineStart/End`                   |
+| `Top/Bottom`            | `InsetBlockStart/End`                    |
+| `Width` / `Height`      | `InlineSize` / `BlockSize`               |
+| `MinWidth` / `MinHeight`| `MinInlineSize` / `MinBlockSize`         |
+| `MaxWidth` / `MaxHeight`| `MaxInlineSize` / `MaxBlockSize`         |
+
+Border logical sides expose the same width/color/style triplet as physical sides
+(`BorderInlineStartWidth`, `BorderInlineStartStyle`, `BorderInlineStartColor`, …), and
+the unified `BorderWidth`/`BorderColor`/`BorderStyle` fallbacks fill any logical side
+that was not set explicitly. Shorthands `MarginInline`, `MarginBlock`, `PaddingInline`,
+`PaddingBlock`, `InsetInline`, `InsetBlock`, `BorderInline`, and `BorderBlock` set both
+sides of an axis at once.
+
+```csharp
+new Style
+{
+    MarginInlineStart = Length.Px(16),  // left under ltr, right under rtl
+    PaddingBlock = Length.Px(8),        // top + bottom under horizontal-tb
+    InlineSize = Length.Px(200),        // width under horizontal-tb
+}
+```
+
+The mapping is driven by two inheritable properties:
+
+- `Direction` — `Ltr` (default) or `Rtl`. Flips the inline axis: under `Rtl`,
+  `MarginInlineStart` maps to the physical right side.
+- `WritingMode` — `HorizontalTb` (default), `VerticalRl`, or `VerticalLr`. Swaps the
+  axes: under vertical modes `InlineSize` maps to `Height`, and the block axis runs
+  horizontally (`BlockStart` = right for `VerticalRl`, left for `VerticalLr`).
+
+If the same style sets both a physical property and its logical counterpart, the logical
+property wins.
+
 ## Selectors and stylesheets
 
 A `StyleSheet` is a list of rules, each pairing a selector with a style. Add rules with

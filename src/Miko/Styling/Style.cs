@@ -17,6 +17,11 @@ public partial class Style
     public StyleProperty<JustifyContent>? JustifyContent { get; set; }
     public StyleProperty<AlignItems>? AlignItems { get; set; }
 
+    // 书写方向与书写模式（CSS 可继承）。逻辑属性（margin-inline-start、inline-size 等，
+    // 见 ISSUE-103）按它们映射到物理边/轴；默认 Ltr + HorizontalTb 时与物理属性完全一致。
+    public StyleProperty<Direction>? Direction { get; set; }
+    public StyleProperty<WritingMode>? WritingMode { get; set; }
+
     // Flex 子元素属性
     public StyleProperty<float>? FlexGrow { get; set; }
     public StyleProperty<float>? FlexShrink { get; set; }
@@ -46,11 +51,27 @@ public partial class Style
     public StyleProperty<Length>? MaxWidth { get; set; }
     public StyleProperty<Length>? MaxHeight { get; set; }
 
+    // 逻辑尺寸（inline-size / block-size 等，见 ISSUE-103）。horizontal-tb 下
+    // inline 轴 = 水平（inline-size ↔ width），垂直书写模式下 inline 轴 = 垂直。
+    // 与对应物理属性同时设置时逻辑属性优先（声明顺序决定生成代码的赋值顺序）。
+    public StyleProperty<Length>? InlineSize { get; set; }
+    public StyleProperty<Length>? BlockSize { get; set; }
+    public StyleProperty<Length>? MinInlineSize { get; set; }
+    public StyleProperty<Length>? MinBlockSize { get; set; }
+    public StyleProperty<Length>? MaxInlineSize { get; set; }
+    public StyleProperty<Length>? MaxBlockSize { get; set; }
+
     // 内边
     public StyleProperty<Length>? PaddingTop { get; set; }
     public StyleProperty<Length>? PaddingRight { get; set; }
     public StyleProperty<Length>? PaddingBottom { get; set; }
     public StyleProperty<Length>? PaddingLeft { get; set; }
+
+    // 逻辑内边距（padding-inline-start/end、padding-block-start/end，见 ISSUE-103）。
+    public StyleProperty<Length>? PaddingInlineStart { get; set; }
+    public StyleProperty<Length>? PaddingInlineEnd { get; set; }
+    public StyleProperty<Length>? PaddingBlockStart { get; set; }
+    public StyleProperty<Length>? PaddingBlockEnd { get; set; }
 
     /// <summary>
     /// 内边距简写属性
@@ -71,11 +92,37 @@ public partial class Style
         }
     }
 
+    /// <summary>padding-inline 简写（同时设置 inline-start/end）。</summary>
+    public Length PaddingInline
+    {
+        set
+        {
+            PaddingInlineStart = value;
+            PaddingInlineEnd = value;
+        }
+    }
+
+    /// <summary>padding-block 简写（同时设置 block-start/end）。</summary>
+    public Length PaddingBlock
+    {
+        set
+        {
+            PaddingBlockStart = value;
+            PaddingBlockEnd = value;
+        }
+    }
+
     // 外边距
     public StyleProperty<Length>? MarginTop { get; set; }
     public StyleProperty<Length>? MarginRight { get; set; }
     public StyleProperty<Length>? MarginBottom { get; set; }
     public StyleProperty<Length>? MarginLeft { get; set; }
+
+    // 逻辑外边距（margin-inline-start/end、margin-block-start/end，见 ISSUE-103）。
+    public StyleProperty<Length>? MarginInlineStart { get; set; }
+    public StyleProperty<Length>? MarginInlineEnd { get; set; }
+    public StyleProperty<Length>? MarginBlockStart { get; set; }
+    public StyleProperty<Length>? MarginBlockEnd { get; set; }
 
     /// <summary>
     /// 外边距简写属性
@@ -93,6 +140,26 @@ public partial class Style
             MarginRight = value.Right;
             MarginBottom = value.Bottom;
             MarginLeft = value.Left;
+        }
+    }
+
+    /// <summary>margin-inline 简写（同时设置 inline-start/end）。</summary>
+    public Length MarginInline
+    {
+        set
+        {
+            MarginInlineStart = value;
+            MarginInlineEnd = value;
+        }
+    }
+
+    /// <summary>margin-block 简写（同时设置 block-start/end）。</summary>
+    public Length MarginBlock
+    {
+        set
+        {
+            MarginBlockStart = value;
+            MarginBlockEnd = value;
         }
     }
 
@@ -118,6 +185,24 @@ public partial class Style
     public StyleProperty<BorderStyle>? BorderRightStyle { get; set; }
     public StyleProperty<BorderStyle>? BorderBottomStyle { get; set; }
     public StyleProperty<BorderStyle>? BorderLeftStyle { get; set; }
+
+    // 逻辑边框（border-inline-start/end、border-block-start/end 的宽度/颜色/样式，见 ISSUE-103）。
+    // 与统一属性（BorderWidth/BorderColor/BorderStyle）的回退关系和物理边一致：
+    // 统一属性只填充未单独设置的逻辑边。
+    public StyleProperty<Length>? BorderInlineStartWidth { get; set; }
+    public StyleProperty<Length>? BorderInlineEndWidth { get; set; }
+    public StyleProperty<Length>? BorderBlockStartWidth { get; set; }
+    public StyleProperty<Length>? BorderBlockEndWidth { get; set; }
+
+    public StyleProperty<Color>? BorderInlineStartColor { get; set; }
+    public StyleProperty<Color>? BorderInlineEndColor { get; set; }
+    public StyleProperty<Color>? BorderBlockStartColor { get; set; }
+    public StyleProperty<Color>? BorderBlockEndColor { get; set; }
+
+    public StyleProperty<BorderStyle>? BorderInlineStartStyle { get; set; }
+    public StyleProperty<BorderStyle>? BorderInlineEndStyle { get; set; }
+    public StyleProperty<BorderStyle>? BorderBlockStartStyle { get; set; }
+    public StyleProperty<BorderStyle>? BorderBlockEndStyle { get; set; }
 
     /// <summary>
     /// 边框简写属性（设置所有边）
@@ -207,6 +292,94 @@ public partial class Style
         }
     }
 
+    /// <summary>
+    /// 逻辑 inline-start 边框简写属性（border-inline-start）。
+    /// </summary>
+    public BorderSide BorderInlineStart
+    {
+        get => new BorderSide(
+            BorderInlineStartWidth.ValueOrNull() ?? BorderWidth.ValueOrNull() ?? Length.Px(0),
+            BorderInlineStartStyle.ValueOrNull() ?? BorderStyle.ValueOrNull() ?? Common.BorderStyle.None,
+            BorderInlineStartColor.ValueOrNull() ?? BorderColor.ValueOrNull() ?? Common.Color.Transparent);
+        set
+        {
+            BorderInlineStartWidth = value.Width;
+            BorderInlineStartStyle = value.Style;
+            BorderInlineStartColor = value.Color;
+        }
+    }
+
+    /// <summary>
+    /// 逻辑 inline-end 边框简写属性（border-inline-end）。
+    /// </summary>
+    public BorderSide BorderInlineEnd
+    {
+        get => new BorderSide(
+            BorderInlineEndWidth.ValueOrNull() ?? BorderWidth.ValueOrNull() ?? Length.Px(0),
+            BorderInlineEndStyle.ValueOrNull() ?? BorderStyle.ValueOrNull() ?? Common.BorderStyle.None,
+            BorderInlineEndColor.ValueOrNull() ?? BorderColor.ValueOrNull() ?? Common.Color.Transparent);
+        set
+        {
+            BorderInlineEndWidth = value.Width;
+            BorderInlineEndStyle = value.Style;
+            BorderInlineEndColor = value.Color;
+        }
+    }
+
+    /// <summary>
+    /// 逻辑 block-start 边框简写属性（border-block-start）。
+    /// </summary>
+    public BorderSide BorderBlockStart
+    {
+        get => new BorderSide(
+            BorderBlockStartWidth.ValueOrNull() ?? BorderWidth.ValueOrNull() ?? Length.Px(0),
+            BorderBlockStartStyle.ValueOrNull() ?? BorderStyle.ValueOrNull() ?? Common.BorderStyle.None,
+            BorderBlockStartColor.ValueOrNull() ?? BorderColor.ValueOrNull() ?? Common.Color.Transparent);
+        set
+        {
+            BorderBlockStartWidth = value.Width;
+            BorderBlockStartStyle = value.Style;
+            BorderBlockStartColor = value.Color;
+        }
+    }
+
+    /// <summary>
+    /// 逻辑 block-end 边框简写属性（border-block-end）。
+    /// </summary>
+    public BorderSide BorderBlockEnd
+    {
+        get => new BorderSide(
+            BorderBlockEndWidth.ValueOrNull() ?? BorderWidth.ValueOrNull() ?? Length.Px(0),
+            BorderBlockEndStyle.ValueOrNull() ?? BorderStyle.ValueOrNull() ?? Common.BorderStyle.None,
+            BorderBlockEndColor.ValueOrNull() ?? BorderColor.ValueOrNull() ?? Common.Color.Transparent);
+        set
+        {
+            BorderBlockEndWidth = value.Width;
+            BorderBlockEndStyle = value.Style;
+            BorderBlockEndColor = value.Color;
+        }
+    }
+
+    /// <summary>border-inline 简写（同时设置 inline-start/end 两条逻辑边）。</summary>
+    public BorderSide BorderInline
+    {
+        set
+        {
+            BorderInlineStart = value;
+            BorderInlineEnd = value;
+        }
+    }
+
+    /// <summary>border-block 简写（同时设置 block-start/end 两条逻辑边）。</summary>
+    public BorderSide BorderBlock
+    {
+        set
+        {
+            BorderBlockStart = value;
+            BorderBlockEnd = value;
+        }
+    }
+
     // 轮廓（outline）：绘制在边框盒之外，不占据布局空间。复用 BorderStyle 表示线型。
     public StyleProperty<Length>? OutlineWidth { get; set; }
     public StyleProperty<Color>? OutlineColor { get; set; }
@@ -271,6 +444,32 @@ public partial class Style
     public StyleProperty<Length>? Right { get; set; }
     public StyleProperty<Length>? Bottom { get; set; }
     public StyleProperty<Length>? Left { get; set; }
+
+    // 逻辑定位偏移（inset-inline-start/end、inset-block-start/end，见 ISSUE-103）。
+    public StyleProperty<Length>? InsetInlineStart { get; set; }
+    public StyleProperty<Length>? InsetInlineEnd { get; set; }
+    public StyleProperty<Length>? InsetBlockStart { get; set; }
+    public StyleProperty<Length>? InsetBlockEnd { get; set; }
+
+    /// <summary>inset-inline 简写（同时设置 inline-start/end）。</summary>
+    public Length InsetInline
+    {
+        set
+        {
+            InsetInlineStart = value;
+            InsetInlineEnd = value;
+        }
+    }
+
+    /// <summary>inset-block 简写（同时设置 block-start/end）。</summary>
+    public Length InsetBlock
+    {
+        set
+        {
+            InsetBlockStart = value;
+            InsetBlockEnd = value;
+        }
+    }
 
     public StyleProperty<TextDecoration>? TextDecoration { get; set; }
     public StyleProperty<TextTransform>? TextTransform { get; set; }

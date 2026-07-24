@@ -272,6 +272,32 @@ public enum AlignContent
 public enum UserSelect { Auto, None, Text, All }
 public enum VerticalAlign { Baseline, Top, Middle, Bottom, TextTop, TextBottom }
 public enum BoxSizing { ContentBox, BorderBox }
+
+/// <summary>
+/// 书写方向（CSS direction）。影响逻辑属性 inline 轴的起始/结束边映射
+/// （margin-inline-start 等，见 ISSUE-103），以及后续的文本双向排版。
+/// </summary>
+public enum Direction
+{
+    /// <summary>从左到右（CSS 初始值 ltr）。</summary>
+    Ltr,
+    /// <summary>从右到左（rtl）。</summary>
+    Rtl
+}
+
+/// <summary>
+/// 书写模式（CSS writing-mode）。决定 inline/block 轴与物理水平/垂直轴的对应关系，
+/// 是逻辑属性（inline-size、margin-block-start 等，见 ISSUE-103）的映射基础。
+/// </summary>
+public enum WritingMode
+{
+    /// <summary>水平书写，块方向自上而下（CSS 初始值 horizontal-tb）。</summary>
+    HorizontalTb,
+    /// <summary>垂直书写，块方向自右而左（vertical-rl）。</summary>
+    VerticalRl,
+    /// <summary>垂直书写，块方向自左而右（vertical-lr）。</summary>
+    VerticalLr
+}
 public enum BackgroundRepeat { Repeat, RepeatX, RepeatY, NoRepeat }
 public enum BackgroundSizeMode { Auto, Cover, Contain, Explicit }
 public enum BackgroundPosition { LeftTop, CenterTop, RightTop, LeftCenter, Center, RightCenter, LeftBottom, CenterBottom, RightBottom }

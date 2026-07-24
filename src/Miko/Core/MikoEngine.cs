@@ -471,6 +471,20 @@ public class MikoEngine
         return HitTestBox(_currentLayout, x, y);
     }
 
+    /// <summary>
+    /// 元素的 Hover 状态是否可能影响任一样式表的规则匹配（见 StyleSheet.IsHoverRelevant）。
+    /// 交互层据此决定悬停状态变化是否需要标脏触发样式重算（ISSUE-104 问题1）：
+    /// 为 false 时悬停仅作为元素标志位跟踪，不产生任何重排/重绘工作。
+    /// </summary>
+    internal bool IsHoverRelevant(Element element)
+    {
+        for (int i = 0; i < _styleSheets.Count; i++)
+        {
+            if (_styleSheets[i].IsHoverRelevant(element)) return true;
+        }
+        return false;
+    }
+
     private Element? HitTestBox(LayoutBox box, float x, float y, float scrollOffsetX = 0, float scrollOffsetY = 0)
     {
         // 文本节点（TextNode）对命中透明：点击文本时命中目标应解析为其包含元素（如 button），

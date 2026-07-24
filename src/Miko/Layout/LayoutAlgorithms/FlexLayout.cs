@@ -232,13 +232,17 @@ public class FlexLayout
         // 脱离文档流的子元素（absolute/fixed）不是 flex 项目：
         // 单独布局以获得尺寸，不参与主轴/交叉轴的排列与尺寸计算。
         // 最终位置由 LayoutEngine 的定位阶段修正。
+        // width:auto 时传入无限宽约束触发 shrink-to-fit（与 BlockLayout 的脱离流处理一致，
+        // 见 ISSUE-077）；显式宽度（含百分比）仍相对容器内容宽度解析。
         foreach (var child in box.Children)
         {
             if (BlockLayout.IsOutOfFlow(child))
             {
                 float? childAvailableHeight = contentHeight > 0 ? contentHeight : null;
-                var childConstraints = new LayoutConstraints(
-                    contentWidth > 0 ? contentWidth : (float?)null, childAvailableHeight);
+                float? childWidthConstraint = child.ComputedStyle.Width.IsAuto
+                    ? null
+                    : contentWidth > 0 ? contentWidth : (float?)null;
+                var childConstraints = new LayoutConstraints(childWidthConstraint, childAvailableHeight);
                 LayoutDispatcher.Dispatch(child, childConstraints, contentX, contentY);
             }
         }
@@ -675,11 +679,67 @@ public class FlexLayout
     private class FlexChildInfo
     {
         public required LayoutBox Child { get; set; }
+        /// <summary>假设主尺寸（flex-basis 经 min/max 主轴约束夹取后的 margin-box 尺寸）。</summary>
         public float FlexBasis { get; set; }
+        /// <summary>夹取前的原始 flex-basis（margin-box 尺寸），用于判断是否需要强制重排。</summary>
+        public float RawBasis { get; set; }
+        /// <summary>主轴 min 约束（margin-box 尺寸，0 表示无约束）。</summary>
+        public float MinMainClamp { get; set; }
+        /// <summary>主轴 max 约束（margin-box 尺寸，<see cref="float.MaxValue"/> 表示无约束）。</summary>
+        public float MaxMainClamp { get; set; }
+        /// <summary>在 grow/shrink 分配中因命中 min/max 约束而被冻结（不再参与后续分配）。</summary>
+        public bool Frozen { get; set; }
         public float FlexGrow { get; set; }
         public float FlexShrink { get; set; }
         public float FinalSize { get; set; }
         public bool UsedAutoSize { get; set; }
+    }
+
+    /// <summary>
+    /// 计算 flex 项目主轴方向的 min/max 约束，转换为可与 flex-basis/FinalSize 直接比较的
+    /// margin-box 尺寸上下界（CSS Flexbox §9.7：假设主尺寸 = flex-basis 经 min/max 主轴尺寸夹取）。
+    /// min/max-width（列方向为 min/max-height）按 box-sizing 解释后加上主轴方向的
+    /// padding/border/margin。min 值为 0（默认）时视为无约束，避免把 padding/border 抬高为最小尺寸；
+    /// 百分比 min/max 针对不确定主轴退化为无约束（与 ISSUE-094 的规则一致）。
+    /// </summary>
+    private static void GetMainSizeClamp(LayoutBox child, bool isRow, float containerMainSize,
+        bool mainSizeIsIndefinite, out float minOuter, out float maxOuter)
+    {
+        var s = child.ComputedStyle;
+        float fs = s.FontSize.Value;
+
+        Length minL, maxL;
+        float margin, padBorder;
+        if (isRow)
+        {
+            minL = s.MinWidth; maxL = s.MaxWidth;
+            margin = s.MarginLeft.ToPixels(containerMainSize, fs) + s.MarginRight.ToPixels(containerMainSize, fs);
+            padBorder = s.BorderLeftWidth.ToPixels(containerMainSize, fs) + s.BorderRightWidth.ToPixels(containerMainSize, fs)
+                + s.PaddingLeft.ToPixels(containerMainSize, fs) + s.PaddingRight.ToPixels(containerMainSize, fs);
+        }
+        else
+        {
+            minL = s.MinHeight; maxL = s.MaxHeight;
+            margin = s.MarginTop.ToPixels(containerMainSize, fs) + s.MarginBottom.ToPixels(containerMainSize, fs);
+            padBorder = s.BorderTopWidth.ToPixels(containerMainSize, fs) + s.BorderBottomWidth.ToPixels(containerMainSize, fs)
+                + s.PaddingTop.ToPixels(containerMainSize, fs) + s.PaddingBottom.ToPixels(containerMainSize, fs);
+        }
+
+        minOuter = 0;
+        maxOuter = float.MaxValue;
+
+        if (!minL.IsAuto && !(minL.HasPercentComponent && mainSizeIsIndefinite))
+        {
+            float v = minL.ToPixels(containerMainSize, fs);
+            if (s.BoxSizing == BoxSizing.BorderBox) v = Math.Max(0, v - padBorder);
+            if (v > 0) minOuter = v + padBorder + margin;
+        }
+        if (!maxL.IsAuto && !(maxL.HasPercentComponent && mainSizeIsIndefinite))
+        {
+            float v = maxL.ToPixels(containerMainSize, fs);
+            if (s.BoxSizing == BoxSizing.BorderBox) v = Math.Max(0, v - padBorder);
+            maxOuter = v + padBorder + margin;
+        }
     }
 
     /// <summary>
@@ -696,6 +756,10 @@ public class FlexLayout
         {
             // 计算该子元素的主轴 flex-basis（初步尺寸，未经 grow/shrink）。
             float childBasis = ComputeFlexBasis(child, availableMainSize, isRow, mainSizeIsIndefinite);
+            // 分行依据假设主尺寸：flex-basis 经 min/max 主轴约束夹取（CSS Flexbox §9.7）。
+            GetMainSizeClamp(child, isRow, availableMainSize, mainSizeIsIndefinite,
+                out float minMain, out float maxMain);
+            childBasis = Math.Clamp(childBasis, minMain, maxMain);
 
             // 如果当前行非空且加上此子会超出容器宽度，则换行。
             bool wouldOverflow = currentLine.Count > 0 &&
@@ -806,6 +870,78 @@ public class FlexLayout
     }
 
     /// <summary>
+    /// 分配主轴剩余空间（grow）或溢出量（shrink），实现 CSS Flexbox §9.7 的尺寸解析循环：
+    /// 每轮在未冻结项目间按比例分配，目标尺寸经各自 min/max 主轴约束夹取；命中约束的项目
+    /// 冻结在夹取值并按冻结后的总尺寸重算剩余/溢出空间，继续下一轮，直至无项目违规。
+    /// 不参与 grow（或 shrink）的项目保持其假设主尺寸（第一遍已夹取的 flex-basis）。
+    /// </summary>
+    private static void ResolveFlexibleLengths(List<FlexChildInfo> infos, float freeSpace,
+        float lineMainSize, float totalGapSize, bool isGrow)
+    {
+        var unfrozen = new List<FlexChildInfo>(infos.Count);
+        foreach (var info in infos)
+        {
+            info.Frozen = false;
+            if (isGrow ? info.FlexGrow > 0 : info.FlexShrink > 0)
+                unfrozen.Add(info);
+        }
+
+        float amount = Math.Abs(freeSpace);
+        while (unfrozen.Count > 0)
+        {
+            float totalFactor = 0;
+            foreach (var info in unfrozen)
+                totalFactor += isGrow ? info.FlexGrow : info.FlexShrink * info.FlexBasis;
+            if (totalFactor <= 0) break;
+
+            bool anyViolation = false;
+            for (int i = unfrozen.Count - 1; i >= 0; i--)
+            {
+                var info = unfrozen[i];
+                float factor = isGrow ? info.FlexGrow : info.FlexShrink * info.FlexBasis;
+                float target = isGrow
+                    ? info.FlexBasis + amount * factor / totalFactor
+                    : info.FlexBasis - amount * factor / totalFactor;
+                float clamped = Math.Clamp(target, info.MinMainClamp, info.MaxMainClamp);
+                if (Math.Abs(clamped - target) > 0.001f)
+                {
+                    info.FinalSize = clamped;
+                    info.Frozen = true;
+                    unfrozen.RemoveAt(i);
+                    anyViolation = true;
+                }
+            }
+
+            if (!anyViolation)
+            {
+                foreach (var info in unfrozen)
+                {
+                    float factor = isGrow ? info.FlexGrow : info.FlexShrink * info.FlexBasis;
+                    float target = isGrow
+                        ? info.FlexBasis + amount * factor / totalFactor
+                        : info.FlexBasis - amount * factor / totalFactor;
+                    // 浮点尾差可能导致轻微越界，兜底夹取。
+                    info.FinalSize = Math.Clamp(target, info.MinMainClamp, info.MaxMainClamp);
+                }
+                break;
+            }
+
+            // 有项目被冻结在 min/max：按冻结后的尺寸重算剩余（grow）/溢出（shrink）空间。
+            float used = totalGapSize;
+            foreach (var info in infos)
+                used += info.Frozen ? info.FinalSize : info.FlexBasis;
+            amount = isGrow ? lineMainSize - used : used - lineMainSize;
+            if (amount <= 0.01f)
+            {
+                // 无剩余可分配：未冻结项目保持假设主尺寸。
+                foreach (var info in unfrozen)
+                    info.FinalSize = info.FlexBasis;
+                break;
+            }
+        }
+    }
+
+    /// <summary>
     /// 布局一行 flex 子元素（行方向）或一列（列方向），应用 flex-grow/shrink + gap。
     /// </summary>
     /// <param name="isMultiLine">容器是否被 wrap 分成了多行/列。多行时 align-items 在
@@ -827,20 +963,29 @@ public class FlexLayout
             var childStyle = child.ComputedStyle;
             float flexBasis = ComputeFlexBasis(child, lineMainSize, isRow, mainSizeIsIndefinite, out bool usedAutoSize);
 
+            // 假设主尺寸：flex-basis 先经 min/max 主轴约束夹取（CSS Flexbox §9.7 步骤 3，
+            // 见 ISSUE-102），夹取后的值同时作为 grow/shrink 分配与剩余空间计算的基础。
+            GetMainSizeClamp(child, isRow, lineMainSize, mainSizeIsIndefinite,
+                out float minMain, out float maxMain);
+            float clampedBasis = Math.Clamp(flexBasis, minMain, maxMain);
+
             var info = new FlexChildInfo
             {
                 Child = child,
-                FlexBasis = flexBasis,
+                FlexBasis = clampedBasis,
+                RawBasis = flexBasis,
+                MinMainClamp = minMain,
+                MaxMainClamp = maxMain,
                 FlexGrow = childStyle.FlexGrow,
                 FlexShrink = childStyle.FlexShrink,
-                FinalSize = flexBasis,
+                FinalSize = clampedBasis,
                 UsedAutoSize = usedAutoSize
             };
 
             childInfos.Add(info);
-            totalFlexBasisSize += flexBasis;
+            totalFlexBasisSize += clampedBasis;
             totalFlexGrow += childStyle.FlexGrow;
-            totalFlexShrinkWeighted += childStyle.FlexShrink * flexBasis;
+            totalFlexShrinkWeighted += childStyle.FlexShrink * clampedBasis;
         }
 
         // gap 占用主轴空间：n 个项目间有 n-1 个 gap。
@@ -869,28 +1014,17 @@ public class FlexLayout
         float autoMarginSize = hasAutoMargins ? Math.Max(0, freeSpace) / autoMarginCount : 0;
 
         // flex-grow / flex-shrink（仅当没有 auto margin 时）。
-        bool anyAdjustment = false;
+        // 分配经 min/max 主轴约束夹取：命中约束的项目冻结在夹取值，剩余/溢出空间在
+        // 未冻结项目间重分配，直至无违规（CSS Flexbox §9.7 "resolve flexible lengths"，见 ISSUE-102）。
         if (!hasAutoMargins)
         {
             if (freeSpace > 0 && totalFlexGrow > 0)
             {
-                anyAdjustment = true;
-                foreach (var info in childInfos)
-                {
-                    float growRatio = info.FlexGrow / totalFlexGrow;
-                    info.FinalSize = info.FlexBasis + freeSpace * growRatio;
-                }
+                ResolveFlexibleLengths(childInfos, freeSpace, lineMainSize, totalGapSize, isGrow: true);
             }
             else if (freeSpace < 0 && totalFlexShrinkWeighted > 0 && !mainSizeIsIndefinite)
             {
-                anyAdjustment = true;
-                float shrinkAmount = -freeSpace;
-                foreach (var info in childInfos)
-                {
-                    float shrinkRatio = (info.FlexShrink * info.FlexBasis) / totalFlexShrinkWeighted;
-                    info.FinalSize = info.FlexBasis - shrinkAmount * shrinkRatio;
-                    info.FinalSize = Math.Max(0, info.FinalSize);
-                }
+                ResolveFlexibleLengths(childInfos, freeSpace, lineMainSize, totalGapSize, isGrow: false);
             }
         }
 
@@ -932,7 +1066,9 @@ public class FlexLayout
                 currentMain += extraMarginBefore;
             }
 
-            bool needsResize = anyAdjustment && Math.Abs(info.FinalSize - info.FlexBasis) > 0.01f;
+            // 与夹取前的原始 basis 比较：grow/shrink 调整或 min/max 夹取改变了主轴尺寸时，
+            // 都需用最终尺寸强制重排（否则自然尺寸布局会突破 max-width 约束，见 ISSUE-102）。
+            bool needsResize = Math.Abs(info.FinalSize - info.RawBasis) > 0.01f;
 
             if (isRow)
             {
@@ -1014,12 +1150,17 @@ public class FlexLayout
             }
         }
 
-        // 主轴对齐 (justify-content)：仅当本行无 flex-grow 时应用（grow 已占满主轴）。
+        // 主轴对齐 (justify-content)：无 flex-grow 时应用（grow 已占满主轴时偏移/间距为 0，
+        // 天然 no-op）；grow 被 min/max 夹取后仍有剩余空间时也需应用（CSS Flexbox §9.7 末尾：
+        // 剩余空间按 justify-content 分布，见 ISSUE-102）。
         // gap 已计入 totalMainUsed，使对齐基于含间距的实际占用。
-        if (totalFlexGrow == 0 && lineMainSize > 0)
+        if (lineMainSize > 0)
         {
             float totalMainUsed = currentMain - lineStart - gap; // 去掉末尾多余 gap
-            ApplyLineJustifyContent(childInfos, lineStart, lineMainSize, totalMainUsed, isRow, justifyContent, totalItems);
+            if (totalFlexGrow == 0 || lineMainSize - totalMainUsed > 0.01f)
+            {
+                ApplyLineJustifyContent(childInfos, lineStart, lineMainSize, totalMainUsed, isRow, justifyContent, totalItems);
+            }
         }
 
         // 交叉轴对齐 (align-items)。
