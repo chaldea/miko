@@ -479,12 +479,12 @@ public sealed class MikoInteractionController
                 break;
             case InputType.Checkbox:
                 inputElement.Checked = !inputElement.Checked;
-                inputElement.IsDirty = true;
+                _engine.InvalidateElement(inputElement);
                 DispatchChange(inputElement);
                 break;
             case InputType.Radio:
                 inputElement.Checked = true;
-                inputElement.IsDirty = true;
+                _engine.InvalidateElement(inputElement);
                 DispatchChange(inputElement);
                 break;
         }
@@ -711,23 +711,23 @@ public sealed class MikoInteractionController
                 if (editable.CursorPosition > 0)
                 {
                     editable.CursorPosition--;
-                    element.IsDirty = true;
+                    _engine.InvalidateElement(element);
                 }
                 break;
             case MikoKey.Right:
                 if (editable.CursorPosition < (editable.Value ?? string.Empty).Length)
                 {
                     editable.CursorPosition++;
-                    element.IsDirty = true;
+                    _engine.InvalidateElement(element);
                 }
                 break;
             case MikoKey.Home:
                 editable.CursorPosition = 0;
-                element.IsDirty = true;
+                _engine.InvalidateElement(element);
                 break;
             case MikoKey.End:
                 editable.MoveCursorToEnd();
-                element.IsDirty = true;
+                _engine.InvalidateElement(element);
                 break;
             case MikoKey.Enter:
                 // 多行控件（textarea）回车插入换行；单行控件不处理（可用于表单提交，由上层处理）。
@@ -759,6 +759,9 @@ public sealed class MikoInteractionController
 
     private void DispatchInputEvent(Element element, ITextEditable editable)
     {
+        // 文本内容已变更：标脏区域以调度重绘（同 ISSUE-104，IsDirty 标志无读取方）。
+        _engine.InvalidateElement(element);
+
         var inputArgs = new InputEventArgs
         {
             Target = element,
@@ -806,7 +809,10 @@ public sealed class MikoInteractionController
         if (Math.Abs(rangeInput.NumericValue - newValue) > 0.01f)
         {
             rangeInput.NumericValue = newValue;
-            rangeInput.IsDirty = true;
+            // 必须经引擎标脏区域：IsDirty 是无读取方的内部标志（见 Element.IsDirty），
+            // 仅靠它宿主渲染循环的稳态空闲检测（ISSUE-096）不会产生新帧，
+            // 滑块要等到 :hover 等其他状态变化碰巧触发重绘才移动（ISSUE-104）。
+            _engine.InvalidateElement(rangeInput);
             DispatchChange(rangeInput);
         }
     }
