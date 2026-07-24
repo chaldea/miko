@@ -193,26 +193,43 @@ public abstract class Element
     /// <summary>
     /// 设置状态标志
     /// </summary>
-    public void SetState(ElementState state)
+    public void SetState(ElementState state) => SetState(state, invalidate: true);
+
+    /// <summary>
+    /// 设置状态标志。<paramref name="invalidate"/> 为 false 时仅更新标志位，
+    /// 不标脏也不递增 MutationVersion——仅用于调用方已确知该状态变化不可能影响
+    /// 样式匹配/布局结果的场景（如悬停元素与所有 :hover 规则无关，见 ISSUE-104
+    /// 问题1），避免一次无谓的全量重排。
+    /// </summary>
+    internal void SetState(ElementState state, bool invalidate)
     {
         if ((State & state) != state)
         {
             State |= state;
-            IsDirty = true;
-            BumpMutationVersion();
+            if (invalidate)
+            {
+                IsDirty = true;
+                BumpMutationVersion();
+            }
         }
     }
 
     /// <summary>
     /// 清除状态标志
     /// </summary>
-    public void ClearState(ElementState state)
+    public void ClearState(ElementState state) => ClearState(state, invalidate: true);
+
+    /// <summary>见 <see cref="SetState(ElementState, bool)"/>。</summary>
+    internal void ClearState(ElementState state, bool invalidate)
     {
         if ((State & state) != ElementState.None)
         {
             State &= ~state;
-            IsDirty = true;
-            BumpMutationVersion();
+            if (invalidate)
+            {
+                IsDirty = true;
+                BumpMutationVersion();
+            }
         }
     }
 
