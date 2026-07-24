@@ -80,4 +80,23 @@ public class IonBadgeTests : IonicComponentTestBase
 
         cut.GetComputedStyle(cut.Root)!.BackgroundColor.ShouldBe(Color.FromHex("c5000f"));
     }
+
+    [Fact]
+    public void IonBadge_Empty_IsHidden()
+    {
+        // badge.scss :host(:empty) — a standalone empty badge renders nothing (the tab button
+        // overrides this on md to draw the notification dot). display:none elements are pruned
+        // from the layout tree, so assert on the matched stylesheet rule instead.
+        var sheet = IonicStyleSheetFactory.CreateAllModes();
+
+        var badge = new Miko.Core.DomElements.DivElement { Class = "md ion-badge ion-color ion-color-danger" };
+
+        var rule = sheet.Rules
+            .Where(r => r.Selector.Matches(badge))
+            .OrderByDescending(r => r.Selector.Specificity)
+            .FirstOrDefault(r => r.Style.Display is not null);
+
+        rule.ShouldNotBeNull();
+        rule.Style.Display!.Value.Value.ShouldBe(Display.None);
+    }
 }

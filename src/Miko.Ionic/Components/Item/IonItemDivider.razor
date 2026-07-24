@@ -39,10 +39,6 @@
     /// divider replaces it (Ionic <c>sticky</c>, backed by <c>position: sticky</c>).</summary>
     [Parameter] public bool Sticky { get; set; }
 
-    /// <summary>Default slot content — the divider's label. Redeclared so the compiler treats it as
-    /// a named top-level slot that can coexist with <see cref="Start"/> / <see cref="End"/>.</summary>
-    [Parameter] public new RenderFragment? ChildContent { get; set; }
-
     /// <summary>Content for Ionic's <c>start</c> slot — placed before the label (left in LTR).</summary>
     [Parameter] public RenderFragment? Start { get; set; }
 

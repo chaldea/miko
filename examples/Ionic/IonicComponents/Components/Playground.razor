@@ -15,10 +15,13 @@
 {
     private Style? _preview;
     private Style? _container;
+    [Parameter] public int? Columns { get; set; }
+    [Parameter] public int? Rows { get; set; }
     [Parameter] public Length? Height { get; set; }
     [Parameter] public Length? Width { get; set; }
     [Parameter] public FlexDirection Direction { get; set; } = FlexDirection.Row;
     [Parameter] public bool Stretch { get; set; }
+    [Parameter] public bool Wrap { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -31,6 +34,15 @@
             Width = Width,
             FlexDirection = Direction,
             AlignItems = Stretch ? AlignItems.Stretch : null,
+            FlexWrap = Wrap ? FlexWrap.Wrap : null,
         };
+
+        if (Columns != null && Rows != null)
+        {
+            _container.Display = Display.Grid;
+            _container.GridTemplateColumns = Enumerable.Repeat(GridTrackSize.Auto, Columns.Value).ToList();
+            _container.GridTemplateRows = Enumerable.Repeat(GridTrackSize.Auto, Rows.Value).ToList();
+            _container.JustifyItems = JustifyItems.Center;
+        }
     }
 }

@@ -213,4 +213,104 @@ public class IonAvatarTests : IonicComponentTestBase
             style.BorderTopLeftRadius.ShouldBe(Miko.Common.Length.Percent(50));
         }
     }
+
+    [Fact]
+    public void IonAvatar_InsideItem_HasSmallerSize_Md()
+    {
+        // Avatar inside ion-item should use ItemAvatarSize (40px) instead of the default 64px.
+        // This mirrors Ionic's item.md.scss ::slotted(ion-avatar) rule with $item-md-avatar-width.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItem>(parameters => parameters
+            .Add(nameof(IonItem.Start), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonAvatar>(0);
+                builder.AddAttribute(1, nameof(IonAvatar.ChildContent), MinimalChild);
+                builder.CloseComponent();
+            }))
+            .Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonLabel>(0);
+                builder.AddAttribute(1, nameof(IonLabel.ChildContent), (RenderFragment)(b =>
+                {
+                    b.AddContent(0, "Item Avatar");
+                }));
+                builder.CloseComponent();
+            })));
+
+        // Find the avatar element (it's inside the start slot).
+        var avatar = cut.FindByClass("ion-avatar").Single();
+        avatar.ShouldNotBeNull();
+
+        var style = cut.GetComputedStyle(avatar);
+        style.ShouldNotBeNull();
+        style.Width.ShouldBe(Miko.Common.Length.Px(40));
+        style.Height.ShouldBe(Miko.Common.Length.Px(40));
+    }
+
+    [Fact]
+    public void IonAvatar_InsideItem_HasSmallerSize_Ios()
+    {
+        // iOS avatar inside ion-item is 36px (item.ios.vars.scss $item-ios-avatar-width).
+        UsePlatform(Miko.Platform.HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItem>(parameters => parameters
+            .Add(nameof(IonItem.Start), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonAvatar>(0);
+                builder.AddAttribute(1, nameof(IonAvatar.ChildContent), MinimalChild);
+                builder.CloseComponent();
+            }))
+            .Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonLabel>(0);
+                builder.AddAttribute(1, nameof(IonLabel.ChildContent), (RenderFragment)(b =>
+                {
+                    b.AddContent(0, "Item Avatar");
+                }));
+                builder.CloseComponent();
+            })));
+
+        var avatar = cut.FindByClass("ion-avatar").Single();
+        avatar.ShouldNotBeNull();
+
+        var style = cut.GetComputedStyle(avatar);
+        style.ShouldNotBeNull();
+        style.Width.ShouldBe(Miko.Common.Length.Px(36));
+        style.Height.ShouldBe(Miko.Common.Length.Px(36));
+    }
+
+    [Fact]
+    public void IonAvatar_InsideItem_LayoutsAtCorrectSize()
+    {
+        // BoxModel assertion: the avatar inside ion-item actually lays out at the smaller
+        // ItemAvatarSize (40px md), not the default 64px.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItem>(parameters => parameters
+            .Add(nameof(IonItem.Start), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonAvatar>(0);
+                builder.AddAttribute(1, nameof(IonAvatar.ChildContent), MinimalChild);
+                builder.CloseComponent();
+            }))
+            .Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonLabel>(0);
+                builder.AddAttribute(1, nameof(IonLabel.ChildContent), (RenderFragment)(b =>
+                {
+                    b.AddContent(0, "Item Avatar");
+                }));
+                builder.CloseComponent();
+            })));
+
+        var avatar = cut.FindByClass("ion-avatar").Single();
+        avatar.ShouldNotBeNull();
+
+        var box = cut.GetBoxModel(avatar);
+        box.ShouldNotBeNull();
+        box.Content.Width.ShouldBe(40f);
+        box.Content.Height.ShouldBe(40f);
+    }
 }

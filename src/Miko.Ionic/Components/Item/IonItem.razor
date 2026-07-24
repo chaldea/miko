@@ -116,10 +116,6 @@
     /// (default), <c>"submit"</c>, or <c>"reset"</c>. Kept as a marker for API parity.</summary>
     [Parameter] public string Type { get; set; } = "button";
 
-    /// <summary>Default slot content — the item's label. Redeclared so the compiler treats it as a
-    /// named top-level slot that can coexist with <see cref="Start"/> / <see cref="End"/>.</summary>
-    [Parameter] public new RenderFragment? ChildContent { get; set; }
-
     /// <summary>Content for Ionic's <c>start</c> slot — placed before the label (left in LTR).
     /// Typically a leading icon or avatar.</summary>
     [Parameter] public RenderFragment? Start { get; set; }

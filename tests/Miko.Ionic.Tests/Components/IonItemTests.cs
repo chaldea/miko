@@ -253,6 +253,57 @@ public class IonItemTests : IonicComponentTestBase
     }
 
     [Fact]
+    public void IonItem_DefaultSlotLabel_GrowsToFillFreeSpace()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItem>(parameters =>
+            parameters.Add(nameof(IonItem.ChildContent), Label));
+
+        // item.scss ::slotted(ion-label:not([slot="end"])): flex: 1; max-width: 100%.
+        var label = cut.FindByClass("ion-label").Single();
+        var style = cut.GetComputedStyle(label);
+        style.ShouldNotBeNull();
+        style.FlexGrow.ShouldBe(1f);
+        style.MaxWidth.ShouldBe(Miko.Common.Length.Percent(100));
+    }
+
+    [Fact]
+    public void IonItem_EndSlotLabel_KeepsNaturalWidth()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItem>(parameters =>
+        {
+            parameters.Add(nameof(IonItem.End), Label);
+            parameters.Add(nameof(IonItem.ChildContent), (RenderFragment)(b => b.AddContent(0, "Item")));
+        });
+
+        // The flex rule mirrors :not([slot="end"]) — a label in the end slot is excluded.
+        var endLabel = cut.FindByClass("ion-slot-end").Single().FindByClass("ion-label").Single();
+        var style = cut.GetComputedStyle(endLabel);
+        style.ShouldNotBeNull();
+        style.FlexGrow.ShouldBe(0f);
+    }
+
+    [Fact]
+    public void IonItem_Label_FillsInputWrapper_InLayout()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItem>(parameters =>
+            parameters.Add(nameof(IonItem.ChildContent), Label));
+
+        // BoxModel assertion: with flex:1 the label box stretches to the wrapper's full content
+        // width (it would otherwise shrink-wrap the "Basic Item" text).
+        var wrapperBox = cut.GetBoxModel(cut.FindByClass("input-wrapper").Single());
+        var labelBox = cut.GetBoxModel(cut.FindByClass("ion-label").Single());
+        wrapperBox.ShouldNotBeNull();
+        labelBox.ShouldNotBeNull();
+        labelBox.Content.Width.ShouldBe(wrapperBox.Content.Width, 0.5f);
+    }
+
+    [Fact]
     public void IonItem_InvokesOnClick_WhenClickableTapped()
     {
         var clicked = false;

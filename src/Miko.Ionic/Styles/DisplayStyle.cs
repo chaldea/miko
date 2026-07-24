@@ -42,15 +42,14 @@ namespace Miko.Ionic.Styles
                 {
                     Display = Display.Flex,
                 },
-                // InlineFlex and Grid not yet implemented in Miko
-                // [".ion-display-inline-flex"] = new()
-                // {
-                //     Display = Display.InlineFlex,
-                // },
-                // [".ion-display-grid"] = new()
-                // {
-                //     Display = Display.Grid,
-                // },
+                [".ion-display-inline-flex"] = new()
+                {
+                    Display = Display.InlineFlex,
+                },
+                [".ion-display-grid"] = new()
+                {
+                    Display = Display.Grid,
+                },
             };
 
             return styles;

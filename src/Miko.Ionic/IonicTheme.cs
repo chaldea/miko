@@ -55,6 +55,16 @@ public class IonicTheme
     public float TabButtonMaxWidth { get; set; } = 168f;
     public float TabButtonPaddingX { get; set; } = 12f;
 
+    // Tab button badge (tab-button.md.vars.scss; iOS values come from tab-button.ios.scss)
+    public float TabButtonBadgeFontSize { get; set; } = 8f;
+    public float TabButtonBadgeMinWidth { get; set; } = 12f;
+    public float TabButtonBadgeBorderRadius { get; set; } = 8f;
+    public float TabButtonBadgePaddingTop { get; set; } = 3f;
+    public float TabButtonBadgePaddingEnd { get; set; } = 2f;
+    public float TabButtonBadgePaddingBottom { get; set; } = 2f;
+    public float TabButtonBadgePaddingStart { get; set; } = 2f;
+    public float TabButtonBadgeSizeEmpty { get; set; } = 8f;
+
     // Toolbar
     public Color ToolbarBackground { get; set; }
     public Color ToolbarColor { get; set; }
@@ -240,6 +250,9 @@ public class IonicTheme
     // md is 64px, ios is 48px. Border radius is 50% in both modes.
     /// <summary>Avatar host width/height (md 64px, ios 48px).</summary>
     public float AvatarSize { get; set; } = 64f;
+
+    /// <summary>Avatar size when slotted inside ion-item (md 40px, ios 36px from item.md.vars.scss / item.ios.vars.scss).</summary>
+    public float ItemAvatarSize { get; set; } = 40f;
 
     // Spinner / badge / chip / card / grid / refresher / infinite-scroll / select.
     public Color SpinnerColor { get; set; }
@@ -720,6 +733,17 @@ public class IonicTheme
         t.TabButtonMaxWidth = 168f;
         t.TabButtonPaddingX = 12f;
 
+        // Tab button badge (tab-button.md.vars.scss): 8px font, 3/2/2/2 padding, min-width 12,
+        // radius 8; an empty badge collapses to an 8x8 dot.
+        t.TabButtonBadgeFontSize = 8f;
+        t.TabButtonBadgeMinWidth = 12f;
+        t.TabButtonBadgeBorderRadius = 8f;
+        t.TabButtonBadgePaddingTop = 3f;
+        t.TabButtonBadgePaddingEnd = 2f;
+        t.TabButtonBadgePaddingBottom = 2f;
+        t.TabButtonBadgePaddingStart = 2f;
+        t.TabButtonBadgeSizeEmpty = 8f;
+
         // Toolbar (toolbar.md.scss): min-height 56, bg #fff, color #424242.
         t.ToolbarBackground = Color.FromHex("ffffff");
         t.ToolbarColor = Color.FromHex("424242");
@@ -871,6 +895,8 @@ public class IonicTheme
 
         // Avatar (avatar.md.vars.scss): 64px square.
         t.AvatarSize = 64f;
+        // Item avatar (item.md.vars.scss $item-md-avatar-width): 40px when slotted inside ion-item.
+        t.ItemAvatarSize = 40f;
 
         t.SpinnerColor = t.Primary;
         t.SpinnerTrackColor = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 51);
@@ -1190,6 +1216,16 @@ public class IonicTheme
         t.TabButtonMaxWidth = 240f;
         t.TabButtonPaddingX = 2f;
 
+        // Tab button badge (tab-button.ios.scss): 12px font, 1/6 padding. No radius/min-width
+        // override there, so the base badge values (radius 10, min-width 10) carry over.
+        t.TabButtonBadgeFontSize = 12f;
+        t.TabButtonBadgeMinWidth = 10f;
+        t.TabButtonBadgeBorderRadius = 10f;
+        t.TabButtonBadgePaddingTop = 1f;
+        t.TabButtonBadgePaddingEnd = 6f;
+        t.TabButtonBadgePaddingBottom = 1f;
+        t.TabButtonBadgePaddingStart = 6f;
+
         // Toolbar (toolbar.ios): min-height 44, bg #f7f7f7, color #000.
         t.ToolbarBackground = Color.FromHex("f7f7f7");
         t.ToolbarColor = Color.FromHex("000000");
@@ -1329,6 +1365,8 @@ public class IonicTheme
 
         // Avatar (avatar.ios.vars.scss): 48px square.
         t.AvatarSize = 48f;
+        // Item avatar (item.ios.vars.scss $item-ios-avatar-width): 36px when slotted inside ion-item.
+        t.ItemAvatarSize = 36f;
 
         t.SpinnerColor = t.Primary;
         t.SpinnerTrackColor = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 51);

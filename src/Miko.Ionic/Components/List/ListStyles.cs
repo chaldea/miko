@@ -91,6 +91,18 @@ internal static class ListStyles
                 FlexGrow = 1,
             },
 
+            // Default-slot label (item.scss ::slotted(ion-label:not([slot="end"]))): grows to
+            // take the row's free space, so trailing content in the slot (badges, notes, …) is
+            // pushed to the far edge. Scoping to .input-wrapper mirrors :not([slot="end"]) — the
+            // port renders the default slot there and slot="end" content in .ion-slot-end.
+            // (Ionic also sets width:min-content so the label shrink-wraps; Miko's Length has no
+            // min-content and the default flex shrink covers the intent.)
+            [$".ion-item.{mode} .input-wrapper .ion-label"] = new()
+            {
+                FlexGrow = 1,
+                MaxWidth = Length.Percent(100),
+            },
+
             // lines="none": drop the bottom divider.
             [$".ion-item.{mode}.item-lines-none .item-native"] = new()
             {
@@ -110,6 +122,15 @@ internal static class ListStyles
                 Width = Length.Px(24),
                 Height = Length.Px(24),
                 MarginRight = Length.Px(16),
+            },
+
+            // Avatar inside ion-item (item.md.scss / item.ios.scss ::slotted(ion-avatar)): overrides
+            // the default avatar size to a smaller one appropriate for list rows. md 40px, ios 36px
+            // from item.md.vars.scss $item-md-avatar-width / item.ios.vars.scss $item-ios-avatar-width.
+            [$".ion-item.{mode} .ion-avatar"] = new()
+            {
+                Width = Length.Px(t.ItemAvatarSize),
+                Height = Length.Px(t.ItemAvatarSize),
             },
 
             // Detail chevron at the trailing edge: a muted, slightly smaller icon.

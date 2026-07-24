@@ -439,6 +439,84 @@ public class IonButtonTests : IonicComponentTestBase
         style.TextTransform.ShouldBe(TextTransform.Uppercase);
     }
 
+    // --- Hover (issues/ion-button.md #5) -------------------------------------------------
+    // Ionic paints hover as a semi-transparent overlay on .button-native::after
+    // (--background-hover at --background-hover-opacity). Miko has no ::after opacity layer, so
+    // ButtonStyles composites that wash onto the resolved fill and exposes it as a `:hover` rule.
+    // The hover state propagates up the hit chain, so hovering the surface flags the host too.
+
+    [Fact]
+    public void IonButton_SolidHover_LightensFill()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderButton(Context);
+        var native = cut.Root.Children[0];
+        var before = cut.GetComputedStyle(native)!.BackgroundColor;
+        before.ShouldBe(Color.FromHex("0054e9")); // primary base
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(hovered.Root.Children[0])!.BackgroundColor;
+
+        // 8% white overlay over primary — opaque, and lighter than the base on every channel.
+        after.A.ShouldBe((byte)255);
+        after.R.ShouldBeGreaterThan(before.R);
+        after.G.ShouldBeGreaterThan(before.G);
+        after.B.ShouldBeGreaterThan(before.B);
+    }
+
+    [Fact]
+    public void IonButton_OutlineHover_GetsFaintColorWash()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Fill), "outline"));
+        cut.GetComputedStyle(cut.Root.Children[0])!.BackgroundColor.ShouldBe(Color.Transparent);
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(hovered.Root.Children[0])!.BackgroundColor;
+
+        // 4% wash of the primary base over the transparent fill.
+        after.A.ShouldBe((byte)10); // 0.04 * 255
+        (after.R, after.G, after.B).ShouldBe(((byte)0x00, (byte)0x54, (byte)0xe9));
+    }
+
+    [Fact]
+    public void IonButton_ClearHover_GetsFaintColorWash()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Fill), "clear"));
+        cut.GetComputedStyle(cut.Root.Children[0])!.BackgroundColor.ShouldBe(Color.Transparent);
+
+        var hovered = Hover(cut.Root);
+        hovered.GetComputedStyle(hovered.Root.Children[0])!.BackgroundColor.A.ShouldBe((byte)10);
+    }
+
+    [Fact]
+    public void IonButton_ColoredSolidHover_LightensColorFill()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Color), "danger"));
+        var before = cut.GetComputedStyle(cut.Root.Children[0])!.BackgroundColor;
+        before.ShouldBe(Color.FromHex("c5000f"));
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(hovered.Root.Children[0])!.BackgroundColor;
+
+        after.A.ShouldBe((byte)255);
+        after.ShouldNotBe(before); // tinted lighter than the danger base
+    }
+
+    /// <summary>Re-runs style resolution with <see cref="Miko.Core.ElementState.Hover"/> set on
+    /// the host (the hover state propagates up the hit chain in the live engine).</summary>
+    private ComponentUnderTest Hover(Element root)
+    {
+        root.SetState(Miko.Core.ElementState.Hover);
+        return Context.RenderElement(root);
+    }
+
     // --- Interaction ---------------------------------------------------------------------
 
     [Fact]

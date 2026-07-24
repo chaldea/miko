@@ -149,6 +149,31 @@ internal static class ButtonStyles
             BorderWidth = Length.Px(0),
         };
 
+        // --- Hover ---------------------------------------------------------------------------
+        // Ionic paints hover as a semi-transparent overlay on `.button-native::after`
+        // (--background-hover at --background-hover-opacity) behind an `@media (any-hover: hover)`
+        // guard. Miko has no `::after` opacity layer (and no pointer-capability media query — touch
+        // devices simply never hover), so we composite that wash onto the resolved fill and expose
+        // it as a plain `:hover` rule, mirroring how ChipStyles handles its hover shift.
+        //
+        // Values follow Ionic's MD overlay model (the one expressible with the palette we carry):
+        // a solid button lightens with an 8% white overlay; outline/clear buttons get a 4% wash of
+        // their base color over the transparent fill. The rules anchor on the host `:hover` (the
+        // hover state propagates up the hit chain, so hovering the native surface flags the host
+        // too) and target `.button-native`, so they outrank the equal-structure fill rules above.
+        css[$".ion-button.{mode}.button-solid:hover .button-native"] = new()
+        {
+            BackgroundColor = Composite(t.ButtonSolidBackground, Color.White, 0.08f),
+        };
+        css[$".ion-button.{mode}.button-outline:hover .button-native"] = new()
+        {
+            BackgroundColor = WithAlpha(t.ButtonTextColor, 10), // base @ 0.04
+        };
+        css[$".ion-button.{mode}.button-clear:hover .button-native"] = new()
+        {
+            BackgroundColor = WithAlpha(t.ButtonTextColor, 10), // base @ 0.04
+        };
+
         // --- Expand variants -----------------------------------------------------------------
         // block: full-width host, no horizontal margin on the native button.
         css[$".ion-button.{mode}.button-block"] = new() { Display = Display.Block };
@@ -318,6 +343,13 @@ internal static class ButtonStyles
             BackgroundColor = baseColor,
             Color = contrast,
         };
+        // Colored solid hover: same 8% white overlay as the default solid (Ionic MD tints the
+        // colored fill on hover). Higher specificity than the plain `.button-solid:hover` rule, so
+        // it wins for colored buttons.
+        css[$".ion-button.{mode}.button-solid.ion-color-{name}:hover .button-native"] = new()
+        {
+            BackgroundColor = Composite(baseColor, Color.White, 0.08f),
+        };
     }
 
     // Outline + clear color: base for border/label, transparent fill.
@@ -334,5 +366,30 @@ internal static class ButtonStyles
             BackgroundColor = Color.Transparent,
             Color = baseColor,
         };
+        // Colored outline/clear hover: a 4% wash of the button's own color over the transparent
+        // fill (Ionic --background-hover: current-color(base), --background-hover-opacity: .04).
+        css[$".ion-button.{mode}.button-outline.ion-color-{name}:hover .button-native"] = new()
+        {
+            BackgroundColor = WithAlpha(baseColor, 10), // base @ 0.04
+        };
+        css[$".ion-button.{mode}.button-clear.ion-color-{name}:hover .button-native"] = new()
+        {
+            BackgroundColor = WithAlpha(baseColor, 10), // base @ 0.04
+        };
+    }
+
+    /// <summary>Same RGB as <paramref name="c"/> with a replaced alpha (for translucent washes).</summary>
+    private static Color WithAlpha(Color c, byte alpha) => new(c.R, c.G, c.B, alpha);
+
+    /// <summary>
+    /// Composites <paramref name="overlay"/> at <paramref name="overlayOpacity"/> over the opaque
+    /// <paramref name="baseColor"/> (source-over), yielding an opaque result. Mirrors Ionic's
+    /// <c>.button-native::after</c> hover overlay, which Miko can't express as a separate layer.
+    /// </summary>
+    private static Color Composite(Color baseColor, Color overlay, float overlayOpacity)
+    {
+        float a = Math.Clamp(overlayOpacity, 0f, 1f);
+        byte Blend(byte b, byte o) => (byte)Math.Round(b * (1 - a) + o * a);
+        return new Color(Blend(baseColor.R, overlay.R), Blend(baseColor.G, overlay.G), Blend(baseColor.B, overlay.B));
     }
 }
