@@ -168,9 +168,11 @@ public class BlockLayout
                 h -= box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
             childAvailableHeight = Math.Max(0, h);
         }
-        else if (constraints.AvailableHeight.HasValue &&
+        else if (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
                  (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
         {
+            // 仅当 AvailableHeight 是填充指令（flex/grid stretch、列向定型、根视口）时，
+            // overflow 盒子才以它为自身高度并把该确定高度传给子元素解析百分比（见 ISSUE-105）。
             float h = constraints.AvailableHeight.Value
                 - box.BoxModel.Margin.Vertical
                 - box.BoxModel.Border.Vertical
@@ -276,10 +278,12 @@ public class BlockLayout
             // 高度（auto 宽未被夹取时 contentWidth==intrinsicW，结果即内禀高）。见 ISSUE-083。
             contentHeight = contentWidth * intrinsicH / intrinsicW;
         }
-        else if (constraints.AvailableHeight.HasValue &&
+        else if (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
                  (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
         {
-            // 当有可用高度约束（如来自 flex 容器）且设置了 overflow 时，使用约束高度
+            // 仅当 AvailableHeight 是填充指令（如 flex/grid stretch、列向 grow/shrink 定型、
+            // 根视口）且设置了 overflow 时，才使用约束高度；块流中父级定高只是子孙百分比
+            // 解析基准，height:auto 仍由内容决定（见 ISSUE-105）。
             contentHeight = constraints.AvailableHeight.Value
                 - box.BoxModel.Margin.Vertical
                 - box.BoxModel.Border.Vertical

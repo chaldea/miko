@@ -133,9 +133,11 @@ public class GridLayout
                 contentHeight = Math.Max(0, contentHeight);
             }
         }
-        else if (constraints.AvailableHeight.HasValue &&
+        else if (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
                  (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
         {
+            // 仅当 AvailableHeight 是填充指令（grid area stretch / 列向定型 / 根视口）时使用
+            // 约束高度；块流中父级定高不填充 height:auto 的盒子（见 ISSUE-105）。
             contentHeight = constraints.AvailableHeight.Value
                 - box.BoxModel.Margin.Vertical
                 - box.BoxModel.Border.Vertical
@@ -148,8 +150,9 @@ public class GridLayout
         }
 
         // 高度是否确定——决定 fr/百分比行轨道能否相对容器解析；auto（即便被 min-height 抬升）不算确定。
+        // overflow+可用高度约束仅在填充指令（FillAvailableHeight）下视为确定（见 ISSUE-105）。
         bool heightIsDefinite = !heightIsAuto
-            || (constraints.AvailableHeight.HasValue &&
+            || (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
                 (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden));
 
         // 4. 解析 gap：columnGap 相对容器宽度、rowGap 相对容器高度（各自轴的内容尺寸）。
@@ -792,7 +795,9 @@ public class GridLayout
 
         // dispatch 以 (x, y) 为子项 margin-box 原点：area 原点即 margin-box 原点
         // （start 对齐；margin 占据 area 边缘与 border-box 之间的空间）。
-        LayoutDispatcher.Dispatch(child, new LayoutConstraints(widthConstraint, heightConstraint), areaX, areaY);
+        // stretchHeight 时 AvailableHeight 是填充指令：height:auto + overflow 的子项在布局期
+        // 即以 area 高度定型（见 ISSUE-105）；其余情形仅作百分比解析基准。
+        LayoutDispatcher.Dispatch(child, new LayoutConstraints(widthConstraint, heightConstraint) { FillAvailableHeight = stretchHeight }, areaX, areaY);
 
         // 拉伸：强制内容盒填满 area（扣除已解析的 border/padding，使 margin-box == area）。
         // 与 flex 的 align-items:stretch 同一做法：不改写子树，仅定本子盒尺寸。
