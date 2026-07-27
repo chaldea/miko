@@ -3,34 +3,54 @@
 @* Mirrors Ionic's <ion-breadcrumb>:
    <ion-breadcrumb class="{mode} breadcrumb-active? ...">   <!-- host: flex row, align-items center -->
      <a|span class="breadcrumb-native">                    <!-- <a> when Href set, else <span> -->
-       <slot name="start" />                               <!-- StartSlot -->
+       <slot name="start" />                               <!-- Start -->
        <slot />                                            <!-- ChildContent (the label) -->
-       <slot name="end" />                                 <!-- EndSlot -->
+       <slot name="end" />                                 <!-- End -->
      </a|span>
-     <span class="breadcrumb-separator">/</span>           <!-- md: "/", ios: chevron; stripped from the last one -->
+     <span class="breadcrumb-separator">                   <!-- md: "/", ios: chevron; stripped from the last one -->
+       <slot name="separator">default glyph</slot>         <!-- Separator overrides the default glyph -->
+     </span>
    </ion-breadcrumb>
    The separator is always rendered here; the enclosing IonBreadcrumbs strips it from the last
    breadcrumb (and marks that one active) in its Build() post-pass, matching Ionic's
-   setBreadcrumbSeparator(). Href turns the host into a link (clickable). *@
+   setBreadcrumbSeparator(). Href turns the host into a link (clickable). Start/End are wrapped
+   in ion-slot-* marker spans so the slotted-icon styles (size + 8px gap) apply — mirroring
+   Ionic's ::slotted(ion-icon[slot=…]) selectors. *@
 <div class="@ClassMapper.Class" style="@Style">
     @if (Href is not null)
     {
         <a class="breadcrumb-native" href="@Href">
-            @Start
+            @if (Start is not null)
+            {
+                <span class="ion-slot-start">@Start</span>
+            }
             @ChildContent
-            @End
+            @if (End is not null)
+            {
+                <span class="ion-slot-end">@End</span>
+            }
         </a>
     }
     else
     {
         <span class="breadcrumb-native">
-            @Start
+            @if (Start is not null)
+            {
+                <span class="ion-slot-start">@Start</span>
+            }
             @ChildContent
-            @End
+            @if (End is not null)
+            {
+                <span class="ion-slot-end">@End</span>
+            }
         </span>
     }
     <span class="breadcrumb-separator">
-        @if (Mode == "ios")
+        @if (Separator is not null)
+        {
+            @Separator
+        }
+        else if (Mode == "ios")
         {
             <IonIcon Icon="@Ionicons.ChevronForwardOutline" />
         }
@@ -60,6 +80,11 @@
 
     /// <summary>Content shown after the label (Ionic <c>slot="end"</c>).</summary>
     [Parameter] public RenderFragment? End { get; set; }
+
+    /// <summary>Custom separator content (Ionic <c>slot="separator"</c>). When set it replaces the
+    /// default separator glyph (<c>"/"</c> on md, a forward chevron on ios). The enclosing
+    /// <see cref="IonBreadcrumbs"/> still strips the whole separator from the last crumb.</summary>
+    [Parameter] public RenderFragment? Separator { get; set; }
 
     /// <summary>Cascaded from the enclosing <see cref="IonBreadcrumbs"/> (carries its color).</summary>
     [CascadingParameter] public IonBreadcrumbContext? BreadcrumbsContext { get; set; }

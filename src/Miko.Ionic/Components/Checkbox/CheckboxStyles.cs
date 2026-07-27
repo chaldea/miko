@@ -57,13 +57,15 @@ internal static class CheckboxStyles
                 Display = Display.None,
             },
 
-            // .label-text-wrapper — the slotted label. One nowrap line, clipped (Miko has no
-            // text-overflow so overflow:hidden does the clipping).
+            // .label-text-wrapper — the slotted label. One nowrap line, clipped, with an
+            // ellipsis when the text overflows (checkbox.scss: text-overflow: ellipsis;
+            // white-space: nowrap; overflow: hidden).
             [$".ion-checkbox.{mode} .label-text-wrapper"] = new()
             {
                 WhiteSpace = WhiteSpace.Nowrap,
                 OverflowX = Overflow.Hidden,
                 OverflowY = Overflow.Hidden,
+                TextOverflow = TextOverflow.Ellipsis,
             },
 
             // Empty label — Ionic hides the wrapper entirely so it adds no margin.
@@ -224,6 +226,55 @@ internal static class CheckboxStyles
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Px(16),
                 MaxWidth = Length.Percent(100),
+            },
+
+            // In-item (checkbox.scss `:host(.in-item)`, mirroring `hostContext('ion-item')` via a
+            // descendant selector): the host stretches to fill the item's content area so
+            // justify / alignment have free space to work with. Slotted start/end checkboxes
+            // reset to content size (`:host([slot="start"]/["end"])`).
+            [$".ion-item.{mode} .ion-checkbox.{mode}"] = new()
+            {
+                FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = Length.Px(0),
+                Width = Length.Percent(100),
+                Height = Length.Percent(100),
+            },
+            [$".ion-item.{mode} .ion-slot-start .ion-checkbox.{mode}"] = new()
+            {
+                FlexGrow = 0,
+                FlexBasis = Length.Auto,
+                Width = Length.Auto,
+            },
+            [$".ion-item.{mode} .ion-slot-end .ion-checkbox.{mode}"] = new()
+            {
+                FlexGrow = 0,
+                FlexBasis = Length.Auto,
+                Width = Length.Auto,
+            },
+
+            // In-item vertical rhythm (`$checkbox-item-label-margin-top/bottom` = 10px): the label
+            // and the box get 10px top/bottom margins; stacked swaps the label's bottom margin for
+            // `$form-control-label-margin` (16px) and drops the box's top margin.
+            [$".ion-item.{mode} .ion-checkbox.{mode} .label-text-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(10),
+            },
+            [$".ion-item.{mode} .ion-checkbox.{mode} .native-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(10),
+            },
+            [$".ion-item.{mode} .ion-checkbox.{mode}.checkbox-label-placement-stacked .label-text-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(16),
+            },
+            [$".ion-item.{mode} .ion-checkbox.{mode}.checkbox-label-placement-stacked .native-wrapper"] = new()
+            {
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Px(10),
             },
         };
 

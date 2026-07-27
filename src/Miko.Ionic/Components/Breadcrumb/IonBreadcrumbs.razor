@@ -18,6 +18,25 @@
     /// <summary>Named palette color (Ionic <c>color</c>) applied to the breadcrumbs.</summary>
     [Parameter] public string? Color { get; set; }
 
+    /// <summary>The maximum number of breadcrumbs to show before collapsing (Ionic
+    /// <c>maxItems</c>). When the crumb count exceeds this, the middle crumbs are collapsed
+    /// behind a "…" indicator. No collapsing when null.</summary>
+    [Parameter] public int? MaxItems { get; set; }
+
+    /// <summary>The number of breadcrumbs to show before the collapsed indicator (Ionic
+    /// <c>itemsBeforeCollapse</c>). If <see cref="ItemsBeforeCollapse"/> +
+    /// <see cref="ItemsAfterCollapse"/> is greater than <see cref="MaxItems"/>, the breadcrumbs
+    /// will not be collapsed.</summary>
+    [Parameter] public int ItemsBeforeCollapse { get; set; } = 1;
+
+    /// <summary>The number of breadcrumbs to show after the collapsed indicator (Ionic
+    /// <c>itemsAfterCollapse</c>).</summary>
+    [Parameter] public int ItemsAfterCollapse { get; set; } = 1;
+
+    /// <summary>Raised when the collapsed indicator is clicked (Ionic <c>ionCollapsedClick</c>);
+    /// carries the collapsed crumbs so the app can reveal them (e.g. in a popover).</summary>
+    [Parameter] public EventCallback<IonBreadcrumbCollapsedClickEventArgs> OnCollapsedClick { get; set; }
+
     private IonBreadcrumbContext _context = new();
 
     protected override void OnParametersSet()
@@ -35,9 +54,9 @@
 
     /// <summary>
     /// After the subtree is built, resolve the per-breadcrumb <c>last</c>/<c>active</c>/separator
-    /// state that Ionic computes imperatively in <c>setBreadcrumbSeparator()</c>. We can only do
-    /// this once every child breadcrumb exists in the tree, so it runs here rather than in a
-    /// cascaded value.
+    /// and collapse state that Ionic computes imperatively in <c>setBreadcrumbSeparator()</c> /
+    /// <c>setMaxItems()</c>. We can only do this once every child breadcrumb exists in the tree,
+    /// so it runs here rather than in a cascaded value.
     /// </summary>
     public override Element Build()
     {
@@ -50,24 +69,102 @@
         // If no breadcrumb was explicitly marked active, the last one becomes active (Ionic default).
         var hasActive = crumbs.Any(c => c.HasClass("breadcrumb-active"));
 
+        // Collapse plan (Ionic setMaxItems): collapse only when the count exceeds maxItems AND
+        // the before/after allowances fit within it.
+        var shouldCollapse = MaxItems is int maxItems
+            && crumbs.Count > maxItems
+            && ItemsBeforeCollapse + ItemsAfterCollapse <= maxItems;
+
+        // The crumb hosting the collapsed indicator (the first collapsed one).
+        var indicatorIndex = shouldCollapse ? ItemsBeforeCollapse : -1;
+        var collapsedCrumbs = new List<Element>();
+
+        // "Last" crumb resolution (Ionic setBreadcrumbSeparator): when maxItems is set and
+        // itemsAfterCollapse is 0, the crumb at itemsBeforeCollapse acts as the last one —
+        // even when nothing collapses. (Out-of-range index = no last crumb, as in Ionic.)
+        var lastIndex = MaxItems.HasValue && ItemsAfterCollapse == 0
+            ? ItemsBeforeCollapse
+            : crumbs.Count - 1;
+
         for (int i = 0; i < crumbs.Count; i++)
         {
             var crumb = crumbs[i];
-            var isLast = i == crumbs.Count - 1;
+            var collapsed = shouldCollapse
+                && i >= ItemsBeforeCollapse
+                && i < crumbs.Count - ItemsAfterCollapse;
+            var isLast = i == lastIndex;
 
-            if (isLast)
+            if (collapsed)
             {
-                // The last breadcrumb shows no trailing separator.
-                var separator = crumb.Children.FirstOrDefault(c => c.HasClass("breadcrumb-separator"));
-                if (separator is not null) crumb.RemoveChild(separator);
+                crumb.Class += " breadcrumb-collapsed"; // the stylesheet hides .breadcrumb-native
+                collapsedCrumbs.Add(crumb);
+            }
 
-                if (!hasActive && !crumb.HasClass("breadcrumb-active"))
+            // Separator visibility: the last crumb never shows one; a collapsed crumb shows one
+            // only when it carries the collapsed indicator (Ionic's showSeparator expression).
+            var separator = crumb.Children.FirstOrDefault(c => c.HasClass("breadcrumb-separator"));
+            var showSeparator = !isLast && (!collapsed || i == indicatorIndex);
+            if (separator is not null && !showSeparator)
+            {
+                crumb.RemoveChild(separator);
+                separator = null;
+            }
+
+            if (i == indicatorIndex)
+            {
+                // Insert the indicator between the (hidden) native content and the separator,
+                // mirroring Ionic's child order.
+                var indicator = BuildCollapsedIndicator(collapsedCrumbs);
+                if (separator is not null)
                 {
-                    crumb.Class += " breadcrumb-active";
+                    crumb.RemoveChild(separator);
+                    crumb.AddChild(indicator);
+                    crumb.AddChild(separator);
                 }
+                else
+                {
+                    crumb.AddChild(indicator);
+                }
+            }
+
+            if (isLast && !hasActive && !crumb.HasClass("breadcrumb-active"))
+            {
+                crumb.Class += " breadcrumb-active";
             }
         }
 
         return root;
+    }
+
+    /// <summary>
+    /// Builds the "…" collapsed indicator (Ionic's <c>.breadcrumbs-collapsed-indicator</c> button
+    /// holding an <c>ellipsis-horizontal</c> icon). The icon is constructed directly (rather than
+    /// via an <see cref="IonIcon"/> component) because this runs post-build, after child
+    /// components have already rendered.
+    /// </summary>
+    private Element BuildCollapsedIndicator(IReadOnlyList<Element> collapsedCrumbs)
+    {
+        var indicator = new DivElement { Class = "breadcrumbs-collapsed-indicator" };
+
+        var icon = new DivElement { Class = $"{Mode} ion-icon" };
+        var image = IconResolver.Load(Ionicons.EllipsisHorizontal);
+        if (image is not null)
+        {
+            icon.Style = new Style
+            {
+                BackgroundImage = image,
+                BackgroundSize = BackgroundSize.Contain,
+                BackgroundPosition = BackgroundPosition.Center,
+                BackgroundRepeat = BackgroundRepeat.NoRepeat,
+            };
+        }
+        indicator.AddChild(icon);
+
+        indicator.OnClick = args =>
+        {
+            _ = OnCollapsedClick.InvokeAsync(new IonBreadcrumbCollapsedClickEventArgs(collapsedCrumbs));
+        };
+
+        return indicator;
     }
 }

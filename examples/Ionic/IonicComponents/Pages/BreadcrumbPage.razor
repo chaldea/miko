@@ -60,7 +60,7 @@
     </IonBreadcrumbs>
 
     <IonLabel class="ion-margin-top">Icons at End</IonLabel>
-    
+
     <IonBreadcrumbs>
         <IonBreadcrumb Href="/home">
             <End>
@@ -99,3 +99,130 @@
 
 <h3>Custom Separators</h3>
 
+<Playground Width="Percent(100)" Height="Px(300)">
+    <IonBreadcrumbs>
+        <IonBreadcrumb Href="/home">
+            <ChildContent>Home</ChildContent>
+            <Separator>
+                <IonIcon Icon="@Ionicons.ArrowForwardCircle"></IonIcon>
+            </Separator>
+        </IonBreadcrumb>
+        <IonBreadcrumb Href="/electronics">
+            <ChildContent>Electronics</ChildContent>
+            <Separator>
+                <IonIcon Icon="@Ionicons.ArrowForwardCircle"></IonIcon>
+            </Separator>
+        </IonBreadcrumb>
+        <IonBreadcrumb Href="/cameras">
+            <ChildContent>Cameras</ChildContent>
+            <Separator>
+                <IonIcon Icon="@Ionicons.ArrowForwardCircle"></IonIcon>
+            </Separator>
+        </IonBreadcrumb>
+        <IonBreadcrumb Href="/film">
+            <ChildContent>Film</ChildContent>
+            <Separator>
+                <IonIcon Icon="@Ionicons.ArrowForwardCircle"></IonIcon>
+            </Separator>
+        </IonBreadcrumb>
+    </IonBreadcrumbs>
+</Playground>
+
+<h2>Collapsing Items</h2>
+<h3>Max Items</h3>
+<p>
+    If there are more items than the value of maxItems, the breadcrumbs will be collapsed. By default, only the first
+    and last items will be shown.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(300)">
+    <IonBreadcrumbs MaxItems="4">
+        <IonBreadcrumb Href="/home">Home</IonBreadcrumb>
+        <IonBreadcrumb Href="/electronics">Electronics</IonBreadcrumb>
+        <IonBreadcrumb Href="/photography">Photography</IonBreadcrumb>
+        <IonBreadcrumb Href="/cameras">Cameras</IonBreadcrumb>
+        <IonBreadcrumb Href="/film">Film</IonBreadcrumb>
+        <IonBreadcrumb Href="/35mm">35 mm</IonBreadcrumb>
+    </IonBreadcrumbs>
+</Playground>
+
+<h3>Items Before or After Collapse</h3>
+<p>
+    Once the items are collapsed, the number of items to show can be controlled by the itemsBeforeCollapse and
+    itemsAfterCollapse properties.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(300)" Direction="FlexDirection.Column">
+    <div>Before Collapse = 2</div>
+    <IonBreadcrumbs MaxItems="4" ItemsBeforeCollapse="2">
+        <IonBreadcrumb Href="#home">Home</IonBreadcrumb>
+        <IonBreadcrumb Href="#electronics">Electronics</IonBreadcrumb>
+        <IonBreadcrumb Href="#photography">Photography</IonBreadcrumb>
+        <IonBreadcrumb Href="#cameras">Cameras</IonBreadcrumb>
+        <IonBreadcrumb Href="#film">Film</IonBreadcrumb>
+        <IonBreadcrumb Href="#35mm">35 mm</IonBreadcrumb>
+    </IonBreadcrumbs>
+
+    <div class="ion-margin-top">Before Collapse = 0</div>
+    <IonBreadcrumbs MaxItems="4" ItemsBeforeCollapse="0">
+        <IonBreadcrumb Href="/home">Home</IonBreadcrumb>
+        <IonBreadcrumb Href="/electronics">Electronics</IonBreadcrumb>
+        <IonBreadcrumb Href="/photography">Photography</IonBreadcrumb>
+        <IonBreadcrumb Href="/cameras">Cameras</IonBreadcrumb>
+        <IonBreadcrumb Href="/film">Film</IonBreadcrumb>
+        <IonBreadcrumb Href="/35mm">35 mm</IonBreadcrumb>
+    </IonBreadcrumbs>
+
+    <div class="ion-margin-top">After Collapse = 2</div>
+    <IonBreadcrumbs MaxItems="4" ItemsAfterCollapse="2">
+        <IonBreadcrumb Href="/home">Home</IonBreadcrumb>
+        <IonBreadcrumb Href="/electronics">Electronics</IonBreadcrumb>
+        <IonBreadcrumb Href="/photography">Photography</IonBreadcrumb>
+        <IonBreadcrumb Href="/cameras">Cameras</IonBreadcrumb>
+        <IonBreadcrumb Href="/film">Film</IonBreadcrumb>
+        <IonBreadcrumb Href="/35mm">35 mm</IonBreadcrumb>
+    </IonBreadcrumbs>
+
+    <div class="ion-margin-top">Before Collapse = 2, After Collapse = 2</div>
+    <IonBreadcrumbs MaxItems="4" ItemsBeforeCollapse="2" ItemsAfterCollapse="2">
+        <IonBreadcrumb Href="/home">Home</IonBreadcrumb>
+        <IonBreadcrumb Href="/electronics">Electronics</IonBreadcrumb>
+        <IonBreadcrumb Href="/photography">Photography</IonBreadcrumb>
+        <IonBreadcrumb Href="/cameras">Cameras</IonBreadcrumb>
+        <IonBreadcrumb Href="/film">Film</IonBreadcrumb>
+        <IonBreadcrumb Href="/35mm">35 mm</IonBreadcrumb>
+    </IonBreadcrumbs>
+</Playground>
+
+<h3>Collapsed Indicator Click -- Expand Breadcrumbs</h3>
+<p>
+    Clicking the collapsed indicator will fire the ionCollapsedClick event. This can be used to, for example, expand the
+    breadcrumbs.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(300)">
+    <IonBreadcrumbs MaxItems="@_maxBreadcrumbs" OnCollapsedClick="() => _maxBreadcrumbs = 0">
+        <IonBreadcrumb href="#home">Home</IonBreadcrumb>
+        <IonBreadcrumb href="#electronics">Electronics</IonBreadcrumb>
+        <IonBreadcrumb href="#photography">Photography</IonBreadcrumb>
+        <IonBreadcrumb href="#cameras">Cameras</IonBreadcrumb>
+        <IonBreadcrumb href="#film">Film</IonBreadcrumb>
+        <IonBreadcrumb href="#35mm">35 mm</IonBreadcrumb>
+    </IonBreadcrumbs>
+</Playground>
+
+<h2>Theming</h2>
+<h3>Colors</h3>
+
+<Playground Width="Percent(100)" Height="Px(300)">
+    <IonBreadcrumbs Color="primary">
+        <IonBreadcrumb Href="/home">Home</IonBreadcrumb>
+        <IonBreadcrumb Href="/electronics">Electronics</IonBreadcrumb>
+        <IonBreadcrumb Href="/cameras">Cameras</IonBreadcrumb>
+        <IonBreadcrumb Href="/film">Film</IonBreadcrumb>
+    </IonBreadcrumbs>
+</Playground>
+
+@code {
+    private int _maxBreadcrumbs = 4;
+}

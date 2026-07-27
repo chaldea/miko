@@ -28,6 +28,26 @@ internal static class ListStyles
                 PaddingBottom = Length.Px(8),
             },
 
+            // list-inset (list.md.scss / list.ios.scss .list-{mode}.list-inset): margin around
+            // the list, rounded corners, clipped content (list.scss: overflow hidden).
+            [$".ion-list.{mode}.list-inset"] = new()
+            {
+                MarginTop = Length.Px(t.ListInsetMargin),
+                MarginBottom = Length.Px(t.ListInsetMargin),
+                MarginLeft = Length.Px(t.ListInsetMargin),
+                MarginRight = Length.Px(t.ListInsetMargin),
+                BorderRadius = new BorderRadius(Length.Px(t.ListInsetBorderRadius)),
+                OverflowX = Overflow.Hidden,
+                OverflowY = Overflow.Hidden,
+            },
+
+            // Two adjacent inset lists collapse the gap between them
+            // (list.md.scss / list.ios.scss: .list-{mode}.list-inset + ion-list.list-inset).
+            [$".ion-list.{mode}.list-inset + .ion-list.list-inset"] = new()
+            {
+                MarginTop = Length.Px(0),
+            },
+
             // ion-list-header — section header above the items.
             [$".ion-list-header.{mode}"] = new()
             {
@@ -56,7 +76,10 @@ internal static class ListStyles
             },
 
             // .item-native — the clickable/native surface: the flex row, full width, min-height,
-            // side padding, and the hairline bottom divider.
+            // leading padding, and the hairline bottom divider. Ionic's --padding-end defaults
+            // to 0 (only --padding-start is 16px) — the trailing inset lives on .item-inner's
+            // --inner-padding-end instead, so an inset divider on .item-inner reaches the item's
+            // right edge (item.scss .item-native / item.md.scss :host).
             [$".ion-item.{mode} .item-native"] = new()
             {
                 Display = Display.Flex,
@@ -65,7 +88,7 @@ internal static class ListStyles
                 Width = Length.Percent(100),
                 MinHeight = Length.Px(t.ItemMinHeight),
                 PaddingLeft = Length.Px(t.ItemPaddingStart),
-                PaddingRight = Length.Px(t.ItemPaddingStart),
+                PaddingRight = Length.Px(0),
                 BackgroundColor = Color.Transparent,
                 BorderWidth = Length.Px(0),
                 Color = t.ItemColor,
@@ -74,12 +97,15 @@ internal static class ListStyles
             },
 
             // .item-inner — arranges the label/end/detail row; grows to fill the native surface.
+            // Carries the trailing padding (Ionic --inner-padding-end, 16px both modes) so slotted
+            // end content stays off the edge while the box itself spans to the item's right edge.
             [$".ion-item.{mode} .item-inner"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
                 FlexGrow = 1,
                 MinHeight = Length.Percent(100),
+                PaddingRight = Length.Px(t.ItemPaddingEnd),
             },
 
             // .input-wrapper — wraps the default slot (the label); grows to take the free space so
@@ -107,6 +133,36 @@ internal static class ListStyles
             [$".ion-item.{mode}.item-lines-none .item-native"] = new()
             {
                 BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+
+            // lines="inset" on the item itself: the divider moves from the full-width native
+            // surface to .item-inner, which starts after the side padding (item.md.scss:
+            // :host(.item-lines-inset) zeroes --border-width and sets --inner-border-width).
+            [$".ion-item.{mode}.item-lines-inset .item-native"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            [$".ion-item.{mode}.item-lines-inset .item-inner"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, t.ItemBorderColor),
+            },
+
+            // List-level lines (list.md.scss / list.ios.scss): retarget ONLY .item-lines-default
+            // items, so an item's own `lines` always takes priority over the list's.
+            // lines="none" — drop the divider.
+            [$".ion-list.{mode}.list-{mode}-lines-none .ion-item.item-lines-default .item-native"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            // lines="full" needs no rule: the default item divider already spans the native
+            // surface full width. lines="inset" — move the divider to .item-inner.
+            [$".ion-list.{mode}.list-{mode}-lines-inset .ion-item.item-lines-default .item-native"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            [$".ion-list.{mode}.list-{mode}-lines-inset .ion-item.item-lines-default .item-inner"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, t.ItemBorderColor),
             },
 
             // Disabled item: dimmed and non-interactive (item.scss :host(.item-disabled)).
@@ -140,6 +196,22 @@ internal static class ListStyles
                 Height = Length.Px(18),
                 MarginLeft = Length.Px(8),
                 Opacity = 0.25f,
+            },
+
+            // Inset list: the last item shows no divider at all (list.md.scss / list.ios.scss:
+            // .list-{mode}.list-inset ion-item:last-of-type zeroes --border-width AND
+            // --inner-border-width). The item-last-in-list marker is stamped by IonList.Build()
+            // because Miko's selector set has no :last-of-type. These rules sit last so they win
+            // the source-order tie against the equally specific list-lines rules above, and they
+            // out-specify the item-level lines rules — matching Ionic, where the inset last-item
+            // override beats even an item's own `lines`.
+            [$".ion-list.{mode}.list-inset .ion-item.item-last-in-list .item-native"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            [$".ion-list.{mode}.list-inset .ion-item.item-last-in-list .item-inner"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
             },
         };
     }

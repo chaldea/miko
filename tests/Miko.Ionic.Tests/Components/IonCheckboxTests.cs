@@ -269,4 +269,148 @@ public class IonCheckboxTests : IonicComponentTestBase
         var mark = cut.FindByClass("checkbox-icon-mark").Single();
         cut.GetComputedStyle(mark)!.Opacity.ShouldBe(0f);
     }
+
+    // ---- Issue regressions (issues/ion-checkbox.md) -------------------------
+
+    [Fact]
+    public void IonCheckbox_Style_LabelWrapperEllipsizesOverflowingText()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderCheckbox(Context);
+        var label = cut.FindByClass("label-text-wrapper").Single();
+        var style = cut.GetComputedStyle(label)!;
+
+        // checkbox.scss .label-text-wrapper: text-overflow: ellipsis; white-space: nowrap; overflow: hidden.
+        style.TextOverflow.ShouldBe(TextOverflow.Ellipsis);
+        style.WhiteSpace.ShouldBe(WhiteSpace.Nowrap);
+        style.OverflowX.ShouldBe(Overflow.Hidden);
+    }
+
+    [Fact]
+    public void IonCheckbox_Style_PlacementEnd_WrapperIsRowReverse()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderCheckbox(Context, p => p.Add(nameof(IonCheckbox.LabelPlacement), "end"));
+        var wrapper = cut.FindByClass("checkbox-wrapper").Single();
+
+        cut.GetComputedStyle(wrapper)!.FlexDirection.ShouldBe(FlexDirection.RowReverse);
+    }
+
+    [Fact]
+    public void IonCheckbox_Layout_PlacementStart_LabelBeforeBox()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderCheckbox(Context, label: "Label at the Start");
+
+        var labelBox = cut.GetBoxModel(cut.FindByClass("label-text-wrapper").Single())!;
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+        labelBox.Content.X.ShouldBeLessThan(nativeBox.Content.X);
+    }
+
+    [Fact]
+    public void IonCheckbox_Layout_PlacementEnd_BoxBeforeLabel()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderCheckbox(Context,
+            p => p.Add(nameof(IonCheckbox.LabelPlacement), "end"), label: "Label at the End");
+
+        // row-reverse mirrors the main axis: the box renders before (left of) the label.
+        var labelBox = cut.GetBoxModel(cut.FindByClass("label-text-wrapper").Single())!;
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+        nativeBox.Content.X.ShouldBeLessThan(labelBox.Content.X);
+    }
+
+    [Fact]
+    public void IonCheckbox_Style_InItem_HostGrowsToFillItem()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderCheckboxInItem(Context);
+
+        // checkbox.scss :host(.in-item): flex: 1 1 0; width: 100%; height: 100%.
+        var host = cut.FindByClass("ion-checkbox").Single();
+        var style = cut.GetComputedStyle(host)!;
+        style.FlexGrow.ShouldBe(1f);
+        style.FlexShrink.ShouldBe(1f);
+        style.FlexBasis.ShouldBe(Length.Px(0));
+    }
+
+    [Fact]
+    public void IonCheckbox_Style_InItem_LabelAndBoxGetVerticalMargins()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderCheckboxInItem(Context);
+
+        // $checkbox-item-label-margin-top/bottom = 10px on label + native wrappers.
+        var label = cut.GetComputedStyle(cut.FindByClass("label-text-wrapper").Single())!;
+        label.MarginTop.ShouldBe(Length.Px(10));
+        label.MarginBottom.ShouldBe(Length.Px(10));
+
+        var native = cut.GetComputedStyle(cut.FindByClass("native-wrapper").Single())!;
+        native.MarginTop.ShouldBe(Length.Px(10));
+        native.MarginBottom.ShouldBe(Length.Px(10));
+    }
+
+    [Fact]
+    public void IonCheckbox_Style_InItemStacked_SwapsLabelBottomMargin()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderCheckboxInItem(Context, labelPlacement: "stacked");
+
+        // Stacked in-item: label bottom margin becomes $form-control-label-margin (16px),
+        // the box loses its top margin.
+        var label = cut.GetComputedStyle(cut.FindByClass("label-text-wrapper").Single())!;
+        label.MarginTop.ShouldBe(Length.Px(10));
+        label.MarginBottom.ShouldBe(Length.Px(16));
+
+        var native = cut.GetComputedStyle(cut.FindByClass("native-wrapper").Single())!;
+        native.MarginTop.ShouldBe(Length.Px(0));
+        native.MarginBottom.ShouldBe(Length.Px(10));
+    }
+
+    [Fact]
+    public void IonCheckbox_Layout_InItem_JustifyEnd_PacksContentToTrailingEdge()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderCheckboxInItem(Context, justify: "end");
+
+        // With the host stretched to the item's content area, justify="end" packs the label
+        // and box to the trailing (right) edge of the host.
+        var hostBox = cut.GetBoxModel(cut.FindByClass("ion-checkbox").Single())!;
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+        hostBox.Content.Width.ShouldBeGreaterThan(nativeBox.MarginBox.Width + 50);
+        nativeBox.MarginBox.Right.ShouldBe(hostBox.Content.Right, 0.5f);
+    }
+
+    [Fact]
+    public void IonCheckbox_Layout_InItem_JustifySpaceBetween_PushesBoxToTrailingEdge()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderCheckboxInItem(Context, justify: "space-between");
+
+        var hostBox = cut.GetBoxModel(cut.FindByClass("ion-checkbox").Single())!;
+        var labelBox = cut.GetBoxModel(cut.FindByClass("label-text-wrapper").Single())!;
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+        labelBox.MarginBox.Left.ShouldBe(hostBox.Content.Left, 0.5f);
+        nativeBox.MarginBox.Right.ShouldBe(hostBox.Content.Right, 0.5f);
+    }
+
+    private static ComponentUnderTest RenderCheckboxInItem(TestContext ctx,
+        string? justify = null, string? labelPlacement = null, string label = "Packed in the Item")
+        => ctx.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(b =>
+        {
+            b.OpenComponent<IonCheckbox>(0);
+            b.AddAttribute(1, nameof(IonCheckbox.ChildContent), Label(label));
+            if (justify is not null) b.AddAttribute(2, nameof(IonCheckbox.Justify), justify);
+            if (labelPlacement is not null) b.AddAttribute(3, nameof(IonCheckbox.LabelPlacement), labelPlacement);
+            b.CloseComponent();
+        })));
 }

@@ -253,6 +253,59 @@ public class IonItemTests : IonicComponentTestBase
     }
 
     [Fact]
+    public void IonItem_NativeSurface_HasStartPaddingOnly_NoEndPadding()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItem>(parameters =>
+            parameters.Add(nameof(IonItem.ChildContent), Label));
+
+        // item.md.scss :host: --padding-start 16px, --padding-end stays 0 — the trailing inset
+        // lives on .item-inner (--inner-padding-end), not on the native surface.
+        var native = cut.FindByClass("item-native").Single();
+        var style = cut.GetComputedStyle(native);
+        style.ShouldNotBeNull();
+        style.PaddingLeft.ShouldBe(Miko.Common.Length.Px(16));
+        style.PaddingRight.ShouldBe(Miko.Common.Length.Px(0));
+    }
+
+    [Fact]
+    public void IonItem_ItemInner_CarriesTheEndPadding()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItem>(parameters =>
+            parameters.Add(nameof(IonItem.ChildContent), Label));
+
+        var inner = cut.FindByClass("item-inner").Single();
+        var style = cut.GetComputedStyle(inner);
+        style.ShouldNotBeNull();
+        style.PaddingRight.ShouldBe(Miko.Common.Length.Px(16)); // --inner-padding-end
+        style.PaddingLeft.ShouldBe(Miko.Common.Length.Px(0));
+    }
+
+    [Fact]
+    public void IonItem_InsetDivider_ReachesTheItemRightEdge_InLayout()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItem>(parameters =>
+        {
+            parameters.Add(nameof(IonItem.Lines), "inset");
+            parameters.Add(nameof(IonItem.ChildContent), Label);
+        });
+
+        // With padding-end 0 on item-native, the inset divider on .item-inner spans from the
+        // 16px start inset all the way to the item's right edge (Ionic's lines="inset" look).
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("item-native").Single());
+        var innerBox = cut.GetBoxModel(cut.FindByClass("item-inner").Single());
+        nativeBox.ShouldNotBeNull();
+        innerBox.ShouldNotBeNull();
+        innerBox.BorderBox.Right.ShouldBe(nativeBox.BorderBox.Right, 0.5f);
+        innerBox.BorderBox.X.ShouldBe(nativeBox.BorderBox.X + 16f, 0.5f);
+    }
+
+    [Fact]
     public void IonItem_DefaultSlotLabel_GrowsToFillFreeSpace()
     {
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());

@@ -64,27 +64,16 @@ internal class GlobalStyles
                     JustifyContent = JustifyContent.Center,
                     Margin = new Margin(Px(18), Px(0)),
                     Padding = new Padding(Px(16), Px(0)),
+
+                    [".container"] = new()
+                    {
+                        Display = Display.Flex,
+                        AlignItems = AlignItems.Center,
+                        JustifyContent = JustifyContent.Center,
+                    },
                 },
             },
-            [".container"] = new()
-            {
-                Display = Display.Flex,
-                AlignItems = AlignItems.Center,
-                JustifyContent = JustifyContent.Center,
-            },
-            // A positioned demo stage for the absolutely-positioned FAB. position:relative makes the
-            // fab anchor to this box (via its horizontal/vertical classes) instead of the viewport.
-            [".fab-demo-container"] = new()
-            {
-                Position = Position.Relative,
-                Display = Display.Block,
-                Height = Px(260),
-            },
-            ["img"] = new CssObject()
-            {
-                MaxWidth = Percent(100),
-            },
-            [".sc-ion-label-md-h"] = new ()
+            [".sc-ion-label-md-h"] = new()
             {
                 ["h1,h2,h3,h4,h5,h6"] = new()
                 {
@@ -112,7 +101,26 @@ internal class GlobalStyles
                 {
                     Color = (Color)"#666666",
                 }
-            }
+            },
+            ["img"] = new CssObject()
+            {
+                MaxWidth = Percent(100),
+            },
+            [".card-demo-colors"] = new()
+            {
+                [".ion-card"] = new ()
+                {
+                    Flex = new Flex(1, 1, Length.Percent(28))
+                }
+            },
+            // A positioned demo stage for the absolutely-positioned FAB. position:relative makes the
+            // fab anchor to this box (via its horizontal/vertical classes) instead of the viewport.
+            [".fab-demo-container"] = new()
+            {
+                Position = Position.Relative,
+                Display = Display.Block,
+                Height = Px(260),
+            },
         });
 
         return styleSheet;

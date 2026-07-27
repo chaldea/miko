@@ -4,7 +4,7 @@
 <div class="playground">
     <div class="playground-container">
         <div class="playground-preview" style="@_preview">
-            <div class="container" style="@_container">
+            <div class="container @Class" style="@_container">
                 @ChildContent
             </div>
         </div>
@@ -22,6 +22,7 @@
     [Parameter] public FlexDirection Direction { get; set; } = FlexDirection.Row;
     [Parameter] public bool Stretch { get; set; }
     [Parameter] public bool Wrap { get; set; }
+    [Parameter] public bool Fit { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -32,6 +33,7 @@
         _container = new Style
         {
             Width = Width,
+            Height = Fit ? Percent(100) : null,
             FlexDirection = Direction,
             AlignItems = Stretch ? AlignItems.Stretch : null,
             FlexWrap = Wrap ? FlexWrap.Wrap : null,

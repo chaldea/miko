@@ -107,6 +107,15 @@ public class IonicTheme
     public Color ItemColor { get; set; }
     public Color ItemBorderColor { get; set; }
     public float ItemPaddingStart { get; set; } = 16f;
+    /// <summary>Trailing padding of the item's inner row (<c>--inner-padding-end</c> =
+    /// <c>$item-{md|ios}-padding-end</c>: 16px both modes). Note the native surface itself has
+    /// NO end padding (<c>--padding-end</c> defaults to 0) — the trailing inset lives on
+    /// <c>.item-inner</c>, so an inset divider reaches the item's right edge.</summary>
+    public float ItemPaddingEnd { get; set; } = 16f;
+    /// <summary>Inset list margin on all sides (<c>$list-inset-{md|ios}-margin-*</c>: 16px both modes).</summary>
+    public float ListInsetMargin { get; set; } = 16f;
+    /// <summary>Inset list corner radius (<c>$list-inset-md-border-radius</c>: 2px; ios: 10px).</summary>
+    public float ListInsetBorderRadius { get; set; } = 2f;
 
     // Item divider (item-divider.md.scss / .ios.scss) — a section header row sitting between
     // item groups. MD uses a light gray fill with a bottom border and medium text; iOS uses a
@@ -438,10 +447,22 @@ public class IonicTheme
     public Color BreadcrumbIconColorActive { get; set; }
     /// <summary>Slotted icon font size (18px both modes).</summary>
     public float BreadcrumbIconFontSize { get; set; } = 18f;
+    /// <summary>Gap between a slotted start/end icon and the label (8px both modes).</summary>
+    public float BreadcrumbIconSlotMargin { get; set; } = 8f;
     /// <summary>Collapsed-indicator background (md <c>#eef1f3</c>, ios <c>#e9edf3</c>).</summary>
     public Color BreadcrumbIndicatorBackground { get; set; }
     /// <summary>Collapsed-indicator icon/text color (<c>#73849a</c> both modes).</summary>
     public Color BreadcrumbIndicatorColor { get; set; }
+    /// <summary>Collapsed-indicator width (32px both modes).</summary>
+    public float BreadcrumbIndicatorWidth { get; set; } = 32f;
+    /// <summary>Collapsed-indicator height (18px both modes).</summary>
+    public float BreadcrumbIndicatorHeight { get; set; } = 18f;
+    /// <summary>Collapsed-indicator start/end margin (14px both modes).</summary>
+    public float BreadcrumbIndicatorMarginX { get; set; } = 14f;
+    /// <summary>Collapsed-indicator corner radius (md 2px, ios 4px).</summary>
+    public float BreadcrumbIndicatorBorderRadius { get; set; } = 2f;
+    /// <summary>Collapsed-indicator ellipsis icon size (22px both modes).</summary>
+    public float BreadcrumbIndicatorIconSize { get; set; } = 22f;
 
     // Accordion (accordion.scss / accordion-group.scss + their *.vars.scss). A vertical group of
     // collapsible panels: each accordion has a header row (an ion-item) and a content region that
@@ -787,6 +808,9 @@ public class IonicTheme
         t.ItemColor = Color.FromHex("000000");
         t.ItemBorderColor = new Color(0, 0, 0, 18);              // rgba(0,0,0,.07)
         t.ItemPaddingStart = 16f;
+        t.ItemPaddingEnd = 16f;                                  // $item-md-padding-end → --inner-padding-end
+        t.ListInsetMargin = 16f;                                 // $list-inset-md-margin-*
+        t.ListInsetBorderRadius = 2f;                            // $list-inset-md-border-radius
 
         // Item divider (item-divider.md.scss): light gray fill (step-50 ~#f2f2f2), bottom border
         // rgba(0,0,0,.07), medium text (step-550). 30px min-height.
@@ -1037,6 +1061,7 @@ public class IonicTheme
         t.BreadcrumbIconFontSize = 18f;
         t.BreadcrumbIndicatorBackground = Color.FromHex("eef1f3"); // $breadcrumb-md-indicator-background
         t.BreadcrumbIndicatorColor = Color.FromHex("73849a");     // step-550
+        t.BreadcrumbIndicatorBorderRadius = 2f;                   // md indicator radius
 
         // Accordion (accordion.md.vars.scss): white panels, 0.4 disabled opacity, 16px inset margin,
         // 6px inset radius with a 3-layer Material elevation shadow on inset panels.
@@ -1262,6 +1287,9 @@ public class IonicTheme
         t.ItemColor = Color.FromHex("000000");
         t.ItemBorderColor = new Color(0, 0, 0, 51);             // rgba(0,0,0,.2)
         t.ItemPaddingStart = 16f;
+        t.ItemPaddingEnd = 16f;                                 // $item-ios-padding-end → --inner-padding-end
+        t.ListInsetMargin = 16f;                                // $list-inset-ios-margin-*
+        t.ListInsetBorderRadius = 10f;                          // $list-inset-ios-border-radius
 
         // Item divider (item-divider.ios.scss): light fill (step-50 ~#f7f7f7), hairline bottom
         // border rgba(0,0,0,.2), dark text. 28px min-height.
@@ -1503,6 +1531,7 @@ public class IonicTheme
         t.BreadcrumbIconFontSize = 18f;
         t.BreadcrumbIndicatorBackground = Color.FromHex("e9edf3"); // $breadcrumb-ios-indicator-background
         t.BreadcrumbIndicatorColor = Color.FromHex("73849a");     // step-550
+        t.BreadcrumbIndicatorBorderRadius = 4f;                   // ios indicator radius
 
         // Accordion (accordion.ios / accordion.vars.scss): white panels, 0.4 disabled opacity, 16px
         // inset margin. iOS inset panels have no elevation shadow (they use item hairline borders).
