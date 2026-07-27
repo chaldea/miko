@@ -99,7 +99,9 @@ public class LayoutEngine
         }
 
         // 3. 布局计算：从视口原点 (0,0) 开始，覆盖整个视口。
-        var constraints = new LayoutConstraints(viewportWidth, viewportHeight);
+        // 根元素的 AvailableHeight 是填充指令：height:auto + overflow 的根盒子撑满视口高度
+        // （Miko 的根滚动模型——文档无独立视口滚动，根元素 overflow 即页面滚动容器）。
+        var constraints = new LayoutConstraints(viewportWidth, viewportHeight) { FillAvailableHeight = true };
         CalculateLayout(layoutRoot, constraints, 0f, 0f);
 
         // 4. 定位调整：处理 relative/absolute 定位的偏移。根包含块为整个视口。

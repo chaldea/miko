@@ -100,9 +100,11 @@ public class FlexLayout
                 contentHeight = Math.Max(0, contentHeight);
             }
         }
-        else if (constraints.AvailableHeight.HasValue &&
+        else if (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
                  (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
         {
+            // 仅当 AvailableHeight 是填充指令（stretch / 列向定型 / 根视口）时使用约束高度；
+            // 块流中父级定高不填充 height:auto 的盒子（见 ISSUE-105）。
             contentHeight = constraints.AvailableHeight.Value
                 - box.BoxModel.Margin.Vertical
                 - box.BoxModel.Border.Vertical
@@ -116,11 +118,12 @@ public class FlexLayout
 
         // 高度是否为"确定尺寸"——用于决定是否把该高度作为确定包含块传给子元素，
         // 以解析子元素的百分比高度（height:100%）。
-        // 仅显式 height（或百分比针对确定包含块）、以及 overflow+可用高度约束视为确定；
-        // auto 高度（即便被 min-height 抬升）不算确定，子元素 height:100% 应退化为内容尺寸
-        // （见 ISSUE-078：min-height 撑出的高度不应让百分比子元素按该高度解析）。
+        // 仅显式 height（或百分比针对确定包含块）、以及填充指令下的 overflow+可用高度约束
+        // 视为确定；auto 高度（即便被 min-height 抬升）不算确定，子元素 height:100% 应退化为
+        // 内容尺寸（见 ISSUE-078：min-height 撑出的高度不应让百分比子元素按该高度解析；
+        // ISSUE-105：块流中父级定高仅是解析基准，不构成填充）。
         bool heightIsDefinite = !heightIsAuto
-            || (constraints.AvailableHeight.HasValue &&
+            || (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
                 (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden));
 
         // 宽度是否为"确定尺寸"（与 heightIsDefinite 对称）：显式宽度、或 auto 宽度针对确定
@@ -396,6 +399,17 @@ public class FlexLayout
             ? PartitionIntoLines(allChildren, contentWidth, columnGap, true, widthIsIndefinite)
             : new List<List<LayoutBox>> { allChildren };
 
+        // row-reverse：主轴方向反转。分行仍按文档序（CSS 按 order-modified document order 分行），
+        // 随后逐行反转项目顺序，并把 justify-content 的 start/end 互换——这与"先按 row 布局再
+        // 沿主轴镜像每个项目"完全等价（对 shrink-to-fit、auto margin、多行 wrap 同样成立）。
+        bool isReverse = style.FlexDirection == FlexDirection.RowReverse;
+        var justifyContent = style.JustifyContent;
+        if (isReverse)
+        {
+            foreach (var line in lines) line.Reverse();
+            justifyContent = FlipJustifyForReverse(justifyContent);
+        }
+
         // wrap-reverse：交叉轴上行序反转（第一行排在交叉轴末端）。
         if (style.FlexWrap == FlexWrap.WrapReverse) lines.Reverse();
 
@@ -409,7 +423,7 @@ public class FlexLayout
             float lineCrossSize = 0;
             lineStarts.Add(currentY);
             LayoutFlexLine(box, line, contentX, currentY, contentWidth, contentHeight, columnGap, true, widthIsIndefinite,
-                style.JustifyContent, style.AlignItems, isMultiLine, ref lineCrossSize, crossHeightIsDefinite);
+                justifyContent, style.AlignItems, isMultiLine, ref lineCrossSize, crossHeightIsDefinite);
             lineCrossSizes.Add(lineCrossSize);
             maxCrossSize = Math.Max(maxCrossSize, lineCrossSize);
             currentY += lineCrossSize + rowGap;
@@ -631,6 +645,16 @@ public class FlexLayout
             ? PartitionIntoLines(allChildren, contentHeight, rowGap, false, heightIsIndefinite)
             : new List<List<LayoutBox>> { allChildren };
 
+        // column-reverse：主轴方向反转（与 row-reverse 同理：分列按文档序，逐列反转项目
+        // 顺序并交换 justify-content 的 start/end）。
+        bool isReverse = style.FlexDirection == FlexDirection.ColumnReverse;
+        var justifyContent = style.JustifyContent;
+        if (isReverse)
+        {
+            foreach (var line in lines) line.Reverse();
+            justifyContent = FlipJustifyForReverse(justifyContent);
+        }
+
         // wrap-reverse：交叉轴上列序反转（第一列排在交叉轴末端）。
         if (style.FlexWrap == FlexWrap.WrapReverse) lines.Reverse();
 
@@ -644,7 +668,7 @@ public class FlexLayout
             float lineCrossSize = 0;
             lineStarts.Add(currentX);
             LayoutFlexLine(box, line, currentX, contentY, contentHeight, contentWidth, rowGap, false, heightIsIndefinite,
-                style.JustifyContent, style.AlignItems, isMultiLine, ref lineCrossSize, crossWidthIsDefinite);
+                justifyContent, style.AlignItems, isMultiLine, ref lineCrossSize, crossWidthIsDefinite);
             lineCrossSizes.Add(lineCrossSize);
             maxCrossSize = Math.Max(maxCrossSize, lineCrossSize);
             currentX += lineCrossSize + columnGap;
@@ -1082,6 +1106,8 @@ public class FlexLayout
                     && (crossStretches || !crossSizeIsAuto) ? lineCrossSize : null;
 
                 // dispatch 把 margin-box 原点放到 currentMain；置子前不再修正坐标。
+                // stretch 项的 AvailableHeight 是填充指令：height:auto + overflow 的项在布局期
+                // 即以行交叉尺寸定型（滚动度量、子孙百分比高度基于它），非 stretch 项仅作解析基准。
                 if (needsResize || !info.UsedAutoSize)
                 {
                     // 显式尺寸或需 grow/shrink：用计算出的 content width 重新布局并强制宽度。
@@ -1094,7 +1120,7 @@ public class FlexLayout
                         - childBorderLeftWidth - childBorderRightWidth - childPaddingLeft - childPaddingRight;
                     childContentWidth = Math.Max(0, childContentWidth);
 
-                    var childConstraints = new LayoutConstraints(childContentWidth, childAvailableHeight);
+                    var childConstraints = new LayoutConstraints(childContentWidth, childAvailableHeight) { FillAvailableHeight = crossStretches };
                     LayoutDispatcher.Dispatch(child, childConstraints, currentMain, lineCross);
                     child.BoxModel.Content = new RectF(
                         child.BoxModel.Content.X, child.BoxModel.Content.Y,
@@ -1103,7 +1129,7 @@ public class FlexLayout
                 else
                 {
                     // 自然尺寸（含文本）：不强制宽度，让子元素按内容布局。
-                    var childConstraints = new LayoutConstraints(null, childAvailableHeight);
+                    var childConstraints = new LayoutConstraints(null, childAvailableHeight) { FillAvailableHeight = crossStretches };
                     LayoutDispatcher.Dispatch(child, childConstraints, currentMain, lineCross);
                 }
 
@@ -1133,7 +1159,9 @@ public class FlexLayout
                         - childBorderTopWidth - childBorderBottomWidth - childPaddingTop - childPaddingBottom;
                     childContentHeight = Math.Max(0, childContentHeight);
 
-                    var childConstraints = new LayoutConstraints(childAvailableWidth, childContentHeight);
+                    // 列向 grow/shrink 定型后的主轴尺寸即子项最终高度（dispatch 后强制覆盖），
+                    // 故 AvailableHeight 是填充指令（见 ISSUE-105）。
+                    var childConstraints = new LayoutConstraints(childAvailableWidth, childContentHeight) { FillAvailableHeight = true };
                     LayoutDispatcher.Dispatch(child, childConstraints, lineCross, currentMain);
                     child.BoxModel.Content = new RectF(
                         child.BoxModel.Content.X, child.BoxModel.Content.Y,
@@ -1176,6 +1204,19 @@ public class FlexLayout
 
         resultCrossSize = maxCross;
     }
+
+    /// <summary>
+    /// row-reverse / column-reverse 时对 <c>justify-content</c> 做主轴镜像：
+    /// main-start 与 main-end 互换，因此 FlexStart↔FlexEnd（Normal 行为同 FlexStart，同样翻转）；
+    /// Center / SpaceBetween / SpaceAround / SpaceEvenly 关于主轴中点对称，保持不变。
+    /// </summary>
+    private static JustifyContent FlipJustifyForReverse(JustifyContent justify)
+        => justify switch
+        {
+            JustifyContent.Normal or JustifyContent.FlexStart => JustifyContent.FlexEnd,
+            JustifyContent.FlexEnd => JustifyContent.FlexStart,
+            _ => justify,
+        };
 
     /// <summary>对一行/列的子元素应用 justify-content（主轴对齐）。</summary>
     private void ApplyLineJustifyContent(List<FlexChildInfo> line, float start, float containerSize, float contentSize, bool isRow, JustifyContent justifyContent, int totalItems)
