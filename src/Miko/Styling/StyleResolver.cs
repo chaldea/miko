@@ -18,13 +18,16 @@ public class StyleResolver
 
     // 池化的规则匹配暂存列表（与 baseStyle 同理）。排序键中 index 唯一（规则的定义顺序），
     // 比较器构成全序，因此可用分配为零的 List.Sort 替代 LINQ OrderBy（稳定性无关）。
-    private List<(StyleRule rule, int specificity, int index)>? _pooledRules;
+    private List<(StyleRule rule, int layer, int specificity, int index)>? _pooledRules;
 
-    private static readonly Comparison<(StyleRule rule, int specificity, int index)> RuleOrder =
+    private static readonly Comparison<(StyleRule rule, int layer, int specificity, int index)> RuleOrder =
         static (a, b) =>
         {
-            // 特异性高者优先；同特异性时定义顺序靠后（index 大）者优先。
-            int c = b.specificity.CompareTo(a.specificity);
+            // 级联层高者优先（ISSUE-107：层级与特异性无关，见 StyleSheet.Layer）；
+            // 同层内特异性高者优先；同特异性时定义顺序靠后（index 大）者优先。
+            int c = b.layer.CompareTo(a.layer);
+            if (c != 0) return c;
+            c = b.specificity.CompareTo(a.specificity);
             return c != 0 ? c : b.index.CompareTo(a.index);
         };
 
@@ -47,7 +50,7 @@ public class StyleResolver
                 {
                     if (rule.Selector.Matches(element))
                     {
-                        matchedRules.Add((rule, rule.Selector.Specificity, ruleIndex));
+                        matchedRules.Add((rule, sheet.Layer, rule.Selector.Specificity, ruleIndex));
                     }
                     ruleIndex++;
                 }
@@ -62,7 +65,7 @@ public class StyleResolver
                             {
                                 if (rule.Selector.Matches(element))
                                 {
-                                    matchedRules.Add((rule, rule.Selector.Specificity, ruleIndex));
+                                    matchedRules.Add((rule, sheet.Layer, rule.Selector.Specificity, ruleIndex));
                                 }
                                 ruleIndex++;
                             }
@@ -71,7 +74,7 @@ public class StyleResolver
                 }
             }
 
-            // 2. 按特异性排序（特异性高的优先，同特异性时后定义的优先，因为 Merge 只在 null 时赋值）。
+            // 2. 排序（层 → 特异性 → 定义顺序，靠前者优先，因为 Merge 只在 null 时赋值）。
             //    0/1 条规则无需排序；更多时用全序比较器做原地排序（零分配）。
             if (matchedRules.Count > 1)
                 matchedRules.Sort(RuleOrder);
@@ -87,8 +90,8 @@ public class StyleResolver
                     baseStyle.Merge(element.Style);
                 }
 
-                // 5. 应用匹配的规则（按特异性从高到低，同特异性按定义顺序从后到前）
-                foreach (var (rule, _, _) in matchedRules)
+                // 5. 应用匹配的规则（按层从高到低，同层按特异性从高到低，同特异性按定义顺序从后到前）
+                foreach (var (rule, _, _, _) in matchedRules)
                 {
                     baseStyle.Merge(rule.Style);
                 }

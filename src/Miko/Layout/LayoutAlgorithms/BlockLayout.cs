@@ -47,8 +47,15 @@ public class BlockLayout
         bool isReplaced = intrinsicW > 0 && intrinsicH > 0;
 
         // 2. 计算 width
+        // 外部已定型宽度（flex 主轴解析，见 ISSUE-106）：直接使用，跳过自身 width 解析，
+        // 避免百分比长度对"已解析尺寸"二次求值（width:50% 的 flex 项被算成 50%×50%）。
+        bool widthIsForced = constraints.ResolvedContentWidth.HasValue;
         float contentWidth;
-        if (!style.Width.IsAuto)
+        if (widthIsForced)
+        {
+            contentWidth = constraints.ResolvedContentWidth!.Value;
+        }
+        else if (!style.Width.IsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -97,13 +104,15 @@ public class BlockLayout
         bool isBorderBoxW = style.BoxSizing == BoxSizing.BorderBox;
         bool widthCbIndefinite = constraints.IsInfiniteWidth || containerWidth <= 0;
         float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
-        if (!style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
+        // 宽度由外部定型时，min/max-width 夹取已在 flex 主轴解析中完成，此处跳过
+        // （否则百分比 min/max 会对已定型尺寸二次求值，见 ISSUE-106）。
+        if (!widthIsForced && !style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
         {
             float min = style.MinWidth.ToPixels(containerWidth, fs);
             if (isBorderBoxW) min = Math.Max(0, min - horizontalExtra);
             contentWidth = Math.Max(contentWidth, min);
         }
-        if (!style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
+        if (!widthIsForced && !style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
         {
             float max = style.MaxWidth.ToPixels(containerWidth, fs);
             if (isBorderBoxW) max = Math.Max(0, max - horizontalExtra);
@@ -160,8 +169,14 @@ public class BlockLayout
         float contentY = y + box.BoxModel.Margin.Top + box.BoxModel.Border.Top + box.BoxModel.Padding.Top;
 
         // 计算确定性高度，用于子元素百分比高度解析
+        // 外部已定型高度（flex 列向主轴解析，见 ISSUE-106）：直接作为确定基准传给子元素。
+        bool heightIsForced = constraints.ResolvedContentHeight.HasValue;
         float? childAvailableHeight = null;
-        if (!style.Height.IsAuto)
+        if (heightIsForced)
+        {
+            childAvailableHeight = constraints.ResolvedContentHeight!.Value;
+        }
+        else if (!style.Height.IsAuto)
         {
             float h = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -262,7 +277,13 @@ public class BlockLayout
 
         // 5. 计算 height
         float contentHeight;
-        if (!style.Height.IsAuto)
+        if (heightIsForced)
+        {
+            // 外部已定型高度（flex 列向主轴解析，见 ISSUE-106）：直接使用，跳过自身
+            // height 解析，避免百分比高度对"已解析尺寸"二次求值。
+            contentHeight = constraints.ResolvedContentHeight!.Value;
+        }
+        else if (!style.Height.IsAuto)
         {
             contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -315,13 +336,14 @@ public class BlockLayout
         // 再与内容高度比较（与上面 Height 的 border-box 处理保持一致，参见 ISSUE-040 后续）。
         bool isBorderBoxH = style.BoxSizing == BoxSizing.BorderBox;
         float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
-        if (!style.MinHeight.IsAuto)
+        // 高度由外部定型时，min/max-height 夹取已在 flex 主轴解析中完成，此处跳过（见 ISSUE-106）。
+        if (!heightIsForced && !style.MinHeight.IsAuto)
         {
             float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (isBorderBoxH) min = Math.Max(0, min - verticalExtra);
             contentHeight = Math.Max(contentHeight, min);
         }
-        if (!style.MaxHeight.IsAuto)
+        if (!heightIsForced && !style.MaxHeight.IsAuto)
         {
             float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (isBorderBoxH) max = Math.Max(0, max - verticalExtra);

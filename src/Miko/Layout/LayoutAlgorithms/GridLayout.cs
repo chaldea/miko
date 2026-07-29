@@ -74,8 +74,15 @@ public class GridLayout
         // 百分比宽度针对不确定包含块时退化为 auto（与 ISSUE-077 一致）。
         bool widthPercentAgainstIndefinite = style.Width.HasPercentComponent && (constraints.IsInfiniteWidth || containerWidth <= 0);
         bool widthIsAuto = style.Width.IsAuto || widthPercentAgainstIndefinite;
+        // 外部已定型宽度（作为 flex 项时主轴尺寸已解析，见 ISSUE-106）：直接使用，
+        // 跳过自身 width 解析与该轴 min/max 夹取，避免百分比长度二次求值。
+        bool widthIsForced = constraints.ResolvedContentWidth.HasValue;
 
-        if (!widthIsAuto)
+        if (widthIsForced)
+        {
+            contentWidth = constraints.ResolvedContentWidth!.Value;
+        }
+        else if (!widthIsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -103,7 +110,8 @@ public class GridLayout
 
         // auto 宽度时提前用 min-width 抬升（收缩包裹的下限；不改变 widthIsIndefinite——
         // min-width 不使宽度对 fr/百分比轨道解析变为确定，与 ISSUE-078 的理念一致）。
-        if (widthIsAuto && !style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
+        // 宽度由外部定型（flex 项主轴）时跳过 min/max-width（夹取已在 flex 完成，见 ISSUE-106）。
+        if (!widthIsForced && widthIsAuto && !style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
         {
             float minW = style.MinWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBox) minW = Math.Max(0, minW - horizontalExtra);
@@ -111,7 +119,7 @@ public class GridLayout
         }
 
         // 提前应用 max-width：轨道尺寸（fr、百分比轨道）需以夹取后的宽度为分母（同 ISSUE-081）。
-        if (!style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
+        if (!widthIsForced && !style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
         {
             float max = style.MaxWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBox) max = Math.Max(0, max - horizontalExtra);
@@ -123,8 +131,14 @@ public class GridLayout
         float contentHeight;
         bool heightPercentAgainstIndefinite = style.Height.HasPercentComponent && !constraints.AvailableHeight.HasValue;
         bool heightIsAuto = style.Height.IsAuto || heightPercentAgainstIndefinite;
+        // 外部已定型高度（作为列向 flex 项时主轴尺寸已解析，见 ISSUE-106）。
+        bool heightIsForced = constraints.ResolvedContentHeight.HasValue;
 
-        if (!heightIsAuto)
+        if (heightIsForced)
+        {
+            contentHeight = constraints.ResolvedContentHeight!.Value;
+        }
+        else if (!heightIsAuto)
         {
             contentHeight = style.Height.ToPixels(containerHeight, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -151,7 +165,7 @@ public class GridLayout
 
         // 高度是否确定——决定 fr/百分比行轨道能否相对容器解析；auto（即便被 min-height 抬升）不算确定。
         // overflow+可用高度约束仅在填充指令（FillAvailableHeight）下视为确定（见 ISSUE-105）。
-        bool heightIsDefinite = !heightIsAuto
+        bool heightIsDefinite = !heightIsAuto || heightIsForced
             || (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
                 (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden));
 
@@ -245,33 +259,35 @@ public class GridLayout
             out var rowAutoTracks);
 
         // 12. auto 高度：行轨道总高（含 gap）。
-        if (heightIsAuto)
+        // 外部定型高度（列向 flex 项主轴尺寸）不被行轨道求和覆盖（见 ISSUE-106）。
+        if (!heightIsForced && heightIsAuto)
         {
             contentHeight = SumTrackSizes(rowSizes, rowGap);
         }
 
         // 13. 尾部 min/max 约束（与 FlexLayout 步骤 6/7 对称；百分比 min/max-width 对不确定包含块退化）。
+        // 由外部定型的轴跳过对应夹取（已在 flex 主轴解析中完成，见 ISSUE-106）。
         bool isBorderBoxH = style.BoxSizing == BoxSizing.BorderBox;
         float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
-        if (!style.MinHeight.IsAuto)
+        if (!heightIsForced && !style.MinHeight.IsAuto)
         {
             float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (isBorderBoxH) min = Math.Max(0, min - verticalExtra);
             contentHeight = Math.Max(contentHeight, min);
         }
-        if (!style.MaxHeight.IsAuto)
+        if (!heightIsForced && !style.MaxHeight.IsAuto)
         {
             float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (isBorderBoxH) max = Math.Max(0, max - verticalExtra);
             contentHeight = Math.Min(contentHeight, max);
         }
-        if (!style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
+        if (!widthIsForced && !style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
         {
             float min = style.MinWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBox) min = Math.Max(0, min - horizontalExtra);
             contentWidth = Math.Max(contentWidth, min);
         }
-        if (!style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
+        if (!widthIsForced && !style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
         {
             float max = style.MaxWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBox) max = Math.Max(0, max - horizontalExtra);
