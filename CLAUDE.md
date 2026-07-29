@@ -258,7 +258,11 @@ Platform hosts provide:
 
 ### Style Cascade
 
-Selector specificity (lowest to highest): **Tag → Class → ID → inline style**
+Cascade order: **cascade layer → selector specificity → source order → inline style last (highest)**.
+
+`StyleSheet.Layer` (default 0) mirrors CSS `@layer`: rules from a higher-layer sheet always beat lower-layer rules regardless of specificity. Component libraries sit below the app layer (`Miko.Ionic` uses layer -1, `IonicStyleSheetFactory.CascadeLayer`) so app rules override component host styles — mirroring how outer-document rules beat shadow-tree `:host` rules in the browser (ISSUE-107).
+
+Selector specificity within a layer (lowest to highest): **Tag → Class → ID → inline style**
 
 Pseudo-classes: `:hover`, `:focus`, `:active`, `:disabled`, `:checked`, `:first-child`, `:last-child`, `:nth-child()`
 

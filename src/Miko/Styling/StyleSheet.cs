@@ -12,6 +12,14 @@ public class StyleSheet
     public List<PseudoElementRule> PseudoElementRules { get; set; } = new();
     public List<MediaRule> MediaRules { get; set; } = new();
 
+    /// <summary>
+    /// 级联层（对应 CSS 的 <c>@layer</c> 概念）：层级值大的样式表中的规则恒胜于层级小的
+    /// 规则，与选择器特异性无关；同层内仍按"特异性 → 定义顺序"裁决。默认为 0（应用层）。
+    /// 组件库（Miko.Ionic 等）使用负层，使应用样式总能覆盖组件宿主样式 —— 对应浏览器中
+    /// 外层文档规则恒胜于组件 shadow 树 <c>:host</c> 规则的语义（CSS Scoping，ISSUE-107）。
+    /// </summary>
+    public int Layer { get; set; }
+
     // :hover 相关性分析缓存（见 HoverRelevance）。样式表在交给引擎后不可变
     // （ISSUE-096 契约），此处的失效仅覆盖注册前的增量构建。
     private List<Selector[]>? _hoverPatterns;

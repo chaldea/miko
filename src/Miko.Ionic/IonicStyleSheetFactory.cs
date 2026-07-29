@@ -17,13 +17,23 @@ namespace Miko.Ionic;
 public static class IonicStyleSheetFactory
 {
     /// <summary>
+    /// The cascade layer the Ionic stylesheet sits in (see <see cref="StyleSheet.Layer"/>).
+    /// Ionic's component rules mirror the per-component shadow-tree <c>:host</c>/slotted styles
+    /// of real Ionic — which always lose to outer-document rules (CSS Scoping). Placing the
+    /// sheet below the application layer (0) reproduces that: an app rule like
+    /// <c>.my-icon { width: 50px }</c> overrides the compound <c>.ion-icon.md</c> host rule
+    /// even though its specificity is lower (ISSUE-107).
+    /// </summary>
+    public const int CascadeLayer = -1;
+
+    /// <summary>
     /// Builds a stylesheet containing both Material Design and iOS rule sets, each from its own
     /// per-mode theme. Use this so the active mode can switch at runtime via the component mode
     /// class alone.
     /// </summary>
     public static StyleSheet CreateAllModes()
     {
-        var sheet = new StyleSheet();
+        var sheet = new StyleSheet { Layer = CascadeLayer };
         sheet.Add(GlobalStyle.GenStyle());
         AddMode(sheet, "md", IonicTheme.CreateMd());
         AddMode(sheet, "ios", IonicTheme.CreateIos());
@@ -38,7 +48,7 @@ public static class IonicStyleSheetFactory
     /// </summary>
     public static StyleSheet Create(IonicTheme theme)
     {
-        var sheet = new StyleSheet();
+        var sheet = new StyleSheet { Layer = CascadeLayer };
         sheet.Add(GlobalStyle.GenStyle());
         if (theme.Mode == IonicMode.Ios)
         {
