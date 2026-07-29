@@ -28,6 +28,23 @@ public class LayoutConstraints
     public bool FillAvailableHeight { get; set; }
 
     /// <summary>
+    /// 已由外部定型的内容宽度（目前由 flex 行方向主轴尺寸解析设置，见 ISSUE-106）。
+    /// flex 项目的最终主轴尺寸由 flex 算法经 flex-basis（含百分比相对容器主轴的解析）、
+    /// min/max 主轴夹取与 grow/shrink 分配后确定；若再让盒子自身按 width / min-width /
+    /// max-width 对"已解析尺寸"求值，百分比长度会被二次应用（width:50% 的项目实际得到
+    /// 50%×50%），后代的百分比尺寸也随之基于错误基准。
+    /// 设置该值后，盒子直接以其为内容宽度，跳过自身 width 解析与该轴 min/max 夹取
+    /// （二者均已在 flex 算法中相对正确的包含块完成）。
+    /// </summary>
+    public float? ResolvedContentWidth { get; set; }
+
+    /// <summary>
+    /// 已由外部定型的内容高度（flex 列方向主轴尺寸解析设置；语义同
+    /// <see cref="ResolvedContentWidth"/>，见 ISSUE-106）。
+    /// </summary>
+    public float? ResolvedContentHeight { get; set; }
+
+    /// <summary>
     /// 是否为无限宽度
     /// </summary>
     public bool IsInfiniteWidth => !AvailableWidth.HasValue;

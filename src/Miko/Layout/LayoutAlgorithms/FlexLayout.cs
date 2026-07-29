@@ -45,8 +45,15 @@ public class FlexLayout
         // 百分比宽度针对不确定包含块时退化为 auto（见 ISSUE-077 Flex 循环依赖）。
         bool widthPercentAgainstIndefinite = style.Width.HasPercentComponent && (constraints.IsInfiniteWidth || containerWidth <= 0);
         bool widthIsAuto = style.Width.IsAuto || widthPercentAgainstIndefinite;
+        // 外部已定型宽度（作为 flex 项时主轴尺寸已解析，见 ISSUE-106）：直接使用，
+        // 跳过自身 width 解析与该轴 min/max 夹取，避免百分比长度二次求值。
+        bool widthIsForced = constraints.ResolvedContentWidth.HasValue;
 
-        if (!widthIsAuto)
+        if (widthIsForced)
+        {
+            contentWidth = constraints.ResolvedContentWidth!.Value;
+        }
+        else if (!widthIsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -90,8 +97,14 @@ public class FlexLayout
         // 百分比高度针对不确定包含块时退化为 auto（见 ISSUE-077 Flex 循环依赖）。
         bool heightPercentAgainstIndefinite = style.Height.HasPercentComponent && !constraints.AvailableHeight.HasValue;
         bool heightIsAuto = style.Height.IsAuto || heightPercentAgainstIndefinite;
+        // 外部已定型高度（作为列向 flex 项时主轴尺寸已解析，见 ISSUE-106）。
+        bool heightIsForced = constraints.ResolvedContentHeight.HasValue;
 
-        if (!heightIsAuto)
+        if (heightIsForced)
+        {
+            contentHeight = constraints.ResolvedContentHeight!.Value;
+        }
+        else if (!heightIsAuto)
         {
             contentHeight = style.Height.ToPixels(containerHeight, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -122,7 +135,7 @@ public class FlexLayout
         // 视为确定；auto 高度（即便被 min-height 抬升）不算确定，子元素 height:100% 应退化为
         // 内容尺寸（见 ISSUE-078：min-height 撑出的高度不应让百分比子元素按该高度解析；
         // ISSUE-105：块流中父级定高仅是解析基准，不构成填充）。
-        bool heightIsDefinite = !heightIsAuto
+        bool heightIsDefinite = !heightIsAuto || heightIsForced
             || (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
                 (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden));
 
@@ -140,14 +153,14 @@ public class FlexLayout
         // justify-content 能在该 min 尺寸内居中子元素（否则主轴尺寸仍为 0，对齐被跳过，子元素贴边）。
         // 交叉轴上的 align-items 同理受 min-width / min-height 影响。
         // 注意：min 只在 auto 维度上抬升占位尺寸，不影响显式尺寸（显式尺寸已是确定值）。
-        if (heightIsAuto && !style.MinHeight.IsAuto)
+        if (!heightIsForced && heightIsAuto && !style.MinHeight.IsAuto)
         {
             float minH = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
                 minH = Math.Max(0, minH - box.BoxModel.Border.Vertical - box.BoxModel.Padding.Vertical);
             contentHeight = Math.Max(contentHeight, minH);
         }
-        if (widthIsAuto && !style.MinWidth.IsAuto)
+        if (!widthIsForced && widthIsAuto && !style.MinWidth.IsAuto)
         {
             float minW = style.MinWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -166,7 +179,7 @@ public class FlexLayout
         // 百分比 max-width 针对不确定宽度的包含块应退化为"无约束"，而非折算为 0 把内容夹取归零
         // （见 ISSUE-094；与 widthPercentAgainstIndefinite 的百分比宽度退化一致）。
         bool widthCbIndefinite = constraints.IsInfiniteWidth || (constraints.AvailableWidth ?? 0) <= 0;
-        if (!style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
+        if (!widthIsForced && !style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
         {
             float max = style.MaxWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBoxW_Early) max = Math.Max(0, max - horizontalExtra_Early);
@@ -175,7 +188,7 @@ public class FlexLayout
 
         bool isBorderBoxH_Early = style.BoxSizing == BoxSizing.BorderBox;
         float verticalExtra_Early = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
-        if (!style.MaxHeight.IsAuto)
+        if (!heightIsForced && !style.MaxHeight.IsAuto)
         {
             float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (isBorderBoxH_Early) max = Math.Max(0, max - verticalExtra_Early);
@@ -288,7 +301,8 @@ public class FlexLayout
         }
 
         // 5. 计算最终容器高度
-        if (heightIsAuto)
+        // 外部定型高度（列向 flex 项主轴尺寸）不被内容重算覆盖（见 ISSUE-106）。
+        if (!heightIsForced && heightIsAuto)
         {
             if (isRow)
             {
@@ -309,15 +323,16 @@ public class FlexLayout
         }
 
         // 6. 应用 min-height/max-height 约束
+        // 高度由外部定型时跳过（夹取已在 flex 主轴解析中完成，见 ISSUE-106）。
         bool isBorderBoxH = style.BoxSizing == BoxSizing.BorderBox;
         float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
-        if (!style.MinHeight.IsAuto)
+        if (!heightIsForced && !style.MinHeight.IsAuto)
         {
             float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (isBorderBoxH) min = Math.Max(0, min - verticalExtra);
             contentHeight = Math.Max(contentHeight, min);
         }
-        if (!style.MaxHeight.IsAuto)
+        if (!heightIsForced && !style.MaxHeight.IsAuto)
         {
             float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (isBorderBoxH) max = Math.Max(0, max - verticalExtra);
@@ -326,15 +341,16 @@ public class FlexLayout
 
         // 7. 应用 min-width/max-width 约束
         // 百分比 min/max-width 针对不确定宽度的包含块退化为"无约束"（见 ISSUE-094）。
+        // 宽度由外部定型时跳过（夹取已在 flex 主轴解析中完成，见 ISSUE-106）。
         bool isBorderBoxW = style.BoxSizing == BoxSizing.BorderBox;
         float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
-        if (!style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
+        if (!widthIsForced && !style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
         {
             float min = style.MinWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBoxW) min = Math.Max(0, min - horizontalExtra);
             contentWidth = Math.Max(contentWidth, min);
         }
-        if (!style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
+        if (!widthIsForced && !style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
         {
             float max = style.MaxWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
             if (isBorderBoxW) max = Math.Max(0, max - horizontalExtra);
@@ -1120,7 +1136,14 @@ public class FlexLayout
                         - childBorderLeftWidth - childBorderRightWidth - childPaddingLeft - childPaddingRight;
                     childContentWidth = Math.Max(0, childContentWidth);
 
-                    var childConstraints = new LayoutConstraints(childContentWidth, childAvailableHeight) { FillAvailableHeight = crossStretches };
+                    // ResolvedContentWidth：主轴尺寸已由 flex 算法（flex-basis 百分比解析、
+                    // min/max 夹取、grow/shrink 分配）定型，子布局不得再按自身 width/min/max
+                    // 对该值二次求值（否则 width:50% 的项目实际得到 50%×50%，见 ISSUE-106）。
+                    var childConstraints = new LayoutConstraints(childContentWidth, childAvailableHeight)
+                    {
+                        FillAvailableHeight = crossStretches,
+                        ResolvedContentWidth = childContentWidth
+                    };
                     LayoutDispatcher.Dispatch(child, childConstraints, currentMain, lineCross);
                     child.BoxModel.Content = new RectF(
                         child.BoxModel.Content.X, child.BoxModel.Content.Y,
@@ -1161,7 +1184,13 @@ public class FlexLayout
 
                     // 列向 grow/shrink 定型后的主轴尺寸即子项最终高度（dispatch 后强制覆盖），
                     // 故 AvailableHeight 是填充指令（见 ISSUE-105）。
-                    var childConstraints = new LayoutConstraints(childAvailableWidth, childContentHeight) { FillAvailableHeight = true };
+                    // ResolvedContentHeight：主轴高度已由 flex 算法定型，子布局不得再按自身
+                    // height/min/max 对该值二次求值（与行方向对称，见 ISSUE-106）。
+                    var childConstraints = new LayoutConstraints(childAvailableWidth, childContentHeight)
+                    {
+                        FillAvailableHeight = true,
+                        ResolvedContentHeight = childContentHeight
+                    };
                     LayoutDispatcher.Dispatch(child, childConstraints, lineCross, currentMain);
                     child.BoxModel.Content = new RectF(
                         child.BoxModel.Content.X, child.BoxModel.Content.Y,

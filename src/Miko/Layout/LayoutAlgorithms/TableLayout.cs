@@ -47,10 +47,17 @@ public class TableLayout
         );
 
         // 2. 计算表格的可用宽度
-        bool widthIsExplicit = !style.Width.IsAuto;
+        // 外部已定型宽度（作为 flex 项时主轴尺寸已解析，见 ISSUE-106）：直接作为显式内容宽度，
+        // 跳过自身 width 解析，避免百分比长度对"已解析尺寸"二次求值。
+        bool widthIsForced = constraints.ResolvedContentWidth.HasValue;
+        bool widthIsExplicit = widthIsForced || !style.Width.IsAuto;
         float? explicitContentWidth = null;
 
-        if (widthIsExplicit)
+        if (widthIsForced)
+        {
+            explicitContentWidth = constraints.ResolvedContentWidth!.Value;
+        }
+        else if (widthIsExplicit)
         {
             float w = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -164,7 +171,12 @@ public class TableLayout
 
         // 8. 计算表格高度
         float contentHeight;
-        if (!style.Height.IsAuto)
+        if (constraints.ResolvedContentHeight.HasValue)
+        {
+            // 外部已定型高度（作为列向 flex 项时主轴尺寸已解析，见 ISSUE-106）。
+            contentHeight = constraints.ResolvedContentHeight.Value;
+        }
+        else if (!style.Height.IsAuto)
         {
             contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)

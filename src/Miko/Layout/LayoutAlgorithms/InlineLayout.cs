@@ -97,8 +97,16 @@ public class InlineLayout
         bool heightPercentAgainstIndefinite = style.Height.HasPercentComponent && !constraints.AvailableHeight.HasValue;
         bool widthIsAuto = style.Width.IsAuto || widthPercentAgainstIndefinite;
         bool heightIsAuto = style.Height.IsAuto || heightPercentAgainstIndefinite;
+        // 外部已定型宽度/高度（作为 flex 项时主轴尺寸已解析，见 ISSUE-106）：直接使用，
+        // 跳过自身 width/height 解析与该轴 min/max 夹取，避免百分比长度二次求值。
+        bool widthIsForced = constraints.ResolvedContentWidth.HasValue;
+        bool heightIsForced = constraints.ResolvedContentHeight.HasValue;
 
-        if (!widthIsAuto)
+        if (widthIsForced)
+        {
+            contentWidth = constraints.ResolvedContentWidth!.Value;
+        }
+        else if (!widthIsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -138,8 +146,8 @@ public class InlineLayout
         // 百分比 min/max-width 针对不确定宽度的包含块退化为"无约束"，而非折算为 0 把内容夹取归零
         // （见 ISSUE-094；与 widthPercentAgainstIndefinite 的百分比宽度退化一致）。
         bool widthCbIndefinite = !constraints.AvailableWidth.HasValue || constraints.AvailableWidth.Value <= 0;
-        bool minWidthEffective = !style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite);
-        bool maxWidthEffective = !style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite);
+        bool minWidthEffective = !widthIsForced && !style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite);
+        bool maxWidthEffective = !widthIsForced && !style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite);
 
         if (minWidthEffective)
         {
@@ -159,7 +167,7 @@ public class InlineLayout
         // 高度传 null 保持不确定——min-height 撑起的高度不使百分比高度可解析（见 ISSUE-078）。
         // 注意：auto 宽度且无 min/max-width 时不重排，保持 shrink-to-fit 的内容尺寸（见 ISSUE-077）。
         // 针对不确定包含块退化的百分比 min/max-width 不计入"确定宽度"（见 ISSUE-094）。
-        bool widthIsDefinite = !widthIsAuto || minWidthEffective || maxWidthEffective;
+        bool widthIsDefinite = widthIsForced || !widthIsAuto || minWidthEffective || maxWidthEffective;
         if (widthIsDefinite && contentWidth > 0 && box.Children.Count > 0)
         {
             float childX = contentX;
@@ -179,7 +187,12 @@ public class InlineLayout
             lineHeight = relaidLineHeight;
         }
 
-        if (!heightIsAuto)
+        if (heightIsForced)
+        {
+            // 外部已定型高度（列向 flex 项主轴尺寸，见 ISSUE-106）。
+            contentHeight = constraints.ResolvedContentHeight!.Value;
+        }
+        else if (!heightIsAuto)
         {
             contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -209,13 +222,14 @@ public class InlineLayout
         }
 
         // 应用 min/max-height 约束（min/max-width 已在重排子元素前处理）。
-        if (!style.MinHeight.IsAuto)
+        // 高度由外部定型时跳过（夹取已在 flex 主轴解析中完成，见 ISSUE-106）。
+        if (!heightIsForced && !style.MinHeight.IsAuto)
         {
             float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (isBorderBox) min = Math.Max(0, min - verticalExtra);
             contentHeight = Math.Max(contentHeight, min);
         }
-        if (!style.MaxHeight.IsAuto)
+        if (!heightIsForced && !style.MaxHeight.IsAuto)
         {
             float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (isBorderBox) max = Math.Max(0, max - verticalExtra);
