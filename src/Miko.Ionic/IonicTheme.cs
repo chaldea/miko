@@ -112,6 +112,34 @@ public class IonicTheme
     /// NO end padding (<c>--padding-end</c> defaults to 0) — the trailing inset lives on
     /// <c>.item-inner</c>, so an inset divider reaches the item's right edge.</summary>
     public float ItemPaddingEnd { get; set; } = 16f;
+    /// <summary>Top/bottom margin of an <c>ion-label</c> slotted into an <c>ion-item</c>
+    /// (item.md.vars.scss <c>$item-md-label-margin-top/bottom</c> and item.ios.scss
+    /// <c>::slotted(ion-label)</c>: 10px both modes). Gives the label its vertical rhythm
+    /// inside the row.</summary>
+    public float ItemLabelMarginVertical { get; set; } = 10f;
+    /// <summary>Trailing (end) margin of an <c>ion-label</c> slotted into an <c>ion-item</c>
+    /// (<c>$item-md-label-margin-end</c>: 0; item.ios.scss <c>::slotted(ion-label)</c>: 8px).</summary>
+    public float ItemLabelMarginEnd { get; set; } = 0f;
+    /// <summary>Top/bottom margin of an <c>ion-icon</c> slotted (start/end) into an
+    /// <c>ion-item</c> (<c>$item-md-icon-slot-margin-top/bottom</c>: 12px;
+    /// <c>$item-ios-icon-slot-margin-top/bottom</c>: 7px).</summary>
+    public float ItemIconSlotMarginVertical { get; set; } = 12f;
+    /// <summary>Trailing margin of a start-slotted <c>ion-icon</c> in an <c>ion-item</c>
+    /// (<c>$item-md-icon-start-slot-margin-end</c>: 32px; iOS has none).</summary>
+    public float ItemIconStartSlotMarginEnd { get; set; } = 32f;
+    /// <summary>Leading margin of an end-slotted <c>ion-icon</c> in an <c>ion-item</c>
+    /// (<c>$item-md-icon-end-slot-margin-start</c>: 16px; iOS has none).</summary>
+    public float ItemIconEndSlotMarginStart { get; set; } = 16f;
+    /// <summary>Top/bottom margin of an <c>ion-avatar</c> slotted into an <c>ion-item</c>
+    /// (<c>$item-md-media-slot-margin-top/bottom</c>: 8px; iOS has none).</summary>
+    public float ItemAvatarSlotMarginVertical { get; set; } = 8f;
+    /// <summary>Trailing margin of a start-slotted <c>ion-avatar</c> in an <c>ion-item</c>
+    /// (<c>$item-md-media-start-slot-margin-end</c>: 16px; iOS has none).</summary>
+    public float ItemAvatarStartSlotMarginEnd { get; set; } = 16f;
+    /// <summary>Leading margin of an end-slotted <c>ion-avatar</c> in an <c>ion-item</c>
+    /// (<c>$item-md-media-end-slot-margin-start</c>: 16px; item.ios.scss: 8px —
+    /// <c>$item-ios-padding-end * 0.5</c>).</summary>
+    public float ItemAvatarEndSlotMarginStart { get; set; } = 16f;
     /// <summary>Inset list margin on all sides (<c>$list-inset-{md|ios}-margin-*</c>: 16px both modes).</summary>
     public float ListInsetMargin { get; set; } = 16f;
     /// <summary>Inset list corner radius (<c>$list-inset-md-border-radius</c>: 2px; ios: 10px).</summary>
@@ -809,6 +837,14 @@ public class IonicTheme
         t.ItemBorderColor = new Color(0, 0, 0, 18);              // rgba(0,0,0,.07)
         t.ItemPaddingStart = 16f;
         t.ItemPaddingEnd = 16f;                                  // $item-md-padding-end → --inner-padding-end
+        t.ItemLabelMarginVertical = 10f;                         // $item-md-label-margin-top/bottom
+        t.ItemLabelMarginEnd = 0f;                               // $item-md-label-margin-end
+        t.ItemIconSlotMarginVertical = 12f;                      // $item-md-icon-slot-margin-top/bottom
+        t.ItemIconStartSlotMarginEnd = 32f;                      // $item-md-icon-start-slot-margin-end
+        t.ItemIconEndSlotMarginStart = 16f;                      // $item-md-icon-end-slot-margin-start
+        t.ItemAvatarSlotMarginVertical = 8f;                     // $item-md-media-slot-margin-top/bottom
+        t.ItemAvatarStartSlotMarginEnd = 16f;                    // $item-md-media-start-slot-margin-end
+        t.ItemAvatarEndSlotMarginStart = 16f;                    // $item-md-media-end-slot-margin-start
         t.ListInsetMargin = 16f;                                 // $list-inset-md-margin-*
         t.ListInsetBorderRadius = 2f;                            // $list-inset-md-border-radius
 
@@ -1288,6 +1324,14 @@ public class IonicTheme
         t.ItemBorderColor = new Color(0, 0, 0, 51);             // rgba(0,0,0,.2)
         t.ItemPaddingStart = 16f;
         t.ItemPaddingEnd = 16f;                                 // $item-ios-padding-end → --inner-padding-end
+        t.ItemLabelMarginVertical = 10f;                        // item.ios.scss ::slotted(ion-label)
+        t.ItemLabelMarginEnd = 8f;                              // item.ios.scss ::slotted(ion-label)
+        t.ItemIconSlotMarginVertical = 7f;                      // $item-ios-icon-slot-margin-top/bottom
+        t.ItemIconStartSlotMarginEnd = 0f;                      // iOS gives slotted icons no horizontal margin
+        t.ItemIconEndSlotMarginStart = 0f;                      // iOS gives slotted icons no horizontal margin
+        t.ItemAvatarSlotMarginVertical = 0f;                    // iOS sizes slotted avatars only
+        t.ItemAvatarStartSlotMarginEnd = 0f;                    // iOS gives start avatars no margin
+        t.ItemAvatarEndSlotMarginStart = 8f;                    // item.ios.scss ::slotted(ion-avatar[slot="end"])
         t.ListInsetMargin = 16f;                                // $list-inset-ios-margin-*
         t.ListInsetBorderRadius = 10f;                          // $list-inset-ios-border-radius
 

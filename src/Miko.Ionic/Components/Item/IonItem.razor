@@ -153,11 +153,14 @@
 
     /// <summary>
     /// After the subtree is built, flag the disabled state on the host and its native surface so
-    /// the <c>:disabled</c> stylesheet rules and hit-testing apply (mirrors <see cref="IonCard"/>).
+    /// the <c>:disabled</c> stylesheet rules and hit-testing apply (mirrors <see cref="IonCard"/>),
+    /// and stamp slotted buttons that did not set an explicit size with <c>button-small</c>
+    /// (Ionic's in-item size default — see <see cref="ItemButtonSizePostPass"/>).
     /// </summary>
     public override Element Build()
     {
         var root = base.Build();
+        ItemButtonSizePostPass.StampSmallButtons(root);
         if (Disabled)
         {
             root.SetState(ElementState.Disabled);

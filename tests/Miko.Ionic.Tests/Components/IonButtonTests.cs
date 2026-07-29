@@ -345,6 +345,92 @@ public class IonButtonTests : IonicComponentTestBase
         nativeStyle.MinHeight.Value.ShouldBe(hostStyle.MinHeight.Value);
     }
 
+    // --- Slotted icon size follows the button size (issues/ion-button.md #6) ----------------
+    // Ionic sizes slotted icons via ::slotted(ion-icon) { font-size: 1.35em } (button.scss)
+    // combined with ion-icon's width/height: 1em (icon.scss). The 1.35em resolves against the
+    // inherited button font — which button-small / button-large change (md: 13/14/20px →
+    // 17.55/18.9/27px) — so start/end icons must scale with Size. The fixed base .ion-icon box
+    // (TabButtonIconSize) must not win inside a button.
+
+    private static ComponentUnderTest RenderSlotIconButton(TestContext ctx, bool start, string? size)
+        => ctx.Render<IonButton>(p =>
+        {
+            RenderFragment icon = b =>
+            {
+                b.OpenComponent<IonIcon>(0);
+                b.AddComponentParameter(1, nameof(IonIcon.Icon), "star");
+                b.CloseComponent();
+            };
+            p.Add(start ? nameof(IonButton.Start) : nameof(IonButton.End), icon);
+            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent(0, "Label")));
+            if (size is not null) p.Add(nameof(IonButton.Size), size);
+        });
+
+    [Theory]
+    [InlineData("small", 17.55f)] // 1.35 × md small font (13px)
+    [InlineData(null, 18.9f)]     // 1.35 × md default font (14px)
+    [InlineData("large", 27f)]    // 1.35 × md large font (20px)
+    public void IonButton_StartSlotIcon_ScalesWithButtonSize(string? size, float expected)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderSlotIconButton(Context, start: true, size);
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+
+        // The mechanism: font-size: 1.35em against the inherited button font…
+        cut.GetComputedStyle(icon)!.FontSize.Value.ShouldBe(expected, 0.01f);
+
+        // …and the rendered box is 1em of that (icon.scss width/height: 1em).
+        var box = cut.GetBoxModel(icon)!;
+        box.Content.Width.ShouldBe(expected, 0.01f);
+        box.Content.Height.ShouldBe(expected, 0.01f);
+    }
+
+    [Theory]
+    [InlineData("small", 17.55f)]
+    [InlineData(null, 18.9f)]
+    [InlineData("large", 27f)]
+    public void IonButton_EndSlotIcon_ScalesWithButtonSize(string? size, float expected)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderSlotIconButton(Context, start: false, size);
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+        var box = cut.GetBoxModel(icon)!;
+
+        box.Content.Width.ShouldBe(expected, 0.01f);
+        box.Content.Height.ShouldBe(expected, 0.01f);
+    }
+
+    [Fact]
+    public void IonButton_StartSlotIcon_ScalesWithButtonSize_Ios()
+    {
+        UsePlatform(Miko.Platform.HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderSlotIconButton(Context, start: true, size: null);
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+
+        // ios default button font is 16px → 1.35em = 21.6px icon.
+        cut.GetComputedStyle(icon)!.FontSize.Value.ShouldBe(21.6f, 0.01f);
+        cut.GetBoxModel(icon)!.Content.Width.ShouldBe(21.6f, 0.01f);
+    }
+
+    [Fact]
+    public void IonButton_IconOnlyIcon_KeepsExplicitSize_OverSlottedIconRule()
+    {
+        // The icon-only rules carry explicit px sizes at higher specificity, so the generic
+        // 1.35em slotted-icon rule must not leak onto the icon-only box.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context);
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+        var box = cut.GetBoxModel(icon)!;
+
+        box.Content.Width.ShouldBe(22.4f, 0.01f);
+        box.Content.Height.ShouldBe(22.4f, 0.01f);
+    }
+
     [Fact]
     public void IonButton_OmitsSlotMarkers_WhenNoSlotContent()
     {

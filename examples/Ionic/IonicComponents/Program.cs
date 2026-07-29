@@ -1,6 +1,6 @@
 using Miko.Windowing;
 
-namespace MikoApp1.Razor;
+namespace IonicComponents;
 
 public static class Program
 {

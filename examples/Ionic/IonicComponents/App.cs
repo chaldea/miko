@@ -5,7 +5,7 @@ using Miko.DevTools;
 using Miko.Hosting;
 using Miko.Ionic;
 
-namespace MikoApp1.Razor;
+namespace IonicComponents;
 
 public static class RazorApp
 {

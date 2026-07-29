@@ -115,6 +115,19 @@ public class IonListTests : IonicComponentTestBase
     // ---- lines styles ------------------------------------------------------
 
     [Fact]
+    public void IonList_DefaultLines_ItemDividerIsInsetLike()
+    {
+        var cut = RenderListWithStyles(p =>
+            p.Add(nameof(IonList.ChildContent), Items((string?)null)));
+
+        // A list with no `lines` keeps the item default: divider on .item-inner (inset look),
+        // native surface borderless — matching Ionic's :host defaults.
+        var item = cut.FindByClass("ion-item").Single();
+        NativeBorderWidth(cut, item).ShouldBe(0f);
+        InnerBorderWidth(cut, item).ShouldBe(1f);
+    }
+
+    [Fact]
     public void IonList_LinesNone_RemovesItemDivider()
     {
         var cut = RenderListWithStyles(p =>
@@ -123,7 +136,9 @@ public class IonListTests : IonicComponentTestBase
             p.Add(nameof(IonList.ChildContent), Items((string?)null));
         });
 
-        NativeBorderWidth(cut, cut.FindByClass("ion-item").Single()).ShouldBe(0f);
+        var item = cut.FindByClass("ion-item").Single();
+        NativeBorderWidth(cut, item).ShouldBe(0f);
+        InnerBorderWidth(cut, item).ShouldBe(0f);
     }
 
     [Fact]
@@ -167,6 +182,7 @@ public class IonListTests : IonicComponentTestBase
         var item = cut.FindByClass("ion-item").Single();
         item.ShouldHaveClass("item-lines-full");
         NativeBorderWidth(cut, item).ShouldBe(1f);
+        InnerBorderWidth(cut, item).ShouldBe(0f);
     }
 
     [Fact]
@@ -195,7 +211,9 @@ public class IonListTests : IonicComponentTestBase
 
         var items = cut.FindByClass("ion-item");
         NativeBorderWidth(cut, items[0]).ShouldBe(0f);
+        InnerBorderWidth(cut, items[0]).ShouldBe(0f);
         NativeBorderWidth(cut, items[1]).ShouldBe(1f);
+        InnerBorderWidth(cut, items[1]).ShouldBe(0f);
     }
 
     // ---- inset -------------------------------------------------------------
@@ -246,12 +264,12 @@ public class IonListTests : IonicComponentTestBase
         items.Count.ShouldBe(3);
 
         // Ionic's .list-inset ion-item:last-of-type override — the Build() post-pass stamps the
-        // last item; the others keep their divider.
+        // last item; the others keep their (default, inset-like) divider on .item-inner.
         items[0].ShouldNotHaveClass("item-last-in-list");
         items[1].ShouldNotHaveClass("item-last-in-list");
         items[2].ShouldHaveClass("item-last-in-list");
 
-        NativeBorderWidth(cut, items[0]).ShouldBe(1f);
+        InnerBorderWidth(cut, items[0]).ShouldBe(1f);
         NativeBorderWidth(cut, items[2]).ShouldBe(0f);
         InnerBorderWidth(cut, items[2]).ShouldBe(0f);
     }
@@ -264,6 +282,6 @@ public class IonListTests : IonicComponentTestBase
 
         var items = cut.FindByClass("ion-item");
         items[^1].ShouldNotHaveClass("item-last-in-list");
-        NativeBorderWidth(cut, items[^1]).ShouldBe(1f);
+        InnerBorderWidth(cut, items[^1]).ShouldBe(1f);
     }
 }

@@ -116,8 +116,24 @@ internal static class ButtonStyles
             [$".ion-button.{mode} .ion-slot-end"] = new() { Display = Display.Flex, FlexShrink = 0 },
             [$".ion-button.{mode} .ion-slot-icon-only"] = new() { Display = Display.Flex, FlexShrink = 0 },
 
+            // Slotted icons scale with the button font (button.scss ::slotted(ion-icon)
+            // { font-size: 1.35em; pointer-events: none } + icon.scss :host { width/height: 1em }).
+            // The 1.35em font-size resolves against the inherited button font — which the
+            // button-small / button-large host rules change — so start/end icons follow Size
+            // (md: 13/14/20px → 17.55/18.9/27px); width/height: 1em then turns that font-size
+            // into the icon box. The icon-only rules below override the box with explicit px at
+            // higher specificity, so they are unaffected (ISSUE: #6).
+            [$".ion-button.{mode} .ion-icon"] = new()
+            {
+                FontSize = Length.Em(1.35f),
+                Width = Length.Em(1f),
+                Height = Length.Em(1f),
+                PointerEvents = PointerEvents.None,
+            },
+
             // Slotted icons carry a small side gap toward the label (button.scss ::slotted(ion-icon[slot=…])).
             // start icon: gap on its trailing (right) edge; end icon: gap on its leading (left) edge.
+            // Like CSS, the em margin resolves against the icon's own font-size (1.35em above).
             [$".ion-button.{mode} .ion-slot-start .ion-icon"] = new() { MarginRight = Length.Em(0.3f) },
             [$".ion-button.{mode} .ion-slot-end .ion-icon"] = new() { MarginLeft = Length.Em(0.3f) },
         };

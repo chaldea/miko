@@ -31,6 +31,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- res:// icon-loading tests resolve these through IResourceAssemblyProvider. -->
+    <EmbeddedResource Include="Resources\**\*" />
+  </ItemGroup>
+
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
     <PropertyGroup>
       <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\src\Miko.Razor.Compiler\bin\$(Configuration)\net9.0\</_CustomRazorGeneratorDir>

@@ -19,6 +19,7 @@
     [Parameter] public int? Rows { get; set; }
     [Parameter] public Length? Height { get; set; }
     [Parameter] public Length? Width { get; set; }
+    [Parameter] public Display Display { get; set; } = Display.Flex;
     [Parameter] public FlexDirection Direction { get; set; } = FlexDirection.Row;
     [Parameter] public bool Stretch { get; set; }
     [Parameter] public bool Wrap { get; set; }
@@ -32,6 +33,7 @@
         };
         _container = new Style
         {
+            Display = Display,
             Width = Width,
             Height = Fit ? Percent(100) : null,
             FlexDirection = Direction,

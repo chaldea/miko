@@ -6,24 +6,29 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RazorLangVersion>Latest</RazorLangVersion>
-    <StartupObject>IonicComponents.Program</StartupObject>
+    <StartupObject>IonicDemo.Program</StartupObject>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\**\*" />
+    <EmbeddedResource Include="Assets\**\*" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
     <ProjectReference Include="..\..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
+    <ProjectReference Include="..\..\..\src\Miko.Simulator\Miko.Simulator.csproj" />
     <ProjectReference Include="..\..\..\src\Miko.Windowing\Miko.Windowing.csproj" />
     <ProjectReference Include="..\..\..\src\Miko\Miko.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Assets\" />
   </ItemGroup>
 
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">

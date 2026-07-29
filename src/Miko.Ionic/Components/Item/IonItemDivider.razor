@@ -56,4 +56,16 @@
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
             .AddColor(Color);
     }
+
+    /// <summary>
+    /// After the subtree is built, stamp slotted buttons that did not set an explicit size with
+    /// <c>button-small</c> — Ionic's in-item size default also covers item dividers
+    /// (button.tsx: <c>inItem = closest('ion-item') || closest('ion-item-divider')</c>).
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        ItemButtonSizePostPass.StampSmallButtons(root);
+        return root;
+    }
 }
