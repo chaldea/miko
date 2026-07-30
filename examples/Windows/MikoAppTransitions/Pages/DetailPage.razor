@@ -1,0 +1,55 @@
+@page "/detail/ios"
+@page "/detail/slide"
+@page "/detail/fade"
+@page "/detail/modal"
+@page "/detail/none"
+@namespace MikoAppTransitions.Pages
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <IonButtons Slot="start">
+                <IonBackButton Text="返回" OnClick="GoBack" />
+            </IonButtons>
+            <IonTitle>@Effect.Title</IonTitle>
+        </IonToolbar>
+    </IonHeader>
+
+    <IonContent Fullscreen="true">
+        <div class="hero hero-@Effect.Key">
+            <div class="hero-title">@Effect.Title</div>
+            <div class="hero-sub">@Effect.Subtitle</div>
+        </div>
+
+        <div class="demo-content">
+            <p>
+                当前路径 <code>@CurrentPath</code>。
+                点「返回」以 Back 方向出栈并播放反向转场；
+                点「Root 返回」则清空历史栈、瞬时切回首页（对应 Tab 切换场景）。
+            </p>
+            <IonButton Expand="block" OnClick="GoBack">返回（Back 转场）</IonButton>
+            <IonButton Expand="block" Fill="outline" OnClick="GoRoot">Root 返回（清栈，无转场）</IonButton>
+        </div>
+    </IonContent>
+</IonPage>
+
+@code {
+    private string CurrentPath => NavigationManager?.CurrentPath ?? "/";
+
+    private EffectEntry Effect => PageTransitions.Get(CurrentPath.Split('/').Last());
+
+    private void GoBack()
+    {
+        if (NavigationManager == null) return;
+
+        // Back = 出栈返回，播放该效果的反向转场；"none" 不带转场（瞬时切换）。
+        var transition = PageTransitions.Create(Effect.Key, reverse: true);
+        NavigationManager.NavigateTo("/", NavigationDirection.Back, transition);
+    }
+
+    private void GoRoot()
+    {
+        // Root = 清空历史栈的根级切换（如 Tab 切换），不做转场。
+        NavigationManager?.NavigateTo("/", NavigationDirection.Root);
+    }
+}

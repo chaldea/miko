@@ -47,5 +47,6 @@
     <Project Path="Windows/MikoAppBlank/MikoAppBlank.csproj" />
     <Project Path="Windows/MikoAppSidemenu/MikoAppSidemenu.csproj" />
     <Project Path="Windows/MikoAppTabs/MikoAppTabs.csproj" />
+    <Project Path="Windows/MikoAppTransitions/MikoAppTransitions.csproj" />
   </Folder>
 </Solution>

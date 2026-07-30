@@ -7,6 +7,7 @@ using Miko.Events;
 using Miko.Layout;
 using Miko.Platform.Video;
 using Miko.Rendering;
+using Miko.Routing;
 using Miko.Styling;
 using SkiaSharp;
 
@@ -55,6 +56,15 @@ public class MikoEngine
     private float _viewportHeight;
     private SafeAreaInsets _safeArea;
 
+    // 页面转场状态（ISSUE-108）：转场期间旧页面树（leaving 层）被保留，与新页面树
+    // （entering 层，即 _root/_currentLayout）作为两个叠放图层共同绘制；
+    // 转场结束或被新导航打断时 leaving 层被丢弃。
+    private Element? _navLeavingRoot;
+    private LayoutBox? _navLeavingLayout;
+    private NavigationTransitionContext? _navContext;
+    private NavigationTransition? _navTransition;
+    private float _navElapsed;
+
     /// <summary>
     /// 视频后端。由平台宿主在初始化时从 DI 注入（未注册视频后端时为 null，
     /// <c>&lt;video&gt;</c> 元素将只显示背景/poster）。
@@ -101,10 +111,31 @@ public class MikoEngine
     private readonly List<Element> _pendingInvalidations = new();
     private readonly object _pendingInvalidationsLock = new();
 
-    public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight)
+    /// <summary>
+    /// 以新根元素初始化（导航重建）引擎。
+    /// <paramref name="transition"/> 非空且存在旧页面时，旧页面树被保留为 leaving 图层，
+    /// 与新页面共同绘制直到转场完成（ISSUE-108）；否则瞬时切换。
+    /// </summary>
+    public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight, NavigationTransitionInfo? transition = null)
     {
         // Capture old layout for scroll position restoration (ISSUE-092)
         var oldLayout = _currentLayout;
+
+        // 新一轮导航打断进行中的转场：直接丢弃 leaving 层
+        // （其视频会话由下方 SyncVideoSessions 随旧树移除而回收）。
+        CancelNavigationTransition();
+
+        // 请求转场且存在旧页面时，保留旧页面树作为 leaving 层参与后续绘制。
+        // 首帧导航（无旧页面/无旧布局）或零时长转场退化为普通瞬时切换。
+        bool startTransition = transition != null
+            && transition.Transition.Duration > 0
+            && _root != null
+            && _currentLayout != null;
+        if (startTransition)
+        {
+            _navLeavingRoot = _root;
+            _navLeavingLayout = _currentLayout;
+        }
 
         // Transfer old LayoutBox references to new elements for transition detection
         if (_root != null)
@@ -147,7 +178,30 @@ public class MikoEngine
         // 同步图片源（为新 <img> 发起异步加载、解码占位图）。
         SyncImageSources(root);
 
-        _renderEngine.Render(_currentLayout);
+        if (startTransition)
+        {
+            _navTransition = transition!.Transition;
+            _navElapsed = 0f;
+            _navContext = new NavigationTransitionContext(
+                _navLeavingRoot!, root, transition.Direction,
+                transition.FromPath, transition.ToPath, viewportWidth, viewportHeight);
+            _navTransition.OnStart(_navContext);
+            // 首帧即以 progress=0 的图层状态绘制，避免新页面在初始位置闪烁一帧。
+            _navTransition.Apply(_navContext, EaseProgress(_navTransition, 0f));
+            _logger.LogDebug("Navigation transition started: {From} -> {To} ({Direction}), effect={Effect}, duration={Duration}s",
+                transition.FromPath, transition.ToPath, transition.Direction,
+                _navTransition.GetType().Name, _navTransition.Duration);
+            RenderTransitionFrame();
+        }
+        else
+        {
+            if (transition != null)
+            {
+                _logger.LogDebug("Navigation transition skipped (first navigation or non-positive duration): {From} -> {To} ({Direction})",
+                    transition.FromPath, transition.ToPath, transition.Direction);
+            }
+            _renderEngine.Render(_currentLayout);
+        }
         ScanAndStartAnimations(root);
     }
 
@@ -184,6 +238,103 @@ public class MikoEngine
         return a.TagName == b.TagName;
     }
 
+    // ---------------------------------------------------------------------
+    // 页面转场（ISSUE-108）
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// 是否有进行中的页面转场。转场期间旧页面树仍作为 leaving 图层参与绘制，
+    /// 命中测试则始终作用于 entering 页面树（旧页面不可交互）。
+    /// </summary>
+    public bool IsNavigationTransitionActive => _navContext != null;
+
+    /// <summary>
+    /// 推进页面转场时钟（每帧调用一次，<paramref name="deltaTime"/> 单位秒）。
+    /// 到达转场时长后以 progress=1 应用终态并回收 leaving 层；无进行中的转场时为 no-op。
+    /// </summary>
+    public void AdvanceNavigationTransition(float deltaTime)
+    {
+        if (_navContext == null || _navTransition == null) return;
+
+        _navElapsed += deltaTime;
+        float linear = _navTransition.Duration <= 0 ? 1f : Math.Clamp(_navElapsed / _navTransition.Duration, 0f, 1f);
+        _logger.LogTrace("Navigation transition frame: dt={Delta:F4}s elapsed={Elapsed:F3}s progress={Progress:F3} ({From} -> {To})",
+            deltaTime, _navElapsed, linear, _navContext.FromPath, _navContext.ToPath);
+        _navTransition.Apply(_navContext, EaseProgress(_navTransition, linear));
+
+        if (linear < 1f) return;
+
+        // 自然完成：回收 leaving 层，全量重绘一次去除旧图层的屏幕残影，
+        // 并同步视频会话（leaving 树的 <video> 随树移除而回收）。
+        var transition = _navTransition;
+        var context = _navContext;
+        ClearNavigationTransitionState();
+        _logger.LogDebug("Navigation transition completed: {From} -> {To} ({Direction})",
+            context.FromPath, context.ToPath, context.Direction);
+        transition.OnEnd(context);
+        if (_root != null)
+        {
+            SyncVideoSessions(_root);
+            InvalidateElement(_root);
+        }
+    }
+
+    /// <summary>丢弃转场状态（不触发 OnEnd；新导航打断或视口/安全区变化时调用）。</summary>
+    private void CancelNavigationTransition()
+    {
+        if (_navContext != null)
+        {
+            _logger.LogDebug("Navigation transition canceled: {From} -> {To} ({Direction})",
+                _navContext.FromPath, _navContext.ToPath, _navContext.Direction);
+        }
+        ClearNavigationTransitionState();
+    }
+
+    private void ClearNavigationTransitionState()
+    {
+        _navLeavingRoot = null;
+        _navLeavingLayout = null;
+        _navContext = null;
+        _navTransition = null;
+        _navElapsed = 0f;
+    }
+
+    private static float EaseProgress(NavigationTransition transition, float linear)
+        => EasingFunctions.Evaluate(transition.TimingFunction, linear, transition.CubicBezier);
+
+    /// <summary>
+    /// 绘制一帧转场画面：leaving/entering 两棵布局树按上下文中的叠放次序、
+    /// 偏移与不透明度作为两个图层依次绘制，最后统一绘制一次覆盖层。
+    /// </summary>
+    private void RenderTransitionFrame()
+    {
+        if (_navContext == null || _currentLayout == null) return;
+
+        var ctx = _navContext;
+        if (ctx.EnteringBelow)
+        {
+            _renderEngine.RenderLayer(_currentLayout, ctx.EnteringOffsetX, ctx.EnteringOffsetY, ctx.EnteringOpacity);
+            if (_navLeavingLayout != null)
+                _renderEngine.RenderLayer(_navLeavingLayout, ctx.LeavingOffsetX, ctx.LeavingOffsetY, ctx.LeavingOpacity);
+        }
+        else
+        {
+            if (_navLeavingLayout != null)
+                _renderEngine.RenderLayer(_navLeavingLayout, ctx.LeavingOffsetX, ctx.LeavingOffsetY, ctx.LeavingOpacity);
+            _renderEngine.RenderLayer(_currentLayout, ctx.EnteringOffsetX, ctx.EnteringOffsetY, ctx.EnteringOpacity);
+        }
+        _renderEngine.RenderOverlay();
+    }
+
+    /// <summary>绘制当前帧：转场期间绘制双层转场画面，否则常规全量渲染。</summary>
+    private void RenderCurrentFrame()
+    {
+        if (_navContext != null)
+            RenderTransitionFrame();
+        else
+            _renderEngine.Render(_currentLayout!);
+    }
+
     public void Update(SKCanvas canvas)
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
@@ -195,6 +346,21 @@ public class MikoEngine
         SyncImageSources(_root);
 
         _renderEngine.SetCanvas(canvas);
+
+        // 页面转场期间（ISSUE-108）：每帧无条件整体重绘两个图层（转场动画连续改变
+        // 图层偏移/透明度，脏区域模型不适用）；进入页 DOM 变化仍照常触发重排。
+        if (_navContext != null)
+        {
+            if (_dirtyManager.HasDirtyRegions())
+            {
+                var oldLayout = _currentLayout;
+                _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
+                RestoreScrollState(oldLayout, _currentLayout);
+            }
+            RenderTransitionFrame();
+            _dirtyManager.Clear();
+            return;
+        }
 
         if (_dirtyManager.HasDirtyRegions())
         {
@@ -240,7 +406,7 @@ public class MikoEngine
             // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
             SyncImageSources(_root);
 
-            _renderEngine.Render(_currentLayout);
+            RenderCurrentFrame();
             _dirtyManager.Clear();
             return;
         }
@@ -262,7 +428,7 @@ public class MikoEngine
         SyncImageSources(_root);
 
         RestoreScrollState(oldLayout, _currentLayout);
-        _renderEngine.Render(_currentLayout);
+        RenderCurrentFrame();
         _dirtyManager.Clear();
     }
 
@@ -309,6 +475,7 @@ public class MikoEngine
             if (HasPendingInvalidations) return true;                   // 跨线程失效（视频帧、图片加载）
             if (_dirtyManager.HasDirtyRegions()) return true;           // 已标脏未绘制
             if (_animationManager.HasActiveAnimations) return true;     // 动画/过渡逐帧推进
+            if (_navContext != null) return true;                       // 页面转场逐帧推进（ISSUE-108）
             // 布局输入已变（DOM/样式/视口/安全区）→ 需要重排重绘
             if (!_layoutEngine.IsLayoutCurrent(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea)) return true;
             // 加载中/播放中的视频会持续投递新帧
@@ -366,7 +533,7 @@ public class MikoEngine
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
-        if (!_animationManager.HasActiveAnimations && !_dirtyManager.HasDirtyRegions())
+        if (!_animationManager.HasActiveAnimations && !_dirtyManager.HasDirtyRegions() && _navContext == null)
         {
             _logger.LogTrace("Tick: no active animations or dirty regions, skipping");
             return;
@@ -375,6 +542,7 @@ public class MikoEngine
         _logger.LogTrace("Tick: deltaTime={DeltaTime}s, activeAnimations={HasAnim}, dirtyRegions={HasDirty}",
             deltaTime, _animationManager.HasActiveAnimations, _dirtyManager.HasDirtyRegions());
         _animationManager.Update(deltaTime);
+        AdvanceNavigationTransition(deltaTime);
         Render(canvas);
     }
 
@@ -387,6 +555,9 @@ public class MikoEngine
         {
             _viewportWidth = width;
             _viewportHeight = height;
+
+            // 视口变化使 leaving 层的旧布局失效，直接结束转场（ISSUE-108）。
+            CancelNavigationTransition();
 
             // 视口变化需要完整重新布局
             if (_root != null)
@@ -408,6 +579,9 @@ public class MikoEngine
         if (_safeArea == insets) return;
 
         _safeArea = insets;
+
+        // 安全区变化使 leaving 层的旧布局失效，直接结束转场（ISSUE-108）。
+        CancelNavigationTransition();
 
         // 安全区变化需要完整重新布局（与视口变化同理）
         if (_root != null)
@@ -852,6 +1026,9 @@ public class MikoEngine
         // 收集当前树中所有 VideoElement
         var present = new HashSet<VideoElement>();
         CollectVideoElements(root, present);
+        // 页面转场期间 leaving 树仍在绘制，其视频会话需保持存活（ISSUE-108）。
+        if (_navLeavingRoot != null)
+            CollectVideoElements(_navLeavingRoot, present);
 
         // 1. 回收已不在树中的会话
         if (_videoSessions.Count > 0)
