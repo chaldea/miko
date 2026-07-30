@@ -69,6 +69,43 @@ public class RenderEngine
         OverlayCallback?.Invoke(_canvas!);
     }
 
+    /// <summary>
+    /// 把一棵布局树作为一个"图层"渲染：整体偏移（像素）+ 整体不透明度（页面转场使用，ISSUE-108）。
+    /// 不触发 <see cref="OverlayCallback"/>——多层绘制时由调用方在最后统一调用 <see cref="RenderOverlay"/>。
+    /// </summary>
+    public void RenderLayer(LayoutBox layoutRoot, float offsetX = 0, float offsetY = 0, float opacity = 1)
+    {
+        if (_canvas == null || _painter == null)
+            throw new InvalidOperationException("Canvas not set. Call SetCanvas first.");
+
+        _dirtyRegions = null;
+        _pendingDropdowns.Clear();
+        _currentScrollOffsetX = 0;
+        _currentScrollOffsetY = 0;
+
+        bool hasOpacity = opacity < 1f;
+
+        _painter.Save();
+        if (hasOpacity)
+            _painter.SaveLayerAlpha((byte)(Math.Clamp(opacity, 0f, 1f) * 255));
+        if (offsetX != 0 || offsetY != 0)
+            _painter.Translate(offsetX, offsetY);
+
+        RenderBox(layoutRoot);
+        FlushDropdowns();
+
+        if (hasOpacity) _painter.Restore();
+        _painter.Restore();
+    }
+
+    /// <summary>触发 <see cref="OverlayCallback"/>（页面转场多层绘制结束后统一绘制一次覆盖层）。</summary>
+    public void RenderOverlay()
+    {
+        if (_canvas == null)
+            throw new InvalidOperationException("Canvas not set. Call SetCanvas first.");
+        OverlayCallback?.Invoke(_canvas);
+    }
+
     public void RenderDirty(LayoutBox layoutRoot, List<RectF> dirtyRegions)
     {
         if (_canvas == null || _painter == null)

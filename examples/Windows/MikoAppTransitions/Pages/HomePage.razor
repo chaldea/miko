@@ -1,0 +1,46 @@
+@page "/"
+@namespace MikoAppTransitions.Pages
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <IonTitle>页面转场</IonTitle>
+        </IonToolbar>
+    </IonHeader>
+
+    <IonContent Fullscreen="true">
+        <div class="demo-content">
+            <p>
+                点击下面任意一项，以对应的转场效果前进（Forward）到详情页；
+                在详情页点返回可看到反向（Back）转场。
+                转场效果由应用侧实现 <code>NavigationTransition</code>（见 Transitions.cs），
+                引擎负责双树图层绘制与逐帧推进（ISSUE-108）。
+            </p>
+        </div>
+
+        <IonList Lines="full">
+            @foreach (var effect in PageTransitions.Effects)
+            {
+                <IonItem Button="true" Detail="true" OnClick="@(() => Open(effect))">
+                    <ChildContent>
+                        <IonLabel>
+                            <h3>@effect.Title</h3>
+                            <p>@effect.Subtitle</p>
+                        </IonLabel>
+                    </ChildContent>
+                </IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+
+@code {
+    private void Open(EffectEntry effect)
+    {
+        if (NavigationManager == null) return;
+
+        // Forward = 压栈前进；"none" 不带转场（瞬时切换）。
+        var transition = PageTransitions.Create(effect.Key, reverse: false);
+        NavigationManager.NavigateTo($"/detail/{effect.Key}", NavigationDirection.Forward, transition);
+    }
+}

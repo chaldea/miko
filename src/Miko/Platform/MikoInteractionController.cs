@@ -45,6 +45,10 @@ public sealed class MikoInteractionController
     // thread may never observe the change due to CPU caching.
     private volatile bool _needsRebuild;
 
+    // 最近一次导航的事件参数（含方向与可选的页面转场效果，ISSUE-108）。
+    // 先于 volatile 的 _needsRebuild 写入，渲染线程读到 _needsRebuild=true 时必然能读到它。
+    private NavigationEventArgs? _pendingNavigation;
+
     private Element? _focusedElement;
     private InputElement? _draggingRange;
     private bool _isDragging;
@@ -107,7 +111,13 @@ public sealed class MikoInteractionController
             _options.RouteConfigurator?.Invoke(_router);
             _navigationManager = serviceProvider.GetRequiredService<NavigationManager>();
             _routeView = new RouteView(_router, _navigationManager, _options.DefaultLayout, _serviceProvider);
-            _navigationManager.LocationChanged += _ => _needsRebuild = true;
+            _navigationManager.LocationChanged += args =>
+            {
+                _pendingNavigation = args;
+                _needsRebuild = true;
+                _logger.LogDebug("Navigation: {From} -> {To} ({Direction}), transition={Transition}",
+                    args.FromPath, args.ToPath, args.Direction, args.Transition?.GetType().Name ?? "none");
+            };
         }
 
         // Set up hot reload if enabled
@@ -188,20 +198,45 @@ public sealed class MikoInteractionController
     {
         _logger.LogInformation("[HotReload] Render loop detected _needsRebuild flag, rebuilding DOM tree");
         _needsRebuild = false;
+        var navigation = _pendingNavigation;
+        _pendingNavigation = null;
         // Install the sync context so OnInitializedAsync continuations post to the dispatcher.
         var prevCtx = SynchronizationContext.Current;
         SynchronizationContext.SetSynchronizationContext(_syncContext);
         Element root;
         try { root = BuildRoot(); }
         finally { SynchronizationContext.SetSynchronizationContext(prevCtx); }
-        _engine.Initialize(root, _options.StyleSheets, canvas, width, height);
+        if (navigation?.Transition != null)
+        {
+            // 附带页面转场效果的导航（ISSUE-108）：引擎保留旧页面树作为 leaving 图层，
+            // 与新页面共同绘制直到转场完成。
+            _engine.Initialize(root, _options.StyleSheets, canvas, width, height,
+                new NavigationTransitionInfo(navigation.Transition, navigation.Direction, navigation.FromPath, navigation.ToPath));
+        }
+        else
+        {
+            _engine.Initialize(root, _options.StyleSheets, canvas, width, height);
+        }
         _logger.LogInformation("[HotReload] DOM rebuilt and initialized, next frame will render new content");
     }
 
-    /// <summary>推进动画（每帧调用）。</summary>
+    /// <summary>
+    /// 帧间隔上限（秒）。超过该间隔说明期间没有出帧——稳态空闲（ISSUE-096）下宿主跳帧休眠，
+    /// 或严重卡顿。动画时间只在出帧期间流动：此类"恢复帧"按 <see cref="NominalFrameDelta"/>
+    /// 推进，而非按包含空闲时长的真实间隔——否则该帧刚启动的动画/页面转场会被一步跳过
+    /// 大半（ISSUE-108 转场"不生效/一闪而过"）。
+    /// </summary>
+    private const float MaxFrameDelta = 0.1f;
+
+    /// <summary>恢复帧采用的标称帧步长（1/60 秒）。</summary>
+    private const float NominalFrameDelta = 1f / 60f;
+
+    /// <summary>推进动画与页面转场（每帧调用）。</summary>
     public void Update(float deltaTime)
     {
-        _engine.AnimationManager.Update(deltaTime);
+        var dt = deltaTime > MaxFrameDelta ? NominalFrameDelta : deltaTime;
+        _engine.AnimationManager.Update(dt);
+        _engine.AdvanceNavigationTransition(dt);
     }
 
     /// <summary>
