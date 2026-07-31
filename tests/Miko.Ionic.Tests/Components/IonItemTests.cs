@@ -1,4 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Miko.Testing;
+using Miko.Ionic;
 using Miko.Ionic.Components;
 using Miko.Components;
 using Miko.Events;
@@ -923,5 +925,157 @@ public class IonItemTests : IonicComponentTestBase
         style.ShouldNotBeNull();
         style.MarginRight.ShouldBe(Miko.Common.Length.Px(16));
         style.MarginTop.ShouldBe(Miko.Common.Length.Px(8));
+    }
+
+    // --- default href navigation (issues/ion-animation: routerLink) -----------
+
+    // Registers a NavigationManager and wires a capture of its LocationChanged args.
+    private (Miko.Routing.NavigationManager Nav, Func<Miko.Routing.NavigationEventArgs?> LastArgs) UseNavigation()
+    {
+        var nav = new Miko.Routing.NavigationManager();
+        Miko.Routing.NavigationEventArgs? last = null;
+        nav.LocationChanged += e => last = e;
+        Context.Services.AddSingleton(nav);
+        return (nav, () => last);
+    }
+
+    [Fact]
+    public void IonItem_HrefClick_NavigatesForward_WithModeTransition()
+    {
+        var (nav, lastArgs) = UseNavigation();
+
+        var cut = Context.Render<IonItem>(parameters =>
+        {
+            parameters.Add(nameof(IonItem.Href), "/details");
+            parameters.Add(nameof(IonItem.ChildContent), Label);
+        });
+
+        var native = cut.FindByClass("item-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
+
+        // Forward push: path stacked, direction Forward, md transition attached (default platform).
+        nav.CurrentPath.ShouldBe("/details");
+        nav.History.ShouldBe(new[] { "/", "/details" });
+        var args = lastArgs()!;
+        args.Direction.ShouldBe(Miko.Routing.NavigationDirection.Forward);
+        args.Transition.ShouldBeSameAs(IonicPageTransitions.MdPageTransition.Push);
+    }
+
+    [Fact]
+    public void IonItem_HrefClick_UsesIosTransition_OnIos()
+    {
+        UsePlatform(Miko.Platform.HostPlatform.Ios);
+        var (_, lastArgs) = UseNavigation();
+
+        var cut = Context.Render<IonItem>(parameters =>
+        {
+            parameters.Add(nameof(IonItem.Href), "/details");
+            parameters.Add(nameof(IonItem.ChildContent), Label);
+        });
+
+        var native = cut.FindByClass("item-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
+
+        lastArgs()!.Transition.ShouldBeSameAs(IonicPageTransitions.IosPageTransition.Push);
+    }
+
+    [Fact]
+    public void IonItem_HrefClick_RouterDirectionRoot_ClearsStackWithoutTransition()
+    {
+        var (nav, lastArgs) = UseNavigation();
+        nav.NavigateTo("/other");
+
+        var cut = Context.Render<IonItem>(parameters =>
+        {
+            parameters.Add(nameof(IonItem.Href), "/tab2");
+            parameters.Add(nameof(IonItem.RouterDirection), "root");
+            parameters.Add(nameof(IonItem.ChildContent), Label);
+        });
+
+        var native = cut.FindByClass("item-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
+
+        nav.CurrentPath.ShouldBe("/tab2");
+        nav.History.ShouldBe(new[] { "/tab2" }); // stack cleared
+        var args = lastArgs()!;
+        args.Direction.ShouldBe(Miko.Routing.NavigationDirection.Root);
+        args.Transition.ShouldBeNull();
+    }
+
+    [Fact]
+    public void IonItem_HrefClick_RouterDirectionBack_UsesPopTransition()
+    {
+        var (nav, lastArgs) = UseNavigation();
+        nav.NavigateTo("/details");
+
+        var cut = Context.Render<IonItem>(parameters =>
+        {
+            parameters.Add(nameof(IonItem.Href), "/");
+            parameters.Add(nameof(IonItem.RouterDirection), "back");
+            parameters.Add(nameof(IonItem.ChildContent), Label);
+        });
+
+        var native = cut.FindByClass("item-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
+
+        nav.CurrentPath.ShouldBe("/");
+        var args = lastArgs()!;
+        args.Direction.ShouldBe(Miko.Routing.NavigationDirection.Back);
+        args.Transition.ShouldBeSameAs(IonicPageTransitions.MdPageTransition.Pop);
+    }
+
+    [Fact]
+    public void IonItem_ButtonClick_WithoutHref_DoesNotNavigate()
+    {
+        var (nav, _) = UseNavigation();
+
+        var cut = Context.Render<IonItem>(parameters =>
+        {
+            parameters.Add(nameof(IonItem.Button), true);
+            parameters.Add(nameof(IonItem.ChildContent), Label);
+        });
+
+        var native = cut.FindByClass("item-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
+
+        nav.CurrentPath.ShouldBe("/");
+        nav.History.ShouldBe(new[] { "/" });
+    }
+
+    [Fact]
+    public void IonItem_HrefClick_WhenDisabled_DoesNotNavigate()
+    {
+        var (nav, _) = UseNavigation();
+
+        var cut = Context.Render<IonItem>(parameters =>
+        {
+            parameters.Add(nameof(IonItem.Href), "/details");
+            parameters.Add(nameof(IonItem.Disabled), true);
+            parameters.Add(nameof(IonItem.ChildContent), Label);
+        });
+
+        var native = cut.FindByClass("item-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
+
+        nav.CurrentPath.ShouldBe("/");
+    }
+
+    [Fact]
+    public void IonItem_HrefClick_WithoutNavigationManager_DoesNotThrow()
+    {
+        // No NavigationManager registered: default navigation is skipped, only OnClick fires.
+        var clicked = false;
+        var cut = Context.Render<IonItem>(parameters =>
+        {
+            parameters.Add(nameof(IonItem.Href), "/details");
+            parameters.Add(nameof(IonItem.OnClick),
+                EventCallback.Factory.Create(this, () => clicked = true));
+            parameters.Add(nameof(IonItem.ChildContent), Label);
+        });
+
+        var native = cut.FindByClass("item-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
+
+        clicked.ShouldBeTrue();
     }
 }

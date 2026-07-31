@@ -17,7 +17,9 @@
    (ion-slot-start / ion-slot-end) so the slot styles apply — mirroring Ionic's ::slotted([slot=…]).
    The default slot maps to ChildContent, rendered inside .input-wrapper.
    Ionic renders a <button> when `button` is set, an <a> when `href` is set, else a <div>; this
-   port keeps that TagType switch (navigation itself is out of scope for the renderer).
+   port keeps that TagType switch. With `href` set, the default click behavior navigates via the
+   injected NavigationManager (Forward push + mode page transition), mirroring Ionic's routerLink;
+   RouterDirection ("forward"/"back"/"root") overrides the direction like Ionic's routerDirection.
    The detail chevron shows when `detail` is true, or (when detail is unset) on iOS for a
    clickable item — matching Ionic's `showDetail = detail ?? (mode === 'ios' && clickable)`. *@
 <div class="@ClassMapper.Class" style="@Style">
@@ -105,8 +107,14 @@
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>Link target (Ionic <c>href</c>). When set, the native surface is an <c>a</c> and the
-    /// item is clickable. The renderer does not perform navigation.</summary>
+    /// item is clickable; the default click behavior navigates to the target through the injected
+    /// <see cref="Miko.Routing.NavigationManager"/> with a mode page transition (iOS push / MD fade-up).</summary>
     [Parameter] public string? Href { get; set; }
+
+    /// <summary>Navigation direction when <see cref="Href"/> is clicked (mirrors Ionic's
+    /// <c>routerDirection</c>): <c>"forward"</c> (default — push with transition), <c>"back"</c>
+    /// (pop-style reverse transition), or <c>"root"</c> (clear the history stack, no transition).</summary>
+    [Parameter] public string? RouterDirection { get; set; }
 
     /// <summary>How the bottom border is displayed (Ionic <c>lines</c>): <c>"full"</c>,
     /// <c>"inset"</c>, or <c>"none"</c>. Null uses the theme default hairline.</summary>
@@ -176,5 +184,20 @@
     {
         if (Disabled) return;
         await OnClick.InvokeAsync();
+
+        // Default behavior for an href item (Ionic's routerLink): navigate through the injected
+        // NavigationManager with the direction chosen by RouterDirection and the mode's page
+        // transition. Root switches (tab-style) get no transition; without a NavigationManager
+        // (bare tests) only OnClick fires.
+        if (!string.IsNullOrEmpty(Href) && Navigation is not null)
+        {
+            var (direction, transition) = RouterDirection?.ToLowerInvariant() switch
+            {
+                "back" => (NavigationDirection.Back, IonicPageTransitions.Pop(Mode)),
+                "root" => (NavigationDirection.Root, (NavigationTransition?)null),
+                _ => (NavigationDirection.Forward, IonicPageTransitions.Push(Mode)),
+            };
+            Navigation.NavigateTo(Href, direction, transition);
+        }
     }
 }

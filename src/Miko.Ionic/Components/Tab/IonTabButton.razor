@@ -8,7 +8,9 @@
     /// <summary>Logical tab identifier (e.g. <c>"tab1"</c>).</summary>
     [Parameter] public string? Tab { get; set; }
 
-    /// <summary>Navigation target for the tab button.</summary>
+    /// <summary>Navigation target for the tab button. When the button sits inside an
+    /// <see cref="IonTabs"/>, clicking it performs a root-level navigation to this target
+    /// (no page transition), mirroring Ionic's tab switching.</summary>
     [Parameter] public string? Href { get; set; }
 
     /// <summary>Whether this tab button is the currently selected one.</summary>
@@ -16,6 +18,11 @@
 
     /// <summary>Invoked when the tab button is clicked.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>The owning <see cref="IonTabs"/>, cascaded from its <c>Bar</c> fragment. Tab
+    /// navigation is owned by IonTabs (root-level, no transition) — the button reports clicks
+    /// to it after raising <see cref="OnClick"/>.</summary>
+    [CascadingParameter] public IonTabs? Tabs { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -30,5 +37,6 @@
     private async Task HandleClick(MouseEventArgs _)
     {
         await OnClick.InvokeAsync();
+        Tabs?.SelectTab(this);
     }
 }
