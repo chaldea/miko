@@ -20,6 +20,14 @@ public class TextLayout
     public void Layout(LayoutBox box, LayoutConstraints constraints, float x, float y)
     {
         var style = box.ComputedStyle;
+        // 本路径是文本节点的单盒布局（flex/grid 项目、shrink-to-fit 预测量等）。
+        // 节点若曾由行内格式化上下文断行（ISSUE-110），需清除旧行片段，使绘制回退到
+        // 按内容盒自行换行的路径（节点可能因重渲染从行内流变为 flex/grid 项目）。
+        if (box.Element is TextNode fragNode)
+        {
+            fragNode.LayoutFragments = null;
+        }
+
         // 应用 text-transform 后再测量，确保尺寸与绘制一致（大写通常更宽）。
         var text = TextTransformer.Apply(box.Element.TextContent, style.TextTransform);
 

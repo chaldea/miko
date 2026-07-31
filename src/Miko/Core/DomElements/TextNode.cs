@@ -56,6 +56,15 @@ public sealed class TextNode : Element
 
     public override string ToString() => $"#text(\"{Text}\")";
 
+    // ---- 行内换行片段（ISSUE-110）----
+    // 当文本节点处于块/行内容器的行内流中时，由 InlineFormattingContext 统一断行：
+    // 节点文本可能与其它行内子盒（code、a、span 等）交错排列到多条行盒，因此被切分为
+    // 若干行片段。片段坐标相对于本节点内容盒（BoxModel.Content，即全部片段的并集）原点，
+    // 使相对/绝对定位的整体偏移（OffsetSubtree）无需同步修正片段。
+    // 为 null 表示未经过行内断行（如 flex/grid 项目的文本走 TextLayout 单盒路径），
+    // 绘制时回退到按内容盒自行换行的旧路径。
+    internal List<TextLineFragment>? LayoutFragments;
+
     // ---- 多行测量缓存（ISSUE-096）----
     // TextLayout 的换行测量（TextMeasurer.MeasureTextWithWrap）没有全局缓存，
     // 每次布局都为每个文本节点分配 StringBuilder / 行列表。这里以全部测量输入为键
@@ -71,4 +80,27 @@ public sealed class TextNode : Element
     internal bool McBreakLongWords;
     internal float McLetterSpacing;
     internal (float Width, float Height) McResult;
+}
+
+/// <summary>
+/// 文本节点的一条行片段（ISSUE-110）：行内断行后落在同一行盒上的连续文本。
+/// 坐标相对于所属文本节点内容盒（所有片段的并集）的原点；
+/// <see cref="Height"/> 为所在行盒高度（可能因行内存在更高的原子盒而大于文本行高）。
+/// </summary>
+internal readonly struct TextLineFragment
+{
+    public string Text { get; }
+    public float X { get; }
+    public float Y { get; }
+    public float Width { get; }
+    public float Height { get; }
+
+    public TextLineFragment(string text, float x, float y, float width, float height)
+    {
+        Text = text;
+        X = x;
+        Y = y;
+        Width = width;
+        Height = height;
+    }
 }

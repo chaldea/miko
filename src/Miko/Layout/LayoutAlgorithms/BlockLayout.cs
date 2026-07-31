@@ -245,39 +245,28 @@ public class BlockLayout
 
             if (IsInlineOrInlineBlock(child))
             {
-                // 收集连续的 Inline/InlineBlock/文本节点 子元素并水平布局到同一行。
-                float lineX = contentX;
-                float lineHeight = 0;
-
+                // 收集连续的 Inline/InlineBlock/文本节点 子元素，交由行内格式化上下文
+                // 统一断行（ISSUE-110）：文本片段与行内元素盒共享行盒、按序排列不重叠，
+                // 超宽时在断行单元边界换行（br 在行内作为强制换行处理）。
+                int runStart = i;
                 while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i])
                        && !IsOutOfFlow(box.Children[i]))
                 {
-                    var inlineChild = box.Children[i];
-
-                    // 遇到强制换行标记（br）：结束当前行盒，其后的行内内容排到新的一行。
-                    // br 自身不占宽度，但会贡献至少一行的高度（保证空 br 也能换行）。
-                    if (IsForcedLineBreak(inlineChild))
-                    {
-                        var brConstraints = new LayoutConstraints(0, null);
-                        LayoutChild(inlineChild, brConstraints, lineX, currentY);
-                        lineHeight = Math.Max(lineHeight, ResolveLineHeight(box.ComputedStyle));
-                        i++;
-                        break;
-                    }
-
-                    // 传入父内容宽度作为可用宽度，使 inline-block 子元素的百分比宽度
-                    // 能相对包含块解析（auto 宽度仍由内容决定，不受影响）。
-                    var childConstraints = new LayoutConstraints(childAvailableWidth, childAvailableHeight);
-                    LayoutChild(inlineChild, childConstraints, lineX, currentY);
-
-                    lineX = inlineChild.BoxModel.MarginBox.Right;
-                    lineHeight = Math.Max(lineHeight, inlineChild.BoxModel.MarginBox.Height);
-                    maxChildWidth = Math.Max(maxChildWidth, lineX - contentX);
                     i++;
                 }
 
-                // 移动到下一行
-                currentY += lineHeight;
+                // 传入父内容宽度作为可用宽度，使 inline-block 子元素的百分比宽度
+                // 能相对包含块解析（auto 宽度仍由内容决定，不受影响）。
+                var runResult = InlineFormattingContext.Layout(
+                    box.Children, runStart, i,
+                    contentX, currentY,
+                    childAvailableWidth,
+                    childAvailableWidth, childAvailableHeight,
+                    box.ComputedStyle.TextAlign,
+                    ResolveLineHeight(box.ComputedStyle));
+
+                currentY += runResult.TotalHeight;
+                maxChildWidth = Math.Max(maxChildWidth, runResult.MaxLineWidth);
             }
             else
             {
@@ -412,33 +401,24 @@ public class BlockLayout
 
             if (IsInlineOrInlineBlock(child))
             {
-                float lineX = contentX;
-                float lineHeight = 0;
-
+                // 与主布局一致：连续行内子盒交由行内格式化上下文统一断行（ISSUE-110）。
+                int runStart = i;
                 while (i < box.Children.Count && IsInlineOrInlineBlock(box.Children[i])
                        && !IsOutOfFlow(box.Children[i]))
                 {
-                    var inlineChild = box.Children[i];
-
-                    // 强制换行标记（br）：结束当前行盒（见主布局逻辑说明）。
-                    if (IsForcedLineBreak(inlineChild))
-                    {
-                        LayoutChild(inlineChild, new LayoutConstraints(0, null), lineX, currentY);
-                        lineHeight = Math.Max(lineHeight, ResolveLineHeight(box.ComputedStyle));
-                        i++;
-                        break;
-                    }
-
-                    // 传入父内容宽度，使 inline-block 子元素的百分比宽度能相对包含块解析。
-                    var childConstraints = new LayoutConstraints(childAvailableWidth, null);
-                    LayoutChild(inlineChild, childConstraints, lineX, currentY);
-
-                    lineX = inlineChild.BoxModel.MarginBox.Right;
-                    lineHeight = Math.Max(lineHeight, inlineChild.BoxModel.MarginBox.Height);
-                    maxChildWidth = Math.Max(maxChildWidth, lineX - contentX);
                     i++;
                 }
-                currentY += lineHeight;
+
+                var runResult = InlineFormattingContext.Layout(
+                    box.Children, runStart, i,
+                    contentX, currentY,
+                    childAvailableWidth,
+                    childAvailableWidth, null,
+                    box.ComputedStyle.TextAlign,
+                    ResolveLineHeight(box.ComputedStyle));
+
+                currentY += runResult.TotalHeight;
+                maxChildWidth = Math.Max(maxChildWidth, runResult.MaxLineWidth);
             }
             else
             {

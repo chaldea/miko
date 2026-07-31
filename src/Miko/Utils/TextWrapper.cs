@@ -139,6 +139,135 @@ public static class TextWrapper
     }
 
     /// <summary>
+    /// 断行单元：换行算法的最小原子块。单元内部不可断开（除非启用 breakLongWords），
+    /// 单元之间允许断行。空白单元（<see cref="IsSpace"/>）在行首被丢弃、在行尾被剥离
+    /// （CSS 中行首/行尾空白消除规则）。
+    /// 拉丁文本按单词切分；CJK 表意文字按字符切分（汉字/假名/谚文之间、以及 CJK 与
+    /// 拉丁字符之间都是合法断行点，见 UAX#14 与 ISSUE-110）。
+    /// </summary>
+    internal readonly struct BreakUnit
+    {
+        public string Text { get; }
+        public bool IsSpace { get; }
+
+        /// <summary>CJK 单字符单元：其两侧都是合法断行点（UAX#14 表意文字规则）。</summary>
+        public bool IsCjk { get; }
+
+        public BreakUnit(string text, bool isSpace)
+        {
+            Text = text;
+            IsSpace = isSpace;
+            IsCjk = !isSpace && text.Length == 1 && IsCjkBreakChar(text[0]);
+        }
+    }
+
+    /// <summary>
+    /// 该字符是否按 CJK 断行规则处理（表意文字/假名/谚文/全角字符）：
+    /// 这类字符两侧都允许断行。
+    /// </summary>
+    internal static bool IsCjkBreakChar(char c)
+        => FontFallbackResolver.GetCharacterScript(c) == UnicodeScript.CJK;
+
+    /// <summary>
+    /// 把（已做空白折叠的）文本切分为断行单元序列。
+    /// 空格成为独立的空白单元；拉丁单词整体为一个单元；CJK 字符各自为单元，
+    /// CJK 与相邻拉丁字符之间也切开（允许在其间断行）。
+    /// 调用方保证文本不含换行符（按段调用）。
+    /// </summary>
+    internal static List<BreakUnit> SplitBreakUnits(string text)
+    {
+        var units = new List<BreakUnit>();
+        if (string.IsNullOrEmpty(text))
+        {
+            return units;
+        }
+
+        int runStart = -1; // 非空白片段起点；-1 表示当前不在片段中
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (c == ' ')
+            {
+                if (runStart >= 0)
+                {
+                    units.Add(new BreakUnit(text.Substring(runStart, i - runStart), false));
+                    runStart = -1;
+                }
+                units.Add(new BreakUnit(" ", true));
+                continue;
+            }
+
+            if (runStart < 0)
+            {
+                runStart = i;
+                continue;
+            }
+
+            // CJK 字符两侧都是断行点：当前字符是 CJK（在其前断开）、
+            // 或前一字符是 CJK（在其后断开）。
+            if (IsCjkBreakChar(c) || IsCjkBreakChar(text[i - 1]))
+            {
+                units.Add(new BreakUnit(text.Substring(runStart, i - runStart), false));
+                runStart = i;
+            }
+        }
+
+        if (runStart >= 0)
+        {
+            units.Add(new BreakUnit(text.Substring(runStart), false));
+        }
+
+        return units;
+    }
+
+    /// <summary>
+    /// 折叠连续空白但不修剪首尾（CSS 空白折叠的行内阶段）：
+    /// 首尾空白是否消除取决于行首/行尾位置，由换行打包阶段决定（行首丢弃空白单元、
+    /// 行尾剥离），不能在节点级别提前修剪——否则 "All &lt;code&gt;x&lt;/code&gt;" 中
+    /// 文本节点尾部的空格会被吃掉，文本与行内元素粘连（见 ISSUE-110）。
+    /// </summary>
+    internal static string CollapseWhitespacePreservingBoundaries(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return text;
+        }
+
+        System.Text.StringBuilder? sb = null;
+        bool lastWasSpace = false;
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            bool isSpace = c == ' ' || c == '\t' || c == '\n' || c == '\r' || char.IsWhiteSpace(c);
+            if (isSpace)
+            {
+                if (lastWasSpace)
+                {
+                    // 折叠连续空白：跳过（需重建字符串）。
+                    if (sb == null)
+                    {
+                        sb = new System.Text.StringBuilder(text.Length).Append(text, 0, i);
+                    }
+                    continue;
+                }
+                lastWasSpace = true;
+                if (c != ' ')
+                {
+                    sb ??= new System.Text.StringBuilder(text.Length).Append(text, 0, i);
+                    sb.Append(' ');
+                    continue;
+                }
+            }
+            else
+            {
+                lastWasSpace = false;
+            }
+            sb?.Append(c);
+        }
+        return sb?.ToString() ?? text;
+    }
+
+    /// <summary>
     /// 依据 CSS <c>word-break</c> 与 <c>overflow-wrap</c> 判断是否需要对超过整行宽度的
     /// 连续长单词做逐字符断行。
     /// <list type="bullet">
@@ -254,21 +383,54 @@ public static class TextWrapper
             return;
         }
 
-        // 需要换行：按单词（空格分隔）切分
-        var words = paragraph.Split(' ', StringSplitOptions.None);
+        // 需要换行：切分为断行单元（拉丁按单词、CJK 按字符，见 ISSUE-110）贪心装箱。
+        var units = SplitBreakUnits(paragraph);
         var currentLine = new System.Text.StringBuilder();
         float currentWidth = 0;
 
-        for (int i = 0; i < words.Length; i++)
+        foreach (var unit in units)
         {
-            var word = words[i];
-            var wordToMeasure = (currentLine.Length > 0 ? " " : "") + word;
-            var (wordWidth, _) = TextMeasurer.MeasureText(wordToMeasure, fontFamily, fontSize, fontWeight);
-
-            // 如果加上这个单词后超出宽度
-            if (currentWidth + wordWidth > availableWidth && currentLine.Length > 0)
+            // 行首空白丢弃（CSS 行首空白消除）；行内空白先计入宽度，若其后内容换行，
+            // 行尾空白随换行被剥离（剥离通过不入行实现——见下方换行分支）。
+            if (unit.IsSpace)
             {
-                // 保存当前行并开始新行
+                if (currentLine.Length == 0)
+                {
+                    continue;
+                }
+                float spaceWidth = TextMeasurer.MeasureTextWidth(" ", fontFamily, fontSize, fontWeight);
+                // 空白自身放不下时直接换行（空白不落到新行首）。
+                if (currentWidth + spaceWidth > availableWidth)
+                {
+                    lines.Add(currentLine.ToString());
+                    currentLine.Clear();
+                    currentWidth = 0;
+                    continue;
+                }
+                currentLine.Append(' ');
+                currentWidth += spaceWidth;
+                continue;
+            }
+
+            float unitWidth = TextMeasurer.MeasureTextWidth(unit.Text, fontFamily, fontSize, fontWeight);
+
+            // 单元加上后超出宽度（且行内已有内容）：换行。换行时剥离行尾空白——
+            // 空白已 Append 进 currentLine，这里连同其宽度一起回退。
+            if (currentWidth + unitWidth > availableWidth && currentLine.Length > 0)
+            {
+                int trimChars = 0;
+                float trimWidth = 0;
+                while (trimChars < currentLine.Length && currentLine[currentLine.Length - 1 - trimChars] == ' ')
+                {
+                    trimChars++;
+                }
+                if (trimChars > 0)
+                {
+                    trimWidth = TextMeasurer.MeasureTextWidth(" ", fontFamily, fontSize, fontWeight) * trimChars;
+                    currentLine.Length -= trimChars;
+                    currentWidth -= trimWidth;
+                }
+
                 lines.Add(currentLine.ToString());
                 currentLine.Clear();
                 currentWidth = 0;
@@ -276,24 +438,24 @@ public static class TextWrapper
 
             // 单词自身就超过整行宽度：按字符断行（overflow-wrap: anywhere）。
             // 仅在启用 breakLongWords 时执行，否则保持旧行为（长单词整体溢出）。
-            float soloWordWidth = TextMeasurer.MeasureTextWidth(word, fontFamily, fontSize, fontWeight);
-            if (breakLongWords && currentLine.Length == 0 && soloWordWidth > availableWidth)
+            if (breakLongWords && currentLine.Length == 0 && unitWidth > availableWidth)
             {
-                BreakLongWord(word, fontFamily, fontSize, fontWeight, availableWidth, lines, currentLine, ref currentWidth);
+                BreakLongWord(unit.Text, fontFamily, fontSize, fontWeight, availableWidth, lines, currentLine, ref currentWidth);
                 continue;
             }
 
-            // 继续添加到当前行
-            if (currentLine.Length > 0)
-            {
-                currentLine.Append(' ');
-                currentWidth += TextMeasurer.MeasureTextWidth(" ", fontFamily, fontSize, fontWeight);
-            }
-            currentLine.Append(word);
-            currentWidth += soloWordWidth;
+            currentLine.Append(unit.Text);
+            currentWidth += unitWidth;
         }
 
-        // 添加最后一行
+        // 添加最后一行（剥离行尾空白，与换行分支一致）。
+        if (currentLine.Length > 0)
+        {
+            while (currentLine.Length > 0 && currentLine[currentLine.Length - 1] == ' ')
+            {
+                currentLine.Length--;
+            }
+        }
         if (currentLine.Length > 0)
         {
             lines.Add(currentLine.ToString());
