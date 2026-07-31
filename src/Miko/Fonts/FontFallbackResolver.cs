@@ -92,10 +92,25 @@ public class FontFallbackResolver
 
         // Try system fallback based on script
         var script = GetCharacterScript(character);
-        var systemFallback = GetSystemFallbackForScript(script, weight);
+        var systemFallback = GetSystemFallbackForScript(script, character, weight);
         if (systemFallback != null)
         {
             return systemFallback;
+        }
+
+        // 让操作系统字体管理器按码点匹配字体（跨平台兜底）：硬编码的脚本草单以
+        // Windows 字体名为主，macOS（PingFang SC）/ Linux（Noto Sans CJK）上可能全部
+        // 不中；MatchCharacter 由系统返回真正覆盖该码点的字体。
+        var matched = SKFontManager.Default.MatchCharacter(
+            null,
+            (SKFontStyleWeight)(int)weight,
+            SKFontStyleWidth.Normal,
+            SKFontStyleSlant.Upright,
+            null,
+            character);
+        if (matched != null)
+        {
+            return matched;
         }
 
         // Return first available typeface as last resort
@@ -185,11 +200,11 @@ public class FontFallbackResolver
         return UnicodeScript.Unknown;
     }
 
-    private SKTypeface? GetSystemFallbackForScript(UnicodeScript script, FontWeight weight)
+    private SKTypeface? GetSystemFallbackForScript(UnicodeScript script, char character, FontWeight weight)
     {
         var fallbackFonts = script switch
         {
-            UnicodeScript.CJK => new[] { "Microsoft YaHei", "SimSun", "SimHei", "MS Gothic", "Malgun Gothic", "PingFang SC", "Hiragino Sans GB" },
+            UnicodeScript.CJK => new[] { "Microsoft YaHei", "SimSun", "SimHei", "MS Gothic", "Malgun Gothic", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "WenQuanYi Micro Hei" },
             UnicodeScript.Cyrillic => new[] { "Arial", "Segoe UI", "Times New Roman" },
             UnicodeScript.Arabic => new[] { "Arial", "Segoe UI", "Tahoma" },
             UnicodeScript.Hebrew => new[] { "Arial", "Segoe UI", "Times New Roman" },
@@ -201,7 +216,11 @@ public class FontFallbackResolver
         foreach (var fontName in fallbackFonts)
         {
             var typeface = _fontManager.GetTypeface(fontName, weight);
-            if (typeface != null)
+            // 必须校验字形：SKTypeface.FromFamilyName 在字体名不存在时会静默返回系统默认
+            // 字体（如 macOS 上的 Helvetica），不校验就会把不含该字形的默认字体当成
+            // "系统回退"返回，后面的 PingFang SC 等真实可用字体永远轮不到（macOS CI 上
+            // 中文全部按 .notdef 宽度测量的根因，ISSUE-110 后续修复）。
+            if (typeface != null && FontManager.ContainsGlyph(typeface, character))
             {
                 return typeface;
             }

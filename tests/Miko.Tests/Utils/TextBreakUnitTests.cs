@@ -163,7 +163,16 @@ public class TextBreakUnitTests
     public void MeasureTextWithWrap_CjkWiderThanEnglish_SameCharCountNarrowerWidthForLatin()
     {
         // 中文宽度与英文不同：同字符数下 CJK 文本明显更宽（等宽全角字形）。
-        // 换行后的行数应反映真实测量宽度而非按英文字宽估算。
+        // 前置条件：系统存在覆盖 CJK 码点的字体（Windows 微软雅黑 / macOS PingFang SC /
+        // Linux Noto Sans CJK）。极简容器等无 CJK 字体的环境下字形缺失（.notdef），
+        // 该比较没有意义，直接返回（xUnit 2 不支持动态 Skip）。
+        var resolver = new Miko.Fonts.FontFallbackResolver(Miko.Fonts.FontManager.Instance);
+        var cjkTypeface = resolver.ResolveFont('桌', new System.Collections.Generic.List<string> { "Arial" }, FontWeight.Normal);
+        if (cjkTypeface == null || !Miko.Fonts.FontManager.ContainsGlyph(cjkTypeface, '桌'))
+        {
+            return;
+        }
+
         string cjk = "桌面软件打包格式";
         string latin = "abcdabcd";
 
