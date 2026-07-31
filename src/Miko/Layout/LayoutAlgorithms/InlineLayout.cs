@@ -38,18 +38,15 @@ public class InlineLayout
             style.PaddingLeft.ToPixels(containerWidth, fs)
         );
 
-        // 2. 创建行盒子（line box）并水平排列行内元素
+        // 2. 创建行盒子（line box）并排列行内子盒
         float contentX = x + box.BoxModel.Margin.Left + box.BoxModel.Border.Left + box.BoxModel.Padding.Left;
         float contentY = y + box.BoxModel.Margin.Top + box.BoxModel.Border.Top + box.BoxModel.Padding.Top;
 
         // 文本节点作为普通行内子盒参与，交错顺序由子节点列表表达（见 ISSUE-086），
         // 不再需要把父元素的 TextContent 作为「排在子元素之前的匿名盒」特殊处理。
-        float currentX = contentX;
-        float lineHeight = 0;
-        float maxWidth = 0;
 
-        // 文本节点可用的换行宽度：当行内元素自身有宽度约束时，文本应在剩余宽度内换行
-        // （见 ISSUE-079）。auto 宽度且无约束时传 null，文本单行测量（shrink-to-fit）。
+        // 行内流的换行宽度：当行内元素自身有宽度约束时，行内内容应在剩余宽度内换行
+        // （见 ISSUE-079）。auto 宽度且无约束时传 null，整段流排为单行（shrink-to-fit）。
         float? textWrapWidth = null;
         if (constraints.AvailableWidth.HasValue && constraints.AvailableWidth.Value > 0)
         {
@@ -59,28 +56,27 @@ public class InlineLayout
             if (textWrapWidth < 0) textWrapWidth = 0;
         }
 
-        // 简化实现：单行布局，不处理换行
+        // 脱离文档流的子元素仍布局以获得尺寸，但不参与行内流。
+        // 最终位置由 LayoutEngine 的定位阶段修正。
         foreach (var child in box.Children)
         {
-            // 脱离文档流的子元素仍布局以获得尺寸，但不推进行光标、不计入内容宽度。
-            // 最终位置由 LayoutEngine 的定位阶段修正。
             if (BlockLayout.IsOutOfFlow(child))
             {
-                var outOfFlowConstraints = new LayoutConstraints(null, null);
-                LayoutChild(child, outOfFlowConstraints, currentX, contentY);
-                continue;
+                LayoutChild(child, new LayoutConstraints(null, null), contentX, contentY);
             }
-
-            // 文本节点传入换行宽度以支持自动换行；其它行内子元素保持 null 约束（shrink-to-fit）。
-            var childConstraints = child.Type == LayoutType.Text
-                ? new LayoutConstraints(textWrapWidth, null)
-                : new LayoutConstraints(null, null);
-            LayoutChild(child, childConstraints, currentX, contentY);
-
-            currentX = child.BoxModel.MarginBox.Right;
-            lineHeight = Math.Max(lineHeight, child.BoxModel.MarginBox.Height);
-            maxWidth = currentX - contentX;
         }
+
+        // 行内格式化上下文统一断行（ISSUE-110）：文本片段与行内元素盒共享行盒、
+        // 按序排列，超宽时在断行单元边界换行（首个排版遍）。
+        var run = InlineFormattingContext.Layout(
+            box.Children, 0, box.Children.Count,
+            contentX, contentY,
+            textWrapWidth,
+            null, null,
+            style.TextAlign,
+            BlockLayout.ResolveLineHeight(style));
+        float lineHeight = run.TotalHeight;
+        float maxWidth = run.MaxLineWidth;
 
         // 3. 计算内容区域
         float contentWidth;
@@ -163,28 +159,22 @@ public class InlineLayout
         }
 
         // 宽度确定后（显式宽度，或 auto 宽度被 min/max-width 夹取为定值），以该确定宽度
-        // 重排在流子元素，使子元素的 width:100% 能解析到父内容宽度（浏览器行为）。
+        // 重排行内流，使行内内容在自身内容宽度内换行、子元素的 width:100% 能解析到
+        // 父内容宽度（浏览器行为）。
         // 高度传 null 保持不确定——min-height 撑起的高度不使百分比高度可解析（见 ISSUE-078）。
         // 注意：auto 宽度且无 min/max-width 时不重排，保持 shrink-to-fit 的内容尺寸（见 ISSUE-077）。
         // 针对不确定包含块退化的百分比 min/max-width 不计入"确定宽度"（见 ISSUE-094）。
         bool widthIsDefinite = widthIsForced || !widthIsAuto || minWidthEffective || maxWidthEffective;
         if (widthIsDefinite && contentWidth > 0 && box.Children.Count > 0)
         {
-            float childX = contentX;
-            float relaidLineHeight = 0;
-            foreach (var child in box.Children)
-            {
-                if (BlockLayout.IsOutOfFlow(child))
-                {
-                    LayoutChild(child, new LayoutConstraints(null, null), childX, contentY);
-                    continue;
-                }
-
-                LayoutChild(child, new LayoutConstraints(contentWidth, null), childX, contentY);
-                childX = child.BoxModel.MarginBox.Right;
-                relaidLineHeight = Math.Max(relaidLineHeight, child.BoxModel.MarginBox.Height);
-            }
-            lineHeight = relaidLineHeight;
+            var rerun = InlineFormattingContext.Layout(
+                box.Children, 0, box.Children.Count,
+                contentX, contentY,
+                contentWidth,
+                contentWidth, null,
+                style.TextAlign,
+                BlockLayout.ResolveLineHeight(style));
+            lineHeight = rerun.TotalHeight;
         }
 
         if (heightIsForced)

@@ -610,6 +610,41 @@ public class Painter
     }
 
     /// <summary>
+    /// 绘制单行文本片段（ISSUE-110）：行内格式化上下文已完成断行与定位，
+    /// 此处按给定行盒矩形直接绘制一行，不做换行与水平对齐。
+    /// 基线按 VerticalAlign.Middle 语义取行盒垂直中心（半行距上下均分，
+    /// 与 CSS 行盒模型一致；单行场景与 <see cref="DrawText"/> 的 Middle 路径逐像素一致）。
+    /// </summary>
+    public void DrawTextLine(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, float letterSpacing = 0)
+    {
+        if (string.IsNullOrEmpty(text) || color.A == 0) return;
+
+        var fontManager = FontManager.Instance;
+        var fallbackResolver = new FontFallbackResolver(fontManager);
+        var textRuns = fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight);
+
+        if (textRuns.Count == 0) return;
+
+        using var paint = new SKPaint
+        {
+            Color = color.ToSKColor(),
+            IsAntialias = true
+        };
+
+        using var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
+        float textHeight = baselineFont.Metrics.Descent - baselineFont.Metrics.Ascent;
+        float centeredTop = rect.Top + (rect.Height - textHeight) / 2;
+        float y = centeredTop - baselineFont.Metrics.Ascent;
+
+        float x = rect.Left;
+        foreach (var run in textRuns)
+        {
+            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
+        }
+    }
+
+    /// <summary>
     /// 绘制多行文本（支持换行）
     /// </summary>
     public void DrawMultilineText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, float lineHeight, WhiteSpace whiteSpace, VerticalAlign verticalAlign = VerticalAlign.Top, bool breakLongWords = false, float letterSpacing = 0)

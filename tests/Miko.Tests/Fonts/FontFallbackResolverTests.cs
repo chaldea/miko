@@ -156,4 +156,36 @@ public class FontFallbackResolverTests : IDisposable
 
         typeface.ShouldNotBeNull();
     }
+
+    [Fact]
+    public void ResolveFont_CjkCharacter_MustReturnGlyphCapableTypeface()
+    {
+        // 回归（ISSUE-110 后续 / macOS CI）：SKTypeface.FromFamilyName 在字体名不存在时
+        // 静默返回系统默认字体；此前 GetSystemFallbackForScript 不校验字形，会把不含
+        // CJK 字形的默认字体当作"系统回退"返回，中文全部按 .notdef 宽度测量。
+        // 修复后：回退链必须返回真正覆盖该码点的字体（Windows 微软雅黑 /
+        // macOS PingFang SC / Linux Noto Sans CJK 或 MatchCharacter 匹配结果）。
+        // 无 CJK 字体的极简环境跳过（xUnit 2 无动态 Skip）。
+        bool systemHasCjkFont = SkiaSharp.SKFontManager.Default.MatchCharacter(
+            null,
+            SkiaSharp.SKFontStyleWeight.Normal,
+            SkiaSharp.SKFontStyleWidth.Normal,
+            SkiaSharp.SKFontStyleSlant.Upright,
+            null,
+            '桌') != null;
+        if (!systemHasCjkFont)
+        {
+            return;
+        }
+
+        var fontManager = FontManager.Instance;
+        var resolver = new FontFallbackResolver(fontManager);
+
+        // 主链给一个必然不存在的字体名，强制走系统回退路径。
+        var typeface = resolver.ResolveFont('桌', new List<string> { "DefinitelyMissingFont12345" }, FontWeight.Normal);
+
+        typeface.ShouldNotBeNull();
+        FontManager.ContainsGlyph(typeface, '桌').ShouldBeTrue(
+            "系统装有 CJK 字体时，回退结果必须真正包含该汉字字形，而不是缺字形的默认字体");
+    }
 }

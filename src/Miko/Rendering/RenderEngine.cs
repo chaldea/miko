@@ -809,6 +809,33 @@ public class RenderEngine
             }
         }
 
+        // 行内断行片段（ISSUE-110）：文本节点已由行内格式化上下文切分为行片段并完成
+        // 定位（含 text-align 的行级对齐），逐片段单行绘制即可，不再按内容盒二次换行/对齐。
+        // 片段坐标相对内容盒原点（内容盒为全部片段的并集）。
+        if (box.Element is Miko.Core.DomElements.TextNode fragNode
+            && fragNode.LayoutFragments is { Count: > 0 } fragments)
+        {
+            foreach (var frag in fragments)
+            {
+                var fragRect = new RectF(
+                    MathF.Round(content.X + frag.X),
+                    MathF.Round(content.Y + frag.Y),
+                    frag.Width,
+                    frag.Height);
+                _painter.DrawTextLine(
+                    frag.Text, fragRect, style.Color, style.FontFamily, style.FontSize.Value,
+                    style.FontWeight, letterSpacing);
+
+                if (style.TextDecoration != Common.TextDecoration.None)
+                {
+                    _painter.DrawTextDecoration(frag.Text, fragRect, style.Color, style.FontFamily,
+                        style.FontSize.Value, style.FontWeight, Common.TextAlign.Left,
+                        style.TextDecoration, VerticalAlign.Middle);
+                }
+            }
+            return;
+        }
+
         if (needsMultiline)
         {
             float lineHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);

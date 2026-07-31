@@ -206,6 +206,20 @@ public class FontManager : IDisposable
             }
         }
 
+        // 让操作系统字体管理器按码点匹配字体（跨平台兜底，与 FontFallbackResolver 一致）：
+        // 硬编码回退链以 Windows 字体名为主，macOS / Linux 上可能都不中。
+        var matched = SKFontManager.Default.MatchCharacter(
+            null,
+            (SKFontStyleWeight)(int)weight,
+            SKFontStyleWidth.Normal,
+            SKFontStyleSlant.Upright,
+            null,
+            character);
+        if (matched != null)
+        {
+            return matched;
+        }
+
         // Return default typeface even if it doesn't have the glyph
         return GetTypeface(families.FirstOrDefault() ?? "Arial", weight);
     }
