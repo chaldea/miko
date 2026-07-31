@@ -50,12 +50,29 @@ public class BlockLayout
         // 外部已定型宽度（flex 主轴解析，见 ISSUE-106）：直接使用，跳过自身 width 解析，
         // 避免百分比长度对"已解析尺寸"二次求值（width:50% 的 flex 项被算成 50%×50%）。
         bool widthIsForced = constraints.ResolvedContentWidth.HasValue;
+        // 百分比宽度针对不确定包含块时退化为 auto（与 Flex/Grid/InlineLayout 的 ISSUE-077 处理一致）。
+        // 缺了这条退化，shrink-to-fit 测量遍（MeasureInlineChildrenWidth 以 null 约束预布局子元素）
+        // 会把 width:100% 的子盒按 0 求值，auto 宽父盒的内容宽度随之塌缩为 0——
+        // 如 Ionic iOS back-button：width:100% 的 .button-native 在 auto 宽宿主内量出 0 宽，
+        // 整个按钮不可命中（兄弟标题盒占满整行盖住它）。
+        bool widthPercentAgainstIndefinite = style.Width.HasPercentComponent && (constraints.IsInfiniteWidth || containerWidth <= 0);
+        bool widthIsAuto = style.Width.IsAuto || widthPercentAgainstIndefinite;
+        // 外部已定型高度（flex 列向主轴解析，见 ISSUE-106）：直接作为确定基准，跳过自身
+        // height 解析与该轴 min/max 夹取（与宽度对称）。
+        bool heightIsForced = constraints.ResolvedContentHeight.HasValue;
+        // 百分比高度针对不确定包含块时退化为 auto（与 Flex/Grid/InlineLayout 的 ISSUE-077 处理、
+        // 以及上方宽度退化对称）。缺了这条退化，height:100% 的盒子在 auto 高度父级内会按 0 求值，
+        // 并把 0 作为"确定基准"传给子元素，子孙的 height:100% 随之塌缩为 0——
+        // 如 ion-back-button：auto 高宿主内 height:100% 的 .button-native 量出 0 高基准，
+        // .button-inner 高度塌缩为 0（ISSUE-109）。
+        bool heightPercentAgainstIndefinite = style.Height.HasPercentComponent && !constraints.AvailableHeight.HasValue;
+        bool heightIsAuto = style.Height.IsAuto || heightPercentAgainstIndefinite;
         float contentWidth;
         if (widthIsForced)
         {
             contentWidth = constraints.ResolvedContentWidth!.Value;
         }
-        else if (!style.Width.IsAuto)
+        else if (!widthIsAuto)
         {
             contentWidth = style.Width.ToPixels(containerWidth, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -67,9 +84,9 @@ public class BlockLayout
         else if (isReplaced)
         {
             // width auto 的 replaced 元素：
-            // - height 也 auto 时用内禀宽；
+            // - height 也 auto（含百分比针对不确定包含块退化）时用内禀宽；
             // - height 指定时按纵横比反推宽（保持 video 不变形）。
-            if (style.Height.IsAuto)
+            if (heightIsAuto)
             {
                 contentWidth = intrinsicW;
             }
@@ -170,13 +187,15 @@ public class BlockLayout
 
         // 计算确定性高度，用于子元素百分比高度解析
         // 外部已定型高度（flex 列向主轴解析，见 ISSUE-106）：直接作为确定基准传给子元素。
-        bool heightIsForced = constraints.ResolvedContentHeight.HasValue;
+        // 注意：auto 高度（含百分比退化）即便随后被 min-height 抬升，也不算确定基准——
+        // 子元素 height:100% 应同样退化为内容尺寸（与 FlexLayout 的 heightIsDefinite 一致，
+        // 见 ISSUE-078）。
         float? childAvailableHeight = null;
         if (heightIsForced)
         {
             childAvailableHeight = constraints.ResolvedContentHeight!.Value;
         }
-        else if (!style.Height.IsAuto)
+        else if (!heightIsAuto)
         {
             float h = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)
@@ -283,7 +302,7 @@ public class BlockLayout
             // height 解析，避免百分比高度对"已解析尺寸"二次求值。
             contentHeight = constraints.ResolvedContentHeight!.Value;
         }
-        else if (!style.Height.IsAuto)
+        else if (!heightIsAuto)
         {
             contentHeight = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
             if (style.BoxSizing == BoxSizing.BorderBox)

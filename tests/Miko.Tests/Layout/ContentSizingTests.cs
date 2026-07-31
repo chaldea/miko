@@ -111,6 +111,214 @@ public class ContentSizingTests
             "Parent should shrink-to-fit its children when Height is auto");
     }
 
+    [Fact]
+    public void BlockLayout_PercentWidthChild_InShrinkToFitParent_ShouldContributeContentWidth()
+    {
+        // Arrange: flex row > auto 宽的 block 项目 > width:100% 的 block 子盒 > 定宽孙盒。
+        // 回归（ion-animation）：百分比宽度针对不确定包含块应退化为 auto（与 Flex/Grid/InlineLayout
+        // 的 ISSUE-077 处理一致）。退化缺失时，shrink-to-fit 测量遍把 width:100% 子盒按 0 求值，
+        // 父盒内容宽度塌缩为 0（Ionic iOS back-button 的 .button-native 因此不可命中——
+        // 兄弟标题盒占满整行盖住 0 宽按钮）。
+        var grandchild = new DivElement { Class = "grandchild" };
+        var child = new DivElement { Class = "child" };
+        child.AddChild(grandchild);
+        var item = new DivElement { Class = "item" };
+        item.AddChild(child);
+        var root = new DivElement { Class = "root" };
+        root.AddChild(item);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("root"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Width = Length.Px(400),
+                            Height = Length.Px(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
+                        Style = new Style { Display = Display.Block }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("child"),
+                        Style = new Style { Display = Display.Block, Width = Length.Percent(100) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("grandchild"),
+                        Style = new Style { Display = Display.Block, Width = Length.Px(62), Height = Length.Px(20) }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 800, 600);
+
+        // Assert: auto 宽的 flex 项目收缩到内容宽（62），width:100% 的子盒再填满定型后的父宽。
+        var itemBox = layoutRoot.Children[0];
+        var childBox = itemBox.Children[0];
+        itemBox.BoxModel.Content.Width.ShouldBe(62f, 0.5f,
+            "Percent-width child must contribute its content width to the shrink-to-fit parent");
+        childBox.BoxModel.Content.Width.ShouldBe(62f, 0.5f,
+            "width:100% resolves against the parent's definite width on the real layout pass");
+    }
+
+    [Fact]
+    public void BlockLayout_PercentHeightChild_AgainstAutoHeightParent_ShouldDegradeToAuto()
+    {
+        // Arrange: 复现 ISSUE-109（ion-back-button 高度链）：
+        //   container(48×48 定高) → host(height:auto, min-height:48) → native(height:100%, min-height:48)
+        //   → inner(display:flex, height:100%) → icon(24×24)。
+        // 百分比高度针对不确定包含块（auto 高度的 host）应退化为 auto——由内容决定高度，
+        // 而不是折算为 0 并把 0 作为"确定基准"继续传给子孙（Flex/Grid/InlineLayout 已有同款
+        // 退化，见 ISSUE-077；BlockLayout 此前只有宽度方向的退化）。
+        // 浏览器审计结果：native 48 高（min-height 抬升），inner 24 高（内容高度）。
+        var icon = new DivElement { Class = "icon" };
+        var inner = new DivElement { Class = "inner" };
+        inner.AddChild(icon);
+        var native = new DivElement { Class = "native" };
+        native.AddChild(inner);
+        var host = new DivElement { Class = "host" };
+        host.AddChild(native);
+        var container = new DivElement { Class = "container" };
+        container.AddChild(host);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("container"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Width = Length.Px(48),
+                            Height = Length.Px(48)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("host"),
+                        Style = new Style { Display = Display.Block, MinHeight = Length.Px(48) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("native"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Height = Length.Percent(100),
+                            MinHeight = Length.Px(48)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("inner"),
+                        Style = new Style
+                        {
+                            Display = Display.Flex,
+                            FlexDirection = FlexDirection.Row,
+                            Height = Length.Percent(100)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("icon"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Width = Length.Px(24),
+                            Height = Length.Px(24)
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(container, styleSheets, 800, 600);
+
+        // Assert
+        var hostBox = layoutRoot.Children[0];
+        var nativeBox = hostBox.Children[0];
+        var innerBox = nativeBox.Children[0];
+
+        innerBox.BoxModel.Content.Height.ShouldBe(24f, 0.5f,
+            "height:100% against an auto-height (indefinite) ancestor must degrade to auto — content height");
+        nativeBox.BoxModel.Content.Height.ShouldBe(48f, 0.5f,
+            "native height degrades to auto (content 24) then min-height clamps it to 48");
+        hostBox.BoxModel.Content.Height.ShouldBe(48f, 0.5f,
+            "host height is content (48) — its min-height is already satisfied");
+    }
+
+    [Fact]
+    public void BlockLayout_PercentHeightChild_AgainstDefiniteParent_ShouldResolvePercent()
+    {
+        // Arrange: 定高链上的百分比高度必须照常解析（守护退化只在不确定包含块时触发）：
+        //   container(48 定高) → native(height:100%) → inner(height:100%, display:block)。
+        var inner = new DivElement { Class = "inner" };
+        var native = new DivElement { Class = "native" };
+        native.AddChild(inner);
+        var container = new DivElement { Class = "container" };
+        container.AddChild(native);
+
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("container"),
+                        Style = new Style
+                        {
+                            Display = Display.Block,
+                            Width = Length.Px(48),
+                            Height = Length.Px(48)
+                        }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("native"),
+                        Style = new Style { Display = Display.Block, Height = Length.Percent(100) }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("inner"),
+                        Style = new Style { Display = Display.Block, Height = Length.Percent(100) }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var layoutRoot = _layoutEngine.Layout(container, styleSheets, 800, 600);
+
+        // Assert
+        var nativeBox = layoutRoot.Children[0];
+        var innerBox = nativeBox.Children[0];
+        nativeBox.BoxModel.Content.Height.ShouldBe(48f, 0.5f,
+            "height:100% resolves against the definite containing block");
+        innerBox.BoxModel.Content.Height.ShouldBe(48f, 0.5f,
+            "the resolved definite height is passed down as the percentage base for descendants");
+    }
+
     #endregion
 
     #region Inline Layout Content Sizing
