@@ -22,8 +22,8 @@ public class IonAccordionTests : IonicComponentTestBase
     {
         builder.OpenComponent<IonAccordion>(0);
         builder.AddComponentParameter(1, nameof(IonAccordion.Value), value);
-        builder.AddComponentParameter(2, nameof(IonAccordion.HeaderSlot), (RenderFragment)(b => b.AddContent(0, label)));
-        builder.AddComponentParameter(3, nameof(IonAccordion.ContentSlot), (RenderFragment)(b => b.AddContent(0, label + " body")));
+        builder.AddComponentParameter(2, nameof(IonAccordion.Header), (RenderFragment)(b => b.AddContent(0, label)));
+        builder.AddComponentParameter(3, nameof(IonAccordion.Content), (RenderFragment)(b => b.AddContent(0, label + " body")));
         builder.CloseComponent();
     };
 
@@ -36,8 +36,8 @@ public class IonAccordionTests : IonicComponentTestBase
             var captured = v;
             builder.OpenComponent<IonAccordion>(seq++);
             builder.AddComponentParameter(seq++, nameof(IonAccordion.Value), captured);
-            builder.AddComponentParameter(seq++, nameof(IonAccordion.HeaderSlot), (RenderFragment)(b => b.AddContent(0, captured)));
-            builder.AddComponentParameter(seq++, nameof(IonAccordion.ContentSlot), (RenderFragment)(b => b.AddContent(0, captured + " body")));
+            builder.AddComponentParameter(seq++, nameof(IonAccordion.Header), (RenderFragment)(b => b.AddContent(0, captured)));
+            builder.AddComponentParameter(seq++, nameof(IonAccordion.Content), (RenderFragment)(b => b.AddContent(0, captured + " body")));
             builder.CloseComponent();
         }
     };

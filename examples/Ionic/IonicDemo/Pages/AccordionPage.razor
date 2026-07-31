@@ -12,7 +12,80 @@
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
-
+        <ComponentDetails Name="Accordion">
+            Accordions provide collapsible sections in your content to reduce vertical space while providing a way of organizing and grouping information. All <code>ion-accordion</code> components should be grouped inside <code>ion-accordion-group</code> components.
+        </ComponentDetails>
+        
+        <IonAccordionGroup>
+            <IonAccordion Value="colors">
+                <Header>
+                    <IonItem>
+                        <IonLabel>Colors</IonLabel>
+                    </IonItem>
+                </Header>
+                
+                <Content>
+                    <IonList>
+                        <IonItem>
+                            <IonLabel>Red</IonLabel>
+                        </IonItem>
+                        <IonItem>
+                            <IonLabel>Green</IonLabel>
+                        </IonItem>
+                        
+                        <IonItem>
+                            <IonLabel>Blue</IonLabel>
+                        </IonItem>
+                    </IonList>
+                </Content>
+            </IonAccordion>
+            
+            <IonAccordion Value="shapes">
+                <Header>
+                    <IonItem>
+                        <IonLabel>Shapes</IonLabel>
+                    </IonItem>
+                </Header>
+                
+                <Content>
+                    <IonList>
+                        <IonItem>
+                            <IonLabel>Circle</IonLabel>
+                        </IonItem>
+                        <IonItem>
+                            <IonLabel>Triangle</IonLabel>
+                        </IonItem>
+                        
+                        <IonItem>
+                            <IonLabel>Square</IonLabel>
+                        </IonItem>
+                    </IonList>
+                </Content>
+            </IonAccordion>
+            
+            <IonAccordion Value="numbers">
+                <Header>
+                    <IonItem>
+                        <IonLabel>Numbers</IonLabel>
+                    </IonItem>
+                </Header>
+                
+                <Content>
+                    <IonList>
+                        <IonItem>
+                            <IonLabel>1</IonLabel>
+                        </IonItem>
+                        <IonItem>
+                            <IonLabel>2</IonLabel>
+                        </IonItem>
+                        
+                        <IonItem>
+                            <IonLabel>3</IonLabel>
+                        </IonItem>
+                    </IonList>
+                </Content>
+            </IonAccordion>
+        </IonAccordionGroup>
     </IonContent>
 </IonPage>
 @code {

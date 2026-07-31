@@ -24,6 +24,21 @@ internal class GlobalStyles
             {
                 BackgroundColor = (Color)"#0054e9",
                 Color = (Color)"#fff",
+            },
+
+            [".component-detail"] = new()
+            {
+                PaddingBottom = Px(0),
+                MarginBottom = Px(26),
+
+                [".component-description"] = new()
+                {
+                    Color = (Color)"#3e4a58",
+                    FontSize = Rem(1.125f),
+                    LineHeight = Number(1.4f),
+                    WhiteSpace = WhiteSpace.Normal,
+                    PaddingBottom = Px(16),
+                }
             }
         });
         return styleSheet;
