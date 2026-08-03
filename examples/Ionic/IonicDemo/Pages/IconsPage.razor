@@ -10,11 +10,51 @@
                 <IonTitle>Icons</IonTitle>
             </ChildContent>
         </IonToolbar>
+        <IonToolbar>
+            <IonSegment Value="@_segment" ValueChanged="@UpdateSegment">
+                <IonSegmentButton Value="-outline">Outline</IonSegmentButton>
+                <IonSegmentButton Value="">Filled</IonSegmentButton>
+                <IonSegmentButton Value="-sharp">Sharp</IonSegmentButton>
+            </IonSegment>
+        </IonToolbar>
     </IonHeader>
-    <IonContent Fullscreen>
+    <IonContent Fullscreen Class="ion-padding-top ion-text-center">
+        @* Logo icons never change fill *@
+        @foreach (var logo in _logos)
+        {
+            <IonIcon Icon="@logo"></IonIcon>
+        }
 
+        @* All other icons follow the selected variant *@
+        @foreach (var name in _icons)
+        {
+            <IonIcon Icon="@($"{name}{_segment}")"></IonIcon>
+        }
     </IonContent>
 </IonPage>
 @code {
+    private string _segment = "";
 
+    private void UpdateSegment(string value) => _segment = value;
+
+    private readonly string[] _logos =
+    {
+        "logo-ionic", "logo-pwa", "logo-ionitron", "logo-javascript",
+        "logo-slack", "logo-android", "logo-apple",
+    };
+
+    private readonly string[] _icons =
+    {
+        "heart", "happy", "airplane", "finger-print", "person", "people-circle", "apps",
+        "lock-closed", "key", "attach", "map", "navigate", "pin", "locate",
+        "mic", "volume-high", "musical-notes", "radio", "cafe", "calculator", "bus",
+        "wine", "camera", "star", "image", "pin", "arrow-up-circle", "arrow-undo",
+        "chevron-down", "play-circle", "cloud", "sunny", "umbrella", "rainy", "cloud-done",
+        "game-controller", "alarm", "barbell", "earth", "bicycle", "basket", "car",
+        "flash-off", "gift", "heart-half", "ice-cream", "leaf", "paw", "ribbon",
+        "shirt", "thumbs-up", "warning", "ice-cream", "trash", "tennisball", "rose",
+        "subway", "speedometer", "egg", "color-fill", "cash", "boat", "aperture",
+        "albums", "football", "at-circle", "bandage", "barcode", "bluetooth", "bug",
+        "chatbox", "code-working", "cut", "flask", "hand-left", "headset", "library",
+    };
 }

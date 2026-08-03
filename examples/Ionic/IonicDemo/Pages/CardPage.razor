@@ -12,7 +12,201 @@
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
+        <IonCard Class="action-card">
+            <img class="header-img" src="res://IonicDemo.Assets.card-top-img.png" />
+            <IonCardHeader>
+                <IonCardSubtitle>Card Subtitle</IonCardSubtitle>
+                <IonCardTitle>Card Title</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+                Here's a small text description for the card content. Nothing more, nothing less.
+                <IonGrid>
+                    <IonRow>
+                        <IonCol>
+                            <IonButton Size="small">Action</IonButton>
+                        </IonCol>
+                        <IonCol Class="col-align-end">
+                            <IonButton Fill="clear">
+                                <IconOnly>
+                                    <IonIcon Ios="@Ionicons.Heart" Md="@Ionicons.HeartSharp" Slot="icon-only"></IonIcon>
+                                </IconOnly>
+                            </IonButton>
+                            <IonButton Fill="clear">
+                                <IconOnly>
+                                    <IonIcon Ios="@Ionicons.Share" Md="@Ionicons.ShareSharp" Slot="icon-only"></IonIcon>
+                                </IconOnly>
+                            </IonButton>
+                        </IonCol>
+                    </IonRow>
+                </IonGrid>
+            </IonCardContent>
+        </IonCard>
 
+        <IonCard Class="apps-card">
+            <IonCardHeader>
+                <IonCardSubtitle>Your Daily List</IonCardSubtitle>
+                <IonCardTitle>Ionic Apps We Think You'll Love.</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+                <IonList>
+                    <IonItem>
+                        <Start>
+                            <IonThumbnail>
+                                <img src="res://IonicDemo.Assets.logo-sworkit.png" />
+                            </IonThumbnail>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h3>Sworkit</h3>
+                                <p>The number one fitness app</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                    <IonItem>
+                        <Start>
+                            <IonThumbnail>
+                                <img src="res://IonicDemo.Assets.logo-untappd.png" />
+                            </IonThumbnail>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h3>Untappd</h3>
+                                <p>Discover and share beer</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                    <IonItem>
+                        <Start>
+                            <IonThumbnail>
+                                <img src="res://IonicDemo.Assets.logo-shipt.png" />
+                            </IonThumbnail>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h3>Shipt</h3>
+                                <p>Bring the store to your door</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                    <IonItem Lines="none">
+                        <Start>
+                            <IonThumbnail>
+                                <img src="res://IonicDemo.Assets.logo-amtrak.png" />
+                            </IonThumbnail>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h3>Amtrak</h3>
+                                <p>Book a trip today</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                </IonList>
+            </IonCardContent>
+        </IonCard>
+
+        <IonCard Class="coworker-card">
+            <img class="header-img" src="res://IonicDemo.Assets.card-coworker-header.png" />
+            <IonCardContent>
+                <IonList Lines="none">
+                    <IonItem>
+                        <Start>
+                            <IonAvatar>
+                                <img src="res://IonicDemo.Assets.card-coworker-avatar.png" />
+                            </IonAvatar>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h1>John Parks</h1>
+                                <p>Co-worker</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                    <IonItem>
+                        <Start>
+                            <IonIcon Icon="@Ionicons.Call"></IonIcon>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h2>(555) 418-5602</h2>
+                                <p>Mobile phone</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                    <IonItem>
+                        <Start>
+                            <IonIcon Icon="@Ionicons.Mail"></IonIcon>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h2>jparks@@workmail.com</h2>
+                                <p>Work email</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                    <IonItem>
+                        <Start>
+                            <IonIcon Icon="@Ionicons.Mail"></IonIcon>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h2>john.parks92@@email.com</h2>
+                                <p>Personal email</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                </IonList>
+            </IonCardContent>
+        </IonCard>
+
+        <IonCard Class="music-card">
+            <IonCardHeader>
+                <img src="res://IonicDemo.Assets.card-album.png" />
+            </IonCardHeader>
+            <IonCardContent>
+                <h2>29 #Strafford APTS</h2>
+                <p>Bon Iver — 22, A Million</p>
+
+                <IonProgressBar Value="0.25"></IonProgressBar>
+
+                <IonButton Color="dark" Fill="clear" Size="small">
+                    <IconOnly>
+                        <IonIcon Icon="@Ionicons.Shuffle" Slot="icon-only"></IonIcon>
+                    </IconOnly>
+                </IonButton>
+                <IonButton Color="dark" Fill="clear" Size="large">
+                    <IconOnly>
+                        <IonIcon Icon="@Ionicons.PlayBack" Slot="icon-only"></IonIcon>
+                    </IconOnly>
+                </IonButton>
+                <IonButton Color="dark" Fill="clear" Class="button-largest">
+                    <IconOnly>
+                        <IonIcon Icon="@Ionicons.Play" Slot="icon-only"></IonIcon>
+                    </IconOnly>
+                </IonButton>
+                <IonButton Color="dark" Fill="clear" Size="large">
+                    <IconOnly>
+                        <IonIcon Icon="@Ionicons.PlayForward" Slot="icon-only"></IonIcon>
+                    </IconOnly>
+                </IonButton>
+                <IonButton Color="dark" Fill="clear" Size="small">
+                    <IconOnly>
+                        <IonIcon Icon="@Ionicons.Repeat" Slot="icon-only"></IonIcon>
+                    </IconOnly>
+                </IonButton>
+            </IonCardContent>
+        </IonCard>
+
+        <IonCard>
+            <img src="res://IonicDemo.Assets.madison.jpg" />
+            <IonCardHeader>
+                <IonCardSubtitle>Destination</IonCardSubtitle>
+                <IonCardTitle>Madison, WI</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+                Founded in 1829 on an isthmus between Lake Monona and Lake Mendota, Madison was named the capital of the Wisconsin Territory in 1836.
+            </IonCardContent>
+        </IonCard>
     </IonContent>
 </IonPage>
 @code {

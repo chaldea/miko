@@ -1,0 +1,82 @@
+@page "/list"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>List</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Recent Conversations</IonLabel>
+            </IonListHeader>
+
+            @foreach (var chat in _recent)
+            {
+                <IonItem>
+                    <Start>
+                        <IonAvatar>
+                            <img src="@chat.Avatar" />
+                        </IonAvatar>
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>
+                            <h2>@chat.Name</h2>
+                            <h3>@chat.Subject</h3>
+                            <p>@chat.Preview</p>
+                        </IonLabel>
+                    </ChildContent>
+                </IonItem>
+            }
+        </IonList>
+
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Online</IonLabel>
+            </IonListHeader>
+
+            @foreach (var chat in _online)
+            {
+                <IonItem>
+                    <Start>
+                        <IonAvatar>
+                            <img src="@chat.Avatar" />
+                        </IonAvatar>
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>
+                            <h2>@chat.Name</h2>
+                            <h3>@chat.Subject</h3>
+                            <p>@chat.Preview</p>
+                        </IonLabel>
+                    </ChildContent>
+                </IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+    private record Chat(string Name, string Subject, string Preview, string Avatar);
+
+    private readonly Chat[] _recent =
+    {
+        new("Finn", "I'm a big deal", "Listen, I've had a pretty messed up day...", "res://IonicDemo.Assets.avatar-finn.png"),
+        new("Han", "Look, kid...", "I've got enough on my plate as it is, and I...", "res://IonicDemo.Assets.avatar-han.png"),
+        new("Rey", "I can handle myself", "You will remove these restraints and leave...", "res://IonicDemo.Assets.avatar-rey.png"),
+        new("Luke", "Your thoughts betray you", "I feel the good in you, the conflict...", "res://IonicDemo.Assets.avatar-luke.png"),
+    };
+
+    private readonly Chat[] _online =
+    {
+        new("Poe", "New Ride", "I just upgraded my X-Wing. Next time...", "res://IonicDemo.Assets.avatar-poe.png"),
+        new("Ben", "Move Along", "These aren't the droids you're looking for...", "res://IonicDemo.Assets.avatar-ben.png"),
+        new("Leia", "You're My Only Hope", "I've placed information vital to the survival...", "res://IonicDemo.Assets.avatar-leia.png"),
+        new("Yoda", "Size matters not", "Do or do not. There is no try...", "res://IonicDemo.Assets.avatar-yoda.png"),
+    };
+}

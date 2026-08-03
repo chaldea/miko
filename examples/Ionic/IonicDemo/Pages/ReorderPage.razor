@@ -1,0 +1,93 @@
+@page "/reorder"
+
+@* NOTE: the original demo nests ion-list-headers inside the reorder group to label the three
+   styles. Miko's IonReorderGroup reorders its own children by index, so each style gets its own
+   group here — keeping the reorder indices correct. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <End>
+                <IonButton OnClick="@ToggleReorder">Toggle</IonButton>
+            </End>
+            <ChildContent>
+                <IonTitle>Reorder</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Reorder Icon</IonLabel>
+            </IonListHeader>
+            <IonReorderGroup Disabled="@_disabled" OnItemReorder="@(args => Reorder(_iconItems, args))">
+                @foreach (var item in _iconItems)
+                {
+                    <IonItem>
+                        <End>
+                            <IonReorder></IonReorder>
+                        </End>
+                        <ChildContent>
+                            <IonLabel>@item</IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                }
+            </IonReorderGroup>
+
+            <IonListHeader>
+                <IonLabel>Custom Reorder Icon</IonLabel>
+            </IonListHeader>
+            <IonReorderGroup Disabled="@_disabled" OnItemReorder="@(args => Reorder(_customItems, args))">
+                @foreach (var item in _customItems)
+                {
+                    <IonItem>
+                        <End>
+                            <IonReorder>
+                                <IonIcon Icon="@Ionicons.SwapVertical"></IonIcon>
+                            </IonReorder>
+                        </End>
+                        <ChildContent>
+                            <IonLabel>@item</IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                }
+            </IonReorderGroup>
+
+            <IonListHeader>
+                <IonLabel>Reorder Item</IonLabel>
+            </IonListHeader>
+            <IonReorderGroup Disabled="@_disabled" OnItemReorder="@(args => Reorder(_wholeItems, args))">
+                @foreach (var item in _wholeItems)
+                {
+                    <IonReorder>
+                        <IonItem>
+                            <IonLabel>@item</IonLabel>
+                        </IonItem>
+                    </IonReorder>
+                }
+            </IonReorderGroup>
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+    private bool _disabled = false;
+
+    private readonly List<string> _iconItems = new() { "Item 1", "Item 2", "Item 3", "Item 4" };
+    private readonly List<string> _customItems = new() { "Item 5", "Item 6", "Item 7" };
+    private readonly List<string> _wholeItems = new() { "Item 8", "Item 9", "Item 10" };
+
+    private void ToggleReorder() => _disabled = !_disabled;
+
+    private void Reorder(List<string> items, (int From, int To) args)
+    {
+        if (args.From < 0 || args.From >= items.Count) return;
+        if (args.To < 0 || args.To >= items.Count) return;
+
+        var moved = items[args.From];
+        items.RemoveAt(args.From);
+        items.Insert(args.To, moved);
+    }
+}

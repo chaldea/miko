@@ -1,5 +1,9 @@
 @page "/content"
 
+@* NOTE: The original demo wires the buttons to ion-content's scrollToTop()/scrollToBottom()
+   imperative methods. Miko's IonContent exposes no scrolling API (only the Fullscreen
+   parameter), so the buttons are rendered for layout parity but perform no scrolling. *@
+
 <IonPage>
     <IonHeader>
         <IonToolbar>
@@ -12,7 +16,20 @@
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
+        <p class="ion-padding-start ion-padding-end">
+            <IonButton Class="ion-text-wrap" Expand="block" Fill="outline">Scroll To Bottom</IonButton>
+        </p>
 
+        @for (var i = 0; i < 30; i++)
+        {
+            <IonItem>
+                <IonLabel>Item @i</IonLabel>
+            </IonItem>
+        }
+
+        <p class="ion-padding-start ion-padding-end">
+            <IonButton Class="ion-text-wrap" Expand="block" Fill="outline">Scroll To Top</IonButton>
+        </p>
     </IonContent>
 </IonPage>
 @code {

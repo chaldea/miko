@@ -1,0 +1,84 @@
+@page "/select"
+
+@* NOTE: Miko's IonSelect has no `interface` parameter (Ionic's alert / popover / action-sheet
+   overlay styles). The "Select Interfaces" group is kept for content parity but every select
+   uses the single built-in presentation. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Select</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Select Trip</IonLabel>
+            </IonListHeader>
+
+            <IonItem>
+                <IonSelect Label="Origin" LabelPlacement="stacked" Placeholder="Select Airport">
+                    <IonSelectOption Value="madison">Madison (MSN)</IonSelectOption>
+                    <IonSelectOption Value="chicago">Chicago (ORD)</IonSelectOption>
+                    <IonSelectOption Value="austin">Austin (AUS)</IonSelectOption>
+                </IonSelect>
+            </IonItem>
+
+            <IonItem>
+                <IonSelect Label="Destination" LabelPlacement="stacked" Placeholder="Select Airport">
+                    <IonSelectOption Value="newyork">New York (JFK)</IonSelectOption>
+                    <IonSelectOption Value="honolulu">Honolulu (HNL)</IonSelectOption>
+                    <IonSelectOption Value="baltimore">Baltimore (BWI)</IonSelectOption>
+                </IonSelect>
+            </IonItem>
+
+            <IonItem>
+                <IonSelect Label="Passengers" LabelPlacement="stacked" Value="1">
+                    <IonSelectOption Value="1">1 Adult</IonSelectOption>
+                    <IonSelectOption Value="2">2 Adults</IonSelectOption>
+                    <IonSelectOption Value="3">3 Adults</IonSelectOption>
+                    <IonSelectOption Value="4">4 Adults</IonSelectOption>
+                </IonSelect>
+            </IonItem>
+
+            <IonItem Lines="full">
+                <IonSelect Label="Add-ons" LabelPlacement="stacked" Placeholder="Select Multiple Add-ons" Multiple>
+                    <IonSelectOption Value="firstclass">First Class</IonSelectOption>
+                    <IonSelectOption Value="bag">Additional Bag</IonSelectOption>
+                    <IonSelectOption Value="headphones">Headphones</IonSelectOption>
+                    <IonSelectOption Value="wifi">Inflight WiFi</IonSelectOption>
+                </IonSelect>
+            </IonItem>
+        </IonList>
+
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Select Interfaces</IonLabel>
+            </IonListHeader>
+
+            <IonItem>
+                <IonSelect Label="Gender" LabelPlacement="stacked" Placeholder="Popover Interface">
+                    <IonSelectOption Value="f">Female</IonSelectOption>
+                    <IonSelectOption Value="m">Male</IonSelectOption>
+                </IonSelect>
+            </IonItem>
+
+            <IonItem>
+                <IonSelect Label="Mute Notifications" LabelPlacement="stacked" Placeholder="Action Sheet Interface">
+                    <IonSelectOption Value="mute_15">For 15 Minutes</IonSelectOption>
+                    <IonSelectOption Value="mute_1">For 1 Hour</IonSelectOption>
+                    <IonSelectOption Value="mute_23">For 24 Hours</IonSelectOption>
+                    <IonSelectOption Value="mute_inf">Until I turn it back on</IonSelectOption>
+                </IonSelect>
+            </IonItem>
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+
+}

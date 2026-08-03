@@ -1,0 +1,148 @@
+@page "/segment"
+
+@* NOTE: Miko's IonSegment has no `Color` or `Scrollable` parameters (Ionic's color theming and
+   horizontal scrolling). The colored / scrollable variants below are rendered with the default
+   segment styling; the per-button `Layout` variants are supported. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Segment</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+        <IonToolbar>
+            <IonSegment @bind-Value="_headerSegment">
+                <IonSegmentButton Value="all">All</IonSegmentButton>
+                <IonSegmentButton Value="favorites">Favorites</IonSegmentButton>
+            </IonSegment>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonListHeader>
+            <IonLabel>Colors</IonLabel>
+        </IonListHeader>
+
+        <div class="ion-padding-horizontal">
+            <IonSegment @bind-Value="_labelSegment">
+                <IonSegmentButton Value="call">
+                    <IonLabel>Call</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton Value="favorite">
+                    <IonLabel>Favorite</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton Value="map">
+                    <IonLabel>Map</IonLabel>
+                </IonSegmentButton>
+            </IonSegment>
+
+            <IonSegment @bind-Value="_iconSegment">
+                <IonSegmentButton Value="call">
+                    <IonIcon Icon="@Ionicons.Call"></IonIcon>
+                </IonSegmentButton>
+                <IonSegmentButton Value="favorite">
+                    <IonIcon Icon="@Ionicons.Heart"></IonIcon>
+                </IonSegmentButton>
+                <IonSegmentButton Value="map">
+                    <IonIcon Icon="@Ionicons.Pin"></IonIcon>
+                </IonSegmentButton>
+            </IonSegment>
+
+            <IonSegment @bind-Value="_bothSegment">
+                @foreach (var entry in _entries)
+                {
+                    <IonSegmentButton Value="@entry.Value">
+                        <IonLabel>@entry.Label</IonLabel>
+                        <IonIcon Icon="@entry.Icon"></IonIcon>
+                    </IonSegmentButton>
+                }
+            </IonSegment>
+
+            <IonSegment @bind-Value="_iconBottomSegment">
+                @foreach (var entry in _entries)
+                {
+                    <IonSegmentButton Value="@entry.Value" Layout="icon-bottom">
+                        <IonIcon Icon="@entry.Icon"></IonIcon>
+                        <IonLabel>@entry.Label</IonLabel>
+                    </IonSegmentButton>
+                }
+            </IonSegment>
+
+            <IonSegment @bind-Value="_iconStartSegment">
+                @foreach (var entry in _entries)
+                {
+                    <IonSegmentButton Value="@entry.Value" Layout="icon-start">
+                        <IonIcon Icon="@entry.Icon"></IonIcon>
+                        <IonLabel>@entry.Label</IonLabel>
+                    </IonSegmentButton>
+                }
+            </IonSegment>
+
+            <IonSegment @bind-Value="_iconEndSegment">
+                @foreach (var entry in _entries)
+                {
+                    <IonSegmentButton Value="@entry.Value" Layout="icon-end">
+                        <IonIcon Icon="@entry.Icon"></IonIcon>
+                        <IonLabel>@entry.Label</IonLabel>
+                    </IonSegmentButton>
+                }
+            </IonSegment>
+        </div>
+
+        <IonListHeader>
+            <IonLabel>Scrollable</IonLabel>
+        </IonListHeader>
+
+        <div class="ion-padding-horizontal">
+            <IonSegment @bind-Value="_scrollableLabels">
+                @foreach (var entry in _scrollable)
+                {
+                    <IonSegmentButton Value="@entry.Value">
+                        <IonLabel>@entry.Label</IonLabel>
+                    </IonSegmentButton>
+                }
+            </IonSegment>
+
+            <IonSegment @bind-Value="_scrollableIcons">
+                @foreach (var entry in _scrollable)
+                {
+                    <IonSegmentButton Value="@entry.Value">
+                        <IonIcon Icon="@entry.Icon"></IonIcon>
+                    </IonSegmentButton>
+                }
+            </IonSegment>
+        </div>
+    </IonContent>
+</IonPage>
+@code {
+    private string? _headerSegment = "all";
+    private string? _labelSegment = "call";
+    private string? _iconSegment = "favorite";
+    private string? _bothSegment = "map";
+    private string? _iconBottomSegment = "call";
+    private string? _iconStartSegment = "favorite";
+    private string? _iconEndSegment = "map";
+    private string? _scrollableLabels = "call";
+    private string? _scrollableIcons = "favorite";
+
+    private readonly (string Label, string Value, string Icon)[] _entries =
+    {
+        ("Call", "call", Ionicons.Call),
+        ("Favorite", "favorite", Ionicons.Heart),
+        ("Map", "map", Ionicons.Pin),
+    };
+
+    private readonly (string Label, string Value, string Icon)[] _scrollable =
+    {
+        ("Call", "call", Ionicons.Call),
+        ("Favorite", "favorite", Ionicons.Heart),
+        ("Map", "map", Ionicons.Pin),
+        ("Watch", "watch", Ionicons.PlayCircleOutline),
+        ("Account", "account", Ionicons.People),
+        ("Settings", "settings", Ionicons.Cog),
+        ("Profile", "profile", Ionicons.Person),
+    };
+}

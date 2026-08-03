@@ -1,0 +1,112 @@
+@page "/infinite-scroll"
+
+@* NOTE: the original demo loads gravatar images over the network for each row. Miko's demo
+   resources are embedded, so the bundled avatar asset is used instead. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Infinite Scroll</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            @foreach (var user in _items)
+            {
+                <IonItem>
+                    <Start>
+                        <IonAvatar>
+                            <img src="res://IonicDemo.Assets.avatar.svg" />
+                        </IonAvatar>
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>
+                            <h2>@user.Name</h2>
+                            <p>Created @user.Created</p>
+                        </IonLabel>
+                    </ChildContent>
+                </IonItem>
+            }
+        </IonList>
+
+        <IonInfiniteScroll @ref="_infiniteScroll" Threshold="100px" OnInfinite="@HandleInfinite">
+            <IonInfiniteScrollContent LoadingSpinner="bubbles" LoadingText="Loading more data...">
+            </IonInfiniteScrollContent>
+        </IonInfiniteScroll>
+    </IonContent>
+</IonPage>
+@code {
+    private record User(string Name, string Created);
+
+    private IonInfiniteScroll? _infiniteScroll;
+
+    private readonly Random _random = new(42);
+
+    private static readonly User[] Users =
+    {
+        new("Aline Grover", "November 28, 2012"),
+        new("Nevada Anders", "January 18, 2014"),
+        new("Nicholas Morissette", "November 11, 2014"),
+        new("Rusty Umland", "January 8, 2019"),
+        new("Amada Cerulli", "July 22, 2009"),
+        new("Harriette Garcia", "July 29, 2018"),
+        new("Erminia Marotz", "September 29, 2016"),
+        new("Shanelle Parodi", "May 26, 2018"),
+        new("Roger Leite", "August 6, 2015"),
+        new("Latina Faulcon", "February 5, 2014"),
+        new("Jerrie Hoekstra", "June 2, 2016"),
+        new("Domonique Byam", "December 30, 2010"),
+        new("Monnie Bonar", "December 20, 2018"),
+        new("Chu Kahle", "November 17, 2017"),
+        new("Allan Passman", "November 12, 2015"),
+        new("Conrad Caliendo", "February 10, 2016"),
+        new("Elma Chenier", "August 13, 2011"),
+        new("Wendi Hirano", "July 27, 2018"),
+        new("Loren Wordlaw", "December 20, 2014"),
+        new("Hubert Frum", "January 21, 2013"),
+        new("Rueben Basil", "December 2, 2013"),
+        new("Krystyna Hardiman", "February 11, 2016"),
+        new("Micki Murch", "December 17, 2009"),
+        new("Allene Knight", "November 3, 2010"),
+        new("Davis Lunsford", "October 17, 2011"),
+        new("Elin Conte", "June 23, 2015"),
+        new("Yasuko Hites", "August 25, 2017"),
+        new("Gerri Pinon", "May 21, 2014"),
+        new("Caryl Hawker", "April 13, 2018"),
+        new("Savannah Hoard", "October 31, 2009"),
+        new("Carolyn Knutsen", "July 16, 2015"),
+        new("Shantay Mckissack", "July 9, 2010"),
+        new("Vertie Pinales", "November 20, 2010"),
+        new("Gidget Stuck", "August 17, 2017"),
+        new("Drew Crownover", "August 30, 2017"),
+        new("Vashti Krajewski", "January 25, 2018"),
+        new("Candice Dike", "November 19, 2018"),
+        new("Dorthey Buhler", "October 22, 2012"),
+        new("Hailey Deluna", "September 13, 2012"),
+        new("Richard Aaron", "April 27, 2016"),
+    };
+
+    private readonly List<User> _items = Users.Take(15).ToList();
+
+    private async Task HandleInfinite()
+    {
+        await Task.Delay(500);
+
+        for (var i = 0; i < 5; i++)
+        {
+            _items.Add(Users[_random.Next(Users.Length)]);
+        }
+
+        if (_infiniteScroll is not null)
+        {
+            await _infiniteScroll.Complete();
+        }
+
+        StateHasChanged();
+    }
+}

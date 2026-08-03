@@ -12,7 +12,46 @@
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
+        <div class="button-section">
+            <IonListHeader>
+                <IonLabel>Small Size</IonLabel>
+            </IonListHeader>
+            <IonButton Size="small">Default</IonButton>
+            <IonButton Size="small" Color="secondary">Secondary</IonButton>
+            <IonButton Size="small" Color="tertiary">Tertiary</IonButton>
+        </div>
 
+        <div class="button-section">
+            <IonListHeader>
+                <IonLabel>Default Size</IonLabel>
+            </IonListHeader>
+            <IonButton Color="success">Success</IonButton>
+            <IonButton Color="warning">Warning</IonButton>
+            <IonButton Color="danger">Danger</IonButton>
+        </div>
+
+        <div class="button-section">
+            <IonListHeader>
+                <IonLabel>Large Size</IonLabel>
+            </IonListHeader>
+            <IonButton Size="large" Color="light">Light</IonButton>
+            <IonButton Size="large" Color="medium">Medium</IonButton>
+            <IonButton Size="large" Color="dark">Dark</IonButton>
+        </div>
+
+        <div class="button-section">
+            <IonListHeader>
+                <IonLabel>Block Width</IonLabel>
+            </IonListHeader>
+            <IonButton Class="ion-text-wrap" Expand="block">A block button</IonButton>
+        </div>
+
+        <div class="button-section">
+            <IonListHeader>
+                <IonLabel>Full Width</IonLabel>
+            </IonListHeader>
+            <IonButton Class="ion-text-wrap" Expand="full" Color="secondary">A full-width button</IonButton>
+        </div>
     </IonContent>
 </IonPage>
 @code {

@@ -1,0 +1,37 @@
+@page "/loading"
+
+@* NOTE: Ionic creates the overlay imperatively via loadingController.create().present();
+   Miko's IonLoading is declarative — the host binds IsOpen. Duration still auto-dismisses. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Loading</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <ComponentDetails Name="Loading">
+            The Loading overlay can be used to indicate activity while blocking user interaction.
+            It appears on top of the app's content, and can be dismissed by the app to resume user
+            interaction with the app.
+        </ComponentDetails>
+
+        <div class="ion-padding-start ion-padding-end">
+            <IonButton Expand="block" OnClick="@(() => _isOpen = true)">Open Loading</IonButton>
+        </div>
+
+        <IonLoading Message="Please wait..."
+                    Duration="3000"
+                    IsOpen="@_isOpen"
+                    IsOpenChanged="@(open => _isOpen = open)">
+        </IonLoading>
+    </IonContent>
+</IonPage>
+@code {
+    private bool _isOpen;
+}

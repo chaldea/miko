@@ -1,0 +1,75 @@
+@namespace IonicDemo.Components
+@inherits IonicComponentBase
+
+@* Mirrors the docs demo's component-modal-content: the contact list shown inside every
+   modal variant on the Modal page. Ionic dismisses via modalController.dismiss(); here the
+   host passes an OnDismiss callback that flips its own IsOpen binding. *@
+
+<IonHeader>
+    <IonToolbar>
+        <Start>
+            <IonButton OnClick="@OnDismiss">Cancel</IonButton>
+        </Start>
+        <End>
+            <IonButton>
+                <IconOnly>
+                    <IonIcon Icon="@Ionicons.Add" Slot="icon-only"></IonIcon>
+                </IconOnly>
+            </IonButton>
+        </End>
+        <ChildContent>
+            <IonTitle>Contacts</IonTitle>
+        </ChildContent>
+    </IonToolbar>
+</IonHeader>
+
+<IonContent Fullscreen>
+    <IonList>
+        <IonItem>
+            <Start>
+                <IonAvatar>
+                    <img src="res://IonicDemo.Assets.avatar-gollum.jpg" />
+                </IonAvatar>
+            </Start>
+            <ChildContent>
+                <IonLabel>
+                    <h2>Gollum</h2>
+                    <p>Sneaky little hobbitses!</p>
+                </IonLabel>
+            </ChildContent>
+        </IonItem>
+
+        <IonItem>
+            <Start>
+                <IonAvatar>
+                    <img src="res://IonicDemo.Assets.avatar-frodo.jpg" />
+                </IonAvatar>
+            </Start>
+            <ChildContent>
+                <IonLabel>
+                    <h2>Frodo</h2>
+                    <p>Go back, Sam! I'm going to Mordor alone!</p>
+                </IonLabel>
+            </ChildContent>
+        </IonItem>
+
+        <IonItem Lines="full">
+            <Start>
+                <IonAvatar>
+                    <img src="res://IonicDemo.Assets.avatar-samwise.jpg" />
+                </IonAvatar>
+            </Start>
+            <ChildContent>
+                <IonLabel>
+                    <h2>Samwise</h2>
+                    <p>What we need is a few good taters.</p>
+                </IonLabel>
+            </ChildContent>
+        </IonItem>
+    </IonList>
+</IonContent>
+
+@code {
+    /// <summary>Raised when the Cancel button is tapped; the host closes its modal.</summary>
+    [Parameter] public EventCallback OnDismiss { get; set; }
+}

@@ -1,5 +1,9 @@
 @page "/input"
 
+@* NOTE: the original demo wraps the fields in a <form> and uses ion-label position="stacked".
+   Miko's IonInput carries its own Label / LabelPlacement parameters instead, and there is no
+   form submit pipeline — the button click runs the handler directly. *@
+
 <IonPage>
     <IonHeader>
         <IonToolbar>
@@ -12,9 +16,57 @@
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
+        <IonList Lines="full" Class="ion-no-margin ion-no-padding">
+            <IonItem>
+                <IonInput Label="First Name" LabelPlacement="stacked" Type="text" @bind-Value="_firstName"></IonInput>
+            </IonItem>
 
+            <IonItem>
+                <IonInput Label="Last Name" LabelPlacement="stacked" Type="text" @bind-Value="_lastName"></IonInput>
+            </IonItem>
+
+            <IonItem>
+                <IonInput Label="Address" LabelPlacement="stacked" Placeholder="Address Line 1"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Placeholder="Address Line 2"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Placeholder="City"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Placeholder="State"></IonInput>
+            </IonItem>
+            <IonItem>
+                <IonInput Placeholder="Zip Code"></IonInput>
+            </IonItem>
+
+            <IonItem>
+                <IonTextarea Label="Notes"></IonTextarea>
+            </IonItem>
+        </IonList>
+
+        <div class="ion-padding">
+            <IonButton Expand="block" Class="ion-text-wrap ion-no-margin" OnClick="@ProcessForm">Create account</IonButton>
+        </div>
+
+        <IonAlert Header="Account Created"
+                  Message="@($"Created account for: {_firstName} {_lastName}")"
+                  Buttons="@_alertButtons"
+                  IsOpen="@_isAlertOpen"
+                  IsOpenChanged="@(open => _isAlertOpen = open)">
+        </IonAlert>
     </IonContent>
 </IonPage>
 @code {
+    private string? _firstName;
+    private string? _lastName;
+    private bool _isAlertOpen;
 
+    private readonly IReadOnlyList<IonAlertButton> _alertButtons = new List<IonAlertButton>
+    {
+        new() { Text = "OK" },
+    };
+
+    private void ProcessForm() => _isAlertOpen = true;
 }

@@ -1,0 +1,101 @@
+@page "/skeleton-text"
+
+@* NOTE: the original demo toggles the two lists by mutating inline `display` styles from the
+   DOM. Here the Toggle button flips a bool and the matching list is rendered. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <End>
+                <IonButton OnClick="@ToggleSkeleton">Toggle</IonButton>
+            </End>
+            <ChildContent>
+                <IonTitle>Skeleton Text</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        @if (!_showSkeleton)
+        {
+            <IonList>
+                <IonListHeader>
+                    <IonLabel>Albums</IonLabel>
+                </IonListHeader>
+
+                @foreach (var album in _albums)
+                {
+                    <IonItem>
+                        <Start>
+                            <IonThumbnail>
+                                <img src="@album.Cover" />
+                            </IonThumbnail>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h3>@album.Title</h3>
+                                <p>@album.Artist</p>
+                                <p>@album.Year</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                }
+            </IonList>
+        }
+        else
+        {
+            <IonList>
+                <IonListHeader>
+                    <IonLabel>
+                        <IonSkeletonText Animated Style="@(new Style { Width = Length.Px(80) })"></IonSkeletonText>
+                    </IonLabel>
+                </IonListHeader>
+
+                @for (var i = 0; i < 8; i++)
+                {
+                    <IonItem>
+                        <Start>
+                            <IonThumbnail>
+                                <IonSkeletonText></IonSkeletonText>
+                            </IonThumbnail>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h3>
+                                    <IonSkeletonText Animated Style="@(new Style { Width = Length.Percent(80) })"></IonSkeletonText>
+                                </h3>
+                                <p>
+                                    <IonSkeletonText Animated Style="@(new Style { Width = Length.Percent(60) })"></IonSkeletonText>
+                                </p>
+                                <p>
+                                    <IonSkeletonText Animated Style="@(new Style { Width = Length.Percent(30) })"></IonSkeletonText>
+                                </p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                }
+            </IonList>
+        }
+    </IonContent>
+</IonPage>
+@code {
+    private record Album(string Title, string Artist, string Year, string Cover);
+
+    private bool _showSkeleton;
+
+    private void ToggleSkeleton() => _showSkeleton = !_showSkeleton;
+
+    private readonly Album[] _albums =
+    {
+        new("Abbey Road", "The Beatles", "1969", "res://IonicDemo.Assets.thebeatles.jpeg"),
+        new("The Dark Side of the Moon", "Pink Floyd", "1973", "res://IonicDemo.Assets.pinkfloyd.jpeg"),
+        new("For Emma, Forever Ago", "Bon Iver", "2008", "res://IonicDemo.Assets.boniver.jpeg"),
+        new("Beast Epic", "Iron & Wine", "2017", "res://IonicDemo.Assets.ironwine.jpeg"),
+        new("Worlds", "Porter Robinson", "2014", "res://IonicDemo.Assets.porterrobinson.jpeg"),
+        new("Worlds", "Awaken, My Love!", "2016", "res://IonicDemo.Assets.childishgambino.jpeg"),
+        new("Coloring Book", "Chance the Rapper", "2016", "res://IonicDemo.Assets.chancetherapper.jpeg"),
+        new("Primal Heart", "Kimbra", "2018", "res://IonicDemo.Assets.kimbra.jpeg"),
+    };
+}

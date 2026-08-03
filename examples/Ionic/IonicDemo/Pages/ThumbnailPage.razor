@@ -1,0 +1,111 @@
+@page "/thumbnail"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Thumbnail</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonListHeader>
+            <IonLabel>Default</IonLabel>
+        </IonListHeader>
+        <IonThumbnail Class="ion-margin-start">
+            <img src="res://IonicDemo.Assets.thumbnail.svg" />
+        </IonThumbnail>
+
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Item Thumbnails</IonLabel>
+            </IonListHeader>
+
+            <IonItem>
+                <Start>
+                    <IonThumbnail>
+                        <img src="res://IonicDemo.Assets.thumbnail.svg" />
+                    </IonThumbnail>
+                </Start>
+                <ChildContent>
+                    <IonLabel>Lorem ipsum</IonLabel>
+                </ChildContent>
+            </IonItem>
+
+            <IonItem>
+                <Start>
+                    <IonThumbnail>
+                        <img src="res://IonicDemo.Assets.thumbnail.svg" />
+                    </IonThumbnail>
+                </Start>
+                <ChildContent>
+                    <IonLabel>
+                        <h3>Lorem ipsum</h3>
+                        <p>dolor sit amet</p>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+
+            <IonItem>
+                <Start>
+                    <IonThumbnail>
+                        <img src="res://IonicDemo.Assets.thumbnail.svg" />
+                    </IonThumbnail>
+                </Start>
+                <ChildContent>
+                    <IonLabel>
+                        <h3>Lorem ipsum</h3>
+                        <p>dolor sit amet</p>
+                        <p>consectetur adipiscing elit. Duis ut urna neque.</p>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+
+            <IonItem>
+                <End>
+                    <IonThumbnail>
+                        <img src="res://IonicDemo.Assets.thumbnail.svg" />
+                    </IonThumbnail>
+                </End>
+                <ChildContent>
+                    <IonLabel>Lorem ipsum</IonLabel>
+                </ChildContent>
+            </IonItem>
+
+            <IonItem>
+                <End>
+                    <IonThumbnail>
+                        <img src="res://IonicDemo.Assets.thumbnail.svg" />
+                    </IonThumbnail>
+                </End>
+                <ChildContent>
+                    <IonLabel>
+                        <h3>Lorem ipsum</h3>
+                        <p>dolor sit amet</p>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+
+            <IonItem>
+                <End>
+                    <IonThumbnail>
+                        <img src="res://IonicDemo.Assets.thumbnail.svg" />
+                    </IonThumbnail>
+                </End>
+                <ChildContent>
+                    <IonLabel>
+                        <h3>Lorem ipsum</h3>
+                        <p>dolor sit amet</p>
+                        <p>consectetur adipiscing elit. Duis ut urna neque.</p>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+
+}

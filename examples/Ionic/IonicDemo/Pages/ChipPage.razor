@@ -12,9 +12,81 @@
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
+        <IonListHeader>
+            <IonLabel>Basic</IonLabel>
+        </IonListHeader>
+        <div class="ion-padding-horizontal">
+            <IonChip>
+                <IonLabel>Default</IonLabel>
+            </IonChip>
+            <IonChip>
+                <IonIcon Icon="@Ionicons.CheckmarkCircle"></IonIcon>
+                <IonLabel>Icon</IonLabel>
+            </IonChip>
+            <IonChip>
+                <IonAvatar>
+                    <img src="res://IonicDemo.Assets.avatar.svg" />
+                </IonAvatar>
+                <IonLabel>Avatar</IonLabel>
+            </IonChip>
+        </div>
 
+        <IonListHeader>
+            <IonLabel>Colors</IonLabel>
+        </IonListHeader>
+        <div class="ion-padding-horizontal">
+            @foreach (var color in _colors)
+            {
+                <IonChip Color="@color.Value">
+                    <IonLabel>@color.Label</IonLabel>
+                </IonChip>
+            }
+        </div>
+
+        <IonListHeader>
+            <IonLabel>Outline</IonLabel>
+        </IonListHeader>
+        <div class="ion-padding-horizontal">
+            @foreach (var color in _colors)
+            {
+                <IonChip Outline Color="@color.Value">
+                    <IonLabel>@color.Label</IonLabel>
+                </IonChip>
+            }
+        </div>
+
+        <IonListHeader>
+            <IonLabel>Icons</IonLabel>
+        </IonListHeader>
+        <div class="ion-padding-horizontal">
+            @foreach (var tag in _tags)
+            {
+                <IonChip Outline Color="@tag.Color">
+                    <IonIcon Icon="@tag.Icon"></IonIcon>
+                    <IonLabel>@tag.Label</IonLabel>
+                    <IonIcon Icon="@Ionicons.CloseCircle"></IonIcon>
+                </IonChip>
+            }
+        </div>
     </IonContent>
 </IonPage>
 @code {
 
+    private readonly (string Label, string Value)[] _colors =
+    {
+        ("Primary", "primary"),
+        ("Secondary", "secondary"),
+        ("Tertiary", "tertiary"),
+        ("Success", "success"),
+        ("Warning", "warning"),
+        ("Danger", "danger"),
+    };
+
+    private readonly (string Label, string Color, string Icon)[] _tags =
+    {
+        ("Madison", "primary", Ionicons.Pin),
+        ("Nightlife", "secondary", Ionicons.Wine),
+        ("Dining", "tertiary", Ionicons.Restaurant),
+        ("Entertainment", "dark", Ionicons.Videocam),
+    };
 }

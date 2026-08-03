@@ -1,0 +1,139 @@
+@page "/item"
+
+@* NOTE: the original demo's last group nests plain items inside an <ion-item-sliding>, which is
+   not valid usage — IonItemSliding wraps a single item plus its options. The controls are
+   rendered as ordinary list items here. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Item</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Icon Items</IonLabel>
+            </IonListHeader>
+
+            <IonItem>
+                <Start>
+                    <IonIcon Ios="@Ionicons.StarOutline" Md="@Ionicons.StarSharp"></IonIcon>
+                </Start>
+                <ChildContent>
+                    <IonLabel>Label</IonLabel>
+                </ChildContent>
+            </IonItem>
+
+            <IonItem Lines="full">
+                <Start>
+                    <IonIcon Ios="@Ionicons.HeartOutline" Md="@Ionicons.HeartSharp"></IonIcon>
+                </Start>
+                <ChildContent>
+                    <IonLabel>Label</IonLabel>
+                </ChildContent>
+            </IonItem>
+        </IonList>
+
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Media Items</IonLabel>
+            </IonListHeader>
+
+            <IonItem>
+                <Start>
+                    <IonAvatar>
+                        <img src="res://IonicDemo.Assets.avatar.svg" />
+                    </IonAvatar>
+                </Start>
+                <ChildContent>
+                    <IonLabel>Label</IonLabel>
+                </ChildContent>
+            </IonItem>
+
+            <IonItem Lines="full">
+                <Start>
+                    <IonAvatar>
+                        <img src="res://IonicDemo.Assets.avatar.svg" />
+                    </IonAvatar>
+                </Start>
+                <ChildContent>
+                    <IonLabel>Label</IonLabel>
+                </ChildContent>
+            </IonItem>
+        </IonList>
+
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Sliding Items</IonLabel>
+            </IonListHeader>
+
+            <IonItemSliding>
+                <IonItem>
+                    <IonLabel>Label</IonLabel>
+                </IonItem>
+
+                <IonItemOptions Side="start">
+                    <IonItemOption Color="primary">Archive</IonItemOption>
+                </IonItemOptions>
+
+                <IonItemOptions Side="end">
+                    <IonItemOption Expandable Color="danger">Delete</IonItemOption>
+                </IonItemOptions>
+            </IonItemSliding>
+
+            <IonItemSliding>
+                <IonItem>
+                    <IonLabel>Label</IonLabel>
+                </IonItem>
+
+                <IonItemOptions Side="start">
+                    <IonItemOption Color="primary">
+                        <IonIcon Ios="@Ionicons.ShareOutline" Md="@Ionicons.ShareSharp" Slot="icon-only"></IonIcon>
+                    </IonItemOption>
+                </IonItemOptions>
+
+                <IonItemOptions Side="end">
+                    <IonItemOption Expandable Color="danger">
+                        <IonIcon Ios="@Ionicons.TrashOutline" Md="@Ionicons.TrashSharp" Slot="icon-only"></IonIcon>
+                    </IonItemOption>
+                </IonItemOptions>
+            </IonItemSliding>
+        </IonList>
+
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Inputs &amp; Controls</IonLabel>
+            </IonListHeader>
+
+            <IonItem>
+                <End>
+                    <IonNote>99</IonNote>
+                </End>
+                <ChildContent>
+                    <IonLabel>Note</IonLabel>
+                </ChildContent>
+            </IonItem>
+
+            <IonItem>
+                <IonCheckbox Checked>Checkbox</IonCheckbox>
+            </IonItem>
+
+            <IonItem>
+                <IonToggle Checked>Toggle</IonToggle>
+            </IonItem>
+
+            <IonItem>
+                <IonInput Label="Input" Placeholder="Placeholder"></IonInput>
+            </IonItem>
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+
+}

@@ -10,11 +10,31 @@
                 <IonTitle>Breadcrumbs</IonTitle>
             </ChildContent>
         </IonToolbar>
+        <IonToolbar>
+            <IonBreadcrumbs MaxItems="@_maxBreadcrumbs" OnCollapsedClick="@ExpandBreadcrumbs">
+                <IonBreadcrumb Href="#">Home</IonBreadcrumb>
+                <IonBreadcrumb Href="#electronics">Electronics</IonBreadcrumb>
+                <IonBreadcrumb Href="#photography">Photography</IonBreadcrumb>
+                <IonBreadcrumb Href="#cameras">Cameras</IonBreadcrumb>
+                <IonBreadcrumb Href="#film">Film</IonBreadcrumb>
+                <IonBreadcrumb>35 mm</IonBreadcrumb>
+            </IonBreadcrumbs>
+        </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
-
+        <ComponentDetails Name="Breadcrumbs">
+            Breadcrumbs are navigation items that are used to indicate where a user is on an app or site.
+            They should be used for large sites and apps with hierarchically arranged pages. Breadcrumbs can
+            be collapsed based on the maximum number that can show, and the collapsed indicator can be
+            clicked on to present a popover with more information or expand the collapsed breadcrumbs.
+        </ComponentDetails>
     </IonContent>
 </IonPage>
 @code {
+    private int? _maxBreadcrumbs = 4;
 
+    private void ExpandBreadcrumbs(IonBreadcrumbCollapsedClickEventArgs args)
+    {
+        _maxBreadcrumbs = null;
+    }
 }
