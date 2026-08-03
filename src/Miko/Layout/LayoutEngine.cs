@@ -104,9 +104,10 @@ public class LayoutEngine
         var constraints = new LayoutConstraints(viewportWidth, viewportHeight) { FillAvailableHeight = true };
         CalculateLayout(layoutRoot, constraints, 0f, 0f);
 
-        // 4. 定位调整：处理 relative/absolute 定位的偏移。根包含块为整个视口。
+        // 4. 定位调整：处理 relative/absolute/fixed 定位的偏移。根包含块为整个视口；
+        // fixed 的包含块恒为视口（不随定位祖先改变），故单独传递。
         var viewportBlock = new RectF(0f, 0f, viewportWidth, viewportHeight);
-        ApplyPositioning(layoutRoot, viewportBlock);
+        ApplyPositioning(layoutRoot, viewportBlock, viewportBlock);
 
         // 记录缓存键。变更版本号在布局完成后读取：布局期间用户代码（事件回调等）
         // 造成的任何修改都会使版本号领先于缓存值，下一帧必然重排，不会复用到中间态。
@@ -123,12 +124,14 @@ public class LayoutEngine
     }
 
     /// <summary>
-    /// 应用定位偏移（relative / absolute）。
-    /// 在常规流布局完成后，根据 position 和 top/right/bottom/left 调整盒子位置。
+    /// 应用定位偏移（relative / absolute / fixed）。
+    /// 在常规流布局完成后，根据 position 和 top/right/bottom/left 调整盒子位置；
+    /// 对脱离文档流的盒子，还会在此按真实包含块补齐由对边偏移决定的尺寸（见 ResolveOutOfFlowSize）。
     /// </summary>
     /// <param name="box">当前盒子</param>
     /// <param name="containingBlock">最近的定位包含块（绝对定位参照的 padding box）</param>
-    private void ApplyPositioning(LayoutBox box, RectF containingBlock)
+    /// <param name="viewportBlock">视口矩形，fixed 定位的包含块（不随定位祖先改变）</param>
+    private void ApplyPositioning(LayoutBox box, RectF containingBlock, RectF viewportBlock)
     {
         var style = box.ComputedStyle;
         var position = style.Position;
@@ -164,6 +167,20 @@ public class LayoutEngine
         }
         else if (position == Position.Absolute || position == Position.Fixed)
         {
+            // fixed 的包含块恒为视口，与是否存在定位祖先无关（CSS：固定定位相对视窗）。
+            // absolute 使用最近定位祖先的 padding box。
+            if (position == Position.Fixed)
+                containingBlock = viewportBlock;
+
+            // 常规流阶段父级只能以自己的内容盒近似约束该盒子，此处才知道真实包含块：
+            // 若某轴由对边偏移（left+right / top+bottom）定型，需按包含块重算尺寸并重排子树。
+            ResolveOutOfFlowSize(box, containingBlock);
+
+            // 尺寸定型后，把该轴的剩余空间分配给 auto 外边距（绝对居中等，见 CSS 10.3.7/10.6.4）。
+            // 必须在偏移平移之前完成：下面的 targetX/targetY 以 margin box 为基准，
+            // auto margin 撑开后 margin box 才是最终尺寸。
+            ResolveOutOfFlowAutoMargins(box, containingBlock);
+
             // absolute/fixed：相对于包含块定位
             var marginBox = box.BoxModel.MarginBox;
 
@@ -208,7 +225,162 @@ public class LayoutEngine
         // 递归处理子元素
         foreach (var child in box.Children)
         {
-            ApplyPositioning(child, childContainingBlock);
+            ApplyPositioning(child, childContainingBlock, viewportBlock);
+        }
+    }
+
+    /// <summary>
+    /// 按真实包含块补齐脱离文档流盒子（absolute / fixed）由对边偏移决定的尺寸。
+    /// </summary>
+    /// <remarks>
+    /// CSS 绝对定位的尺寸方程为 <c>left + margin + border + padding + width + padding + border +
+    /// margin + right = 包含块宽度</c>（高度同理）。当 <c>width: auto</c> 且 left/right 均非 auto 时，
+    /// width 由该方程求解，而非收缩到内容——例如全屏浮层惯用的
+    /// <c>position: fixed; top/right/bottom/left: 0</c>，应铺满包含块而不是塌缩为 0×0（ISSUE-112）。
+    ///
+    /// 常规流布局阶段（BlockLayout / FlexLayout / GridLayout 等）只知道父盒的内容盒，无法得知真实
+    /// 包含块（最近的定位祖先，fixed 则是视口），因此那里一律按 shrink-to-fit 预布局；真实包含块直到
+    /// 定位阶段才确定，故在此重算并以 ResolvedContentWidth/Height 强制定型重排子树——该通道会让盒子
+    /// 跳过自身 width/height 解析与该轴 min/max 夹取，与 flex 主轴定型走同一语义（见 ISSUE-106）。
+    /// 只有被对边定型的轴才强制，另一轴保持原有解析结果。
+    /// </remarks>
+    private void ResolveOutOfFlowSize(LayoutBox box, RectF containingBlock)
+    {
+        var style = box.ComputedStyle;
+        float fs = style.FontSize.Value;
+
+        // 仅当该轴的尺寸为 auto 且两侧偏移都已指定时，尺寸才由偏移方程决定。
+        // 百分比宽/高针对确定的包含块可正常解析，不属于此路径。
+        bool widthFromInsets = style.Width.IsAuto && !style.Left.IsAuto && !style.Right.IsAuto;
+        bool heightFromInsets = style.Height.IsAuto && !style.Top.IsAuto && !style.Bottom.IsAuto;
+
+        if (!widthFromInsets && !heightFromInsets)
+            return;
+
+        var constraints = new LayoutConstraints(containingBlock.Width, containingBlock.Height);
+
+        if (widthFromInsets)
+        {
+            float left = style.Left.ToPixels(containingBlock.Width, fs);
+            float right = style.Right.ToPixels(containingBlock.Width, fs);
+            // 方程求解的是 margin box 宽度；扣掉 margin/border/padding 得到内容宽。
+            // auto margin 在此按 0 参与（盒子已被两侧偏移定型，无剩余空间可分配）。
+            float contentWidth = containingBlock.Width - left - right
+                - box.BoxModel.Margin.Horizontal
+                - box.BoxModel.Border.Horizontal
+                - box.BoxModel.Padding.Horizontal;
+            constraints.ResolvedContentWidth = Math.Max(0, contentWidth);
+        }
+
+        if (heightFromInsets)
+        {
+            float top = style.Top.ToPixels(containingBlock.Height, fs);
+            float bottom = style.Bottom.ToPixels(containingBlock.Height, fs);
+            float contentHeight = containingBlock.Height - top - bottom
+                - box.BoxModel.Margin.Vertical
+                - box.BoxModel.Border.Vertical
+                - box.BoxModel.Padding.Vertical;
+            constraints.ResolvedContentHeight = Math.Max(0, contentHeight);
+        }
+
+        // 就地重排：起点沿用常规流阶段的 margin box 原点，随后由调用方按偏移整体平移子树。
+        var marginBox = box.BoxModel.MarginBox;
+        CalculateLayout(box, constraints, marginBox.Left, marginBox.Top);
+    }
+
+    /// <summary>
+    /// 解析脱离文档流盒子（absolute / fixed）的 auto 外边距：把该轴的剩余空间分配给它们。
+    /// </summary>
+    /// <remarks>
+    /// CSS 10.3.7 / 10.6.4：当某轴的两侧偏移与尺寸都非 auto 时（如
+    /// <c>left:0; right:0; width:200px; margin:auto</c>），偏移方程被过度约束，剩余空间由该轴的
+    /// auto 外边距吸收——两侧皆 auto 则均分（绝对居中的惯用写法），仅一侧 auto 则由该侧吃满。
+    /// 若无 auto 外边距则方程按 LTR 忽略 <c>right</c>（<c>bottom</c> 同理），即下方定位逻辑的默认行为。
+    ///
+    /// 两侧都要重算而非只补 auto 侧：BlockLayout 的块流 auto margin 分支会以「父内容宽度」为基准
+    /// 预先写入居中值，而脱离流盒子的正确基准是包含块，两者不同（父盒未必是包含块）；此处按包含块
+    /// 重新求解并覆盖，非 auto 侧则恢复其声明值。
+    ///
+    /// 仅在剩余空间为正时分配：负剩余（盒子比可用空间宽）在 CSS 中 auto 外边距按 0 处理。
+    /// </remarks>
+    private static void ResolveOutOfFlowAutoMargins(LayoutBox box, RectF containingBlock)
+    {
+        var style = box.ComputedStyle;
+        float fs = style.FontSize.Value;
+
+        ResolveAutoMarginAxis(
+            startAuto: style.MarginLeft.IsAuto, endAuto: style.MarginRight.IsAuto,
+            startOffsetAuto: style.Left.IsAuto, endOffsetAuto: style.Right.IsAuto,
+            sizeIsAuto: style.Width.IsAuto,
+            startOffset: style.Left.ToPixels(containingBlock.Width, fs),
+            endOffset: style.Right.ToPixels(containingBlock.Width, fs),
+            declaredStart: style.MarginLeft.ToPixels(containingBlock.Width, fs),
+            declaredEnd: style.MarginRight.ToPixels(containingBlock.Width, fs),
+            containingSize: containingBlock.Width,
+            // 外边距之外的已占用尺寸（border box）。
+            occupied: box.BoxModel.Content.Width + box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal,
+            out float marginLeft, out float marginRight);
+
+        ResolveAutoMarginAxis(
+            startAuto: style.MarginTop.IsAuto, endAuto: style.MarginBottom.IsAuto,
+            startOffsetAuto: style.Top.IsAuto, endOffsetAuto: style.Bottom.IsAuto,
+            sizeIsAuto: style.Height.IsAuto,
+            startOffset: style.Top.ToPixels(containingBlock.Height, fs),
+            endOffset: style.Bottom.ToPixels(containingBlock.Height, fs),
+            // 垂直外边距的百分比同样相对包含块「宽度」解析（CSS 规范），与 BlockLayout 一致。
+            declaredStart: style.MarginTop.ToPixels(containingBlock.Width, fs),
+            declaredEnd: style.MarginBottom.ToPixels(containingBlock.Width, fs),
+            containingSize: containingBlock.Height,
+            occupied: box.BoxModel.Content.Height + box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical,
+            out float marginTop, out float marginBottom);
+
+        box.BoxModel.Margin = new EdgeSizes(marginTop, marginRight, marginBottom, marginLeft);
+    }
+
+    /// <summary>
+    /// 求解单轴的两侧外边距。见 <see cref="ResolveOutOfFlowAutoMargins"/> 的规则说明。
+    /// </summary>
+    private static void ResolveAutoMarginAxis(
+        bool startAuto, bool endAuto,
+        bool startOffsetAuto, bool endOffsetAuto,
+        bool sizeIsAuto,
+        float startOffset, float endOffset,
+        float declaredStart, float declaredEnd,
+        float containingSize, float occupied,
+        out float marginStart, out float marginEnd)
+    {
+        // 非 auto 的外边距恒为其声明值；auto 默认 0，仅在下面过度约束时才吸收剩余空间。
+        marginStart = startAuto ? 0f : declaredStart;
+        marginEnd = endAuto ? 0f : declaredEnd;
+
+        if (!startAuto && !endAuto)
+            return;
+
+        // 只有「两侧偏移 + 尺寸」都确定时方程才过度约束，才有剩余空间可分配。
+        // 尺寸为 auto 时该轴已由偏移方程定型（见 ResolveOutOfFlowSize），剩余空间为 0；
+        // 任一侧偏移为 auto 时盒子按常规流位置摆放，同样无剩余空间可言。
+        if (sizeIsAuto || startOffsetAuto || endOffsetAuto)
+            return;
+
+        float remaining = containingSize - startOffset - endOffset - occupied
+            - (startAuto ? 0f : marginStart)
+            - (endAuto ? 0f : marginEnd);
+
+        if (remaining <= 0f)
+            return;
+
+        if (startAuto && endAuto)
+        {
+            marginStart = remaining / 2f;
+            marginEnd = remaining / 2f;
+        }
+        else if (startAuto)
+        {
+            marginStart = remaining;
+        }
+        else
+        {
+            marginEnd = remaining;
         }
     }
 
