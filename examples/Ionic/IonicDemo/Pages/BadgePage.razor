@@ -12,8 +12,101 @@
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
-
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Badges</IonLabel>
+            </IonListHeader>
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>Followers</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonBadge>22k</IonBadge>
+                </End>
+            </IonItem>
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>Likes</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonBadge Color="secondary">118k</IonBadge>
+                </End>
+            </IonItem>
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>Stars</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonBadge Color="tertiary">34k</IonBadge>
+                </End>
+            </IonItem>
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>Completed</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonBadge Color="success">80</IonBadge>
+                </End>
+            </IonItem>
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>Warnings</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonBadge Color="warning">70</IonBadge>
+                </End>
+            </IonItem>
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>Notifications</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonBadge Color="danger">1000</IonBadge>
+                </End>
+            </IonItem>
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>Unread</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonBadge Color="light">24</IonBadge>
+                </End>
+            </IonItem>
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>Drafts</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonBadge Color="medium">14</IonBadge>
+                </End>
+            </IonItem>
+            <IonItem Lines="full">
+                <ChildContent>
+                    <IonLabel>Drafts</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonBadge Color="dark">4</IonBadge>
+                </End>
+            </IonItem>
+        </IonList>
     </IonContent>
+    
+    <IonFooter>
+        <IonTabBar>
+            <IonTabButton Selected>
+                <IonIcon Icon="@Ionicons.Globe" />
+                <IonBadge Color="tertiary">44</IonBadge>
+            </IonTabButton>
+            <IonTabButton>
+                <IonIcon Icon="@Ionicons.People" />
+                <IonBadge Color="success">1</IonBadge>
+            </IonTabButton>
+            <IonTabButton>
+                <IonIcon Icon="@Ionicons.Mail" />
+                <IonBadge>2.3k</IonBadge>
+            </IonTabButton>
+        </IonTabBar>
+    </IonFooter>
 </IonPage>
 @code {
 

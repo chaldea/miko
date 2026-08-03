@@ -12,9 +12,37 @@
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
-
+        <ComponentDetails Name="Alert">
+            The Alert is a dialog that presents users with information
+            or collects information from the user via inputs. It appears on top of the app's content,
+            and must be manually dismissed by the user before they can resume interaction with the app.
+        </ComponentDetails>
+        
+        <div class="ion-padding-start ion-padding-end">
+            <IonButton Expand="block" OnClick="@(() => Open(true))">Open Alert</IonButton>
+        </div>
+        
+        <IonAlert
+            Header="Use this lightsaber?"
+            Message="Do you agree to use this lightsaber to do good across the galaxy?"
+            Buttons="@_buttons"
+            IsOpen="@_isOpen"
+            IsOpenChanged="@Open"
+        ></IonAlert>
     </IonContent>
 </IonPage>
 @code {
+    private bool _isOpen = false;
 
+
+    private IReadOnlyList<IonAlertButton> _buttons = new List<IonAlertButton>
+    {
+        new() { Text = "Disagree" },
+        new() { Text = "Agree" },
+    };
+
+    public void Open(bool open)
+    {
+        _isOpen = open;
+    }
 }
