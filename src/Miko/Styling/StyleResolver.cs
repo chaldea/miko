@@ -20,6 +20,10 @@ public class StyleResolver
     // 比较器构成全序，因此可用分配为零的 List.Sort 替代 LINQ OrderBy（稳定性无关）。
     private List<(StyleRule rule, int layer, int specificity, int index)>? _pooledRules;
 
+    // 池化的候选规则暂存列表（ISSUE-113）：每个元素每次解析都从规则索引取一次候选集，
+    // 与上面两个池同理，复用以保持热路径零分配。
+    private List<RuleIndex.Entry>? _pooledCandidates;
+
     private static readonly Comparison<(StyleRule rule, int layer, int specificity, int index)> RuleOrder =
         static (a, b) =>
         {
@@ -40,20 +44,32 @@ public class StyleResolver
         var matchedRules = Interlocked.Exchange(ref _pooledRules, null) ?? new();
         matchedRules.Clear();
 
+        var candidates = Interlocked.Exchange(ref _pooledCandidates, null) ?? new();
+        candidates.Clear();
+
         try
         {
+            // 规则序号是级联的「定义顺序」排序键，必须与未索引时保持一致：
+            // 按样式表依次推进，普通规则占 [base, base + Rules.Count)，其后是媒体规则。
             int ruleIndex = 0;
 
             foreach (var sheet in styleSheets)
             {
-                foreach (var rule in sheet.Rules)
+                // 普通规则：经索引取候选（超集），再用完整选择器判定（见 RuleIndex）。
+                // 候选项自带其在本表中的序号，加上本表基址即为全局定义顺序。
+                int sheetBase = ruleIndex;
+                candidates.Clear();
+                sheet.RuleIndex.CollectCandidates(element, candidates);
+                for (int i = 0; i < candidates.Count; i++)
                 {
-                    if (rule.Selector.Matches(element))
+                    var candidate = candidates[i];
+                    if (candidate.Rule.Selector.Matches(element))
                     {
-                        matchedRules.Add((rule, sheet.Layer, rule.Selector.Specificity, ruleIndex));
+                        matchedRules.Add((candidate.Rule, sheet.Layer,
+                            candidate.Rule.Selector.Specificity, sheetBase + candidate.Order));
                     }
-                    ruleIndex++;
                 }
+                ruleIndex = sheetBase + sheet.Rules.Count;
 
                 if (viewport != null)
                 {
@@ -132,6 +148,8 @@ public class StyleResolver
         {
             matchedRules.Clear();
             Interlocked.CompareExchange(ref _pooledRules, matchedRules, null);
+            candidates.Clear();
+            Interlocked.CompareExchange(ref _pooledCandidates, candidates, null);
         }
     }
 

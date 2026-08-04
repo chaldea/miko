@@ -127,7 +127,7 @@ public class CssSelectorParserTests
     {
         var selector = CssSelectorParser.Parse("h1, h2, h3");
         var group = selector.ShouldBeOfType<GroupSelector>();
-        group.Selectors.Length.ShouldBe(3);
+        group.Selectors.Count.ShouldBe(3);
     }
 
     [Fact]

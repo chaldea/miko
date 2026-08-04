@@ -24,16 +24,48 @@ public class StyleSheet
     // （ISSUE-096 契约），此处的失效仅覆盖注册前的增量构建。
     private List<Selector[]>? _hoverPatterns;
 
+    // 规则索引缓存（见 RuleIndex，ISSUE-113）。与 _hoverPatterns 同样在增量构建时失效。
+    private RuleIndex? _ruleIndex;
+    private int _indexedRuleCount = -1;
+
     public void Add(CssObject css)
     {
-        _hoverPatterns = null;
+        InvalidateAnalyses();
         CssObjectResolver.Resolve(css, this);
     }
 
     public void AddRule(Selector selector, Style style)
     {
-        _hoverPatterns = null;
+        InvalidateAnalyses();
         Rules.Add(new StyleRule { Selector = selector, Style = style });
+    }
+
+    private void InvalidateAnalyses()
+    {
+        _hoverPatterns = null;
+        _ruleIndex = null;
+        _indexedRuleCount = -1;
+    }
+
+    /// <summary>
+    /// 本表普通规则（<see cref="Rules"/>）的索引，供 <see cref="StyleResolver"/> 快速取候选规则。
+    /// 惰性构建；<see cref="Rules"/> 条数变化时自动重建，以覆盖绕过 <see cref="AddRule"/>
+    /// 直接写 <c>Rules</c> 集合的用法（测试与 DomBuilder 惯用初始化器语法）。
+    /// </summary>
+    internal RuleIndex RuleIndex
+    {
+        get
+        {
+            if (_ruleIndex == null || _indexedRuleCount != Rules.Count)
+            {
+                var index = new RuleIndex();
+                for (int i = 0; i < Rules.Count; i++)
+                    index.Add(Rules[i], i);
+                _ruleIndex = index;
+                _indexedRuleCount = Rules.Count;
+            }
+            return _ruleIndex;
+        }
     }
 
     /// <summary>样式表是否包含任何 :hover 规则（含媒体查询与伪元素规则内）。</summary>
