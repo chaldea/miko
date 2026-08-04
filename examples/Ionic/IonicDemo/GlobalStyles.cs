@@ -10,6 +10,10 @@ internal class GlobalStyles
         var styleSheet = new StyleSheet();
         styleSheet.Add(new CssObject()
         {
+            [".component-content"] = new()
+            {
+                BackgroundColor = (Color)"#f2f2f7",
+            },
             [".component-icon"] = new()
             {
                 BorderRadius = Percent(50),
@@ -38,6 +42,53 @@ internal class GlobalStyles
                     LineHeight = Number(1.4f),
                     WhiteSpace = WhiteSpace.Normal,
                     PaddingBottom = Px(16),
+                }
+            },
+
+            [".sc-ion-label-md-s"] = new()
+            {
+                ["h1,h2,h3,h4,h5,h6"] = new()
+                {
+                    TextOverflow = Css.Inherit,
+                    // Overflow = Css.Inherit,
+                },
+                ["h1"] = new()
+                {
+                    MarginLeft = Px(0),
+                    MarginRight = Px(0),
+                    MarginTop = Px(0),
+                    MarginBottom = Px(2),
+                    FontSize = Rem(1.5f),
+                    FontWeight = FontWeight.Normal
+                },
+                ["h2"] = new()
+                {
+                    MarginLeft = Px(0),
+                    MarginRight = Px(0),
+                    MarginTop = Px(2),
+                    MarginBottom = Px(2),
+                    FontSize = Rem(1f),
+                    FontWeight = FontWeight.Normal
+                },
+                ["h3,h4,h5,h6"] = new()
+                {
+                    MarginLeft = Px(0),
+                    MarginRight = Px(0),
+                    MarginTop = Px(2),
+                    MarginBottom = Px(2),
+                    FontSize = Rem(0.875f),
+                    FontWeight = FontWeight.Normal
+                },
+                ["p"] = new()
+                {
+                    MarginLeft = Px(0),
+                    MarginRight = Px(0),
+                    MarginTop = Px(0),
+                    MarginBottom = Px(2),
+                    FontSize = Rem(0.875f),
+                    LineHeight = Rem(1.25f),
+                    TextOverflow = Css.Inherit,
+                    Color = (Color)"#666666",
                 }
             },
 

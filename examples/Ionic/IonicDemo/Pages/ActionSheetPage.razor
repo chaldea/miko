@@ -1,4 +1,5 @@
 @page "/action-sheet"
+@inherits IonicComponentBase
 
 <IonPage>
     <IonHeader>
@@ -23,29 +24,47 @@
             <IonButton Class="ion-text-wrap" Expand="block" OnClick="@Open">Open Action Sheet</IonButton>
         </div>
         
-        <IonActionSheet Header="Actions" IsOpen="@_isOpen" IsOpenChanged="@Change" Buttons="@_buttons">
+        <IonActionSheet Header="Albums" IsOpen="@_isOpen" IsOpenChanged="@Change" Buttons="@_buttons">
         </IonActionSheet>
     </IonContent>
 </IonPage>
 @code {
 
-    private IReadOnlyList<IonActionSheetButton> _buttons = new List<IonActionSheetButton>
+    private IReadOnlyList<IonActionSheetButton> _buttons = [];
+
+    protected override void OnInitialized()
     {
-        new ()
+        _buttons = new List<IonActionSheetButton>()
         {
-            Text = "Delete",
-            Role = "destructive",
-        },
-        new ()
-        {
-            Text = "Share",
-        },
-        new ()
-        {
-            Text = "Cancel",
-            Role = "cancel",
-        },
-    };
+            new()
+            {
+                Text = "Delete",
+                Role = "destructive",
+                Icon = Mode != "ios" ? Ionicons.TrashOutline : null,
+            },
+            new()
+            {
+                Text = "Share",
+                Icon = Mode != "ios" ? Ionicons.ShareOutline : null,
+            },
+            new()
+            {
+                Text = "Play (open modal)",
+                Icon = Mode != "ios" ? Ionicons.PlayCircleOutline : null,
+            },
+            new()
+            {
+                Text = "Favorite",
+                Icon = Mode != "ios" ? Ionicons.HeartOutline : null,
+            },
+            new()
+            {
+                Text = "Cancel",
+                Role = "cancel",
+                Icon = Mode != "ios" ? Ionicons.Close : null,
+            },
+        };
+    }
 
     private bool _isOpen = false;
 

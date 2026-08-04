@@ -556,6 +556,12 @@ public class IonicTheme
     public Color ActionSheetButtonBorderColor { get; set; }
     /// <summary>Cancel button font weight (ios 600; md normal).</summary>
     public FontWeight ActionSheetCancelFontWeight { get; set; } = FontWeight.Normal;
+    /// <summary>Enter (present) animation duration in seconds — 400ms in both modes
+    /// (<c>animations/{md|ios}.enter.ts</c> <c>.duration(400)</c>).</summary>
+    public float ActionSheetEnterDuration { get; set; } = 0.4f;
+    /// <summary>Leave (dismiss) animation duration in seconds — 450ms in both modes
+    /// (<c>animations/{md|ios}.leave.ts</c> <c>.duration(450)</c>).</summary>
+    public float ActionSheetLeaveDuration { get; set; } = 0.45f;
 
     // Alert (alert.scss / .md.scss / .ios.scss + their *.vars.scss). A centered modal card: a head
     // (title + sub-title), an optional message, an optional inputs group (text / radio / checkbox),
@@ -595,6 +601,12 @@ public class IonicTheme
     /// <summary>Button group padding (md 8px; ios 0) and its content justification.</summary>
     public float AlertButtonGroupPadding { get; set; } = 8f;
     public JustifyContent AlertButtonGroupJustify { get; set; } = JustifyContent.FlexEnd;
+    /// <summary>
+    /// Button group wrapping ($alert-{mode}-button-group-flex-wrap): md <c>wrap-reverse</c> so a
+    /// button pushed onto a second line sits ABOVE the first (the primary action stays bottom-right);
+    /// ios <c>wrap</c>.
+    /// </summary>
+    public FlexWrap AlertButtonGroupFlexWrap { get; set; } = FlexWrap.WrapReverse;
     /// <summary>Button label color (primary), background (transparent), font size / weight.</summary>
     public Color AlertButtonColor { get; set; }
     public float AlertButtonFontSize { get; set; } = 14f;
@@ -1139,6 +1151,8 @@ public class IonicTheme
         t.ActionSheetDestructiveColor = t.Danger;
         t.ActionSheetButtonBorderColor = Color.Transparent;       // md has no button divider
         t.ActionSheetCancelFontWeight = FontWeight.Normal;
+        t.ActionSheetEnterDuration = 0.4f;                        // md.enter.ts .duration(400)
+        t.ActionSheetLeaveDuration = 0.45f;                       // md.leave.ts .duration(450)
 
         // Alert (alert.md.scss / .md.vars.scss): a 4px-radius white card with a 3-layer Material
         // shadow; left-aligned head (20px/500 title, 16px sub-title), step-450 message; a right-
@@ -1170,6 +1184,7 @@ public class IonicTheme
         t.AlertMessageFontSize = 16f;
         t.AlertButtonGroupPadding = 8f;
         t.AlertButtonGroupJustify = JustifyContent.FlexEnd;       // right-aligned row
+        t.AlertButtonGroupFlexWrap = FlexWrap.WrapReverse;        // overflow wraps upward
         t.AlertButtonColor = t.Primary;                           // ion-color(primary, base)
         t.AlertButtonFontSize = 14f;
         t.AlertButtonFontWeight = FontWeight.Medium;              // 500
@@ -1613,6 +1628,8 @@ public class IonicTheme
         t.ActionSheetDestructiveColor = t.Danger;
         t.ActionSheetButtonBorderColor = new Color(0, 0, 0, 20);  // rgba(text,.08) hairline divider
         t.ActionSheetCancelFontWeight = FontWeight.SemiBold;      // ios cancel 600
+        t.ActionSheetEnterDuration = 0.4f;                        // ios.enter.ts .duration(400)
+        t.ActionSheetLeaveDuration = 0.45f;                       // ios.leave.ts .duration(450)
 
         // Alert (alert.ios.scss / .ios.vars.scss): a 13px-radius #f9f9f9 card with no shadow;
         // centered head (17px/600 title, 14px step-400 sub-title), 13px message; a button row split
@@ -1638,6 +1655,7 @@ public class IonicTheme
         t.AlertMessageFontSize = 13f;
         t.AlertButtonGroupPadding = 0f;                           // ios group has no padding
         t.AlertButtonGroupJustify = JustifyContent.Center;
+        t.AlertButtonGroupFlexWrap = FlexWrap.Wrap;               // ios wraps downward
         t.AlertButtonColor = t.Primary;                          // ion-color(primary, base)
         t.AlertButtonFontSize = 17f;
         t.AlertButtonFontWeight = FontWeight.Normal;
