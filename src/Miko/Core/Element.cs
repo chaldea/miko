@@ -328,7 +328,7 @@ public abstract class Element
     {
         var results = new List<Element>();
 
-        if (Class != null && Class.Split(' ').Contains(className))
+        if (HasClass(className))
         {
             results.Add(this);
         }
@@ -362,11 +362,54 @@ public abstract class Element
     }
 
     /// <summary>
-    /// 检查是否有指定的class
+    /// 检查是否有指定的 class。
     /// </summary>
+    /// <remarks>
+    /// 样式解析的最热路径（ISSUE-113）：每帧对每个元素测试每条规则，
+    /// <see cref="ClassSelector"/> 最终都落到这里——一个 287 元素 × 1868 条规则的
+    /// Ionic 页面单帧就有约 53 万次调用。旧实现 <c>Class.Split(' ').Contains(...)</c>
+    /// 每次调用都分配一个 <c>string[]</c> 加每个 token 的子串再套一层 LINQ 枚举器，
+    /// 单帧因此产生约 60 MB 垃圾，触发持续的 gen0 回收与可见卡顿。
+    /// 此处改为零分配的 span 分词：按 CSS 的空白语义（空格/制表/换行皆为分隔符）
+    /// 逐 token 比较，不产生任何中间对象。
+    /// </remarks>
     public bool HasClass(string className)
     {
-        return Class != null && Class.Split(' ').Contains(className);
+        return ContainsClassToken(_class, className);
+    }
+
+    /// <summary>
+    /// 判断空白分隔的 <paramref name="classList"/> 中是否含有 <paramref name="token"/>，
+    /// 全程不分配（见 <see cref="HasClass"/>）。
+    /// </summary>
+    internal static bool ContainsClassToken(string? classList, string token)
+    {
+        if (string.IsNullOrEmpty(classList) || string.IsNullOrEmpty(token)) return false;
+
+        // 快速路径：整个 class 串就是该 token（最常见的单类名元素）。
+        if (string.Equals(classList, token, StringComparison.Ordinal)) return true;
+
+        ReadOnlySpan<char> remaining = classList.AsSpan();
+        ReadOnlySpan<char> needle = token.AsSpan();
+
+        while (!remaining.IsEmpty)
+        {
+            // 跳过前导空白。
+            int start = 0;
+            while (start < remaining.Length && char.IsWhiteSpace(remaining[start])) start++;
+            if (start >= remaining.Length) break;
+            remaining = remaining[start..];
+
+            // 取出一个 token。
+            int end = 0;
+            while (end < remaining.Length && !char.IsWhiteSpace(remaining[end])) end++;
+
+            if (remaining[..end].SequenceEqual(needle)) return true;
+
+            remaining = remaining[end..];
+        }
+
+        return false;
     }
 
     public override string ToString() => $"<{TagName} id=\"{Id}\" class=\"{Class}\">";

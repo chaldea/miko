@@ -202,6 +202,95 @@ public static class DomBuilder
         return [new StyleSheet { Rules = rules }];
     }
 
+    /// <summary>
+    /// 组件库规模的样式表（ISSUE-113 复现）：模拟 Miko.Ionic 那样按「组件 × 模式」展开的
+    /// 大表——上千条规则，绝大多数是不会命中当前元素的类选择器，且大量为后代/复合选择器。
+    /// 这是暴露「每元素逐条全表匹配」代价的关键条件：真实 Ionic 表约 1868 条规则。
+    /// </summary>
+    public static List<StyleSheet> CreateComponentLibraryStyleSheet()
+    {
+        var sheet = new StyleSheet();
+
+        // 每个"组件"在两种模式（md / ios）下各生成一组规则，与 Ionic 的展开方式一致。
+        string[] components =
+        [
+            "item", "list", "button", "icon", "label", "toolbar", "header", "content",
+            "card", "chip", "badge", "note", "avatar", "segment", "toggle", "checkbox",
+            "radio", "range", "input", "textarea", "select", "searchbar", "spinner",
+            "thumbnail", "accordion", "breadcrumb", "fab", "grid", "modal", "popover",
+        ];
+        string[] modes = ["md", "ios"];
+        string[] parts = ["native", "inner", "wrapper", "detail-icon", "highlight"];
+
+        foreach (var mode in modes)
+        {
+            foreach (var component in components)
+            {
+                // 宿主规则：.ion-<c>.<mode>
+                sheet.AddRule(
+                    new CompoundSelector(new ClassSelector($"ion-{component}"), new ClassSelector(mode)),
+                    new Style { Display = Display.Block, PaddingLeft = Length.Px(16) });
+
+                // 内部结构规则：.ion-<c>.<mode> .<part>（后代选择器，关键选择器为最右侧）
+                foreach (var part in parts)
+                {
+                    sheet.AddRule(
+                        new DescendantSelector(
+                            new CompoundSelector(new ClassSelector($"ion-{component}"), new ClassSelector(mode)),
+                            new ClassSelector($"{component}-{part}")),
+                        new Style { Display = Display.Flex, Height = Length.Px(24) });
+                }
+
+                // 命名色变体：.ion-<c>.<mode>.ion-color-<name>
+                foreach (var color in new[] { "primary", "secondary", "danger" })
+                {
+                    sheet.AddRule(
+                        new CompoundSelector(
+                            new ClassSelector($"ion-{component}"), new ClassSelector(mode),
+                            new ClassSelector($"ion-color-{color}")),
+                        new Style { BackgroundColor = Color.FromRgb(60, 120, 200) });
+                }
+            }
+        }
+
+        return [sheet];
+    }
+
+    /// <summary>
+    /// 组件库风格的列表页（ISSUE-113 复现）：一个 IonList 里若干个带 href 的 IonItem，
+    /// 每项都是 host → native(a) → slot/inner/wrapper 的多层结构，与 DebugDemo 一致。
+    /// </summary>
+    public static DivElement CreateComponentListPage(int itemCount, string mode = "md")
+    {
+        var page = new DivElement { Class = $"ion-page {mode}" };
+
+        var header = new DivElement { Class = $"ion-header {mode}" };
+        var toolbar = new DivElement { Class = $"ion-toolbar {mode}" };
+        toolbar.AddChild(new DivElement { Class = $"ion-title {mode}", TextContent = "Components" });
+        header.AddChild(toolbar);
+        page.AddChild(header);
+
+        var content = new DivElement { Class = $"ion-content {mode}" };
+        var list = new DivElement { Class = $"ion-list {mode} list-lines-full" };
+        for (int i = 0; i < itemCount; i++)
+        {
+            var host = new DivElement { Class = $"ion-item {mode} in-list item-lines-full ion-activatable" };
+            // Href 形态的 IonItem 渲染为 <a class="item-native">（见 IonItem.razor）。
+            var native = new AnchorElement { Class = "item-native" };
+            var start = new SpanElement { Class = "ion-slot-start" };
+            start.AddChild(new DivElement { Class = $"ion-icon {mode} component-icon" });
+            native.AddChild(start);
+            var inner = new DivElement { Class = "item-inner" };
+            inner.AddChild(new DivElement { Class = "input-wrapper", TextContent = $"Component {i}" });
+            native.AddChild(inner);
+            host.AddChild(native);
+            list.AddChild(host);
+        }
+        content.AddChild(list);
+        page.AddChild(content);
+        return page;
+    }
+
     public static List<StyleSheet> CreateRealisticStyleSheet()
     {
         return

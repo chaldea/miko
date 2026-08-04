@@ -74,7 +74,15 @@ public class FirstChildSelector : PseudoClassSelector
 {
     public override bool Matches(Element element)
     {
-        return element.Parent?.Children.FirstOrDefault(c => c is not TextNode) == element;
+        // 索引循环而非 LINQ（样式解析热路径，见 ISSUE-113）。
+        var siblings = element.Parent?.Children;
+        if (siblings == null) return false;
+        for (int i = 0; i < siblings.Count; i++)
+        {
+            if (siblings[i] is TextNode) continue;
+            return ReferenceEquals(siblings[i], element);
+        }
+        return false;
     }
 }
 
@@ -85,7 +93,14 @@ public class LastChildSelector : PseudoClassSelector
 {
     public override bool Matches(Element element)
     {
-        return element.Parent?.Children.LastOrDefault(c => c is not TextNode) == element;
+        var siblings = element.Parent?.Children;
+        if (siblings == null) return false;
+        for (int i = siblings.Count - 1; i >= 0; i--)
+        {
+            if (siblings[i] is TextNode) continue;
+            return ReferenceEquals(siblings[i], element);
+        }
+        return false;
     }
 }
 
@@ -97,7 +112,13 @@ public class FirstOfTypeSelector : PseudoClassSelector
     public override bool Matches(Element element)
     {
         if (element.Parent == null) return false;
-        return element.Parent.Children.FirstOrDefault(e => e.TagName == element.TagName) == element;
+        var siblings = element.Parent.Children;
+        for (int i = 0; i < siblings.Count; i++)
+        {
+            if (siblings[i].TagName == element.TagName)
+                return ReferenceEquals(siblings[i], element);
+        }
+        return false;
     }
 }
 
@@ -109,7 +130,13 @@ public class LastOfTypeSelector : PseudoClassSelector
     public override bool Matches(Element element)
     {
         if (element.Parent == null) return false;
-        return element.Parent.Children.LastOrDefault(e => e.TagName == element.TagName) == element;
+        var siblings = element.Parent.Children;
+        for (int i = siblings.Count - 1; i >= 0; i--)
+        {
+            if (siblings[i].TagName == element.TagName)
+                return ReferenceEquals(siblings[i], element);
+        }
+        return false;
     }
 }
 
@@ -137,8 +164,21 @@ public class EmptySelector : PseudoClassSelector
 {
     public override bool Matches(Element element)
     {
-        bool hasElementChild = element.Children.Any(c => c is not TextNode);
-        return !hasElementChild && string.IsNullOrEmpty(element.TextContent);
+        // 单趟索引循环：既排除元素子节点，也检查是否存在非空文本节点。
+        // 避免 LINQ 枚举器，也避免读取 TextContent facade（其 get 会拼接/分配，见 ISSUE-113）。
+        var children = element.Children;
+        for (int i = 0; i < children.Count; i++)
+        {
+            if (children[i] is TextNode textNode)
+            {
+                if (!string.IsNullOrEmpty(textNode.RawTextContent)) return false;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
