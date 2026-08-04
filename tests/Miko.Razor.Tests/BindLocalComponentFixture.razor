@@ -1,0 +1,14 @@
+@namespace Miko.Razor.Tests
+@* ISSUE-115 consumer: @bind-Checked against a component declared in THIS assembly, exercising
+   the "tag helpers from compilation" path of the source generator. *@
+<div class="bind-host">
+    <BindTargetFixture @bind-Checked="_checked" />
+    <span class="mirror">@(_checked ? "on" : "off")</span>
+</div>
+
+@code {
+    private bool _checked;
+
+    /// <summary>Test hook: proves the generated setter wrote back into the parent's field.</summary>
+    public bool CheckedValue => _checked;
+}

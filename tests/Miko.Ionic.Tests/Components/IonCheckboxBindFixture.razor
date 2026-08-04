@@ -1,0 +1,15 @@
+@namespace Miko.Ionic.Tests.Components
+@using Miko.Ionic.Components
+@* ISSUE-115 消费方：@bind-Checked 绑定到另一个程序集（Miko.Ionic）中的组件。
+   这正是 issue 里报告的场景，也是最容易失效的一条路径——组件描述符来自引用程序集，
+   而 case #4（Foo/FooChanged 配对）需要在处理该程序集时才能生成。 *@
+<div class="bind-fixture">
+    <IonCheckbox @bind-Checked="_checked">Jon Snow</IonCheckbox>
+</div>
+
+@code {
+    private bool _checked;
+
+    /// <summary>测试钩子：验证子组件回写确实落到了父组件字段上。</summary>
+    public bool CheckedValue => _checked;
+}

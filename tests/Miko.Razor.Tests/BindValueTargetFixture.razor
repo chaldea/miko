@@ -1,0 +1,19 @@
+@namespace Miko.Razor.Tests
+@inherits Miko.Components.ComponentBase
+@typeparam TValue
+@* ISSUE-115: a generic component honouring the binding contract, to prove the
+   `Value`/`ValueChanged` pairing is inferred for non-bool (and open generic) types too. *@
+<div class="value-target">@Value?.ToString()</div>
+
+@code {
+    [Parameter] public TValue? Value { get; set; }
+
+    [Parameter] public EventCallback<TValue?> ValueChanged { get; set; }
+
+    /// <summary>Test hook: simulates the component pushing a new value to its consumer.</summary>
+    public Task SetValueAsync(TValue? next)
+    {
+        Value = next;
+        return ValueChanged.InvokeAsync(next);
+    }
+}
