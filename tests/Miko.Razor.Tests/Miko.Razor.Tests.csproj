@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
     <RazorLangVersion>Latest</RazorLangVersion>
     <IsPackable>false</IsPackable>
+    <!-- Keep the generated .g.cs on disk: these tests assert on compiler output for @bind
+         lowering (ISSUE-115), so the emitted code needs to be inspectable. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>

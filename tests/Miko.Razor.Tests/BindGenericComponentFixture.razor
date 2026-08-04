@@ -1,0 +1,15 @@
+@namespace Miko.Razor.Tests
+@* ISSUE-115: @bind-Value against a generic component. The change parameter's type argument is
+   inferred, which is exactly why the compiler routes through
+   RuntimeHelpers.CreateInferredEventCallback instead of naming EventCallback<T> — so a generic
+   target is the case most likely to break. *@
+<div class="generic-bind-host">
+    <BindValueTargetFixture TValue="string" @bind-Value="_name" />
+    <span class="mirror">@_name</span>
+</div>
+
+@code {
+    private string? _name = "start";
+
+    public string? NameValue => _name;
+}

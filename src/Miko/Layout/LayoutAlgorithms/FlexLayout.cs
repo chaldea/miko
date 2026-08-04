@@ -300,6 +300,60 @@ public class FlexLayout
             contentWidth = maxCrossSize;
         }
 
+        // 4d. auto 宽度被 min/max-width 夹取后，必须以夹取后的确定宽度重排子元素。
+        // 2c 的提前夹取只在宽度确定时有效：宽度未定（widthIsIndefinite）时 contentWidth 只是 0
+        // 占位，Math.Min(0, max) 恒为 0，夹取被跳过；于是子元素按"无约束"布局成 max-content 宽度，
+        // 而第 7 步只把容器自身的 contentWidth 夹回 max-width，子元素仍停留在夹取前的宽度上
+        // （见 ISSUE-115 问题1：IonAlert 的 alert-head / alert-message 溢出 max-width:280px 的
+        //  alert-wrapper）。此处一次性重排，让子元素的百分比宽度、shrink 与 justify-content
+        //  都基于夹取后的确定宽度求值（问题2：width:100% 的 alert-button-group 退化成内容宽度后，
+        //  justify-content:flex-end 没有剩余空间可分配，按钮贴左而非靠右）。
+        if (!widthIsForced && widthIsAuto && widthIsIndefinite)
+        {
+            float clampedWidth = contentWidth;
+            if (!style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
+            {
+                float min = style.MinWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
+                if (isBorderBoxW_Early) min = Math.Max(0, min - horizontalExtra_Early);
+                clampedWidth = Math.Max(clampedWidth, min);
+            }
+            if (!style.MaxWidth.IsAuto && !(style.MaxWidth.HasPercentComponent && widthCbIndefinite))
+            {
+                float max = style.MaxWidth.ToPixels(constraints.AvailableWidth ?? 0, fs);
+                if (isBorderBoxW_Early) max = Math.Max(0, max - horizontalExtra_Early);
+                clampedWidth = Math.Min(clampedWidth, max);
+            }
+
+            if (Math.Abs(clampedWidth - contentWidth) > 0.01f)
+            {
+                contentWidth = clampedWidth;
+
+                // 脱离流子元素的百分比宽度同样应基于夹取后的宽度解析（上面第 4 步用的是夹取前的
+                // 0 占位宽度，百分比会退化为 shrink-to-fit）。
+                foreach (var child in box.Children)
+                {
+                    if (!BlockLayout.IsOutOfFlow(child)) continue;
+                    if (child.ComputedStyle.Width.IsAuto) continue;
+                    float? oofHeight = contentHeight > 0 ? contentHeight : null;
+                    LayoutDispatcher.Dispatch(child,
+                        new LayoutConstraints(contentWidth, oofHeight), contentX, contentY);
+                }
+
+                // 重排一次即可：夹取后的宽度是确定值，不再依赖子元素尺寸，故不会反复迭代。
+                maxCrossSize = 0;
+                if (isRow)
+                {
+                    LayoutRowDirection(box, contentX, contentY, contentWidth, contentHeight,
+                        ref maxCrossSize, widthIsIndefinite: false, heightIsDefinite);
+                }
+                else
+                {
+                    LayoutColumnDirection(box, contentX, contentY, contentWidth, contentHeight,
+                        ref maxCrossSize, heightIsDefinite, crossWidthIsDefinite: true);
+                }
+            }
+        }
+
         // 5. 计算最终容器高度
         // 外部定型高度（列向 flex 项主轴尺寸）不被内容重算覆盖（见 ISSUE-106）。
         if (!heightIsForced && heightIsAuto)

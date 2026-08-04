@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.Razor;
+using Microsoft.AspNetCore.Razor.Language.Components;
 using Microsoft.CodeAnalysis;
 
 namespace Microsoft.AspNetCore.Razor.Language;
@@ -17,11 +18,18 @@ internal partial class SymbolCache
         private static bool CalculateMightContainTagHelpers(IAssemblySymbol assembly)
         {
             // In order to contain tag helpers, components, or anything else we might want to find,
-            // the assembly must start with "Microsoft.AspNetCore." or reference an assembly that
-            // starts with "Microsoft.AspNetCore."
-            return assembly.Name.StartsWith("Microsoft.AspNetCore.", StringComparison.Ordinal) ||
+            // the assembly must be a framework assembly or reference one.
+            //
+            // Miko's framework assembly is "Miko" (not "Microsoft.AspNetCore.*"), so it has to be
+            // recognized here too — otherwise the element @bind mappings it declares (via
+            // BindAttributes) are skipped and `<input @bind="_x" />` silently never lowers.
+            return IsFrameworkAssembly(assembly.Name) ||
                     assembly.Modules.First().ReferencedAssemblies.Any(
-                        a => a.Name.StartsWith("Microsoft.AspNetCore.", StringComparison.Ordinal));
+                        a => IsFrameworkAssembly(a.Name));
+
+            static bool IsFrameworkAssembly(string name)
+                => name is ComponentsApi.AssemblyName ||
+                   name.StartsWith("Microsoft.AspNetCore.", StringComparison.Ordinal);
         }
     }
 }

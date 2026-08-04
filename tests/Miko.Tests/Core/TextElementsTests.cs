@@ -24,6 +24,7 @@ public class TextElementsTests
     [InlineData("textarea", typeof(TextAreaElement))]
     [InlineData("br", typeof(BrElement))]
     [InlineData("hr", typeof(HrElement))]
+    [InlineData("b", typeof(BElement))]
     [InlineData("caption", typeof(CaptionElement))]
     [InlineData("colgroup", typeof(ColgroupElement))]
     [InlineData("col", typeof(ColElement))]
@@ -248,5 +249,25 @@ public class TextElementsTests
         root.BoxModel.Content.Height.ShouldBe(0);
         root.BoxModel.BorderBox.Height.ShouldBe(1);
         root.BoxModel.Content.Width.ShouldBeGreaterThan(0);
+    }
+
+    // ---------------------------------------------------------------------
+    // b 粗体文本
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void B_DefaultStyles_AreBoldInline()
+    {
+        var computed = _styleResolver.Resolve(new BElement(), []);
+
+        computed.Display.ShouldBe(Display.Inline);
+        computed.FontWeight.ShouldBe(FontWeight.Bold);
+    }
+
+    [Fact]
+    public void B_TagName_IsCorrect()
+    {
+        var b = new BElement();
+        b.TagName.ShouldBe("b");
     }
 }

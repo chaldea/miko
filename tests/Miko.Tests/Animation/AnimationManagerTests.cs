@@ -338,6 +338,51 @@ public class AnimationManagerTests
     }
 
     [Fact]
+    public void LerpTransform_ShouldInterpolate_PercentTranslateToZero()
+    {
+        // 零长度在 CSS 中无单位（0% == 0px），但 Length 按分量存储，全零长度的 Unit 一律回落为
+        // Px。若插值以单位严格相等为前提，translateY(100%) → translateY(0) 会被判为不可插值而
+        // 跳变——这是 Ionic 覆盖层（action sheet 等）从屏幕外滑入的常见写法。
+        var from = new Transform(new TransformFunction.TranslateY(Length.Percent(100)));
+        var to = new Transform(new TransformFunction.TranslateY(Length.Px(0)));
+
+        var result = AnimationManager.LerpTransform(from, to, 0.25f);
+
+        var translate = result.Functions[0].ShouldBeOfType<TransformFunction.TranslateY>();
+        translate.Y.Value.ShouldBe(75f, 0.01f);
+        // 单位取自非零一侧，位移才是「视高的 75%」而非 75px。
+        translate.Y.Unit.ShouldBe(LengthUnit.Percent);
+    }
+
+    [Fact]
+    public void LerpTransform_ShouldInterpolate_ZeroTranslateToPercent()
+    {
+        // 反向（收起 → 展开）同样成立，单位取自非零的终点。
+        var from = new Transform(new TransformFunction.TranslateY(Length.Px(0)));
+        var to = new Transform(new TransformFunction.TranslateY(Length.Percent(100)));
+
+        var result = AnimationManager.LerpTransform(from, to, 0.25f);
+
+        var translate = result.Functions[0].ShouldBeOfType<TransformFunction.TranslateY>();
+        translate.Y.Value.ShouldBe(25f, 0.01f);
+        translate.Y.Unit.ShouldBe(LengthUnit.Percent);
+    }
+
+    [Fact]
+    public void LerpTransform_ShouldNotInterpolate_MismatchedNonZeroUnits()
+    {
+        // 两侧都非零且单位不同（100% vs 50px）时无法插值，仍走原有的跳变兜底。
+        var from = new Transform(new TransformFunction.TranslateY(Length.Percent(100)));
+        var to = new Transform(new TransformFunction.TranslateY(Length.Px(50)));
+
+        var result = AnimationManager.LerpTransform(from, to, 0.25f);
+
+        var translate = result.Functions[0].ShouldBeOfType<TransformFunction.TranslateY>();
+        translate.Y.Unit.ShouldBe(LengthUnit.Percent);
+        translate.Y.Value.ShouldBe(100f, 0.01f);
+    }
+
+    [Fact]
     public void TrackTransformChangeWithApplier_ShouldInterpolate()
     {
         var element = new DivElement { Style = new Style() };

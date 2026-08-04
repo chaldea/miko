@@ -3,6 +3,7 @@ using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -53,6 +54,7 @@ public class RenderTreeBuilder
         ["td"] = () => new TdElement(),
         ["nav"] = () => new NavElement(),
         ["strong"] = () => new StrongElement(),
+        ["b"] = () => new BElement(),
         ["pre"] = () => new PreElement(),
         ["code"] = () => new CodeElement(),
     };
@@ -123,6 +125,18 @@ public class RenderTreeBuilder
                     _ => InputType.Text,
                 };
                 break;
+            case "checked" when element is InputElement checkableInput:
+                checkableInput.Checked = ParseHtmlBool(value); break;
+            case "value" when element is InputElement valueInput:
+                valueInput.Value = value;
+                // Range inputs carry their position in NumericValue; keep the two in step so
+                // `<input type="range" @bind="_v" />` reflects the bound number.
+                if (valueInput.Type == InputType.Range &&
+                    float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var numeric))
+                {
+                    valueInput.NumericValue = numeric;
+                }
+                break;
             case "src" when element is ImageElement img:
                 img.Source = value; break;
             case "placeholder" when element is ImageElement placeholderImg:
@@ -182,7 +196,22 @@ public class RenderTreeBuilder
         AddAttribute(seq, name, value?.ToString());
     }
 
-    public void AddAttribute(int seq, string name, bool value) { }
+    /// <summary>
+    /// 布尔属性。<c>@bind</c> 生成的 <c>BindConverter.FormatValue(bool)</c> 返回 <c>bool</c>，
+    /// 会落到本重载上（如 <c>&lt;input type="checkbox" @bind="_flag" /&gt;</c> 的 checked），
+    /// 因此不能是空实现——否则绑定值无法投影到元素，复选框永远显示未选中。
+    /// 按 HTML 布尔属性语义：false 表示"属性不存在"，直接跳过。
+    /// </summary>
+    public void AddAttribute(int seq, string name, bool value)
+    {
+        if (_componentStack.Count > 0)
+        {
+            AddComponentParameter(seq, name, value);
+            return;
+        }
+
+        AddAttribute(seq, name, value ? "true" : "false");
+    }
 
     /// <summary>
     /// 无值布尔属性（HTML 中如 <c>&lt;video autoplay loop muted&gt;</c>，Razor 生成 2 参重载）。
@@ -293,6 +322,15 @@ public class RenderTreeBuilder
     }
 
     public void SetKey(object? key) { }
+
+    /// <summary>
+    /// Emitted after an <c>@bind</c>-generated change handler to record which value attribute that
+    /// event writes back to. Blazor uses this so its diffing renderer can avoid clobbering the DOM
+    /// value the user is currently typing into; Miko rebuilds the element tree outright and reads
+    /// state from the elements themselves, so there is nothing to reconcile — this is a no-op kept
+    /// for compatibility with the generated code.
+    /// </summary>
+    public void SetUpdatesAttributeName(string? updatesAttributeName) { }
 
     public void AttachElement(Element element)
     {

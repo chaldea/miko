@@ -1,0 +1,21 @@
+@namespace Miko.Razor.Tests
+@* ISSUE-115: @bind on plain markup elements. These go through the BindAttributes-driven
+   element mappings (cases #1-#3) and lower to a value attribute + an onchange binder,
+   rather than to the component Value/ValueChanged pair. *@
+<div class="element-bind-host">
+    <input type="checkbox" class="cb" @bind="_flag" />
+    <input type="text" class="tb" @bind="_text" />
+    <textarea class="ta" @bind="_note"></textarea>
+</div>
+
+@code {
+    // Starts true so the test can prove the bound value is actually projected onto the element
+    // (a no-op AddAttribute overload would leave Checked at its default false).
+    private bool _flag = true;
+    private string? _text = "initial";
+    private string? _note;
+
+    public bool Flag => _flag;
+    public string? Text => _text;
+    public string? Note => _note;
+}

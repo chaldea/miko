@@ -1,4 +1,7 @@
+using System.Globalization;
 using System.Threading;
+using Miko.Common;
+using Miko.Core.DomElements;
 using Miko.Events;
 
 namespace Miko.Components;
@@ -244,4 +247,66 @@ public sealed class EventCallbackFactory
 
     public EventCallback<TValue> Create<TValue>(object receiver, Func<TValue, Task> callback)
         => new(receiver, callback);
+
+    // ---------------- Binders (@bind on a markup element) -------------------
+    //
+    // A binder bridges a DOM change event (which carries a string payload) and a strongly-typed
+    // field: it parses the incoming text into TValue, then hands it to `setter`. Unparseable input
+    // is dropped so the bound field keeps its previous value (matching Blazor).
+    //
+    // `existingValue` is not read at runtime; it lets the C# compiler infer TValue at the call site,
+    // which is what lets the Razor compiler emit CreateBinder without naming the type.
+
+    public EventCallback<ChangeEventArgs> CreateBinder<TValue>(
+        object receiver,
+        Action<TValue> setter,
+        TValue existingValue,
+        CultureInfo? culture = null)
+        => CreateBinderCore<TValue>(receiver, value => { setter(value); return Task.CompletedTask; }, culture);
+
+    public EventCallback<ChangeEventArgs> CreateBinder<TValue>(
+        object receiver,
+        Func<TValue, Task> setter,
+        TValue existingValue,
+        CultureInfo? culture = null)
+        => CreateBinderCore(receiver, setter, culture);
+
+    private EventCallback<ChangeEventArgs> CreateBinderCore<TValue>(
+        object receiver,
+        Func<TValue, Task> setter,
+        CultureInfo? culture)
+        => new(receiver, (Func<ChangeEventArgs, Task>)(args =>
+        {
+            return BindConverter.TryConvertTo<TValue>(ReadCurrentValue(args), culture, out var parsed)
+                ? setter(parsed)
+                : Task.CompletedTask;
+        }));
+
+    /// <summary>
+    /// Reads the post-change value out of the element that raised the event.
+    /// <para>
+    /// <see cref="ChangeEventArgs.NewValue"/> is not populated by
+    /// <c>MikoInteractionController.DispatchChange</c>, so the element itself is the source of
+    /// truth; the controller has already mutated it by the time the event is dispatched. It is
+    /// still preferred when present, for handlers dispatched synthetically.
+    /// </para>
+    /// </summary>
+    private static object? ReadCurrentValue(ChangeEventArgs args)
+    {
+        if (args.NewValue is not null)
+        {
+            return args.NewValue;
+        }
+
+        return args.Target switch
+        {
+            // Checkboxes and radios carry their state in Checked, not in a text value.
+            InputElement { Type: InputType.Checkbox or InputType.Radio } checkable => checkable.Checked,
+            InputElement { Type: InputType.Range } range => range.NumericValue,
+            InputElement input => input.Value,
+            TextAreaElement textArea => textArea.Value,
+            SelectElement select => select.Value,
+            _ => null,
+        };
+    }
 }

@@ -610,16 +610,16 @@ public class AnimationManager
             (TransformFunction.ScaleY a, TransformFunction.ScaleY b) =>
                 new TransformFunction.ScaleY(Lerp(a.Y, b.Y, t)),
             (TransformFunction.Translate a, TransformFunction.Translate b)
-                when a.X.Unit == b.X.Unit && a.Y.Unit == b.Y.Unit =>
+                when UnitsCompatible(a.X, b.X) && UnitsCompatible(a.Y, b.Y) =>
                 new TransformFunction.Translate(
-                    new Length(Lerp(a.X.Value, b.X.Value, t), a.X.Unit),
-                    new Length(Lerp(a.Y.Value, b.Y.Value, t), a.Y.Unit)),
+                    LerpLength(a.X, b.X, t),
+                    LerpLength(a.Y, b.Y, t)),
             (TransformFunction.TranslateX a, TransformFunction.TranslateX b)
-                when a.X.Unit == b.X.Unit =>
-                new TransformFunction.TranslateX(new Length(Lerp(a.X.Value, b.X.Value, t), a.X.Unit)),
+                when UnitsCompatible(a.X, b.X) =>
+                new TransformFunction.TranslateX(LerpLength(a.X, b.X, t)),
             (TransformFunction.TranslateY a, TransformFunction.TranslateY b)
-                when a.Y.Unit == b.Y.Unit =>
-                new TransformFunction.TranslateY(new Length(Lerp(a.Y.Value, b.Y.Value, t), a.Y.Unit)),
+                when UnitsCompatible(a.Y, b.Y) =>
+                new TransformFunction.TranslateY(LerpLength(a.Y, b.Y, t)),
             (TransformFunction.SkewX a, TransformFunction.SkewX b) =>
                 new TransformFunction.SkewX(Lerp(a.Degrees, b.Degrees, t)),
             (TransformFunction.SkewY a, TransformFunction.SkewY b) =>
@@ -628,6 +628,26 @@ public class AnimationManager
                 new TransformFunction.Skew(Lerp(a.DegreesX, b.DegreesX, t), Lerp(a.DegreesY, b.DegreesY, t)),
             _ => t < 0.5f ? from : to
         };
+    }
+
+    /// <summary>
+    /// 两个平移长度能否插值。单位相同即可插值；此外，值为 0 的长度视为与任意单位兼容——
+    /// CSS 中零长度无单位（<c>0% == 0px</c>），但 <see cref="Length"/> 按分量存储，
+    /// 任何全零长度的 <see cref="Length.Unit"/> 都回落为 Px。若不作此放宽，
+    /// <c>translateY(100%) → translateY(0)</c> 这类常见组合会被判为单位不符，
+    /// 落入 LerpFunction 的兜底分支而发生跳变（而非平滑过渡）。
+    /// </summary>
+    private static bool UnitsCompatible(Length a, Length b)
+        => a.Unit == b.Unit || a.Value == 0f || b.Value == 0f;
+
+    /// <summary>
+    /// 插值两个平移长度，采用非零一侧的单位（零长度无单位，见 <see cref="UnitsCompatible"/>）。
+    /// </summary>
+    private static Length LerpLength(Length from, Length to, float t)
+    {
+        // 取非零一侧的单位：起点为 0 时用终点单位，否则用起点单位。
+        var unit = from.Value == 0f && to.Value != 0f ? to.Unit : from.Unit;
+        return new Length(Lerp(from.Value, to.Value, t), unit);
     }
 
     private static Action<Element, float>? GetFloatApplier(string property)

@@ -95,6 +95,18 @@ internal sealed class BindTagHelperDescriptorProvider() : TagHelperDescriptorPro
             return;
         }
 
+        // Case #4 (component `Foo` + `FooChanged` pairing) is derived from the component tag helpers
+        // of whichever assembly is currently being processed, so it must run for every assembly —
+        // not only for the one that happens to declare BindConverter.
+        //
+        // This provider's Order (1000) puts it after ComponentTagHelperDescriptorProvider, so the
+        // component tag helpers for this assembly are already sitting in context.Results.
+        AddComponentBindTagHelpers(context, cancellationToken);
+
+        // Cases #1-#3 describe @bind on plain markup elements. Those definitions are global rather
+        // than per-assembly (they are driven by the BindAttributes/BindConverter declarations in the
+        // framework assembly), so emit them only while processing that assembly. Consumers still see
+        // them, because tag helpers from all references are merged before binding.
         if (context.TargetAssembly is { } targetAssembly &&
             !SymbolEqualityComparer.Default.Equals(targetAssembly, bindMethods.ContainingAssembly))
         {
@@ -117,6 +129,45 @@ internal sealed class BindTagHelperDescriptorProvider() : TagHelperDescriptorPro
         var collector = new Collector(
             compilation, bindElementAttribute, bindInputElementAttribute);
         collector.Collect(context, cancellationToken);
+    }
+
+    /// <summary>
+    /// Case #4: synthesize a <c>@bind-Foo</c> tag helper for every component exposing the
+    /// <c>Foo</c> / <c>FooChanged</c> pair.
+    /// <para>
+    /// Reads the component tag helpers straight out of <paramref name="context"/> rather than going
+    /// through <see cref="Collector"/>: for referenced assemblies the collector is handed a private,
+    /// per-assembly list that only ever holds the <c>BindAttributes</c>-driven element helpers, so
+    /// the component descriptors this pass needs to pair up are not visible from there.
+    /// </para>
+    /// </summary>
+    private static void AddComponentBindTagHelpers(
+        TagHelperDescriptorProviderContext context,
+        CancellationToken cancellationToken)
+    {
+        // Results accumulates across every reference in the source-generator's reference pass, so
+        // restrict to the assembly being processed; otherwise earlier assemblies get re-paired on
+        // each subsequent call and we emit duplicates.
+        var targetAssemblyName = context.TargetAssembly?.Identity.Name;
+
+        using var componentBindTagHelpers = new PooledArrayBuilder<TagHelperDescriptor>();
+
+        foreach (var tagHelper in context.Results)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (targetAssemblyName is not null && tagHelper.AssemblyName != targetAssemblyName)
+            {
+                continue;
+            }
+
+            Collector.AddComponentBindTagHelpers(tagHelper, ref componentBindTagHelpers.AsRef());
+        }
+
+        foreach (var tagHelper in componentBindTagHelpers)
+        {
+            context.Results.Add(tagHelper);
+        }
     }
 
     private static TagHelperDescriptor CreateFallbackBindTagHelper()
@@ -225,28 +276,9 @@ internal sealed class BindTagHelperDescriptorProvider() : TagHelperDescriptorPro
             => types.DeclaredAccessibility == Accessibility.Public &&
                types.Name == "BindAttributes";
 
-        protected override void Collect(IAssemblySymbol assembly, ICollection<TagHelperDescriptor> results, CancellationToken cancellationToken)
-        {
-            // First, collect the initial set of tag helpers from this assembly. This calls
-            // the Collect(INamedTypeSymbol, ...) overload below for cases #2 & #3.
-            base.Collect(assembly, results, cancellationToken);
-
-            // Then, for case #4 we look at the tag helpers that were already created corresponding to components
-            // and pattern match on properties.
-            using var componentBindTagHelpers = new PooledArrayBuilder<TagHelperDescriptor>(capacity: results.Count);
-
-            foreach (var tagHelper in results)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                AddComponentBindTagHelpers(tagHelper, ref componentBindTagHelpers.AsRef());
-            }
-
-            foreach (var tagHelper in componentBindTagHelpers)
-            {
-                results.Add(tagHelper);
-            }
-        }
+        // Case #4 is not handled here: it needs the component tag helpers of the assembly being
+        // processed, which live in the provider context rather than in this collector's private
+        // per-assembly list. See BindTagHelperDescriptorProvider.AddComponentBindTagHelpers.
 
         protected override void Collect(
             INamedTypeSymbol type,
@@ -520,7 +552,7 @@ internal sealed class BindTagHelperDescriptorProvider() : TagHelperDescriptorPro
             return builder.Build();
         }
 
-        private static void AddComponentBindTagHelpers(TagHelperDescriptor tagHelper, ref PooledArrayBuilder<TagHelperDescriptor> results)
+        internal static void AddComponentBindTagHelpers(TagHelperDescriptor tagHelper, ref PooledArrayBuilder<TagHelperDescriptor> results)
         {
             if (tagHelper.Kind != TagHelperKind.Component)
             {
