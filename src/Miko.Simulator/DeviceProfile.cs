@@ -40,6 +40,9 @@ public sealed record DeviceProfile(
     public override string ToString() => $"{Name} ({LogicalWidth}×{LogicalHeight} @{Scale:0.#}x)";
 
     // 内置常用设备预设。数值取自各设备的逻辑点（point）分辨率与安全区。
+    public static DeviceProfile Generic1x { get; } = new(
+        "Generic (1×)", 390, 844, 1f, new SafeAreaInsets(0, 0, 0, 0)) { Kind = DeviceKind.Phone, Platform = HostPlatform.Android };
+
     public static DeviceProfile IPhone15Pro { get; } = new(
         "iPhone 15 Pro", 393, 852, 3f, new SafeAreaInsets(0, 59, 0, 34)) { Kind = DeviceKind.Phone, Platform = HostPlatform.Ios };
 
@@ -55,7 +58,7 @@ public sealed record DeviceProfile(
     /// <summary>内置设备预设列表（面板下拉默认使用）。</summary>
     public static IReadOnlyList<DeviceProfile> Defaults { get; } = new[]
     {
-        IPhone15Pro, IPhoneSE, Pixel7, IPadMini,
+        Generic1x, IPhone15Pro, IPhoneSE, Pixel7, IPadMini,
     };
 }
 

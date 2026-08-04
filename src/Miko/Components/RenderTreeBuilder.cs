@@ -53,6 +53,7 @@ public class RenderTreeBuilder
         ["td"] = () => new TdElement(),
         ["nav"] = () => new NavElement(),
         ["strong"] = () => new StrongElement(),
+        ["b"] = () => new BElement(),
         ["pre"] = () => new PreElement(),
         ["code"] = () => new CodeElement(),
     };

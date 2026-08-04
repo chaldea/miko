@@ -17,6 +17,18 @@ public class PreElement : Element
 }
 
 /// <summary>
+/// 粗体文本元素 (b)。
+///
+/// <c>b</c> 是行内语义标签，用于表示需要引起注意的文本（不强调重要性）。
+/// UA 默认样式为粗体字重（<c>font-weight: bold</c>），与 <c>strong</c> 视觉效果相同，
+/// 但语义不同：<c>b</c> 表示风格上的突出，<c>strong</c> 表示重要性。
+/// </summary>
+public class BElement : Element
+{
+    public override string TagName => "b";
+}
+
+/// <summary>
 /// 代码元素 (code)。
 ///
 /// <c>code</c> 是行内语义标签，UA 默认样式为等宽字体。除语义外，Miko 为其扩展了
