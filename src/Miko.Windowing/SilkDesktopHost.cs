@@ -229,7 +229,10 @@ public sealed class SilkDesktopHost
 
         int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
         var fbInfo = new GRGlFramebufferInfo((uint)fboId, 0x8058); // GL_RGBA8
-        var target = new GRBackendRenderTarget(_width, _height, 0, 8, fbInfo);
+        // GRBackendRenderTarget 持有非托管 Skia 对象，必须随帧释放：它每帧新建，
+        // 漏掉 Dispose 会让原生内存随帧数线性增长（托管堆上看不到，只体现在进程内存）。
+        // ISSUE-113 把帧成本降低约 10 倍后出帧频率大幅上升，该泄漏随之放大到数百 MB。
+        using var target = new GRBackendRenderTarget(_width, _height, 0, 8, fbInfo);
 
         using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
         var canvas = surface.Canvas;

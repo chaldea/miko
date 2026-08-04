@@ -166,7 +166,8 @@ internal class DevToolsWindow
 
         int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
         var fbInfo = new GRGlFramebufferInfo((uint)fboId, 0x8058);
-        var target = new GRBackendRenderTarget(_width, _height, 0, 8, fbInfo);
+        // 每帧新建的非托管 Skia 对象，必须随帧释放（否则原生内存随帧数线性增长，见 ISSUE-113）。
+        using var target = new GRBackendRenderTarget(_width, _height, 0, 8, fbInfo);
 
         using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
         var canvas = surface.Canvas;

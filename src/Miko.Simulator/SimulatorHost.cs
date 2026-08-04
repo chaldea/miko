@@ -425,7 +425,8 @@ public sealed class SimulatorHost
         // 3. 合成到窗口默认帧缓冲。离屏渲染改动过 GL 状态，先让 GR 上下文重新同步。
         _grContext.ResetContext();
         var fbInfo = new GRGlFramebufferInfo((uint)windowFbo, 0x8058); // GL_RGBA8
-        var target = new GRBackendRenderTarget(_windowWidth, _windowHeight, 0, 8, fbInfo);
+        // 每帧新建的非托管 Skia 对象，必须随帧释放（否则原生内存随帧数线性增长，见 ISSUE-113）。
+        using var target = new GRBackendRenderTarget(_windowWidth, _windowHeight, 0, 8, fbInfo);
         using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
         var canvas = surface.Canvas;
 
