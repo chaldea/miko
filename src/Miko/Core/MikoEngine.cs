@@ -470,14 +470,33 @@ public class MikoEngine
     {
         get
         {
+            if (HasPendingRenderWork) return true;
+            // 布局输入已变（DOM/样式/视口/安全区）→ 需要重排重绘
+            if (!_layoutEngine.IsLayoutCurrent(_root!, _styleSheets, _viewportWidth, _viewportHeight, _safeArea)) return true;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 与 <see cref="HasPendingVisualWork"/> 相同，但**不含**「布局输入是否变化」这一项。
+    /// <para>专供**同进程内的次级引擎**（如 DevTools 的独立窗口）判断空闲：
+    /// <c>Element.MutationVersion</c> 是进程级全局静态，任何引擎的 DOM 变更都会递增它，
+    /// 因此次级引擎的 <c>IsLayoutCurrent</c> 会被其他窗口的活动持续击穿而恒为 false，
+    /// 使 <see cref="HasPendingVisualWork"/> 恒为 true、永远无法空闲（见 ISSUE-117）。
+    /// 这类宿主需自行判断其 DOM 是否真的需要重建，再用本属性捕获引擎内部的工作
+    /// （脏区域、动画、跨线程失效等）。</para>
+    /// <para>常规的单引擎宿主应使用 <see cref="HasPendingVisualWork"/>。</para>
+    /// </summary>
+    public bool HasPendingRenderWork
+    {
+        get
+        {
             if (_root == null || _currentLayout == null) return true;   // 首帧尚未渲染
             if (_dispatcher.HasPendingActions) return true;             // 排队回调可能修改 DOM
             if (HasPendingInvalidations) return true;                   // 跨线程失效（视频帧、图片加载）
             if (_dirtyManager.HasDirtyRegions()) return true;           // 已标脏未绘制
             if (_animationManager.HasActiveAnimations) return true;     // 动画/过渡逐帧推进
             if (_navContext != null) return true;                       // 页面转场逐帧推进（ISSUE-108）
-            // 布局输入已变（DOM/样式/视口/安全区）→ 需要重排重绘
-            if (!_layoutEngine.IsLayoutCurrent(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea)) return true;
             // 加载中/播放中的视频会持续投递新帧
             foreach (var session in _videoSessions.Values)
             {

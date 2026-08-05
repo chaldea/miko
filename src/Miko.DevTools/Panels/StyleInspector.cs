@@ -94,96 +94,173 @@ internal static class StyleInspector
         var title = new DivElement { Class = "style-section-title", TextContent = "Computed Styles" };
         container.AddChild(title);
 
-        AddRow(container, "display", ToCssKeyword(cs.Display.ToString()));
-        AddRow(container, "position", cs.Position.ToString().ToLower());
-        AddRow(container, "width", FormatLength(cs.Width));
-        AddRow(container, "height", FormatLength(cs.Height));
-        AddRow(container, "min-width", FormatLength(cs.MinWidth));
-        AddRow(container, "min-height", FormatLength(cs.MinHeight));
-        AddRow(container, "max-width", FormatLength(cs.MaxWidth));
-        AddRow(container, "max-height", FormatLength(cs.MaxHeight));
+        // 先收集再统一按属性名排序输出（浏览器 DevTools 的 Computed 面板同样按字母序），
+        // 便于在长列表里定位属性。收集顺序因此不再影响显示顺序。
+        var rows = new List<(string Property, string Value)>(64);
+        CollectComputedStyles(cs, rows);
 
-        AddRow(container, "padding", $"{FormatLength(cs.PaddingTop)} {FormatLength(cs.PaddingRight)} {FormatLength(cs.PaddingBottom)} {FormatLength(cs.PaddingLeft)}");
-        AddRow(container, "margin", $"{FormatLength(cs.MarginTop)} {FormatLength(cs.MarginRight)} {FormatLength(cs.MarginBottom)} {FormatLength(cs.MarginLeft)}");
+        rows.Sort(static (a, b) => string.CompareOrdinal(a.Property, b.Property));
 
-        AddRow(container, "background-color", FormatColor(cs.BackgroundColor));
-        AddRow(container, "color", FormatColor(cs.Color));
-        AddRow(container, "font-family", cs.FontFamily);
-        AddRow(container, "font-size", FormatLength(cs.FontSize));
-        AddRow(container, "font-weight", cs.FontWeight.ToString().ToLower());
-        AddRow(container, "line-height", FormatLineHeight(cs.LineHeight));
-        AddRow(container, "text-align", cs.TextAlign.ToString().ToLower());
+        foreach (var (property, value) in rows)
+            AddRow(container, property, value);
+
+        return container;
+    }
+
+    private static void CollectComputedStyles(ComputedStyle cs, List<(string, string)> rows)
+    {
+        void Add(string property, string value) => rows.Add((property, value));
+
+        Add("display", ToCssKeyword(cs.Display.ToString()));
+        Add("position", cs.Position.ToString().ToLower());
+        Add("box-sizing", ToCssKeyword(cs.BoxSizing.ToString()));
+        Add("width", FormatLength(cs.Width));
+        Add("height", FormatLength(cs.Height));
+        Add("min-width", FormatLength(cs.MinWidth));
+        Add("min-height", FormatLength(cs.MinHeight));
+        Add("max-width", FormatLength(cs.MaxWidth));
+        Add("max-height", FormatLength(cs.MaxHeight));
+
+        // 定位偏移（inset）：static 定位下不生效，故仅在参与定位时显示，避免一列 auto 噪声。
+        if (cs.Position != Common.Position.Static)
+        {
+            Add("top", FormatLength(cs.Top));
+            Add("right", FormatLength(cs.Right));
+            Add("bottom", FormatLength(cs.Bottom));
+            Add("left", FormatLength(cs.Left));
+        }
+
+        // 盒模型四边拆分显示（与浏览器 Computed 面板一致），便于逐边核对。
+        Add("padding-top", FormatLength(cs.PaddingTop));
+        Add("padding-right", FormatLength(cs.PaddingRight));
+        Add("padding-bottom", FormatLength(cs.PaddingBottom));
+        Add("padding-left", FormatLength(cs.PaddingLeft));
+        Add("margin-top", FormatLength(cs.MarginTop));
+        Add("margin-right", FormatLength(cs.MarginRight));
+        Add("margin-bottom", FormatLength(cs.MarginBottom));
+        Add("margin-left", FormatLength(cs.MarginLeft));
+
+        Add("background-color", FormatColor(cs.BackgroundColor));
+        Add("color", FormatColor(cs.Color));
+        Add("font-family", cs.FontFamily);
+        Add("font-size", FormatLength(cs.FontSize));
+        Add("font-weight", cs.FontWeight.ToString().ToLower());
+        Add("font-style", cs.FontStyle.ToString().ToLower());
+        Add("line-height", FormatLineHeight(cs.LineHeight));
+        Add("text-align", cs.TextAlign.ToString().ToLower());
+        Add("direction", cs.Direction.ToString().ToLower());
+        Add("white-space", ToCssKeyword(cs.WhiteSpace.ToString()));
+        Add("vertical-align", ToCssKeyword(cs.VerticalAlign.ToString()));
+        Add("cursor", ToCssKeyword(cs.Cursor.ToString()));
+
+        if (cs.TextDecoration != Common.TextDecoration.None)
+            Add("text-decoration", ToCssKeyword(cs.TextDecoration.ToString()));
+        if (cs.WritingMode != Common.WritingMode.HorizontalTb)
+            Add("writing-mode", ToCssKeyword(cs.WritingMode.ToString()));
+        if (cs.PointerEvents != Common.PointerEvents.Auto)
+            Add("pointer-events", ToCssKeyword(cs.PointerEvents.ToString()));
 
         // 文本排版补充属性（仅在非默认时显示，避免冗余）。
         if (cs.TextTransform != Common.TextTransform.None)
-            AddRow(container, "text-transform", cs.TextTransform.ToString().ToLower());
+            Add("text-transform", cs.TextTransform.ToString().ToLower());
         if (cs.LetterSpacing.Value != 0)
-            AddRow(container, "letter-spacing", FormatLength(cs.LetterSpacing));
+            Add("letter-spacing", FormatLength(cs.LetterSpacing));
         if (cs.OverflowWrap != Common.OverflowWrap.Normal)
-            AddRow(container, "overflow-wrap", ToCssKeyword(cs.OverflowWrap.ToString()));
+            Add("overflow-wrap", ToCssKeyword(cs.OverflowWrap.ToString()));
         if (cs.WordBreak != Common.WordBreak.Normal)
-            AddRow(container, "word-break", ToCssKeyword(cs.WordBreak.ToString()));
+            Add("word-break", ToCssKeyword(cs.WordBreak.ToString()));
         if (cs.TextOverflow != Common.TextOverflow.Clip)
-            AddRow(container, "text-overflow", cs.TextOverflow.ToString().ToLower());
+            Add("text-overflow", cs.TextOverflow.ToString().ToLower());
 
         if (cs.Display is Common.Display.Flex or Common.Display.InlineFlex)
         {
-            AddRow(container, "flex-direction", cs.FlexDirection.ToString().ToLower());
-            AddRow(container, "justify-content", cs.JustifyContent.ToString().ToLower());
-            AddRow(container, "align-items", cs.AlignItems.ToString().ToLower());
-            AddRow(container, "align-content", cs.AlignContent.ToString().ToLower());
-            AddRow(container, "flex-wrap", ToCssKeyword(cs.FlexWrap.ToString()));
-            AddRow(container, "flex-grow", cs.FlexGrow.ToString("0.##"));
-            AddRow(container, "flex-shrink", cs.FlexShrink.ToString("0.##"));
+            Add("flex-direction", ToCssKeyword(cs.FlexDirection.ToString()));
+            Add("flex-wrap", ToCssKeyword(cs.FlexWrap.ToString()));
+            Add("flex-basis", FormatLength(cs.FlexBasis));
+            Add("justify-content", ToCssKeyword(cs.JustifyContent.ToString()));
+            Add("align-items", ToCssKeyword(cs.AlignItems.ToString()));
+            Add("align-content", ToCssKeyword(cs.AlignContent.ToString()));
         }
 
         if (cs.Display == Common.Display.Grid)
         {
             if (cs.GridTemplateColumns != null)
-                AddRow(container, "grid-template-columns", string.Join(' ', cs.GridTemplateColumns));
+                Add("grid-template-columns", string.Join(' ', cs.GridTemplateColumns));
             if (cs.GridTemplateRows != null)
-                AddRow(container, "grid-template-rows", string.Join(' ', cs.GridTemplateRows));
-            AddRow(container, "justify-content", cs.JustifyContent.ToString().ToLower());
-            AddRow(container, "align-items", cs.AlignItems.ToString().ToLower());
-            AddRow(container, "align-content", cs.AlignContent.ToString().ToLower());
+                Add("grid-template-rows", string.Join(' ', cs.GridTemplateRows));
+            Add("justify-content", ToCssKeyword(cs.JustifyContent.ToString()));
+            Add("justify-items", ToCssKeyword(cs.JustifyItems.ToString()));
+            Add("align-items", ToCssKeyword(cs.AlignItems.ToString()));
+            Add("align-content", ToCssKeyword(cs.AlignContent.ToString()));
         }
 
+        // gap 对 flex 与 grid 容器都生效。
+        if (cs.Display is Common.Display.Flex or Common.Display.InlineFlex or Common.Display.Grid)
+        {
+            if (!cs.RowGap.IsAuto || !cs.ColumnGap.IsAuto || cs.Gap.Value != 0)
+            {
+                Add("row-gap", cs.RowGap.IsAuto ? FormatLength(cs.Gap) : FormatLength(cs.RowGap));
+                Add("column-gap", cs.ColumnGap.IsAuto ? FormatLength(cs.Gap) : FormatLength(cs.ColumnGap));
+            }
+        }
+
+        // flex/grid 子项属性：容器由父级决定，故不按自身 display 过滤。
+        if (cs.FlexGrow != 0)
+            Add("flex-grow", cs.FlexGrow.ToString("0.##"));
+        if (cs.FlexShrink != 1)
+            Add("flex-shrink", cs.FlexShrink.ToString("0.##"));
         if (cs.AlignSelf != Common.AlignSelf.Auto)
-            AddRow(container, "align-self", cs.AlignSelf.ToString().ToLower());
+            Add("align-self", ToCssKeyword(cs.AlignSelf.ToString()));
+        if (cs.JustifySelf != Common.JustifySelf.Auto)
+            Add("justify-self", ToCssKeyword(cs.JustifySelf.ToString()));
         if (cs.Order != 0)
-            AddRow(container, "order", cs.Order.ToString());
+            Add("order", cs.Order.ToString());
 
         if (cs.Visibility != Common.Visibility.Visible)
-            AddRow(container, "visibility", cs.Visibility.ToString().ToLower());
+            Add("visibility", cs.Visibility.ToString().ToLower());
         if (cs.UserSelect != Common.UserSelect.Auto)
-            AddRow(container, "user-select", cs.UserSelect.ToString().ToLower());
+            Add("user-select", cs.UserSelect.ToString().ToLower());
 
         if (cs.HasVisibleOutline)
         {
-            AddRow(container, "outline", $"{FormatLength(cs.OutlineWidth)} {cs.OutlineStyle.ToString().ToLower()} {FormatColor(cs.OutlineColor)}");
+            Add("outline", $"{FormatLength(cs.OutlineWidth)} {cs.OutlineStyle.ToString().ToLower()} {FormatColor(cs.OutlineColor)}");
             if (cs.OutlineOffset.Value != 0)
-                AddRow(container, "outline-offset", FormatLength(cs.OutlineOffset));
+                Add("outline-offset", FormatLength(cs.OutlineOffset));
         }
 
         if (cs.Opacity < 1f)
-            AddRow(container, "opacity", cs.Opacity.ToString("0.##"));
+            Add("opacity", cs.Opacity.ToString("0.##"));
 
         if (cs.OverflowX != Common.Overflow.Visible)
-            AddRow(container, "overflow-x", cs.OverflowX.ToString().ToLower());
+            Add("overflow-x", cs.OverflowX.ToString().ToLower());
         if (cs.OverflowY != Common.Overflow.Visible)
-            AddRow(container, "overflow-y", cs.OverflowY.ToString().ToLower());
+            Add("overflow-y", cs.OverflowY.ToString().ToLower());
 
-        if (cs.BorderTopWidth.Value > 0)
-            AddRow(container, "border", $"{FormatLength(cs.BorderTopWidth)} {cs.BorderTopStyle.ToString().ToLower()} {FormatColor(cs.BorderTopColor)}");
+        // 边框逐边显示：四边不一致时单边写法才能反映真实计算值。
+        AddBorderSide(rows, "top", cs.BorderTopWidth, cs.BorderTopStyle, cs.BorderTopColor);
+        AddBorderSide(rows, "right", cs.BorderRightWidth, cs.BorderRightStyle, cs.BorderRightColor);
+        AddBorderSide(rows, "bottom", cs.BorderBottomWidth, cs.BorderBottomStyle, cs.BorderBottomColor);
+        AddBorderSide(rows, "left", cs.BorderLeftWidth, cs.BorderLeftStyle, cs.BorderLeftColor);
+
+        if (cs.BorderTopLeftRadius.Value != 0) Add("border-top-left-radius", FormatLength(cs.BorderTopLeftRadius));
+        if (cs.BorderTopRightRadius.Value != 0) Add("border-top-right-radius", FormatLength(cs.BorderTopRightRadius));
+        if (cs.BorderBottomRightRadius.Value != 0) Add("border-bottom-right-radius", FormatLength(cs.BorderBottomRightRadius));
+        if (cs.BorderBottomLeftRadius.Value != 0) Add("border-bottom-left-radius", FormatLength(cs.BorderBottomLeftRadius));
 
         if (cs.ZIndex != 0)
-            AddRow(container, "z-index", cs.ZIndex.ToString());
+            Add("z-index", cs.ZIndex.ToString());
 
         var boxShadow = cs.BoxShadow.RefValueOrNull();
         if (boxShadow != null && boxShadow.Count > 0)
-            AddRow(container, "box-shadow", FormatBoxShadow(boxShadow));
+            Add("box-shadow", FormatBoxShadow(boxShadow));
+    }
 
-        return container;
+    /// <summary>宽度为 0 的边不绘制，故仅在有实际宽度时列出该边。</summary>
+    private static void AddBorderSide(List<(string, string)> rows, string side,
+        Common.Length width, Common.BorderStyle style, Common.Color color)
+    {
+        if (width.Value <= 0) return;
+        rows.Add(($"border-{side}", $"{FormatLength(width)} {style.ToString().ToLower()} {FormatColor(color)}"));
     }
 
     private static string FormatBoxShadow(List<Common.BoxShadow> shadows)

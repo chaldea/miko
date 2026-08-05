@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Miko.Common;
 using Miko.Core;
 using Miko.DevTools.Logging;
@@ -15,7 +14,7 @@ public class DevToolsBridge
 
     public MikoEngine? MainEngine { get; private set; }
     public RenderEngine? MainRenderEngine { get; private set; }
-    public ConcurrentQueue<LogEntry> LogBuffer { get; } = new();
+    public LogBuffer LogBuffer { get; }
     public bool IsOpen { get; internal set; }
 
     private volatile Element? _selectedElement;
@@ -36,6 +35,7 @@ public class DevToolsBridge
     public DevToolsBridge(DevToolsOptions options)
     {
         _options = options;
+        LogBuffer = new LogBuffer(options.MaxBufferedEntries);
     }
 
     public void Initialize(MikoEngine mainEngine, RenderEngine mainRenderEngine)

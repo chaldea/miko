@@ -15,7 +15,7 @@ public static class DevToolsExtensions
         configure?.Invoke(options);
 
         var bridge = new DevToolsBridge(options);
-        var loggerProvider = new DevToolsLoggerProvider(bridge.LogBuffer);
+        var loggerProvider = new DevToolsLoggerProvider(bridge.LogBuffer, options.MinimumLevel);
 
         builder.Services.AddSingleton(bridge);
         builder.Services.AddSingleton<ILoggerProvider>(loggerProvider);

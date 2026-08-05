@@ -6,7 +6,29 @@ namespace Miko.DevTools.Panels;
 
 internal static class DomTreeBuilder
 {
-    private static readonly HashSet<Element> _collapsedElements = new();
+    // 折叠状态按元素记录。用弱引用表（而非 HashSet<Element>）：主程序的 DOM 会在每次
+    // Razor 重渲染中被整体替换，强引用会让所有曾折叠过的旧元素永久无法回收——大页面反复
+    // 导航时这是一处真实泄漏（见 ISSUE-117）。ConditionalWeakTable 在元素不可达后自动清理。
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Element, object> _collapsedElements = new();
+    private static readonly object CollapsedMarker = new();
+
+    // 折叠状态的版本号，供窗口的重建指纹使用（折叠/展开必须触发一次重建）。
+    private static long s_collapseVersion;
+
+    /// <summary>折叠状态版本号：每次折叠/展开递增。</summary>
+    internal static long CollapseVersion => Interlocked.Read(ref s_collapseVersion);
+
+    private static bool IsCollapsed(Element element) => _collapsedElements.TryGetValue(element, out _);
+
+    private static void ToggleCollapsed(Element element)
+    {
+        if (_collapsedElements.TryGetValue(element, out _))
+            _collapsedElements.Remove(element);
+        else
+            _collapsedElements.AddOrUpdate(element, CollapsedMarker);
+
+        Interlocked.Increment(ref s_collapseVersion);
+    }
 
     public static DivElement Build(DevToolsBridge bridge)
     {
@@ -40,8 +62,8 @@ internal static class DomTreeBuilder
 
         // 文本以 TextNode 子节点承载（见 ISSUE-086），但 DevTools 已通过 element.TextContent 预览
         // 单独显示文本，故树的「子元素」仅统计非文本节点，避免文本被重复渲染为 <#text> 行。
-        bool hasChildren = element.Children.Any(c => c is not Core.DomElements.TextNode);
-        bool isCollapsed = _collapsedElements.Contains(element);
+        bool hasChildren = HasElementChildren(element);
+        bool isCollapsed = IsCollapsed(element);
 
         var line = new DivElement { Style = new Styling.Style { Display = Display.Flex, FlexDirection = FlexDirection.Row } };
 
@@ -55,10 +77,7 @@ internal static class DomTreeBuilder
             toggle.OnClick = args =>
             {
                 args.StopPropagation();
-                if (_collapsedElements.Contains(element))
-                    _collapsedElements.Remove(element);
-                else
-                    _collapsedElements.Add(element);
+                ToggleCollapsed(element);
                 bridge.MarkDevToolsDirty();
             };
             line.AddChild(toggle);
@@ -156,6 +175,20 @@ internal static class DomTreeBuilder
             closingTag.AddChild(closingLine);
             parent.AddChild(closingTag);
         }
+    }
+
+    /// <summary>
+    /// 是否有非文本子元素。手写循环而非 <c>Children.Any(...)</c>：本方法在每个树节点上调用，
+    /// 大页面下 LINQ 的枚举器与闭包分配会直接体现在每次重建的 GC 压力上。
+    /// 文本已通过 TextContent 预览单独显示，故不计入（见 ISSUE-086）。
+    /// </summary>
+    private static bool HasElementChildren(Element element)
+    {
+        foreach (var child in element.Children)
+        {
+            if (child is not Core.DomElements.TextNode) return true;
+        }
+        return false;
     }
 
     private static string TextPreview(string text)
