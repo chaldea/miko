@@ -693,8 +693,10 @@ public class GridLayout
         {
             switch (justifyContent)
             {
-                // Normal/FlexStart：自起点排布（auto 轨道拉伸已在步骤 8b 处理）。
-                case JustifyContent.FlexEnd: offset = free; break;
+                // Normal/FlexStart/Start：自起点排布（auto 轨道拉伸已在步骤 8b 处理）。
+                // grid 无 reverse 方向，故绝对关键字 Start/End 与 FlexStart/FlexEnd 行为完全一致。
+                case JustifyContent.FlexEnd:
+                case JustifyContent.End: offset = free; break;
                 case JustifyContent.Center: offset = free / 2f; break;
                 case JustifyContent.SpaceBetween:
                     if (n > 1) extra = free / (n - 1);

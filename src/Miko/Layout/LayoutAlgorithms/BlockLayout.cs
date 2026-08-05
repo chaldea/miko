@@ -98,9 +98,10 @@ public class BlockLayout
                 contentWidth = h * intrinsicW / intrinsicH;
             }
         }
-        else if (constraints.IsInfiniteWidth || containerWidth <= 0)
+        else if (constraints.IsInfiniteWidth || containerWidth <= 0 || style.Width.IsFitContent)
         {
             // 当没有可用宽度约束时（如在 flex row 容器中），根据内容计算宽度（shrink-to-fit）。
+            // width:fit-content 无论有无可用宽度都走这里——它明确要求按内容收缩，而非撑满容器。
             // textarea 有由 cols 决定的固有宽度；否则以 null 约束预布局在流子元素（含文本节点），
             // 取其行内排列后的最右边界作为内容宽度。
             contentWidth = GetTextFormControlContentWidth(box) ?? MeasureInlineChildrenWidth(box);
@@ -137,13 +138,14 @@ public class BlockLayout
         }
 
         // 解析 margin auto：当元素宽度确定且小于容器时，auto margin 占据剩余空间。
-        // 宽度确定的两种情形：
+        // 宽度确定的三种情形：
         //   1. 显式设置了 width；
         //   2. width 为 auto，但被 max-width 夹取到比“填满容器”更窄（此时 contentWidth
         //      已在上面的 min/max 处理中定型，剩余空间应由 auto margin 吸收，实现居中）。
+        //   3. width:fit-content —— 已收缩到内容宽度，剩余空间同样归 auto margin。
         // 注意：width auto 且未被 max-width 约束时会填满容器，剩余空间为 0，auto margin 无效果，
         // 因此下面的 remainingSpace 计算天然覆盖这种情况，无需额外分支。
-        bool hasDefiniteWidth = !style.Width.IsAuto || !style.MaxWidth.IsAuto;
+        bool hasDefiniteWidth = !style.Width.IsAuto || style.Width.IsFitContent || !style.MaxWidth.IsAuto;
         if ((marginLeftAuto || marginRightAuto) && hasDefiniteWidth && containerWidth > 0)
         {
             float usedWidth = contentWidth + box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
@@ -263,7 +265,8 @@ public class BlockLayout
                     childAvailableWidth,
                     childAvailableWidth, childAvailableHeight,
                     box.ComputedStyle.TextAlign,
-                    ResolveLineHeight(box.ComputedStyle));
+                    ResolveLineHeight(box.ComputedStyle),
+                    TextWrapper.ShouldWrap(box.ComputedStyle.WhiteSpace));
 
                 currentY += runResult.TotalHeight;
                 maxChildWidth = Math.Max(maxChildWidth, runResult.MaxLineWidth);
@@ -415,7 +418,8 @@ public class BlockLayout
                     childAvailableWidth,
                     childAvailableWidth, null,
                     box.ComputedStyle.TextAlign,
-                    ResolveLineHeight(box.ComputedStyle));
+                    ResolveLineHeight(box.ComputedStyle),
+                    TextWrapper.ShouldWrap(box.ComputedStyle.WhiteSpace));
 
                 currentY += runResult.TotalHeight;
                 maxChildWidth = Math.Max(maxChildWidth, runResult.MaxLineWidth);

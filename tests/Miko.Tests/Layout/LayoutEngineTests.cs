@@ -1848,11 +1848,13 @@ public class LayoutEngineTests
     {
         // Arrange
         var root = new SpanElement();
-        var child1 = new SpanElement();
-        var child2 = new SpanElement();
+        var child1 = new SpanElement { Class = "item" };
+        var child2 = new SpanElement { Class = "item" };
         root.AddChild(child1);
         root.AddChild(child2);
 
+        // 宽度只加在子元素上：父级保持 auto 宽度，两个子盒才有并排的空间。
+        // （父级若同为 50px，两个 50px 子盒放不下，会在原子盒边界换行——见 ISSUE-116。）
         var styleSheets = new List<StyleSheet>
         {
             new StyleSheet
@@ -1862,6 +1864,11 @@ public class LayoutEngineTests
                     new StyleRule
                     {
                         Selector = new TagSelector("span"),
+                        Style = new Style { Display = Display.Inline }
+                    },
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("item"),
                         Style = new Style
                         {
                             Display = Display.Inline,

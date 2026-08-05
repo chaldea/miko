@@ -251,13 +251,21 @@ public class LayoutEngine
 
         // 仅当该轴的尺寸为 auto 且两侧偏移都已指定时，尺寸才由偏移方程决定。
         // 百分比宽/高针对确定的包含块可正常解析，不属于此路径。
-        bool widthFromInsets = style.Width.IsAuto && !style.Left.IsAuto && !style.Right.IsAuto;
-        bool heightFromInsets = style.Height.IsAuto && !style.Top.IsAuto && !style.Bottom.IsAuto;
+        // fit-content 明确要求收缩到内容，是「确定尺寸」，不被偏移方程接管（剩余空间归 auto 外边距）。
+        bool widthFromInsets = style.Width.IsAuto && !style.Width.IsFitContent
+            && !style.Left.IsAuto && !style.Right.IsAuto;
+        bool heightFromInsets = style.Height.IsAuto && !style.Height.IsFitContent
+            && !style.Top.IsAuto && !style.Bottom.IsAuto;
 
         if (!widthFromInsets && !heightFromInsets)
             return;
 
-        var constraints = new LayoutConstraints(containingBlock.Width, containingBlock.Height);
+        // 未被偏移定型的轴必须保持常规流阶段的语义：width:auto 的脱离流盒子按 CSS 收缩到内容，
+        // 所以此处传 null 宽度触发 shrink-to-fit 分支，而不是把包含块宽度当作「可用宽度」让它撑满
+        // （否则只有 top/bottom 被定型时，宽度会平白从内容宽变成包含块宽——ion-fab
+        // `vertical="center" horizontal="end"` 正是这样撑满整屏、盖住其它 fab 的）。
+        float? availableWidth = widthFromInsets || !style.Width.IsAuto ? containingBlock.Width : null;
+        var constraints = new LayoutConstraints(availableWidth, containingBlock.Height);
 
         if (widthFromInsets)
         {
@@ -311,7 +319,8 @@ public class LayoutEngine
         ResolveAutoMarginAxis(
             startAuto: style.MarginLeft.IsAuto, endAuto: style.MarginRight.IsAuto,
             startOffsetAuto: style.Left.IsAuto, endOffsetAuto: style.Right.IsAuto,
-            sizeIsAuto: style.Width.IsAuto,
+            // fit-content 已收缩到内容，属于确定尺寸：方程过度约束，剩余空间可分配给 auto 外边距。
+            sizeIsAuto: style.Width.IsAuto && !style.Width.IsFitContent,
             startOffset: style.Left.ToPixels(containingBlock.Width, fs),
             endOffset: style.Right.ToPixels(containingBlock.Width, fs),
             declaredStart: style.MarginLeft.ToPixels(containingBlock.Width, fs),
@@ -324,7 +333,7 @@ public class LayoutEngine
         ResolveAutoMarginAxis(
             startAuto: style.MarginTop.IsAuto, endAuto: style.MarginBottom.IsAuto,
             startOffsetAuto: style.Top.IsAuto, endOffsetAuto: style.Bottom.IsAuto,
-            sizeIsAuto: style.Height.IsAuto,
+            sizeIsAuto: style.Height.IsAuto && !style.Height.IsFitContent,
             startOffset: style.Top.ToPixels(containingBlock.Height, fs),
             endOffset: style.Bottom.ToPixels(containingBlock.Height, fs),
             // 垂直外边距的百分比同样相对包含块「宽度」解析（CSS 规范），与 BlockLayout 一致。

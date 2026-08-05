@@ -36,6 +36,9 @@ public struct Length
     private float _safeBottom;
     private float _safeLeft;
     private bool _isAuto;
+    // CSS fit-content：尺寸由内容决定（shrink-to-fit），但不同于 auto —— 它是一个「确定尺寸」，
+    // 不会被对边偏移方程接管（见 IsFitContent）。
+    private bool _isFitContent;
 
     public Length(float value, LengthUnit unit = LengthUnit.Px)
     {
@@ -43,6 +46,7 @@ public struct Length
         _vw = _vh = 0;
         _safeTop = _safeRight = _safeBottom = _safeLeft = 0;
         _isAuto = false;
+        _isFitContent = false;
 
         switch (unit)
         {
@@ -54,6 +58,7 @@ public struct Length
             case LengthUnit.Vw: _vw = value; break;
             case LengthUnit.Vh: _vh = value; break;
             case LengthUnit.Auto: _isAuto = true; break;
+            case LengthUnit.FitContent: _isAuto = _isFitContent = true; break;
         }
     }
 
@@ -69,6 +74,12 @@ public struct Length
     public static Length Number(float value) => new Length(value, LengthUnit.Number);
     public static Length Auto => new Length(0, LengthUnit.Auto);
 
+    /// <summary>
+    /// CSS <c>fit-content</c>：收缩到内容尺寸。布局上与 <see cref="Auto"/> 同路径（因此
+    /// <see cref="IsAuto"/> 亦为 true），差别只在脱离文档流的定型规则——见 <see cref="IsFitContent"/>。
+    /// </summary>
+    public static Length FitContent => new Length(0, LengthUnit.FitContent);
+
     // CSS env(safe-area-inset-*)：在已知安全区边距前为符号性长度，由 ResolveSafeArea 折算成 px。
     // 内容元素用其做 padding（避开系统状态栏/导航栏），而全屏浮层不使用，从而仍覆盖整个屏幕。
     public static Length SafeAreaInsetTop => new Length { _safeTop = 1 };
@@ -76,8 +87,23 @@ public struct Length
     public static Length SafeAreaInsetBottom => new Length { _safeBottom = 1 };
     public static Length SafeAreaInsetLeft => new Length { _safeLeft = 1 };
 
-    /// <summary>是否为 auto（auto 不参与算术，且不与具体长度混合）。</summary>
+    /// <summary>
+    /// 是否为 auto（auto 不参与算术，且不与具体长度混合）。
+    /// <c>fit-content</c> 也报 true：它与 auto 走同一条「按内容测量」的布局路径，
+    /// 各布局算法无需区分（区分点仅在 <see cref="IsFitContent"/> 的注释所述之处）。
+    /// </summary>
     public bool IsAuto => _isAuto;
+
+    /// <summary>
+    /// 是否为 CSS <c>fit-content</c>。仅有两处需要与 auto 区分，都在脱离文档流的定型阶段：
+    /// <list type="number">
+    /// <item>它不被对边偏移方程接管——<c>left:0; right:0; width:fit-content</c> 仍收缩到内容，
+    /// 而非撑满包含块（<c>width:auto</c> 会撑满）。</item>
+    /// <item>因此该轴属于「尺寸确定」，两侧偏移都指定时方程过度约束，剩余空间归 auto 外边距
+    /// ——这正是 <c>margin:auto</c> 让收缩盒在包含块内居中的机制。</item>
+    /// </list>
+    /// </summary>
+    public bool IsFitContent => _isFitContent;
 
     /// <summary>
     /// 是否含百分比分量。用于布局阶段判断：当百分比针对"不确定尺寸"的包含块解析时，
@@ -136,6 +162,7 @@ public struct Length
     {
         get
         {
+            if (_isFitContent) return LengthUnit.FitContent;
             if (_isAuto) return LengthUnit.Auto;
             if (_em != 0 && _px == 0 && _rem == 0 && _percent == 0 && _number == 0 && _vw == 0 && _vh == 0) return LengthUnit.Em;
             if (_rem != 0 && _px == 0 && _em == 0 && _percent == 0 && _number == 0 && _vw == 0 && _vh == 0) return LengthUnit.Rem;
@@ -335,6 +362,7 @@ public struct Length
 
     public override string ToString()
     {
+        if (_isFitContent) return "fit-content";
         if (_isAuto) return "auto";
 
         // 单一单位：沿用简洁写法（如 "16px"、"1.5rem"），保证与既有期望一致。

@@ -178,4 +178,94 @@ public class FlexReverseDirectionTests
         col.Children[0].BoxModel.Content.Y.ShouldBe(60, 0.01f);
         col.Children[1].BoxModel.Content.Y.ShouldBe(0, 0.01f);
     }
+
+    // ---- 绝对关键字 start / end（不随 reverse 翻转，ISSUE-116 问题4）----------
+    //
+    // CSS 有两组对齐关键字：flex 相对的 flex-start/flex-end 跟随主轴方向（row-reverse 时起点在
+    // 右缘），书写方向相对的 start/end 则不受 flex-direction 影响（LTR 下 start 恒为左）。
+    // Ionic 的表单控件用后者，故 labelPlacement="end"（row-reverse）叠加 justify="start" 时
+    // 整体仍应靠左。
+
+    [Fact]
+    public void RowReverse_AbsoluteStart_PacksToLeft_NotFlipped()
+    {
+        // row-reverse + justify-content: start → 不翻转，项目靠左（顺序仍反转）。
+        // 对比 RowReverse_NoJustify（flex-start 语义）靠右排列。
+        var root = _layoutEngine.Layout(BuildContainer(3), Sheets(
+            ("container", new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.RowReverse,
+                JustifyContent = JustifyContent.Start,
+            }),
+            ("item", ItemStyle)), 500, 600);
+
+        root.Children[0].BoxModel.Content.X.ShouldBe(200, 0.01f);
+        root.Children[1].BoxModel.Content.X.ShouldBe(100, 0.01f);
+        root.Children[2].BoxModel.Content.X.ShouldBe(0, 0.01f);
+    }
+
+    [Fact]
+    public void RowReverse_AbsoluteEnd_PacksToRight_NotFlipped()
+    {
+        // row-reverse + justify-content: end → 不翻转，项目靠右（顺序仍反转）。
+        var root = _layoutEngine.Layout(BuildContainer(3), Sheets(
+            ("container", new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.RowReverse,
+                JustifyContent = JustifyContent.End,
+            }),
+            ("item", ItemStyle)), 500, 600);
+
+        root.Children[0].BoxModel.Content.X.ShouldBe(400, 0.01f);
+        root.Children[1].BoxModel.Content.X.ShouldBe(300, 0.01f);
+        root.Children[2].BoxModel.Content.X.ShouldBe(200, 0.01f);
+    }
+
+    [Fact]
+    public void Row_AbsoluteStartAndEnd_MatchFlexStartAndFlexEnd()
+    {
+        // 非 reverse 方向上两组关键字等价（差异只在 reverse 时体现）。
+        var start = _layoutEngine.Layout(BuildContainer(2), Sheets(
+            ("container", new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                JustifyContent = JustifyContent.Start,
+            }),
+            ("item", ItemStyle)), 500, 600);
+        start.Children[0].BoxModel.Content.X.ShouldBe(0, 0.01f);
+        start.Children[1].BoxModel.Content.X.ShouldBe(100, 0.01f);
+
+        var end = _layoutEngine.Layout(BuildContainer(2), Sheets(
+            ("container", new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                JustifyContent = JustifyContent.End,
+            }),
+            ("item", ItemStyle)), 500, 600);
+        end.Children[0].BoxModel.Content.X.ShouldBe(300, 0.01f);
+        end.Children[1].BoxModel.Content.X.ShouldBe(400, 0.01f);
+    }
+
+    [Fact]
+    public void ColumnReverse_AbsoluteStart_PacksToTop_NotFlipped()
+    {
+        // 列方向同理：column-reverse + start → 靠顶部（flex-start 语义会靠底部）。
+        var root = _layoutEngine.Layout(BuildContainer(3), Sheets(
+            ("container", new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.ColumnReverse,
+                Height = Length.Px(500),
+                JustifyContent = JustifyContent.Start,
+            }),
+            ("item", ItemStyle)), 500, 600);
+
+        root.Children[0].BoxModel.Content.Y.ShouldBe(120, 0.01f);
+        root.Children[1].BoxModel.Content.Y.ShouldBe(60, 0.01f);
+        root.Children[2].BoxModel.Content.Y.ShouldBe(0, 0.01f);
+    }
 }

@@ -184,6 +184,9 @@ public class HitTestScrollTests
                 Width = Length.Px(300),
                 Height = Length.Px(300),
                 OverflowX = Overflow.Scroll,
+                // 横排滚动列表：nowrap 抑制换行，两个 inline-block 排在同一行并溢出。
+                // （缺省的 white-space: normal 下，原子盒之间存在断行机会——见 ISSUE-116。）
+                WhiteSpace = WhiteSpace.Nowrap,
             },
             Children = { child1, child2 }
         };

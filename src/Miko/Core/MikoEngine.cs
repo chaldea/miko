@@ -672,7 +672,18 @@ public class MikoEngine
         float adjustedTop = rect.Top - scrollOffsetY;
         float adjustedBottom = rect.Bottom - scrollOffsetY;
 
-        if (x < adjustedLeft || x > adjustedRight || y < adjustedTop || y > adjustedBottom)
+        bool insideSelf = x >= adjustedLeft && x <= adjustedRight && y >= adjustedTop && y <= adjustedBottom;
+
+        // overflow:visible 的盒子不裁剪后代：溢出到盒外的子孙（绝对定位、负外边距等）在 CSS 中
+        // 依然可命中，因此点在盒外时不能就此返回——仍需下探子树，只是本盒自身不能作为命中目标。
+        // 反之，裁剪型盒子（overflow 非 visible，或已滚动）之外的一切都不可命中，可立即剪枝。
+        // 缺了这条区分，比自身内容小的容器会吞掉子孙的点击：ion-fab 的 fit-content 宿主只有
+        // 主按钮那么高，展开后的 ion-fab-list 整体落在宿主之外，列表按钮点不到（issues/ion-fab.md）。
+        bool clipsChildren = box.ScrollTop > 0 || box.ScrollLeft > 0
+            || box.ComputedStyle.OverflowY != Overflow.Visible
+            || box.ComputedStyle.OverflowX != Overflow.Visible;
+
+        if (!insideSelf && clipsChildren)
             return null;
 
         float childScrollOffsetX = scrollOffsetX + box.ScrollLeft;
@@ -687,9 +698,7 @@ public class MikoEngine
             float childScreenLeft = childRect.Left - childScrollOffsetX;
             float childScreenRight = childRect.Right - childScrollOffsetX;
 
-            bool isClipped = (box.ScrollTop > 0 || box.ScrollLeft > 0 ||
-                              box.ComputedStyle.OverflowY != Overflow.Visible ||
-                              box.ComputedStyle.OverflowX != Overflow.Visible) &&
+            bool isClipped = clipsChildren &&
                              (childScreenBottom < adjustedTop || childScreenTop > adjustedBottom ||
                               childScreenRight < adjustedLeft || childScreenLeft > adjustedRight);
 
@@ -698,6 +707,11 @@ public class MikoEngine
             var hit = HitTestBox(child, x, y, childScrollOffsetX, childScrollOffsetY);
             if (hit != null) return hit;
         }
+
+        // 点落在本盒之外（只可能来自上面的 overflow:visible 下探）：本盒不是命中目标，
+        // 但其溢出的子孙已在上面测过。
+        if (!insideSelf)
+            return null;
 
         // pointer-events:none makes this element transparent to hits — the tap passes
         // through to whatever is behind it (descendants were already tested above and can
