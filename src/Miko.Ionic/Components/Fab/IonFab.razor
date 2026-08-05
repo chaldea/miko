@@ -64,15 +64,48 @@
     }
 
     /// <summary>
-    /// After the subtree is built, detect whether the fab contains a fab-list. Ionic resolves this
-    /// at click time via <c>querySelector('ion-fab-list')</c>; here we scan the built tree once for
-    /// the <c>ion-fab-list</c> marker class so <see cref="ToggleAsync"/> can honor it.
+    /// After the subtree is built:
+    /// <list type="number">
+    /// <item>Detect whether the fab contains a fab-list. Ionic resolves this at click time via
+    /// <c>querySelector('ion-fab-list')</c>; here we scan the built tree once for the
+    /// <c>ion-fab-list</c> marker class so <see cref="ToggleAsync"/> can honor it.</item>
+    /// <item>Stamp <c>fab-slotted</c> onto the fab's own top-level children — the ones Ionic
+    /// reaches with <c>:host(…) ::slotted(ion-fab-button)</c>. Those rules (the edge offsets) must
+    /// NOT reach a fab-list's buttons, and a plain descendant selector would; a child combinator
+    /// can't be used either because multi-root fragments arrive wrapped in a layout-transparent
+    /// <see cref="FragmentElement"/> that a <c>&gt;</c> would not see through. Pinning a marker
+    /// structurally here is the same approach the item slots use.</item>
+    /// </list>
     /// </summary>
     public override Element Build()
     {
         var root = base.Build();
         _hasList = root.FindByClass("ion-fab-list").Count > 0;
+        foreach (var child in root.Children)
+        {
+            StampSlotted(child);
+        }
         return root;
+    }
+
+    /// <summary>Marks one slotted child (descending through layout-transparent fragments, which
+    /// carry no box and so are not the elements the rules must land on).</summary>
+    private static void StampSlotted(Element element)
+    {
+        if (element is TextNode) return;
+
+        if (element is FragmentElement)
+        {
+            foreach (var child in element.Children) StampSlotted(child);
+            return;
+        }
+
+        if (!element.HasClass("fab-slotted"))
+        {
+            element.Class = string.IsNullOrEmpty(element.Class)
+                ? "fab-slotted"
+                : element.Class + " fab-slotted";
+        }
     }
 
     /// <summary>Opens/closes the fab list container. Mirrors <c>fab.tsx</c> <c>toggle()</c>: only

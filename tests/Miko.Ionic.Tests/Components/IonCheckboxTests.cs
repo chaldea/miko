@@ -413,4 +413,189 @@ public class IonCheckboxTests : IonicComponentTestBase
             if (labelPlacement is not null) b.AddAttribute(3, nameof(IonCheckbox.LabelPlacement), labelPlacement);
             b.CloseComponent();
         })));
+
+    // ---- Justify + LabelPlacement together (ISSUE-116 problem 4) -----------
+
+    // Renders a standalone checkbox against a known viewport width, so the block-level host has
+    // real free main-axis space for justify-content to distribute.
+    private ComponentUnderTest RenderStyled(string? justify, string? placement,
+        string? color = null, bool isChecked = false, string label = "Jon Snow")
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.ViewportWidth = 400;
+        return Context.Render<IonCheckbox>(p =>
+        {
+            p.Add(nameof(IonCheckbox.ChildContent), Label(label));
+            if (justify is not null) p.Add(nameof(IonCheckbox.Justify), justify);
+            if (placement is not null) p.Add(nameof(IonCheckbox.LabelPlacement), placement);
+            if (color is not null) p.Add(nameof(IonCheckbox.Color), color);
+            if (isChecked) p.Add(nameof(IonCheckbox.Checked), true);
+        });
+    }
+
+    /// <summary>
+    /// Justify="start" + LabelPlacement="end": the pair packs to the LEFT while the label still
+    /// follows the box. Ionic uses the absolute `justify-content: start` keyword, which does not
+    /// flip under the row-reverse that label-placement-end applies — flex-start would push the
+    /// pair to the right instead.
+    /// </summary>
+    [Fact]
+    public void IonCheckbox_Layout_JustifyStartWithPlacementEnd_PacksToLeadingEdge()
+    {
+        var cut = RenderStyled(justify: "start", placement: "end");
+
+        var wrapperBox = cut.GetBoxModel(cut.FindByClass("checkbox-wrapper").Single())!;
+        var labelBox = cut.GetBoxModel(cut.FindByClass("label-text-wrapper").Single())!;
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+
+        // The host is block-level, so the wrapper spans the viewport and there IS free space.
+        wrapperBox.Content.Width.ShouldBeGreaterThan(nativeBox.MarginBox.Width + 100);
+        // Whole group at the leading edge (this is what regressed: it sat at the trailing edge).
+        nativeBox.MarginBox.Left.ShouldBe(wrapperBox.Content.Left, 0.5f);
+        // Label still follows the box (row-reverse ordering preserved).
+        nativeBox.Content.X.ShouldBeLessThan(labelBox.Content.X);
+        // And the group does not reach the trailing edge.
+        labelBox.MarginBox.Right.ShouldBeLessThan(wrapperBox.Content.Right - 100);
+    }
+
+    /// <summary>
+    /// Justify="start" + LabelPlacement="end" resolves to the absolute Start keyword, so the
+    /// explicit Justify wins over the justify-content that label-placement-end sets for itself
+    /// (equal specificity — Ionic relies on source order, with the justify rules declared last).
+    /// </summary>
+    [Fact]
+    public void IonCheckbox_Style_JustifyOverridesPlacementEndJustification()
+    {
+        var cut = RenderStyled(justify: "start", placement: "end");
+
+        var wrapper = cut.FindByClass("checkbox-wrapper").Single();
+        cut.GetComputedStyle(wrapper)!.JustifyContent.ShouldBe(JustifyContent.Start);
+        cut.GetComputedStyle(wrapper)!.FlexDirection.ShouldBe(FlexDirection.RowReverse);
+    }
+
+    /// <summary>
+    /// LabelPlacement="end" with no Justify still packs to the leading edge — checkbox.scss's own
+    /// `justify-content: start` on label-placement-end (also the absolute keyword).
+    /// </summary>
+    [Fact]
+    public void IonCheckbox_Layout_PlacementEndAlone_PacksToLeadingEdge()
+    {
+        var cut = RenderStyled(justify: null, placement: "end");
+
+        var wrapper = cut.FindByClass("checkbox-wrapper").Single();
+        cut.GetComputedStyle(wrapper)!.JustifyContent.ShouldBe(JustifyContent.Start);
+
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+        var wrapperBox = cut.GetBoxModel(wrapper)!;
+        nativeBox.MarginBox.Left.ShouldBe(wrapperBox.Content.Left, 0.5f);
+    }
+
+    /// <summary>Justify="end" + LabelPlacement="end": the pair packs to the trailing edge.</summary>
+    [Fact]
+    public void IonCheckbox_Layout_JustifyEndWithPlacementEnd_PacksToTrailingEdge()
+    {
+        var cut = RenderStyled(justify: "end", placement: "end");
+
+        var wrapperBox = cut.GetBoxModel(cut.FindByClass("checkbox-wrapper").Single())!;
+        var labelBox = cut.GetBoxModel(cut.FindByClass("label-text-wrapper").Single())!;
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+
+        labelBox.MarginBox.Right.ShouldBe(wrapperBox.Content.Right, 0.5f);
+        // Ordering unchanged: box still precedes the label.
+        nativeBox.Content.X.ShouldBeLessThan(labelBox.Content.X);
+    }
+
+    /// <summary>Justify="start" with the default (start) placement keeps the label before the box.</summary>
+    [Fact]
+    public void IonCheckbox_Layout_JustifyStartWithPlacementStart_PacksToLeadingEdge()
+    {
+        var cut = RenderStyled(justify: "start", placement: "start");
+
+        var wrapperBox = cut.GetBoxModel(cut.FindByClass("checkbox-wrapper").Single())!;
+        var labelBox = cut.GetBoxModel(cut.FindByClass("label-text-wrapper").Single())!;
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+
+        labelBox.MarginBox.Left.ShouldBe(wrapperBox.Content.Left, 0.5f);
+        labelBox.Content.X.ShouldBeLessThan(nativeBox.Content.X);
+    }
+
+    // ---- Color (ISSUE-116 problem 5) ---------------------------------------
+
+    /// <summary>
+    /// A named Color fills the checked box with that palette color. checkbox.scss's
+    /// `:host(.ion-color)` redefines --checkbox-background-checked / --border-color-checked; the
+    /// port resolves those into ion-color-* scoped rules. Previously the class was stamped but no
+    /// rule matched it, so Color did nothing.
+    /// </summary>
+    [Theory]
+    [InlineData("danger")]
+    [InlineData("success")]
+    [InlineData("secondary")]
+    public void IonCheckbox_Style_Color_TintsCheckedBox(string color)
+    {
+        var themed = RenderStyled(justify: null, placement: null, color: color, isChecked: true);
+        var plain = RenderStyled(justify: null, placement: null, isChecked: true);
+
+        var themedIcon = themed.GetComputedStyle(themed.FindByClass("checkbox-icon").Single())!;
+        var plainIcon = plain.GetComputedStyle(plain.FindByClass("checkbox-icon").Single())!;
+
+        // Fill and border both take the palette base, and differ from the default primary.
+        themedIcon.BackgroundColor.ShouldBe(themedIcon.BorderTopColor);
+        themedIcon.BackgroundColor.ShouldNotBe(plainIcon.BackgroundColor);
+    }
+
+    [Fact]
+    public void IonCheckbox_Style_Color_UsesPaletteBase()
+    {
+        var cut = RenderStyled(justify: null, placement: null, color: "danger", isChecked: true);
+
+        var expected = IonicTheme.CreateMd().Danger;
+        var icon = cut.GetComputedStyle(cut.FindByClass("checkbox-icon").Single())!;
+        icon.BackgroundColor.ShouldBe(expected);
+        icon.BorderTopColor.ShouldBe(expected);
+    }
+
+    /// <summary>
+    /// The checkmark takes the palette CONTRAST color (--checkmark-color), so it stays legible on
+    /// the fill — e.g. black on warning/light, white on danger.
+    /// </summary>
+    [Fact]
+    public void IonCheckbox_Style_Color_TintsCheckmarkWithContrast()
+    {
+        var onDanger = RenderStyled(justify: null, placement: null, color: "danger", isChecked: true);
+        var onWarning = RenderStyled(justify: null, placement: null, color: "warning", isChecked: true);
+
+        onDanger.GetComputedStyle(onDanger.FindByClass("checkbox-icon-mark").Single())!
+            .Color.ShouldBe(Color.FromHex("ffffff"));
+        onWarning.GetComputedStyle(onWarning.FindByClass("checkbox-icon-mark").Single())!
+            .Color.ShouldBe(Color.FromHex("000000"));
+    }
+
+    /// <summary>An unchecked colored checkbox keeps the neutral unchecked border / background.</summary>
+    [Fact]
+    public void IonCheckbox_Style_Color_DoesNotTintUncheckedBox()
+    {
+        var cut = RenderStyled(justify: null, placement: null, color: "danger", isChecked: false);
+
+        var t = IonicTheme.CreateMd();
+        var icon = cut.GetComputedStyle(cut.FindByClass("checkbox-icon").Single())!;
+        icon.BackgroundColor.ShouldBe(t.CheckboxBackgroundOff);
+        icon.BorderTopColor.ShouldBe(t.CheckboxBorderColorOff);
+    }
+
+    /// <summary>Color also applies to the indeterminate state (same fill rule as checked).</summary>
+    [Fact]
+    public void IonCheckbox_Style_Color_TintsIndeterminateBox()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonCheckbox>(p =>
+        {
+            p.Add(nameof(IonCheckbox.ChildContent), Label("Jon Snow"));
+            p.Add(nameof(IonCheckbox.Color), "danger");
+            p.Add(nameof(IonCheckbox.Indeterminate), true);
+        });
+
+        var icon = cut.GetComputedStyle(cut.FindByClass("checkbox-icon").Single())!;
+        icon.BackgroundColor.ShouldBe(IonicTheme.CreateMd().Danger);
+    }
 }

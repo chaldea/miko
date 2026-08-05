@@ -44,6 +44,12 @@ internal class GlobalStyles
                     PaddingBottom = Px(16),
                 }
             },
+            [".component-icons .ion-icon"] = new()
+            {
+                FontSize = Rem(2.25f),
+                Margin = Px(3),
+                Color = (Color)"#444",
+            },
 
             [".sc-ion-label-md-s"] = new()
             {

@@ -34,15 +34,31 @@ internal static class FabStyles
         var listMargin = Length.Px(t.FabListMargin);
         var smallMargin = Length.Px(t.FabButtonSmallMargin);
 
+        // fab-button.scss: `transition: all ease-in-out 300ms; transition-property: transform, opacity`
+        // — the curve behind both fab reveals: the main button's close-icon/inner cross-fade, and a
+        // list button scaling up from 0. A fresh list per rule: Transition instances are mutable, so
+        // sharing one list across rules would let a later edit leak into earlier rules.
+        List<Transition> RevealTransition() =>
+        [
+            new Transition(nameof(Style.Transform), t.FabTransitionDuration, TimingFunction.EaseInOut),
+            new Transition(nameof(Style.Opacity), t.FabTransitionDuration, TimingFunction.EaseInOut),
+        ];
+
         var css = new CssObject
         {
             // --- ion-fab (container) --------------------------------------------------------------
-            // fab.scss :host — absolute, high z-index, width/height fit-content. In Miko an absolute
-            // box with no width constraint already shrink-wraps its content (BlockLayout), so we
-            // leave width/height unset to match fit-content.
+            // fab.scss :host — absolute, high z-index, width/height fit-content.
+            // fit-content (not auto) is load-bearing here: the centering rules below pin BOTH edges
+            // of an axis (left:0;right:0) and let auto margins take the leftover. With width:auto
+            // CSS would instead solve the size from those insets and stretch the host across the
+            // whole containing block — swallowing every pointer event at z-index 1000 and parking
+            // its button in the corner. fit-content keeps the host shrink-wrapped so the auto
+            // margins actually have leftover space to center it with.
             [$".ion-fab.{mode}"] = new()
             {
                 Position = Position.Absolute,
+                Width = Length.FitContent,
+                Height = Length.FitContent,
                 ZIndex = 1000,   // $z-index-fixed-content
             },
 
@@ -72,6 +88,66 @@ internal static class FabStyles
             // Edge resets the pinned value (edge styling uses margin instead).
             [$".ion-fab.{mode}.fab-vertical-top.fab-edge"] = new() { Top = Length.Px(0) },
             [$".ion-fab.{mode}.fab-vertical-bottom.fab-edge"] = new() { Bottom = Length.Px(0) },
+
+            // Edge offsets (fab.scss). The fab button is pulled up (top edge) or down (bottom edge)
+            // by half its own height so it straddles the header/footer line instead of sitting
+            // wholly inside the content. Percentage margins resolve against the containing block's
+            // WIDTH (CSS) — the fab host is fit-content, i.e. exactly as wide as the round button,
+            // so -50% is half the button's size on both axes. `.fab-slotted` restricts these to the
+            // fab's own children (Ionic's ::slotted), keeping a fab-list's buttons out of it.
+            [$".ion-fab.{mode}.fab-vertical-top.fab-edge .fab-slotted.ion-fab-button"] = new()
+            {
+                MarginTop = Length.Percent(-50),
+            },
+            [$".ion-fab.{mode}.fab-vertical-bottom.fab-edge .fab-slotted.ion-fab-button"] = new()
+            {
+                MarginBottom = Length.Percent(-50),
+            },
+            // A small main button already carries 8px top/bottom margin; the edge offset overrides
+            // margin-top outright, so fold that margin back in: (-100% + 2*small-margin) / 2.
+            [$".ion-fab.{mode}.fab-vertical-top.fab-edge .fab-slotted.ion-fab-button.fab-button-small"] = new()
+            {
+                MarginTop = (Length.Percent(-100) + smallMargin * 2f) / 2f,
+            },
+            [$".ion-fab.{mode}.fab-vertical-bottom.fab-edge .fab-slotted.ion-fab-button.fab-button-small"] = new()
+            {
+                MarginBottom = (Length.Percent(-100) + smallMargin * 2f) / 2f,
+            },
+            // The sibling lists must follow the button, or a gap opens between them. Horizontal
+            // lists shift by the same -50%; vertical lists keep their calc(100% + list-margin)
+            // offset but measured from the moved button, i.e. 50% + list-margin.
+            [$".ion-fab.{mode}.fab-vertical-top.fab-edge .fab-slotted.ion-fab-list.fab-list-side-start"] = new()
+            {
+                MarginTop = Length.Percent(-50),
+            },
+            [$".ion-fab.{mode}.fab-vertical-top.fab-edge .fab-slotted.ion-fab-list.fab-list-side-end"] = new()
+            {
+                MarginTop = Length.Percent(-50),
+            },
+            [$".ion-fab.{mode}.fab-vertical-top.fab-edge .fab-slotted.ion-fab-list.fab-list-side-top"] = new()
+            {
+                MarginTop = Calc(Length.Percent(50), listMargin),
+            },
+            [$".ion-fab.{mode}.fab-vertical-top.fab-edge .fab-slotted.ion-fab-list.fab-list-side-bottom"] = new()
+            {
+                MarginTop = Calc(Length.Percent(50), listMargin),
+            },
+            [$".ion-fab.{mode}.fab-vertical-bottom.fab-edge .fab-slotted.ion-fab-list.fab-list-side-start"] = new()
+            {
+                MarginBottom = Length.Percent(-50),
+            },
+            [$".ion-fab.{mode}.fab-vertical-bottom.fab-edge .fab-slotted.ion-fab-list.fab-list-side-end"] = new()
+            {
+                MarginBottom = Length.Percent(-50),
+            },
+            [$".ion-fab.{mode}.fab-vertical-bottom.fab-edge .fab-slotted.ion-fab-list.fab-list-side-top"] = new()
+            {
+                MarginBottom = Calc(Length.Percent(50), listMargin),
+            },
+            [$".ion-fab.{mode}.fab-vertical-bottom.fab-edge .fab-slotted.ion-fab-list.fab-list-side-bottom"] = new()
+            {
+                MarginBottom = Calc(Length.Percent(50), listMargin),
+            },
 
             // --- ion-fab-button (host) ------------------------------------------------------------
             // fab-button.scss :host — a fixed-size block, 14px font, centered text. margin:0.
@@ -125,6 +201,7 @@ internal static class FabStyles
                 Height = Length.Percent(100),
                 Opacity = 1f,
                 ZIndex = 1,
+                Transitions = RevealTransition(),
             },
 
             // Slotted icon size for the main button (per-mode font size).
@@ -152,6 +229,7 @@ internal static class FabStyles
                 Transform = new Transform(
                     new TransformFunction.Scale(0.4f, 0.4f),
                     new TransformFunction.Rotate(-45f)),
+                Transitions = RevealTransition(),
             },
 
             // Close-active swap: fade+un-rotate the close icon in, fade the inner content out.
@@ -235,6 +313,11 @@ internal static class FabStyles
                 MarginRight = Length.Px(0),
                 Opacity = 0f,
                 Transform = new Transform(new TransformFunction.Scale(0f, 0f)),
+                // Scale/fade in when the fab opens (and back out when it closes) rather than
+                // popping — Ionic gets the same effect from the button's own transform/opacity
+                // transition. Ionic additionally staggers the buttons with a per-index 30ms
+                // setTimeout; Miko has no such timer, so they animate together.
+                Transitions = RevealTransition(),
             },
             // Shown list button — full scale + opacity (::slotted(.fab-button-in-list.fab-button-show)).
             [$".ion-fab-list.{mode} .fab-button-in-list.fab-button-show"] = new()
@@ -275,15 +358,16 @@ internal static class FabStyles
         };
 
         // Horizontal list side buttons use left/right margins instead of top/bottom
-        // (fab-list.scss :host(.fab-list-side-start|end) ::slotted(.fab-button-in-list)).
+        // (fab-list.scss :host(.fab-list-side-start|end) ::slotted(.fab-button-in-list)) — margins
+        // only; the hidden opacity/transform and the reveal transition come from the base
+        // `.fab-button-in-list` rule above and are not re-declared here (which would also mean
+        // out-specifying `.fab-button-show` and pinning these buttons hidden forever).
         css[$".ion-fab-list.{mode}.fab-list-side-start .fab-button-in-list"] = new()
         {
             MarginTop = Length.Px(0),
             MarginBottom = Length.Px(0),
             MarginLeft = Length.Px(5),
             MarginRight = Length.Px(5),
-            Opacity = 0f,
-            Transform = new Transform(new TransformFunction.Scale(0f, 0f)),
         };
         css[$".ion-fab-list.{mode}.fab-list-side-end .fab-button-in-list"] = new()
         {
@@ -291,8 +375,6 @@ internal static class FabStyles
             MarginBottom = Length.Px(0),
             MarginLeft = Length.Px(5),
             MarginRight = Length.Px(5),
-            Opacity = 0f,
-            Transform = new Transform(new TransformFunction.Scale(0f, 0f)),
         };
 
         // --- Named color fills (Ionic --ion-color-* palette) -------------------------------------

@@ -408,6 +408,14 @@ public class IonicTheme
     public Color FabListButtonColor { get; set; }
     /// <summary>Slotted icon font size for a button inside a fab-list (18px both modes).</summary>
     public float FabListButtonIconSize { get; set; } = 18f;
+    /// <summary>
+    /// Duration (seconds) of the fab's reveal animations — the close-icon/inner swap on the main
+    /// button and the scale-in of the list buttons. Ionic declares
+    /// <c>transition: all ease-in-out 300ms; transition-property: transform, opacity</c> on
+    /// <c>.button-inner</c> and <c>.close-icon</c> (fab-button.scss), and the list buttons ride the
+    /// same curve.
+    /// </summary>
+    public float FabTransitionDuration { get; set; } = 0.30f;
 
     // Input (input.scss / input.md.scss / input.ios.scss + their *.vars.scss). A full-width text
     // field that lives inside an ion-item; the label sits beside/above the native input, an

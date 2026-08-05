@@ -1,26 +1,189 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@* Mirrors Ionic's <ion-content> (content.tsx render()):
+   <ion-content class="{mode} ion-color? content-fullscreen? overscroll? content-{ltr|rtl}">
+     <div id="background-content" part="background" />        <!-- the background layer -->
+     [<slot name="fixed" />]                                   <!-- when fixedSlotPlacement="before" -->
+     <div class="inner-scroll scroll-x? scroll-y? overscroll?" part="scroll">
+       <slot />                                                <!-- ChildContent -->
+     </div>
+     [<div class="transition-effect">                          <!-- ios only -->
+        <div class="transition-cover" /><div class="transition-shadow" />
+      </div>]
+     [<slot name="fixed" />]                                   <!-- when fixedSlotPlacement="after" (default) -->
+   </ion-content>
+   The named `fixed` slot maps to the Fixed RenderFragment, rendered DIRECTLY into the host (no
+   wrapper element) — exactly like Ionic's `<slot name="fixed">`, which projects the slotted
+   elements as children of the host. Ionic then styles those elements themselves via
+   `::slotted([slot="fixed"])`; this port stamps an `ion-slot-fixed` marker class onto each
+   top-level fixed element in Build() so the same rules apply. A wrapper span must NOT be used
+   here: it would become the positioned box and demote the real content (e.g. an IonFab) to a
+   child of an inline box, breaking its layout.
+   Ionic's scroll API (scrollToTop/getScrollElement/ionScroll…) is driven by the browser's scroll
+   element; Miko scrolls through the engine's own scroll state, so the scroll *events* are not
+   re-emitted here — ScrollEvents is kept as a marker for API parity. *@
 <div class="@ClassMapper.Class" style="@Style">
-    <div class="inner-scroll">
+    <div class="background-content"></div>
+    @if (Fixed is not null && _fixedBefore)
+    {
+        @Fixed
+    }
+    <div class="@_innerScrollClass">
         @ChildContent
     </div>
+    @if (_showTransitionShadow)
+    {
+        <div class="transition-effect">
+            <div class="transition-cover"></div>
+            <div class="transition-shadow"></div>
+        </div>
+    }
+    @if (Fixed is not null && !_fixedBefore)
+    {
+        @Fixed
+    }
 </div>
 
 @code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as <c>ion-color</c> + <c>ion-color-*</c> classes the stylesheet maps to the
+    /// scroll container's fill and text color.</summary>
+    [Parameter] public string? Color { get; set; }
+
     /// <summary>
-    /// When true the content fills the area beneath a transparent/translucent header
-    /// (Ionic's <c>fullscreen</c> attribute). Kept for API parity; in this base port it
-    /// only adds a marker class.
+    /// When true the content scrolls behind the header and footer (Ionic's <c>fullscreen</c>).
+    /// Stamps <c>content-fullscreen</c>; the offset computation Ionic does at runtime
+    /// (<c>--offset-top</c> / <c>--offset-bottom</c>) has no equivalent here, so this remains a
+    /// marker class.
     /// </summary>
     [Parameter] public bool Fullscreen { get; set; }
 
+    /// <summary>
+    /// Content for Ionic's <c>fixed</c> slot — placed outside the scroll container so it stays put
+    /// while the main content scrolls (typically an <c>IonFab</c>).
+    /// </summary>
+    [Parameter] public RenderFragment? Fixed { get; set; }
+
+    /// <summary>
+    /// Where the fixed slot sits relative to the scrollable content in the DOM (Ionic
+    /// <c>fixedSlotPlacement</c>): <c>"after"</c> (default) or <c>"before"</c>. Ionic uses this to
+    /// control keyboard focus order.
+    /// </summary>
+    [Parameter] public string FixedSlotPlacement { get; set; } = "after";
+
+    /// <summary>If true, the content scrolls on the X axis (Ionic <c>scrollX</c>, default false).</summary>
+    [Parameter] public bool ScrollX { get; set; }
+
+    /// <summary>If false, vertical scrolling is disabled (Ionic <c>scrollY</c>, default true).</summary>
+    [Parameter] public bool ScrollY { get; set; } = true;
+
+    /// <summary>
+    /// If true, scrolling bounces past the bounds even when the content does not overflow
+    /// (Ionic <c>forceOverscroll</c>). When null, Ionic defaults it to true on iOS. Stamps the
+    /// <c>overscroll</c> marker class; Miko has no rubber-band scroll, so this is a marker.
+    /// </summary>
+    [Parameter] public bool? ForceOverscroll { get; set; }
+
+    /// <summary>
+    /// Enables Ionic's <c>ionScroll</c> / <c>ionScrollStart</c> / <c>ionScrollEnd</c> events, which
+    /// are off by default for performance. Kept as a marker for API parity — this port does not
+    /// re-emit scroll events.
+    /// </summary>
+    [Parameter] public bool ScrollEvents { get; set; }
+
+    private string _innerScrollClass = "inner-scroll";
+    private bool _fixedBefore;
+    private bool _showTransitionShadow;
+
+    /// <summary>
+    /// Ionic's <c>shouldForceOverscroll()</c>: the explicit <see cref="ForceOverscroll"/> when set,
+    /// otherwise true only in ios mode.
+    /// </summary>
+    private bool ShouldForceOverscroll => ForceOverscroll ?? (Mode == "ios");
+
     protected override void OnParametersSet()
     {
+        _fixedBefore = string.Equals(FixedSlotPlacement, "before", StringComparison.OrdinalIgnoreCase);
+
+        // content.tsx: `const transitionShadow = mode === 'ios'` — the transition layers only
+        // render in ios mode (they back the iOS page-push shadow).
+        _showTransitionShadow = Mode == "ios";
+
+        var forceOverscroll = ShouldForceOverscroll;
+
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
             .Add("ion-content")
-            .If(Fullscreen, "content-fullscreen");
+            .If(Fullscreen, "content-fullscreen")
+            .If(forceOverscroll, "overscroll")
+            // content.tsx stamps content-ltr / content-rtl unconditionally; this port has no RTL
+            // switch yet, so it always reports ltr (the transition-effect rules key off it).
+            .Add("content-ltr")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color);
+
+        // .inner-scroll gets the per-axis scroll markers plus the overscroll marker, matching
+        // content.tsx's inner-scroll class object.
+        var inner = "inner-scroll";
+        if (ScrollX) inner += " scroll-x";
+        if (ScrollY) inner += " scroll-y";
+        if ((ScrollX || ScrollY) && forceOverscroll) inner += " overscroll";
+        _innerScrollClass = inner;
+    }
+
+    /// <summary>
+    /// Stamps the <c>ion-slot-fixed</c> marker onto the elements produced by the
+    /// <see cref="Fixed"/> fragment, so the fixed-slot rules apply to those elements themselves —
+    /// mirroring Ionic's <c>::slotted([slot="fixed"])</c>, which targets the projected elements
+    /// rather than any wrapper.
+    /// <para>
+    /// The fragment is rendered directly into the host (no wrapper box), so the fixed elements are
+    /// simply the host's children that this component did not author itself. Everything the
+    /// component renders carries a known class (<c>background-content</c>, <c>inner-scroll</c>,
+    /// <c>transition-effect</c>), which is what makes them identifiable here. A multi-root fragment
+    /// arrives wrapped in a layout-transparent <c>FragmentElement</c> (<c>display: contents</c>),
+    /// so we descend through it to reach the real elements.
+    /// </para>
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        if (Fixed is not null)
+        {
+            foreach (var child in root.Children)
+            {
+                StampFixed(child);
+            }
+        }
+        return root;
+    }
+
+    // Classes of the elements IonContent renders itself; anything else at the host's top level
+    // came from the Fixed fragment.
+    private static bool IsOwnPart(Element element)
+        => element.HasClass("background-content")
+        || element.HasClass("inner-scroll")
+        || element.HasClass("transition-effect");
+
+    private static void StampFixed(Element element)
+    {
+        if (element is TextNode || IsOwnPart(element)) return;
+
+        // A transparent fragment carries no box of its own — stamp its children instead, so the
+        // marker lands on elements that actually lay out.
+        if (element is FragmentElement)
+        {
+            foreach (var child in element.Children) StampFixed(child);
+            return;
+        }
+
+        if (!element.HasClass("ion-slot-fixed"))
+        {
+            element.Class = string.IsNullOrEmpty(element.Class)
+                ? "ion-slot-fixed"
+                : element.Class + " ion-slot-fixed";
+        }
     }
 }
