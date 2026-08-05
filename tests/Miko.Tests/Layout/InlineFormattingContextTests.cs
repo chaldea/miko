@@ -113,10 +113,10 @@ public class InlineFormattingContextTests
     }
 
     [Fact]
-    public void AdjacentInlineBlocks_WithoutSpace_DoNotWrap()
+    public void AdjacentInlineBlocks_WithoutSpace_Wrap()
     {
-        // 两个紧邻的 inline-block 之间没有断行机会（CSS 软换行规则），
-        // 超宽时整体溢出到同一行（横排滚动列表依赖此行为）。
+        // 紧邻的 inline-block 之间存在断行机会（UAX#14 LB20：原子盒前后都可断），
+        // 即使没有空白文本节点分隔也会换行——与浏览器一致（ISSUE-116）。
         var child1 = new DivElement { Style = new Style { Display = Display.InlineBlock, Width = Length.Px(200), Height = Length.Px(50) } };
         var child2 = new DivElement { Style = new Style { Display = Display.InlineBlock, Width = Length.Px(200), Height = Length.Px(50) } };
         var root = new DivElement { Children = { child1, child2 } };
@@ -125,8 +125,37 @@ public class InlineFormattingContextTests
 
         var box1 = layout.Children[0].BoxModel.MarginBox;
         var box2 = layout.Children[1].BoxModel.MarginBox;
+        box2.Left.ShouldBe(box1.Left, 0.5f, "换行后第二个盒应回到行首");
+        box2.Top.ShouldBe(box1.Bottom, 0.5f, "放不下的 inline-block 应换到下一行");
+    }
+
+    [Fact]
+    public void AdjacentInlineBlocks_Nowrap_StayOnOneLine()
+    {
+        // 横排滚动列表：由容器的 white-space: nowrap 抑制换行，整体溢出到同一行。
+        var child1 = new DivElement { Style = new Style { Display = Display.InlineBlock, Width = Length.Px(200), Height = Length.Px(50) } };
+        var child2 = new DivElement { Style = new Style { Display = Display.InlineBlock, Width = Length.Px(200), Height = Length.Px(50) } };
+        var root = new DivElement { Children = { child1, child2 } };
+
+        var sheet = new StyleSheet
+        {
+            Rules = new List<StyleRule>
+            {
+                new()
+                {
+                    Selector = new ClassSelector("container"),
+                    Style = new Style { Width = Length.Px(300), WhiteSpace = WhiteSpace.Nowrap }
+                }
+            }
+        };
+        root.Class = "container";
+
+        var layout = _layoutEngine.Layout(root, new List<StyleSheet> { sheet }, 800, 600);
+
+        var box1 = layout.Children[0].BoxModel.MarginBox;
+        var box2 = layout.Children[1].BoxModel.MarginBox;
         box2.Left.ShouldBe(box1.Right, 0.5f);
-        box2.Top.ShouldBe(box1.Top, 0.5f, "无空格分隔的 inline-block 不应换行");
+        box2.Top.ShouldBe(box1.Top, 0.5f, "nowrap 容器内的 inline-block 不应换行");
     }
 
     [Fact]

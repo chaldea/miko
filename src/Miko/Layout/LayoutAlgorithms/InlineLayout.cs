@@ -74,7 +74,8 @@ public class InlineLayout
             textWrapWidth,
             null, null,
             style.TextAlign,
-            BlockLayout.ResolveLineHeight(style));
+            BlockLayout.ResolveLineHeight(style),
+            TextWrapper.ShouldWrap(style.WhiteSpace));
         float lineHeight = run.TotalHeight;
         float maxWidth = run.MaxLineWidth;
 
@@ -173,7 +174,8 @@ public class InlineLayout
                 contentWidth,
                 contentWidth, null,
                 style.TextAlign,
-                BlockLayout.ResolveLineHeight(style));
+                BlockLayout.ResolveLineHeight(style),
+                TextWrapper.ShouldWrap(style.WhiteSpace));
             lineHeight = rerun.TotalHeight;
         }
 

@@ -5,17 +5,19 @@ namespace Miko.DevTools.Logging;
 
 internal class DevToolsLoggerProvider : ILoggerProvider
 {
-    private readonly ConcurrentQueue<LogEntry> _buffer;
+    private readonly LogBuffer _buffer;
+    private readonly LogLevel _minimumLevel;
     private readonly ConcurrentDictionary<string, DevToolsLogger> _loggers = new();
 
-    public DevToolsLoggerProvider(ConcurrentQueue<LogEntry> buffer)
+    public DevToolsLoggerProvider(LogBuffer buffer, LogLevel minimumLevel)
     {
         _buffer = buffer;
+        _minimumLevel = minimumLevel;
     }
 
     public ILogger CreateLogger(string categoryName)
     {
-        return _loggers.GetOrAdd(categoryName, name => new DevToolsLogger(name, _buffer));
+        return _loggers.GetOrAdd(categoryName, name => new DevToolsLogger(name, _buffer, _minimumLevel));
     }
 
     public void Dispose()

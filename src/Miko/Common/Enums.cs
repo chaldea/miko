@@ -53,7 +53,19 @@ public enum JustifyContent
     Center,
     SpaceBetween,
     SpaceAround,
-    SpaceEvenly
+    SpaceEvenly,
+    /// <summary>
+    /// CSS <c>start</c>：绝对（书写方向相关）起边对齐。与 <see cref="FlexStart"/> 的区别只在
+    /// reverse 方向上——<see cref="FlexStart"/> 是 flex 相对的，<c>row-reverse</c> 时主轴起点变成
+    /// 右边；而 <c>start</c> 由书写方向决定，不受 <c>flex-direction</c> 影响，LTR 下始终是左边。
+    /// Ionic 的表单控件（checkbox / toggle / radio / select 的 <c>justify</c>）用的正是这组逻辑
+    /// 关键字，故 <c>label-placement="end"</c>（row-reverse）叠加 <c>justify="start"</c> 时整体
+    /// 仍应靠左（见 ISSUE-116 问题4）。
+    /// </summary>
+    Start,
+    /// <summary>CSS <c>end</c>：绝对（书写方向相关）终边对齐，LTR 下始终是右边。
+    /// 与 <see cref="Start"/> 同理，不随 reverse 翻转。</summary>
+    End
 }
 
 /// <summary>
@@ -169,7 +181,13 @@ public enum LengthUnit
     /// <summary>视窗高度单位：<c>1vh</c> = 视口高度的 1%。</summary>
     Vh,
     /// <summary>无单位数值。用于无单位 line-height：实际像素 = 该系数 × 字体大小。</summary>
-    Number
+    Number,
+    /// <summary>
+    /// CSS <c>fit-content</c>：尺寸收缩到内容。与 <see cref="Auto"/> 一样按内容测量，但它是一个
+    /// 「确定尺寸」——脱离文档流时不会被对边偏移（left+right / top+bottom）方程接管，
+    /// 因此剩余空间可分配给 auto 外边距（绝对居中收缩盒的惯用写法，见 ion-fab）。
+    /// </summary>
+    FitContent
 }
 
 /// <summary>

@@ -90,6 +90,8 @@ internal static class InlineFormattingContext
     /// <param name="atomicHeight">布局原子行内盒时传入的可用高度（百分比高度解析基准）。</param>
     /// <param name="textAlign">行级水平对齐（作用于每个行盒；宽度不确定时不生效）。</param>
     /// <param name="containerLineHeight">br 强制换行的最小行高（取行内流容器的行高）。</param>
+    /// <param name="allowWrap">容器是否允许软换行（<c>white-space</c> 非 nowrap/pre）。
+    /// false 时整段行内流排为单行（横排滚动列表），仅 br 仍强制换行。</param>
     public static RunResult Layout(
         IReadOnlyList<LayoutBox> children,
         int startIndex,
@@ -100,10 +102,14 @@ internal static class InlineFormattingContext
         float? atomicWidth,
         float? atomicHeight,
         TextAlign textAlign,
-        float containerLineHeight)
+        float containerLineHeight,
+        bool allowWrap = true)
     {
         bool definite = availableWidth.HasValue && availableWidth.Value > 0;
         float avail = definite ? availableWidth!.Value : float.MaxValue;
+        // 装箱上限：不允许软换行时不设限（整段排为单行），但 definite 仍保留——
+        // text-align 与百分比解析基准不受 white-space 影响（浏览器行为）。
+        float wrapLimit = allowWrap ? avail : float.MaxValue;
 
         // 1. 构建断行单元序列。
         var items = new List<InlineItem>();
@@ -123,7 +129,7 @@ internal static class InlineFormattingContext
 
             if (child.Type == LayoutType.Text)
             {
-                AddTextItems(child, items, definite ? avail : null, atomicHeight);
+                AddTextItems(child, items, allowWrap && definite ? avail : null, atomicHeight);
             }
             else
             {
@@ -162,7 +168,7 @@ internal static class InlineFormattingContext
                 {
                     continue;
                 }
-                if (line.Width + item.Width > avail)
+                if (line.Width + item.Width > wrapLimit)
                 {
                     StripTrailingSpaces(line);
                     lines.Add(line);
@@ -175,7 +181,7 @@ internal static class InlineFormattingContext
                 continue;
             }
 
-            if (line.Items.Count > 0 && line.Width + item.Width > avail && CanBreakBefore(line.Items[line.Items.Count - 1], item))
+            if (line.Items.Count > 0 && line.Width + item.Width > wrapLimit && CanBreakBefore(line.Items[line.Items.Count - 1], item))
             {
                 // 换行：行尾空白剥离（不占行宽、不产生可见字形）。
                 StripTrailingSpaces(line);
@@ -362,12 +368,21 @@ internal static class InlineFormattingContext
 
     /// <summary>
     /// 是否允许在 <paramref name="item"/> 之前断行（CSS 软换行机会）：
-    /// 仅在空白边界（前一单元是空格）或 CJK 边界（任一侧是 CJK 字符）允许断行。
-    /// 两个紧邻的原子盒（如横排滚动的 inline-block 列表）之间没有断行机会，
-    /// 超宽时整体溢出而不是换行——与浏览器一致。
+    /// - 空白边界（前一单元是空格）；
+    /// - CJK 边界（任一侧是 CJK 字符）；
+    /// - 原子盒边界（任一侧是原子行内盒）。原子盒（inline-block / inline-flex / 行内元素、
+    ///   替换元素）在 UAX#14 中按「contingent break」(CB) 处理，其前后都是断行机会
+    ///   （LB20: <c>÷ CB</c> / <c>CB ÷</c>），因此紧邻的 inline-block 之间即使没有空白
+    ///   文本节点也会换行——与浏览器一致（ISSUE-116）。断行机会只存在于原子盒的**边界**，
+    ///   盒**内部**不可断，故单个超宽原子盒仍整体溢出。
+    ///
+    /// 横排滚动列表（一行排开、水平滚动）应由容器的 <c>white-space: nowrap</c> 抑制换行，
+    /// 而不是依赖原子盒之间缺少断行机会——见 <paramref name="allowWrap"/>。
     /// </summary>
     private static bool CanBreakBefore(InlineItem previous, InlineItem item)
-        => previous.IsSpace || previous.IsCjk || item.IsCjk;
+        => previous.IsSpace
+        || previous.IsCjk || item.IsCjk
+        || previous.Kind == ItemKind.AtomicBox || item.Kind == ItemKind.AtomicBox;
 
     private static void StripTrailingSpaces(Line line)
     {

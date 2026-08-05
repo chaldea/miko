@@ -8,6 +8,9 @@ namespace Miko.DevTools.Panels;
 
 internal static class ConsolePanel
 {
+    /// <summary>单次构建最多渲染的日志行数（每行会展开成多个元素，需要限制 DOM 规模）。</summary>
+    private const int MaxRenderedEntries = 500;
+
     private static readonly List<LogEntry> _entries = new();
 
     public static DivElement Build(DevToolsBridge bridge, LogLevel filterLevel, bool visible, Action<LogLevel>? onFilterChange = null)
@@ -25,9 +28,17 @@ internal static class ConsolePanel
 
         var output = new DivElement { Class = "console-output" };
 
-        var filtered = _entries.Where(e => e.Level >= filterLevel).ToList();
+        // 只渲染最近 MaxRenderedEntries 条：从尾部反向扫描收集，避免先物化整份过滤列表
+        // 再丢弃绝大部分（历史可达数千条，而可见的只有几百条）。
+        var rendered = new List<LogEntry>(MaxRenderedEntries);
+        for (int i = _entries.Count - 1; i >= 0 && rendered.Count < MaxRenderedEntries; i--)
+        {
+            if (_entries[i].Level >= filterLevel)
+                rendered.Add(_entries[i]);
+        }
+        rendered.Reverse();
 
-        if (filtered.Count == 0)
+        if (rendered.Count == 0)
         {
             output.AddChild(new DivElement
             {
@@ -37,7 +48,7 @@ internal static class ConsolePanel
         }
         else
         {
-            foreach (var entry in filtered.TakeLast(500))
+            foreach (var entry in rendered)
             {
                 output.AddChild(BuildLogEntry(entry));
             }
@@ -49,12 +60,17 @@ internal static class ConsolePanel
 
     private static void DrainBuffer(DevToolsBridge bridge)
     {
-        while (bridge.LogBuffer.TryDequeue(out var entry))
+        var buffer = bridge.LogBuffer;
+        while (buffer.TryDequeue(out var entry))
         {
-            _entries.Add(entry);
-            if (_entries.Count > 10000)
-                _entries.RemoveAt(0);
+            if (entry != null) _entries.Add(entry);
         }
+
+        // 面板保留的历史不超过缓冲容量的若干倍，避免长会话下无界增长。
+        // RemoveRange 一次性裁剪，优于逐条 RemoveAt(0) 的 O(n²)。
+        int limit = buffer.Capacity * 4;
+        if (_entries.Count > limit)
+            _entries.RemoveRange(0, _entries.Count - limit);
     }
 
     private static DivElement BuildFilterBar(DevToolsBridge bridge, LogLevel currentLevel, Action<LogLevel> onFilterChange)

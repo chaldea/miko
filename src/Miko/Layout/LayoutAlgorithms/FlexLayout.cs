@@ -1293,6 +1293,15 @@ public class FlexLayout
     /// main-start 与 main-end 互换，因此 FlexStart↔FlexEnd（Normal 行为同 FlexStart，同样翻转）；
     /// Center / SpaceBetween / SpaceAround / SpaceEvenly 关于主轴中点对称，保持不变。
     /// </summary>
+    /// <summary>
+    /// reverse 方向下翻转 justify-content 的起/终语义。
+    /// <para>
+    /// 只有 flex 相对关键字（<see cref="JustifyContent.FlexStart"/> / <see cref="JustifyContent.FlexEnd"/>，
+    /// 以及表现同 flex-start 的 <see cref="JustifyContent.Normal"/>）会被翻转——它们的"起点"跟随主轴方向。
+    /// 绝对关键字 <see cref="JustifyContent.Start"/> / <see cref="JustifyContent.End"/> 由书写方向决定，
+    /// 不随 <c>flex-direction</c> 翻转，故原样返回（见 ISSUE-116 问题4）。
+    /// </para>
+    /// </summary>
     private static JustifyContent FlipJustifyForReverse(JustifyContent justify)
         => justify switch
         {
@@ -1309,8 +1318,11 @@ public class FlexLayout
         float spacing = 0, offset = 0;
         switch (justifyContent)
         {
-            // Normal（CSS 初始值）与 FlexStart 相同：不分配剩余空间，落入默认分支。
-            case Common.JustifyContent.FlexEnd: offset = containerSize - contentSize; break;
+            // Normal（CSS 初始值）、FlexStart 与绝对关键字 Start 相同：不分配剩余空间，落入默认分支。
+            // Start/End 与 FlexStart/FlexEnd 的差别只体现在 reverse 方向是否翻转（见
+            // FlipJustifyForReverse）；翻转后落到此处时，两者的偏移计算一致。
+            case Common.JustifyContent.FlexEnd:
+            case Common.JustifyContent.End: offset = containerSize - contentSize; break;
             case Common.JustifyContent.Center: offset = (containerSize - contentSize) / 2; break;
             case Common.JustifyContent.SpaceBetween:
                 if (totalItems > 1) spacing = (containerSize - contentSize) / (totalItems - 1);
