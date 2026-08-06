@@ -206,15 +206,18 @@ public sealed class MikoInteractionController
         Element root;
         try { root = BuildRoot(); }
         finally { SynchronizationContext.SetSynchronizationContext(prevCtx); }
-        if (navigation?.Transition != null)
+        if (navigation != null)
         {
-            // 附带页面转场效果的导航（ISSUE-108）：引擎保留旧页面树作为 leaving 图层，
-            // 与新页面共同绘制直到转场完成。
+            // 路由导航：把方向/路径（以及可选的转场效果）一并交给引擎。
+            // - 有转场效果时保留旧页面树作为 leaving 图层与新页面共同绘制（ISSUE-108）。
+            // - 无转场效果时仍需传入：引擎据方向与路径维护按路径的滚动快照，
+            //   使返回上一页时能恢复其滚动位置（ISSUE-118）。
             _engine.Initialize(root, _options.StyleSheets, canvas, width, height,
                 new NavigationTransitionInfo(navigation.Transition, navigation.Direction, navigation.FromPath, navigation.ToPath));
         }
         else
         {
+            // 热重载等非导航重建：不涉及历史栈，不触碰滚动快照。
             _engine.Initialize(root, _options.StyleSheets, canvas, width, height);
         }
         _logger.LogInformation("[HotReload] DOM rebuilt and initialized, next frame will render new content");

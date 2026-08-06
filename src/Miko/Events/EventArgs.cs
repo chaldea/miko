@@ -144,4 +144,24 @@ public class ScrollEventArgs : MikoEventArgs
     /// 当前滚动位置 Y
     /// </summary>
     public float ScrollTop { get; init; }
+
+    /// <summary>
+    /// 可滚动内容的总宽度（含内边距），对应 DOM 的 scrollWidth
+    /// </summary>
+    public float ScrollWidth { get; init; }
+
+    /// <summary>
+    /// 可滚动内容的总高度（含内边距），对应 DOM 的 scrollHeight
+    /// </summary>
+    public float ScrollHeight { get; init; }
+
+    /// <summary>
+    /// 滚动视口宽度（padding box），对应 DOM 的 clientWidth
+    /// </summary>
+    public float ClientWidth { get; init; }
+
+    /// <summary>
+    /// 滚动视口高度（padding box），对应 DOM 的 clientHeight
+    /// </summary>
+    public float ClientHeight { get; init; }
 }

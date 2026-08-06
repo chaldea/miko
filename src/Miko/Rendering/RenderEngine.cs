@@ -64,7 +64,7 @@ public class RenderEngine
         _pendingDropdowns.Clear();
         _currentScrollOffsetX = 0;
         _currentScrollOffsetY = 0;
-        RenderBox(layoutRoot);
+        RenderBox(layoutRoot, null, isStackingRoot: true);
         FlushDropdowns();
         OverlayCallback?.Invoke(_canvas!);
     }
@@ -91,7 +91,7 @@ public class RenderEngine
         if (offsetX != 0 || offsetY != 0)
             _painter.Translate(offsetX, offsetY);
 
-        RenderBox(layoutRoot);
+        RenderBox(layoutRoot, null, isStackingRoot: true);
         FlushDropdowns();
 
         if (hasOpacity) _painter.Restore();
@@ -120,7 +120,7 @@ public class RenderEngine
         {
             _painter.Save();
             _painter.ClipRect(region);
-            RenderBox(layoutRoot);
+            RenderBox(layoutRoot, null, isStackingRoot: true);
             _painter.Restore();
         }
 
@@ -136,13 +136,26 @@ public class RenderEngine
     }
 
     /// <summary>
-    /// 渲染盒子
+    /// 渲染盒子。
     /// </summary>
-    private void RenderBox(LayoutBox box)
+    /// <param name="box">要绘制的盒子。</param>
+    /// <param name="inheritedDeferred">
+    /// 由祖先层叠上下文提出、稍后统一按 z-index 绘制的后代集合；沿普通（不建立层叠上下文的）
+    /// 祖先向下传递，使这些后代在正常递归中被跳过。
+    /// </param>
+    /// <param name="isStackingRoot">
+    /// 本盒是否作为层叠上下文的根来收集并排序内部的定位后代。调用方在两种情况下传 true：
+    /// 绘制整棵树的根，或绘制一个被提出的定位后代（它自成一层）。
+    /// </param>
+    private void RenderBox(LayoutBox box, HashSet<LayoutBox>? inheritedDeferred = null, bool isStackingRoot = false)
     {
         if (_painter == null) return;
 
         if (!ShouldRender(box)) return;
+
+        // 建立层叠上下文的盒子自行收集内部后代，祖先的延迟集合到此为止。
+        if (!isStackingRoot && EstablishesStackingContext(box)) isStackingRoot = true;
+        if (isStackingRoot) inheritedDeferred = null;
 
         float opacity = box.ComputedStyle.Opacity;
         bool hasOpacity = opacity < 1f;
@@ -202,19 +215,40 @@ public class RenderEngine
             return;
         }
 
+        // 本盒是层叠上下文的根（或整棵树的根）时，把它内部所有「带 z-index 的定位后代」提出来，
+        // 在本层末尾按 z-index 统一绘制——这才是 CSS 的绘制顺序：z-index 跨越普通祖先比较，
+        // 只被建立层叠上下文的祖先关住（见 CollectZOrderedDescendants）。
+        List<LayoutBox>? zOrdered = null;
+        var deferred = inheritedDeferred;
+        if (isStackingRoot)
+        {
+            zOrdered = CollectZOrderedDescendants(box);
+            if (zOrdered != null) deferred = new HashSet<LayoutBox>(zOrdered);
+        }
+
         // 处理 overflow 裁剪和滚动
         bool hasOverflow = box.ComputedStyle.OverflowX != Overflow.Visible ||
                            box.ComputedStyle.OverflowY != Overflow.Visible;
 
         if (hasOverflow && box.Children.Count > 0)
         {
-            RenderChildrenWithOverflow(box);
+            RenderChildrenWithOverflow(box, deferred);
         }
         else
         {
-            foreach (var child in OrderedChildren(box))
+            foreach (var child in OrderedChildren(box, deferred))
             {
-                RenderBox(child);
+                RenderBox(child, deferred);
+            }
+        }
+
+        // 提取出的定位后代：按 z-index 升序绘制在本层内容之上（负 z-index 的 CSS 细分层级
+        // ——背景之下、正常流之上——尚未区分，负值仍绘制在本层内容之后，只是彼此有序）。
+        if (zOrdered != null)
+        {
+            foreach (var descendant in zOrdered)
+            {
+                RenderBox(descendant, null, isStackingRoot: true);
             }
         }
 
@@ -226,31 +260,91 @@ public class RenderEngine
     }
 
     /// <summary>
-    /// 返回按 z-index 稳定排序后的子元素渲染顺序。z-index 仅对定位元素（position 非 static）
-    /// 生效（与 CSS 一致）；相同 z-index 的元素保持文档顺序。这让带正 z-index 的定位元素
-    /// （如 ion-header 的阴影）渲染在普通流兄弟之上。
+    /// 某个盒子是否建立层叠上下文（CSS "stacking context"）。
+    /// <para>
+    /// 这里只实现与本引擎相关的两条触发条件：<c>position</c> 非 static 且显式声明了
+    /// <c>z-index</c>（非 auto）；以及 <c>opacity &lt; 1</c>（它同样建立层叠上下文，且本引擎
+    /// 会为其 SaveLayer，后代无论如何都被关在那一层里）。transform / filter / will-change 等
+    /// 其余触发条件尚未纳入。
+    /// </para>
     /// </summary>
-    private static IEnumerable<LayoutBox> OrderedChildren(LayoutBox box)
+    private static bool EstablishesStackingContext(LayoutBox box)
     {
-        var children = box.Children;
-        // 快速路径：没有任何子元素设置了 z-index 时，避免分配与排序。
-        bool anyZ = false;
-        foreach (var c in children)
+        var style = box.ComputedStyle;
+        // opacity < 1 与 transform 都建立层叠上下文，且本引擎都会为其 SaveLayer / Save+变换，
+        // 后代无论如何都被关在那一层里，提取出去绘制会丢掉这些效果。
+        if (style.Opacity < 1f) return true;
+        if (style.Transform.Functions.Count > 0) return true;
+        return style.Position != Common.Position.Static && style.HasZIndex;
+    }
+
+    /// <summary>
+    /// 该盒子是否作为「带 z-index 的定位后代」参与祖先层叠上下文的排序——即被
+    /// <see cref="CollectZOrderedDescendants"/> 提出来单独按 z-index 绘制。
+    /// </summary>
+    private static bool IsZOrderedPositioned(LayoutBox box)
+        => box.ComputedStyle.Position != Common.Position.Static && box.ComputedStyle.HasZIndex;
+
+    /// <summary>
+    /// 收集 <paramref name="root"/> 这个层叠上下文里所有「带 z-index 的定位后代」，按
+    /// z-index 稳定排序（同值保持文档序）后返回；没有则返回 null（快速路径，零分配）。
+    /// <para>
+    /// 关键在于「穿透」：CSS 中只有建立了层叠上下文的祖先才会把后代的 z-index 关进自己的层级，
+    /// 普通祖先（含 <c>position:relative</c> 但 <c>z-index:auto</c> 的盒子）是透明的，其后代的
+    /// z-index 直接与更外层的兄弟比较。修复前本引擎只对「兄弟」排序，于是
+    /// <c>ion-content</c>（relative、z-index:auto）里 <c>z-index:1000</c> 的 fab 永远只能和
+    /// content 内部的兄弟比，而 content 自己（视同 0）排在 <c>ion-header</c>（z-index:10）之下，
+    /// fab 越到 header 上的那一半就被 header 盖住了（issues/ion-fab.md 问题 3）。
+    /// </para>
+    /// <para>
+    /// 被提出的后代由 <see cref="RenderBox"/> 在其所属层叠上下文的末尾统一绘制；沿途祖先的
+    /// 裁剪 / 变换 / 透明度不会重复施加，因此本收集在遇到「会裁剪的祖先」时停止下探：那些后代
+    /// 必须留在原地随祖先的裁剪一起绘制，否则会漏出裁剪框（滚动容器里的定位子元素）。
+    /// </para>
+    /// </summary>
+    private static List<LayoutBox>? CollectZOrderedDescendants(LayoutBox root)
+    {
+        List<LayoutBox>? found = null;
+        Collect(root, ref found);
+        if (found == null || found.Count == 0) return null;
+
+        // 稳定排序：文档序由收集顺序（深度优先前序）天然给出，OrderBy 在 .NET 中是稳定的。
+        return found.OrderBy(b => b.ComputedStyle.ZIndex).ToList();
+
+        static void Collect(LayoutBox box, ref List<LayoutBox>? found)
         {
-            if (c.ComputedStyle.ZIndex != 0 && c.ComputedStyle.Position != Common.Position.Static)
+            foreach (var child in box.Children)
             {
-                anyZ = true;
-                break;
+                if (IsZOrderedPositioned(child))
+                {
+                    (found ??= new List<LayoutBox>()).Add(child);
+                    // 该后代自身作为一个整体被排序绘制，其子树在它自己的层里处理，不再下探。
+                    continue;
+                }
+
+                // 建立层叠上下文的后代把它自己的后代关在内部，不再穿透。
+                if (EstablishesStackingContext(child)) continue;
+
+                // 会裁剪的祖先：其后代必须留在原地绘制以承受裁剪，不提取。
+                if (Clips(child)) continue;
+
+                Collect(child, ref found);
             }
         }
-        if (!anyZ) return children;
 
-        // 稳定排序：仅定位元素参与 z-index 比较，其余视为 0。
-        return children
-            .Select((c, i) => (c, i))
-            .OrderBy(t => t.c.ComputedStyle.Position != Common.Position.Static ? t.c.ComputedStyle.ZIndex : 0)
-            .ThenBy(t => t.i)
-            .Select(t => t.c);
+        static bool Clips(LayoutBox box)
+            => box.ComputedStyle.OverflowX != Overflow.Visible
+            || box.ComputedStyle.OverflowY != Overflow.Visible;
+    }
+
+    /// <summary>
+    /// 返回正常递归时要绘制的子元素——即跳过那些已被 <paramref name="deferred"/> 提出、
+    /// 稍后按 z-index 统一绘制的后代。<paramref name="deferred"/> 为 null 时原样返回子列表。
+    /// </summary>
+    private static IEnumerable<LayoutBox> OrderedChildren(LayoutBox box, HashSet<LayoutBox>? deferred)
+    {
+        if (deferred == null) return box.Children;
+        return box.Children.Where(c => !deferred.Contains(c));
     }
 
     private void ApplyTransform(LayoutBox box)
@@ -327,7 +421,7 @@ public class RenderEngine
     /// <summary>
     /// 带溢出裁剪的子元素渲染
     /// </summary>
-    private void RenderChildrenWithOverflow(LayoutBox box)
+    private void RenderChildrenWithOverflow(LayoutBox box, HashSet<LayoutBox>? deferred = null)
     {
         if (_painter == null) return;
 
@@ -365,9 +459,11 @@ public class RenderEngine
         }
         _painter.Translate(-box.ScrollLeft, -box.ScrollTop);
 
-        foreach (var child in box.Children)
+        // 裁剪盒的后代不会被提取（CollectZOrderedDescendants 在会裁剪的祖先处停止下探），
+        // 故这里一般 deferred 为空；仍传递以保持与非裁剪分支同一语义。
+        foreach (var child in OrderedChildren(box, deferred))
         {
-            RenderBox(child);
+            RenderBox(child, deferred);
         }
 
         _painter.Restore();

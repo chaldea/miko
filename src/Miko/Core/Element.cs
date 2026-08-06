@@ -136,6 +136,16 @@ public abstract class Element
     // 布局后的盒子模型引用
     internal LayoutBox? LayoutBox { get; set; }
 
+    /// <summary>
+    /// 元素边框盒的宽度（对应 DOM 的 offsetWidth）。尚未布局时为 0。
+    /// </summary>
+    public float OffsetWidth => LayoutBox?.BoxModel.BorderBox.Width ?? 0f;
+
+    /// <summary>
+    /// 元素边框盒的高度（对应 DOM 的 offsetHeight）。尚未布局时为 0。
+    /// </summary>
+    public float OffsetHeight => LayoutBox?.BoxModel.BorderBox.Height ?? 0f;
+
     // 产生该元素的组件的清理回调（组件被替换/丢弃时调用，用于退订事件等）。
     // 以委托而非组件引用形式保存，避免 Core 反向依赖 Components 类型。
     internal Action? DisposeCallback { get; set; }
@@ -185,6 +195,34 @@ public abstract class Element
     internal IEnumerable<EventListener> GetEventListeners(string eventType)
     {
         return _eventListeners.Where(l => l.EventType == eventType);
+    }
+
+    /// <summary>
+    /// 是否订阅了该事件——便捷属性（OnClick/OnScroll…）或 AddEventListener 注册的监听器。
+    /// 供每帧路径（如滚动的向下派发）零分配地筛掉绝大多数无监听器的元素。
+    /// </summary>
+    internal bool HasListenerFor(string eventType)
+    {
+        for (int i = 0; i < _eventListeners.Count; i++)
+        {
+            if (_eventListeners[i].EventType == eventType) return true;
+        }
+
+        return eventType switch
+        {
+            EventTypes.Click => OnClick != null,
+            EventTypes.MouseEnter => OnMouseEnter != null,
+            EventTypes.MouseLeave => OnMouseLeave != null,
+            EventTypes.MouseDown => OnMouseDown != null,
+            EventTypes.MouseUp => OnMouseUp != null,
+            EventTypes.Focus => OnFocus != null,
+            EventTypes.Blur => OnBlur != null,
+            EventTypes.Change => OnChange != null,
+            EventTypes.Scroll => OnScroll != null,
+            EventTypes.KeyDown => OnKeyDown != null,
+            EventTypes.Input => OnInput != null,
+            _ => false,
+        };
     }
 
     // 元素状态
