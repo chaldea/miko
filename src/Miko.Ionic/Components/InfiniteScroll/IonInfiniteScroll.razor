@@ -1,11 +1,24 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@* Mirrors Ionic's <ion-infinite-scroll> (infinite-scroll.tsx): a zero-chrome host that watches the
+   enclosing content's scroll position and emits ionInfinite once the threshold is crossed.
+
+   Ionic resolves the scroll element in connectedCallback (findClosestIonContent + getScrollElement)
+   and registers a native scroll listener on it. Miko components cannot reach an ancestor at build
+   time, so the engine instead delivers the scroll event *down* into the scroll container's subtree
+   (MikoEngine.ScrollBy → EventDispatcher.DispatchToDescendants). The host's @onscroll therefore
+   fires with the scroll container's geometry — carried on ScrollEventArgs as ScrollHeight /
+   ClientHeight — which is exactly what the threshold formula needs. *@
 <div class="@ClassMapper.Class" style="@Style" @onscroll="HandleScroll">
     @ChildContent
 </div>
 
 @code {
-    /// <summary>Threshold distance from the edge. Supports pixels (<c>"100px"</c>) or percent (<c>"15%"</c>).</summary>
+    /// <summary>
+    /// Threshold distance from the edge of the content at which <see cref="OnInfinite"/> fires.
+    /// Either a percentage of the viewport height (<c>"15%"</c>, the default) or a pixel distance
+    /// (<c>"100px"</c>).
+    /// </summary>
     [Parameter] public string Threshold { get; set; } = "15%";
 
     /// <summary>When true, the infinite scroll is hidden and does not emit events.</summary>
@@ -17,14 +30,35 @@
     /// <summary>Declarative loading state. Use <see cref="Complete"/> to reset it from code.</summary>
     [Parameter] public bool Loading { get; set; }
 
-    /// <summary>Raised when the scroll event crosses the threshold. The event carries no payload, matching Ionic's ionInfinite.</summary>
-    [Parameter] public EventCallback OnInfinite { get; set; }
+    /// <summary>
+    /// Raised when the scroll position crosses the threshold. The handler must call
+    /// <see cref="IonInfiniteScrollCustomEvent.Complete"/> once its async work is done, otherwise
+    /// the infinite scroll stays in the loading state and never fires again.
+    /// </summary>
+    [Parameter] public EventCallback<IonInfiniteScrollCustomEvent> OnInfinite { get; set; }
+
+    // Parsed threshold: exactly one of the two is non-zero (infinite-scroll.tsx thresholdChanged()).
+    // _thrPc is a fraction of the viewport height; _thrPx is an absolute pixel distance.
+    private float _thrPc;
+    private float _thrPx;
 
     private bool _isLoading;
+
+    // didFire keeps ionInfinite from firing repeatedly while the user keeps scrolling inside the
+    // threshold band; it is only re-armed by Complete().
     private bool _didFire;
+
+    // The host element, captured in Build(). Needed for the threshold formula, which subtracts this
+    // component's own height (Ionic's `this.el.offsetHeight`).
+    private Element? _hostElement;
+
+    // Last measured host height, kept across the re-renders that momentarily clear the measured box.
+    private float _lastKnownHeight;
 
     protected override void OnParametersSet()
     {
+        ParseThreshold();
+
         if (Disabled)
         {
             _isLoading = false;
@@ -35,6 +69,99 @@
             _isLoading = true;
         }
 
+        BuildClass();
+    }
+
+    /// <summary>
+    /// Captures the host element so <see cref="HandleScroll"/> can read its laid-out height.
+    /// </summary>
+    public override Element Build()
+    {
+        _hostElement = base.Build();
+        return _hostElement;
+    }
+
+    /// <summary>
+    /// Call this once the work started by <see cref="OnInfinite"/> has finished. Clears the loading
+    /// state and re-arms the infinite scroll for the next threshold crossing.
+    /// </summary>
+    public Task Complete()
+    {
+        // infinite-scroll.tsx complete(): a no-op unless we are actually loading.
+        if (!_isLoading) return Task.CompletedTask;
+
+        _isLoading = false;
+        _didFire = false;
+        BuildClass();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleScroll(ScrollEventArgs args)
+    {
+        // canStart(): infinite-scroll.tsx
+        if (Disabled || _isLoading || _didFire) return;
+
+        // Ionic's `infiniteHeight = this.el.offsetHeight`. CurrentTarget is the element the engine
+        // is delivering to, i.e. the one in the live tree; _hostElement is the fallback for direct
+        // handler invocations in tests.
+        var host = args.CurrentTarget ?? _hostElement;
+        var infiniteHeight = host?.OffsetHeight ?? 0f;
+
+        // A StateHasChanged rebuild hands the replacement element a layout box that carries the
+        // computed style but not the measured box, so OffsetHeight reads 0 until the next full
+        // layout pass. Our own loading-state re-render does exactly that, which would otherwise
+        // leave us permanently unable to fire again. Fall back to the last measured height.
+        if (infiniteHeight > 0f) _lastKnownHeight = infiniteHeight;
+        else infiniteHeight = _lastKnownHeight;
+
+        // "if there is no height of this element then do nothing" — also covers the never-laid-out
+        // case, where every geometry read would be 0 and the formula would fire spuriously.
+        if (infiniteHeight <= 0f) return;
+
+        var threshold = _thrPc != 0f ? args.ClientHeight * _thrPc : _thrPx;
+
+        var distanceFromInfinite = IsTop
+            ? args.ScrollTop - infiniteHeight - threshold
+            : args.ScrollHeight - infiniteHeight - args.ScrollTop - threshold - args.ClientHeight;
+
+        if (distanceFromInfinite >= 0f) return;
+
+        _isLoading = true;
+        _didFire = true;
+        BuildClass();
+        // Show the loading state immediately — the handler's async work may take a while.
+        StateHasChanged();
+
+        await OnInfinite.InvokeAsync(new IonInfiniteScrollCustomEvent(this));
+    }
+
+    private bool IsTop => string.Equals(Position, "top", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// infinite-scroll.tsx <c>thresholdChanged()</c>: a percentage becomes a fraction of the
+    /// viewport height, anything else is read as pixels. The two are mutually exclusive.
+    /// </summary>
+    private void ParseThreshold()
+    {
+        _thrPc = 0f;
+        _thrPx = 0f;
+
+        var text = Threshold?.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+
+        if (text.EndsWith("%", StringComparison.Ordinal))
+        {
+            if (float.TryParse(text[..^1], out var pc)) _thrPc = pc / 100f;
+            return;
+        }
+
+        if (text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) text = text[..^2];
+        if (float.TryParse(text, out var px)) _thrPx = px;
+    }
+
+    private void BuildClass()
+    {
         ClassMapper
             .Clear()
             .Add(Class)
@@ -42,62 +169,6 @@
             .Add("ion-infinite-scroll")
             .If(!Disabled, "infinite-scroll-enabled")
             .If(_isLoading, "infinite-scroll-loading")
-            .If(string.Equals(Position, "top", StringComparison.OrdinalIgnoreCase), "infinite-scroll-top");
-    }
-
-    /// <summary>Marks the infinite scroll work as complete and allows the next threshold crossing to fire.</summary>
-    public Task Complete()
-    {
-        _isLoading = false;
-        _didFire = false;
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-
-    private async Task HandleScroll(ScrollEventArgs args)
-    {
-        if (Disabled || _isLoading || _didFire) return;
-        if (!CrossedThreshold(args)) return;
-
-        _isLoading = true;
-        _didFire = true;
-        await OnInfinite.InvokeAsync();
-    }
-
-    private bool CrossedThreshold(ScrollEventArgs args)
-    {
-        if (!TryParseThreshold(Threshold, out var amount, out var isPercent))
-            return true;
-
-        var delta = string.Equals(Position, "top", StringComparison.OrdinalIgnoreCase)
-            ? -args.DeltaY
-            : args.DeltaY;
-
-        if (delta <= 0) return false;
-
-        // Miko's scroll event currently exposes deltas and scrollTop, not viewport/content height.
-        // Pixel thresholds are compared to the delta; percent thresholds are treated as "any
-        // forward scroll" because the denominator is not available at this layer.
-        return isPercent || delta >= amount;
-    }
-
-    private static bool TryParseThreshold(string? threshold, out float amount, out bool isPercent)
-    {
-        amount = 0;
-        isPercent = false;
-
-        if (string.IsNullOrWhiteSpace(threshold)) return false;
-
-        var text = threshold.Trim();
-        if (text.EndsWith("%", StringComparison.Ordinal))
-        {
-            isPercent = true;
-            return float.TryParse(text[..^1], out amount);
-        }
-
-        if (text.EndsWith("px", StringComparison.OrdinalIgnoreCase))
-            text = text[..^2];
-
-        return float.TryParse(text, out amount);
+            .If(IsTop, "infinite-scroll-top");
     }
 }

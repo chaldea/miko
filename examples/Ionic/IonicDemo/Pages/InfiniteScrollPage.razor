@@ -25,7 +25,7 @@
                         </IonAvatar>
                     </Start>
                     <ChildContent>
-                        <IonLabel>
+                        <IonLabel Class="sc-ion-label-md-s">
                             <h2>@user.Name</h2>
                             <p>Created @user.Created</p>
                         </IonLabel>
@@ -34,7 +34,7 @@
             }
         </IonList>
 
-        <IonInfiniteScroll @ref="_infiniteScroll" Threshold="100px" OnInfinite="@HandleInfinite">
+        <IonInfiniteScroll Threshold="100px" OnInfinite="@HandleInfinite">
             <IonInfiniteScrollContent LoadingSpinner="bubbles" LoadingText="Loading more data...">
             </IonInfiniteScrollContent>
         </IonInfiniteScroll>
@@ -42,8 +42,6 @@
 </IonPage>
 @code {
     private record User(string Name, string Created);
-
-    private IonInfiniteScroll? _infiniteScroll;
 
     private readonly Random _random = new(42);
 
@@ -93,8 +91,9 @@
 
     private readonly List<User> _items = Users.Take(15).ToList();
 
-    private async Task HandleInfinite()
+    private async Task HandleInfinite(IonInfiniteScrollCustomEvent e)
     {
+        // Stand-in for a network request.
         await Task.Delay(500);
 
         for (var i = 0; i < 5; i++)
@@ -102,11 +101,10 @@
             _items.Add(Users[_random.Next(Users.Length)]);
         }
 
-        if (_infiniteScroll is not null)
-        {
-            await _infiniteScroll.Complete();
-        }
-
+        // Render the new rows first, then clear the loading state — completing before the list has
+        // grown would re-arm the infinite scroll while the content is still short.
         StateHasChanged();
+
+        await e.Complete();
     }
 }

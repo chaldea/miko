@@ -47,8 +47,13 @@ internal static class ContentStyles
                 PaddingRight = Length.Px(0),
                 PaddingBottom = Length.Px(0),
                 PaddingLeft = Length.Px(0),
-                // The host clips; .inner-scroll owns the scrolling (see the scroll-y/x rules).
-                OverflowY = Overflow.Auto,
+                // NOTE: no overflow on the host. content.scss's :host declares none — all clipping
+                // and scrolling belongs to .inner-scroll (`overflow: hidden`, plus the scroll-y/x
+                // rules below). Giving the host `overflow-y: auto` made it a clipping box, which
+                // cut off anything the fixed slot placed outside the content area: an edge IonFab
+                // is meant to hang half over the header, and the half above y=0 was clipped away
+                // (issues/ion-fab.md problem 3). Fixed-slot content is a sibling of .inner-scroll
+                // precisely so it escapes the scroller's clip.
             },
 
             // #background-content — the background layer (content.scss `#background-content`):

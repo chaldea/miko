@@ -416,6 +416,12 @@ public class IonicTheme
     /// same curve.
     /// </summary>
     public float FabTransitionDuration { get; set; } = 0.30f;
+    /// <summary>
+    /// Strength of the hover wash composited over a fab button's fill
+    /// (<c>--background-hover-opacity</c>). md washes the fill with the label color at 8%; ios
+    /// swaps to a lighter tint outright, which this port approximates with a stronger white wash.
+    /// </summary>
+    public float FabHoverOpacity { get; set; } = 0.08f;
 
     // Input (input.scss / input.md.scss / input.ios.scss + their *.vars.scss). A full-width text
     // field that lives inside an ion-item; the label sits beside/above the native input, an
@@ -1079,6 +1085,7 @@ public class IonicTheme
         t.FabListButtonBackground = t.Light;                      // ion-color(light, base)
         t.FabListButtonColor = Color.FromHex("000000");           // ion-color(light, contrast)
         t.FabListButtonIconSize = 18f;                            // $fab-md-list-button-icon-font-size
+        t.FabHoverOpacity = 0.08f;                                // --background-hover-opacity (md)
 
         // Input (input.md.scss / input.md.vars.scss): 16px text; 44px min-height; 1px item bottom
         // border rgba(0,0,0,.07); 2px primary highlight bar; radius 4 (used by fills/round). Text and
@@ -1560,6 +1567,10 @@ public class IonicTheme
         t.FabListButtonBackground = t.Light;                      // ion-color(light, base)
         t.FabListButtonColor = Color.FromHex("000000");           // ion-color(light, contrast)
         t.FabListButtonIconSize = 18f;                            // $fab-ios-list-button-icon-font-size
+        // ios sets --background-hover-opacity: 1 with --background-hover: ion-color(primary, tint),
+        // i.e. a full swap to a lighter tint rather than a wash. Without tint/shade in the palette
+        // this port approximates it with a stronger white wash over the fill.
+        t.FabHoverOpacity = 0.16f;
 
         // Input (input.ios.scss / input.ios.vars.scss): 17px text; 44px min-height; hairline item
         // bottom border rgba(0,0,0,.2); NO highlight bar (ios --highlight-height: 0); radius 4.

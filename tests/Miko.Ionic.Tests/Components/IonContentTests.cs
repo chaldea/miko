@@ -224,15 +224,27 @@ public class IonContentTests : IonicComponentTestBase
         // A self-positioning fixed element (IonFab pins bottom/end) must shrink-wrap and sit in its
         // own corner. If the fixed-slot rule also set top/left, the element would get all four
         // insets and stretch across the whole content instead.
-        var cut = RenderContent(p => p.Add(nameof(IonContent.Fixed), (RenderFragment)(b =>
+        //
+        // Rendered inside an IonPage, as in a real app: ion-content's height comes from `flex: 1`
+        // against the page column. On its own it is a height:auto block and collapses to its
+        // content (the scroll container is absolute and contributes nothing), leaving no bottom
+        // edge for the fab to pin against.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonPage>(page => page.Add(nameof(IonPage.ChildContent), (RenderFragment)(pb =>
         {
-            b.OpenComponent<IonFab>(0);
-            b.AddComponentParameter(1, nameof(IonFab.Vertical), "bottom");
-            b.AddComponentParameter(2, nameof(IonFab.Horizontal), "end");
-            b.CloseComponent();
-        })), withStyles: true);
+            pb.OpenComponent<IonContent>(0);
+            pb.AddComponentParameter(1, nameof(IonContent.ChildContent), Text("body"));
+            pb.AddComponentParameter(2, nameof(IonContent.Fixed), (RenderFragment)(b =>
+            {
+                b.OpenComponent<IonFab>(0);
+                b.AddComponentParameter(1, nameof(IonFab.Vertical), "bottom");
+                b.AddComponentParameter(2, nameof(IonFab.Horizontal), "end");
+                b.CloseComponent();
+            }));
+            pb.CloseComponent();
+        })));
 
-        var hostBox = cut.GetBoxModel(cut.Root).ShouldNotBeNull();
+        var hostBox = cut.GetBoxModel(cut.FindByClass("ion-content").ShouldHaveSingleItem()).ShouldNotBeNull();
         var fabBox = cut.GetBoxModel(cut.FindByClass("ion-fab").ShouldHaveSingleItem()).ShouldNotBeNull();
         fabBox.BorderBox.Width.ShouldBeLessThan(hostBox.Content.Width / 2);
         fabBox.BorderBox.X.ShouldBeGreaterThan(hostBox.Content.Width / 2);

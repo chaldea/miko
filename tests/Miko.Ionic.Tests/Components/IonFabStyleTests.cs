@@ -198,4 +198,92 @@ public class IonFabStyleTests : IonicComponentTestBase
             transition.TimingFunction.ShouldBe(TimingFunction.EaseInOut);
         }
     }
+
+    // ---- hover (issues/ion-fab.md problem 5) ----
+    // Ionic paints hover as a `.button-native::after` overlay (--background-hover at
+    // --background-hover-opacity). Miko has no such layer, so the wash is composited onto the fill
+    // and exposed as a plain `:hover` rule — the same approach ButtonStyles and ChipStyles take.
+
+    [Fact]
+    public void MainButton_ChangesItsFill_OnHover()
+    {
+        var cut = RenderFab(horizontal: "end", vertical: "top");
+        var before = cut.GetComputedStyle(NativeOf(MainButton(cut)))!.BackgroundColor;
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(NativeOf(MainButton(hovered)))!.BackgroundColor;
+
+        after.ShouldNotBe(before);
+        after.A.ShouldBe((byte)255); // an opaque composite, not a translucent wash
+    }
+
+    [Fact]
+    public void ColoredButton_HoversFromItsOwnPaletteFill()
+    {
+        // Ionic's colored rule washes with that entry's contrast, so the result must differ from
+        // both the colored base and the default (primary) hover.
+        var cut = Context.Render<IonFab>(p => p.Add(nameof(IonFab.ChildContent), (RenderFragment)(fab =>
+        {
+            fab.OpenComponent<IonFabButton>(0);
+            fab.AddComponentParameter(1, nameof(IonFabButton.Color), "danger");
+            fab.CloseComponent();
+        })));
+        var before = cut.GetComputedStyle(NativeOf(MainButton(cut)))!.BackgroundColor;
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(NativeOf(MainButton(hovered)))!.BackgroundColor;
+
+        after.ShouldNotBe(before);
+        after.A.ShouldBe((byte)255);
+    }
+
+    [Fact]
+    public void ListButton_ChangesItsFill_OnHover()
+    {
+        var cut = RenderFab(horizontal: "end", vertical: "bottom", activated: true);
+        var before = cut.GetComputedStyle(NativeOf(ListButton(cut)))!.BackgroundColor;
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(NativeOf(ListButton(hovered)))!.BackgroundColor;
+
+        after.ShouldNotBe(before);
+        after.A.ShouldBe((byte)255);
+    }
+
+    [Fact]
+    public void DisabledButton_KeepsItsFill_OnHover()
+    {
+        var cut = Context.Render<IonFab>(p => p.Add(nameof(IonFab.ChildContent), (RenderFragment)(fab =>
+        {
+            fab.OpenComponent<IonFabButton>(0);
+            fab.AddComponentParameter(1, nameof(IonFabButton.Disabled), true);
+            fab.CloseComponent();
+        })));
+        var before = cut.GetComputedStyle(NativeOf(MainButton(cut)))!.BackgroundColor;
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(NativeOf(MainButton(hovered)))!.BackgroundColor;
+
+        after.ShouldBe(before);
+    }
+
+    [Fact]
+    public void NativeSurface_ShowsAPointerCursor()
+    {
+        var cut = RenderFab(horizontal: "end", vertical: "top");
+
+        cut.GetComputedStyle(NativeOf(MainButton(cut)))!.Cursor.ShouldBe(Cursor.Pointer);
+    }
+
+    private static Element NativeOf(Element button) => button.FindByClass("button-native").Single();
+
+    /// <summary>Re-runs style resolution with <see cref="Miko.Core.ElementState.Hover"/> set on the
+    /// host — in the live engine the hover state propagates up the hit chain, so hovering the
+    /// native surface flags the fab button host too.</summary>
+    private ComponentUnderTest Hover(Element root)
+    {
+        foreach (var button in root.FindByClass("ion-fab-button"))
+            button.SetState(Miko.Core.ElementState.Hover);
+        return Context.RenderElement(root);
+    }
 }

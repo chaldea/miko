@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
     <ProjectReference Include="..\..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
+    <ProjectReference Include="..\..\..\src\Miko.McpServer\Miko.McpServer.csproj" />
     <ProjectReference Include="..\..\..\src\Miko.Simulator\Miko.Simulator.csproj" />
     <ProjectReference Include="..\..\..\src\Miko.Windowing\Miko.Windowing.csproj" />
     <ProjectReference Include="..\..\..\src\Miko\Miko.csproj" />

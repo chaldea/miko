@@ -1,3 +1,4 @@
+using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
@@ -35,6 +36,7 @@ public class IonFabLayoutTests : IDisposable
     private const float FabSize = 56;       // $fab-size
     private const float FabSmallSize = 40;  // $fab-small-size
     private const float ContentMargin = 10; // $fab-content-margin
+    private const float HeaderHeight = 56;  // the md toolbar band ($toolbar-md-height)
 
     private readonly SKBitmap _bitmap = new((int)W, (int)H);
     private readonly SKCanvas _canvas;
@@ -212,6 +214,112 @@ public class IonFabLayoutTests : IDisposable
             .ShouldBeFalse("a closed list is display:none");
     }
 
+    // ---- painted above the header (issues/ion-fab.md problem 3) ----
+
+    [Fact]
+    public void EdgeFab_IsPaintedOverTheHeader()
+    {
+        // The half of an edge fab that hangs above the content must be visible ON the header, not
+        // hidden behind it. Two separate defects buried it: ion-content carried an `overflow-y:auto`
+        // that content.scss never declares (so the host clipped everything above its own top edge),
+        // and paint order only ever sorted siblings (so the fab's z-index:1000 could not out-rank
+        // its uncle, the header's z-index:10).
+        var app = BuildApp(typeof(HeaderedFabPage));
+        app.Engine.Render(_canvas);
+
+        float cx = W - ContentMargin - FabSize / 2f;
+        // The header is 56px tall (the toolbar band); the fab centre line is on the content's top
+        // edge, so a few px above it is over the header and still inside the fab.
+        var overHeader = _bitmap.GetPixel((int)cx, (int)(HeaderHeight - 6));
+        var onTheFabBelow = _bitmap.GetPixel((int)cx, (int)(HeaderHeight + 6));
+
+        // The fab is `danger` (a red fill); the toolbar behind it is not.
+        overHeader.ShouldBe(onTheFabBelow, "the fab paints continuously across the header line");
+    }
+
+    [Fact]
+    public void EdgeFab_IsHittableOverTheHeader()
+    {
+        // Clipping also removed the upper half from hit testing, so the visible-but-dead area would
+        // have been a second bug in its own right.
+        var app = BuildApp(typeof(HeaderedFabPage));
+
+        float cx = W - ContentMargin - FabSize / 2f;
+        HitsClass(app, cx, HeaderHeight - 6, "ion-fab-button")
+            .ShouldBeTrue("the half over the header is still the fab");
+    }
+
+    // ---- list items stay inside the list (issues/ion-fab.md problem 4) ----
+
+    [Theory]
+    [InlineData("start")]
+    [InlineData("top")]
+    [InlineData("end")]
+    [InlineData("bottom")]
+    public void OpenedList_KeepsItsButtonsWithinItsOwnBox(string side)
+    {
+        // side="start" is row-reverse and side="top" is column-reverse; both mirror flex-start into
+        // flex-end, and against the shrink-to-fit list box that used to compute a negative offset
+        // that threw every button outside the list.
+        var app = BuildApp(typeof(BottomFabPage));
+        var root = app.Engine.GetRoot()!;
+
+        var list = root.FindByClass("ion-fab-list")
+            .Single(l => l.HasClass($"fab-list-side-{side}"));
+        var listBox = GetContentRect(list);
+        var buttons = list.FindByClass("fab-button-in-list");
+        buttons.Count.ShouldBe(3);
+
+        foreach (var button in buttons)
+        {
+            var b = GetContentRect(button);
+            b.Left.ShouldBeGreaterThanOrEqualTo(listBox.Left - 0.5f);
+            b.Right.ShouldBeLessThanOrEqualTo(listBox.Right + 0.5f);
+            b.Top.ShouldBeGreaterThanOrEqualTo(listBox.Top - 0.5f);
+            b.Bottom.ShouldBeLessThanOrEqualTo(listBox.Bottom + 0.5f);
+        }
+    }
+
+    [Fact]
+    public void StartSideList_PutsTheFirstButtonNearestTheMainButton()
+    {
+        // row-reverse must run right-to-left: the first slotted button ends up closest to the fab.
+        var app = BuildApp(typeof(BottomFabPage));
+        var list = app.Engine.GetRoot()!.FindByClass("ion-fab-list")
+            .Single(l => l.HasClass("fab-list-side-start"));
+        var buttons = list.FindByClass("fab-button-in-list");
+
+        GetContentRect(buttons[0]).Left
+            .ShouldBeGreaterThan(GetContentRect(buttons[2]).Left);
+    }
+
+    [Fact]
+    public void TopSideList_PutsTheFirstButtonNearestTheMainButton()
+    {
+        // column-reverse must run bottom-to-top for a fab pinned to the bottom.
+        var app = BuildApp(typeof(BottomFabPage));
+        var list = app.Engine.GetRoot()!.FindByClass("ion-fab-list")
+            .Single(l => l.HasClass("fab-list-side-top"));
+        var buttons = list.FindByClass("fab-button-in-list");
+
+        GetContentRect(buttons[0]).Top
+            .ShouldBeGreaterThan(GetContentRect(buttons[2]).Top);
+    }
+
+    /// <summary>
+    /// The painted rect of an element. <c>Element.LayoutBox</c> is internal to Miko, so this walks
+    /// the public hit test instead: scan the element's own row/column for the extremes at which the
+    /// hit chain still contains it.
+    /// </summary>
+    private RectF GetContentRect(Element element)
+    {
+        var box = element.GetType().GetProperty("LayoutBox",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public
+            | System.Reflection.BindingFlags.NonPublic)!.GetValue(element)!;
+        var model = box.GetType().GetProperty("BoxModel")!.GetValue(box)!;
+        return (RectF)model.GetType().GetProperty("Content")!.GetValue(model)!;
+    }
+
     /// <summary>Taps a point, then renders a frame so the subtree the click rebuilt is laid out
     /// before the next probe (this is what the platform host's render loop does each frame).</summary>
     private void Click(MikoAppContext app, float x, float y)
@@ -236,6 +344,93 @@ public class IonFabLayoutTests : IDisposable
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
             => FabPageBuilder.Build(builder, edge: false, includeCentred: false);
+    }
+
+    /// <summary>An edge fab under a real header — the arrangement from problem 3, where the half
+    /// that hangs over the header used to be clipped and painted under it.</summary>
+    private sealed class HeaderedFabPage : ComponentBase
+    {
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<IonPage>(0);
+            builder.AddComponentParameter(1, nameof(IonPage.ChildContent), (RenderFragment)(page =>
+            {
+                page.OpenComponent<IonHeader>(0);
+                page.AddComponentParameter(1, nameof(IonHeader.ChildContent), (RenderFragment)(h =>
+                {
+                    h.OpenComponent<IonToolbar>(0);
+                    h.CloseComponent();
+                }));
+                page.CloseComponent();
+
+                page.OpenComponent<IonContent>(10);
+                page.AddComponentParameter(11, nameof(IonContent.Fullscreen), true);
+                page.AddComponentParameter(12, nameof(IonContent.Fixed), (RenderFragment)(slot =>
+                {
+                    slot.OpenComponent<IonFab>(0);
+                    slot.AddComponentParameter(1, nameof(IonFab.Horizontal), "end");
+                    slot.AddComponentParameter(2, nameof(IonFab.Vertical), "top");
+                    slot.AddComponentParameter(3, nameof(IonFab.Edge), true);
+                    slot.AddComponentParameter(4, nameof(IonFab.ChildContent), (RenderFragment)(fab =>
+                    {
+                        fab.OpenComponent<IonFabButton>(0);
+                        fab.AddComponentParameter(1, nameof(IonFabButton.Color), "danger");
+                        fab.CloseComponent();
+                    }));
+                    slot.CloseComponent();
+                }));
+                page.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+    }
+
+    /// <summary>Two bottom-pinned fabs with their lists already open — the pair from problem 4,
+    /// covering row-reverse (side="start") and column-reverse (side="top").</summary>
+    private sealed class BottomFabPage : ComponentBase
+    {
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<IonPage>(0);
+            builder.AddComponentParameter(1, nameof(IonPage.ChildContent), (RenderFragment)(page =>
+            {
+                page.OpenComponent<IonContent>(0);
+                page.AddComponentParameter(1, nameof(IonContent.Fixed), (RenderFragment)(slot =>
+                {
+                    AddOpenFab(slot, 0, "end", "bottom", "start");
+                    AddOpenFab(slot, 100, "start", "bottom", "top");
+                    AddOpenFab(slot, 200, "start", "top", "end");
+                    AddOpenFab(slot, 300, "end", "top", "bottom");
+                }));
+                page.CloseComponent();
+            }));
+            builder.CloseComponent();
+        }
+
+        private static void AddOpenFab(RenderTreeBuilder b, int seq, string horizontal, string vertical, string side)
+        {
+            b.OpenComponent<IonFab>(seq);
+            b.AddComponentParameter(seq + 1, nameof(IonFab.Horizontal), horizontal);
+            b.AddComponentParameter(seq + 2, nameof(IonFab.Vertical), vertical);
+            b.AddComponentParameter(seq + 3, nameof(IonFab.Activated), true);
+            b.AddComponentParameter(seq + 4, nameof(IonFab.ChildContent), (RenderFragment)(fab =>
+            {
+                fab.OpenComponent<IonFabButton>(0);
+                fab.CloseComponent();
+                fab.OpenComponent<IonFabList>(10);
+                fab.AddComponentParameter(11, nameof(IonFabList.Side), side);
+                fab.AddComponentParameter(12, nameof(IonFabList.ChildContent), (RenderFragment)(l =>
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        l.OpenComponent<IonFabButton>(i * 2);
+                        l.CloseComponent();
+                    }
+                }));
+                fab.CloseComponent();
+            }));
+            b.CloseComponent();
+        }
     }
 
     private static class FabPageBuilder

@@ -377,17 +377,45 @@ internal static class FabStyles
             MarginRight = Length.Px(5),
         };
 
+        // --- Hover ---------------------------------------------------------------------------
+        // Ionic paints hover as an overlay on `.button-native::after` (--background-hover at
+        // --background-hover-opacity), behind an `@media (any-hover: hover)` guard. Miko has no
+        // ::after opacity layer and no pointer-capability media query (touch devices simply never
+        // hover), so — exactly as ButtonStyles does — the wash is composited onto the resolved fill
+        // and exposed as a plain `:hover` rule.
+        //
+        // md's overlay is `currentColor`, i.e. the button's own label color, at 8%: a white-labelled
+        // primary fab lightens, a dark-labelled light fab darkens. The rules anchor on the host
+        // `:hover` (hover propagates up the hit chain, so hovering the native surface flags the host)
+        // and target `.button-native`, out-specifying the equal-structure fill rules above.
+        css[$".ion-fab-button.{mode}:hover .button-native"] = new()
+        {
+            BackgroundColor = Composite(t.FabBackground, t.FabColor, t.FabHoverOpacity),
+        };
+        // A button inside a fab-list hovers toward `light tint` (both modes) — the same wash with
+        // that surface's own dark label.
+        css[$".ion-fab-button.{mode}.fab-button-in-list:hover .button-native"] = new()
+        {
+            BackgroundColor = Composite(t.FabListButtonBackground, t.FabListButtonColor, t.FabHoverOpacity),
+        };
+        // Disabled buttons never show a hover response (they are pointer-events:none, but a rule
+        // matching on :hover would still win if the state were ever set by other means).
+        css[$".ion-fab-button.{mode}.fab-button-disabled:hover .button-native"] = new()
+        {
+            BackgroundColor = t.FabBackground,
+        };
+
         // --- Named color fills (Ionic --ion-color-* palette) -------------------------------------
         // A fab button with a color fills with that base and uses its contrast label.
-        AddColorFill(css, mode, "primary", t.Primary, Color.FromHex("ffffff"));
-        AddColorFill(css, mode, "secondary", t.Secondary, Color.FromHex("ffffff"));
-        AddColorFill(css, mode, "tertiary", t.Tertiary, Color.FromHex("ffffff"));
-        AddColorFill(css, mode, "success", t.Success, Color.FromHex("000000"));
-        AddColorFill(css, mode, "warning", t.Warning, Color.FromHex("000000"));
-        AddColorFill(css, mode, "danger", t.Danger, Color.FromHex("ffffff"));
-        AddColorFill(css, mode, "light", t.Light, Color.FromHex("000000"));
-        AddColorFill(css, mode, "medium", t.Medium, Color.FromHex("ffffff"));
-        AddColorFill(css, mode, "dark", t.Dark, Color.FromHex("ffffff"));
+        AddColorFill(css, mode, "primary", t.Primary, Color.FromHex("ffffff"), t.FabHoverOpacity);
+        AddColorFill(css, mode, "secondary", t.Secondary, Color.FromHex("ffffff"), t.FabHoverOpacity);
+        AddColorFill(css, mode, "tertiary", t.Tertiary, Color.FromHex("ffffff"), t.FabHoverOpacity);
+        AddColorFill(css, mode, "success", t.Success, Color.FromHex("000000"), t.FabHoverOpacity);
+        AddColorFill(css, mode, "warning", t.Warning, Color.FromHex("000000"), t.FabHoverOpacity);
+        AddColorFill(css, mode, "danger", t.Danger, Color.FromHex("ffffff"), t.FabHoverOpacity);
+        AddColorFill(css, mode, "light", t.Light, Color.FromHex("000000"), t.FabHoverOpacity);
+        AddColorFill(css, mode, "medium", t.Medium, Color.FromHex("ffffff"), t.FabHoverOpacity);
+        AddColorFill(css, mode, "dark", t.Dark, Color.FromHex("ffffff"), t.FabHoverOpacity);
 
         return css;
     }
@@ -396,13 +424,35 @@ internal static class FabStyles
     // Length addition combines percent + px into a calc-style length.
     private static Length Calc(Length percent, Length px) => percent + px;
 
-    // Base fill + contrast label on the native surface for a named palette color.
-    private static void AddColorFill(CssObject css, string mode, string name, Color baseColor, Color contrast)
+    // Base fill + contrast label on the native surface for a named palette color, plus the hover
+    // wash for that fill. Ionic's md rule for a colored fab is
+    // `:host(.ion-color:hover) .button-native::after { background: current-color(contrast) }` —
+    // i.e. the same currentColor overlay, resolved against this palette entry's contrast.
+    private static void AddColorFill(CssObject css, string mode, string name, Color baseColor, Color contrast, float hoverOpacity)
     {
         css[$".ion-fab-button.{mode}.ion-color-{name} .button-native"] = new()
         {
             BackgroundColor = baseColor,
             Color = contrast,
         };
+        // Must out-specify the plain `.ion-fab-button.{mode}:hover .button-native` rule above, which
+        // it does on class count (host carries both the mode and the ion-color-* class).
+        css[$".ion-fab-button.{mode}.ion-color-{name}:hover .button-native"] = new()
+        {
+            BackgroundColor = Composite(baseColor, contrast, hoverOpacity),
+        };
+    }
+
+    /// <summary>
+    /// Composites <paramref name="overlay"/> at <paramref name="overlayOpacity"/> over the opaque
+    /// <paramref name="baseColor"/> (source-over), yielding an opaque result. Mirrors Ionic's
+    /// <c>.button-native::after</c> hover overlay, which Miko cannot express as a separate layer
+    /// (same approach as <see cref="ButtonStyles"/>).
+    /// </summary>
+    private static Color Composite(Color baseColor, Color overlay, float overlayOpacity)
+    {
+        float a = Math.Clamp(overlayOpacity, 0f, 1f);
+        byte Blend(byte b, byte o) => (byte)Math.Round(b * (1 - a) + o * a);
+        return new Color(Blend(baseColor.R, overlay.R), Blend(baseColor.G, overlay.G), Blend(baseColor.B, overlay.B));
     }
 }
