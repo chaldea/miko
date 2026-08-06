@@ -466,7 +466,28 @@ public partial class ComputedStyle : Style
     public new int GridRowEnd { get; set; }
 
     public new float Opacity { get; set; } = 1.0f;
-    public new int ZIndex { get; set; } = 0;
+
+    private int _zIndex;
+
+    /// <summary>
+    /// 解析后的 <c>z-index</c>。未声明时为 0，此时 <see cref="HasZIndex"/> 为 false
+    /// ——CSS 的 <c>z-index: auto</c> 与 <c>z-index: 0</c> 绘制层级相同，但只有后者
+    /// （在定位元素上）建立层叠上下文，二者必须区分（见 <see cref="HasZIndex"/>）。
+    /// </summary>
+    public new int ZIndex
+    {
+        get => _zIndex;
+        set { _zIndex = value; HasZIndex = true; }
+    }
+
+    /// <summary>
+    /// 是否显式声明了 <c>z-index</c>（即非 CSS 的 <c>auto</c>）。
+    /// 定位元素声明了 z-index 才建立层叠上下文，把后代的 z-index 关进自身层级；
+    /// <c>z-index: auto</c> 的定位元素不建立，其后代的 z-index 参与祖先层叠上下文的排序
+    /// ——`ion-content`（position:relative、无 z-index）正是如此，其中的 fab 才能盖过
+    /// 兄弟 `ion-header`（issues/ion-fab.md 问题 3）。
+    /// </summary>
+    public bool HasZIndex { get; private set; }
 
     public new Overflow OverflowX { get; set; } = Overflow.Visible;
     public new Overflow OverflowY { get; set; } = Overflow.Visible;

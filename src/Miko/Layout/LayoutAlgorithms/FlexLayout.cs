@@ -1265,12 +1265,26 @@ public class FlexLayout
         // 天然 no-op）；grow 被 min/max 夹取后仍有剩余空间时也需应用（CSS Flexbox §9.7 末尾：
         // 剩余空间按 justify-content 分布，见 ISSUE-102）。
         // gap 已计入 totalMainUsed，使对齐基于含间距的实际占用。
+        //
         if (lineMainSize > 0)
         {
             float totalMainUsed = currentMain - lineStart - gap; // 去掉末尾多余 gap
-            if (totalFlexGrow == 0 || lineMainSize - totalMainUsed > 0.01f)
+
+            // 主尺寸不确定（shrink-to-fit）时 lineMainSize 只是个占位值：容器随后会收缩到内容
+            // 尺寸。占位值大于内容时（min-width/min-height 在 LayoutRow/ColumnDirection 的「2b」
+            // 处抬升出来的那种）确实存在可分配的剩余空间，对齐照常；但占位值小于内容时剩余空间
+            // 是负的，而容器最终会长到内容那么大——此时按负剩余空间对齐会把项目推到容器之外。
+            // row-reverse / column-reverse 受害最深：它们把 flex-start 翻转成 flex-end
+            // （FlipJustifyForReverse），于是连默认对齐都会溢出——ion-fab-list 的 side="start"
+            // （row-reverse）与 side="top"（column-reverse）正因此把按钮甩出列表框
+            // （issues/ion-fab.md 问题 4）。故此处按内容尺寸兜底，使剩余空间不为负。
+            float alignMainSize = mainSizeIsIndefinite
+                ? Math.Max(lineMainSize, totalMainUsed)
+                : lineMainSize;
+
+            if (totalFlexGrow == 0 || alignMainSize - totalMainUsed > 0.01f)
             {
-                ApplyLineJustifyContent(childInfos, lineStart, lineMainSize, totalMainUsed, isRow, justifyContent, totalItems);
+                ApplyLineJustifyContent(childInfos, lineStart, alignMainSize, totalMainUsed, isRow, justifyContent, totalItems);
             }
         }
 

@@ -59,6 +59,63 @@ public class EventDispatcher
         }
     }
 
+    /// <summary>
+    /// 向 <paramref name="source"/> 的子孙元素分发事件（不含 <paramref name="source"/> 自身）。
+    /// <para>
+    /// 冒泡只能让祖先感知事件，但滚动这类事件的语义相反：真正滚动的是容器，而关心它的组件
+    /// （如 ion-infinite-scroll）往往是容器的后代。DOM 中这类组件通过在滚动元素上注册监听器
+    /// 解决，Miko 的组件拿不到祖先引用，因此由引擎在目标+冒泡之后额外向下通知一次。
+    /// </para>
+    /// <para>
+    /// <paramref name="shouldPrune"/> 返回 true 的子树会被整体跳过（含该元素本身），用于
+    /// 剪掉嵌套的独立滚动容器——外层滚动不应触发内层容器内部的监听器。
+    /// </para>
+    /// </summary>
+    public void DispatchToDescendants<T>(
+        Element source,
+        string eventType,
+        T args,
+        Func<Element, bool>? shouldPrune = null) where T : MikoEventArgs
+    {
+        // 先把接收者收集成快照，再逐个回调：处理器很可能调用 StateHasChanged 重建 DOM
+        // （ion-infinite-scroll 触发时就会），边遍历边回调会让 Children 在枚举中被改写。
+        //
+        // 只收集<b>确实订阅了该事件</b>的元素。滚动是每帧路径，而绝大多数子树里一个监听器都
+        // 没有——此时 targets 保持为 null，整趟遍历零分配。
+        List<Element>? targets = null;
+        CollectTargets(source, eventType, ref targets, shouldPrune);
+        if (targets == null) return;
+
+        foreach (var target in targets)
+        {
+            if (args.IsPropagationStopped) return;
+
+            args.CurrentTarget = target;
+            InvokeHandlers(target, eventType, args);
+            InvokeConvenienceHandler(target, eventType, args);
+        }
+    }
+
+    private static void CollectTargets(
+        Element element,
+        string eventType,
+        ref List<Element>? targets,
+        Func<Element, bool>? shouldPrune)
+    {
+        var children = element.Children;
+        for (int i = 0; i < children.Count; i++)
+        {
+            var child = children[i];
+            if (shouldPrune != null && shouldPrune(child)) continue;
+
+            // 与 Dispatch 保持一致：禁用的元素不接收事件（向下派发不涉及 mouseleave）。
+            if (!child.IsDisabled && child.HasListenerFor(eventType))
+                (targets ??= new List<Element>()).Add(child);
+
+            CollectTargets(child, eventType, ref targets, shouldPrune);
+        }
+    }
+
     private static void InvokeHandlers<T>(Element element, string eventType, T args) where T : MikoEventArgs
     {
         foreach (var listener in element.GetEventListeners(eventType))

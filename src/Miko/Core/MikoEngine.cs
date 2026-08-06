@@ -111,15 +111,25 @@ public class MikoEngine
     private readonly List<Element> _pendingInvalidations = new();
     private readonly object _pendingInvalidationsLock = new();
 
+    // 按路由路径保存的滚动快照（ISSUE-118）：跨「页面被完全销毁再重建」的返回恢复。
+    private readonly ScrollSnapshotStore _scrollSnapshots = new();
+
     /// <summary>
     /// 以新根元素初始化（导航重建）引擎。
-    /// <paramref name="transition"/> 非空且存在旧页面时，旧页面树被保留为 leaving 图层，
-    /// 与新页面共同绘制直到转场完成（ISSUE-108）；否则瞬时切换。
+    /// <para><paramref name="transition"/> 描述本次导航（方向 + 起止路径 + 可选转场效果）：
+    /// 其 <see cref="NavigationTransitionInfo.Transition"/> 非空且存在旧页面时，旧页面树被保留为
+    /// leaving 图层，与新页面共同绘制直到转场完成（ISSUE-108）；否则瞬时切换。无论是否有转场效果，
+    /// 方向与路径都用于维护按路径的滚动快照，使返回上一页时能恢复其滚动位置（ISSUE-118）。
+    /// 为 null 表示非导航重建（如热重载），不触碰快照。</para>
     /// </summary>
     public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight, NavigationTransitionInfo? transition = null)
     {
         // Capture old layout for scroll position restoration (ISSUE-092)
         var oldLayout = _currentLayout;
+
+        // 导航离开当前页：为来源路径拍下滚动快照，供之后返回该页时回放（ISSUE-118）。
+        // 必须在 _currentLayout 被新树替换之前完成——偏移就存放在即将被丢弃的旧布局树上。
+        CaptureScrollSnapshot(transition, oldLayout);
 
         // 新一轮导航打断进行中的转场：直接丢弃 leaving 层
         // （其视频会话由下方 SyncVideoSessions 随旧树移除而回收）。
@@ -127,7 +137,7 @@ public class MikoEngine
 
         // 请求转场且存在旧页面时，保留旧页面树作为 leaving 层参与后续绘制。
         // 首帧导航（无旧页面/无旧布局）或零时长转场退化为普通瞬时切换。
-        bool startTransition = transition != null
+        bool startTransition = transition?.Transition != null
             && transition.Transition.Duration > 0
             && _root != null
             && _currentLayout != null;
@@ -161,6 +171,9 @@ public class MikoEngine
 
         // Restore scroll positions from old layout (ISSUE-092)
         RestoreScrollState(oldLayout, _currentLayout);
+        // 返回上一页时回放该页离开时的滚动快照（ISSUE-118）。放在 ISSUE-092 的恢复之后：
+        // 跨页面返回以快照为准，同树内重渲染没有快照条目、仍由上面那步处理，两者不冲突。
+        RestoreScrollSnapshot(transition, _currentLayout);
 
         if (oldStyles.Elements.Count > 0 || oldStyles.PseudoElements.Count > 0)
         {
@@ -170,6 +183,7 @@ public class MikoEngine
                 _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
                 // Restore scroll state again after re-layout
                 RestoreScrollState(oldLayout, _currentLayout);
+                RestoreScrollSnapshot(transition, _currentLayout);
             }
         }
 
@@ -180,7 +194,8 @@ public class MikoEngine
 
         if (startTransition)
         {
-            _navTransition = transition!.Transition;
+            // startTransition 为真已蕴含 transition 与其 Transition 均非空。
+            _navTransition = transition!.Transition!;
             _navElapsed = 0f;
             _navContext = new NavigationTransitionContext(
                 _navLeavingRoot!, root, transition.Direction,
@@ -195,13 +210,17 @@ public class MikoEngine
         }
         else
         {
-            if (transition != null)
+            if (transition?.Transition != null)
             {
                 _logger.LogDebug("Navigation transition skipped (first navigation or non-positive duration): {From} -> {To} ({Direction})",
                     transition.FromPath, transition.ToPath, transition.Direction);
             }
             _renderEngine.Render(_currentLayout);
         }
+
+        // 本次返回导航的快照已回放完毕（可能因 transition 重新布局而回放了两次），消费掉它。
+        ConsumeScrollSnapshot(transition);
+
         ScanAndStartAnimations(root);
     }
 
@@ -1316,6 +1335,51 @@ public class MikoEngine
     /// 重新渲染仍会被视为「同一内容」而正确恢复。结构比较基于 <b>DOM 子树</b>（而非布局子树），
     /// 使 <c>display:none</c> 的展开/折叠（如 IonAccordion 面板）不被误判为内容替换而重置滚动。</para>
     /// </summary>
+    /// <summary>
+    /// 导航离开当前页时，为来源路径拍下滚动快照（ISSUE-118）。必须在旧布局树被替换之前调用。
+    /// <para><see cref="NavigationDirection.Root"/> 会清空历史栈（见 <see cref="NavigationManager"/>），
+    /// 栈上所有页面都不再可返回，故连同来源页一起丢弃全部快照。</para>
+    /// </summary>
+    private void CaptureScrollSnapshot(NavigationTransitionInfo? navigation, LayoutBox? oldLayout)
+    {
+        if (navigation == null) return;
+
+        if (navigation.Direction == NavigationDirection.Root)
+        {
+            _scrollSnapshots.Clear();
+            return;
+        }
+
+        _scrollSnapshots.Capture(navigation.FromPath, oldLayout);
+    }
+
+    /// <summary>
+    /// 返回（出栈）到某页时，把该页离开时的滚动快照回放到新布局树上（ISSUE-118）。
+    /// <para>只在 <see cref="NavigationDirection.Back"/> 回放：<see cref="NavigationDirection.Forward"/>
+    /// 压栈进入的是一次新的页面访问，按浏览器语义从顶部开始。</para>
+    /// </summary>
+    private void RestoreScrollSnapshot(NavigationTransitionInfo? navigation, LayoutBox? newLayout)
+    {
+        if (navigation is not { Direction: NavigationDirection.Back }) return;
+
+        int restored = _scrollSnapshots.Apply(navigation.ToPath, newLayout);
+        if (restored > 0)
+        {
+            _logger.LogDebug("Restored scroll snapshot for {Path}: {Count} scrollable box(es)",
+                navigation.ToPath, restored);
+        }
+    }
+
+    /// <summary>
+    /// 收尾一次返回导航：消费掉已回放的快照（该历史条目已出栈）。在同一次
+    /// <see cref="Initialize"/> 内的多次回放（transition 触发重新布局）之后调用一次。
+    /// </summary>
+    private void ConsumeScrollSnapshot(NavigationTransitionInfo? navigation)
+    {
+        if (navigation is not { Direction: NavigationDirection.Back }) return;
+        _scrollSnapshots.Forget(navigation.ToPath);
+    }
+
     private static void RestoreScrollState(LayoutBox? oldRoot, LayoutBox? newRoot)
     {
         if (oldRoot == null || newRoot == null) return;
@@ -1339,10 +1403,13 @@ public class MikoEngine
         // DOM 子树在 display 切换下保持稳定（内容元素始终在树中，仅计算 display 变化），既能在
         // 折叠/展开时正确恢复滚动，又能在真正的路由内容替换（DOM 子树形状不同）时正确重置。
         if ((oldBox.ScrollTop != 0f || oldBox.ScrollLeft != 0f) &&
-            HasEquivalentDomStructure(oldBox.Element, newBox.Element))
+            IsSamePresentedContent(oldBox.Element, newBox.Element))
         {
-            newBox.ScrollTop = oldBox.ScrollTop;
-            newBox.ScrollLeft = oldBox.ScrollLeft;
+            // 新内容可能比旧的短（列表被裁剪），按新的可滚动范围夹取，避免越界。
+            newBox.ScrollTop = ClampScrollOffset(
+                oldBox.ScrollTop, newBox.ScrollableContentHeight, newBox.BoxModel.PaddingBox.Height);
+            newBox.ScrollLeft = ClampScrollOffset(
+                oldBox.ScrollLeft, newBox.ScrollableContentWidth, newBox.BoxModel.PaddingBox.Width);
         }
 
         // 按位置逐一对齐子节点并向下递归；仅在标签相同（同一元素身份）时才配对，
@@ -1360,24 +1427,55 @@ public class MikoEngine
     }
 
     /// <summary>
-    /// 判断两棵 <b>DOM 子树</b>（<see cref="Element"/>）是否<b>结构等价</b>：根标签相同、
-    /// 子节点数量相同，且每个对应位置的子树递归结构等价。只比较标签名与树形，忽略文本、属性、
-    /// 样式等叶子值——因此仅内容文本变化的重新渲染仍算等价（滚动应恢复），而整页替换（子树
-    /// 形状不同）不算等价（滚动应重置）。
-    /// <para>刻意比较 DOM 树而非布局树：<c>display:none</c> 的元素会从布局树中被过滤，故折叠
-    /// 一个 IonAccordion 面板会改变外层可滚动容器的布局子树形状，若按布局树比较将被误判为
-    /// 「内容替换」而重置滚动条。DOM 树在 display 切换下保持不变（内容元素始终存在），因此
-    /// 展开/折叠面板时能正确恢复滚动，同时真正的路由内容替换仍被正确识别。</para>
+    /// 判断可滚动容器<b>承载的内容是否仍是同一批</b>——旧偏移是否依然指向同一处内容。
+    /// 只比较标签名与树形，忽略文本、属性、样式等叶子值，因此仅内容文本变化的重新渲染仍算
+    /// 同一批（滚动应保留），而整页替换不算（滚动应重置）。
+    /// <para>刻意比较 <b>DOM 树</b>而非布局树：<c>display:none</c> 的元素会从布局树中被过滤，
+    /// 故折叠一个 IonAccordion 面板会改变外层可滚动容器的布局子树形状，若按布局树比较将被
+    /// 误判为「内容替换」而重置滚动条。DOM 树在 display 切换下保持不变（内容元素始终存在），
+    /// 因此展开/折叠面板时能正确保留滚动，同时真正的路由内容替换仍被正确识别。</para>
+    /// <para>早期实现要求<b>严格</b>结构等价（子节点数量逐层相同），这会把「追加内容」误判为
+    /// 「内容被替换」：无限滚动加载出新数据后行数变了，滚动条因而被重置回顶部
+    /// （ion-infinite-scroll 问题 2）。追加的语义是「原有内容仍在原位，后面多了一截」，旧偏移
+    /// 依然有效，必须保留。</para>
+    /// <para>因此这里放宽为<b>子序列等价</b>：标签相同，且较短一侧的每个子树都能在较长一侧
+    /// 里<b>按原有顺序</b>找到对应项。判定<b>逐层递归</b>——增删可能发生在任意深度：真实的
+    /// Ionic 结构是 <c>.inner-scroll &gt; ion-list &gt; ion-item*</c>，滚动容器自己的子节点
+    /// 始终是「列表 + ion-infinite-scroll 哨兵」两个，行数变化发生在<b>下一层</b>的
+    /// <c>ion-list</c> 里。若只在容器这一层放宽、内部退回严格等价，就会在 <c>ion-list</c>
+    /// 的子节点数上判负——正是 ion-infinite-scroll 问题 2 的现场。</para>
+    /// <para>整页替换时旧内容在新树里找不到按序对应项，判定不成立，「切换内容要回到顶部」的
+    /// 既有语义得以保留。</para>
     /// </summary>
-    private static bool HasEquivalentDomStructure(Element a, Element b)
+    private static bool IsSamePresentedContent(Element oldElement, Element newElement)
     {
-        if (!IsSameElementIdentity(a, b)) return false;
-        if (a.Children.Count != b.Children.Count) return false;
-        for (int i = 0; i < a.Children.Count; i++)
+        if (!IsSameElementIdentity(oldElement, newElement)) return false;
+
+        // 较长的一侧是"全集"，较短的一侧必须是它的有序子序列。
+        var (subset, superset) = oldElement.Children.Count <= newElement.Children.Count
+            ? (oldElement.Children, newElement.Children)
+            : (newElement.Children, oldElement.Children);
+
+        int j = 0;
+        for (int i = 0; i < subset.Count; i++)
         {
-            if (!HasEquivalentDomStructure(a.Children[i], b.Children[i])) return false;
+            // 在剩余的 superset 中向后寻找与 subset[i] 对应的项；递归同样按子序列判定，
+            // 使「更深层」的增删（ion-list 里加行）同样被认作同一批内容。
+            while (j < superset.Count && !IsSamePresentedContent(subset[i], superset[j])) j++;
+            if (j == superset.Count) return false;
+            j++;
         }
         return true;
+    }
+
+    /// <summary>
+    /// 与 <see cref="ScrollBy"/> 同款的夹取：可滚动内容尺寸与 padding box 视口尺寸之差即为上限。
+    /// </summary>
+    private static float ClampScrollOffset(float saved, float scrollableContentSize, float viewportSize)
+    {
+        if (saved <= 0f) return 0f;
+        float max = Math.Max(0f, scrollableContentSize - viewportSize);
+        return Math.Clamp(saved, 0f, max);
     }
 
     /// <summary>
@@ -1449,6 +1547,11 @@ public class MikoEngine
                 DeltaY = scrollableBox.ScrollTop - oldScrollTop,
                 ScrollLeft = scrollableBox.ScrollLeft,
                 ScrollTop = scrollableBox.ScrollTop,
+                // 滚动几何量，供监听者按 DOM 语义判断位置（如 ion-infinite-scroll 的阈值计算）。
+                ScrollWidth = scrollableBox.ScrollableContentWidth,
+                ScrollHeight = scrollableBox.ScrollableContentHeight,
+                ClientWidth = scrollableBox.BoxModel.PaddingBox.Width,
+                ClientHeight = scrollableBox.BoxModel.PaddingBox.Height,
                 Bubbles = true
             };
 
@@ -1461,6 +1564,13 @@ public class MikoEngine
             try
             {
                 _eventDispatcher.Dispatch(scrollableBox.Element, EventTypes.Scroll, scrollArgs);
+
+                // 目标+冒泡只覆盖祖先链，但关心滚动的组件通常位于滚动容器*内部*
+                // （ion-infinite-scroll 就是 ion-content .inner-scroll 的后代）。DOM 里这类
+                // 组件会直接在滚动元素上加监听器；Miko 的组件拿不到祖先引用，因此这里额外
+                // 向下通知一次。嵌套的独立滚动容器整棵剪掉：外层滚动不应触发内层的监听器。
+                _eventDispatcher.DispatchToDescendants(
+                    scrollableBox.Element, EventTypes.Scroll, scrollArgs, IsNestedScrollContainer);
             }
             finally
             {
@@ -1476,6 +1586,20 @@ public class MikoEngine
         }
 
         return scrolled;
+    }
+
+    /// <summary>
+    /// 元素自身是否是一个独立的滚动容器（任一轴为 auto/scroll）。
+    /// 向下派发滚动事件时用来剪枝：内层滚动容器有自己的滚动位置，外层的滚动量对它
+    /// 的后代没有意义。
+    /// </summary>
+    private static bool IsNestedScrollContainer(Element element)
+    {
+        var style = element.LayoutBox?.ComputedStyle;
+        if (style == null) return false;
+
+        return style.OverflowY is Overflow.Auto or Overflow.Scroll
+            || style.OverflowX is Overflow.Auto or Overflow.Scroll;
     }
 
     /// <summary>
