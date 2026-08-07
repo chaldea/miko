@@ -1,0 +1,42 @@
+@page "/searchbar"
+
+@* NOTE: Miko's IonSearchbar renders the search field but exposes no input/change callback
+   (Ionic's ionInput), so the live filtering of the original demo cannot be wired up. The full
+   city list is rendered below the searchbar. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Searchbar</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+        <IonToolbar>
+            <IonSearchbar></IonSearchbar>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            @foreach (var city in _cities)
+            {
+                <IonItem>
+                    <IonLabel>@city</IonLabel>
+                </IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+    private readonly string[] _cities =
+    {
+        "Amsterdam", "Bogota", "Buenos Aires", "Cairo", "Dhaka", "Edinburgh",
+        "Geneva", "Genoa", "Glasglow", "Hanoi", "Hong Kong", "Islamabad",
+        "Istanbul", "Jakarta", "Kiel", "Kyoto", "Le Havre", "Lebanon",
+        "Lhasa", "Lima", "London", "Los Angeles", "Madrid", "Manila",
+        "New York", "Olympia", "Oslo", "Panama City", "Peking", "Philadelphia",
+        "San Francisco", "Seoul", "Taipeh", "Tel Aviv", "Tokio", "Uelzen", "Washington",
+    };
+}

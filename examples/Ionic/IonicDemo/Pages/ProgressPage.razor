@@ -1,0 +1,67 @@
+@page "/progress"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <ChildContent>
+                <IonTitle>Progress</IonTitle>
+                <IonProgressBar Type="indeterminate" Color="dark"></IonProgressBar>
+            </ChildContent>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Determinate</IonLabel>
+            </IonListHeader>
+            <IonProgressBar Value="0.2"></IonProgressBar>
+        </IonList>
+
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Control Determinate</IonLabel>
+                <IonButton OnClick="@IncreaseValue">
+                    <IconOnly>
+                        <IonIcon Ios="@Ionicons.AddOutline" Md="@Ionicons.AddSharp" Slot="icon-only"></IonIcon>
+                    </IconOnly>
+                </IonButton>
+            </IonListHeader>
+            <IonProgressBar Value="@_controlledValue"></IonProgressBar>
+        </IonList>
+
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Indeterminate</IonLabel>
+            </IonListHeader>
+            <IonProgressBar Type="indeterminate"></IonProgressBar>
+
+            <IonListHeader>
+                <IonLabel>Indeterminate (reversed)</IonLabel>
+            </IonListHeader>
+            <IonProgressBar Type="indeterminate" Reversed></IonProgressBar>
+
+            <IonListHeader>
+                <IonLabel>Buffer</IonLabel>
+            </IonListHeader>
+            <IonProgressBar Value="0.25" Buffer="0.5"></IonProgressBar>
+
+            <IonListHeader>
+                <IonLabel>Colors</IonLabel>
+            </IonListHeader>
+            <IonProgressBar Type="indeterminate" Color="secondary" Class="progress-margin"></IonProgressBar>
+            <IonProgressBar Type="indeterminate" Reversed Color="tertiary" Class="progress-margin"></IonProgressBar>
+            <IonProgressBar Value="0.25" Buffer="0.5" Color="danger" Class="progress-margin"></IonProgressBar>
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+    private double _controlledValue = 0.1;
+
+    private void IncreaseValue()
+    {
+        _controlledValue = Math.Min(1.0, _controlledValue + 0.1);
+    }
+}

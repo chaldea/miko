@@ -111,7 +111,10 @@ internal static class AlertStyles
             {
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Row,
-                FlexWrap = FlexWrap.Wrap,
+                // md wrap-reverse keeps the primary (last) action bottom-right when buttons wrap;
+                // ios wraps downward. See IonicTheme.AlertButtonGroupFlexWrap.
+                FlexWrap = t.AlertButtonGroupFlexWrap,
+                BoxSizing = BoxSizing.BorderBox,
                 Width = Length.Percent(100),
                 PaddingTop = Length.Px(t.AlertButtonGroupPadding),
                 PaddingBottom = Length.Px(t.AlertButtonGroupPadding),
@@ -130,7 +133,8 @@ internal static class AlertStyles
             {
                 Position = Position.Relative,
                 Display = Display.Block,
-                MarginLeft = Length.Px(t.AlertButtonMarginX),
+                // $alert-md-button-margin-end (8px; ios 0) — margin-end is the right side in LTR.
+                MarginRight = Length.Px(t.AlertButtonMarginX),
                 PaddingTop = Length.Px(t.AlertButtonPadding),
                 PaddingBottom = Length.Px(t.AlertButtonPadding),
                 PaddingLeft = Length.Px(t.AlertButtonPadding),
@@ -151,8 +155,12 @@ internal static class AlertStyles
             {
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Row,
+                FlexShrink = 0,
                 AlignItems = AlignItems.Center,
-                JustifyContent = JustifyContent.Center,
+                // alert.scss centers the label; md overrides it to the group's justification
+                // (alert.md.scss line 302 reuses $alert-md-button-group-justify-content), so the
+                // same token drives both — md right-aligns, ios centers.
+                JustifyContent = t.AlertButtonGroupJustify,
                 Width = Length.Percent(100),
                 Height = Length.Percent(100),
             },

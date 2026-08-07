@@ -3,121 +3,431 @@
 <h1>IonItem</h1>
 
 <p>
-    Items are elements that can contain text, icons, avatars, images, inputs, and any other native or custom elements. Items should only be used as rows in a List with other items. Items can be swiped, deleted, reordered, edited, and more.
+    Items are elements that can contain text, icons, avatars, images, inputs, and any other native or custom elements.
+    Items should only be used as rows in a List with other items. Items can be swiped, deleted, reordered, edited, and
+    more.
 </p>
 
 <h2>Basic Usage</h2>
 
 <p>
-    Items left align text and wrap when the text is wider than the item. We can modify this behavior using the CSS Utilities provided by Ionic Framework, such as using .ion-text-nowrap in the below example. See the CSS Utilities Documentation for more classes that can be added to an item to transform the text.
+    Items left align text and wrap when the text is wider than the item. We can modify this behavior using the CSS
+    Utilities provided by Ionic Framework, such as using .ion-text-nowrap in the below example. See the CSS Utilities
+    Documentation for more classes that can be added to an item to transform the text.
 </p>
 
-<div class="playground">
-    <div class="playground-container hi-auto">
-        <div class="container-block">
-            <IonItem>
-                <IonLabel>Basic Item</IonLabel>
-            </IonItem>
+<Playground Class="sc-ion-label-md-s" Width="Percent(100)" Height="Px(400)" Display="Display.Block">
+    <IonItem>
+        <IonLabel>Basic Item</IonLabel>
+    </IonItem>
 
-            <IonItem>
-                <IonLabel>
-                    Multi-line text that should wrap when it is too long to fit on one line. Lorem ipsum dolor sit amet,
-                    consectetur adipiscing elit.
-                </IonLabel>
-            </IonItem>
-            
-            <IonItem>
-                <IonLabel Class="sc-ion-label-md-h">
-                    <h1>H1 Heading</h1>
-                    <p>Paragraph</p>
-                </IonLabel>
-            </IonItem>
+    <IonItem>
+        <IonLabel>
+            Multi-line text that should wrap when it is too long to fit on one line. Lorem ipsum dolor sit amet,
+            consectetur adipiscing elit.
+        </IonLabel>
+    </IonItem>
 
-            <IonItem>
-                <IonLabel Class="sc-ion-label-md-h">
-                    <h2>H2 Heading</h2>
-                    <p>Paragraph</p>
-                </IonLabel>
-            </IonItem>
+    <IonItem>
+        <IonLabel Class="ion-text-nowrap">
+            Multi-line text that should ellipsis when it is too long to fit on one line. Lorem ipsum dolor sit amet,
+            consectetur adipiscing elit.
+        </IonLabel>
+    </IonItem>
 
-            <IonItem>
-                <IonLabel Class="sc-ion-label-md-h">
-                    <h3>H3 Heading</h3>
-                    <p>Paragraph</p>
-                </IonLabel>
-            </IonItem>
-        </div>
-    </div>
-</div>
+    <IonItem>
+        <IonLabel>
+            <h1>H1 Heading</h1>
+            <p>Paragraph</p>
+        </IonLabel>
+    </IonItem>
 
-<h2>Buttons, Detail & Slots</h2>
+    <IonItem>
+        <IonLabel>
+            <h2>H2 Heading</h2>
+            <p>Paragraph</p>
+        </IonLabel>
+    </IonItem>
+
+    <IonItem>
+        <IonLabel>
+            <h3>H3 Heading</h3>
+            <p>Paragraph</p>
+        </IonLabel>
+    </IonItem>
+</Playground>
+
+<h2>Content Types</h2>
 
 <p>
-    Setting Button makes the item tappable; Detail shows a trailing
-    chevron. Content can be placed in the leading (Start) and trailing
-    (End) slots, and Lines controls the bottom divider.
+    While items in a list take many forms, they typically support 5 different content types: supporting visuals, text,
+    metadata, actions, and controls. However, not all of these content types should be used together at the same time.
+    The following guide shows the different content types as well as how to properly utilize them in an application.
 </p>
 
-<div class="playground">
-    <div class="playground-container hi-auto">
-        <div class="container-block">
-            <IonList>
-                <IonItem Button="true" Detail="true">
-                    <IonLabel>Clickable item with detail arrow</IonLabel>
-                </IonItem>
+<h3>Supporting Visuals</h3>
 
-                <IonItem>
-                    <Start>
-                        <IonIcon Icon="@Ionicons.Star" />
-                    </Start>
-                    <ChildContent>
-                        <IonLabel>Item with a start icon</IonLabel>
-                    </ChildContent>
-                    <End>
-                        <IonNote>End slot</IonNote>
-                    </End>
-                </IonItem>
+<p>In the example below, we are creating two lists with supporting visuals. The first list uses icons, and the second
+    list uses avatars. The visuals are decorative, so they all have aria-hidden="true". Additionally, they are presented
+    consistently in the start slot.
+</p>
 
-                <IonItem Lines="none">
-                    <IonLabel>Last item (lines="none")</IonLabel>
-                </IonItem>
-            </IonList>
-        </div>
-    </div>
-</div>
+<Playground Width="Percent(100)" Height="Px(250)">
+    <IonList Style="@_listStyle">
+        <IonItem>
+            <Start>
+                <IonIcon Icon="@Ionicons.Airplane"></IonIcon>
+            </Start>
+            <ChildContent>
+                <IonLabel>Airplane Mode</IonLabel>
+            </ChildContent>
+        </IonItem>
+        <IonItem>
+            <Start>
+                <IonIcon Icon="@Ionicons.Wifi"></IonIcon>
+            </Start>
+            <ChildContent>
+                <IonLabel>Wi-Fi</IonLabel>
+            </ChildContent>
+        </IonItem>
+        <IonItem>
+            <Start>
+                <IonIcon Icon="@Ionicons.Bluetooth"></IonIcon>
+            </Start>
+            <ChildContent>
+                <IonLabel>Bluetooth</IonLabel>
+            </ChildContent>
+        </IonItem>
+        <IonItem>
+            <Start>
+                <IonIcon Icon="@Ionicons.Call"></IonIcon>
+            </Start>
+            <ChildContent>
+                <IonLabel>Cellular</IonLabel>
+            </ChildContent>
+        </IonItem>
+    </IonList>
 
-<h2>Groups, Dividers & Sliding</h2>
+    <IonList Style="@_listStyle">
+        <IonItem>
+            <Start>
+                <IonAvatar>
+                    <img src="res://IonicComponents.Resources.avatar.svg" />
+                </IonAvatar>
+            </Start>
+            <ChildContent>
+                <IonLabel>Huey</IonLabel>
+            </ChildContent>
+        </IonItem>
+        <IonItem>
+            <Start>
+                <IonAvatar>
+                    <img src="res://IonicComponents.Resources.avatar.svg" />
+                </IonAvatar>
+            </Start>
+            <ChildContent>
+                <IonLabel>Dewey</IonLabel>
+            </ChildContent>
+        </IonItem>
+        <IonItem>
+            <Start>
+                <IonAvatar>
+                    <img src="res://IonicComponents.Resources.avatar.svg" />
+                </IonAvatar>
+            </Start>
+            <ChildContent>
+                <IonLabel>Louie</IonLabel>
+            </ChildContent>
+        </IonItem>
+        <IonItem>
+            <Start>
+                <IonAvatar>
+                    <img src="res://IonicComponents.Resources.avatar.svg" />
+                </IonAvatar>
+            </Start>
+            <ChildContent>
+                <IonLabel>Fooie</IonLabel>
+            </ChildContent>
+        </IonItem>
+    </IonList>
+</Playground>
 
-<div class="playground">
-    <div class="playground-container hi-auto">
-        <div class="container-block">
-            <IonList>
-                <IonItemGroup>
-                    <IonItemDivider>
-                        <IonLabel>Section A</IonLabel>
-                    </IonItemDivider>
-                    <IonItem>
-                        <IonLabel>A1</IonLabel>
-                    </IonItem>
-                    <IonItem>
-                        <IonLabel>A2</IonLabel>
-                    </IonItem>
-                </IonItemGroup>
+<h2>Clickable Items</h2>
 
-                <IonItemSliding Open="true">
-                    <IonItem>
-                        <IonLabel>Sliding item with end options</IonLabel>
-                    </IonItem>
-                    <IonItemOptions>
-                        <IonItemOption>Favorite</IonItemOption>
-                        <IonItemOption Color="danger">Delete</IonItemOption>
-                    </IonItemOptions>
-                </IonItemSliding>
-            </IonList>
-        </div>
-    </div>
-</div>
+<p>
+    An item is considered "clickable" if it has an href or button property set. Clickable items have a few visual
+    differences that indicate they can be interacted with. For example, a clickable item receives the ripple effect upon
+    activation in md mode, has a highlight when activated in ios mode, and has a detail arrow by default in ios mode.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(200)" Display="Display.Block">
+    <IonItem Href="/">
+        <IonLabel>Anchor Item</IonLabel>
+    </IonItem>
+
+    <IonItem Href="/" Disabled>
+        <IonLabel>Disabled Anchor Item</IonLabel>
+    </IonItem>
+
+    <IonItem Button>
+        <IonLabel>Button Item</IonLabel>
+    </IonItem>
+
+    <IonItem Button Disabled>
+        <IonLabel>Disabled Button Item</IonLabel>
+    </IonItem>
+</Playground>
+
+<h2>Detail Arrows</h2>
+
+<p>
+    By default clickable items will display a right arrow icon on ios mode. To hide the right arrow icon on clickable
+    elements, set the detail property to false. To show the right arrow icon on an item that doesn't display it
+    naturally, set the detail property to true.
+</p>
+
+<Playground Class="sc-ion-label-md-s" Width="Percent(100)" Height="Px(350)" Display="Display.Block">
+    <IonItem Detail="@true">
+        <IonLabel>
+            <h3>Text Item</h3>
+            <p>Detail set to true - detail arrow displays on both modes</p>
+        </IonLabel>
+    </IonItem>
+
+    <IonItem Button="@true">
+        <IonLabel>
+            <h3>Button Item</h3>
+            <p>Default detail - detail arrow displays on iOS only</p>
+        </IonLabel>
+    </IonItem>
+
+    <IonItem Button="@true" Detail="@true">
+        <IonLabel>
+            <h3>Button Item</h3>
+            <p>Detail set to true - detail arrow displays on both modes</p>
+        </IonLabel>
+    </IonItem>
+
+    <IonItem Button="@true" Detail="@false">
+        <IonLabel>
+            <h3>Button Item</h3>
+            <p>Detail set to false - detail arrow hidden on both modes</p>
+        </IonLabel>
+    </IonItem>
+
+    <IonItem Button="@true" Detail="@true" DetailIcon="@Ionicons.CaretForwardOutline">
+        <IonLabel>
+            <h3>Button Item</h3>
+            <p>Detail set to true - detail arrow displays on both modes</p>
+            <p>Detail icon set to caret-forward-outline</p>
+        </IonLabel>
+    </IonItem>
+</Playground>
+
+<h2>Item Lines</h2>
+
+<p>
+    Items show an inset bottom border by default. The border has padding on the left and does not appear under any
+    content that is slotted in the "start" slot. The lines property can be modified to "full" or "none" which will show
+    a full width border or no border, respectively.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(400)" Display="Display.Block">
+    <IonItem>
+        <IonLabel>Default Item Lines</IonLabel>
+    </IonItem>
+
+    <IonItem Lines="inset">
+        <IonLabel>Item Lines Inset</IonLabel>
+    </IonItem>
+
+    <IonItem Lines="full">
+        <IonLabel>Item Lines Full</IonLabel>
+    </IonItem>
+
+    <IonItem Lines="none">
+        <IonLabel>Item Lines None</IonLabel>
+    </IonItem>
+
+    <IonItem>
+        <Start>
+            <IonIcon Icon="@Ionicons.Star"></IonIcon>
+        </Start>
+        <ChildContent>
+            <IonLabel>Default Item Lines</IonLabel>
+        </ChildContent>
+        <End>
+            <IonIcon Icon="@Ionicons.InformationCircle"></IonIcon>
+        </End>
+    </IonItem>
+
+    <IonItem Lines="inset">
+        <Start>
+            <IonIcon Icon="@Ionicons.Star"></IonIcon>
+        </Start>
+        <ChildContent>
+            <IonLabel>Item Lines Inset</IonLabel>
+        </ChildContent>
+        <End>
+            <IonIcon Icon="@Ionicons.InformationCircle"></IonIcon>
+        </End>
+    </IonItem>
+
+    <IonItem Lines="full">
+        <Start>
+            <IonIcon Icon="@Ionicons.Star"></IonIcon>
+        </Start>
+        <ChildContent>
+            <IonLabel>Item Lines Full</IonLabel>
+        </ChildContent>
+        <End>
+            <IonIcon Icon="@Ionicons.InformationCircle"></IonIcon>
+        </End>
+    </IonItem>
+
+    <IonItem Lines="none">
+        <Start>
+            <IonIcon Icon="@Ionicons.Star"></IonIcon>
+        </Start>
+        <ChildContent>
+            <IonLabel>Item Lines None</IonLabel>
+        </ChildContent>
+        <End>
+            <IonIcon Icon="@Ionicons.InformationCircle"></IonIcon>
+        </End>
+    </IonItem>
+</Playground>
+
+<h2>Buttons in Items</h2>
+
+<p>
+    Buttons are styled smaller inside of items than when they are outside of them. To make the button size match buttons
+    outside of an item, set the size attribute to "default".
+</p>
+
+<Playground Width="Percent(100)" Height="Px(250)" Display="Display.Block">
+    <IonItem>
+        <Start>
+            <IonButton>Start</IonButton>
+        </Start>
+        <ChildContent>
+            <IonLabel>Default Buttons</IonLabel>
+        </ChildContent>
+        <End>
+            <IonButton>End</IonButton>
+        </End>
+    </IonItem>
+
+    <IonItem>
+        <Start>
+            <IonButton>
+                <ChildContent>
+                    Start
+                </ChildContent>
+                <End>
+                    <IonIcon Icon="@Ionicons.Home"></IonIcon>
+                </End>
+            </IonButton>
+        </Start>
+        <ChildContent>
+            <IonLabel>Buttons with Icons</IonLabel>
+        </ChildContent>
+        <End>
+            <IonButton>
+                <ChildContent>
+                    End
+                </ChildContent>
+                <End>
+                    <IonIcon Icon="@Ionicons.Star"></IonIcon>
+                </End>
+            </IonButton>
+        </End>
+    </IonItem>
+
+    <IonItem>
+        <Start>
+            <IonButton>
+                <IconOnly>
+                    <IonIcon Icon="@Ionicons.Navigate"></IonIcon>
+                </IconOnly>
+            </IonButton>
+        </Start>
+        <ChildContent>
+            <IonLabel>Icon only Buttons</IonLabel>
+        </ChildContent>
+        <End>
+            <IonButton>
+                <IconOnly>
+                    <IonIcon Icon="@Ionicons.Star"></IonIcon>
+                </IconOnly>
+            </IonButton>
+        </End>
+    </IonItem>
+
+    <IonItem>
+        <ChildContent>
+            <IonLabel>Button Sizes</IonLabel>
+        </ChildContent>
+        <End>
+            <IonButton Size="small">
+                Small
+            </IonButton>
+            <IonButton Size="default">
+                Default
+            </IonButton>
+            <IonButton Size="large">
+                Large
+            </IonButton>
+        </End>
+    </IonItem>
+</Playground>
+
+<h2>Item Inputs</h2>
+
+<Playground Width="Percent(100)" Height="Px(600)" Display="Display.Block">
+</Playground>
+
+<h2>Theming</h2>
+<h3>Colors</h3>
+
+<Playground Width="Percent(100)" Height="Px(600)" Display="Display.Block">
+    <IonItem>
+        <IonLabel>Default Item</IonLabel>
+    </IonItem>
+    <IonItem Color="primary">
+        <IonLabel>Primary Item</IonLabel>
+    </IonItem>
+    <IonItem Color="secondary">
+        <IonLabel>Secondary Item</IonLabel>
+    </IonItem>
+    <IonItem Color="tertiary">
+        <IonLabel>Tertiary Item</IonLabel>
+    </IonItem>
+    <IonItem Color="success">
+        <IonLabel>Success Item</IonLabel>
+    </IonItem>
+    <IonItem Color="warning">
+        <IonLabel>Warning Item</IonLabel>
+    </IonItem>
+    <IonItem Color="danger">
+        <IonLabel>Danger Item</IonLabel>
+    </IonItem>
+    <IonItem Color="light">
+        <IonLabel>Light Item</IonLabel>
+    </IonItem>
+    <IonItem Color="medium">
+        <IonLabel>Medium Item</IonLabel>
+    </IonItem>
+    <IonItem Color="dark">
+        <IonLabel>Dark Item</IonLabel>
+    </IonItem>
+</Playground>
 
 @code {
+
+    private Style _listStyle = new Style()
+    {
+        Width = Percent(40)
+    };
 
 }

@@ -1,0 +1,123 @@
+@page "/avatar"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Avatar</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonListHeader>
+            <IonLabel>Default</IonLabel>
+        </IonListHeader>
+        
+        <IonAvatar Class="ion-margin-start">
+            <img src="res://IonicDemo.Assets.avatar.svg" />
+        </IonAvatar>
+        
+        <IonListHeader>
+            <IonLabel>Chip Avatar</IonLabel>
+        </IonListHeader>
+        
+        <IonChip Class="ion-margin-start">
+            <IonAvatar>
+                <img src="res://IonicDemo.Assets.avatar.svg" />
+            </IonAvatar>
+            <IonLabel>Kit Bishop</IonLabel>
+        </IonChip>
+        
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Item Avatars</IonLabel>
+            </IonListHeader>
+            
+            <IonItem>
+                <Start>
+                    <IonAvatar>
+                        <img src="res://IonicDemo.Assets.avatar.svg" />
+                    </IonAvatar>
+                </Start>
+                <ChildContent>
+                    <IonLabel Class="sc-ion-label-md-s">Lorem ipsum</IonLabel>
+                </ChildContent>
+            </IonItem>
+            
+            <IonItem>
+                <Start>
+                    <IonAvatar>
+                        <img src="res://IonicDemo.Assets.avatar.svg" />
+                    </IonAvatar>
+                </Start>
+                <ChildContent>
+                    <IonLabel Class="sc-ion-label-md-s">
+                        <h3>Lorem ipsum</h3>
+                        <p>dolor sit amet</p>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+
+            <IonItem>
+                <Start>
+                    <IonAvatar>
+                        <img src="res://IonicDemo.Assets.avatar.svg" />
+                    </IonAvatar>
+                </Start>
+                <ChildContent>
+                    <IonLabel Class="sc-ion-label-md-s">
+                        <h3>Lorem ipsum</h3>
+                        <p>dolor sit amet</p>
+                        <p>consectetur adipiscing elit. Duis ut urna neque.</p>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+            
+            <IonItem>
+                <End>
+                    <IonAvatar>
+                        <img src="res://IonicDemo.Assets.avatar.svg" />
+                    </IonAvatar>
+                </End>
+                <ChildContent>
+                    <IonLabel Class="sc-ion-label-md-s">Lorem ipsum</IonLabel>
+                </ChildContent>
+            </IonItem>
+            
+            <IonItem>
+                <End>
+                    <IonAvatar>
+                        <img src="res://IonicDemo.Assets.avatar.svg" />
+                    </IonAvatar>
+                </End>
+                <ChildContent>
+                    <IonLabel Class="sc-ion-label-md-s">
+                        <h3>Lorem ipsum</h3>
+                        <p>dolor sit amet</p>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+            
+            <IonItem>
+                <End>
+                    <IonAvatar>
+                        <img src="res://IonicDemo.Assets.avatar.svg" />
+                    </IonAvatar>
+                </End>
+                <ChildContent>
+                    <IonLabel Class="sc-ion-label-md-s">
+                        <h3>Lorem ipsum</h3>
+                        <p>dolor sit amet</p>
+                        <p>consectetur adipiscing elit. Duis ut urna neque.</p>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+
+}

@@ -1,3 +1,4 @@
+using Miko.Animation;
 using Miko.Common;
 using Miko.Styling;
 
@@ -20,7 +21,11 @@ internal static class ActionSheetStyles
     {
         var css = new CssObject
         {
-            // Host — a fixed full-screen overlay above the page.
+            // Host — a fixed full-screen overlay above the page. Always mounted (NOT display:none
+            // when closed) so the enter/leave animations can run: Miko detects a transition by
+            // diffing against the PREVIOUS frame's computed style, and a display:none element has
+            // no layout box to diff against — so a sheet that only appears on open would jump
+            // straight to its end state. Same always-mounted approach as IonMenu.
             [$".ion-action-sheet.{mode}"] = new()
             {
                 Position = Position.Fixed,
@@ -31,13 +36,26 @@ internal static class ActionSheetStyles
                 ZIndex = 1000,
             },
 
-            // Closed sheet is fully hidden.
+            // Closed & settled: fully hidden and transparent to input, so the page below stays
+            // interactive. Ionic's :host(.overlay-hidden) is display:none; here the host keeps its
+            // box (see above) and instead goes pointer-events:none — Miko's hit test walks layout
+            // boxes and honors pointer-events, and the property inherits, so the whole subtree
+            // (backdrop, wrapper, buttons) stops catching taps and scrolls too.
             [$".ion-action-sheet.{mode}.overlay-hidden"] = new()
             {
-                Display = Display.None,
+                PointerEvents = PointerEvents.None,
             },
 
-            // Backdrop — the tappable dim layer filling the host.
+            // Open, or animating in/out: interactive, so the backdrop catches the dim-area tap
+            // (including during the leave animation, matching Ionic).
+            [$".ion-action-sheet.{mode}.action-sheet-mounted"] = new()
+            {
+                PointerEvents = PointerEvents.Auto,
+            },
+
+            // Backdrop — the tappable dim layer filling the host. Fades between 0 and the mode's
+            // backdrop opacity ({md|ios}.{enter|leave}.ts backdropAnimation fromTo('opacity', …)).
+            // Transparent at rest so a closed sheet shows nothing while it stays mounted.
             [$".ion-action-sheet.{mode} .action-sheet-backdrop"] = new()
             {
                 Position = Position.Absolute,
@@ -46,11 +64,38 @@ internal static class ActionSheetStyles
                 Bottom = Length.Px(0),
                 Left = Length.Px(0),
                 BackgroundColor = t.ActionSheetBackdropColor,
-                Opacity = t.ActionSheetBackdropOpacity,
+                Opacity = 0f,
                 Cursor = Cursor.Pointer,
+                // NOTE on which duration goes where: Miko picks the transition list from the
+                // PREVIOUS frame's computed style (MikoEngine captures it before re-layout), unlike
+                // CSS which reads the after-change style. So the list on a rule governs the
+                // transition OUT of that state: the closed (base) rule drives the ENTER animation,
+                // and the .action-sheet-open rule drives the LEAVE. Ionic's easing is shared —
+                // cubic-bezier(.36,.66,.04,1) — with enter 400ms / leave 450ms.
+                Transitions = new List<Transition>
+                {
+                    Transition.For(x => x.Opacity)
+                        .Duration(t.ActionSheetEnterDuration)
+                        .CubicBezier(0.36f, 0.66f, 0.04f, 1f),
+                },
             },
 
-            // Wrapper — bottom-anchored, centered horizontally, capped width.
+            // Faded in while open. Its transition list is the one in effect when the sheet leaves
+            // the open state — i.e. the dismiss animation (see the note above).
+            [$".ion-action-sheet.{mode}.action-sheet-open .action-sheet-backdrop"] = new()
+            {
+                Opacity = t.ActionSheetBackdropOpacity,
+                Transitions = new List<Transition>
+                {
+                    Transition.For(x => x.Opacity)
+                        .Duration(t.ActionSheetLeaveDuration)
+                        .CubicBezier(0.36f, 0.66f, 0.04f, 1f),
+                },
+            },
+
+            // Wrapper — bottom-anchored, centered horizontally, capped width. Parked fully below
+            // the bottom edge (translateY(100%)) so it slides up on open and back down on close
+            // ({md|ios}.{enter|leave}.ts wrapperAnimation fromTo('transform', …)).
             [$".ion-action-sheet.{mode} .action-sheet-wrapper"] = new()
             {
                 Position = Position.Absolute,
@@ -61,6 +106,29 @@ internal static class ActionSheetStyles
                 MarginRight = Length.Auto,
                 Width = Length.Percent(100),
                 MaxWidth = Length.Px(t.ActionSheetMaxWidth),
+                Transform = new Transform(new TransformFunction.TranslateY(Length.Percent(100))),
+                // Drives the ENTER slide-up (see the duration note on the backdrop rule).
+                Transitions = new List<Transition>
+                {
+                    Transition.For(x => x.Transform)
+                        .Duration(t.ActionSheetEnterDuration)
+                        .CubicBezier(0.36f, 0.66f, 0.04f, 1f),
+                },
+            },
+
+            // Slid into place while open; its list drives the LEAVE slide-down.
+            [$".ion-action-sheet.{mode}.action-sheet-open .action-sheet-wrapper"] = new()
+            {
+                // translateY(0%) — the sheet resting at the bottom edge. A zero length carries no
+                // unit (0% == 0px), and the transform interpolator treats it as compatible with the
+                // parked translateY(100%), so the two states slide into each other.
+                Transform = new Transform(new TransformFunction.TranslateY(Length.Px(0))),
+                Transitions = new List<Transition>
+                {
+                    Transition.For(x => x.Transform)
+                        .Duration(t.ActionSheetLeaveDuration)
+                        .CubicBezier(0.36f, 0.66f, 0.04f, 1f),
+                },
             },
 
             // Container — a column that pushes its groups to the bottom, with the ios side padding.

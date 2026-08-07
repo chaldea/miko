@@ -1,5 +1,6 @@
 using Miko.Components;
 using Miko.Platform;
+using Miko.Routing;
 using Miko.Styling;
 
 namespace Miko.Ionic.Components;
@@ -23,6 +24,14 @@ public abstract class IonicComponentBase : ComponentBase
     /// <see cref="Mode"/> accessor then falls back to Material Design.
     /// </summary>
     [Inject] protected IPlatformInfo? PlatformInfo { get; set; }
+
+    /// <summary>
+    /// The app's navigation manager, used by components with default navigation behavior
+    /// (e.g. <see cref="IonItem"/> with <c>Href</c>, <see cref="IonBackButton"/>'s nav-pop,
+    /// <see cref="IonTabs"/> root switching). Null when no service scope is available
+    /// (bare unit tests) — default navigation is then skipped and only <c>OnClick</c> fires.
+    /// </summary>
+    [Inject] protected NavigationManager? Navigation { get; set; }
 
     /// <summary>
     /// The active Ionic mode class for the current platform: <c>"ios"</c> on iOS, <c>"md"</c>

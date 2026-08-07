@@ -1,13 +1,47 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@* Mirrors Ionic's <ion-icon> host: the SVG is painted as the host's background image
+   (Ionic stamps it into .icon-inner via innerHTML; here the box itself carries it).
+   Source resolution follows ionicons' getUrl/getName: an explicit Src wins; otherwise the
+   mode-specific Ios/Md name, then Icon — which doubles as name-or-src (a value containing
+   '/' or '.' is a src, anything else a built-in ionicons name). External sources load
+   through the DI-registered resource assemblies (builder.AddResourceAssembly), like <img>. *@
 <div class="@ClassMapper.Class" Style="@_mergedStyle"></div>
 
 @code {
     /// <summary>
-    /// Kebab-case Ionicons name (see <see cref="Miko.Ionic.Ionicons"/> for constants),
-    /// e.g. <c>"triangle"</c>. The matching embedded SVG is rendered as the icon.
+    /// The icon to render — Ionic's <c>icon</c> prop, a combination of <c>name</c> and <c>src</c>.
+    /// A src-looking value (containing <c>/</c> or <c>.</c>, e.g.
+    /// <c>"res://MyApp.Resources.avatar.svg"</c>) is loaded as an external source; anything else
+    /// is treated as a kebab-case Ionicons name (see <see cref="Miko.Ionic.Ionicons"/> for
+    /// constants), rendered from the bundled SVG set.
     /// </summary>
     [Parameter] public string? Icon { get; set; }
+
+    /// <summary>
+    /// Exact source of an SVG file to use (Ionic <c>src</c>), e.g. <c>"res://…"</c>,
+    /// <c>"file://…"</c> or a bare path. Takes precedence over <see cref="Icon"/>/<see cref="Ios"/>/
+    /// <see cref="Md"/>. Embedded resources are resolved through the resource assemblies registered
+    /// at startup (<c>builder.AddResourceAssembly(...)</c>).
+    /// </summary>
+    [Parameter] public string? Src { get; set; }
+
+    /// <summary>Ionicons name to use in <c>ios</c> mode (Ionic <c>ios</c>). Overrides
+    /// <see cref="Icon"/> when the active mode is iOS.</summary>
+    [Parameter] public string? Ios { get; set; }
+
+    /// <summary>Ionicons name to use in <c>md</c> mode (Ionic <c>md</c>). Overrides
+    /// <see cref="Icon"/> when the active mode is Material Design.</summary>
+    [Parameter] public string? Md { get; set; }
+
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the icon's text color, which
+    /// tints the monochrome glyph (CSS <c>fill: currentColor</c>).</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Size (Ionic <c>size</c>): <c>"small"</c> or <c>"large"</c>. The icon box is
+    /// 1em × 1em, so the size classes drive it through the font size.</summary>
+    [Parameter] public string? Size { get; set; }
 
     /// <summary>
     /// Named slot the icon occupies in its parent (Ionic's <c>slot</c> attribute), e.g.
@@ -17,6 +51,12 @@
     /// </summary>
     [Parameter] public string? Slot { get; set; }
 
+    /// <summary>
+    /// Resource assemblies searched for <c>res://</c> icon sources — the same service the
+    /// engine's <c>&lt;img&gt;</c> loading uses. May be null when no service scope is ambient
+    /// (bare unit tests); <c>res://</c> sources then fail to resolve, like an unknown name.
+    /// </summary>
+    [Inject] protected Miko.Platform.Resources.IResourceAssemblyProvider? ResourceAssemblies { get; set; }
 
     private Style? _mergedStyle;
 
@@ -26,10 +66,12 @@
             .Clear()
             .Add(Mode)
             .Add("ion-icon")
+            .AddColor(Color)
+            .AddValue(Size, "icon-")
             .AddValue(Slot, "ion-slot-")
             .Add(Class);
 
-        var image = IconResolver.Load(Icon);
+        var image = ResolveImage();
         if (image is not null)
         {
             var iconStyle = new Style
@@ -56,5 +98,51 @@
         {
             _mergedStyle = Style;
         }
+    }
+
+    /// <summary>
+    /// Resolves the icon to paint, following ionicons' <c>getUrl</c>/<c>getName</c> ordering:
+    /// 1. an explicit <see cref="Src"/> wins; 2. name resolution — the mode-specific
+    /// <see cref="Ios"/>/<see cref="Md"/> prop, else <see cref="Icon"/> when it isn't
+    /// src-looking; 3. <see cref="Icon"/> as a src when name resolution produced nothing.
+    /// Src-looking values (containing '/' or '.') load through the registered resource
+    /// assemblies / file system; plain names load from the bundled set.
+    /// </summary>
+    private BackgroundImage? ResolveImage()
+    {
+        // 1. getSrc(i.src) — the explicit src prop wins.
+        if (IsSrc(Src))
+            return IconResolver.LoadSource(Src, ResourceAssemblies);
+
+        // 2. getName: the mode-specific prop, else Icon when it names a built-in glyph.
+        var named = Mode == "ios" ? Ios : Md;
+        if (string.IsNullOrWhiteSpace(named) && !IsSrc(Icon))
+            named = Icon;
+
+        // getName: only letters, digits and dashes form a valid built-in icon name.
+        if (IsValidName(named))
+            return IconResolver.Load(named!.Trim().ToLowerInvariant());
+
+        // 3. getSrc(i.icon) — Icon holding a src, only when name resolution found nothing.
+        if (IsSrc(Icon))
+            return IconResolver.LoadSource(Icon, ResourceAssemblies);
+
+        return null;
+    }
+
+    /// <summary>Ionicons' <c>isSrc</c>: a value containing '/' or '.' addresses a file, not a name.</summary>
+    private static bool IsSrc(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && (value.Contains('/') || value.Contains('.'));
+
+    private static bool IsValidName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+        foreach (var c in value.Trim())
+        {
+            if (!char.IsLetterOrDigit(c) && c != '-')
+                return false;
+        }
+        return true;
     }
 }

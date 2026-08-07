@@ -3,5 +3,110 @@
 <h1>IonList</h1>
 
 <p>
-    Lists are made up of multiple rows of items which can contain text, buttons, toggles, icons, thumbnails, and much more. Lists generally contain items with similar data content, such as images and text.
+    Lists are made up of multiple rows of items which can contain text, buttons, toggles, icons, thumbnails, and much
+    more. Lists generally contain items with similar data content, such as images and text.
 </p>
+
+<p>
+    Lists support several interactions including swiping items to reveal options, dragging to reorder items within the
+    list, and deleting items.
+</p>
+
+
+<h2>Basic Usage</h2>
+
+<Playground Width="Percent(100)" Height="Px(300)">
+    <IonList>
+        <IonItem>
+            <IonLabel>Pokémon Yellow</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>Mega Man X</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>The Legend of Zelda</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>Pac-Man</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>Super Mario World</IonLabel>
+        </IonItem>
+    </IonList>
+</Playground>
+
+<h2>Inset List</h2>
+<p>
+    Adding the inset property to a list will apply margin around the list. In ios mode it will also add rounded corners
+    to the list.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(300)" Fit>
+    <IonContent Color="light">
+        <IonList Inset>
+            <IonItem>
+                <IonLabel>Pokémon Yellow</IonLabel>
+            </IonItem>
+            <IonItem>
+                <IonLabel>Mega Man X</IonLabel>
+            </IonItem>
+            <IonItem>
+                <IonLabel>The Legend of Zelda</IonLabel>
+            </IonItem>
+            <IonItem>
+                <IonLabel>Pac-Man</IonLabel>
+            </IonItem>
+            <IonItem>
+                <IonLabel>Super Mario World</IonLabel>
+            </IonItem>
+        </IonList>
+    </IonContent>
+</Playground>
+
+<h2>List Lines</h2>
+<p>
+    Adding the lines property to a list will adjust the bottom borders of all of the items in the list. Setting it to
+    "full" will display full width borders, "inset" will display borders adjusted with left padding, and "none" will
+    show no borders. If the lines property is set on an item in a list, that will take priority over the property on the
+    list.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(500)" Direction="FlexDirection.Column">
+    <IonList Lines="full">
+        <IonItem>
+            <IonLabel>Full Lines</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>Full Lines</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>Full Lines</IonLabel>
+        </IonItem>
+    </IonList>
+
+    <IonList Lines="inset">
+        <IonItem>
+            <IonLabel>Inset Lines</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>Inset Lines</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>Inset Lines</IonLabel>
+        </IonItem>
+    </IonList>
+
+    <IonList Lines="none">
+        <IonItem>
+            <IonLabel>No Lines</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>No Lines</IonLabel>
+        </IonItem>
+        <IonItem>
+            <IonLabel>No Lines</IonLabel>
+        </IonItem>
+    </IonList>
+</Playground>
+
+

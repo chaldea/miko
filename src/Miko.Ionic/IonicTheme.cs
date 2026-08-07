@@ -55,6 +55,16 @@ public class IonicTheme
     public float TabButtonMaxWidth { get; set; } = 168f;
     public float TabButtonPaddingX { get; set; } = 12f;
 
+    // Tab button badge (tab-button.md.vars.scss; iOS values come from tab-button.ios.scss)
+    public float TabButtonBadgeFontSize { get; set; } = 8f;
+    public float TabButtonBadgeMinWidth { get; set; } = 12f;
+    public float TabButtonBadgeBorderRadius { get; set; } = 8f;
+    public float TabButtonBadgePaddingTop { get; set; } = 3f;
+    public float TabButtonBadgePaddingEnd { get; set; } = 2f;
+    public float TabButtonBadgePaddingBottom { get; set; } = 2f;
+    public float TabButtonBadgePaddingStart { get; set; } = 2f;
+    public float TabButtonBadgeSizeEmpty { get; set; } = 8f;
+
     // Toolbar
     public Color ToolbarBackground { get; set; }
     public Color ToolbarColor { get; set; }
@@ -97,6 +107,43 @@ public class IonicTheme
     public Color ItemColor { get; set; }
     public Color ItemBorderColor { get; set; }
     public float ItemPaddingStart { get; set; } = 16f;
+    /// <summary>Trailing padding of the item's inner row (<c>--inner-padding-end</c> =
+    /// <c>$item-{md|ios}-padding-end</c>: 16px both modes). Note the native surface itself has
+    /// NO end padding (<c>--padding-end</c> defaults to 0) — the trailing inset lives on
+    /// <c>.item-inner</c>, so an inset divider reaches the item's right edge.</summary>
+    public float ItemPaddingEnd { get; set; } = 16f;
+    /// <summary>Top/bottom margin of an <c>ion-label</c> slotted into an <c>ion-item</c>
+    /// (item.md.vars.scss <c>$item-md-label-margin-top/bottom</c> and item.ios.scss
+    /// <c>::slotted(ion-label)</c>: 10px both modes). Gives the label its vertical rhythm
+    /// inside the row.</summary>
+    public float ItemLabelMarginVertical { get; set; } = 10f;
+    /// <summary>Trailing (end) margin of an <c>ion-label</c> slotted into an <c>ion-item</c>
+    /// (<c>$item-md-label-margin-end</c>: 0; item.ios.scss <c>::slotted(ion-label)</c>: 8px).</summary>
+    public float ItemLabelMarginEnd { get; set; } = 0f;
+    /// <summary>Top/bottom margin of an <c>ion-icon</c> slotted (start/end) into an
+    /// <c>ion-item</c> (<c>$item-md-icon-slot-margin-top/bottom</c>: 12px;
+    /// <c>$item-ios-icon-slot-margin-top/bottom</c>: 7px).</summary>
+    public float ItemIconSlotMarginVertical { get; set; } = 12f;
+    /// <summary>Trailing margin of a start-slotted <c>ion-icon</c> in an <c>ion-item</c>
+    /// (<c>$item-md-icon-start-slot-margin-end</c>: 32px; iOS has none).</summary>
+    public float ItemIconStartSlotMarginEnd { get; set; } = 32f;
+    /// <summary>Leading margin of an end-slotted <c>ion-icon</c> in an <c>ion-item</c>
+    /// (<c>$item-md-icon-end-slot-margin-start</c>: 16px; iOS has none).</summary>
+    public float ItemIconEndSlotMarginStart { get; set; } = 16f;
+    /// <summary>Top/bottom margin of an <c>ion-avatar</c> slotted into an <c>ion-item</c>
+    /// (<c>$item-md-media-slot-margin-top/bottom</c>: 8px; iOS has none).</summary>
+    public float ItemAvatarSlotMarginVertical { get; set; } = 8f;
+    /// <summary>Trailing margin of a start-slotted <c>ion-avatar</c> in an <c>ion-item</c>
+    /// (<c>$item-md-media-start-slot-margin-end</c>: 16px; iOS has none).</summary>
+    public float ItemAvatarStartSlotMarginEnd { get; set; } = 16f;
+    /// <summary>Leading margin of an end-slotted <c>ion-avatar</c> in an <c>ion-item</c>
+    /// (<c>$item-md-media-end-slot-margin-start</c>: 16px; item.ios.scss: 8px —
+    /// <c>$item-ios-padding-end * 0.5</c>).</summary>
+    public float ItemAvatarEndSlotMarginStart { get; set; } = 16f;
+    /// <summary>Inset list margin on all sides (<c>$list-inset-{md|ios}-margin-*</c>: 16px both modes).</summary>
+    public float ListInsetMargin { get; set; } = 16f;
+    /// <summary>Inset list corner radius (<c>$list-inset-md-border-radius</c>: 2px; ios: 10px).</summary>
+    public float ListInsetBorderRadius { get; set; } = 2f;
 
     // Item divider (item-divider.md.scss / .ios.scss) — a section header row sitting between
     // item groups. MD uses a light gray fill with a bottom border and medium text; iOS uses a
@@ -241,6 +288,9 @@ public class IonicTheme
     /// <summary>Avatar host width/height (md 64px, ios 48px).</summary>
     public float AvatarSize { get; set; } = 64f;
 
+    /// <summary>Avatar size when slotted inside ion-item (md 40px, ios 36px from item.md.vars.scss / item.ios.vars.scss).</summary>
+    public float ItemAvatarSize { get; set; } = 40f;
+
     // Spinner / badge / chip / card / grid / refresher / infinite-scroll / select.
     public Color SpinnerColor { get; set; }
     public Color SpinnerTrackColor { get; set; }
@@ -358,6 +408,20 @@ public class IonicTheme
     public Color FabListButtonColor { get; set; }
     /// <summary>Slotted icon font size for a button inside a fab-list (18px both modes).</summary>
     public float FabListButtonIconSize { get; set; } = 18f;
+    /// <summary>
+    /// Duration (seconds) of the fab's reveal animations — the close-icon/inner swap on the main
+    /// button and the scale-in of the list buttons. Ionic declares
+    /// <c>transition: all ease-in-out 300ms; transition-property: transform, opacity</c> on
+    /// <c>.button-inner</c> and <c>.close-icon</c> (fab-button.scss), and the list buttons ride the
+    /// same curve.
+    /// </summary>
+    public float FabTransitionDuration { get; set; } = 0.30f;
+    /// <summary>
+    /// Strength of the hover wash composited over a fab button's fill
+    /// (<c>--background-hover-opacity</c>). md washes the fill with the label color at 8%; ios
+    /// swaps to a lighter tint outright, which this port approximates with a stronger white wash.
+    /// </summary>
+    public float FabHoverOpacity { get; set; } = 0.08f;
 
     // Input (input.scss / input.md.scss / input.ios.scss + their *.vars.scss). A full-width text
     // field that lives inside an ion-item; the label sits beside/above the native input, an
@@ -425,10 +489,22 @@ public class IonicTheme
     public Color BreadcrumbIconColorActive { get; set; }
     /// <summary>Slotted icon font size (18px both modes).</summary>
     public float BreadcrumbIconFontSize { get; set; } = 18f;
+    /// <summary>Gap between a slotted start/end icon and the label (8px both modes).</summary>
+    public float BreadcrumbIconSlotMargin { get; set; } = 8f;
     /// <summary>Collapsed-indicator background (md <c>#eef1f3</c>, ios <c>#e9edf3</c>).</summary>
     public Color BreadcrumbIndicatorBackground { get; set; }
     /// <summary>Collapsed-indicator icon/text color (<c>#73849a</c> both modes).</summary>
     public Color BreadcrumbIndicatorColor { get; set; }
+    /// <summary>Collapsed-indicator width (32px both modes).</summary>
+    public float BreadcrumbIndicatorWidth { get; set; } = 32f;
+    /// <summary>Collapsed-indicator height (18px both modes).</summary>
+    public float BreadcrumbIndicatorHeight { get; set; } = 18f;
+    /// <summary>Collapsed-indicator start/end margin (14px both modes).</summary>
+    public float BreadcrumbIndicatorMarginX { get; set; } = 14f;
+    /// <summary>Collapsed-indicator corner radius (md 2px, ios 4px).</summary>
+    public float BreadcrumbIndicatorBorderRadius { get; set; } = 2f;
+    /// <summary>Collapsed-indicator ellipsis icon size (22px both modes).</summary>
+    public float BreadcrumbIndicatorIconSize { get; set; } = 22f;
 
     // Accordion (accordion.scss / accordion-group.scss + their *.vars.scss). A vertical group of
     // collapsible panels: each accordion has a header row (an ion-item) and a content region that
@@ -494,6 +570,12 @@ public class IonicTheme
     public Color ActionSheetButtonBorderColor { get; set; }
     /// <summary>Cancel button font weight (ios 600; md normal).</summary>
     public FontWeight ActionSheetCancelFontWeight { get; set; } = FontWeight.Normal;
+    /// <summary>Enter (present) animation duration in seconds — 400ms in both modes
+    /// (<c>animations/{md|ios}.enter.ts</c> <c>.duration(400)</c>).</summary>
+    public float ActionSheetEnterDuration { get; set; } = 0.4f;
+    /// <summary>Leave (dismiss) animation duration in seconds — 450ms in both modes
+    /// (<c>animations/{md|ios}.leave.ts</c> <c>.duration(450)</c>).</summary>
+    public float ActionSheetLeaveDuration { get; set; } = 0.45f;
 
     // Alert (alert.scss / .md.scss / .ios.scss + their *.vars.scss). A centered modal card: a head
     // (title + sub-title), an optional message, an optional inputs group (text / radio / checkbox),
@@ -533,6 +615,12 @@ public class IonicTheme
     /// <summary>Button group padding (md 8px; ios 0) and its content justification.</summary>
     public float AlertButtonGroupPadding { get; set; } = 8f;
     public JustifyContent AlertButtonGroupJustify { get; set; } = JustifyContent.FlexEnd;
+    /// <summary>
+    /// Button group wrapping ($alert-{mode}-button-group-flex-wrap): md <c>wrap-reverse</c> so a
+    /// button pushed onto a second line sits ABOVE the first (the primary action stays bottom-right);
+    /// ios <c>wrap</c>.
+    /// </summary>
+    public FlexWrap AlertButtonGroupFlexWrap { get; set; } = FlexWrap.WrapReverse;
     /// <summary>Button label color (primary), background (transparent), font size / weight.</summary>
     public Color AlertButtonColor { get; set; }
     public float AlertButtonFontSize { get; set; } = 14f;
@@ -720,6 +808,17 @@ public class IonicTheme
         t.TabButtonMaxWidth = 168f;
         t.TabButtonPaddingX = 12f;
 
+        // Tab button badge (tab-button.md.vars.scss): 8px font, 3/2/2/2 padding, min-width 12,
+        // radius 8; an empty badge collapses to an 8x8 dot.
+        t.TabButtonBadgeFontSize = 8f;
+        t.TabButtonBadgeMinWidth = 12f;
+        t.TabButtonBadgeBorderRadius = 8f;
+        t.TabButtonBadgePaddingTop = 3f;
+        t.TabButtonBadgePaddingEnd = 2f;
+        t.TabButtonBadgePaddingBottom = 2f;
+        t.TabButtonBadgePaddingStart = 2f;
+        t.TabButtonBadgeSizeEmpty = 8f;
+
         // Toolbar (toolbar.md.scss): min-height 56, bg #fff, color #424242.
         t.ToolbarBackground = Color.FromHex("ffffff");
         t.ToolbarColor = Color.FromHex("424242");
@@ -763,6 +862,17 @@ public class IonicTheme
         t.ItemColor = Color.FromHex("000000");
         t.ItemBorderColor = new Color(0, 0, 0, 18);              // rgba(0,0,0,.07)
         t.ItemPaddingStart = 16f;
+        t.ItemPaddingEnd = 16f;                                  // $item-md-padding-end → --inner-padding-end
+        t.ItemLabelMarginVertical = 10f;                         // $item-md-label-margin-top/bottom
+        t.ItemLabelMarginEnd = 0f;                               // $item-md-label-margin-end
+        t.ItemIconSlotMarginVertical = 12f;                      // $item-md-icon-slot-margin-top/bottom
+        t.ItemIconStartSlotMarginEnd = 32f;                      // $item-md-icon-start-slot-margin-end
+        t.ItemIconEndSlotMarginStart = 16f;                      // $item-md-icon-end-slot-margin-start
+        t.ItemAvatarSlotMarginVertical = 8f;                     // $item-md-media-slot-margin-top/bottom
+        t.ItemAvatarStartSlotMarginEnd = 16f;                    // $item-md-media-start-slot-margin-end
+        t.ItemAvatarEndSlotMarginStart = 16f;                    // $item-md-media-end-slot-margin-start
+        t.ListInsetMargin = 16f;                                 // $list-inset-md-margin-*
+        t.ListInsetBorderRadius = 2f;                            // $list-inset-md-border-radius
 
         // Item divider (item-divider.md.scss): light gray fill (step-50 ~#f2f2f2), bottom border
         // rgba(0,0,0,.07), medium text (step-550). 30px min-height.
@@ -871,6 +981,8 @@ public class IonicTheme
 
         // Avatar (avatar.md.vars.scss): 64px square.
         t.AvatarSize = 64f;
+        // Item avatar (item.md.vars.scss $item-md-avatar-width): 40px when slotted inside ion-item.
+        t.ItemAvatarSize = 40f;
 
         t.SpinnerColor = t.Primary;
         t.SpinnerTrackColor = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 51);
@@ -973,6 +1085,7 @@ public class IonicTheme
         t.FabListButtonBackground = t.Light;                      // ion-color(light, base)
         t.FabListButtonColor = Color.FromHex("000000");           // ion-color(light, contrast)
         t.FabListButtonIconSize = 18f;                            // $fab-md-list-button-icon-font-size
+        t.FabHoverOpacity = 0.08f;                                // --background-hover-opacity (md)
 
         // Input (input.md.scss / input.md.vars.scss): 16px text; 44px min-height; 1px item bottom
         // border rgba(0,0,0,.07); 2px primary highlight bar; radius 4 (used by fills/round). Text and
@@ -1011,6 +1124,7 @@ public class IonicTheme
         t.BreadcrumbIconFontSize = 18f;
         t.BreadcrumbIndicatorBackground = Color.FromHex("eef1f3"); // $breadcrumb-md-indicator-background
         t.BreadcrumbIndicatorColor = Color.FromHex("73849a");     // step-550
+        t.BreadcrumbIndicatorBorderRadius = 2f;                   // md indicator radius
 
         // Accordion (accordion.md.vars.scss): white panels, 0.4 disabled opacity, 16px inset margin,
         // 6px inset radius with a 3-layer Material elevation shadow on inset panels.
@@ -1052,6 +1166,8 @@ public class IonicTheme
         t.ActionSheetDestructiveColor = t.Danger;
         t.ActionSheetButtonBorderColor = Color.Transparent;       // md has no button divider
         t.ActionSheetCancelFontWeight = FontWeight.Normal;
+        t.ActionSheetEnterDuration = 0.4f;                        // md.enter.ts .duration(400)
+        t.ActionSheetLeaveDuration = 0.45f;                       // md.leave.ts .duration(450)
 
         // Alert (alert.md.scss / .md.vars.scss): a 4px-radius white card with a 3-layer Material
         // shadow; left-aligned head (20px/500 title, 16px sub-title), step-450 message; a right-
@@ -1083,6 +1199,7 @@ public class IonicTheme
         t.AlertMessageFontSize = 16f;
         t.AlertButtonGroupPadding = 8f;
         t.AlertButtonGroupJustify = JustifyContent.FlexEnd;       // right-aligned row
+        t.AlertButtonGroupFlexWrap = FlexWrap.WrapReverse;        // overflow wraps upward
         t.AlertButtonColor = t.Primary;                           // ion-color(primary, base)
         t.AlertButtonFontSize = 14f;
         t.AlertButtonFontWeight = FontWeight.Medium;              // 500
@@ -1190,6 +1307,16 @@ public class IonicTheme
         t.TabButtonMaxWidth = 240f;
         t.TabButtonPaddingX = 2f;
 
+        // Tab button badge (tab-button.ios.scss): 12px font, 1/6 padding. No radius/min-width
+        // override there, so the base badge values (radius 10, min-width 10) carry over.
+        t.TabButtonBadgeFontSize = 12f;
+        t.TabButtonBadgeMinWidth = 10f;
+        t.TabButtonBadgeBorderRadius = 10f;
+        t.TabButtonBadgePaddingTop = 1f;
+        t.TabButtonBadgePaddingEnd = 6f;
+        t.TabButtonBadgePaddingBottom = 1f;
+        t.TabButtonBadgePaddingStart = 6f;
+
         // Toolbar (toolbar.ios): min-height 44, bg #f7f7f7, color #000.
         t.ToolbarBackground = Color.FromHex("f7f7f7");
         t.ToolbarColor = Color.FromHex("000000");
@@ -1226,6 +1353,17 @@ public class IonicTheme
         t.ItemColor = Color.FromHex("000000");
         t.ItemBorderColor = new Color(0, 0, 0, 51);             // rgba(0,0,0,.2)
         t.ItemPaddingStart = 16f;
+        t.ItemPaddingEnd = 16f;                                 // $item-ios-padding-end → --inner-padding-end
+        t.ItemLabelMarginVertical = 10f;                        // item.ios.scss ::slotted(ion-label)
+        t.ItemLabelMarginEnd = 8f;                              // item.ios.scss ::slotted(ion-label)
+        t.ItemIconSlotMarginVertical = 7f;                      // $item-ios-icon-slot-margin-top/bottom
+        t.ItemIconStartSlotMarginEnd = 0f;                      // iOS gives slotted icons no horizontal margin
+        t.ItemIconEndSlotMarginStart = 0f;                      // iOS gives slotted icons no horizontal margin
+        t.ItemAvatarSlotMarginVertical = 0f;                    // iOS sizes slotted avatars only
+        t.ItemAvatarStartSlotMarginEnd = 0f;                    // iOS gives start avatars no margin
+        t.ItemAvatarEndSlotMarginStart = 8f;                    // item.ios.scss ::slotted(ion-avatar[slot="end"])
+        t.ListInsetMargin = 16f;                                // $list-inset-ios-margin-*
+        t.ListInsetBorderRadius = 10f;                          // $list-inset-ios-border-radius
 
         // Item divider (item-divider.ios.scss): light fill (step-50 ~#f7f7f7), hairline bottom
         // border rgba(0,0,0,.2), dark text. 28px min-height.
@@ -1329,6 +1467,8 @@ public class IonicTheme
 
         // Avatar (avatar.ios.vars.scss): 48px square.
         t.AvatarSize = 48f;
+        // Item avatar (item.ios.vars.scss $item-ios-avatar-width): 36px when slotted inside ion-item.
+        t.ItemAvatarSize = 36f;
 
         t.SpinnerColor = t.Primary;
         t.SpinnerTrackColor = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 51);
@@ -1427,6 +1567,10 @@ public class IonicTheme
         t.FabListButtonBackground = t.Light;                      // ion-color(light, base)
         t.FabListButtonColor = Color.FromHex("000000");           // ion-color(light, contrast)
         t.FabListButtonIconSize = 18f;                            // $fab-ios-list-button-icon-font-size
+        // ios sets --background-hover-opacity: 1 with --background-hover: ion-color(primary, tint),
+        // i.e. a full swap to a lighter tint rather than a wash. Without tint/shade in the palette
+        // this port approximates it with a stronger white wash over the fill.
+        t.FabHoverOpacity = 0.16f;
 
         // Input (input.ios.scss / input.ios.vars.scss): 17px text; 44px min-height; hairline item
         // bottom border rgba(0,0,0,.2); NO highlight bar (ios --highlight-height: 0); radius 4.
@@ -1465,6 +1609,7 @@ public class IonicTheme
         t.BreadcrumbIconFontSize = 18f;
         t.BreadcrumbIndicatorBackground = Color.FromHex("e9edf3"); // $breadcrumb-ios-indicator-background
         t.BreadcrumbIndicatorColor = Color.FromHex("73849a");     // step-550
+        t.BreadcrumbIndicatorBorderRadius = 4f;                   // ios indicator radius
 
         // Accordion (accordion.ios / accordion.vars.scss): white panels, 0.4 disabled opacity, 16px
         // inset margin. iOS inset panels have no elevation shadow (they use item hairline borders).
@@ -1502,6 +1647,8 @@ public class IonicTheme
         t.ActionSheetDestructiveColor = t.Danger;
         t.ActionSheetButtonBorderColor = new Color(0, 0, 0, 20);  // rgba(text,.08) hairline divider
         t.ActionSheetCancelFontWeight = FontWeight.SemiBold;      // ios cancel 600
+        t.ActionSheetEnterDuration = 0.4f;                        // ios.enter.ts .duration(400)
+        t.ActionSheetLeaveDuration = 0.45f;                       // ios.leave.ts .duration(450)
 
         // Alert (alert.ios.scss / .ios.vars.scss): a 13px-radius #f9f9f9 card with no shadow;
         // centered head (17px/600 title, 14px step-400 sub-title), 13px message; a button row split
@@ -1527,6 +1674,7 @@ public class IonicTheme
         t.AlertMessageFontSize = 13f;
         t.AlertButtonGroupPadding = 0f;                           // ios group has no padding
         t.AlertButtonGroupJustify = JustifyContent.Center;
+        t.AlertButtonGroupFlexWrap = FlexWrap.Wrap;               // ios wraps downward
         t.AlertButtonColor = t.Primary;                          // ion-color(primary, base)
         t.AlertButtonFontSize = 17f;
         t.AlertButtonFontWeight = FontWeight.Normal;

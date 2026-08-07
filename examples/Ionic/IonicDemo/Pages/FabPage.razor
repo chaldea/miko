@@ -1,0 +1,155 @@
+@page "/fab"
+
+@* Each fab goes in ion-content's "fixed" slot (the Fixed fragment), so it stays put while the
+   content scrolls; where it lands is decided by its Horizontal / Vertical / Edge parameters. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Floating Action Button</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen Class="ion-padding">
+        <Fixed>
+            <IonFab Horizontal="end" Vertical="top" Edge>
+                <IonFabButton>
+                    <IonIcon Icon="@Ionicons.Add"></IonIcon>
+                </IonFabButton>
+                <IonFabList>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoFacebook"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoTwitter"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoVimeo"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+            </IonFab>
+
+            <IonFab Horizontal="end" Vertical="center">
+                <IonFabButton Color="danger">
+                    <IonIcon Icon="@Ionicons.Add"></IonIcon>
+                </IonFabButton>
+            </IonFab>
+
+            <IonFab Horizontal="end" Vertical="bottom">
+                <IonFabButton Color="light">
+                    <IonIcon Icon="@Ionicons.CaretBack"></IonIcon>
+                </IonFabButton>
+                <IonFabList Side="start">
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoFacebook"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoTwitter"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoVimeo"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+            </IonFab>
+
+            <IonFab Horizontal="start" Vertical="bottom">
+                <IonFabButton Color="dark">
+                    <IonIcon Icon="@Ionicons.CaretUp"></IonIcon>
+                </IonFabButton>
+                <IonFabList Side="top">
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoFacebook"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoTwitter"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoVimeo"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoGoogle"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+            </IonFab>
+
+            <IonFab Horizontal="start" Vertical="top">
+                <IonFabButton Color="secondary">
+                    <IonIcon Icon="@Ionicons.CaretForward"></IonIcon>
+                </IonFabButton>
+                <IonFabList Side="end">
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoFacebook"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoTwitter"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoVimeo"></IonIcon>
+                    </IonFabButton>
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoGoogle"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+            </IonFab>
+
+            <IonFab Horizontal="center" Vertical="center">
+                <IonFabButton Color="light">
+                    <IonIcon Icon="@Ionicons.Share"></IonIcon>
+                </IonFabButton>
+                <IonFabList Side="top">
+                    <IonFabButton Color="primary">
+                        <IonIcon Icon="@Ionicons.LogoVimeo"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+                <IonFabList Side="end">
+                    <IonFabButton Color="dark">
+                        <IonIcon Icon="@Ionicons.LogoTwitter"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+                <IonFabList Side="bottom">
+                    <IonFabButton Color="secondary">
+                        <IonIcon Icon="@Ionicons.LogoFacebook"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+                <IonFabList Side="start">
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoGoogle"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+            </IonFab>
+
+            <IonFab Horizontal="center" Vertical="center">
+                <IonFabButton Color="light">
+                    <IonIcon Icon="@Ionicons.Share"></IonIcon>
+                </IonFabButton>
+                <IonFabList Side="top">
+                    <IonFabButton Color="primary">
+                        <IonIcon Icon="@Ionicons.LogoVimeo"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+                <IonFabList Side="end">
+                    <IonFabButton Color="dark">
+                        <IonIcon Icon="@Ionicons.LogoTwitter"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+                <IonFabList Side="bottom">
+                    <IonFabButton Color="secondary">
+                        <IonIcon Icon="@Ionicons.LogoFacebook"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+                <IonFabList Side="start">
+                    <IonFabButton Color="light">
+                        <IonIcon Icon="@Ionicons.LogoGoogle"></IonIcon>
+                    </IonFabButton>
+                </IonFabList>
+            </IonFab>
+        </Fixed>
+    </IonContent>
+</IonPage>
+@code {
+
+}

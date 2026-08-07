@@ -28,6 +28,13 @@ internal static class BadgeStyles
                 VerticalAlign = VerticalAlign.Baseline,
                 BorderRadius = new BorderRadius(Length.Px(t.BadgeBorderRadius)),
             },
+
+            // :host(:empty) — an empty badge is hidden (badge.scss). The tab button overrides
+            // this on md to render an 8x8 dot instead (see TabStyles).
+            [$".ion-badge.{mode}:empty"] = new()
+            {
+                Display = Display.None,
+            },
         };
 
         AddColor(css, mode, "primary", t.Primary, Color.White);

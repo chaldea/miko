@@ -66,19 +66,20 @@ internal static class ItemStyles
             },
 
             // Slot markers used by ion-item / ion-item-divider (the start/end RenderFragments).
-            // The leading marker gets a trailing gap; the trailing marker a leading gap, so slotted
-            // content (icons, notes, controls) does not butt against the label.
+            // Ionic gives ITEMS no generic slot gap — slotted elements carry their own margins
+            // (icons and avatars have per-mode slot margins in ListStyles; notes/toggles get
+            // margin 0) — so the item markers are plain flex boxes. The DIVIDER does have
+            // generic [slot] margins (item-divider.md.scss ::slotted([slot=…])), so its markers
+            // keep the 16px gap toward the label.
             [$".ion-item.{mode} .ion-slot-start"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
-                MarginRight = Length.Px(16),
             },
             [$".ion-item.{mode} .ion-slot-end"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
-                MarginLeft = Length.Px(16),
             },
             [$".ion-item-divider.{mode} .ion-slot-start"] = new()
             {

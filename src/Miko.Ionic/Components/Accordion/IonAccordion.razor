@@ -2,9 +2,9 @@
 @inherits IonicComponentBase
 @* Mirrors Ionic's <ion-accordion>:
    <ion-accordion class="{mode} accordion-expanded|collapsed accordion-disabled? ...">
-     <div id="header" part="header"> <slot name="header" /> </div>      <!-- HeaderSlot: an ion-item -->
+     <div id="header" part="header"> <slot name="header" /> </div>      <!-- Header: an ion-item -->
      <div id="content" part="content">
-       <div id="content-wrapper"> <slot name="content" /> </div>        <!-- ContentSlot -->
+       <div id="content-wrapper"> <slot name="content" /> </div>        <!-- Content -->
      </div>
    </ion-accordion>
    The header carries the click handler that requests a toggle from the enclosing group. Ionic slots
@@ -13,14 +13,14 @@
    cascaded value set. When collapsed the content is display:none (see AccordionStyles). *@
 <div class="@ClassMapper.Class" style="@Style">
     <div id="@_headerId" class="accordion-header" @onclick="ToggleExpandedAsync">
-        @HeaderSlot
+        @Header
         <span class="ion-accordion-toggle-icon accordion-toggle-icon-@_toggleIconSlot">
             <IonIcon Icon="@ToggleIcon" />
         </span>
     </div>
     <div id="@_contentId" class="accordion-content">
         <div class="accordion-content-wrapper">
-            @ContentSlot
+            @Content
         </div>
     </div>
 </div>
@@ -44,10 +44,10 @@
     [Parameter] public string? ToggleIconSlot { get; set; }
 
     /// <summary>The header row content (Ionic <c>slot="header"</c>), typically an <c>IonItem</c>.</summary>
-    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? Header { get; set; }
 
     /// <summary>The collapsible content (Ionic <c>slot="content"</c>).</summary>
-    [Parameter] public RenderFragment? ContentSlot { get; set; }
+    [Parameter] public RenderFragment? Content { get; set; }
 
     /// <summary>Selection/behavior state supplied by the enclosing <see cref="IonAccordionGroup"/>.</summary>
     [CascadingParameter] public IonAccordionGroupContext? GroupContext { get; set; }

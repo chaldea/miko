@@ -1,0 +1,107 @@
+@page "/datetime"
+
+@* NOTE: In Ionic, <ion-datetime-button datetime="start-date"> resolves the associated
+   <ion-datetime> by id and formats its value automatically. Miko has no live datetime
+   registry, so the host supplies DateText itself (formatted from the bound value). *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Date &amp; Time Picker</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <ComponentDetails Name="Datetime">
+            Datetime presents a calendar interface and time wheel, making it easy for users to select
+            dates and times. Datetimes are similar to the native input elements of datetime-local,
+            however, Ionic's Datetime component makes it easy to display the date and time in a
+            preferred format, and manage the datetime values.
+        </ComponentDetails>
+
+        <IonList Inset>
+            <IonItem>
+                <IonInput Placeholder="Title"></IonInput>
+            </IonItem>
+            <IonItem Lines="full">
+                <IonInput Placeholder="Location"></IonInput>
+            </IonItem>
+        </IonList>
+
+        <IonList Inset>
+            <IonAccordionGroup>
+                <IonAccordion Value="start">
+                    <Header>
+                        <IonItem Lines="inset">
+                            <End>
+                                <IonDatetimeButton Datetime="start-date" DateText="@FormatDate(_startDate)"></IonDatetimeButton>
+                            </End>
+                            <ChildContent>
+                                <IonLabel>Starts</IonLabel>
+                            </ChildContent>
+                        </IonItem>
+                    </Header>
+                    <Content>
+                        <IonDatetime Presentation="date" @bind-Value="_startDate"></IonDatetime>
+                    </Content>
+                </IonAccordion>
+
+                <IonAccordion Value="end">
+                    <Header>
+                        <IonItem Lines="inset">
+                            <End>
+                                <IonDatetimeButton Datetime="end-date" DateText="@FormatDate(_endDate)"></IonDatetimeButton>
+                            </End>
+                            <ChildContent>
+                                <IonLabel>Ends</IonLabel>
+                            </ChildContent>
+                        </IonItem>
+                    </Header>
+                    <Content>
+                        <IonDatetime Presentation="date" @bind-Value="_endDate"></IonDatetime>
+                    </Content>
+                </IonAccordion>
+            </IonAccordionGroup>
+
+            <IonItem>
+                <End>
+                    <IonNote>Never</IonNote>
+                </End>
+                <ChildContent>
+                    <IonLabel>Repeat</IonLabel>
+                </ChildContent>
+            </IonItem>
+            <IonItem>
+                <End>
+                    <IonNote>None</IonNote>
+                </End>
+                <ChildContent>
+                    <IonLabel>Travel Time</IonLabel>
+                </ChildContent>
+            </IonItem>
+            <IonItem>
+                <End>
+                    <IonNote>None</IonNote>
+                </End>
+                <ChildContent>
+                    <IonLabel>Alert</IonLabel>
+                </ChildContent>
+            </IonItem>
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+    private string? _startDate;
+    private string? _endDate;
+
+    private static string FormatDate(string? value)
+    {
+        return DateTime.TryParse(value, out var parsed)
+            ? parsed.ToString("MMM d, yyyy")
+            : "Select Date";
+    }
+}

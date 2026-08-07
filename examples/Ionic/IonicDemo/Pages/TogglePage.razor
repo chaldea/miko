@@ -1,0 +1,49 @@
+@page "/toggle"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Toggle</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            @foreach (var fruit in _fruits)
+            {
+                <IonItem>
+                    <IonToggle Name="@fruit.Name" Color="@fruit.Color" @bind-Checked="@fruit.Checked">
+                        @fruit.Label
+                    </IonToggle>
+                </IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+
+    private sealed class Fruit
+    {
+        public string Label { get; init; } = string.Empty;
+        public string Name { get; init; } = string.Empty;
+        public string? Color { get; init; }
+        public bool Checked { get; set; } = true;
+    }
+
+    private readonly List<Fruit> _fruits = new()
+    {
+        new() { Label = "Blueberry", Name = "blueberry" },
+        new() { Label = "Apple", Name = "apple", Color = "secondary" },
+        new() { Label = "Grape", Name = "grape", Color = "tertiary" },
+        new() { Label = "Kiwi", Name = "kiwi", Color = "success" },
+        new() { Label = "Orange", Name = "banana", Color = "warning" },
+        new() { Label = "Cherry", Name = "cherry", Color = "danger" },
+        new() { Label = "Banana", Name = "banana", Color = "light" },
+        new() { Label = "Cantaloupe", Name = "cantaloupe", Color = "medium" },
+        new() { Label = "Blackberry", Name = "blackberry", Color = "dark" },
+    };
+}

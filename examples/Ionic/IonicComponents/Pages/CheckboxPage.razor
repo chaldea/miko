@@ -3,54 +3,94 @@
 <h1>IonCheckbox</h1>
 
 <p>
-    Checkboxes allow the selection of multiple options from a set of options. They appear as checked (ticked) when activated. Clicking on a checkbox will toggle the checked property. They can also be checked programmatically by setting the checked property.
+    Checkboxes allow the selection of multiple options from a set of options. They appear as checked (ticked) when
+    activated. Clicking on a checkbox will toggle the checked property. They can also be checked programmatically by
+    setting the checked property.
 </p>
 
 <h2>Basic Usage</h2>
 
-<div class="playground">
-    <div class="playground-container">
-        <div class="container-row">
-            <IonCheckbox>I agree to the terms and conditions</IonCheckbox>
-            <IonCheckbox Checked="true">Checked</IonCheckbox>
-            <IonCheckbox Indeterminate="true">Indeterminate</IonCheckbox>
-            <IonCheckbox Disabled="true">Disabled</IonCheckbox>
-        </div>
-    </div>
-</div>
+<Playground Width="Percent(100)" Height="Px(200)">
+    <IonCheckbox>I agree to the terms and conditions</IonCheckbox>
+</Playground>
 
 <h2>Label Placement</h2>
 
 <p>
-    Developers can use the labelPlacement property to control how the label is placed relative to the control. This property mirrors the flexbox flex-direction property.
+    Developers can use the labelPlacement property to control how the label is placed relative to the control. This
+    property mirrors the flexbox flex-direction property.
 </p>
 
-<div class="playground">
-    <div class="playground-container">
-        <div class="container-row">
-            <IonCheckbox LabelPlacement="start">Label at the Start</IonCheckbox>
-            <IonCheckbox LabelPlacement="end">Label at the End</IonCheckbox>
-            <IonCheckbox LabelPlacement="fixed">Fixed Width Label</IonCheckbox>
-            <IonCheckbox LabelPlacement="stacked">Stacked Label</IonCheckbox>
-        </div>
-    </div>
-</div>
+<Playground Width="Px(200)" Height="Px(200)" Direction="FlexDirection.Column">
+    <IonCheckbox LabelPlacement="start">Label at the Start</IonCheckbox>
+    <br />
+    <IonCheckbox LabelPlacement="end">Label at the End</IonCheckbox>
+    <br />
+    <IonCheckbox LabelPlacement="fixed">Fixed Width Label</IonCheckbox>
+    <br />
+    <IonCheckbox LabelPlacement="stacked">Stacked Label</IonCheckbox>
+</Playground>
+
 
 <h2>Alignment</h2>
 
+<Playground Width="Px(200)" Height="Px(200)">
+    <IonList>
+        <IonItem>
+            <IonCheckbox LabelPlacement="stacked" Alignment="start">
+                Aligned to the Start
+            </IonCheckbox>
+        </IonItem>
+        <IonItem>
+            <IonCheckbox LabelPlacement="stacked" Alignment="center">
+                Aligned to the Center
+            </IonCheckbox>
+        </IonItem>
+    </IonList>
+</Playground>
+
+<h2>Justification</h2>
 <p>
-    Developers can use the alignment property to control how the label and control are aligned on the cross axis. This property mirrors the flexbox align-items property.
+    Developers can use the justify property to control how the label and control are packed on a line. This property
+    mirrors the flexbox justify-content property.
 </p>
 
-<div class="playground">
-    <div class="playground-container">
-        <div class="container-row">
-            <IonCheckbox LabelPlacement="stacked" Alignment="start">Start Alignment</IonCheckbox>
-            <IonCheckbox LabelPlacement="stacked" Alignment="center">Center Alignment</IonCheckbox>
-        </div>
-    </div>
-</div>
+<Playground Width="Percent(100)" Height="Px(200)">
+    <IonList>
+        <IonItem>
+            <IonCheckbox Justify="start">Packed at the Start of Line</IonCheckbox>
+        </IonItem>
 
+        <IonItem>
+            <IonCheckbox Justify="end">Packed at the End of Line</IonCheckbox>
+        </IonItem>
+
+        <IonItem>
+            <IonCheckbox Justify="space-between">Space Between Label and Control</IonCheckbox>
+        </IonItem>
+    </IonList>
+</Playground>
+
+<h2>Indeterminate Checkboxes</h2>
+<Playground Width="Percent(100)" Height="Px(200)">
+    <IonCheckbox Indeterminate>Indeterminate checkbox</IonCheckbox>
+</Playground>
+
+<h2>Links inside of Labels</h2>
+
+<p>
+    Checkbox labels can sometimes be accompanied with links. These links can provide more information related to the
+    checkbox. However, clicking the link should not check the checkbox. To achieve this, we can use stopPropagation to
+    prevent the click event from bubbling. When using this approach, the rest of the label still remains clickable.
+</p>
+<Playground Width="Percent(100)" Height="Px(200)">
+    <IonCheckbox>
+        I agree to the
+        <a>
+            terms and conditions
+        </a>
+    </IonCheckbox>
+</Playground>
 @code {
 
 }

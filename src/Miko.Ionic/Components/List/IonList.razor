@@ -1,5 +1,15 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@* Mirrors Ionic's <ion-list> host (list.tsx render()):
+   <ion-list class="{mode} list-{mode} [list-inset] [list-lines-{lines}] [list-{mode}-lines-{lines}]">
+     <slot />
+   </ion-list>
+   `lines` does not restyle items directly — Ionic stamps list-{mode}-lines-{lines} and the
+   stylesheet retargets only .item-lines-default items, so an item's own `lines` always wins
+   (list.md.scss: .list-md-lines-{lines} .item-lines-default).
+   For `inset`, Ionic removes the divider from the last item via :last-of-type custom-property
+   overrides; Miko has no :last-of-type, so Build() post-processes the subtree and stamps the
+   last item with item-last-in-list (same post-pass pattern as IonBreadcrumbs). *@
 <div class="@ClassMapper.Class" style="@Style" id="@Id">
     @ChildContent
 </div>
@@ -8,12 +18,41 @@
     /// <summary>Optional DOM id for the list (Ionic's <c>id</c> attribute, e.g. <c>"inbox-list"</c>).</summary>
     [Parameter] public string? Id { get; set; }
 
+    /// <summary>How the bottom border is displayed on all items (Ionic <c>lines</c>):
+    /// <c>"full"</c>, <c>"inset"</c>, or <c>"none"</c>. Applies only to items that do not set
+    /// their own <c>lines</c> — an item-level value takes priority (Ionic targets
+    /// <c>.item-lines-default</c> only).</summary>
+    [Parameter] public string? Lines { get; set; }
+
+    /// <summary>When true, the list gets margin around it and rounded corners, and the last
+    /// item's divider is removed (Ionic <c>inset</c>).</summary>
+    [Parameter] public bool Inset { get; set; }
+
     protected override void OnParametersSet()
     {
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
-            .Add("ion-list");
+            .Add("ion-list")
+            .Add($"list-{Mode}")
+            .If(Inset, "list-inset")
+            .AddValue(Lines, "list-lines-")
+            .AddValue(Lines, $"list-{Mode}-lines-");
+    }
+
+    /// <summary>
+    /// After the subtree is built, stamp the last item of an inset list so the stylesheet can
+    /// drop its divider — mirroring Ionic's <c>.list-{mode}.list-inset ion-item:last-of-type</c>
+    /// custom-property override (which Miko's selector set cannot express).
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        if (Inset && root.FindByClass("ion-item") is { Count: > 0 } items)
+        {
+            items[^1].Class += " item-last-in-list";
+        }
+        return root;
     }
 }

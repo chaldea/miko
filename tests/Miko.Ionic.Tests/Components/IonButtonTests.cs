@@ -345,6 +345,92 @@ public class IonButtonTests : IonicComponentTestBase
         nativeStyle.MinHeight.Value.ShouldBe(hostStyle.MinHeight.Value);
     }
 
+    // --- Slotted icon size follows the button size (issues/ion-button.md #6) ----------------
+    // Ionic sizes slotted icons via ::slotted(ion-icon) { font-size: 1.35em } (button.scss)
+    // combined with ion-icon's width/height: 1em (icon.scss). The 1.35em resolves against the
+    // inherited button font — which button-small / button-large change (md: 13/14/20px →
+    // 17.55/18.9/27px) — so start/end icons must scale with Size. The fixed base .ion-icon box
+    // (TabButtonIconSize) must not win inside a button.
+
+    private static ComponentUnderTest RenderSlotIconButton(TestContext ctx, bool start, string? size)
+        => ctx.Render<IonButton>(p =>
+        {
+            RenderFragment icon = b =>
+            {
+                b.OpenComponent<IonIcon>(0);
+                b.AddComponentParameter(1, nameof(IonIcon.Icon), "star");
+                b.CloseComponent();
+            };
+            p.Add(start ? nameof(IonButton.Start) : nameof(IonButton.End), icon);
+            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent(0, "Label")));
+            if (size is not null) p.Add(nameof(IonButton.Size), size);
+        });
+
+    [Theory]
+    [InlineData("small", 17.55f)] // 1.35 × md small font (13px)
+    [InlineData(null, 18.9f)]     // 1.35 × md default font (14px)
+    [InlineData("large", 27f)]    // 1.35 × md large font (20px)
+    public void IonButton_StartSlotIcon_ScalesWithButtonSize(string? size, float expected)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderSlotIconButton(Context, start: true, size);
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+
+        // The mechanism: font-size: 1.35em against the inherited button font…
+        cut.GetComputedStyle(icon)!.FontSize.Value.ShouldBe(expected, 0.01f);
+
+        // …and the rendered box is 1em of that (icon.scss width/height: 1em).
+        var box = cut.GetBoxModel(icon)!;
+        box.Content.Width.ShouldBe(expected, 0.01f);
+        box.Content.Height.ShouldBe(expected, 0.01f);
+    }
+
+    [Theory]
+    [InlineData("small", 17.55f)]
+    [InlineData(null, 18.9f)]
+    [InlineData("large", 27f)]
+    public void IonButton_EndSlotIcon_ScalesWithButtonSize(string? size, float expected)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderSlotIconButton(Context, start: false, size);
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+        var box = cut.GetBoxModel(icon)!;
+
+        box.Content.Width.ShouldBe(expected, 0.01f);
+        box.Content.Height.ShouldBe(expected, 0.01f);
+    }
+
+    [Fact]
+    public void IonButton_StartSlotIcon_ScalesWithButtonSize_Ios()
+    {
+        UsePlatform(Miko.Platform.HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderSlotIconButton(Context, start: true, size: null);
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+
+        // ios default button font is 16px → 1.35em = 21.6px icon.
+        cut.GetComputedStyle(icon)!.FontSize.Value.ShouldBe(21.6f, 0.01f);
+        cut.GetBoxModel(icon)!.Content.Width.ShouldBe(21.6f, 0.01f);
+    }
+
+    [Fact]
+    public void IonButton_IconOnlyIcon_KeepsExplicitSize_OverSlottedIconRule()
+    {
+        // The icon-only rules carry explicit px sizes at higher specificity, so the generic
+        // 1.35em slotted-icon rule must not leak onto the icon-only box.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderIconOnlyButton(Context);
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+        var box = cut.GetBoxModel(icon)!;
+
+        box.Content.Width.ShouldBe(22.4f, 0.01f);
+        box.Content.Height.ShouldBe(22.4f, 0.01f);
+    }
+
     [Fact]
     public void IonButton_OmitsSlotMarkers_WhenNoSlotContent()
     {
@@ -437,6 +523,84 @@ public class IonButtonTests : IonicComponentTestBase
 
         // md transforms the label to uppercase; iOS does not.
         style.TextTransform.ShouldBe(TextTransform.Uppercase);
+    }
+
+    // --- Hover (issues/ion-button.md #5) -------------------------------------------------
+    // Ionic paints hover as a semi-transparent overlay on .button-native::after
+    // (--background-hover at --background-hover-opacity). Miko has no ::after opacity layer, so
+    // ButtonStyles composites that wash onto the resolved fill and exposes it as a `:hover` rule.
+    // The hover state propagates up the hit chain, so hovering the surface flags the host too.
+
+    [Fact]
+    public void IonButton_SolidHover_LightensFill()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderButton(Context);
+        var native = cut.Root.Children[0];
+        var before = cut.GetComputedStyle(native)!.BackgroundColor;
+        before.ShouldBe(Color.FromHex("0054e9")); // primary base
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(hovered.Root.Children[0])!.BackgroundColor;
+
+        // 8% white overlay over primary — opaque, and lighter than the base on every channel.
+        after.A.ShouldBe((byte)255);
+        after.R.ShouldBeGreaterThan(before.R);
+        after.G.ShouldBeGreaterThan(before.G);
+        after.B.ShouldBeGreaterThan(before.B);
+    }
+
+    [Fact]
+    public void IonButton_OutlineHover_GetsFaintColorWash()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Fill), "outline"));
+        cut.GetComputedStyle(cut.Root.Children[0])!.BackgroundColor.ShouldBe(Color.Transparent);
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(hovered.Root.Children[0])!.BackgroundColor;
+
+        // 4% wash of the primary base over the transparent fill.
+        after.A.ShouldBe((byte)10); // 0.04 * 255
+        (after.R, after.G, after.B).ShouldBe(((byte)0x00, (byte)0x54, (byte)0xe9));
+    }
+
+    [Fact]
+    public void IonButton_ClearHover_GetsFaintColorWash()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Fill), "clear"));
+        cut.GetComputedStyle(cut.Root.Children[0])!.BackgroundColor.ShouldBe(Color.Transparent);
+
+        var hovered = Hover(cut.Root);
+        hovered.GetComputedStyle(hovered.Root.Children[0])!.BackgroundColor.A.ShouldBe((byte)10);
+    }
+
+    [Fact]
+    public void IonButton_ColoredSolidHover_LightensColorFill()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderButton(Context, p => p.Add(nameof(IonButton.Color), "danger"));
+        var before = cut.GetComputedStyle(cut.Root.Children[0])!.BackgroundColor;
+        before.ShouldBe(Color.FromHex("c5000f"));
+
+        var hovered = Hover(cut.Root);
+        var after = hovered.GetComputedStyle(hovered.Root.Children[0])!.BackgroundColor;
+
+        after.A.ShouldBe((byte)255);
+        after.ShouldNotBe(before); // tinted lighter than the danger base
+    }
+
+    /// <summary>Re-runs style resolution with <see cref="Miko.Core.ElementState.Hover"/> set on
+    /// the host (the hover state propagates up the hit chain in the live engine).</summary>
+    private ComponentUnderTest Hover(Element root)
+    {
+        root.SetState(Miko.Core.ElementState.Hover);
+        return Context.RenderElement(root);
     }
 
     // --- Interaction ---------------------------------------------------------------------

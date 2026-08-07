@@ -1,10 +1,16 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@* Mirrors Ionic's <ion-tabs> structure. Tab switching in Ionic is root-level navigation owned
+   by ion-tabs (it listens for tab-button clicks and calls the router with a root direction,
+   no page transition) — see issues/ion-animation. Miko wires this through a cascading value:
+   IonTabButton descendants receive this IonTabs instance and report clicks to SelectTab. *@
 <div class="@ClassMapper.Class" style="@Style">
     <div class="tabs-inner">
         @Content
     </div>
-    @Bar
+    <CascadingValue TValue="IonTabs" Value="this">
+        @Bar
+    </CascadingValue>
 </div>
 
 @code {
@@ -25,5 +31,18 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-tabs");
+    }
+
+    /// <summary>
+    /// Called by a nested <see cref="IonTabButton"/> when clicked. The default behavior is a
+    /// root-level navigation to the button's <see cref="IonTabButton.Href"/> — the history
+    /// stack is cleared and no page transition plays (mirrors Ionic's tab switching).
+    /// </summary>
+    internal void SelectTab(IonTabButton button)
+    {
+        if (!string.IsNullOrEmpty(button.Href) && Navigation is not null)
+        {
+            Navigation.NavigateTo(button.Href, NavigationDirection.Root);
+        }
     }
 }

@@ -57,13 +57,15 @@ internal static class CheckboxStyles
                 Display = Display.None,
             },
 
-            // .label-text-wrapper — the slotted label. One nowrap line, clipped (Miko has no
-            // text-overflow so overflow:hidden does the clipping).
+            // .label-text-wrapper — the slotted label. One nowrap line, clipped, with an
+            // ellipsis when the text overflows (checkbox.scss: text-overflow: ellipsis;
+            // white-space: nowrap; overflow: hidden).
             [$".ion-checkbox.{mode} .label-text-wrapper"] = new()
             {
                 WhiteSpace = WhiteSpace.Nowrap,
                 OverflowX = Overflow.Hidden,
                 OverflowY = Overflow.Hidden,
+                TextOverflow = TextOverflow.Ellipsis,
             },
 
             // Empty label — Ionic hides the wrapper entirely so it adds no margin.
@@ -146,33 +148,6 @@ internal static class CheckboxStyles
                 Color = t.SelectErrorColor,
             },
 
-            // Justify / alignment — setting either switches the host to block (Ionic's rule).
-            [$".ion-checkbox.{mode}.checkbox-justify-space-between .checkbox-wrapper"] = new()
-            {
-                JustifyContent = JustifyContent.SpaceBetween,
-            },
-            [$".ion-checkbox.{mode}.checkbox-justify-start .checkbox-wrapper"] = new()
-            {
-                JustifyContent = JustifyContent.FlexStart,
-            },
-            [$".ion-checkbox.{mode}.checkbox-justify-end .checkbox-wrapper"] = new()
-            {
-                JustifyContent = JustifyContent.FlexEnd,
-            },
-            [$".ion-checkbox.{mode}.checkbox-alignment-start .checkbox-wrapper"] = new()
-            {
-                AlignItems = AlignItems.FlexStart,
-            },
-            [$".ion-checkbox.{mode}.checkbox-alignment-center .checkbox-wrapper"] = new()
-            {
-                AlignItems = AlignItems.Center,
-            },
-            [$".ion-checkbox.{mode}.checkbox-justify-space-between"] = new() { Display = Display.Block },
-            [$".ion-checkbox.{mode}.checkbox-justify-start"] = new() { Display = Display.Block },
-            [$".ion-checkbox.{mode}.checkbox-justify-end"] = new() { Display = Display.Block },
-            [$".ion-checkbox.{mode}.checkbox-alignment-start"] = new() { Display = Display.Block },
-            [$".ion-checkbox.{mode}.checkbox-alignment-center"] = new() { Display = Display.Block },
-
             // Label placement — start (default): label left, box right, margin on the label end.
             [$".ion-checkbox.{mode}.checkbox-label-placement-start .checkbox-wrapper"] = new()
             {
@@ -185,10 +160,13 @@ internal static class CheckboxStyles
             },
 
             // Label placement — end: box left, label right (row-reverse), packed to the start.
+            // checkbox.scss writes `justify-content: start` here — the ABSOLUTE keyword. Under
+            // row-reverse, flex-start would mean the RIGHT edge and push the pair over; `start`
+            // keeps it on the left (LTR). See JustifyContent.Start.
             [$".ion-checkbox.{mode}.checkbox-label-placement-end .checkbox-wrapper"] = new()
             {
                 FlexDirection = FlexDirection.RowReverse,
-                JustifyContent = JustifyContent.FlexStart,
+                JustifyContent = JustifyContent.Start,
             },
             [$".ion-checkbox.{mode}.checkbox-label-placement-end .label-text-wrapper"] = new()
             {
@@ -225,6 +203,95 @@ internal static class CheckboxStyles
                 MarginBottom = Length.Px(16),
                 MaxWidth = Length.Percent(100),
             },
+
+            // Justify / alignment. These are declared AFTER the label-placement rules on purpose:
+            // checkbox.scss puts them last (lines 312/316 vs 229), and both selectors have the same
+            // specificity, so source order is what lets an explicit `justify` override the
+            // `justify-content` that label-placement-end sets for itself. Declaring them earlier
+            // (as this port originally did) meant Justify was silently ignored whenever
+            // LabelPlacement="end" was also set (ISSUE-116 problem 4).
+            //
+            // Keyword family matters too: Ionic writes `justify-content: start` / `end` — the
+            // ABSOLUTE (writing-mode relative) keywords, not flex-start/flex-end. They do not flip
+            // under row-reverse, so Justify="start" + LabelPlacement="end" keeps the pair on the
+            // left while the label still follows the box. See JustifyContent.Start.
+            [$".ion-checkbox.{mode}.checkbox-justify-space-between .checkbox-wrapper"] = new()
+            {
+                JustifyContent = JustifyContent.SpaceBetween,
+            },
+            [$".ion-checkbox.{mode}.checkbox-justify-start .checkbox-wrapper"] = new()
+            {
+                JustifyContent = JustifyContent.Start,
+            },
+            [$".ion-checkbox.{mode}.checkbox-justify-end .checkbox-wrapper"] = new()
+            {
+                JustifyContent = JustifyContent.End,
+            },
+            [$".ion-checkbox.{mode}.checkbox-alignment-start .checkbox-wrapper"] = new()
+            {
+                AlignItems = AlignItems.FlexStart,
+            },
+            [$".ion-checkbox.{mode}.checkbox-alignment-center .checkbox-wrapper"] = new()
+            {
+                AlignItems = AlignItems.Center,
+            },
+
+            // Setting either justify or alignment switches the host to block, so the wrapper has
+            // free main-axis space to distribute (an inline-block host shrink-wraps its content).
+            [$".ion-checkbox.{mode}.checkbox-justify-space-between"] = new() { Display = Display.Block },
+            [$".ion-checkbox.{mode}.checkbox-justify-start"] = new() { Display = Display.Block },
+            [$".ion-checkbox.{mode}.checkbox-justify-end"] = new() { Display = Display.Block },
+            [$".ion-checkbox.{mode}.checkbox-alignment-start"] = new() { Display = Display.Block },
+            [$".ion-checkbox.{mode}.checkbox-alignment-center"] = new() { Display = Display.Block },
+
+            // In-item (checkbox.scss `:host(.in-item)`, mirroring `hostContext('ion-item')` via a
+            // descendant selector): the host stretches to fill the item's content area so
+            // justify / alignment have free space to work with. Slotted start/end checkboxes
+            // reset to content size (`:host([slot="start"]/["end"])`).
+            [$".ion-item.{mode} .ion-checkbox.{mode}"] = new()
+            {
+                FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = Length.Px(0),
+                Width = Length.Percent(100),
+                Height = Length.Percent(100),
+            },
+            [$".ion-item.{mode} .ion-slot-start .ion-checkbox.{mode}"] = new()
+            {
+                FlexGrow = 0,
+                FlexBasis = Length.Auto,
+                Width = Length.Auto,
+            },
+            [$".ion-item.{mode} .ion-slot-end .ion-checkbox.{mode}"] = new()
+            {
+                FlexGrow = 0,
+                FlexBasis = Length.Auto,
+                Width = Length.Auto,
+            },
+
+            // In-item vertical rhythm (`$checkbox-item-label-margin-top/bottom` = 10px): the label
+            // and the box get 10px top/bottom margins; stacked swaps the label's bottom margin for
+            // `$form-control-label-margin` (16px) and drops the box's top margin.
+            [$".ion-item.{mode} .ion-checkbox.{mode} .label-text-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(10),
+            },
+            [$".ion-item.{mode} .ion-checkbox.{mode} .native-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(10),
+            },
+            [$".ion-item.{mode} .ion-checkbox.{mode}.checkbox-label-placement-stacked .label-text-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(16),
+            },
+            [$".ion-item.{mode} .ion-checkbox.{mode}.checkbox-label-placement-stacked .native-wrapper"] = new()
+            {
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Px(10),
+            },
         };
 
         // Disabled: ios dims the whole host; md dims only the label + box wrappers.
@@ -252,6 +319,53 @@ internal static class CheckboxStyles
             };
         }
 
+        // Named palette colors (checkbox.scss `:host(.ion-color)`), which redefine three custom
+        // properties: --checkbox-background-checked and --border-color-checked to current-color(base),
+        // and --checkmark-color to current-color(contrast). Miko has no CSS custom properties here,
+        // so the vars are resolved at authoring time into the rules that consume them — the checked/
+        // indeterminate fill + border, and the checkmark tint. Without these the `color` attribute
+        // stamped an ion-color-* class that no rule matched, making Color a no-op (ISSUE-116
+        // problem 5).
+        AddColor(css, mode, "primary", t.Primary, Color.FromHex("ffffff"));
+        AddColor(css, mode, "secondary", t.Secondary, Color.FromHex("ffffff"));
+        AddColor(css, mode, "tertiary", t.Tertiary, Color.FromHex("ffffff"));
+        AddColor(css, mode, "success", t.Success, Color.FromHex("000000"));
+        AddColor(css, mode, "warning", t.Warning, Color.FromHex("000000"));
+        AddColor(css, mode, "danger", t.Danger, Color.FromHex("ffffff"));
+        AddColor(css, mode, "light", t.Light, Color.FromHex("000000"));
+        AddColor(css, mode, "medium", t.Medium, Color.FromHex("ffffff"));
+        AddColor(css, mode, "dark", t.Dark, Color.FromHex("ffffff"));
+
         return css;
+    }
+
+    /// <summary>
+    /// Emits one named-color variant: the checked/indeterminate box takes the palette base as its
+    /// fill and border, and the checkmark takes the palette contrast. Mirrors the three vars Ionic
+    /// overrides in <c>:host(.ion-color)</c>.
+    /// <para>
+    /// The selectors carry the state class (<c>.checkbox-checked</c> / <c>.checkbox-indeterminate</c>)
+    /// so they out-specify the unchecked defaults AND the equally-shaped uncolored checked rules
+    /// above — an <c>.ion-color-*</c> compound is one class more specific, so it wins regardless of
+    /// source order.
+    /// </para>
+    /// </summary>
+    private static void AddColor(CssObject css, string mode, string name, Color baseColor, Color contrast)
+    {
+        css[$".ion-checkbox.{mode}.ion-color-{name}.checkbox-checked .checkbox-icon"] = new()
+        {
+            BorderColor = baseColor,
+            BackgroundColor = baseColor,
+        };
+        css[$".ion-checkbox.{mode}.ion-color-{name}.checkbox-indeterminate .checkbox-icon"] = new()
+        {
+            BorderColor = baseColor,
+            BackgroundColor = baseColor,
+        };
+        // --checkmark-color: the glyph is a template background image tinted by the computed Color.
+        css[$".ion-checkbox.{mode}.ion-color-{name} .checkbox-icon-mark"] = new()
+        {
+            Color = contrast,
+        };
     }
 }

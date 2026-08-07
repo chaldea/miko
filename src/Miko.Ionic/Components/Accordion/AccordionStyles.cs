@@ -67,10 +67,60 @@ internal static class AccordionStyles
                 Cursor = Cursor.Pointer,
             },
 
+            // Hover wash across the header row. In Ionic the wash is not the accordion's own:
+            // accordion.tsx setItemDefaults() sets `ionItem.button = true`, so the slotted header
+            // item becomes ion-activatable and paints ITS hover overlay
+            // (.ion-item.ion-activatable:hover .item-native — see ListStyles). Ionic also slots the
+            // toggle icon INSIDE that item, so the overlay covers the whole row including the
+            // chevron. This port renders the icon as a sibling of the item inside .accordion-header,
+            // so putting the wash on the header (rather than stamping the item activatable) is what
+            // actually covers the same area. Same value as the item's overlay: the row's text color
+            // at 4%.
+            [$".ion-accordion.{mode} .accordion-header:hover"] = new()
+            {
+                BackgroundColor = WithAlpha(t.ItemColor, 10), // --background-hover: currentColor @ .04
+            },
+
             // The slotted header item fills the header row (so the toggle icon can sit beside it).
             [$".ion-accordion.{mode} .accordion-header .ion-item"] = new()
             {
                 FlexGrow = 1,
+            },
+
+            // Collapsed accordion: the header item's divider spans the WHOLE row. Ionic's
+            // accordion.tsx setItemDefaults() defaults the slotted header item to lines="full"
+            // (`if (ionItem.lines === undefined) ionItem.lines = 'full'`), which moves the border
+            // off .item-inner (inset, indented by the leading padding) onto the full-width
+            // .item-native. Retargeting only .item-lines-default mirrors the `=== undefined`
+            // guard — an explicit `Lines` on the header item still wins (same pattern as the
+            // list-level lines rules in ListStyles).
+            [$".ion-accordion.{mode}.accordion-collapsed .accordion-header .ion-item.item-lines-default .item-native"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, t.ItemBorderColor),
+            },
+            [$".ion-accordion.{mode}.accordion-collapsed .accordion-header .ion-item.item-lines-default .item-inner"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+
+            // Expanded/expanding accordion: the header item shows NO border at all. Ionic's
+            // accordion.scss :host(.accordion-expanding/.accordion-expanded) ::slotted(ion-item[slot="header"])
+            // zeroes --border-width (on native) AND --inner-border-width.
+            [$".ion-accordion.{mode}.accordion-expanded .accordion-header .ion-item .item-native"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            [$".ion-accordion.{mode}.accordion-expanded .accordion-header .ion-item .item-inner"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            [$".ion-accordion.{mode}.accordion-expanding .accordion-header .ion-item .item-native"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            [$".ion-accordion.{mode}.accordion-expanding .accordion-header .ion-item .item-inner"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
             },
 
             // .accordion-content — the collapsible region; hidden entirely when collapsed.
@@ -86,11 +136,15 @@ internal static class AccordionStyles
             },
 
             // .ion-accordion-toggle-icon — the chevron; rotates 180° when the panel is expanded.
+            // Ionic injects the icon into ion-item's end slot, so it benefits from .item-inner's
+            // padding-right (16px = --inner-padding-end). In Miko the icon wrapper sits outside
+            // .item-inner in the flex row, so we replicate that spacing with an explicit right margin.
             [$".ion-accordion.{mode} .ion-accordion-toggle-icon"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.Center,
+                MarginRight = Length.Px(t.ItemPaddingEnd), // mirrors --inner-padding-end (16px)
             },
             [$".ion-accordion.{mode} .ion-accordion-toggle-icon .ion-icon"] = new()
             {
@@ -148,4 +202,6 @@ internal static class AccordionStyles
 
         return css;
     }
+
+    private static Color WithAlpha(Color c, byte alpha) => new(c.R, c.G, c.B, alpha);
 }

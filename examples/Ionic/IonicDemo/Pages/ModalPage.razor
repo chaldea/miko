@@ -1,0 +1,53 @@
+@page "/modal"
+
+@* NOTE: Ionic creates the modal imperatively via modalController.create({ component }) and
+   resolves the content by component tag. Miko's IonModal is declarative — the host binds IsOpen
+   and the content is written inline. The card-modal variant uses `Presenting`, and the sheet
+   variant uses Breakpoints / InitialBreakpoint. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Modal</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <ComponentDetails Name="Modal">
+            The Modal is a dialog that appears on top of the app's content, and must be dismissed by
+            the user before interaction can resume. It is useful as a select component when there are
+            a lot of options to choose from, or when filtering items in a list, as well as many other
+            use cases.
+        </ComponentDetails>
+
+        <div class="ion-padding-start ion-padding-end">
+            <IonButton Expand="block" OnClick="@(() => _isDefaultOpen = true)">Open Modal</IonButton>
+            <IonButton Class="ion-text-wrap" Expand="block" OnClick="@(() => _isCardOpen = true)">Open Card Modal</IonButton>
+            <IonButton Class="ion-text-wrap" Expand="block" OnClick="@(() => _isSheetOpen = true)">Open Sheet Modal</IonButton>
+        </div>
+
+        <IonModal IsOpen="@_isDefaultOpen" IsOpenChanged="@(open => _isDefaultOpen = open)">
+            <ModalContacts OnDismiss="@(() => _isDefaultOpen = false)"></ModalContacts>
+        </IonModal>
+
+        <IonModal IsOpen="@_isCardOpen" IsOpenChanged="@(open => _isCardOpen = open)" Presenting="@this">
+            <ModalContacts OnDismiss="@(() => _isCardOpen = false)"></ModalContacts>
+        </IonModal>
+
+        <IonModal IsOpen="@_isSheetOpen"
+                  IsOpenChanged="@(open => _isSheetOpen = open)"
+                  Breakpoints="@(new double[] { 0, 0.2, 0.5, 1 })"
+                  InitialBreakpoint="0.2">
+            <ModalContacts OnDismiss="@(() => _isSheetOpen = false)"></ModalContacts>
+        </IonModal>
+    </IonContent>
+</IonPage>
+@code {
+    private bool _isDefaultOpen;
+    private bool _isCardOpen;
+    private bool _isSheetOpen;
+}

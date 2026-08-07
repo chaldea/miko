@@ -5,3 +5,56 @@
 <p>
     Label is an element used primarily to add text content to Item components. Label can also be used inside of form control components such as Input or Radio when specifying the visible label, but it is not required.
 </p>
+
+<p>
+    The position of the label inside of an item can be inline, fixed, stacked, or floating.
+</p>
+
+<h2>Basic Usage</h2>
+
+<Playground Width="Percent(100)" Height="Px(200)">
+    <IonLabel>Label</IonLabel>
+</Playground>
+
+<h2>Item Labels</h2>
+<Playground Width="Percent(100)" Height="Px(400)" Display="Display.Block">
+    <IonItem>
+        <IonLabel>Default Label</IonLabel>
+    </IonItem>
+
+    <IonItem>
+        <IonLabel>
+            Multi-line text that should ellipsis when it is too long to fit on one line. Lorem ipsum dolor sit amet,
+            consectetur adipiscing elit.
+        </IonLabel>
+    </IonItem>
+
+    <IonItem>
+        <IonLabel Class="ion-text-wrap">
+            Multi-line text that should wrap when it is too long to fit on one line. Lorem ipsum dolor sit amet,
+            consectetur adipiscing elit.
+        </IonLabel>
+    </IonItem>
+
+    <IonItem>
+        <IonLabel Class="sc-ion-label-md-s">
+            <h1>Heading</h1>
+            <p>Paragraph</p>
+        </IonLabel>
+    </IonItem>
+</Playground>
+
+<h2>Theming</h2>
+<h3>Colors</h3>
+<Playground Width="Percent(100)" Height="Px(200)">
+    <IonLabel>Default</IonLabel>
+    <IonLabel Color="primary">Primary</IonLabel>
+    <IonLabel Color="secondary">Secondary</IonLabel>
+    <IonLabel Color="tertiary">Tertiary</IonLabel>
+    <IonLabel Color="success">Success</IonLabel>
+    <IonLabel Color="warning">Warning</IonLabel>
+    <IonLabel Color="danger">Danger</IonLabel>
+    <IonLabel Color="light">Light</IonLabel>
+    <IonLabel Color="medium">Medium</IonLabel>
+    <IonLabel Color="dark">Dark</IonLabel>
+</Playground>            

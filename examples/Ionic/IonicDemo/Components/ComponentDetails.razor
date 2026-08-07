@@ -1,0 +1,26 @@
+@namespace IonicDemo.Components
+@inherits IonicComponentBase
+
+<IonList Class="component-detail">
+    <IonItem Lines="full">
+        <IonLabel Class="component-description">
+            <span>@ChildContent</span>
+        </IonLabel>
+    </IonItem>
+
+    <IonItem>
+        <IonLabel Color="primary">
+            @Name API Docs
+        </IonLabel>
+    </IonItem>
+
+    <IonItem Lines="full">
+        <IonLabel Color="primary">
+            UI Component Docs
+        </IonLabel>
+    </IonItem>
+</IonList>
+
+@code {
+    [Parameter] public string? Name { get; set; }
+}

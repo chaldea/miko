@@ -3,7 +3,9 @@
 <h1>IonButton</h1>
 
 <p>
-    Buttons provide a clickable element, which can be used in forms, or anywhere that needs simple, standard button functionality. They may display text, icons, or both. Buttons can be styled with several attributes to look a specific way.
+    Buttons provide a clickable element, which can be used in forms, or anywhere that needs simple, standard button
+    functionality. They may display text, icons, or both. Buttons can be styled with several attributes to look a
+    specific way.
 </p>
 
 <h2>Basic Usage</h2>
@@ -16,7 +18,8 @@
 <h2>Expand</h2>
 
 <p>
-    This property lets you specify how wide the button should be. By default, buttons have display: inline-block, but setting this property will change the button to a full-width element with display: block.
+    This property lets you specify how wide the button should be. By default, buttons have display: inline-block, but
+    setting this property will change the button to a full-width element with display: block.
 </p>
 
 <Playground Width="Percent(100)" Height="Px(200)" Direction="FlexDirection.Column" Stretch>
@@ -27,24 +30,30 @@
 <h2>Shape</h2>
 
 <p>
-    This property lets you specify the shape of the button. By default, buttons are rectangular with a small border radius, but setting this to "round" will change the button to a rounded element.
+    This property lets you specify the shape of the button. By default, buttons are rectangular with a small border
+    radius, but setting this to "round" will change the button to a rounded element.
 </p>
 
 <Playground Height="Px(200)">
     <IonButton>Default</IonButton>
     <IonButton Shape="round">Round</IonButton>
     <IonButton>
-        <IconOnly><IonIcon Icon="@Ionicons.Heart"></IonIcon></IconOnly>
+        <IconOnly>
+            <IonIcon Icon="@Ionicons.Heart"></IonIcon>
+        </IconOnly>
     </IonButton>
     <IonButton Shape="round">
-        <IconOnly><IonIcon Icon="@Ionicons.Heart"></IonIcon></IconOnly>
+        <IconOnly>
+            <IonIcon Icon="@Ionicons.Heart"></IonIcon>
+        </IconOnly>
     </IonButton>
 </Playground>
 
 <h2>Fill</h2>
 
 <p>
-    This property determines the background and border color of the button. By default, buttons have a solid background unless the button is inside of a toolbar, in which case it has a transparent background.
+    This property determines the background and border color of the button. By default, buttons have a solid background
+    unless the button is inside of a toolbar, in which case it has a transparent background.
 </p>
 
 <Playground Height="Px(200)">
@@ -56,7 +65,8 @@
 
 <h2>Size</h2>
 <p>
-    This property specifies the size of the button. Setting this property will change the height and padding of a button.
+    This property specifies the size of the button. Setting this property will change the height and padding of a
+    button.
 </p>
 
 <Playground Height="Px(200)">
@@ -67,8 +77,80 @@
 
 <h2>Icons</h2>
 
-<Playground Height="Px(200)">
+<Playground Width="Percent(100)" Height="Px(200)" Columns="3" Rows="3">
     <IonButton Size="small">
-        <IonIcon Slot="icon-only" Icon="@Ionicons.SettingsSharp" />
+        <IconOnly>
+            <IonIcon Icon="@Ionicons.SettingsSharp" />
+        </IconOnly>
     </IonButton>
+
+    <IonButton>
+        <IconOnly>
+            <IonIcon Icon="@Ionicons.SettingsSharp" />
+        </IconOnly>
+    </IonButton>
+
+    <IonButton Size="large">
+        <IconOnly>
+            <IonIcon Icon="@Ionicons.SettingsSharp" />
+        </IconOnly>
+    </IonButton>
+
+    <IonButton Size="small">
+        <Start>
+            <IonIcon Icon="@Ionicons.Star" />
+        </Start>
+        <ChildContent>Left Icon</ChildContent>
+    </IonButton>
+
+    <IonButton>
+        <Start>
+            <IonIcon Icon="@Ionicons.Star" />
+        </Start>
+        <ChildContent>Left Icon</ChildContent>
+    </IonButton>
+
+    <IonButton Size="large">
+        <Start>
+            <IonIcon Icon="@Ionicons.Star" />
+        </Start>
+        <ChildContent>Left Icon</ChildContent>
+    </IonButton>
+    
+    <IonButton Size="small">
+        <End>
+            <IonIcon Icon="@Ionicons.Heart" />
+        </End>
+        <ChildContent>Right Icon</ChildContent>
+    </IonButton>
+
+    <IonButton>
+        <End>
+            <IonIcon Icon="@Ionicons.Heart" />
+        </End>
+        <ChildContent>Right Icon</ChildContent>
+    </IonButton>
+
+    <IonButton Size="large">
+        <End>
+            <IonIcon Icon="@Ionicons.Heart" />
+        </End>
+        <ChildContent>Right Icon</ChildContent>
+    </IonButton>
+</Playground>
+
+<h2>Theming</h2>
+<h3>Colors</h3>
+
+<Playground Width="Px(380)" Height="Px(200)" Wrap>
+    <IonButton>Default</IonButton>
+    <IonButton Color="primary">Primary</IonButton>
+    <IonButton Color="secondary">Secondary</IonButton>
+    <IonButton Color="tertiary">Tertiary</IonButton>
+    <IonButton Color="success">Success</IonButton>
+    <IonButton Color="warning">Warning</IonButton>
+    <IonButton Color="danger">Danger</IonButton>
+    <IonButton Color="light">Light</IonButton>
+    <IonButton Color="medium">Medium</IonButton>
+    <IonButton Color="dark">Dark</IonButton>
 </Playground>

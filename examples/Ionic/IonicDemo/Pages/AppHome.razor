@@ -1,0 +1,37 @@
+@page "/"
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <IonTitle>Ionic Framework</IonTitle>
+        </IonToolbar>
+    </IonHeader>
+        
+    <IonContent Fullscreen>
+        <IonList Lines="full">
+            <IonItem>
+                <Start><IonIcon Icon="@Ionicons.Moon"></IonIcon></Start>
+                <ChildContent>
+                    <IonToggle>Dark Mode</IonToggle>
+                </ChildContent>
+            </IonItem>
+        </IonList>
+            
+        <IonList>
+            @foreach (var component in ComponentService.GetComponents())
+            {
+                <IonItem Href="@component.Router">
+                    <Start>
+                        <IonIcon Icon="@component.Icon" Class="component-icon component-icon-primary"></IonIcon>
+                    </Start>
+                    <ChildContent>
+                        @component.Name
+                    </ChildContent>
+                </IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+
+@code {
+    [Inject] public ComponentService ComponentService { get; set; }
+}

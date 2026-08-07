@@ -71,7 +71,10 @@ internal static class BackButtonStyles
         // .button-native — the clickable surface (back-button.scss .button-native).
         css[".ion-back-button.ios .button-native"] = new()
         {
-            Display = Display.Block,
+            // 不要依赖于UA样式居中，改为flex
+            Display = Display.Flex,
+            JustifyContent = JustifyContent.Center,
+            AlignItems = AlignItems.Center,
             Position = Position.Relative,
             Width = Length.Percent(100),
             Height = Length.Percent(100),
@@ -147,11 +150,14 @@ internal static class BackButtonStyles
         // .button-native — the clickable surface (back-button.scss .button-native).
         css[".ion-back-button.md .button-native"] = new()
         {
-            Display = Display.Block,
+            // 不要依赖于UA样式居中，改为flex
+            Display = Display.Flex,
+            JustifyContent = JustifyContent.Center,
+            AlignItems = AlignItems.Center,
             Position = Position.Relative,
             Width = Length.Percent(100),
             Height = Length.Percent(100),
-            MinHeight = Length.Px(32),
+            MinHeight = Inherit,
             PaddingLeft = Length.Px(12),
             PaddingRight = Length.Px(12),
             BorderRadius = new BorderRadius(Length.Px(4)),
@@ -160,6 +166,7 @@ internal static class BackButtonStyles
             LineHeight = Length.Number(1),
             Cursor = Cursor.Pointer,
             Overflow = Overflow.Visible,
+            UserSelect = UserSelect.None,
             ZIndex = 0,
         };
 

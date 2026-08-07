@@ -293,6 +293,142 @@ public class IonAlertTests : IonicComponentTestBase
         invoked.ShouldBeFalse();
     }
 
+    // ---- Layout (ISSUE-115) ------------------------------------------------
+
+    /// <summary>
+    /// Renders with the real Ionic stylesheet so the box model reflects the ported CSS.
+    /// </summary>
+    private ComponentUnderTest RenderStyledAlert(int buttonCount)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        return Context.Render<IonAlert>(p =>
+        {
+            p.Add(nameof(IonAlert.IsOpen), true);
+            p.Add(nameof(IonAlert.Header), "A Short Title Is Best");
+            p.Add(nameof(IonAlert.Message), "A message should be a short, complete sentence.");
+            p.Add(nameof(IonAlert.Buttons), (IReadOnlyList<IonAlertButton>)Enumerable
+                .Range(0, buttonCount)
+                .Select(i => IonAlertButton.FromText($"Button{i}"))
+                .ToList());
+        });
+    }
+
+    /// <summary>
+    /// The wrapper is a shrink-to-fit flex item clamped by max-width; its auto-width children
+    /// (head / message / button group) must stay inside it rather than growing to the text's
+    /// max-content width (ISSUE-115 problem 1).
+    /// </summary>
+    [Fact]
+    public void IonAlert_WrapperChildren_StayWithinMaxWidth()
+    {
+        var cut = RenderStyledAlert(buttonCount: 1);
+
+        var wrapper = cut.FindByClass("alert-wrapper").ShouldHaveSingleItem();
+        var wrapperBox = cut.GetBoxModel(wrapper).ShouldNotBeNull();
+        // $alert-md-max-width.
+        wrapperBox.BorderBox.Width.ShouldBe(280f, 0.5f);
+
+        foreach (var cls in new[] { "alert-head", "alert-message", "alert-button-group" })
+        {
+            var box = cut.GetBoxModel(cut.FindByClass(cls).ShouldHaveSingleItem()).ShouldNotBeNull();
+            box.BorderBox.Width.ShouldBe(wrapperBox.BorderBox.Width, 0.5f,
+                $"{cls} should fill — not overflow — the clamped wrapper");
+            box.BorderBox.Right.ShouldBeLessThanOrEqualTo(wrapperBox.BorderBox.Right + 0.5f);
+        }
+    }
+
+    /// <summary>
+    /// md right-aligns the button group ($alert-md-button-group-justify-content: flex-end), so a
+    /// single button sits at the group's right edge, inset only by the group's 8px padding
+    /// (ISSUE-115 problem 2).
+    /// </summary>
+    [Fact]
+    public void IonAlert_MdButtons_AreRightAligned()
+    {
+        var cut = RenderStyledAlert(buttonCount: 1);
+
+        var groupBox = cut.GetBoxModel(cut.FindByClass("alert-button-group").ShouldHaveSingleItem())
+            .ShouldNotBeNull();
+        var buttonBox = cut.GetBoxModel(cut.FindByClass("alert-button").ShouldHaveSingleItem())
+            .ShouldNotBeNull();
+
+        // The margin box (not the border box) is what flex-end aligns; md buttons carry an 8px
+        // $alert-md-button-margin-end.
+        buttonBox.MarginBox.Right.ShouldBe(groupBox.Content.Right, 0.5f);
+        // Not flush against the left edge, which is what the pre-fix layout produced.
+        buttonBox.BorderBox.X.ShouldBeGreaterThan(groupBox.Content.X + 1f);
+    }
+
+    /// <summary>
+    /// Two md buttons keep document order left-to-right while the pair as a whole is right-aligned.
+    /// </summary>
+    [Fact]
+    public void IonAlert_MdTwoButtons_AreRightAlignedInOrder()
+    {
+        var cut = RenderStyledAlert(buttonCount: 2);
+
+        var groupBox = cut.GetBoxModel(cut.FindByClass("alert-button-group").ShouldHaveSingleItem())
+            .ShouldNotBeNull();
+        var buttons = cut.FindByClass("alert-button");
+        buttons.Count.ShouldBe(2);
+
+        var first = cut.GetBoxModel(buttons[0]).ShouldNotBeNull();
+        var last = cut.GetBoxModel(buttons[1]).ShouldNotBeNull();
+
+        first.BorderBox.X.ShouldBeLessThan(last.BorderBox.X);
+        last.MarginBox.Right.ShouldBe(groupBox.Content.Right, 0.5f);
+        first.BorderBox.X.ShouldBeGreaterThan(groupBox.Content.X + 1f);
+    }
+
+    /// <summary>
+    /// The vertical group (&gt;2 buttons) stacks full-width rows inside the clamped wrapper.
+    /// </summary>
+    [Fact]
+    public void IonAlert_VerticalButtonGroup_StacksFullWidthRows()
+    {
+        var cut = RenderStyledAlert(buttonCount: 3);
+
+        var groupBox = cut.GetBoxModel(cut.FindByClass("alert-button-group").ShouldHaveSingleItem())
+            .ShouldNotBeNull();
+        var buttons = cut.FindByClass("alert-button");
+        buttons.Count.ShouldBe(3);
+
+        var boxes = buttons.Select(b => cut.GetBoxModel(b).ShouldNotBeNull()).ToList();
+        foreach (var box in boxes)
+        {
+            // Stretched to the group's full cross size; the margin box (border box + the 8px
+            // $alert-md-button-margin-end) is what spans it.
+            box.MarginBox.Width.ShouldBe(groupBox.Content.Width, 0.5f);
+            box.BorderBox.Right.ShouldBeLessThanOrEqualTo(groupBox.Content.Right + 0.5f);
+        }
+        // Stacked, not overlapping: each row starts below the previous one.
+        boxes[1].BorderBox.Y.ShouldBeGreaterThan(boxes[0].BorderBox.Y);
+        boxes[2].BorderBox.Y.ShouldBeGreaterThan(boxes[1].BorderBox.Y);
+    }
+
+    /// <summary>ios centers the button group; two buttons split the wrapper edge to edge.</summary>
+    [Fact]
+    public void IonAlert_IosTwoButtons_SplitWrapperWidth()
+    {
+        UsePlatform(HostPlatform.Ios);
+
+        var cut = RenderStyledAlert(buttonCount: 2);
+
+        var wrapperBox = cut.GetBoxModel(cut.FindByClass("alert-wrapper").ShouldHaveSingleItem())
+            .ShouldNotBeNull();
+        var buttons = cut.FindByClass("alert-button");
+        var first = cut.GetBoxModel(buttons[0]).ShouldNotBeNull();
+        var last = cut.GetBoxModel(buttons[1]).ShouldNotBeNull();
+
+        // $alert-ios-max-width.
+        wrapperBox.BorderBox.Width.ShouldBe(270f, 0.5f);
+        first.BorderBox.X.ShouldBe(wrapperBox.Content.X, 0.5f);
+        last.BorderBox.Right.ShouldBe(wrapperBox.Content.Right, 0.5f);
+        // Equal halves, and adjacent (the hairline divider sits between them).
+        first.BorderBox.Width.ShouldBe(last.BorderBox.Width, 0.5f);
+        last.BorderBox.X.ShouldBe(first.BorderBox.Right, 0.5f);
+    }
+
     // ---- Mode --------------------------------------------------------------
 
     [Fact]

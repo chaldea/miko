@@ -14,6 +14,23 @@ public class IonItemDividerTests : IonicComponentTestBase
     };
 
     [Fact]
+    public void IonItemDivider_SlottedButton_DefaultsToSmall_WhenSizeUnset()
+    {
+        var cut = Context.Render<IonItemDivider>(parameters =>
+            parameters.Add(nameof(IonItemDivider.ChildContent), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonButton>(0);
+                builder.AddComponentParameter(1, nameof(IonButton.ChildContent),
+                    (RenderFragment)(b => b.AddContent(0, "OK")));
+                builder.CloseComponent();
+            })));
+
+        // button.tsx: inItem = closest('ion-item') || closest('ion-item-divider') — the divider
+        // also defaults slotted buttons to small.
+        cut.FindByClass("ion-button").Single().ShouldHaveClass("button-small");
+    }
+
+    [Fact]
     public void IonItemDivider_RendersWithCorrectClass()
     {
         var cut = Context.Render<IonItemDivider>(parameters =>

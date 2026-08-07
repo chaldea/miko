@@ -1,0 +1,78 @@
+@page "/picker"
+
+@* NOTE: the original demo opens the second picker via <ion-modal trigger="open-picker"> and
+   dismisses it through document.querySelector('ion-modal').dismiss(). Miko's IonModal is
+   declarative — the host binds IsOpen instead. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Picker</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <ComponentDetails Name="Picker">
+            The Picker is a dialog that displays columns with options in each column. It appears
+            inline with your page content, but it can also be displayed over your content by using
+            a Modal or a Popover.
+        </ComponentDetails>
+
+        <div class="ion-padding-start ion-padding-end">
+            <IonPicker>
+                <IonPickerColumn @bind-Value="_pet">
+                    @foreach (var option in _pets)
+                    {
+                        <IonPickerColumnOption Value="@option">@option</IonPickerColumnOption>
+                    }
+                </IonPickerColumn>
+            </IonPicker>
+
+            <IonButton Class="ion-text-wrap" Expand="block" OnClick="@(() => _isModalOpen = true)">
+                Open Picker in a Modal
+            </IonButton>
+
+            <IonModal IsOpen="@_isModalOpen" IsOpenChanged="@(open => _isModalOpen = open)">
+                <IonToolbar>
+                    <Start>
+                        <IonButton OnClick="@DismissModal">Cancel</IonButton>
+                    </Start>
+                    <End>
+                        <IonButton OnClick="@DismissModal">Done</IonButton>
+                    </End>
+                </IonToolbar>
+                <IonPicker>
+                    <IonPickerColumn @bind-Value="_buzzword">
+                        @foreach (var option in _buzzwords)
+                        {
+                            <IonPickerColumnOption Value="@option">@option</IonPickerColumnOption>
+                        }
+                    </IonPickerColumn>
+                    <IonPickerColumn @bind-Value="_vegetable">
+                        @foreach (var option in _vegetables)
+                        {
+                            <IonPickerColumnOption Value="@option">@option</IonPickerColumnOption>
+                        }
+                    </IonPickerColumn>
+                </IonPicker>
+            </IonModal>
+        </div>
+    </IonContent>
+</IonPage>
+@code {
+    private bool _isModalOpen;
+
+    private readonly string[] _pets = { "Dog", "Cat", "Bird", "Lizard", "Chinchilla" };
+    private readonly string[] _buzzwords = { "Minified", "Responsive", "Full Stack", "Mobile First", "Serverless" };
+    private readonly string[] _vegetables = { "Tomato", "Avocado", "Onion", "Potato", "Artichoke" };
+
+    private string? _pet = "Dog";
+    private string? _buzzword = "Minified";
+    private string? _vegetable = "Tomato";
+
+    private void DismissModal() => _isModalOpen = false;
+}

@@ -22,8 +22,8 @@ public class IonAccordionTests : IonicComponentTestBase
     {
         builder.OpenComponent<IonAccordion>(0);
         builder.AddComponentParameter(1, nameof(IonAccordion.Value), value);
-        builder.AddComponentParameter(2, nameof(IonAccordion.HeaderSlot), (RenderFragment)(b => b.AddContent(0, label)));
-        builder.AddComponentParameter(3, nameof(IonAccordion.ContentSlot), (RenderFragment)(b => b.AddContent(0, label + " body")));
+        builder.AddComponentParameter(2, nameof(IonAccordion.Header), (RenderFragment)(b => b.AddContent(0, label)));
+        builder.AddComponentParameter(3, nameof(IonAccordion.Content), (RenderFragment)(b => b.AddContent(0, label + " body")));
         builder.CloseComponent();
     };
 
@@ -36,8 +36,8 @@ public class IonAccordionTests : IonicComponentTestBase
             var captured = v;
             builder.OpenComponent<IonAccordion>(seq++);
             builder.AddComponentParameter(seq++, nameof(IonAccordion.Value), captured);
-            builder.AddComponentParameter(seq++, nameof(IonAccordion.HeaderSlot), (RenderFragment)(b => b.AddContent(0, captured)));
-            builder.AddComponentParameter(seq++, nameof(IonAccordion.ContentSlot), (RenderFragment)(b => b.AddContent(0, captured + " body")));
+            builder.AddComponentParameter(seq++, nameof(IonAccordion.Header), (RenderFragment)(b => b.AddContent(0, captured)));
+            builder.AddComponentParameter(seq++, nameof(IonAccordion.Content), (RenderFragment)(b => b.AddContent(0, captured + " body")));
             builder.CloseComponent();
         }
     };
@@ -297,6 +297,157 @@ public class IonAccordionTests : IonicComponentTestBase
         // An expanded accordion's content is laid out and displays as a block.
         cut.GetComputedStyle(content)!.Display.ShouldBe(Display.Block);
     }
+
+    // ---- Header divider (issue #2) -----------------------------------------
+
+    [Fact]
+    public void IonAccordion_Collapsed_HeaderDivider_SpansTheFullRow()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, ItemAccordion("first", "First"));
+
+        // Collapsed: the divider moves off .item-inner (inset, indented by the leading padding)
+        // onto the full-width .item-native — Ionic's slotted-item --border-width.
+        var nativeStyle = cut.GetComputedStyle(cut.FindByClass("item-native").Single());
+        var innerStyle = cut.GetComputedStyle(cut.FindByClass("item-inner").Single());
+        nativeStyle.ShouldNotBeNull();
+        innerStyle.ShouldNotBeNull();
+        nativeStyle.BorderBottomWidth.ShouldBe(Length.Px(1));
+        innerStyle.BorderBottomWidth.ShouldBe(Length.Px(0));
+    }
+
+    [Fact]
+    public void IonAccordion_Collapsed_HeaderDivider_ReachesBothEdges_InLayout()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, ItemAccordion("first", "First"));
+
+        // The bordered box must span the whole item host — no left/right padding inset.
+        var host = cut.FindByClass("ion-item").Single();
+        var hostBox = cut.GetBoxModel(host);
+        var nativeBox = cut.GetBoxModel(cut.FindByClass("item-native").Single());
+        hostBox.ShouldNotBeNull();
+        nativeBox.ShouldNotBeNull();
+        nativeBox.BorderBox.X.ShouldBe(hostBox.BorderBox.X, 0.5f);
+        nativeBox.BorderBox.Right.ShouldBe(hostBox.BorderBox.Right, 0.5f);
+    }
+
+    [Fact]
+    public void IonAccordion_Expanded_HeaderDivider_IsRemoved()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, ItemAccordion("first", "First"),
+            p => p.Add(nameof(IonAccordionGroup.Value), "first"));
+
+        // Expanded: accordion.scss zeroes both --border-width and --inner-border-width on the
+        // slotted header item, so neither box draws a divider.
+        var nativeStyle = cut.GetComputedStyle(cut.FindByClass("item-native").Single());
+        var innerStyle = cut.GetComputedStyle(cut.FindByClass("item-inner").Single());
+        nativeStyle.ShouldNotBeNull();
+        innerStyle.ShouldNotBeNull();
+        nativeStyle.BorderBottomWidth.ShouldBe(Length.Px(0));
+        innerStyle.BorderBottomWidth.ShouldBe(Length.Px(0));
+    }
+
+    [Fact]
+    public void IonAccordion_Collapsed_HeaderItem_KeepsExplicitLines()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, ItemAccordion("first", "First", lines: "none"));
+
+        // accordion.tsx only defaults the header item's lines when unset
+        // (`if (ionItem.lines === undefined)`), so an explicit lines="none" still removes the
+        // divider entirely — the full-row retarget targets .item-lines-default only.
+        var nativeStyle = cut.GetComputedStyle(cut.FindByClass("item-native").Single());
+        var innerStyle = cut.GetComputedStyle(cut.FindByClass("item-inner").Single());
+        nativeStyle.ShouldNotBeNull();
+        innerStyle.ShouldNotBeNull();
+        nativeStyle.BorderBottomWidth.ShouldBe(Length.Px(0));
+        innerStyle.BorderBottomWidth.ShouldBe(Length.Px(0));
+    }
+
+    // ---- Toggle icon (issue #3) --------------------------------------------
+
+    [Fact]
+    public void IonAccordion_ToggleIcon_KeepsTheEndPadding()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, ItemAccordion("first", "First"));
+
+        // Ionic slots the chevron into the header item's end slot, so .item-inner's
+        // --inner-padding-end (16px) keeps it off the right edge. The port renders the icon
+        // outside .item-inner, so the wrapper carries the same 16px gap itself.
+        var icon = cut.FindByClass("ion-accordion-toggle-icon").Single();
+        var style = cut.GetComputedStyle(icon);
+        style.ShouldNotBeNull();
+        style.MarginRight.ShouldBe(Length.Px(16));
+    }
+
+    [Fact]
+    public void IonAccordion_ToggleIcon_StaysOffTheRightEdge_InLayout()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, ItemAccordion("first", "First"));
+
+        var header = cut.FindByClass("accordion-header").Single();
+        var icon = cut.FindByClass("ion-accordion-toggle-icon").Single();
+        var headerBox = cut.GetBoxModel(header);
+        var iconBox = cut.GetBoxModel(icon);
+        headerBox.ShouldNotBeNull();
+        iconBox.ShouldNotBeNull();
+        // 16px of clearance between the icon and the header's trailing edge.
+        (headerBox.BorderBox.Right - iconBox.BorderBox.Right).ShouldBe(16f, 0.5f);
+    }
+
+    [Fact]
+    public void IonAccordion_Header_HasHoverWash_WhenHovered()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, ItemAccordion("first", "First"));
+
+        // Un-hovered the header is transparent; hovering paints the 4% wash. At runtime the hover
+        // state propagates up the hit chain, so the header itself carries it whenever the pointer
+        // is anywhere over the row.
+        cut.GetComputedStyle(cut.FindByClass("accordion-header").Single())!
+            .BackgroundColor.ShouldBe(Miko.Common.Color.Transparent);
+
+        cut.FindByClass("accordion-header").Single().SetState(Miko.Core.ElementState.Hover);
+        var hovered = Context.RenderElement(cut.Root);
+        hovered.GetComputedStyle(hovered.FindByClass("accordion-header").Single())!
+            .BackgroundColor.A.ShouldBe((byte)10);
+    }
+
+    // An accordion whose header is a real IonItem — the shape Ionic documents (and the one the
+    // divider / toggle-icon rules target).
+    private static RenderFragment ItemAccordion(string value, string label, string? lines = null) => builder =>
+    {
+        builder.OpenComponent<IonAccordion>(0);
+        builder.AddComponentParameter(1, nameof(IonAccordion.Value), value);
+        builder.AddComponentParameter(2, nameof(IonAccordion.Header), (RenderFragment)(hb =>
+        {
+            hb.OpenComponent<IonItem>(0);
+            if (lines is not null)
+            {
+                hb.AddComponentParameter(4, nameof(IonItem.Lines), lines);
+            }
+            hb.AddComponentParameter(1, nameof(IonItem.ChildContent), (RenderFragment)(lb =>
+            {
+                lb.OpenComponent<IonLabel>(0);
+                lb.AddComponentParameter(1, nameof(IonLabel.ChildContent), (RenderFragment)(tb => tb.AddContent(0, label)));
+                lb.CloseComponent();
+            }));
+            hb.CloseComponent();
+        }));
+        builder.AddComponentParameter(3, nameof(IonAccordion.Content), (RenderFragment)(b => b.AddContent(0, label + " body")));
+        builder.CloseComponent();
+    };
 
     // Builds the group so OnParametersSet runs and rebuilds the cascaded context bound to this
     // instance. The toggle logic under test is mode-independent, so a bare build (PlatformInfo null

@@ -46,8 +46,9 @@
     /// ("Back" for iOS, null for MD).</summary>
     [Parameter] public string? Text { get; set; }
 
-    /// <summary>Raised when the button is clicked (skipped when disabled). Navigation is out
-    /// of scope for the renderer — the host app wires this to its nav stack.</summary>
+    /// <summary>Raised when the button is clicked (skipped when disabled). The default
+    /// behavior still runs afterwards: nav-pop (with the mode's back transition) when the
+    /// nav stack can go back, else a back-direction navigation to <see cref="DefaultHref"/>.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
     private string? _icon;
@@ -82,5 +83,16 @@
     {
         if (Disabled) return;
         await OnClick.InvokeAsync();
+
+        // Default behavior mirrors Ionic's back-button onClick: pop the nav stack when it can go
+        // back (with the mode's pop transition); otherwise fall back to DefaultHref with a
+        // back-direction navigation. Without a NavigationManager (bare tests) only OnClick fires.
+        if (Navigation is null) return;
+
+        var pop = IonicPageTransitions.Pop(Mode);
+        if (!Navigation.NavigateBack(pop) && DefaultHref is not null)
+        {
+            Navigation.NavigateTo(DefaultHref, NavigationDirection.Back, pop);
+        }
     }
 }

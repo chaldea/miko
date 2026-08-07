@@ -1,4 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Miko.Common;
+using Miko.Ionic;
 using Miko.Ionic.Components;
 using Miko.Testing;
 using Shouldly;
@@ -137,5 +139,112 @@ public class IonBackButtonTests : IonicComponentTestBase
         var computed = cut.GetComputedStyle(cut.Root);
         computed.ShouldNotBeNull();
         computed.Display.ShouldBe(Display.Block);
+    }
+
+    // ---- default nav-pop behavior (issues/ion-animation) ---------------------
+
+    private (Miko.Routing.NavigationManager Nav, System.Func<Miko.Routing.NavigationEventArgs?> LastArgs) UseNavigation()
+    {
+        var nav = new Miko.Routing.NavigationManager();
+        Miko.Routing.NavigationEventArgs? last = null;
+        nav.LocationChanged += e => last = e;
+        Context.Services.AddSingleton(nav);
+        return (nav, () => last);
+    }
+
+    private static void Click(ComponentUnderTest cut)
+    {
+        var button = cut.FindByClass("button-native").Single();
+        button.OnClick!.Invoke(new Miko.Events.MouseEventArgs { Target = button });
+    }
+
+    [Fact]
+    public void Click_WithHistory_PopsStack_WithPopTransition()
+    {
+        var (nav, lastArgs) = UseNavigation();
+        nav.NavigateTo("/list");
+        nav.NavigateTo("/detail");
+
+        var cut = RenderBackButton(Context, p => p.Add(nameof(IonBackButton.DefaultHref), "/home"));
+        Click(cut);
+
+        // nav-pop: back to the previous page with the mode's pop transition.
+        nav.CurrentPath.ShouldBe("/list");
+        nav.History.ShouldBe(new[] { "/", "/list" });
+        var args = lastArgs()!;
+        args.Direction.ShouldBe(Miko.Routing.NavigationDirection.Back);
+        args.Transition.ShouldBeSameAs(IonicPageTransitions.MdPageTransition.Pop);
+    }
+
+    [Fact]
+    public void Click_WithoutHistory_NavigatesBackToDefaultHref()
+    {
+        var (nav, lastArgs) = UseNavigation();
+
+        var cut = RenderBackButton(Context, p => p.Add(nameof(IonBackButton.DefaultHref), "/home"));
+        Click(cut);
+
+        nav.CurrentPath.ShouldBe("/home");
+        var args = lastArgs()!;
+        args.Direction.ShouldBe(Miko.Routing.NavigationDirection.Back);
+        args.Transition.ShouldBeSameAs(IonicPageTransitions.MdPageTransition.Pop);
+    }
+
+    [Fact]
+    public void Click_WithoutHistoryOrDefaultHref_DoesNotNavigate()
+    {
+        var (nav, _) = UseNavigation();
+
+        var cut = RenderBackButton(Context, p => p.Add(nameof(IonBackButton.Icon), "arrow-back"));
+        Click(cut);
+
+        nav.CurrentPath.ShouldBe("/");
+    }
+
+    [Fact]
+    public void Click_WhenDisabled_DoesNotNavigate()
+    {
+        var (nav, _) = UseNavigation();
+        nav.NavigateTo("/list");
+
+        var cut = RenderBackButton(Context, p =>
+        {
+            p.Add(nameof(IonBackButton.DefaultHref), "/home");
+            p.Add(nameof(IonBackButton.Disabled), true);
+        });
+        Click(cut);
+
+        nav.CurrentPath.ShouldBe("/list");
+    }
+
+    [Fact]
+    public void Click_UsesIosPopTransition_OnIos()
+    {
+        UsePlatform(Miko.Platform.HostPlatform.Ios);
+        var (nav, lastArgs) = UseNavigation();
+        nav.NavigateTo("/list");
+
+        var cut = RenderBackButton(Context, p => p.Add(nameof(IonBackButton.DefaultHref), "/home"));
+        Click(cut);
+
+        lastArgs()!.Transition.ShouldBeSameAs(IonicPageTransitions.IosPageTransition.Pop);
+    }
+
+    [Fact]
+    public void Click_StillInvokesOnClick_BeforeDefaultNavigation()
+    {
+        var (nav, _) = UseNavigation();
+        var clicked = false;
+
+        var cut = RenderBackButton(Context, p =>
+        {
+            p.Add(nameof(IonBackButton.DefaultHref), "/home");
+            p.Add(nameof(IonBackButton.OnClick),
+                Miko.Components.EventCallback.Factory.Create(this, () => clicked = true));
+        });
+        Click(cut);
+
+        clicked.ShouldBeTrue();
+        nav.CurrentPath.ShouldBe("/home"); // default behavior still ran
     }
 }

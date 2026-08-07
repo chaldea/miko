@@ -5,10 +5,14 @@ namespace Miko.Ionic.Components;
 
 /// <summary>
 /// Styles for the page-structure components (<c>ion-page</c>, <c>ion-header</c>,
-/// <c>ion-toolbar</c>, <c>ion-title</c>, <c>ion-content</c>). Ported from the Ionic
-/// source: <c>header.scss</c> / <c>header.md.scss</c> / <c>header.ios.scss</c>,
+/// <c>ion-toolbar</c>, <c>ion-title</c>). Ported from the Ionic source:
+/// <c>header.scss</c> / <c>header.md.scss</c> / <c>header.ios.scss</c>,
 /// <c>toolbar.scss</c> / <c>toolbar.md.scss</c> / <c>toolbar.ios.scss</c>,
-/// <c>title.scss</c> / <c>title.md.scss</c> / <c>title.ios.scss</c>, <c>content.scss</c>.
+/// <c>title.scss</c> / <c>title.md.scss</c> / <c>title.ios.scss</c>.
+/// <para>
+/// <c>ion-content</c>'s rules live alongside their component in
+/// <see cref="ContentStyles"/> (ported from <c>content.scss</c>).
+/// </para>
 /// <para>
 /// Rules are scoped by the active mode class (<c>md</c> / <c>ios</c>) that each component
 /// stamps onto its root element, so a single stylesheet carries both modes and switching the
@@ -143,27 +147,6 @@ internal static class PageStyles
                 WhiteSpace = WhiteSpace.Nowrap,
                 OverflowX = Overflow.Hidden,
                 TextAlign = t.TitleTextAlign,
-            },
-
-            // ion-content — region filling the remaining page height below the header.
-            [$".ion-content.{mode}"] = new()
-            {
-                Display = Display.Block,
-                Position = Position.Relative,
-                FlexGrow = 1,
-                FlexShrink = 1,
-                FlexBasis = Length.Px(0),
-                Width = Length.Percent(100),
-                BackgroundColor = t.ContentBackground,
-                Color = t.ContentColor,
-                OverflowY = Overflow.Auto,
-            },
-
-            [$".ion-content.{mode} .inner-scroll"] = new()
-            {
-                Width = Length.Percent(100),
-                Height = Length.Percent(100),
-                OverflowY = Overflow.Auto,
             },
         };
     }
