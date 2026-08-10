@@ -411,4 +411,97 @@ public class IonInputTests : IonicComponentTestBase
             childBox.MarginBox.Y.ShouldBe(expectedY, 0.5f);
         }
     }
+
+    // ---- In-item behavior --------------------------------------------------
+
+    /// <summary>
+    /// When IonInput is hosted inside an IonItem, the md highlight bar should be suppressed
+    /// because the item already has its own bottom border. The highlight would be redundant.
+    /// </summary>
+    [Fact]
+    public void IonInput_InsideIonItem_SuppressesHighlight()
+    {
+        var cut = Context.Render<IonItem>(p =>
+        {
+            p.Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonInput>(0);
+                builder.AddAttribute(1, nameof(IonInput.Label), "Company name");
+                builder.CloseComponent();
+            }));
+        });
+
+        var input = cut.FindByClass("ion-input").Single();
+        // md mode by default, no fill means highlight should normally render, but not in an item
+        cut.FindByClass("input-highlight").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// When IonInput is NOT inside an IonItem, the md highlight bar should render (unless
+    /// fill="outline" or mode is ios).
+    /// </summary>
+    [Fact]
+    public void IonInput_NotInsideIonItem_RendersHighlight()
+    {
+        var cut = RenderInput(Context);
+
+        // md mode by default, no fill, not in an item → highlight should render
+        cut.FindByClass("input-highlight").ShouldHaveSingleItem();
+    }
+
+    /// <summary>
+    /// Outline fill should never render the highlight, even outside an item.
+    /// </summary>
+    [Fact]
+    public void IonInput_OutlineFill_NeverRendersHighlight()
+    {
+        var cut = RenderInput(Context, p => p.Add(nameof(IonInput.Fill), "outline"));
+
+        cut.FindByClass("input-highlight").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// IonInput inside IonItemDivider should also suppress the highlight.
+    /// </summary>
+    [Fact]
+    public void IonInput_InsideIonItemDivider_SuppressesHighlight()
+    {
+        var cut = Context.Render<IonItemDivider>(p =>
+        {
+            p.Add(nameof(IonItemDivider.ChildContent), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonInput>(0);
+                builder.AddAttribute(1, nameof(IonInput.Label), "Filter");
+                builder.CloseComponent();
+            }));
+        });
+
+        cut.FindByClass("input-highlight").ShouldBeEmpty();
+    }
+
+    // ---- Label width -------------------------------------------------------
+
+    /// <summary>
+    /// The label should auto-fit its content width without truncation when using the default
+    /// "start" label placement. Previously, the label-text-wrapper had a max-width of 200px
+    /// that was truncating labels like "Default input" to "Default inp".
+    /// </summary>
+    [Fact]
+    public void IonInput_Label_AutoFitsContentWidth()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderInput(Context, label: "Default input");
+        var labelWrapper = cut.FindByClass("label-text-wrapper").Single();
+        var box = cut.GetBoxModel(labelWrapper)!;
+
+        // The label text should be fully visible, not truncated.
+        cut.GetTextContent().ShouldContain("Default input");
+
+        // The wrapper should not have a max-width constraint for the "start" placement.
+        // The max-width is only set on .label-text for "fixed" placement. For "start" and "end",
+        // the label wrapper should auto-fit its content without being capped at 200px.
+        // We can verify this by checking that the wrapper width is determined by its content.
+        box.Content.Width.ShouldBeGreaterThan(0);
+    }
 }

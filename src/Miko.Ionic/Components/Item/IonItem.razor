@@ -22,10 +22,11 @@
    RouterDirection ("forward"/"back"/"root") overrides the direction like Ionic's routerDirection.
    The detail chevron shows when `detail` is true, or (when detail is unset) on iOS for a
    clickable item — matching Ionic's `showDetail = detail ?? (mode === 'ios' && clickable)`. *@
-<div class="@ClassMapper.Class" style="@Style">
-    @if (IsClickable && string.IsNullOrEmpty(Href))
-    {
-        <button class="item-native" @onclick="HandleClick">
+<CascadingValue TValue="IonItemContext" Value="@IonItemContext.Instance">
+    <div class="@ClassMapper.Class" style="@Style">
+        @if (IsClickable && string.IsNullOrEmpty(Href))
+        {
+            <button class="item-native" @onclick="HandleClick">
             @if (Start is not null)
             {
                 <span class="ion-slot-start">@Start</span>
@@ -84,6 +85,7 @@
         </div>
     }
 </div>
+</CascadingValue>
 
 @code {
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .

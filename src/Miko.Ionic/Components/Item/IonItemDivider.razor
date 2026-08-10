@@ -15,19 +15,21 @@
    tinted background and its own min-height/colors from the theme. The named slots map to
    RenderFragment parameters (Start / End) wrapped in marker spans; the default slot maps to
    ChildContent inside .item-divider-wrapper. *@
-<div class="@ClassMapper.Class" style="@Style">
-    @if (Start is not null)
-    {
-        <span class="ion-slot-start">@Start</span>
-    }
-    <div class="item-divider-inner">
-        <div class="item-divider-wrapper">@ChildContent</div>
-        @if (End is not null)
+<CascadingValue TValue="IonItemContext" Value="@IonItemContext.Instance">
+    <div class="@ClassMapper.Class" style="@Style">
+        @if (Start is not null)
         {
-            <span class="ion-slot-end">@End</span>
+            <span class="ion-slot-start">@Start</span>
         }
+        <div class="item-divider-inner">
+            <div class="item-divider-wrapper">@ChildContent</div>
+            @if (End is not null)
+            {
+                <span class="ion-slot-end">@End</span>
+            }
+        </div>
     </div>
-</div>
+</CascadingValue>
 
 @code {
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .

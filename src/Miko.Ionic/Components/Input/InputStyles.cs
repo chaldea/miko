@@ -97,13 +97,14 @@ internal static class InputStyles
                 Width = Length.Percent(100),
             },
 
-            // .label-text-wrapper — centers the label vertically; caps its width so it never eats
-            // the whole line. (Ionic clips overflow; Miko has no text-overflow so overflow hides it.)
+            // .label-text-wrapper — centers the label vertically; width is unconstrained by default
+            // so the label fits its content. The max-width constraint is only applied when label
+            // placement is "start" or "end" (inline with the input) to prevent the label from taking
+            // the entire row. Stacked/floating labels get 100% width since they sit above the input.
             [$".ion-input.{mode} .label-text-wrapper"] = new()
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
-                MaxWidth = Length.Px(200),
             },
             [$".ion-input.{mode} .label-text"] = new()
             {
