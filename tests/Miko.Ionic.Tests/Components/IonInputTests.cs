@@ -379,4 +379,36 @@ public class IonInputTests : IonicComponentTestBase
         box.Padding.Left.ShouldBe(16);
         box.Padding.Right.ShouldBe(16);
     }
+
+    /// <summary>
+    /// ISSUE-122: .input-wrapper 用 align-items:stretch 把 .label-text-wrapper /
+    /// .native-wrapper 拉到字段高度，二者再用 align-items:center 垂直居中其内容。
+    /// 拉伸出的高度必须对被拉伸项自身的布局生效，否则内容按拉伸前的自然高居中，表现为贴顶。
+    /// </summary>
+    [Fact]
+    public void IonInput_BoxModel_StretchedWrappersCenterTheirContentVertically()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderInput(Context, label: "Company name");
+        var wrapper = cut.FindByClass("input-wrapper").Single();
+        var wrapperBox = cut.GetBoxModel(wrapper)!;
+
+        foreach (var className in new[] { "label-text-wrapper", "native-wrapper" })
+        {
+            var stretched = cut.FindByClass(className).Single();
+            var box = cut.GetBoxModel(stretched)!;
+
+            // stretch：被拉到 wrapper 的内容高度。
+            box.Content.Height.ShouldBe(wrapperBox.Content.Height, 0.5f);
+
+            // 其内部内容相对拉伸后的高度垂直居中（修复前贴顶：Y == 自身内容盒 Y）。
+            var child = stretched.Children[0];
+            var childBox = cut.GetBoxModel(child)!;
+            childBox.Content.Height.ShouldBeLessThan(box.Content.Height - 1f);
+
+            float expectedY = box.Content.Y + (box.Content.Height - childBox.MarginBox.Height) / 2f;
+            childBox.MarginBox.Y.ShouldBe(expectedY, 0.5f);
+        }
+    }
 }

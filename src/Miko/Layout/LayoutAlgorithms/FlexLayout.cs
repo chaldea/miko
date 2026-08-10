@@ -666,20 +666,11 @@ public class FlexLayout
 
                 if (canStretch)
                 {
-                    // 拉伸：margin-box 填满增大后的行交叉尺寸。
-                    var c = child.BoxModel.Content;
-                    if (isRow)
-                    {
-                        float target = Math.Max(0, grownCross - child.BoxModel.Margin.Vertical
-                            - child.BoxModel.Border.Vertical - child.BoxModel.Padding.Vertical);
-                        child.BoxModel.Content = new RectF(c.X, c.Y, c.Width, target);
-                    }
-                    else
-                    {
-                        float target = Math.Max(0, grownCross - child.BoxModel.Margin.Horizontal
-                            - child.BoxModel.Border.Horizontal - child.BoxModel.Padding.Horizontal);
-                        child.BoxModel.Content = new RectF(c.X, c.Y, target, c.Height);
-                    }
+                    // 拉伸：margin-box 填满增大后的行交叉尺寸，并以该确定尺寸重排子树
+                    // （否则子项内部的对齐仍相对拉伸前的交叉尺寸求值，见 ISSUE-122）。
+                    // 主轴尺寸此处已定型在盒模型上，作为重排约束原样传回。
+                    float mainResolved = isRow ? child.BoxModel.Content.Width : child.BoxModel.Content.Height;
+                    RelayoutStretchedItem(child, mainResolved, grownCross, isRow);
                 }
             }
         }
@@ -787,6 +778,13 @@ public class FlexLayout
         public float FlexShrink { get; set; }
         public float FinalSize { get; set; }
         public bool UsedAutoSize { get; set; }
+        /// <summary>
+        /// 第二遍布局时主轴被定型的内容尺寸（同时作为 AvailableWidth/Height 与
+        /// ResolvedContentWidth/Height 传入）；<c>null</c> 表示主轴按内容自然尺寸布局、未加约束。
+        /// stretch 重排（见 <see cref="RelayoutStretchedItem"/>）必须复用同一主轴约束，
+        /// 否则主轴尺寸与后代百分比基准会在重排中改变（见 ISSUE-122）。
+        /// </summary>
+        public float? MainResolvedSize { get; set; }
     }
 
     /// <summary>
@@ -1202,6 +1200,7 @@ public class FlexLayout
                     child.BoxModel.Content = new RectF(
                         child.BoxModel.Content.X, child.BoxModel.Content.Y,
                         childContentWidth, child.BoxModel.Content.Height);
+                    info.MainResolvedSize = childContentWidth;
                 }
                 else
                 {
@@ -1249,6 +1248,7 @@ public class FlexLayout
                     child.BoxModel.Content = new RectF(
                         child.BoxModel.Content.X, child.BoxModel.Content.Y,
                         child.BoxModel.Content.Width, childContentHeight);
+                    info.MainResolvedSize = childContentHeight;
                 }
                 else
                 {
@@ -1390,26 +1390,8 @@ public class FlexLayout
                     // 文本节点不可拉伸（其尺寸由文本决定），锚定起点。
                     // 强制换行元素（br）不产生可见盒，交叉轴保持 0 尺寸不拉伸（见 ISSUE-093 问题2）。
                     if (child.Type == LayoutType.Text || BlockLayout.IsForcedLineBreak(child)) break;
-                    if (isRow)
-                    {
-                        if (child.ComputedStyle.Height.IsAuto)
-                        {
-                            float target = Math.Max(0, crossSize - child.BoxModel.Margin.Vertical
-                                - child.BoxModel.Border.Vertical - child.BoxModel.Padding.Vertical);
-                            child.BoxModel.Content = new RectF(child.BoxModel.Content.X, child.BoxModel.Content.Y,
-                                child.BoxModel.Content.Width, target);
-                        }
-                    }
-                    else
-                    {
-                        if (child.ComputedStyle.Width.IsAuto)
-                        {
-                            float target = Math.Max(0, crossSize - child.BoxModel.Margin.Horizontal
-                                - child.BoxModel.Border.Horizontal - child.BoxModel.Padding.Horizontal);
-                            child.BoxModel.Content = new RectF(child.BoxModel.Content.X, child.BoxModel.Content.Y,
-                                target, child.BoxModel.Content.Height);
-                        }
-                    }
+                    bool crossIsAuto = isRow ? child.ComputedStyle.Height.IsAuto : child.ComputedStyle.Width.IsAuto;
+                    if (crossIsAuto) RelayoutStretchedItem(child, info.MainResolvedSize, crossSize, isRow);
                     break;
             }
 
@@ -1419,5 +1401,71 @@ public class FlexLayout
                 else OffsetSubtree(child, offset, 0);
             }
         }
+    }
+
+    /// <summary>
+    /// 把 stretch 项拉伸到行交叉尺寸，并用拉伸后的交叉尺寸重新布局其子树
+    /// （CSS Flexbox §9.4 步骤 8："stretch 项的交叉尺寸即为其使用值，随后以该确定尺寸
+    /// 重新布局项目内容"）。
+    /// <para>
+    /// 只改写 <see cref="BoxModel.Content"/> 是不够的：子树已按拉伸前的自然交叉尺寸布局完成，
+    /// 项目自身的 align-items / justify-content / 百分比交叉尺寸都是相对旧尺寸求值的。
+    /// 例如 <c>align-items:stretch</c> 行内一个 <c>align-items:center</c> 的 flex 子项，
+    /// 其内容会停留在按内容高（如 17.9px）算出的居中位置，而非拉伸后行高（44px）的中线，
+    /// 表现为内容贴顶（见 ISSUE-122）。
+    /// </para>
+    /// <para>
+    /// 重排以 margin-box 原点为锚，交叉轴传入 Resolved*/Fill* 约束把拉伸尺寸标为确定，
+    /// 主轴沿用第二遍布局时的定型尺寸（<see cref="FlexChildInfo.MainResolvedSize"/>），
+    /// 保证主轴结果与后代百分比基准不变。重排后强制回写两轴内容尺寸，抵消子布局中
+    /// 内容驱动的高度重算与 min/max 夹取带来的偏差。
+    /// </para>
+    /// </summary>
+    private static void RelayoutStretchedItem(LayoutBox child, float? mainResolvedSize, float crossSize, bool isRow)
+    {
+        var bm = child.BoxModel;
+
+        float target = Math.Max(0, crossSize
+            - (isRow ? bm.Margin.Vertical : bm.Margin.Horizontal)
+            - (isRow ? bm.Border.Vertical : bm.Border.Horizontal)
+            - (isRow ? bm.Padding.Vertical : bm.Padding.Horizontal));
+
+        var content = bm.Content;
+        // 无实质变化（含拉伸尺寸与自然尺寸一致）时跳过重排，避免无谓的子树重算。
+        float current = isRow ? content.Height : content.Width;
+        if (Math.Abs(target - current) < 0.01f) return;
+
+        // 文本节点等叶子盒没有可重排的内容，直接改写尺寸即可。
+        if (child.Children.Count == 0)
+        {
+            bm.Content = isRow
+                ? new RectF(content.X, content.Y, content.Width, target)
+                : new RectF(content.X, content.Y, target, content.Height);
+            return;
+        }
+
+        var marginBox = bm.MarginBox;
+        var constraints = isRow
+            ? new LayoutConstraints(mainResolvedSize, target)
+            {
+                FillAvailableHeight = true,
+                ResolvedContentWidth = mainResolvedSize,
+                ResolvedContentHeight = target,
+            }
+            : new LayoutConstraints(target, mainResolvedSize)
+            {
+                FillAvailableHeight = mainResolvedSize.HasValue,
+                ResolvedContentWidth = target,
+                ResolvedContentHeight = mainResolvedSize,
+            };
+
+        LayoutDispatcher.Dispatch(child, constraints, marginBox.X, marginBox.Y);
+
+        // Dispatch 后回写：交叉轴恒为拉伸尺寸；主轴维持定型尺寸（未定型则保留重排结果）。
+        var after = child.BoxModel.Content;
+        float mainSize = mainResolvedSize ?? (isRow ? after.Width : after.Height);
+        child.BoxModel.Content = isRow
+            ? new RectF(after.X, after.Y, mainSize, target)
+            : new RectF(after.X, after.Y, target, mainSize);
     }
 }
