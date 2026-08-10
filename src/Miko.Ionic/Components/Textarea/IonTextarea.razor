@@ -205,7 +205,8 @@
 
         if (root.FindByClass("native-textarea").FirstOrDefault() is TextAreaElement textarea)
         {
-            textarea.Value = Value;
+            // Only stamp the value when this component carries one — see IonInput.Build (ISSUE-121).
+            if (Value is not null) textarea.Value = Value;
             textarea.Placeholder = Placeholder;
             textarea.Rows = Rows;
             if (Disabled) textarea.SetState(ElementState.Disabled);

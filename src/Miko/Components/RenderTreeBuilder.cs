@@ -128,6 +128,11 @@ public class RenderTreeBuilder
             case "checked" when element is InputElement checkableInput:
                 checkableInput.Checked = ParseHtmlBool(value); break;
             case "value" when element is InputElement valueInput:
+                // A null value means the Razor expression evaluated to null, i.e. no value is being
+                // declared. Leave the element's own text alone (an absent `value` attribute does not
+                // clear an input in the browser) so an ancestor re-render cannot wipe what the user
+                // typed — see InputElement.DeclaredValue (ISSUE-121).
+                if (value is null) break;
                 valueInput.Value = value;
                 // Range inputs carry their position in NumericValue; keep the two in step so
                 // `<input type="range" @bind="_v" />` reflects the bound number.
@@ -144,7 +149,9 @@ public class RenderTreeBuilder
             case "placeholder" when element is TextAreaElement textArea:
                 textArea.Placeholder = value; break;
             case "value" when element is TextAreaElement valueTextArea:
-                valueTextArea.Value = value; break;
+                // See the InputElement case above (ISSUE-121).
+                if (value is not null) valueTextArea.Value = value;
+                break;
             case "rows" when element is TextAreaElement rowsTextArea:
                 if (int.TryParse(value, out var rows)) rowsTextArea.Rows = rows;
                 break;

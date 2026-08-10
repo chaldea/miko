@@ -55,10 +55,34 @@ public class InputElement : Element, ITextEditable
     /// </summary>
     public bool IsMultiline => false;
 
+    private string? _value;
+
     /// <summary>
-    /// 输入框的值
+    /// 输入框的值。
+    /// <para>由外部（组件参数 / <c>value</c> 属性）赋值即视为「声明值」，见
+    /// <see cref="DeclaredValue"/>；用户键入经 <see cref="InsertText"/> 等方法写入，不改变声明值。</para>
     /// </summary>
-    public string? Value { get; set; }
+    public string? Value
+    {
+        get => _value;
+        set
+        {
+            _value = value;
+            DeclaredValue = value;
+        }
+    }
+
+    /// <summary>
+    /// 最近一次由外部<b>声明</b>的值（组件参数或 <c>value</c> 属性），与用户键入无关。
+    /// <para>重渲染时用它判断「新树是否声明了值」：为 <c>null</c> 说明没有声明（<c>value</c>
+    /// 属性缺席），用户键入的内容应当保留；有声明（含 <see cref="string.Empty"/>，如清除按钮）
+    /// 则以其为准。对齐浏览器：缺席的属性不会去动元素上的当前值，因此祖先重渲染不会冲掉用户
+    /// 正在输入的内容（ISSUE-121：页面级重渲染清空了未绑定的兄弟输入框）。</para>
+    /// </summary>
+    internal string? DeclaredValue { get; private set; }
+
+    /// <summary>用户键入路径：只改值，不动声明值。</summary>
+    private void SetUserValue(string? value) => _value = value;
 
     /// <summary>
     /// 占位符文本
@@ -97,7 +121,7 @@ public class InputElement : Element, ITextEditable
     {
         var current = Value ?? string.Empty;
         var pos = Math.Clamp(CursorPosition, 0, current.Length);
-        Value = current.Insert(pos, text);
+        SetUserValue(current.Insert(pos, text));
         CursorPosition = pos + text.Length;
         IsDirty = true;
     }
@@ -111,7 +135,7 @@ public class InputElement : Element, ITextEditable
         if (CursorPosition > 0 && current.Length > 0)
         {
             var pos = Math.Clamp(CursorPosition, 0, current.Length);
-            Value = current.Remove(pos - 1, 1);
+            SetUserValue(current.Remove(pos - 1, 1));
             CursorPosition = pos - 1;
             IsDirty = true;
             return true;
@@ -127,7 +151,7 @@ public class InputElement : Element, ITextEditable
         var current = Value ?? string.Empty;
         if (CursorPosition < current.Length)
         {
-            Value = current.Remove(CursorPosition, 1);
+            SetUserValue(current.Remove(CursorPosition, 1));
             IsDirty = true;
             return true;
         }
@@ -140,6 +164,26 @@ public class InputElement : Element, ITextEditable
     public void MoveCursorToEnd()
     {
         CursorPosition = (Value ?? string.Empty).Length;
+    }
+
+    /// <summary>
+    /// 除交互状态标志位外，还接过光标位置：它由键盘输入推进，组件重渲染不会重新写入
+    /// （<c>Value</c> 会，光标位置不会），丢掉它会让光标跳回行首（ISSUE-121）。
+    /// 位置按新值长度夹取——重渲染可能同时改变了 <see cref="Value"/>。
+    /// </summary>
+    internal override void CopyInteractionStateFrom(Element old)
+    {
+        base.CopyInteractionStateFrom(old);
+        if (old is not InputElement oldInput) return;
+
+        // 新树<b>没有</b>声明值（value 属性缺席）时，保留用户键入的内容——对齐浏览器：
+        // 缺席的属性不会去动元素上的当前值。未绑定的输入框其文本只活在元素上，而页面级重渲染
+        // 会重建一个 Value 参数为 null 的新组件实例，不保留就等于被清空（ISSUE-121 问题 2）。
+        // 显式声明（含 string.Empty，如清除按钮）视为组件的明确意图，照旧覆盖。
+        if (DeclaredValue is null)
+            SetUserValue(oldInput.Value);
+
+        CursorPosition = Math.Clamp(oldInput.CursorPosition, 0, (Value ?? string.Empty).Length);
     }
 }
 
@@ -158,10 +202,26 @@ public class TextAreaElement : Element, ITextEditable
 {
     public override string TagName => "textarea";
 
+    private string? _value;
+
     /// <summary>
-    /// 文本内容
+    /// 文本内容。外部赋值即「声明值」，见 <see cref="InputElement.DeclaredValue"/> 的说明。
     /// </summary>
-    public string? Value { get; set; }
+    public string? Value
+    {
+        get => _value;
+        set
+        {
+            _value = value;
+            DeclaredValue = value;
+        }
+    }
+
+    /// <summary>见 <see cref="InputElement.DeclaredValue"/>。</summary>
+    internal string? DeclaredValue { get; private set; }
+
+    /// <summary>用户键入路径：只改值，不动声明值。</summary>
+    private void SetUserValue(string? value) => _value = value;
 
     /// <summary>
     /// textarea 始终接受键盘文本编辑。
@@ -200,7 +260,7 @@ public class TextAreaElement : Element, ITextEditable
     {
         var current = Value ?? string.Empty;
         var pos = Math.Clamp(CursorPosition, 0, current.Length);
-        Value = current.Insert(pos, text);
+        SetUserValue(current.Insert(pos, text));
         CursorPosition = pos + text.Length;
         IsDirty = true;
     }
@@ -214,7 +274,7 @@ public class TextAreaElement : Element, ITextEditable
         if (CursorPosition > 0 && current.Length > 0)
         {
             var pos = Math.Clamp(CursorPosition, 0, current.Length);
-            Value = current.Remove(pos - 1, 1);
+            SetUserValue(current.Remove(pos - 1, 1));
             CursorPosition = pos - 1;
             IsDirty = true;
             return true;
@@ -230,7 +290,7 @@ public class TextAreaElement : Element, ITextEditable
         var current = Value ?? string.Empty;
         if (CursorPosition < current.Length)
         {
-            Value = current.Remove(CursorPosition, 1);
+            SetUserValue(current.Remove(CursorPosition, 1));
             IsDirty = true;
             return true;
         }
@@ -243,6 +303,18 @@ public class TextAreaElement : Element, ITextEditable
     public void MoveCursorToEnd()
     {
         CursorPosition = (Value ?? string.Empty).Length;
+    }
+
+    /// <summary>见 <see cref="InputElement.CopyInteractionStateFrom"/>（同款文本与光标位置迁移）。</summary>
+    internal override void CopyInteractionStateFrom(Element old)
+    {
+        base.CopyInteractionStateFrom(old);
+        if (old is not TextAreaElement oldTextArea) return;
+
+        if (DeclaredValue is null)
+            SetUserValue(oldTextArea.Value);
+
+        CursorPosition = Math.Clamp(oldTextArea.CursorPosition, 0, (Value ?? string.Empty).Length);
     }
 }
 

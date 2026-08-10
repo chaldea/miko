@@ -45,6 +45,9 @@ public class StylePropertyGenerator : IIncrementalGenerator
         // 收集 ComputedStyle 以 new 遮蔽的属性名：这些属性有已解析的计算值，可支持 inherit/unset
         // 读取父元素计算值；未遮蔽者无计算值可继承（读取会命中基类的 StyleProperty<T>? 类型）。
         var shadowedNames = new HashSet<string>();
+        // 其中计算值本身可空的（如 caret-color 用 null 表达 CSS 初始值 auto）：读取父计算值时
+        // 需补 ?? default! 才能匹配非空的解析形参。
+        var nullableShadowedNames = new HashSet<string>();
         var computedStyleSymbol = classSymbol.ContainingNamespace?.GetTypeMembers("ComputedStyle").FirstOrDefault();
         if (computedStyleSymbol != null)
         {
@@ -52,7 +55,11 @@ public class StylePropertyGenerator : IIncrementalGenerator
             {
                 // ComputedStyle 中直接声明的属性即为其 new 遮蔽的（非空计算值）属性。
                 if (member is IPropertySymbol csProp)
+                {
                     shadowedNames.Add(csProp.Name);
+                    if (IsNullableComputedValue(csProp.Type))
+                        nullableShadowedNames.Add(csProp.Name);
+                }
             }
         }
 
@@ -81,7 +88,8 @@ public class StylePropertyGenerator : IIncrementalGenerator
                 IsNullable = isNullable,
                 IsValueType = propertyType.IsValueType,
                 InnerIsReferenceType = IsInnerReferenceType(propertyType),
-                ShadowedByComputedStyle = shadowedNames.Contains(property.Name)
+                ShadowedByComputedStyle = shadowedNames.Contains(property.Name),
+                ComputedValueIsNullable = nullableShadowedNames.Contains(property.Name)
             });
         }
 
@@ -130,6 +138,18 @@ public class StylePropertyGenerator : IIncrementalGenerator
     }
 
     /// <summary>
+    /// ComputedStyle 上某个遮蔽属性的计算值本身是否可空——可空引用类型，或 <c>Nullable&lt;T&gt;</c>
+    /// （如 <c>Color? CaretColor</c>，用 null 表达 CSS 初始值 <c>auto</c>）。此类属性作为
+    /// inherit/unset 的父值读取时需补 <c>?? default!</c>。
+    /// </summary>
+    private static bool IsNullableComputedValue(ITypeSymbol type)
+    {
+        if (type is INamedTypeSymbol { IsGenericType: true, ConstructedFrom.SpecialType: SpecialType.System_Nullable_T })
+            return true;
+        return type.IsReferenceType && type.NullableAnnotation == NullableAnnotation.Annotated;
+    }
+
+    /// <summary>
     /// 从后备属性类型 <c>...StyleProperty&lt;T&gt;?</c> 中取出内层 <c>T</c> 的显示字符串，
     /// 用于在生成的解析调用上显式提供泛型实参（消除 <c>default</c> 分支导致的类型推断歧义）。
     /// </summary>
@@ -151,6 +171,8 @@ public class StylePropertyGenerator : IIncrementalGenerator
     private static readonly HashSet<string> InheritableProperties = new()
     {
         "Color",
+        // caret-color 在 CSS 中可继承：设在容器上即可为其内部的输入控件着色。
+        "CaretColor",
         "FontFamily",
         "FontSize",
         "FontWeight",
@@ -312,7 +334,7 @@ public class StylePropertyGenerator : IIncrementalGenerator
             string ParentRead()
             {
                 var read = $"_keywordResolutionParent.{prop.Name}";
-                if (prop.InnerIsReferenceType)
+                if (prop.InnerIsReferenceType || prop.ComputedValueIsNullable)
                     read += " ?? default!";
                 return $"_keywordResolutionParent != null ? {read} : default!";
             }

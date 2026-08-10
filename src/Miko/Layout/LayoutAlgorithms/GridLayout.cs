@@ -818,20 +818,41 @@ public class GridLayout
         LayoutDispatcher.Dispatch(child, new LayoutConstraints(widthConstraint, heightConstraint) { FillAvailableHeight = stretchHeight }, areaX, areaY);
 
         // 拉伸：强制内容盒填满 area（扣除已解析的 border/padding，使 margin-box == area）。
-        // 与 flex 的 align-items:stretch 同一做法：不改写子树，仅定本子盒尺寸。
-        if (stretchWidth)
+        float stretchedW = stretchWidth
+            ? Math.Max(0, areaW - ml - mr
+                - child.BoxModel.Border.Horizontal - child.BoxModel.Padding.Horizontal)
+            : child.BoxModel.Content.Width;
+        float stretchedH = stretchHeight
+            ? Math.Max(0, areaH - mt - mb
+                - child.BoxModel.Border.Vertical - child.BoxModel.Padding.Vertical)
+            : child.BoxModel.Content.Height;
+
+        if (stretchWidth || stretchHeight)
         {
-            float cw = Math.Max(0, areaW - ml - mr
-                - child.BoxModel.Border.Horizontal - child.BoxModel.Padding.Horizontal);
             var c = child.BoxModel.Content;
-            child.BoxModel.Content = new RectF(c.X, c.Y, cw, c.Height);
-        }
-        if (stretchHeight)
-        {
-            float ch = Math.Max(0, areaH - mt - mb
-                - child.BoxModel.Border.Vertical - child.BoxModel.Padding.Vertical);
-            var c = child.BoxModel.Content;
-            child.BoxModel.Content = new RectF(c.X, c.Y, c.Width, ch);
+            child.BoxModel.Content = new RectF(c.X, c.Y, stretchedW, stretchedH);
+
+            // 拉伸尺寸必须对子项自身的布局生效：子树已按拉伸前的内容尺寸布局完成，
+            // 其 align-items / justify-content / 百分比尺寸都是相对旧尺寸求值的
+            // （与 flex 的 align-items:stretch 同一问题，见 ISSUE-122）。
+            // 只在尺寸确有变化且有子树可排时重排，避免无谓的子树重算。
+            bool changed = (stretchWidth && Math.Abs(stretchedW - c.Width) > 0.01f)
+                || (stretchHeight && Math.Abs(stretchedH - c.Height) > 0.01f);
+            if (changed && child.Children.Count > 0)
+            {
+                var marginBox = child.BoxModel.MarginBox;
+                LayoutDispatcher.Dispatch(child, new LayoutConstraints(stretchedW, stretchedH)
+                {
+                    FillAvailableHeight = true,
+                    ResolvedContentWidth = stretchedW,
+                    ResolvedContentHeight = stretchedH,
+                }, marginBox.X, marginBox.Y);
+
+                // 重排后回写：两轴内容尺寸恒为上面算出的拉伸/自然尺寸，抵消子布局中
+                // 内容驱动的尺寸重算与 min/max 夹取带来的偏差。
+                var after = child.BoxModel.Content;
+                child.BoxModel.Content = new RectF(after.X, after.Y, stretchedW, stretchedH);
+            }
         }
 
         // auto margin 吸收 area 内的剩余空间（margin:auto 居中）。

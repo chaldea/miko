@@ -20,6 +20,12 @@ internal sealed class PropertyInfo
     /// 仅这些属性可从父元素读取计算值以支持 inherit/unset 关键词；未遮蔽的属性无计算值可继承。
     /// </summary>
     public bool ShadowedByComputedStyle { get; set; }
+
+    /// <summary>
+    /// ComputedStyle 上的计算值本身是否可空（如 <c>Color? CaretColor</c>，用 null 表达
+    /// CSS 初始值 <c>auto</c>）。此类父值读取时需补 <c>?? default!</c>。
+    /// </summary>
+    public bool ComputedValueIsNullable { get; set; }
 }
 
 internal sealed class StyleInfo
