@@ -80,6 +80,14 @@ public sealed class SimulatorHost
     // 应用区指针按下记录（用于点击判定与拖拽转发）。
     private bool _appPointerActive;
 
+    // 按键重复（与 Miko.Windowing 同模型：按住可重复键时按节拍重放编辑动作）。
+    // Silk 的 KeyDown 只在物理按下时触发一次，不带 OS 的自动重复，故宿主自行计时。
+    private Key? _heldKey;
+    private bool _keyRepeatStarted;
+    private readonly Stopwatch _keyHoldTimer = new();
+    private const long KeyRepeatDelayMs = 500;
+    private const long KeyRepeatIntervalMs = 33;
+
     // 触屏指针光标（半透明圆圈，模拟触摸交互）。
     private ICursor? _touchCursor;
     private IMouse? _primaryMouse;
@@ -228,6 +236,7 @@ public sealed class SimulatorHost
         {
             keyboard.KeyChar += OnKeyChar;
             keyboard.KeyDown += OnKeyDown;
+            keyboard.KeyUp += OnKeyUp;
         }
 
         CreateTouchCursor();
@@ -385,6 +394,10 @@ public sealed class SimulatorHost
 
         // 排空跨线程调用队列（MCP 等后台线程投递的 DOM 读写操作），在任何渲染前于本线程执行。
         DrainRenderThreadQueue();
+
+        // 按键重复必须在空闲跳过判定之前泵一次：重复动作本身就是产生待办工作的来源，
+        // 放到判定之后会因为"上一帧已无工作"而永远不被执行。
+        PumpKeyRepeat();
 
         // 稳态空闲检测（ISSUE-096）：应用与设置面板均无待呈现的视觉工作时，跳过整帧
         // 绘制与缓冲交换（手动交换模式下窗口保持上一帧内容）。输入事件经 Silk 事件直接
@@ -701,6 +714,52 @@ public sealed class SimulatorHost
         var mikoKey = ToMikoKey(key);
         if (mikoKey == MikoKey.Unknown) return;
         _appController.OnKeyDown(mikoKey, GetModifiers(keyboard));
+
+        // 按住可重复键（退格/删除/方向键等）时开始计时，由 PumpKeyRepeat 按节拍重放。
+        if (MikoInteractionController.IsRepeatableKey(mikoKey))
+        {
+            _heldKey = key;
+            _keyRepeatStarted = false;
+            _keyHoldTimer.Restart();
+        }
+    }
+
+    private void OnKeyUp(IKeyboard keyboard, Key key, int scancode)
+    {
+        if (_heldKey == key)
+        {
+            _heldKey = null;
+            _keyHoldTimer.Stop();
+        }
+
+        var mikoKey = ToMikoKey(key);
+        if (mikoKey == MikoKey.Unknown) return;
+        _appController.OnKeyUp(mikoKey, GetModifiers(keyboard));
+    }
+
+    /// <summary>
+    /// 每帧开头调用：按住可重复键超过首次延迟后，按固定间隔重放编辑动作。
+    /// 与输入/渲染同线程，故可直接调用控制器（无需消息队列）。
+    /// </summary>
+    private void PumpKeyRepeat()
+    {
+        if (_heldKey == null) return;
+
+        var mikoKey = ToMikoKey(_heldKey.Value);
+        var elapsed = _keyHoldTimer.ElapsedMilliseconds;
+
+        if (!_keyRepeatStarted)
+        {
+            if (elapsed < KeyRepeatDelayMs) return;
+            _keyRepeatStarted = true;
+        }
+        else if (elapsed < KeyRepeatIntervalMs)
+        {
+            return;
+        }
+
+        _keyHoldTimer.Restart();
+        _appController.RepeatKey(mikoKey);
     }
 
     // 面板交互：复用引擎的滚动条命中与事件分发（与 DevTools 窗口同模式）。
