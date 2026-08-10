@@ -424,6 +424,9 @@ public class MikoEngine
             SyncVideoSessions(_root);
             // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
             SyncImageSources(_root);
+            // DOM 可能在 Razor 重渲染中新增带动画的元素（如 IonLoading 打开时才渲染 IonSpinner），
+            // 扫描并启动新元素上的 Style.Animations（已启动的动画不会重复启动）。
+            ScanAndStartAnimations(_root);
 
             RenderCurrentFrame();
             _dirtyManager.Clear();
@@ -445,6 +448,9 @@ public class MikoEngine
         SyncVideoSessions(_root);
         // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
         SyncImageSources(_root);
+        // DOM 可能在 Razor 重渲染中新增带动画的元素（如 IonLoading 打开时才渲染 IonSpinner），
+        // 扫描并启动新元素上的 Style.Animations（已启动的动画不会重复启动）。
+        ScanAndStartAnimations(_root);
 
         RestoreScrollState(oldLayout, _currentLayout);
         RenderCurrentFrame();

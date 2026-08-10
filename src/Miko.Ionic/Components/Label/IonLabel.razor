@@ -1,14 +1,35 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@* Mirrors Ionic's <ion-label>: the text content of a form control or list row.
+   The host maps to a <div>; `ion-label` carries the mode typography, an `ion-color` class turns the
+   text a named palette color, and `label-*` reflects the `position` prop. *@
 <div class="@ClassMapper.Class" style="@Style">@ChildContent</div>
 
 @code {
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the text color.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Where the label sits inside an <c>ion-item</c> (Ionic <c>position</c>):
+    /// <c>"fixed"</c>, <c>"stacked"</c> or <c>"floating"</c>. Stamped as a <c>label-*</c> class.
+    /// <para>
+    /// Only the position rules that stand on their own are ported (the <c>fixed</c> track width and
+    /// the stacked/floating margins). Ionic's stacked/floating transforms hang off
+    /// <c>:host-context(.item-has-focus)</c> / <c>.item-has-value</c> — an item focus/value state
+    /// machine this port does not have — so they are intentionally left out rather than emitted as
+    /// rules that could never match.
+    /// </para></summary>
+    [Parameter] public string? Position { get; set; }
+
     protected override void OnParametersSet()
     {
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
-            .Add("ion-label");
+            .Add("ion-label")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color)
+            .AddValue(Position, "label-");
     }
 }

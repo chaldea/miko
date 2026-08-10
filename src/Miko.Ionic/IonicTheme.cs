@@ -689,6 +689,23 @@ public class IonicTheme
     /// <summary>Button font size (16px both modes).</summary>
     public float DatetimeButtonFontSize { get; set; } = 16f;
 
+    // Label (label.scss / label.md.vars.scss / label.ios.vars.scss). The text content of a list row
+    // or form control. Both modes loosen line-height to 1.5 when the text wraps; iOS additionally
+    // drops the wrapped font to 14px and gives a stacked label a 4px bottom margin + 14px font,
+    // where md zeroes the margins and keeps the inherited size (hence the nullable font sizes).
+    /// <summary>Line height of a wrapping label (<c>$label-md/ios-text-wrap-line-height</c>: 1.5
+    /// both modes), in em.</summary>
+    public float LabelTextWrapLineHeight { get; set; } = 1.5f;
+    /// <summary>Font size of a wrapping label (<c>$label-ios-text-wrap-font-size</c>:
+    /// <c>dynamic-font(14px)</c>). Null on md, which keeps the inherited size.</summary>
+    public float? LabelTextWrapFontSize { get; set; }
+    /// <summary>Bottom margin of a <c>position="stacked"</c> label (label.ios.scss: 4px;
+    /// label.md.scss zeroes all four margins).</summary>
+    public float LabelStackedMarginBottom { get; set; }
+    /// <summary>Font size of a <c>position="stacked"</c> label (label.ios.scss
+    /// <c>dynamic-font(14px)</c>). Null on md, which keeps the inherited size.</summary>
+    public float? LabelStackedFontSize { get; set; }
+
     // Note (note.scss / note.md.vars.scss / note.ios.vars.scss). An inline muted-gray label
     // (e.g. metadata beside a list item). md uses text-color-step-400; ios uses the lighter
     // text-color-step-650. Both resolve to a 14px font (md dynamic-font(14); ios 0.875*16).
@@ -1239,6 +1256,13 @@ public class IonicTheme
         t.DatetimeButtonPaddingX = 12f;
         t.DatetimeButtonFontSize = 16f;
 
+        // Label (label.md.vars.scss): wrapped text only loosens line-height; stacked labels zero
+        // their margins and keep the inherited font size.
+        t.LabelTextWrapLineHeight = 1.5f;                         // $label-md-text-wrap-line-height
+        t.LabelTextWrapFontSize = null;                           // md has no font-size override
+        t.LabelStackedMarginBottom = 0f;                          // label.md.scss @include margin(0,0,0,0)
+        t.LabelStackedFontSize = null;                            // md has no font-size override
+
         // Note (note.md.vars.scss): muted gray text (text-color-step-400 ≈ #666666), 14px.
         t.NoteColor = Color.FromHex("666666");                    // $text-color-step-400
         t.NoteFontSize = 14f;                                     // dynamic-font(14px)
@@ -1713,6 +1737,13 @@ public class IonicTheme
         t.DatetimeButtonPaddingY = 7f;
         t.DatetimeButtonPaddingX = 13f;
         t.DatetimeButtonFontSize = 16f;
+
+        // Label (label.ios.vars.scss / label.ios.scss): wrapped text drops to 14px at line-height
+        // 1.5; a stacked label gets a 4px bottom margin and a 14px font.
+        t.LabelTextWrapLineHeight = 1.5f;                       // $label-ios-text-wrap-line-height
+        t.LabelTextWrapFontSize = 14f;                          // $label-ios-text-wrap-font-size
+        t.LabelStackedMarginBottom = 4f;                        // label.ios.scss @include margin(null,null,4px,null)
+        t.LabelStackedFontSize = 14f;                           // label.ios.scss dynamic-font(14px)
 
         // Note (note.ios.vars.scss): lighter gray text (text-color-step-650 ≈ #a6a6a6), 14px
         // (dynamic-font-min(0.875, 16px) → 0.875 * 16).

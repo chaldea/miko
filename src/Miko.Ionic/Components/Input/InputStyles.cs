@@ -105,6 +105,8 @@ internal static class InputStyles
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
+                FlexShrink = 0,
+                MaxWidth = Length.Px(200),
             },
             [$".ion-input.{mode} .label-text"] = new()
             {

@@ -41,8 +41,8 @@
     /// <c>componentWillLoad</c>). Pass an empty string to hide the spinner entirely.</summary>
     [Parameter] public string? Spinner { get; set; }
 
-    /// <summary>Number of milliseconds before auto-dismissing (Ionic <c>duration</c>). Marker only:
-    /// the auto-dismiss timer is not wired in this static port, but the value is kept for parity.</summary>
+    /// <summary>Number of milliseconds before auto-dismissing (Ionic <c>duration</c>).
+    /// When greater than zero, the loading indicator dismisses automatically after the specified time.</summary>
     [Parameter] public int Duration { get; set; }
 
     /// <summary>Whether the indicator is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
@@ -70,7 +70,11 @@
     /// when the backdrop is tapped).</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
 
+    [Inject] private Platform.MikoDispatcher? Dispatcher { get; set; }
+
     private string? _spinner;
+    private bool _timerScheduled;
+    private CancellationTokenSource? _timerCancellation;
 
     protected override void OnParametersSet()
     {
@@ -84,6 +88,47 @@
             .Add("ion-loading")
             .If(!IsOpen, "overlay-hidden")
             .If(Translucent, "loading-translucent");
+
+        // Schedule auto-dismiss when opening with a positive duration.
+        if (IsOpen && Duration > 0 && !_timerScheduled && Dispatcher != null)
+        {
+            _timerScheduled = true;
+            ScheduleAutoDismiss();
+        }
+
+        // Reset timer flag and cancel pending timer when closed (allow re-opening with a new timer).
+        if (!IsOpen)
+        {
+            _timerScheduled = false;
+            _timerCancellation?.Cancel();
+            _timerCancellation = null;
+        }
+    }
+
+    private void ScheduleAutoDismiss()
+    {
+        if (Dispatcher == null) return;
+
+        // Cancel any existing timer before starting a new one.
+        _timerCancellation?.Cancel();
+        _timerCancellation = new CancellationTokenSource();
+        var token = _timerCancellation.Token;
+
+        _ = Task.Delay(Duration, token).ContinueWith(async _ =>
+        {
+            // If the timer was cancelled, don't dismiss.
+            if (token.IsCancellationRequested) return;
+
+            // Post the dismiss action back to the render thread via the dispatcher.
+            Dispatcher.Post(async () =>
+            {
+                if (IsOpen)
+                {
+                    await DismissAsync(null);
+                    StateHasChanged();
+                }
+            });
+        }, TaskContinuationOptions.OnlyOnRanToCompletion);
     }
 
     private async Task OnBackdropTapAsync(MouseEventArgs _)
