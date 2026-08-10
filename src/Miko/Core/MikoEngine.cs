@@ -170,7 +170,7 @@ public class MikoEngine
         _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
 
         // Restore scroll positions from old layout (ISSUE-092)
-        RestoreScrollState(oldLayout, _currentLayout);
+        RestoreScrollState(oldLayout, _currentLayout, IsCrossPageNavigation(transition));
         // 返回上一页时回放该页离开时的滚动快照（ISSUE-118）。放在 ISSUE-092 的恢复之后：
         // 跨页面返回以快照为准，同树内重渲染没有快照条目、仍由上面那步处理，两者不冲突。
         RestoreScrollSnapshot(transition, _currentLayout);
@@ -182,7 +182,7 @@ public class MikoEngine
             {
                 _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
                 // Restore scroll state again after re-layout
-                RestoreScrollState(oldLayout, _currentLayout);
+                RestoreScrollState(oldLayout, _currentLayout, IsCrossPageNavigation(transition));
                 RestoreScrollSnapshot(transition, _currentLayout);
             }
         }
@@ -1334,6 +1334,9 @@ public class MikoEngine
     /// <para>结构签名只比较标签名与嵌套形状，忽略文本与属性等叶子值，因此仅有文本变化的
     /// 重新渲染仍会被视为「同一内容」而正确恢复。结构比较基于 <b>DOM 子树</b>（而非布局子树），
     /// 使 <c>display:none</c> 的展开/折叠（如 IonAccordion 面板）不被误判为内容替换而重置滚动。</para>
+    /// <para>判定的<b>宽严</b>取决于本次重建是不是跨页面导航（ISSUE-120）：同页重建放宽到子序列
+    /// 等价以容纳「追加」（无限滚动），跨页面导航则要求严格等价——那里结构相似纯属巧合，
+    /// 路由路径才是权威的身份信号。</para>
     /// </summary>
     /// <summary>
     /// 导航离开当前页时，为来源路径拍下滚动快照（ISSUE-118）。必须在旧布局树被替换之前调用。
@@ -1380,17 +1383,28 @@ public class MikoEngine
         _scrollSnapshots.Forget(navigation.ToPath);
     }
 
-    private static void RestoreScrollState(LayoutBox? oldRoot, LayoutBox? newRoot)
+    /// <summary>
+    /// 本次重建是否为<b>跨页面</b>的路由导航（ISSUE-120）。
+    /// <para>「同一路径重建」（<see cref="ComponentBase.StateHasChanged"/>、热重载、无限滚动加载更多）
+    /// 与「切换到另一个页面」在<b>结构上</b>可能无法区分——文档站的各个页面都以
+    /// <c>h1 → p → h2 → …</c> 这类通用标签开头，旧页的子树往往能在新页里按序找到对应项。
+    /// 但两者在<b>语义上</b>截然不同，而路由信息恰好提供了结构判断给不出的权威身份信号：
+    /// 目标路径与来源路径不同，就意味着被路由的槽位里装的是另一批内容。</para>
+    /// </summary>
+    private static bool IsCrossPageNavigation(NavigationTransitionInfo? navigation)
+        => navigation != null && !string.Equals(navigation.FromPath, navigation.ToPath, StringComparison.Ordinal);
+
+    private static void RestoreScrollState(LayoutBox? oldRoot, LayoutBox? newRoot, bool crossPageNavigation = false)
     {
         if (oldRoot == null || newRoot == null) return;
         // 布局树被缓存复用时新旧为同一对象，滚动偏移本就保留在盒子上，无需恢复（ISSUE-096）。
         if (ReferenceEquals(oldRoot, newRoot)) return;
         // 根节点必须同标签才对齐（否则整棵树语义不同，无从恢复）。
         if (!IsSameElementIdentity(oldRoot.Element, newRoot.Element)) return;
-        RestoreScrollStateRecursive(oldRoot, newRoot);
+        RestoreScrollStateRecursive(oldRoot, newRoot, crossPageNavigation);
     }
 
-    private static void RestoreScrollStateRecursive(LayoutBox oldBox, LayoutBox newBox)
+    private static void RestoreScrollStateRecursive(LayoutBox oldBox, LayoutBox newBox, bool crossPageNavigation)
     {
         // 仅当该容器有非零滚动偏移时才需要恢复；此时再验证其承载的内容（整棵子树）结构一致
         // ——结构一致，旧偏移才仍然有效。结构不同意味着「同一槽位、不同内容」（如路由切换后的
@@ -1402,8 +1416,15 @@ public class MikoEngine
         // display）会被误判为「内容替换」，从而重置外层可滚动容器的滚动条（见 ion-accordion 问题1）。
         // DOM 子树在 display 切换下保持稳定（内容元素始终在树中，仅计算 display 变化），既能在
         // 折叠/展开时正确恢复滚动，又能在真正的路由内容替换（DOM 子树形状不同）时正确重置。
+        // 跨页面导航时改用<b>严格</b>结构等价（子节点数量逐层相同），而不是同页重建时的
+        // 子序列等价：子序列判定是为了容纳「追加」（无限滚动加载更多），那只在同一页内才成立。
+        // 跨页面时槽位里装的是另一批内容，而通用标签让不同页面也能通过子序列判定
+        // （文档站各页都以 h1 → p → h2 → … 开头），于是上一页的偏移被继承到新页面上——
+        // 正是 ISSUE-120 的现场。侧栏这类跨导航<b>原样在场</b>的容器仍满足严格等价，偏移照常保留。
         if ((oldBox.ScrollTop != 0f || oldBox.ScrollLeft != 0f) &&
-            IsSamePresentedContent(oldBox.Element, newBox.Element))
+            (crossPageNavigation
+                ? IsIdenticalPresentedContent(oldBox.Element, newBox.Element)
+                : IsSamePresentedContent(oldBox.Element, newBox.Element)))
         {
             // 新内容可能比旧的短（列表被裁剪），按新的可滚动范围夹取，避免越界。
             newBox.ScrollTop = ClampScrollOffset(
@@ -1421,9 +1442,29 @@ public class MikoEngine
             var newChild = newBox.Children[i];
             if (IsSameElementIdentity(oldChild.Element, newChild.Element))
             {
-                RestoreScrollStateRecursive(oldChild, newChild);
+                RestoreScrollStateRecursive(oldChild, newChild, crossPageNavigation);
             }
         }
+    }
+
+    /// <summary>
+    /// 严格结构等价：标签相同、子节点数量相同，且逐个子树递归严格等价（ISSUE-120）。
+    /// <para>只比较标签名与嵌套形状，忽略文本与属性，因此侧栏这类「跨导航原样重建」的容器
+    /// 仍判定为同一批内容而保留滚动偏移；而被路由替换掉的页面内容（块数、嵌套形状都不同）
+    /// 判定不成立，新页面从顶部开始。</para>
+    /// <para>与 <see cref="IsSamePresentedContent"/> 的分工：后者放宽到子序列以容纳同页内的
+    /// 「追加」，前者用于跨页面导航——那里「内容变没变」不能靠结构猜，宁可严格。</para>
+    /// </summary>
+    private static bool IsIdenticalPresentedContent(Element oldElement, Element newElement)
+    {
+        if (!IsSameElementIdentity(oldElement, newElement)) return false;
+        if (oldElement.Children.Count != newElement.Children.Count) return false;
+
+        for (int i = 0; i < oldElement.Children.Count; i++)
+        {
+            if (!IsIdenticalPresentedContent(oldElement.Children[i], newElement.Children[i])) return false;
+        }
+        return true;
     }
 
     /// <summary>
