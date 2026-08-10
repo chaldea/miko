@@ -178,6 +178,10 @@ public class StyleResolver
     {
         // 可继承的属性
         style.Color ??= parentStyle.Color;
+        // caret-color 可继承。父元素未设置（计算值为 null，即 auto）时不写入——否则会把
+        // 父元素的 auto 固化成一个具体颜色，本元素自己的 color 就不再决定光标颜色。
+        if (style.CaretColor == null && parentStyle.CaretColor is { } parentCaretColor)
+            style.CaretColor = parentCaretColor;
         style.FontFamily ??= parentStyle.FontFamily;
         style.FontSize ??= parentStyle.FontSize;
         style.FontWeight ??= parentStyle.FontWeight;

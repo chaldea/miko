@@ -142,6 +142,8 @@ internal static class StyleInspector
 
         Add("background-color", FormatColor(cs.BackgroundColor));
         Add("color", FormatColor(cs.Color));
+        // 计算值为 null 表示 CSS 初始值 auto（光标取 color），如实显示 auto 而非解析后的颜色。
+        Add("caret-color", cs.CaretColor is { } caretColor ? FormatColor(caretColor) : "auto");
         Add("font-family", cs.FontFamily);
         Add("font-size", FormatLength(cs.FontSize));
         Add("font-weight", cs.FontWeight.ToString().ToLower());

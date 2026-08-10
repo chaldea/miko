@@ -1387,9 +1387,10 @@ public class Painter
     }
 
     /// <summary>
-    /// 绘制文本光标
+    /// 绘制文本光标。<paramref name="caretColor"/> 为 <c>caret-color</c> 的解析结果
+    /// （调用方传入 <see cref="Styling.ComputedStyle.ResolvedCaretColor"/>，即显式颜色或回落到 color）。
     /// </summary>
-    public void DrawTextCursor(RectF contentRect, string text, int cursorPosition, string fontFamily, float fontSize, FontWeight fontWeight)
+    public void DrawTextCursor(RectF contentRect, string text, int cursorPosition, string fontFamily, float fontSize, FontWeight fontWeight, Color caretColor)
     {
         var fontManager = FontManager.Instance;
         var textBeforeCursor = text.Substring(0, Math.Min(cursorPosition, text.Length));
@@ -1412,7 +1413,7 @@ public class Painter
 
         using var paint = new SKPaint
         {
-            Color = SKColors.Black,
+            Color = caretColor.ToSKColor(),
             StrokeWidth = 1,
             Style = SKPaintStyle.Stroke,
             IsAntialias = true

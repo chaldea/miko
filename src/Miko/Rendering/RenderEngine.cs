@@ -1170,7 +1170,7 @@ public class RenderEngine
                 if (isFocused)
                 {
                     var maskedText = new string('●', (inputElement.Value ?? string.Empty).Length);
-                    _painter.DrawTextCursor(contentRect, maskedText, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight);
+                    _painter.DrawTextCursor(contentRect, maskedText, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight, style.ResolvedCaretColor);
                 }
                 _painter.Restore();
                 break;
@@ -1199,7 +1199,7 @@ public class RenderEngine
                     );
                     if (isFocused)
                     {
-                        _painter.DrawTextCursor(scrolledRect, inputElement.Value, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight);
+                        _painter.DrawTextCursor(scrolledRect, inputElement.Value, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight, style.ResolvedCaretColor);
                     }
                 }
                 else
@@ -1219,7 +1219,7 @@ public class RenderEngine
                     }
                     if (isFocused)
                     {
-                        _painter.DrawTextCursor(contentRect, string.Empty, 0, style.FontFamily, style.FontSize.Value, style.FontWeight);
+                        _painter.DrawTextCursor(contentRect, string.Empty, 0, style.FontFamily, style.FontSize.Value, style.FontWeight, style.ResolvedCaretColor);
                     }
                 }
                 _painter.Restore();
@@ -1335,7 +1335,7 @@ public class RenderEngine
         var cursorRect = new RectF(contentRect.X, lineTop, contentRect.Width, lineHeight);
         _painter.DrawTextCursor(
             cursorRect, currentLine, currentLine.Length,
-            style.FontFamily, style.FontSize.Value, style.FontWeight);
+            style.FontFamily, style.FontSize.Value, style.FontWeight, style.ResolvedCaretColor);
     }
 
     /// <summary>

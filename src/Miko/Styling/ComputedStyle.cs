@@ -420,6 +420,19 @@ public partial class ComputedStyle : Style
     public new BackgroundSize BackgroundSize { get; set; } = Common.BackgroundSize.Auto;
     public new BackgroundPosition BackgroundPosition { get; set; } = Common.BackgroundPosition.LeftTop;
     public new Color Color { get; set; } = Color.Black;
+
+    /// <summary>
+    /// <c>caret-color</c> 的计算值，<c>null</c> 表示 CSS 初始值 <c>auto</c>——即光标取
+    /// <see cref="Color"/>。绘制方应读取 <see cref="ResolvedCaretColor"/> 而非本属性。
+    /// </summary>
+    public new Color? CaretColor { get; set; }
+
+    /// <summary>
+    /// 实际用于绘制文本光标的颜色：显式的 <c>caret-color</c>，否则回落到 <see cref="Color"/>
+    /// （对应 <c>caret-color: auto</c>）。
+    /// </summary>
+    public Color ResolvedCaretColor => CaretColor ?? Color;
+
     public new string FontFamily { get; set; } = "Arial";
     public new Length FontSize { get; set; } = Length.Px(16);
     public new FontWeight FontWeight { get; set; } = Common.FontWeight.Normal;

@@ -201,7 +201,11 @@
         if (root.FindByClass("native-input").FirstOrDefault() is InputElement input)
         {
             input.Type = MapType(Type);
-            input.Value = Value;
+            // Only stamp the value when this component actually carries one. Assigning null would
+            // record a "declared empty value" that wipes the text the user typed into an unbound
+            // input when an ancestor re-renders (ISSUE-121 problem 2) — mirrors an absent `value`
+            // attribute, which the browser leaves alone.
+            if (Value is not null) input.Value = Value;
             input.Placeholder = Placeholder;
             if (Disabled) input.SetState(ElementState.Disabled);
         }

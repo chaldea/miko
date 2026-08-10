@@ -150,6 +150,45 @@ public abstract class Element
     // 以委托而非组件引用形式保存，避免 Core 反向依赖 Components 类型。
     internal Action? DisposeCallback { get; set; }
 
+    /// <summary>
+    /// 组件重渲染时接替本元素位置的新实例（由 <c>ComponentBase.TransferRuntimeState</c> 写入）。
+    /// <para>组件的每次重渲染都产出<b>全新</b>的元素实例替换整棵子树，而交互状态（焦点、
+    /// 文本光标位置）活在实例上，控制器也按引用缓存焦点/拖拽目标。该指针把旧实例转发到
+    /// 在场实例，使这些缓存能重新指向正确的元素——否则事件处理器一旦触发重渲染，焦点就
+    /// 留在已脱离树的旧实例上（ISSUE-121：点了输入框却不画光标）。</para>
+    /// </summary>
+    internal Element? SupersededBy { get; set; }
+
+    /// <summary>
+    /// 沿 <see cref="SupersededBy"/> 链取回当前仍在树中的实例；本元素未被替换时返回自身。
+    /// </summary>
+    internal Element ResolveSuperseded()
+    {
+        var current = this;
+        while (current.SupersededBy is { } next)
+            current = next;
+        // 路径压缩：反复重渲染会把链越接越长，逐次遍历既慢又让整条链上的旧实例都活着。
+        if (!ReferenceEquals(current, this))
+            SupersededBy = current;
+        return current;
+    }
+
+    /// <summary>
+    /// 从被本元素替换掉的旧实例上接过交互运行时状态（ISSUE-121）。
+    /// <para>只搬迁「由交互产生、不由组件参数重新写入」的状态：交互状态标志位（焦点/悬停/
+    /// 按下）。<see cref="ElementState.Disabled"/> 不在其中——它由组件按参数每次重新标注，
+    /// 搬迁反而会让 <c>Disabled</c> 参数转为 false 后仍卡在禁用态。</para>
+    /// <para>子类可重写以追加自己的状态（如输入控件的光标位置）。</para>
+    /// </summary>
+    internal virtual void CopyInteractionStateFrom(Element old)
+    {
+        // 静默置位：本元素尚未进入布局树，样式尚未解析，标脏无意义；随后的重排会照常
+        // 按新状态级联（这条路径本身就发生在一次重渲染中间）。
+        var carried = old.State & (ElementState.Focus | ElementState.Hover | ElementState.Active);
+        if (carried != ElementState.None)
+            SetState(carried, invalidate: false);
+    }
+
     // 脏标记
     internal bool IsDirty { get; set; }
 

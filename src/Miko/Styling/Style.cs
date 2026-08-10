@@ -432,6 +432,15 @@ public partial class Style
     public StyleProperty<BackgroundSize>? BackgroundSize { get; set; }
     public StyleProperty<BackgroundPosition>? BackgroundPosition { get; set; }
     public StyleProperty<Color>? Color { get; set; }
+
+    /// <summary>
+    /// 文本插入光标（caret）的颜色。对应 CSS <c>caret-color</c>，作用于可编辑文本控件
+    /// （<c>input</c> / <c>textarea</c>）聚焦时绘制的光标竖线。
+    /// <para>与 CSS 一致：该属性可继承，且未设置时光标取该元素的 <see cref="Color"/>
+    /// （CSS 初始值 <c>auto</c> 的行为）。</para>
+    /// </summary>
+    public StyleProperty<Color>? CaretColor { get; set; }
+
     public StyleProperty<string>? FontFamily { get; set; }
     public StyleProperty<Length>? FontSize { get; set; }
     public StyleProperty<FontWeight>? FontWeight { get; set; }

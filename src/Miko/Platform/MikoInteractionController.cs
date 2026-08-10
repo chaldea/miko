@@ -49,6 +49,8 @@ public sealed class MikoInteractionController
     // 先于 volatile 的 _needsRebuild 写入，渲染线程读到 _needsRebuild=true 时必然能读到它。
     private NavigationEventArgs? _pendingNavigation;
 
+    // 焦点元素。读取一律经 FocusedElement（下方）而非直接读字段：组件重渲染会用全新实例
+    // 替换整棵子树，此处缓存的引用可能已脱离树（ISSUE-121）。
     private Element? _focusedElement;
     private InputElement? _draggingRange;
     private bool _isDragging;
@@ -495,6 +497,11 @@ public sealed class MikoInteractionController
 
         DispatchWithSyncContext(target, EventTypes.Click, args);
 
+        // 分发过程中的处理器（如 IonInput 的 @onclick）很可能已经重渲染了这棵子树，把 target
+        // 换成了一个新实例。后续的焦点/光标处理必须落在<b>在场</b>的那个实例上——否则焦点写在
+        // 已脱离树的元素上，渲染看不到它，光标便不会出现（ISSUE-121）。
+        target = target.ResolveSuperseded();
+
         if (target is InputElement inputElement)
         {
             HandleInputClick(inputElement);
@@ -652,11 +659,26 @@ public sealed class MikoInteractionController
         }
     }
 
+    /// <summary>
+    /// 当前焦点元素，经 <c>Element.SupersededBy</c> 转发链解析到仍在树中的实例。
+    /// <para>事件处理器（<c>@oninput</c>、<c>@onclick</c>）触发的组件重渲染会用全新实例替换
+    /// 整棵子树，而这里缓存的是引用。不解析就会把后续键盘输入送给一个已脱离树的元素：
+    /// 值和光标都写在看不见的实例上（ISSUE-121）。</para>
+    /// </summary>
+    private Element? FocusedElement
+    {
+        get
+        {
+            if (_focusedElement == null) return null;
+            _focusedElement = _focusedElement.ResolveSuperseded();
+            return _focusedElement;
+        }
+    }
+
     private void SetFocusCore(Element? newFocus)
     {
-        if (_focusedElement == newFocus) return;
-
-        var oldFocus = _focusedElement;
+        var oldFocus = FocusedElement;
+        if (oldFocus == newFocus) return;
 
         if (oldFocus != null)
         {
@@ -702,8 +724,8 @@ public sealed class MikoInteractionController
                 if (handler(key)) return true;
             }
 
-            if (_focusedElement is not ITextEditable editable || !editable.IsEditable) return false;
-            var editableElement = (Element)_focusedElement;
+            if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return false;
+            var editableElement = (Element)editable;
 
             var keyName = key.ToString();
             bool ctrl = mods.HasFlag(MikoKeyModifiers.Control);
@@ -744,8 +766,8 @@ public sealed class MikoInteractionController
 
     private void ProcessKeyAction(MikoKey key)
     {
-        if (_focusedElement is not ITextEditable editable || !editable.IsEditable) return;
-        var element = (Element)_focusedElement;
+        if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return;
+        var element = (Element)editable;
 
         switch (key)
         {
@@ -795,8 +817,8 @@ public sealed class MikoInteractionController
     {
         lock (_sync)
         {
-            if (_focusedElement is not ITextEditable editable || !editable.IsEditable) return;
-            var element = (Element)_focusedElement;
+            if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return;
+            var element = (Element)editable;
 
             foreach (var character in text)
             {
