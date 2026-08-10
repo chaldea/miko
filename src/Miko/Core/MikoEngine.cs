@@ -1316,7 +1316,8 @@ public class MikoEngine
             {
                 _logger.LogDebug("ScanAndStartAnimations: found animation \"{Name}\" on <{Tag} id=\"{Id}\">",
                     animation.Name, element.TagName, element.Id ?? "");
-                _animationManager.StartAnimation(element, animation);
+                // 使用 StartAnimationIfNotRunning 避免重启已经运行的动画
+                _animationManager.StartAnimationIfNotRunning(element, animation);
             }
         }
 
