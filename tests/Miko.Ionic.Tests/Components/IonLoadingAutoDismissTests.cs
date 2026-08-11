@@ -32,7 +32,7 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         });
 
         // Assert: should stay open
-        cut.Root.Class.ShouldNotContain("overlay-hidden");
+        cut.Root.Class?.ShouldNotContain("overlay-hidden");
         dismissed.ShouldBeFalse();
     }
 
@@ -55,7 +55,7 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         });
 
         // Assert: should stay open
-        cut.Root.Class.ShouldNotContain("overlay-hidden");
+        cut.Root.Class?.ShouldNotContain("overlay-hidden");
         dismissed.ShouldBeFalse();
     }
 
@@ -78,7 +78,7 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         });
 
         // Assert: should stay open
-        cut.Root.Class.ShouldNotContain("overlay-hidden");
+        cut.Root.Class?.ShouldNotContain("overlay-hidden");
         dismissed.ShouldBeFalse();
     }
 
@@ -86,7 +86,6 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
     public void IonLoading_WithoutDispatcher_DoesNotCrash()
     {
         // Arrange: NO dispatcher registered (bare test scenario)
-        bool dismissed = false;
 
         // Act: open with duration but no dispatcher
         var cut = Context.Render<IonLoading>(p =>
@@ -94,12 +93,12 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
             p.Add(nameof(IonLoading.IsOpen), true);
             p.Add(nameof(IonLoading.Duration), 1000);
             p.Add(nameof(IonLoading.OnDidDismiss), EventCallback.Factory.Create<IonOverlayDismissEventArgs>(
-                this, _ => dismissed = true));
+                this, _ => { })); // Unused callback
         });
 
         // Assert: should render successfully without crashing
         cut.Root.ShouldNotBeNull();
-        cut.Root.Class.ShouldNotContain("overlay-hidden");
+        cut.Root.Class?.ShouldNotContain("overlay-hidden");
     }
 
     [Fact]

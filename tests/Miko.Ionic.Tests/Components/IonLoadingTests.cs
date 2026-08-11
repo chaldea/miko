@@ -20,13 +20,13 @@ public class IonLoadingTests : IonicComponentTestBase
         });
 
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldContain("md");
-        cut.Root.Class.ShouldContain("ion-loading");
-        cut.Root.Class.ShouldNotContain("overlay-hidden");
+        cut.Root.Class?.ShouldContain("md");
+        cut.Root.Class?.ShouldContain("ion-loading");
+        cut.Root.Class?.ShouldNotContain("overlay-hidden");
 
         var spinner = cut.FindByClass("ion-spinner").FirstOrDefault();
         spinner.ShouldNotBeNull();
-        spinner.Class.ShouldContain("spinner-crescent");
+        spinner.Class?.ShouldContain("spinner-crescent");
 
         var message = cut.FindByClass("loading-content").FirstOrDefault();
         message.ShouldNotBeNull();
@@ -43,10 +43,10 @@ public class IonLoadingTests : IonicComponentTestBase
             p.Add(nameof(IonLoading.IsOpen), true);
         });
 
-        cut.Root.Class.ShouldContain("ios");
+        cut.Root.Class?.ShouldContain("ios");
         var spinner = cut.FindByClass("ion-spinner").FirstOrDefault();
         spinner.ShouldNotBeNull();
-        spinner.Class.ShouldContain("spinner-lines");
+        spinner.Class?.ShouldContain("spinner-lines");
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class IonLoadingTests : IonicComponentTestBase
             p.Add(nameof(IonLoading.IsOpen), false);
         });
 
-        cut.Root.Class.ShouldContain("overlay-hidden");
+        cut.Root.Class?.ShouldContain("overlay-hidden");
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class IonLoadingTests : IonicComponentTestBase
 
         var spinner = cut.FindByClass("ion-spinner").FirstOrDefault();
         spinner.ShouldNotBeNull();
-        spinner.Class.ShouldContain("spinner-dots");
+        spinner.Class?.ShouldContain("spinner-dots");
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class IonLoadingTests : IonicComponentTestBase
             p.Add(nameof(IonLoading.Translucent), true);
         });
 
-        cut.Root.Class.ShouldContain("loading-translucent");
+        cut.Root.Class?.ShouldContain("loading-translucent");
     }
 
     [Fact]
