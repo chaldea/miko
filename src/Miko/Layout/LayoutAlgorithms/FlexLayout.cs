@@ -250,6 +250,11 @@ public class FlexLayout
         // 最终位置由 LayoutEngine 的定位阶段修正。
         // width:auto 时传入无限宽约束触发 shrink-to-fit（与 BlockLayout 的脱离流处理一致，
         // 见 ISSUE-077）；显式宽度（含百分比）仍相对容器内容宽度解析。
+        //
+        // 但是，当 absolute 元素的定位偏移（top/bottom 或 left/right）为 auto 时，CSS 规范
+        // 要求使用"静态位置"（static position）——即该元素如果是静态定位时应该在的位置。
+        // 在 flex 容器中，这个静态位置应该考虑容器的 align-items 对齐（见 ISSUE-125）。
+        // 因此，这里需要根据 align-items 计算出交叉轴的对齐偏移，并应用到初始位置上。
         foreach (var child in box.Children)
         {
             if (BlockLayout.IsOutOfFlow(child))
@@ -260,6 +265,12 @@ public class FlexLayout
                     : contentWidth > 0 ? contentWidth : (float?)null;
                 var childConstraints = new LayoutConstraints(childWidthConstraint, childAvailableHeight);
                 LayoutDispatcher.Dispatch(child, childConstraints, contentX, contentY);
+
+                // 应用 align-items 的交叉轴对齐（仅当交叉轴定位偏移为 auto 时生效，见 ISSUE-125）。
+                // 单行容器：使用容器的交叉尺寸（与 ISSUE-124 的修复一致）。
+                // 多行容器：absolute 元素不属于任何行，使用容器交叉尺寸（而非某行的交叉尺寸）。
+                ApplyOutOfFlowAlignment(child, contentX, contentY, contentWidth, contentHeight,
+                    style.AlignItems, isRow);
             }
         }
 
@@ -1470,5 +1481,70 @@ public class FlexLayout
         child.BoxModel.Content = isRow
             ? new RectF(after.X, after.Y, mainSize, target)
             : new RectF(after.X, after.Y, target, mainSize);
+    }
+
+    /// <summary>
+    /// 对脱离文档流的子元素（absolute/fixed）应用 flex 容器的 align-items 对齐。
+    /// CSS 规范：当 absolute 元素的定位偏移为 auto 时，使用"静态位置"（static position），
+    /// 即该元素如果是静态定位时应该在的位置。在 flex 容器中，这个静态位置应该考虑
+    /// align-items 的对齐（见 ISSUE-125）。
+    /// </summary>
+    /// <remarks>
+    /// 此方法只处理交叉轴对齐（行方向为垂直对齐，列方向为水平对齐）。主轴对齐
+    /// （justify-content）不影响 absolute 元素的静态位置：absolute 元素不是 flex 项目，
+    /// 不参与主轴的空间分配。
+    /// 实际的定位偏移计算在 LayoutEngine.ApplyPositioning 中完成：如果 top/bottom
+    /// （或 left/right）都是 auto，则保持这里计算的静态位置；否则按偏移值重新定位。
+    /// </remarks>
+    private static void ApplyOutOfFlowAlignment(LayoutBox child, float contentX, float contentY,
+        float contentWidth, float contentHeight, AlignItems alignItems, bool isRow)
+    {
+        var childStyle = child.ComputedStyle;
+
+        // 只有当交叉轴的两个定位偏移都是 auto 时，才使用静态位置（align-items 对齐）。
+        // 如果任一偏移已指定，LayoutEngine.ApplyPositioning 会按偏移值定位，覆盖这里的位置。
+        bool usesStaticPosition = isRow
+            ? (childStyle.Top.IsAuto && childStyle.Bottom.IsAuto)
+            : (childStyle.Left.IsAuto && childStyle.Right.IsAuto);
+
+        if (!usesStaticPosition) return;
+
+        // 解析有效对齐方式：absolute 元素的 align-self 可以覆盖容器的 align-items。
+        AlignItems effectiveAlign = ResolveItemAlign(childStyle.AlignSelf, alignItems);
+
+        // 交叉轴尺寸和当前位置
+        float crossSize = isRow ? contentHeight : contentWidth;
+        float childCrossSize = isRow ? child.BoxModel.MarginBox.Height : child.BoxModel.MarginBox.Width;
+        float currentPos = isRow ? child.BoxModel.MarginBox.Top : child.BoxModel.MarginBox.Left;
+        float crossStart = isRow ? contentY : contentX;
+
+        // 计算对齐偏移（与 ApplyLineAlignItems 的逻辑一致）
+        float offset = 0;
+        switch (effectiveAlign)
+        {
+            case AlignItems.FlexEnd:
+                offset = crossSize - childCrossSize;
+                break;
+            case AlignItems.Center:
+                offset = (crossSize - childCrossSize) / 2;
+                break;
+            case AlignItems.Stretch:
+                // absolute 元素不参与 stretch（stretch 只对 flex 项目生效）
+                offset = 0;
+                break;
+            // FlexStart, Baseline, Normal 等都是起点对齐
+            default:
+                offset = 0;
+                break;
+        }
+
+        float targetPos = crossStart + offset;
+        float delta = targetPos - currentPos;
+
+        if (Math.Abs(delta) > 0.01f)
+        {
+            if (isRow) OffsetSubtree(child, 0, delta);
+            else OffsetSubtree(child, delta, 0);
+        }
     }
 }
