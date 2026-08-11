@@ -1,8 +1,14 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@ClassMapper.Class" style="@Style">
-    @ChildContent
-</div>
+@* Mirrors Ionic's <ion-buttons> host (buttons.tsx render()). A wrapper for one or more
+   <IonButton> positioned inside a toolbar.
+   Cascades a toolbar context with InButtons=true so nested IonButtons can apply the denser
+   toolbar-button metrics and the clear-fill default. *@
+<CascadingValue TValue="ToolbarContext" Value="@(new ToolbarContext { InButtons = true })">
+    <div class="@ClassMapper.Class" style="@Style">
+        @ChildContent
+    </div>
+</CascadingValue>
 
 @code {
     /// <summary>

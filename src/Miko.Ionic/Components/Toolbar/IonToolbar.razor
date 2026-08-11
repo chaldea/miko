@@ -1,17 +1,22 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@ClassMapper.Class" style="@Style">
-    <div class="toolbar-background"></div>
-    <div class="toolbar-container">
-        @Start
-        @Secondary
-        <div class="toolbar-content">
-            @ChildContent
+@* Mirrors Ionic's <ion-toolbar> host structure (toolbar.tsx render()).
+   A toolbar context is cascaded so nested IonButtons can pass InButtons=true to their children,
+   and IonButton can durably stamp in-toolbar / in-buttons without a Build() post-pass. *@
+<CascadingValue TValue="ToolbarContext" Value="@(new ToolbarContext())">
+    <div class="@ClassMapper.Class" style="@Style">
+        <div class="toolbar-background"></div>
+        <div class="toolbar-container">
+            @Start
+            @Secondary
+            <div class="toolbar-content">
+                @ChildContent
+            </div>
+            @Primary
+            @End
         </div>
-        @Primary
-        @End
     </div>
-</div>
+</CascadingValue>
 
 @code {
     /// <summary>

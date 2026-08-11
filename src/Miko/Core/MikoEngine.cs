@@ -424,6 +424,9 @@ public class MikoEngine
             SyncVideoSessions(_root);
             // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
             SyncImageSources(_root);
+            // DOM 可能在 Razor 重渲染中新增带动画的元素（如 IonLoading 打开时才渲染 IonSpinner），
+            // 扫描并启动新元素上的 Style.Animations（已启动的动画不会重复启动）。
+            ScanAndStartAnimations(_root);
 
             RenderCurrentFrame();
             _dirtyManager.Clear();
@@ -445,6 +448,9 @@ public class MikoEngine
         SyncVideoSessions(_root);
         // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
         SyncImageSources(_root);
+        // DOM 可能在 Razor 重渲染中新增带动画的元素（如 IonLoading 打开时才渲染 IonSpinner），
+        // 扫描并启动新元素上的 Style.Animations（已启动的动画不会重复启动）。
+        ScanAndStartAnimations(_root);
 
         RestoreScrollState(oldLayout, _currentLayout);
         RenderCurrentFrame();
@@ -727,9 +733,33 @@ public class MikoEngine
         float childScrollOffsetX = scrollOffsetX + box.ScrollLeft;
         float childScrollOffsetY = scrollOffsetY + box.ScrollTop;
 
+        // HitTest must respect z-index order like rendering does. Collect positioned descendants with
+        // z-index (穿透 non-stacking-context ancestors like CollectZOrderedDescendants does), test them
+        // in descending z-index order (highest first), then test remaining children in reverse DOM order.
+        // This ensures the fab (z-index:1000) is tested before the header (z-index:10) even though they
+        // are uncle/nephew, not siblings (issues/ion-fab.md problem 3, issues/ion-menu.md problem 1).
+        var zOrdered = CollectZOrderedDescendantsForHitTest(box);
+        if (zOrdered != null)
+        {
+            // Test in descending z-index order (highest first)
+            for (int i = zOrdered.Count - 1; i >= 0; i--)
+            {
+                var descendant = zOrdered[i];
+                var hit = HitTestBox(descendant, x, y, childScrollOffsetX, childScrollOffsetY);
+                if (hit != null) return hit;
+            }
+        }
+
+        // Test remaining children (non-positioned or positioned without z-index, or deferred by clipping)
+        // in reverse DOM order
+        var deferred = zOrdered?.ToHashSet();
         for (int i = box.Children.Count - 1; i >= 0; i--)
         {
             var child = box.Children[i];
+            // Skip children already tested above
+            if (deferred?.Contains(child) == true)
+                continue;
+
             var childRect = child.BoxModel.BorderBox;
             float childScreenTop = childRect.Top - childScrollOffsetY;
             float childScreenBottom = childRect.Bottom - childScrollOffsetY;
@@ -758,6 +788,66 @@ public class MikoEngine
             return null;
 
         return box.Element;
+    }
+
+    /// <summary>
+    /// Collect positioned descendants with z-index within this stacking context, sorted by z-index
+    /// (ascending). Mirrors the rendering engine's CollectZOrderedDescendants but for hit testing.
+    /// Penetrates non-stacking-context ancestors to find all positioned descendants with z-index.
+    /// </summary>
+    private static List<LayoutBox>? CollectZOrderedDescendantsForHitTest(LayoutBox root)
+    {
+        List<LayoutBox>? found = null;
+        Collect(root, ref found);
+        if (found == null || found.Count == 0) return null;
+
+        // Stable sort by z-index (ascending, so higher z-index comes later in the list)
+        return found.OrderBy(b => b.ComputedStyle.ZIndex).ToList();
+
+        static void Collect(LayoutBox box, ref List<LayoutBox>? found)
+        {
+            foreach (var child in box.Children)
+            {
+                if (IsZOrderedPositioned(child))
+                {
+                    (found ??= new List<LayoutBox>()).Add(child);
+                    // This descendant will be tested as a whole unit; don't recurse into it
+                    continue;
+                }
+
+                // Stacking contexts contain their own descendants, don't penetrate
+                if (EstablishesStackingContext(child)) continue;
+
+                // Clipping ancestors: descendants must stay in place for clipping, don't extract
+                if (Clips(child)) continue;
+
+                Collect(child, ref found);
+            }
+        }
+
+        static bool IsZOrderedPositioned(LayoutBox box)
+            => box.ComputedStyle.Position != Common.Position.Static && box.ComputedStyle.HasZIndex;
+
+        static bool Clips(LayoutBox box)
+            => box.ComputedStyle.OverflowX != Overflow.Visible
+            || box.ComputedStyle.OverflowY != Overflow.Visible;
+
+        static bool EstablishesStackingContext(LayoutBox box)
+        {
+            // Positioned elements with z-index establish a stacking context
+            if (box.ComputedStyle.Position != Common.Position.Static && box.ComputedStyle.HasZIndex)
+                return true;
+
+            // Opacity < 1 establishes a stacking context
+            if (box.ComputedStyle.Opacity < 1.0f)
+                return true;
+
+            // Transform establishes a stacking context
+            if (box.ComputedStyle.Transform.Functions.Count > 0)
+                return true;
+
+            return false;
+        }
     }
 
     private record struct StyleSnapshot(
@@ -1310,7 +1400,8 @@ public class MikoEngine
             {
                 _logger.LogDebug("ScanAndStartAnimations: found animation \"{Name}\" on <{Tag} id=\"{Id}\">",
                     animation.Name, element.TagName, element.Id ?? "");
-                _animationManager.StartAnimation(element, animation);
+                // 使用 StartAnimationIfNotRunning 避免重启已经运行的动画
+                _animationManager.StartAnimationIfNotRunning(element, animation);
             }
         }
 

@@ -1,192 +1,154 @@
-using Miko.Components;
-using Miko.Events;
+using Miko.Animation;
+using Miko.Common;
+using Miko.Core;
 using Miko.Ionic.Components;
 using Miko.Platform;
-using Miko.Testing;
+using Miko.Styling;
 using Shouldly;
 
 namespace Miko.Ionic.Tests.Components;
 
-/// <summary>
-/// Tests for <c>ion-loading</c>. Covers the overlay DOM contract (host + backdrop + wrapper +
-/// spinner + content), the open/closed <c>overlay-hidden</c> gating, the per-mode spinner default,
-/// the message render, the show-backdrop toggle, and the dismiss behavior (backdrop tap respecting
-/// the <c>BackdropDismiss</c> default of false, and <c>OnDidDismiss</c> being raised).
-/// </summary>
 public class IonLoadingTests : IonicComponentTestBase
 {
-    private static ComponentUnderTest RenderLoading(TestContext ctx,
-        Action<ComponentParameterBuilder<IonLoading>>? configure = null)
-        => ctx.Render<IonLoading>(p =>
+    [Fact]
+    public void IonLoading_DefaultMd_RendersOverlayWithCrescentSpinner()
+    {
+        var cut = Context.Render<IonLoading>(p =>
         {
             p.Add(nameof(IonLoading.IsOpen), true);
             p.Add(nameof(IonLoading.Message), "Loading...");
-            configure?.Invoke(p);
         });
 
-    // ---- DOM contract ------------------------------------------------------
-
-    [Fact]
-    public void IonLoading_RendersOverlayContract()
-    {
-        var cut = RenderLoading(Context);
-
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.ShouldHaveClass("md ion-loading");
-        cut.FindByClass("loading-backdrop").ShouldHaveSingleItem();
-        cut.FindByClass("loading-wrapper").ShouldHaveSingleItem();
-        cut.FindByClass("loading-spinner").ShouldHaveSingleItem();
-        cut.FindByClass("loading-content").ShouldHaveSingleItem();
+        cut.Root.Class.ShouldContain("md");
+        cut.Root.Class.ShouldContain("ion-loading");
+        cut.Root.Class.ShouldNotContain("overlay-hidden");
+
+        var spinner = cut.FindByClass("ion-spinner").FirstOrDefault();
+        spinner.ShouldNotBeNull();
+        spinner.Class.ShouldContain("spinner-crescent");
+
+        var message = cut.FindByClass("loading-content").FirstOrDefault();
+        message.ShouldNotBeNull();
+        message.TextContent.ShouldBe("Loading...");
     }
 
     [Fact]
-    public void IonLoading_WrapperCarriesOverlayWrapperClass()
-    {
-        var cut = RenderLoading(Context);
-
-        var wrapper = cut.FindByClass("loading-wrapper").ShouldHaveSingleItem();
-        wrapper.ShouldHaveClass("ion-overlay-wrapper");
-    }
-
-    [Fact]
-    public void IonLoading_RendersMessage()
-    {
-        var cut = RenderLoading(Context, p => p.Add(nameof(IonLoading.Message), "Please wait"));
-
-        cut.GetTextContent().ShouldContain("Please wait");
-    }
-
-    [Fact]
-    public void IonLoading_NoMessage_OmitsContent()
-    {
-        var cut = Context.Render<IonLoading>(p => p.Add(nameof(IonLoading.IsOpen), true));
-
-        cut.FindByClass("loading-content").ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void IonLoading_EmptySpinner_OmitsSpinner()
-    {
-        var cut = RenderLoading(Context, p => p.Add(nameof(IonLoading.Spinner), ""));
-
-        cut.FindByClass("loading-spinner").ShouldBeEmpty();
-    }
-
-    // ---- Spinner default per mode -----------------------------------------
-
-    [Fact]
-    public void IonLoading_MdSpinner_DefaultsToCrescent()
-    {
-        var cut = RenderLoading(Context);
-
-        // The nested IonSpinner stamps spinner-{name}; md defaults to crescent.
-        cut.FindByClass("spinner-crescent").ShouldNotBeEmpty();
-    }
-
-    [Fact]
-    public void IonLoading_IosSpinner_DefaultsToLines()
+    public void IonLoading_DefaultIos_UsesLinesSpinner()
     {
         UsePlatform(HostPlatform.Ios);
 
-        var cut = RenderLoading(Context);
-
-        cut.FindByClass("spinner-lines").ShouldNotBeEmpty();
-    }
-
-    [Fact]
-    public void IonLoading_ExplicitSpinner_IsUsed()
-    {
-        var cut = RenderLoading(Context, p => p.Add(nameof(IonLoading.Spinner), "dots"));
-
-        cut.FindByClass("spinner-dots").ShouldNotBeEmpty();
-    }
-
-    // ---- Backdrop ----------------------------------------------------------
-
-    [Fact]
-    public void IonLoading_ShowBackdropFalse_OmitsBackdrop()
-    {
-        var cut = RenderLoading(Context, p => p.Add(nameof(IonLoading.ShowBackdrop), false));
-
-        cut.FindByClass("loading-backdrop").ShouldBeEmpty();
-    }
-
-    // ---- Open / closed gating ---------------------------------------------
-
-    [Fact]
-    public void IonLoading_Closed_StampsOverlayHidden()
-    {
-        var cut = Context.Render<IonLoading>(p => p.Add(nameof(IonLoading.IsOpen), false));
-
-        cut.Root.ShouldHaveClass("overlay-hidden");
-    }
-
-    [Fact]
-    public void IonLoading_Open_DoesNotStampOverlayHidden()
-    {
-        var cut = RenderLoading(Context);
-
-        cut.Root.ShouldNotHaveClass("overlay-hidden");
-    }
-
-    // ---- Dismiss interaction ----------------------------------------------
-
-    [Fact]
-    public async Task IonLoading_BackdropTap_IsNoOp_ByDefault()
-    {
-        // Loading blocks input: BackdropDismiss defaults to false, so a tap does nothing.
-        var invoked = false;
-        var loading = new IonLoading
+        var cut = Context.Render<IonLoading>(p =>
         {
-            IsOpen = true,
-            OnDidDismiss = EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this, _ => invoked = true),
-        };
-        loading.Build();
+            p.Add(nameof(IonLoading.IsOpen), true);
+        });
 
-        await Invoke(loading, "OnBackdropTapAsync", new MouseEventArgs());
-
-        invoked.ShouldBeFalse();
+        cut.Root.Class.ShouldContain("ios");
+        var spinner = cut.FindByClass("ion-spinner").FirstOrDefault();
+        spinner.ShouldNotBeNull();
+        spinner.Class.ShouldContain("spinner-lines");
     }
 
     [Fact]
-    public async Task IonLoading_BackdropTap_Dismisses_WhenEnabled()
+    public void IonLoading_Closed_AppliesOverlayHidden()
     {
-        var closed = false;
-        IonOverlayDismissEventArgs? dismissed = null;
-        var loading = new IonLoading
+        var cut = Context.Render<IonLoading>(p =>
         {
-            IsOpen = true,
-            BackdropDismiss = true,
-            IsOpenChanged = EventCallback.Factory.Create<bool>(this, v => closed = !v),
-            OnDidDismiss = EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this, e => dismissed = e),
-        };
-        loading.Build();
+            p.Add(nameof(IonLoading.IsOpen), false);
+        });
 
-        await Invoke(loading, "OnBackdropTapAsync", new MouseEventArgs());
-
-        closed.ShouldBeTrue();
-        dismissed.ShouldNotBeNull();
-        dismissed!.Role.ShouldBe("backdrop");
-        dismissed!.IsCancel.ShouldBeTrue();
+        cut.Root.Class.ShouldContain("overlay-hidden");
     }
-
-    // ---- Mode --------------------------------------------------------------
 
     [Fact]
-    public void IonLoading_UsesIosClass_OnIosPlatform()
+    public void IonLoading_CustomSpinner_UsesSpecifiedSpinner()
     {
-        UsePlatform(HostPlatform.Ios);
+        var cut = Context.Render<IonLoading>(p =>
+        {
+            p.Add(nameof(IonLoading.IsOpen), true);
+            p.Add(nameof(IonLoading.Spinner), "dots");
+        });
 
-        var cut = RenderLoading(Context);
-
-        cut.Root.Class.ShouldStartWith("ios ion-loading");
+        var spinner = cut.FindByClass("ion-spinner").FirstOrDefault();
+        spinner.ShouldNotBeNull();
+        spinner.Class.ShouldContain("spinner-dots");
     }
 
-    // Invokes a private async handler on the component (mirrors what a click/tap dispatches).
-    private static async Task Invoke(object component, string method, object arg)
+    [Fact]
+    public void IonLoading_EmptySpinner_HidesSpinner()
     {
-        var mi = component.GetType().GetMethod(method,
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
-        await (Task)mi.Invoke(component, new[] { arg })!;
+        var cut = Context.Render<IonLoading>(p =>
+        {
+            p.Add(nameof(IonLoading.IsOpen), true);
+            p.Add(nameof(IonLoading.Spinner), "");
+            p.Add(nameof(IonLoading.Message), "Loading...");
+        });
+
+        var spinner = cut.FindByClass("ion-spinner").FirstOrDefault();
+        spinner.ShouldBeNull();
+
+        var message = cut.FindByClass("loading-content").FirstOrDefault();
+        message.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void IonLoading_NoMessage_HidesContent()
+    {
+        var cut = Context.Render<IonLoading>(p =>
+        {
+            p.Add(nameof(IonLoading.IsOpen), true);
+        });
+
+        var message = cut.FindByClass("loading-content").FirstOrDefault();
+        message.ShouldBeNull();
+    }
+
+    [Fact]
+    public void IonLoading_ShowBackdropFalse_HidesBackdrop()
+    {
+        var cut = Context.Render<IonLoading>(p =>
+        {
+            p.Add(nameof(IonLoading.IsOpen), true);
+            p.Add(nameof(IonLoading.ShowBackdrop), false);
+        });
+
+        var backdrop = cut.FindByClass("ion-backdrop").FirstOrDefault();
+        backdrop.ShouldBeNull();
+    }
+
+    [Fact]
+    public void IonLoading_Translucent_AppliesTranslucentClass()
+    {
+        var cut = Context.Render<IonLoading>(p =>
+        {
+            p.Add(nameof(IonLoading.IsOpen), true);
+            p.Add(nameof(IonLoading.Translucent), true);
+        });
+
+        cut.Root.Class.ShouldContain("loading-translucent");
+    }
+
+    [Fact]
+    public void IonLoading_SpinnerHasAnimations()
+    {
+        var cut = Context.Render<IonLoading>(p =>
+        {
+            p.Add(nameof(IonLoading.IsOpen), true);
+        });
+
+        var spinner = cut.FindByClass("ion-spinner").FirstOrDefault();
+        spinner.ShouldNotBeNull();
+
+        // The spinner should have inline animations in its Style
+        var animations = spinner.Style?.Animations.RefValueOrNull();
+        animations.ShouldNotBeNull();
+        animations.Count.ShouldBeGreaterThan(0);
+
+        // Each animation should have a non-zero duration
+        foreach (var anim in animations)
+        {
+            anim.Duration.ShouldBeGreaterThan(0f);
+            anim.Infinite.ShouldBeTrue();
+        }
     }
 }

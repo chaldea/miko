@@ -323,6 +323,9 @@ internal static class ButtonStyles
             FontWeight = t.ButtonStrongFontWeight,
         };
 
+        // --- In a toolbar --------------------------------------------------------------------
+        AddInToolbar(css, mode, t);
+
         // --- Named color fills (Ionic --ion-color-* palette) ---------------------------------
         // A solid button with a color fills with that base and uses its contrast label.
         AddSolidColor(css, mode, "primary", t.Primary, Color.FromHex("ffffff"));
@@ -350,6 +353,146 @@ internal static class ButtonStyles
     }
 
     private static BorderRadius Radius(float px) => new BorderRadius(Length.Px(px));
+
+    /// <summary>
+    /// Rules for a button sitting inside an <c>ion-toolbar</c>. Ported from two Ionic sources:
+    /// <list type="bullet">
+    ///   <item><description><c>button.scss</c>'s <c>:host(.in-toolbar…)</c> block — the label,
+    ///   border, and solid fill are pulled from the toolbar's own color/background so a button
+    ///   reads against the bar it sits on instead of against the page.</description></item>
+    ///   <item><description><c>buttons.md.scss</c> / <c>buttons.ios.scss</c>'s
+    ///   <c>::slotted(*) ion-button</c> block — the denser metrics (32px min-height, tighter
+    ///   padding, squarer radius, larger icons) that apply only to buttons slotted through an
+    ///   <c>ion-buttons</c> group.</description></item>
+    /// </list>
+    /// The <c>in-toolbar</c> / <c>in-buttons</c> markers are durably stamped by
+    /// <see cref="IonButton"/> from the cascaded <see cref="ToolbarContext"/> (Ionic resolves them
+    /// via <c>hostContext</c> / <c>closest</c>, which a detached Miko build cannot do from the
+    /// button itself). The cascading approach survives button re-renders, unlike a Build() post-pass.
+    /// <para>
+    /// The color rules carry Ionic's <c>:not(.ion-color)</c> guard so an explicitly colored button
+    /// keeps its own palette. Ionic also guards on <c>:not(.in-toolbar-color)</c> (a toolbar with a
+    /// <c>color</c> attribute); <c>IonToolbar</c> has no <c>Color</c> parameter in this port, so
+    /// that class never appears and the guard is omitted rather than written as dead selector text.
+    /// </para>
+    /// </summary>
+    private static void AddInToolbar(CssObject css, string mode, IonicTheme t)
+    {
+        // :host(.in-toolbar:not(.ion-color)) .button-native — the label takes the toolbar's color.
+        css[$".ion-button.{mode}.in-toolbar:not(.ion-color) .button-native"] = new()
+        {
+            Color = t.ToolbarColor,
+        };
+
+        // :host(.button-outline.in-toolbar:not(.ion-color)) .button-native — so does the border.
+        css[$".ion-button.{mode}.button-outline.in-toolbar:not(.ion-color) .button-native"] = new()
+        {
+            BorderColor = t.ToolbarColor,
+        };
+
+        // :host(.button-solid.in-toolbar:not(.ion-color)) .button-native — a solid button inverts:
+        // it fills with the toolbar's color and labels with the toolbar's background.
+        css[$".ion-button.{mode}.button-solid.in-toolbar:not(.ion-color) .button-native"] = new()
+        {
+            BackgroundColor = t.ToolbarColor,
+            Color = t.ToolbarBackground,
+        };
+        // Its hover keeps the 8% white wash the standalone solid rule uses, recomputed against the
+        // toolbar fill (Ionic layers --background-hover over --background; see the hover note above).
+        css[$".ion-button.{mode}.button-solid.in-toolbar:not(.ion-color):hover .button-native"] = new()
+        {
+            BackgroundColor = Composite(t.ToolbarColor, Color.White, 0.08f),
+        };
+
+        // --- buttons.{md,ios}.scss `::slotted(*) ion-button` ----------------------------------
+        // Only buttons slotted through an ion-buttons group are re-metered; a bare button dropped
+        // in the toolbar's default slot keeps its standalone size, matching Ionic's ::slotted scope.
+        css[$".ion-button.{mode}.in-buttons"] = new()
+        {
+            MinHeight = t.ToolbarButtonMinHeight,
+            MarginLeft = Length.Px(t.ToolbarButtonMarginX),
+            MarginRight = Length.Px(t.ToolbarButtonMarginX),
+        };
+        css[$".ion-button.{mode}.in-buttons .button-native"] = new()
+        {
+            // Mirror the host min-height (Ionic's `min-height: inherit` on .button-native).
+            MinHeight = t.ToolbarButtonMinHeight,
+            PaddingTop = t.ToolbarButtonPaddingTop,
+            PaddingBottom = t.ToolbarButtonPaddingBottom,
+            PaddingLeft = t.ToolbarButtonPaddingStart,
+            PaddingRight = t.ToolbarButtonPaddingEnd,
+            // `::slotted(*) ion-button { --box-shadow: none }` (md) — a toolbar button is flat.
+            BoxShadow = new List<BoxShadow>(),
+        };
+
+        // `::slotted(*) ion-button:not(.button-round) { --border-radius: … }` — the squarer
+        // toolbar radius, except on a pill-shaped button which keeps its own.
+        css[$".ion-button.{mode}.in-buttons:not(.button-round) .button-native"] = new()
+        {
+            BorderRadius = Radius(t.ToolbarButtonBorderRadius),
+        };
+
+        // `::slotted(*) .button-has-icon-only { --padding-top: 0; --padding-bottom: 0 }`.
+        css[$".ion-button.{mode}.in-buttons.button-has-icon-only .button-native"] = new()
+        {
+            MinHeight = t.ToolbarButtonMinHeight,
+            PaddingTop = Length.Px(0),
+            PaddingBottom = Length.Px(0),
+        };
+
+        // `::slotted(*) ion-icon[slot=start|end|icon-only]` — a toolbar button's icons are sized
+        // against the button font rather than the 1.35em the standalone button uses, and the
+        // horizontal gap toward the label is asymmetric (.3em leading, .4em trailing). Ionic zeroes
+        // the icon's own margins first, so the gap is the only margin left.
+        css[$".ion-button.{mode}.in-buttons .ion-slot-start .ion-icon"] = new()
+        {
+            FontSize = Length.Em(t.ToolbarButtonIconFontSize),
+            MarginLeft = Length.Px(0),
+            MarginRight = Length.Em(0.3f),
+        };
+        css[$".ion-button.{mode}.in-buttons .ion-slot-end .ion-icon"] = new()
+        {
+            FontSize = Length.Em(t.ToolbarButtonIconFontSize),
+            MarginLeft = Length.Em(0.4f),
+            MarginRight = Length.Px(0),
+        };
+        // The icon-only icon is sized purely by font-size here (width/height stay 1em from the base
+        // rule), so it must beat the base .button-has-icon-only rule's explicit px box.
+        css[$".ion-button.{mode}.in-buttons.button-has-icon-only .ion-slot-icon-only .ion-icon"] = new()
+        {
+            FontSize = Length.Em(t.ToolbarButtonIconOnlyFontSize),
+            Width = Length.Em(1f),
+            Height = Length.Em(1f),
+            MarginLeft = Length.Px(0),
+            MarginRight = Length.Px(0),
+        };
+
+        // MD only: a clear icon-only toolbar button becomes a 3rem circular tap target
+        // (buttons.md.scss `::slotted(*) .button-has-icon-only.button-clear`). iOS has no such rule.
+        if (t.ToolbarButtonIconOnlyClearSize > 0)
+        {
+            css[$".ion-button.{mode}.in-buttons.button-has-icon-only.button-clear"] = new()
+            {
+                Width = Length.Px(t.ToolbarButtonIconOnlyClearSize),
+                Height = Length.Px(t.ToolbarButtonIconOnlyClearSize),
+                MinWidth = Length.Px(t.ToolbarButtonIconOnlyClearSize),
+                MinHeight = Length.Px(t.ToolbarButtonIconOnlyClearSize),
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Px(0),
+                MarginLeft = Length.Px(0),
+                MarginRight = Length.Px(0),
+            };
+            css[$".ion-button.{mode}.in-buttons.button-has-icon-only.button-clear .button-native"] = new()
+            {
+                MinHeight = Length.Px(t.ToolbarButtonIconOnlyClearSize),
+                PaddingTop = t.ToolbarButtonIconOnlyClearPadding,
+                PaddingBottom = t.ToolbarButtonIconOnlyClearPadding,
+                PaddingLeft = t.ToolbarButtonIconOnlyClearPadding,
+                PaddingRight = t.ToolbarButtonIconOnlyClearPadding,
+                BorderRadius = new BorderRadius(Length.Percent(50)),
+            };
+        }
+    }
 
     // Solid color: base fill + contrast label on the native surface.
     private static void AddSolidColor(CssObject css, string mode, string name, Color baseColor, Color contrast)

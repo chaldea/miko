@@ -68,7 +68,30 @@ public class IonicTheme
     // Toolbar
     public Color ToolbarBackground { get; set; }
     public Color ToolbarColor { get; set; }
+    public Color ToolbarBorderColor { get; set; }
     public float ToolbarMinHeight { get; set; } = 56f;
+    public Length ToolbarPaddingTop { get; set; } = Length.Px(0);
+    public Length ToolbarPaddingBottom { get; set; } = Length.Px(0);
+    public Length ToolbarPaddingStart { get; set; } = Length.Px(0);
+    public Length ToolbarPaddingEnd { get; set; } = Length.Px(0);
+
+    // Buttons slotted into a toolbar (buttons.md.scss / buttons.ios.scss `::slotted(*) ion-button`).
+    // A toolbar button is denser than a standalone one: a shorter min-height, tighter padding, a
+    // squarer radius, and larger icons relative to the smaller label.
+    public Length ToolbarButtonMinHeight { get; set; } = Length.Px(32);
+    public Length ToolbarButtonPaddingTop { get; set; } = Length.Px(3);
+    public Length ToolbarButtonPaddingBottom { get; set; } = Length.Px(3);
+    public Length ToolbarButtonPaddingStart { get; set; } = Length.Px(8);
+    public Length ToolbarButtonPaddingEnd { get; set; } = Length.Px(8);
+    public float ToolbarButtonMarginX { get; set; } = 2f;
+    public float ToolbarButtonBorderRadius { get; set; } = 2f;
+    /// <summary>Font-size of a start/end icon inside a toolbar button, in em of the button font.</summary>
+    public float ToolbarButtonIconFontSize { get; set; } = 1.4f;
+    /// <summary>Font-size of an <c>icon-only</c> icon inside a toolbar button, in em of the button font.</summary>
+    public float ToolbarButtonIconOnlyFontSize { get; set; } = 1.8f;
+    /// <summary>MD gives a clear icon-only toolbar button a 3rem circular tap target; iOS does not.</summary>
+    public float ToolbarButtonIconOnlyClearSize { get; set; } = 48f;
+    public Length ToolbarButtonIconOnlyClearPadding { get; set; } = Length.Px(12);
 
     // Title
     public float TitleFontSize { get; set; } = 20f;
@@ -689,6 +712,23 @@ public class IonicTheme
     /// <summary>Button font size (16px both modes).</summary>
     public float DatetimeButtonFontSize { get; set; } = 16f;
 
+    // Label (label.scss / label.md.vars.scss / label.ios.vars.scss). The text content of a list row
+    // or form control. Both modes loosen line-height to 1.5 when the text wraps; iOS additionally
+    // drops the wrapped font to 14px and gives a stacked label a 4px bottom margin + 14px font,
+    // where md zeroes the margins and keeps the inherited size (hence the nullable font sizes).
+    /// <summary>Line height of a wrapping label (<c>$label-md/ios-text-wrap-line-height</c>: 1.5
+    /// both modes), in em.</summary>
+    public float LabelTextWrapLineHeight { get; set; } = 1.5f;
+    /// <summary>Font size of a wrapping label (<c>$label-ios-text-wrap-font-size</c>:
+    /// <c>dynamic-font(14px)</c>). Null on md, which keeps the inherited size.</summary>
+    public float? LabelTextWrapFontSize { get; set; }
+    /// <summary>Bottom margin of a <c>position="stacked"</c> label (label.ios.scss: 4px;
+    /// label.md.scss zeroes all four margins).</summary>
+    public float LabelStackedMarginBottom { get; set; }
+    /// <summary>Font size of a <c>position="stacked"</c> label (label.ios.scss
+    /// <c>dynamic-font(14px)</c>). Null on md, which keeps the inherited size.</summary>
+    public float? LabelStackedFontSize { get; set; }
+
     // Note (note.scss / note.md.vars.scss / note.ios.vars.scss). An inline muted-gray label
     // (e.g. metadata beside a list item). md uses text-color-step-400; ios uses the lighter
     // text-color-step-650. Both resolve to a 14px font (md dynamic-font(14); ios 0.875*16).
@@ -822,7 +862,26 @@ public class IonicTheme
         // Toolbar (toolbar.md.scss): min-height 56, bg #fff, color #424242.
         t.ToolbarBackground = Color.FromHex("ffffff");
         t.ToolbarColor = Color.FromHex("424242");
+        t.ToolbarBorderColor = Color.FromHex("b2b2b2");
         t.ToolbarMinHeight = 56f;
+        t.ToolbarPaddingTop = Length.Px(0);
+        t.ToolbarPaddingBottom = Length.Px(0);
+        t.ToolbarPaddingStart = Length.Px(0);
+        t.ToolbarPaddingEnd = Length.Px(0);
+
+        // Toolbar buttons (buttons.md.scss `::slotted(*) ion-button`): 32px tall, 3px/8px padding,
+        // 2px radius ($toolbar-md-button-border-radius), 1.4em start/end icons, 1.8em icon-only.
+        t.ToolbarButtonMinHeight = Length.Px(32);
+        t.ToolbarButtonPaddingTop = Length.Px(3);
+        t.ToolbarButtonPaddingBottom = Length.Px(3);
+        t.ToolbarButtonPaddingStart = Length.Px(8);
+        t.ToolbarButtonPaddingEnd = Length.Px(8);
+        t.ToolbarButtonMarginX = 2f;
+        t.ToolbarButtonBorderRadius = 2f;
+        t.ToolbarButtonIconFontSize = 1.4f;
+        t.ToolbarButtonIconOnlyFontSize = 1.8f;
+        t.ToolbarButtonIconOnlyClearSize = 48f;   // 3rem
+        t.ToolbarButtonIconOnlyClearPadding = Length.Px(12);
 
         // Title (title.md.scss): 20px / 500, left-aligned, padding 0 20px.
         t.TitleFontSize = 20f;
@@ -1239,6 +1298,13 @@ public class IonicTheme
         t.DatetimeButtonPaddingX = 12f;
         t.DatetimeButtonFontSize = 16f;
 
+        // Label (label.md.vars.scss): wrapped text only loosens line-height; stacked labels zero
+        // their margins and keep the inherited font size.
+        t.LabelTextWrapLineHeight = 1.5f;                         // $label-md-text-wrap-line-height
+        t.LabelTextWrapFontSize = null;                           // md has no font-size override
+        t.LabelStackedMarginBottom = 0f;                          // label.md.scss @include margin(0,0,0,0)
+        t.LabelStackedFontSize = null;                            // md has no font-size override
+
         // Note (note.md.vars.scss): muted gray text (text-color-step-400 ≈ #666666), 14px.
         t.NoteColor = Color.FromHex("666666");                    // $text-color-step-400
         t.NoteFontSize = 14f;                                     // dynamic-font(14px)
@@ -1320,7 +1386,28 @@ public class IonicTheme
         // Toolbar (toolbar.ios): min-height 44, bg #f7f7f7, color #000.
         t.ToolbarBackground = Color.FromHex("f7f7f7");
         t.ToolbarColor = Color.FromHex("000000");
+        t.ToolbarBorderColor = Color.FromHex("c8c7cc");
         t.ToolbarMinHeight = 44f;
+        t.ToolbarPaddingTop = Length.Px(0);
+        t.ToolbarPaddingBottom = Length.Px(0);
+        t.ToolbarPaddingStart = Length.Px(0);
+        t.ToolbarPaddingEnd = Length.Px(0);
+
+        // Toolbar buttons (buttons.ios.scss `::slotted(*) ion-button`): 32px tall, 3px/5px padding,
+        // 4px radius ($toolbar-ios-button-border-radius). Icon sizes are expressed against the 17px
+        // iOS button font so they land on Ionic's intended pixel sizes: 1.41em ≈ 24px start/end,
+        // 1.65em ≈ 28px icon-only. iOS has no circular clear icon-only treatment (MD-only rule).
+        t.ToolbarButtonMinHeight = Length.Px(32);
+        t.ToolbarButtonPaddingTop = Length.Px(3);
+        t.ToolbarButtonPaddingBottom = Length.Px(3);
+        t.ToolbarButtonPaddingStart = Length.Px(5);
+        t.ToolbarButtonPaddingEnd = Length.Px(5);
+        t.ToolbarButtonMarginX = 2f;
+        t.ToolbarButtonBorderRadius = 4f;
+        t.ToolbarButtonIconFontSize = 1.41f;
+        t.ToolbarButtonIconOnlyFontSize = 1.65f;
+        t.ToolbarButtonIconOnlyClearSize = 0f;    // no iOS equivalent
+        t.ToolbarButtonIconOnlyClearPadding = Length.Px(0);
 
         // Title (title.ios): 17px / 600, centered, padding 0 90px (clamped here).
         t.TitleFontSize = 17f;
@@ -1713,6 +1800,13 @@ public class IonicTheme
         t.DatetimeButtonPaddingY = 7f;
         t.DatetimeButtonPaddingX = 13f;
         t.DatetimeButtonFontSize = 16f;
+
+        // Label (label.ios.vars.scss / label.ios.scss): wrapped text drops to 14px at line-height
+        // 1.5; a stacked label gets a 4px bottom margin and a 14px font.
+        t.LabelTextWrapLineHeight = 1.5f;                       // $label-ios-text-wrap-line-height
+        t.LabelTextWrapFontSize = 14f;                          // $label-ios-text-wrap-font-size
+        t.LabelStackedMarginBottom = 4f;                        // label.ios.scss @include margin(null,null,4px,null)
+        t.LabelStackedFontSize = 14f;                           // label.ios.scss dynamic-font(14px)
 
         // Note (note.ios.vars.scss): lighter gray text (text-color-step-650 ≈ #a6a6a6), 14px
         // (dynamic-font-min(0.875, 16px) → 0.875 * 16).

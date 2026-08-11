@@ -150,6 +150,10 @@
     /// <summary>Content shown at the trailing edge of the textarea.</summary>
     [Parameter] public RenderFragment? EndSlot { get; set; }
 
+    /// <summary>Provided by an ancestor <see cref="IonItem"/> when this input is hosted inside one.
+    /// Used to suppress the highlight bar (which would duplicate the item's bottom border).</summary>
+    [CascadingParameter] public IonItemContext? ItemContext { get; set; }
+
     private string _labelWrapperClass = "label-text-wrapper";
     private string _counterText = string.Empty;
 
@@ -160,7 +164,7 @@
     private bool ShowCounter => Counter && Maxlength is not null;
     // Ionic only draws the md highlight bar when not using the outline fill (in the tests the
     // textarea is not hosted inside an ion-item, so the in-item suppression does not apply here).
-    private bool ShowHighlight => Mode == "md" && Fill != "outline";
+    private bool ShowHighlight => Mode == "md" && Fill != "outline" && ItemContext is null;
 
     protected override void OnParametersSet()
     {

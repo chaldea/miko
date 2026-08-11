@@ -109,6 +109,25 @@ public class AnimationManager
             definition.Name, element.TagName, element.Id ?? "", definition.Duration, definition.Infinite, definition.Direction);
     }
 
+    /// <summary>
+    /// Starts an animation only if it's not already running. Used during re-renders to start
+    /// animations on newly created elements without restarting animations that are already playing.
+    /// </summary>
+    public void StartAnimationIfNotRunning(Element element, KeyframeAnimation definition)
+    {
+        // Check if this animation is already running on this element
+        bool isRunning = _animations.Any(a => a.Element == element && a.Definition.Name == definition.Name);
+        if (isRunning)
+        {
+            _logger.LogTrace("Animation \"{Name}\" already running on <{Tag} id=\"{Id}\">, skipping",
+                definition.Name, element.TagName, element.Id ?? "");
+            return;
+        }
+
+        // Not running, start it
+        StartAnimation(element, definition);
+    }
+
     public void StopAnimation(Element element, string? animationName = null)
     {
         if (animationName == null)
