@@ -98,8 +98,6 @@ internal static class ToggleStyles
                 Height = Length.Px(t.ToggleTrackHeight),
                 BackgroundColor = t.ToggleTrackBackgroundOff,
                 BorderRadius = trackRadius,
-                OverflowX = Overflow.Hidden,
-                OverflowY = Overflow.Hidden,
                 Transitions = new List<Transition>
                 {
                     new Transition(nameof(Style.BackgroundColor), t.ToggleTransitionDuration, TimingFunction.Linear),
