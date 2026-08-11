@@ -68,7 +68,30 @@ public class IonicTheme
     // Toolbar
     public Color ToolbarBackground { get; set; }
     public Color ToolbarColor { get; set; }
+    public Color ToolbarBorderColor { get; set; }
     public float ToolbarMinHeight { get; set; } = 56f;
+    public Length ToolbarPaddingTop { get; set; } = Length.Px(0);
+    public Length ToolbarPaddingBottom { get; set; } = Length.Px(0);
+    public Length ToolbarPaddingStart { get; set; } = Length.Px(0);
+    public Length ToolbarPaddingEnd { get; set; } = Length.Px(0);
+
+    // Buttons slotted into a toolbar (buttons.md.scss / buttons.ios.scss `::slotted(*) ion-button`).
+    // A toolbar button is denser than a standalone one: a shorter min-height, tighter padding, a
+    // squarer radius, and larger icons relative to the smaller label.
+    public Length ToolbarButtonMinHeight { get; set; } = Length.Px(32);
+    public Length ToolbarButtonPaddingTop { get; set; } = Length.Px(3);
+    public Length ToolbarButtonPaddingBottom { get; set; } = Length.Px(3);
+    public Length ToolbarButtonPaddingStart { get; set; } = Length.Px(8);
+    public Length ToolbarButtonPaddingEnd { get; set; } = Length.Px(8);
+    public float ToolbarButtonMarginX { get; set; } = 2f;
+    public float ToolbarButtonBorderRadius { get; set; } = 2f;
+    /// <summary>Font-size of a start/end icon inside a toolbar button, in em of the button font.</summary>
+    public float ToolbarButtonIconFontSize { get; set; } = 1.4f;
+    /// <summary>Font-size of an <c>icon-only</c> icon inside a toolbar button, in em of the button font.</summary>
+    public float ToolbarButtonIconOnlyFontSize { get; set; } = 1.8f;
+    /// <summary>MD gives a clear icon-only toolbar button a 3rem circular tap target; iOS does not.</summary>
+    public float ToolbarButtonIconOnlyClearSize { get; set; } = 48f;
+    public Length ToolbarButtonIconOnlyClearPadding { get; set; } = Length.Px(12);
 
     // Title
     public float TitleFontSize { get; set; } = 20f;
@@ -839,7 +862,26 @@ public class IonicTheme
         // Toolbar (toolbar.md.scss): min-height 56, bg #fff, color #424242.
         t.ToolbarBackground = Color.FromHex("ffffff");
         t.ToolbarColor = Color.FromHex("424242");
+        t.ToolbarBorderColor = Color.FromHex("b2b2b2");
         t.ToolbarMinHeight = 56f;
+        t.ToolbarPaddingTop = Length.Px(0);
+        t.ToolbarPaddingBottom = Length.Px(0);
+        t.ToolbarPaddingStart = Length.Px(0);
+        t.ToolbarPaddingEnd = Length.Px(0);
+
+        // Toolbar buttons (buttons.md.scss `::slotted(*) ion-button`): 32px tall, 3px/8px padding,
+        // 2px radius ($toolbar-md-button-border-radius), 1.4em start/end icons, 1.8em icon-only.
+        t.ToolbarButtonMinHeight = Length.Px(32);
+        t.ToolbarButtonPaddingTop = Length.Px(3);
+        t.ToolbarButtonPaddingBottom = Length.Px(3);
+        t.ToolbarButtonPaddingStart = Length.Px(8);
+        t.ToolbarButtonPaddingEnd = Length.Px(8);
+        t.ToolbarButtonMarginX = 2f;
+        t.ToolbarButtonBorderRadius = 2f;
+        t.ToolbarButtonIconFontSize = 1.4f;
+        t.ToolbarButtonIconOnlyFontSize = 1.8f;
+        t.ToolbarButtonIconOnlyClearSize = 48f;   // 3rem
+        t.ToolbarButtonIconOnlyClearPadding = Length.Px(12);
 
         // Title (title.md.scss): 20px / 500, left-aligned, padding 0 20px.
         t.TitleFontSize = 20f;
@@ -1344,7 +1386,28 @@ public class IonicTheme
         // Toolbar (toolbar.ios): min-height 44, bg #f7f7f7, color #000.
         t.ToolbarBackground = Color.FromHex("f7f7f7");
         t.ToolbarColor = Color.FromHex("000000");
+        t.ToolbarBorderColor = Color.FromHex("c8c7cc");
         t.ToolbarMinHeight = 44f;
+        t.ToolbarPaddingTop = Length.Px(0);
+        t.ToolbarPaddingBottom = Length.Px(0);
+        t.ToolbarPaddingStart = Length.Px(0);
+        t.ToolbarPaddingEnd = Length.Px(0);
+
+        // Toolbar buttons (buttons.ios.scss `::slotted(*) ion-button`): 32px tall, 3px/5px padding,
+        // 4px radius ($toolbar-ios-button-border-radius). Icon sizes are expressed against the 17px
+        // iOS button font so they land on Ionic's intended pixel sizes: 1.41em ≈ 24px start/end,
+        // 1.65em ≈ 28px icon-only. iOS has no circular clear icon-only treatment (MD-only rule).
+        t.ToolbarButtonMinHeight = Length.Px(32);
+        t.ToolbarButtonPaddingTop = Length.Px(3);
+        t.ToolbarButtonPaddingBottom = Length.Px(3);
+        t.ToolbarButtonPaddingStart = Length.Px(5);
+        t.ToolbarButtonPaddingEnd = Length.Px(5);
+        t.ToolbarButtonMarginX = 2f;
+        t.ToolbarButtonBorderRadius = 4f;
+        t.ToolbarButtonIconFontSize = 1.41f;
+        t.ToolbarButtonIconOnlyFontSize = 1.65f;
+        t.ToolbarButtonIconOnlyClearSize = 0f;    // no iOS equivalent
+        t.ToolbarButtonIconOnlyClearPadding = Length.Px(0);
 
         // Title (title.ios): 17px / 600, centered, padding 0 90px (clamped here).
         t.TitleFontSize = 17f;
