@@ -48,7 +48,9 @@ public class IonButtonTests : IonicComponentTestBase
     public void IonButton_DefaultsToSolidFill()
     {
         var cut = RenderButton(Context);
-        cut.Root.Class.ShouldBe("md ion-button button-solid");
+        // button-fill-default marks "the author set no fill", so IonToolbar's post-pass knows it
+        // may flip this button to clear (Ionic's `fill = inToolbar ? 'clear' : 'solid'`).
+        cut.Root.Class.ShouldBe("md ion-button button-solid button-fill-default");
     }
 
     [Fact]

@@ -11,16 +11,18 @@
             <Start>
                 <IonBackButton DefaultHref="/"></IonBackButton>
             </Start>
-            <End>
-                <IonButton>
-                    <IconOnly>
-                        <IonIcon Icon="@Ionicons.SearchSharp" Slot="icon-only"></IonIcon>
-                    </IconOnly>
-                </IonButton>
-            </End>
             <ChildContent>
                 <IonTitle>Toolbar</IonTitle>
             </ChildContent>
+            <End>
+                <IonButtons>
+                    <IonButton>
+                        <IconOnly>
+                            <IonIcon Icon="@Ionicons.SearchSharp" Slot="icon-only"></IonIcon>
+                        </IconOnly>
+                    </IonButton>
+                </IonButtons>
+            </End>
         </IonToolbar>
         <IonToolbar>
             <IonSegment @bind-Value="_segment">
@@ -33,21 +35,14 @@
     <IonContent>
         <IonHeader>
             <IonToolbar>
-                <IonTitle>Toolbar</IonTitle>
-            </IonToolbar>
-            <IonToolbar>
-                <IonSearchbar ShowCancelButton="focus"></IonSearchbar>
-            </IonToolbar>
-        </IonHeader>
-
-        <IonHeader>
-            <IonToolbar>
                 <Primary>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Ios="@Ionicons.EllipsisHorizontal" Md="@Ionicons.EllipsisVertical" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.EllipsisHorizontal" Md="@Ionicons.EllipsisVertical" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
                 </Primary>
                 <ChildContent>
                     <IonTitle>Page title</IonTitle>
@@ -58,42 +53,50 @@
         <IonHeader>
             <IonToolbar>
                 <Primary>
-                    <IonButton>Edit</IonButton>
+                    <IonButtons>
+                        <IonButton>Edit</IonButton>
+                    </IonButtons>
                 </Primary>
-                <End>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Ios="@Ionicons.AddOutline" Md="@Ionicons.AddSharp" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
-                </End>
                 <ChildContent>
                     <IonTitle>Page title</IonTitle>
                 </ChildContent>
+                <End>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.AddOutline" Md="@Ionicons.AddSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
+                </End>
             </IonToolbar>
         </IonHeader>
 
         <IonHeader>
             <IonToolbar>
                 <Start>
-                    <IonBackButton DefaultHref="#" Text="@(Mode == "ios" ? "February" : "")"></IonBackButton>
+                    <IonButtons>
+                        <IonBackButton DefaultHref="#" Text="@(Mode == "ios" ? "February" : "")"></IonBackButton>
+                    </IonButtons>
                 </Start>
                 <End>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Ios="@Ionicons.ListOutline" Md="@Ionicons.ListSharp" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Ios="@Ionicons.SearchOutline" Md="@Ionicons.SearchSharp" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Ios="@Ionicons.AddOutline" Md="@Ionicons.AddSharp" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.ListOutline" Md="@Ionicons.ListSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.SearchOutline" Md="@Ionicons.SearchSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.AddOutline" Md="@Ionicons.AddSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
                 </End>
             </IonToolbar>
         </IonHeader>
@@ -101,18 +104,22 @@
         <IonHeader>
             <IonToolbar>
                 <Primary>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Ios="@Ionicons.HeartOutline" Md="@Ionicons.HeartSharp" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.HeartOutline" Md="@Ionicons.HeartSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
                 </Primary>
                 <End>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Ios="@Ionicons.SearchOutline" Md="@Ionicons.SearchSharp" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.SearchOutline" Md="@Ionicons.SearchSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
                 </End>
                 <ChildContent>
                     <IonTitle>Page title</IonTitle>
@@ -123,10 +130,14 @@
         <IonHeader>
             <IonToolbar>
                 <Primary>
-                    <IonButton>Reset</IonButton>
+                    <IonButtons>
+                        <IonButton>Reset</IonButton>
+                    </IonButtons>
                 </Primary>
                 <End>
-                    <IonButton>Done</IonButton>
+                    <IonButtons>
+                        <IonButton>Done</IonButton>
+                    </IonButtons>
                 </End>
                 <ChildContent>
                     <IonTitle>Page title</IonTitle>
@@ -137,19 +148,23 @@
         <IonHeader>
             <IonToolbar>
                 <Start>
-                    <IonBackButton DefaultHref="#" Text="@(Mode == "ios" ? "Notes" : "")"></IonBackButton>
+                    <IonButtons>
+                        <IonBackButton DefaultHref="#" Text="@(Mode == "ios" ? "Notes" : "")"></IonBackButton>
+                    </IonButtons>
                 </Start>
                 <End>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Icon="@Ionicons.PersonCircleOutline" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Icon="@Ionicons.ShareOutline" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Icon="@Ionicons.PersonCircleOutline" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Icon="@Ionicons.ShareOutline" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
                 </End>
             </IonToolbar>
         </IonHeader>
@@ -157,7 +172,9 @@
         <IonHeader>
             <IonToolbar>
                 <Start>
-                    <IonMenuButton></IonMenuButton>
+                    <IonButtons>
+                        <IonMenuButton></IonMenuButton>
+                    </IonButtons>
                 </Start>
                 <ChildContent>
                     <IonTitle>Page title</IonTitle>
@@ -168,14 +185,18 @@
         <IonHeader>
             <IonToolbar>
                 <Start>
-                    <IonBackButton DefaultHref="#"></IonBackButton>
+                    <IonButtons>
+                        <IonBackButton DefaultHref="#"></IonBackButton>
+                    </IonButtons>
                 </Start>
                 <End>
-                    <IonButton>
-                        <IconOnly>
-                            <IonIcon Ios="@Ionicons.StarOutline" Md="@Ionicons.StarSharp" Slot="icon-only"></IonIcon>
-                        </IconOnly>
-                    </IonButton>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.StarOutline" Md="@Ionicons.StarSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
                 </End>
                 <ChildContent>
                     <IonTitle>Page title</IonTitle>
@@ -194,17 +215,19 @@
     <IonFooter>
         <IonToolbar>
             <End>
-                <IonButton OnClick="@ToggleText">
-                    <Start>
-                        <IonIcon Icon="@Ionicons.Refresh"></IonIcon>
-                    </Start>
-                    <ChildContent>
-                        @if (_showToggleText)
-                        {
-                            <span>Toggle</span>
-                        }
-                    </ChildContent>
-                </IonButton>
+                <IonButtons>
+                    <IonButton OnClick="@ToggleText">
+                        <Start>
+                            <IonIcon Icon="@Ionicons.Refresh"></IonIcon>
+                        </Start>
+                        <ChildContent>
+                            @if (_showToggleText)
+                            {
+                                <span>Toggle</span>
+                            }
+                        </ChildContent>
+                    </IonButton>
+                </IonButtons>
             </End>
             <ChildContent>
                 <IonTitle>Click Button to Toggle Text</IonTitle>
