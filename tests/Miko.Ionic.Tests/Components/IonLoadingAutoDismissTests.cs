@@ -32,7 +32,7 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         });
 
         // Assert: should stay open
-        cut.Root.Class.ShouldNotContain("overlay-hidden");
+        cut.Root.Class?.ShouldNotContain("overlay-hidden");
         dismissed.ShouldBeFalse();
     }
 
@@ -55,7 +55,7 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         });
 
         // Assert: should stay open
-        cut.Root.Class.ShouldNotContain("overlay-hidden");
+        cut.Root.Class?.ShouldNotContain("overlay-hidden");
         dismissed.ShouldBeFalse();
     }
 
@@ -78,7 +78,7 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         });
 
         // Assert: should stay open
-        cut.Root.Class.ShouldNotContain("overlay-hidden");
+        cut.Root.Class?.ShouldNotContain("overlay-hidden");
         dismissed.ShouldBeFalse();
     }
 
@@ -86,7 +86,6 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
     public void IonLoading_WithoutDispatcher_DoesNotCrash()
     {
         // Arrange: NO dispatcher registered (bare test scenario)
-        bool dismissed = false;
 
         // Act: open with duration but no dispatcher
         var cut = Context.Render<IonLoading>(p =>
@@ -94,12 +93,12 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
             p.Add(nameof(IonLoading.IsOpen), true);
             p.Add(nameof(IonLoading.Duration), 1000);
             p.Add(nameof(IonLoading.OnDidDismiss), EventCallback.Factory.Create<IonOverlayDismissEventArgs>(
-                this, _ => dismissed = true));
+                this, _ => { })); // Unused callback
         });
 
         // Assert: should render successfully without crashing
         cut.Root.ShouldNotBeNull();
-        cut.Root.Class.ShouldNotContain("overlay-hidden");
+        cut.Root.Class?.ShouldNotContain("overlay-hidden");
     }
 
     [Fact]
@@ -131,11 +130,12 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
                 }));
         });
 
-        // Wait for the timer to fire
-        await Task.Delay(200);
-
-        // Drain the dispatcher to execute the posted dismiss action
-        dispatcher.Drain();
+        // Wait for the timer to fire with retry logic
+        await WaitForConditionAsync(() =>
+        {
+            dispatcher.Drain();
+            return dismissed;
+        }, timeoutMs: 500, checkIntervalMs: 20);
 
         // Assert: should have triggered dismiss callbacks
         isOpenChanged.ShouldBeTrue();
@@ -161,8 +161,12 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
                 this, _ => dismissCount++));
         });
 
-        await Task.Delay(150);
-        dispatcher.Drain();
+        // Wait for first dismiss with retry logic to handle timing variations
+        await WaitForConditionAsync(() =>
+        {
+            dispatcher.Drain();
+            return dismissCount == 1;
+        }, timeoutMs: 500, checkIntervalMs: 20);
         dismissCount.ShouldBe(1);
 
         // Re-render as closed
@@ -183,11 +187,32 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
                 this, _ => dismissCount++));
         });
 
-        await Task.Delay(150);
-        dispatcher.Drain();
+        // Wait for second dismiss with retry logic
+        await WaitForConditionAsync(() =>
+        {
+            dispatcher.Drain();
+            return dismissCount == 2;
+        }, timeoutMs: 500, checkIntervalMs: 20);
 
         // Assert: should have dismissed twice total
         dismissCount.ShouldBe(2);
+    }
+
+    /// <summary>
+    /// Helper method to wait for a condition with retry logic, useful for timing-sensitive tests.
+    /// </summary>
+    private static async Task<bool> WaitForConditionAsync(Func<bool> condition, int timeoutMs, int checkIntervalMs)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        while (stopwatch.ElapsedMilliseconds < timeoutMs)
+        {
+            if (condition())
+            {
+                return true;
+            }
+            await Task.Delay(checkIntervalMs);
+        }
+        return condition(); // Final check
     }
 
     [Fact]

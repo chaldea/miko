@@ -228,6 +228,26 @@ public class InlineLayout
             contentHeight = Math.Min(contentHeight, max);
         }
 
+        // 高度确定后（外部定型，或自身显式高度），以该确定高度重排行内流，使子元素的
+        // height:100% 能解析到父内容高度（浏览器行为）。此前重排只传了确定宽度、高度传 null
+        // （因为那时 contentHeight 还未算出），导致 inline-block 内的百分比高度永远退化为
+        // auto —— 同样的确定基准 BlockLayout 早已通过 childAvailableHeight 下传。
+        // 与 BlockLayout/FlexLayout 一致：min-height 抬升出来的 auto 高度不算确定基准
+        // （见 ISSUE-078），故只在 heightIsForced 或显式高度时下传。
+        bool heightIsDefinite = heightIsForced || !heightIsAuto;
+        if (heightIsDefinite && contentHeight > 0 && box.Children.Count > 0
+            && HasPercentHeightChild(box))
+        {
+            InlineFormattingContext.Layout(
+                box.Children, 0, box.Children.Count,
+                contentX, contentY,
+                widthIsDefinite && contentWidth > 0 ? contentWidth : textWrapWidth,
+                widthIsDefinite && contentWidth > 0 ? contentWidth : null, contentHeight,
+                style.TextAlign,
+                BlockLayout.ResolveLineHeight(style),
+                TextWrapper.ShouldWrap(style.WhiteSpace));
+        }
+
         // 强制换行元素（br）作为独立盒（如 flex 项）布局时，应生成一个行盒：宽 0、高一行行高。
         // 在常规块级流中 br 由 BlockLayout 的 IsForcedLineBreak 特殊路径处理、不读此盒高；
         // 而作为 flex 项时它是普通行内子盒，需占据一行的交叉/主轴尺寸，否则在列方向塌缩为 0
@@ -244,5 +264,25 @@ public class InlineLayout
     private void LayoutChild(LayoutBox child, LayoutConstraints constraints, float x, float y)
     {
         LayoutDispatcher.Dispatch(child, constraints, x, y);
+    }
+
+    /// <summary>
+    /// 是否存在依赖父高度的在流子元素（height / min-height / max-height 含百分比分量）。
+    /// 仅在此时才值得为解析百分比高度多跑一遍行内重排。
+    /// </summary>
+    private static bool HasPercentHeightChild(LayoutBox box)
+    {
+        foreach (var child in box.Children)
+        {
+            if (BlockLayout.IsOutOfFlow(child)) continue;
+            var s = child.ComputedStyle;
+            if (s.Height.HasPercentComponent
+                || s.MinHeight.HasPercentComponent
+                || s.MaxHeight.HasPercentComponent)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

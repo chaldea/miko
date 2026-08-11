@@ -98,8 +98,6 @@ internal static class ToggleStyles
                 Height = Length.Px(t.ToggleTrackHeight),
                 BackgroundColor = t.ToggleTrackBackgroundOff,
                 BorderRadius = trackRadius,
-                OverflowX = Overflow.Hidden,
-                OverflowY = Overflow.Hidden,
                 Transitions = new List<Transition>
                 {
                     new Transition(nameof(Style.BackgroundColor), t.ToggleTransitionDuration, TimingFunction.Linear),
@@ -143,6 +141,12 @@ internal static class ToggleStyles
                 // Ionic: translate3d(calc(100% - var(--handle-width)), 0, 0). The wrapper is 100% of
                 // the track width, so (track-width - handle-width) px slides the knob flush to the end.
                 Transform = new Transform(new TransformFunction.TranslateX(Length.Px(t.ToggleHandleTravel))),
+            },
+            // `--handle-background-checked` (toggle.scss `:host(.toggle-checked) .toggle-inner`):
+            // md repaints the knob solid primary; ios keeps it white.
+            [$".ion-toggle.{mode}.toggle-checked .toggle-inner"] = new()
+            {
+                BackgroundColor = t.ToggleHandleBackgroundChecked,
             },
 
             // Toggle bottom (helper / error text). Small text row below the label.
@@ -189,6 +193,73 @@ internal static class ToggleStyles
             [$".ion-toggle.{mode}.toggle-justify-end"] = new() { Display = Display.Block },
             [$".ion-toggle.{mode}.toggle-alignment-start"] = new() { Display = Display.Block },
             [$".ion-toggle.{mode}.toggle-alignment-center"] = new() { Display = Display.Block },
+
+            // In-item (toggle.scss `:host(.in-item)`): the host stretches to fill the item's content
+            // area so justify / alignment have free space to work with. The class is stamped by the
+            // component via CascadingParameter IonItemContext (mirrors hostContext('ion-item')).
+            // Slotted start/end toggles reset to content size (`:host([slot="start"]/["end"])`);
+            // in Miko those are placed in .ion-slot-start / .ion-slot-end spans.
+            [$".ion-toggle.{mode}.in-item"] = new()
+            {
+                FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = Length.Px(0),
+                Width = Length.Percent(100),
+                Height = Length.Percent(100),
+            },
+            [$".ion-slot-start .ion-toggle.{mode}.in-item"] = new()
+            {
+                FlexGrow = 0,
+                FlexShrink = 0,
+                FlexBasis = Length.Auto,
+                Width = Length.Auto,
+                Height = Length.Auto,
+            },
+            [$".ion-slot-end .ion-toggle.{mode}.in-item"] = new()
+            {
+                FlexGrow = 0,
+                FlexShrink = 0,
+                FlexBasis = Length.Auto,
+                Width = Length.Auto,
+                Height = Length.Auto,
+            },
+
+            // `.toggle-wrapper { height: inherit }` (toggle.scss): the wrapper takes the host's
+            // height so the label/switch row fills the whole control. Miko has no CSS `inherit`
+            // keyword for Length props, so the host value is mirrored onto the wrapper in every
+            // rule that sets a host height — here `:host(.in-item)`'s `height: 100%`. Without this
+            // the wrapper shrink-wraps its content and the toggle sits at the wrong height inside
+            // an item (see the miko-no-inherit-keyword note).
+            [$".ion-toggle.{mode}.in-item .toggle-wrapper"] = new()
+            {
+                Height = Length.Percent(100),
+            },
+
+            // In-item vertical rhythm (`$toggle-item-label-margin-top/bottom` = 10px): the label
+            // and the native-wrapper both get 10px top/bottom margins.
+            [$".ion-toggle.{mode}.in-item .label-text-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(10),
+            },
+            [$".ion-toggle.{mode}.in-item .native-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(10),
+            },
+
+            // Stacked in-item: label gets 10px top + 16px ($form-control-label-margin) bottom margin;
+            // native-wrapper drops its top margin.
+            [$".ion-toggle.{mode}.in-item.toggle-label-placement-stacked .label-text-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(16),
+            },
+            [$".ion-toggle.{mode}.in-item.toggle-label-placement-stacked .native-wrapper"] = new()
+            {
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Px(10),
+            },
 
             // Label placement — start (default): label left, switch right, margin on the label end.
             [$".ion-toggle.{mode}.toggle-label-placement-start .toggle-wrapper"] = new()
@@ -247,6 +318,49 @@ internal static class ToggleStyles
             PointerEvents = PointerEvents.None,
         };
 
+        // Named palette colors (toggle.md.scss / toggle.ios.scss `:host(.ion-color.toggle-checked)`).
+        // Ionic redefines --track-background-checked / --handle-background-checked through
+        // `current-color(base)`; Miko has no CSS custom properties here, so the vars are resolved at
+        // authoring time into the rules that consume them. Without these the `color` attribute
+        // stamped an ion-color-* class that no rule matched, making Color a no-op.
+        AddColor(css, mode, t, "primary", t.Primary);
+        AddColor(css, mode, t, "secondary", t.Secondary);
+        AddColor(css, mode, t, "tertiary", t.Tertiary);
+        AddColor(css, mode, t, "success", t.Success);
+        AddColor(css, mode, t, "warning", t.Warning);
+        AddColor(css, mode, t, "danger", t.Danger);
+        AddColor(css, mode, t, "light", t.Light);
+        AddColor(css, mode, t, "medium", t.Medium);
+        AddColor(css, mode, t, "dark", t.Dark);
+
         return css;
+    }
+
+    /// <summary>
+    /// Emits one named-color variant: the checked track takes the palette base (md at
+    /// <see cref="IonicTheme.ToggleTrackCheckedAlpha"/> = .5 alpha, ios solid), and on md the knob
+    /// takes the solid base too (<c>:host(.ion-color.toggle-checked) .toggle-inner</c>). ios leaves
+    /// the knob white, so it only overrides the track.
+    /// <para>
+    /// The selectors carry <c>.toggle-checked</c> so they out-specify the uncolored checked rules —
+    /// an <c>.ion-color-*</c> compound is one class more specific, so it wins regardless of source
+    /// order.
+    /// </para>
+    /// </summary>
+    private static void AddColor(CssObject css, string mode, IonicTheme t, string name, Color baseColor)
+    {
+        css[$".ion-toggle.{mode}.ion-color-{name}.toggle-checked .toggle-icon"] = new()
+        {
+            BackgroundColor = Color.FromRgba(baseColor.R, baseColor.G, baseColor.B, t.ToggleTrackCheckedAlpha),
+        };
+
+        // md's --handle-background-checked follows the palette base; ios keeps the white knob.
+        if (mode == "md")
+        {
+            css[$".ion-toggle.{mode}.ion-color-{name}.toggle-checked .toggle-inner"] = new()
+            {
+                BackgroundColor = baseColor,
+            };
+        }
     }
 }
