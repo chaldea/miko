@@ -94,6 +94,11 @@
 
     private bool HasBottomContent => !string.IsNullOrEmpty(HelperText) || !string.IsNullOrEmpty(ErrorText);
 
+    /// <summary>Provided by an ancestor <see cref="IonItem"/> when this checkbox is hosted inside one.
+    /// Used to stamp the <c>in-item</c> class, which stretches the checkbox to fill the item's content
+    /// area (mirrors Ionic's <c>:host(.in-item)</c> / <c>hostContext('ion-item')</c>).</summary>
+    [CascadingParameter] public IonItemContext? ItemContext { get; set; }
+
     protected override void OnParametersSet()
     {
         var placement = NormalizeToken(LabelPlacement, "start");
@@ -110,7 +115,8 @@
             .AddValue(Justify, "checkbox-justify-")
             .AddValue(Alignment, "checkbox-alignment-")
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
-            .AddColor(Color);
+            .AddColor(Color)
+            .If(ItemContext is not null, "in-item");
 
         // The mark glyph: a minus when indeterminate, otherwise a checkmark. Supplied as a template
         // background image so it is tinted by the computed --checkmark-color (see CheckboxStyles).

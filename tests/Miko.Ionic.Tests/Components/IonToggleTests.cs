@@ -275,4 +275,240 @@ public class IonToggleTests : IonicComponentTestBase
         var wrapper = cut.FindByClass("toggle-icon-wrapper").Single();
         cut.GetComputedStyle(wrapper)!.Transform.Functions.ShouldBeEmpty();
     }
+
+    // ---- In-item (CascadingParameter IonItemContext) -----------------------
+
+    // hostHeight gives the toggle host a definite height, so its descendants' percentage heights
+    // have a base to resolve against (the item's own wrappers are auto-height).
+    private static ComponentUnderTest RenderToggleInItem(TestContext ctx,
+        string? justify = null, string? labelPlacement = null, string label = "Toggle in item",
+        float? hostHeight = null)
+        => ctx.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(b =>
+        {
+            b.OpenComponent<IonToggle>(0);
+            b.AddAttribute(1, nameof(IonToggle.ChildContent), Label(label));
+            if (justify is not null) b.AddAttribute(2, nameof(IonToggle.Justify), justify);
+            if (labelPlacement is not null) b.AddAttribute(3, nameof(IonToggle.LabelPlacement), labelPlacement);
+            if (hostHeight is not null)
+            {
+                b.AddAttribute(4, nameof(IonToggle.Style),
+                    new Miko.Styling.Style { Height = Length.Px(hostHeight.Value) });
+            }
+            b.CloseComponent();
+        })));
+
+    [Fact]
+    public void IonToggle_InItem_StampsInItemClass()
+    {
+        // IonItem cascades IonItemContext → IonToggle stamps "in-item" on the host.
+        var cut = RenderToggleInItem(Context);
+
+        cut.FindByClass("ion-toggle").Single().ShouldHaveClass("in-item");
+    }
+
+    [Fact]
+    public void IonToggle_Standalone_DoesNotStampInItemClass()
+    {
+        var cut = RenderToggle(Context);
+
+        cut.Root.ShouldNotHaveClass("in-item");
+    }
+
+    [Fact]
+    public void IonToggle_Style_InItem_HostGrowsToFillItem()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderToggleInItem(Context);
+
+        // toggle.scss :host(.in-item): flex: 1 1 0; width: 100%; height: 100%.
+        var host = cut.FindByClass("ion-toggle").Single();
+        var style = cut.GetComputedStyle(host)!;
+        style.FlexGrow.ShouldBe(1f);
+        style.FlexShrink.ShouldBe(1f);
+        style.FlexBasis.ShouldBe(Length.Px(0));
+    }
+
+    [Fact]
+    public void IonToggle_Style_InItem_LabelAndNativeWrapperGetVerticalMargins()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderToggleInItem(Context);
+
+        // $toggle-item-label-margin-top/bottom = 10px on label + native wrappers.
+        var label = cut.GetComputedStyle(cut.FindByClass("label-text-wrapper").Single())!;
+        label.MarginTop.ShouldBe(Length.Px(10));
+        label.MarginBottom.ShouldBe(Length.Px(10));
+
+        var native = cut.GetComputedStyle(cut.FindByClass("native-wrapper").Single())!;
+        native.MarginTop.ShouldBe(Length.Px(10));
+        native.MarginBottom.ShouldBe(Length.Px(10));
+    }
+
+    [Fact]
+    public void IonToggle_Style_InItemStacked_SwapsLabelBottomMargin()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderToggleInItem(Context, labelPlacement: "stacked");
+
+        // Stacked in-item: label bottom margin becomes $form-control-label-margin (16px),
+        // the native-wrapper loses its top margin.
+        var label = cut.GetComputedStyle(cut.FindByClass("label-text-wrapper").Single())!;
+        label.MarginTop.ShouldBe(Length.Px(10));
+        label.MarginBottom.ShouldBe(Length.Px(16));
+
+        var native = cut.GetComputedStyle(cut.FindByClass("native-wrapper").Single())!;
+        native.MarginTop.ShouldBe(Length.Px(0));
+        native.MarginBottom.ShouldBe(Length.Px(10));
+    }
+
+    // ---- .toggle-wrapper height: inherit (problem 2) -----------------------
+
+    /// <summary>
+    /// toggle.scss gives <c>.toggle-wrapper</c> <c>height: inherit</c> so the label/switch row spans
+    /// the host's height. Miko has no CSS <c>inherit</c> keyword for Length props, so the host value
+    /// is mirrored: <c>:host(.in-item)</c> sets <c>height: 100%</c>, and the wrapper matches it.
+    /// Without the mirror the wrapper shrink-wraps its content and the toggle renders too short.
+    /// </summary>
+    [Fact]
+    public void IonToggle_Style_InItem_WrapperInheritsHostHeight()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderToggleInItem(Context);
+
+        var wrapper = cut.FindByClass("toggle-wrapper").Single();
+        cut.GetComputedStyle(wrapper)!.Height.ShouldBe(Length.Percent(100));
+    }
+
+    /// <summary>
+    /// The mirrored height is real at layout time. The wrapper's <c>height: 100%</c> only resolves
+    /// against a DEFINITE host height, so the host is given one here; the wrapper then fills it
+    /// instead of shrink-wrapping the label + switch row. (In the default item DOM the host's own
+    /// <c>height: 100%</c> degrades to auto because <c>.input-wrapper</c> is auto-height, so the two
+    /// heights coincide and the difference is invisible — hence the explicit host height.)
+    /// </summary>
+    [Fact]
+    public void IonToggle_Layout_InItem_WrapperFillsDefiniteHostHeight()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderToggleInItem(Context, hostHeight: 120);
+
+        var hostBox = cut.GetBoxModel(cut.FindByClass("ion-toggle").Single())!;
+        var wrapperBox = cut.GetBoxModel(cut.FindByClass("toggle-wrapper").Single())!;
+
+        hostBox.Content.Height.ShouldBe(120f, 0.5f);
+        wrapperBox.Content.Height.ShouldBe(120f, 0.5f);
+    }
+
+    /// <summary>A standalone toggle has no host height to inherit, so the wrapper stays auto.</summary>
+    [Fact]
+    public void IonToggle_Style_Standalone_WrapperHeightStaysAuto()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderToggle(Context);
+
+        var wrapper = cut.FindByClass("toggle-wrapper").Single();
+        cut.GetComputedStyle(wrapper)!.Height.ShouldBe(Length.Auto);
+    }
+
+    // ---- Color (problem 3) -------------------------------------------------
+
+    private ComponentUnderTest RenderColored(string? color, bool isChecked = true)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        return Context.Render<IonToggle>(p =>
+        {
+            p.Add(nameof(IonToggle.ChildContent), Label("Wi-Fi"));
+            if (color is not null) p.Add(nameof(IonToggle.Color), color);
+            p.Add(nameof(IonToggle.Checked), isChecked);
+        });
+    }
+
+    /// <summary>
+    /// A named Color tints the checked track. toggle.md.scss's
+    /// <c>:host(.ion-color.toggle-checked) .toggle-icon</c> resolves --track-background-checked to
+    /// <c>current-color(base)</c>; the port emits ion-color-* scoped rules for it. Previously the
+    /// class was stamped but no rule matched it, so Color did nothing.
+    /// </summary>
+    [Theory]
+    [InlineData("secondary")]
+    [InlineData("danger")]
+    [InlineData("success")]
+    public void IonToggle_Style_Color_TintsCheckedTrack(string color)
+    {
+        var themed = RenderColored(color);
+        var plain = RenderColored(null);
+
+        var themedTrack = themed.GetComputedStyle(themed.FindByClass("toggle-icon").Single())!;
+        var plainTrack = plain.GetComputedStyle(plain.FindByClass("toggle-icon").Single())!;
+
+        themedTrack.BackgroundColor.ShouldNotBe(plainTrack.BackgroundColor);
+    }
+
+    /// <summary>md tints the checked track with the palette base at .5 alpha
+    /// (<c>$toggle-md-track-background-color-alpha-on</c>).</summary>
+    [Fact]
+    public void IonToggle_Style_Color_MdTrackUsesPaletteBaseAtHalfAlpha()
+    {
+        var cut = RenderColored("secondary");
+
+        var t = IonicTheme.CreateMd();
+        var expected = Color.FromRgba(t.Secondary.R, t.Secondary.G, t.Secondary.B, 0.5f);
+
+        cut.GetComputedStyle(cut.FindByClass("toggle-icon").Single())!
+            .BackgroundColor.ShouldBe(expected);
+    }
+
+    /// <summary>md also repaints the knob with the solid palette base
+    /// (<c>:host(.ion-color.toggle-checked) .toggle-inner</c>).</summary>
+    [Fact]
+    public void IonToggle_Style_Color_MdKnobUsesSolidPaletteBase()
+    {
+        var cut = RenderColored("secondary");
+
+        cut.GetComputedStyle(cut.FindByClass("toggle-inner").Single())!
+            .BackgroundColor.ShouldBe(IonicTheme.CreateMd().Secondary);
+    }
+
+    /// <summary>ios paints the checked track with the SOLID palette base (no alpha) and keeps the
+    /// knob white — toggle.ios.scss only overrides <c>--track-background-checked</c>.</summary>
+    [Fact]
+    public void IonToggle_Style_Color_IosTrackIsSolidAndKnobStaysWhite()
+    {
+        UsePlatform(Miko.Platform.HostPlatform.Ios);
+
+        var cut = RenderColored("secondary");
+        var t = IonicTheme.CreateIos();
+
+        cut.GetComputedStyle(cut.FindByClass("toggle-icon").Single())!
+            .BackgroundColor.ShouldBe(t.Secondary);
+        cut.GetComputedStyle(cut.FindByClass("toggle-inner").Single())!
+            .BackgroundColor.ShouldBe(t.ToggleHandleBackground);
+    }
+
+    /// <summary>An unchecked colored toggle keeps the neutral off-state track.</summary>
+    [Fact]
+    public void IonToggle_Style_Color_DoesNotTintUncheckedTrack()
+    {
+        var cut = RenderColored("secondary", isChecked: false);
+
+        cut.GetComputedStyle(cut.FindByClass("toggle-icon").Single())!
+            .BackgroundColor.ShouldBe(IonicTheme.CreateMd().ToggleTrackBackgroundOff);
+    }
+
+    /// <summary>Without a Color, md still repaints the checked knob solid primary
+    /// (<c>--handle-background-checked: ion-color(primary, base)</c>).</summary>
+    [Fact]
+    public void IonToggle_Style_MdCheckedKnobUsesPrimary()
+    {
+        var cut = RenderColored(null);
+
+        cut.GetComputedStyle(cut.FindByClass("toggle-inner").Single())!
+            .BackgroundColor.ShouldBe(IonicTheme.CreateMd().Primary);
+    }
 }

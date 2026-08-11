@@ -768,6 +768,10 @@ public class IonicTheme
     public Color ToggleTrackBackgroundOff { get; set; }
     /// <summary>Track background when on (md primary @ .5 alpha, ios solid primary).</summary>
     public Color ToggleTrackBackgroundOn { get; set; }
+    /// <summary>Alpha applied to the checked track fill (<c>$toggle-md-track-background-color-alpha-on</c>
+    /// = .5 on md; ios paints a solid color, so 1). Used to tint the track for a named
+    /// <c>ion-color</c> the same way the mode's default checked track is tinted.</summary>
+    public float ToggleTrackCheckedAlpha { get; set; } = 0.5f;
     /// <summary>Knob width (md 20px, ios 27px = height - border*2).</summary>
     public float ToggleHandleWidth { get; set; } = 20f;
     /// <summary>Knob height (md 20px, ios 27px).</summary>
@@ -776,6 +780,9 @@ public class IonicTheme
     public Length ToggleHandleBorderRadius { get; set; } = Length.Px(10);
     /// <summary>Knob background (white both modes).</summary>
     public Color ToggleHandleBackground { get; set; } = Color.White;
+    /// <summary>Knob background when checked (<c>--handle-background-checked</c>): solid primary on
+    /// md, white (unchanged) on ios.</summary>
+    public Color ToggleHandleBackgroundChecked { get; set; } = Color.White;
     /// <summary>Knob elevation shadow (md a 3-layer Material shadow; ios a soft 2-layer shadow).</summary>
     public List<BoxShadow> ToggleHandleBoxShadow { get; set; } = new();
     /// <summary>Horizontal inset of the knob inside the track (md 0; ios = border-width 2px).</summary>
@@ -1325,10 +1332,12 @@ public class IonicTheme
         t.ToggleBorderRadius = Length.Px(14);                     // = $toggle-md-track-height
         t.ToggleTrackBackgroundOff = new Color(0, 0, 0, 99);      // rgba(text,.39)
         t.ToggleTrackBackgroundOn = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 128); // primary @ .5
+        t.ToggleTrackCheckedAlpha = 0.5f;                         // $toggle-md-track-background-color-alpha-on
         t.ToggleHandleWidth = 20f;
         t.ToggleHandleHeight = 20f;
         t.ToggleHandleBorderRadius = Length.Px(10);               // 50% of a 20px knob → a circle
         t.ToggleHandleBackground = Color.White;
+        t.ToggleHandleBackgroundChecked = t.Primary;              // --handle-background-checked
         t.ToggleHandleBoxShadow = new List<BoxShadow>
         {
             new BoxShadow(0, 3, 1, -2, new Color(0, 0, 0, 51)),   // rgba(0,0,0,.2)
@@ -1829,10 +1838,12 @@ public class IonicTheme
         t.ToggleBorderRadius = Length.Px(15.5f);                  // $toggle-ios-height * 0.5
         t.ToggleTrackBackgroundOff = new Color(0, 0, 0, 22);      // rgba(text,.088)
         t.ToggleTrackBackgroundOn = t.Primary;                    // ion-color(primary, base)
+        t.ToggleTrackCheckedAlpha = 1f;                           // ios paints a solid base color
         t.ToggleHandleWidth = 27f;                                // height - border*2 = 31 - 4
         t.ToggleHandleHeight = 27f;
         t.ToggleHandleBorderRadius = Length.Px(25.5f);            // $toggle-ios-width * 0.5
         t.ToggleHandleBackground = Color.White;
+        t.ToggleHandleBackgroundChecked = Color.White;            // --handle-background-checked (unchanged)
         t.ToggleHandleBoxShadow = new List<BoxShadow>
         {
             new BoxShadow(0, 3, 4, 0, new Color(0, 0, 0, 15)),    // 0 3px 4px rgba(0,0,0,.06)

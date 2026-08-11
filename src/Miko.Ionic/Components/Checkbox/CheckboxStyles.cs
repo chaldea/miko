@@ -244,11 +244,12 @@ internal static class CheckboxStyles
             [$".ion-checkbox.{mode}.checkbox-alignment-start"] = new() { Display = Display.Block },
             [$".ion-checkbox.{mode}.checkbox-alignment-center"] = new() { Display = Display.Block },
 
-            // In-item (checkbox.scss `:host(.in-item)`, mirroring `hostContext('ion-item')` via a
-            // descendant selector): the host stretches to fill the item's content area so
-            // justify / alignment have free space to work with. Slotted start/end checkboxes
-            // reset to content size (`:host([slot="start"]/["end"])`).
-            [$".ion-item.{mode} .ion-checkbox.{mode}"] = new()
+            // In-item (checkbox.scss `:host(.in-item)`, mirroring `hostContext('ion-item')`): the
+            // host stretches to fill the item's content area so justify / alignment have free space
+            // to work with. The class is stamped by the component via CascadingParameter IonItemContext.
+            // Slotted start/end checkboxes reset to content size (`:host([slot="start"]/["end"])`);
+            // in Miko those are placed in .ion-slot-start / .ion-slot-end spans.
+            [$".ion-checkbox.{mode}.in-item"] = new()
             {
                 FlexGrow = 1,
                 FlexShrink = 1,
@@ -256,13 +257,13 @@ internal static class CheckboxStyles
                 Width = Length.Percent(100),
                 Height = Length.Percent(100),
             },
-            [$".ion-item.{mode} .ion-slot-start .ion-checkbox.{mode}"] = new()
+            [$".ion-slot-start .ion-checkbox.{mode}.in-item"] = new()
             {
                 FlexGrow = 0,
                 FlexBasis = Length.Auto,
                 Width = Length.Auto,
             },
-            [$".ion-item.{mode} .ion-slot-end .ion-checkbox.{mode}"] = new()
+            [$".ion-slot-end .ion-checkbox.{mode}.in-item"] = new()
             {
                 FlexGrow = 0,
                 FlexBasis = Length.Auto,
@@ -272,22 +273,22 @@ internal static class CheckboxStyles
             // In-item vertical rhythm (`$checkbox-item-label-margin-top/bottom` = 10px): the label
             // and the box get 10px top/bottom margins; stacked swaps the label's bottom margin for
             // `$form-control-label-margin` (16px) and drops the box's top margin.
-            [$".ion-item.{mode} .ion-checkbox.{mode} .label-text-wrapper"] = new()
+            [$".ion-checkbox.{mode}.in-item .label-text-wrapper"] = new()
             {
                 MarginTop = Length.Px(10),
                 MarginBottom = Length.Px(10),
             },
-            [$".ion-item.{mode} .ion-checkbox.{mode} .native-wrapper"] = new()
+            [$".ion-checkbox.{mode}.in-item .native-wrapper"] = new()
             {
                 MarginTop = Length.Px(10),
                 MarginBottom = Length.Px(10),
             },
-            [$".ion-item.{mode} .ion-checkbox.{mode}.checkbox-label-placement-stacked .label-text-wrapper"] = new()
+            [$".ion-checkbox.{mode}.in-item.checkbox-label-placement-stacked .label-text-wrapper"] = new()
             {
                 MarginTop = Length.Px(10),
                 MarginBottom = Length.Px(16),
             },
-            [$".ion-item.{mode} .ion-checkbox.{mode}.checkbox-label-placement-stacked .native-wrapper"] = new()
+            [$".ion-checkbox.{mode}.in-item.checkbox-label-placement-stacked .native-wrapper"] = new()
             {
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Px(10),

@@ -92,6 +92,11 @@
 
     private bool HasBottomContent => !string.IsNullOrEmpty(HelperText) || !string.IsNullOrEmpty(ErrorText);
 
+    /// <summary>Provided by an ancestor <see cref="IonItem"/> when this toggle is hosted inside one.
+    /// Used to stamp the <c>in-item</c> class, which stretches the toggle to fill the item's content
+    /// area (mirrors Ionic's <c>:host(.in-item)</c> / <c>hostContext('ion-item')</c>).</summary>
+    [CascadingParameter] public IonItemContext? ItemContext { get; set; }
+
     protected override void OnParametersSet()
     {
         var placement = NormalizeToken(LabelPlacement, "start");
@@ -107,7 +112,8 @@
             .AddValue(Justify, "toggle-justify-")
             .AddValue(Alignment, "toggle-alignment-")
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
-            .AddColor(Color);
+            .AddColor(Color)
+            .If(ItemContext is not null, "in-item");
     }
 
     /// <summary>
