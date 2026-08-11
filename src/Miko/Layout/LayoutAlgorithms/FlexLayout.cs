@@ -1302,15 +1302,12 @@ public class FlexLayout
         // 交叉轴对齐 (align-items)。
         // 单行（nowrap，或 wrap 但只占一行）：行的交叉尺寸 = 容器内容交叉尺寸，对齐范围为
         // 容器（CSS Flexbox §4.4：single-line 容器的行交叉尺寸即容器内容盒交叉尺寸）。
-        // 子元素可以溢出容器：居中计算应基于容器尺寸，而非子元素尺寸（见 ISSUE-124：
-        // 嵌套 flex 容器的 align-items:center，内层子元素高度超过容器时仍应相对容器居中，
-        // 允许向上/下溢出，而非以子元素高度为基准导致偏移为 0）。
         // 多行（wrap 分行/列后）：align-items 在"本行"内对齐，范围为该行自然交叉尺寸
         // maxCross；行级分布交由 align-content
         // （见 ISSUE-099 后续：多行时误用容器交叉尺寸做 align-items 范围，导致
         //  align-items:center 的首行距容器顶部多出 (containerCross - lineCross)/2 的大间距，
         //  且 stretch 项会被拉到容器交叉尺寸而侵入相邻行）。
-        float crossExtent = !isMultiLine && lineCrossSize > 0 ? lineCrossSize : maxCross;
+        float crossExtent = !isMultiLine && lineCrossSize > 0 ? Math.Max(lineCrossSize, maxCross) : maxCross;
         ApplyLineAlignItems(childInfos, lineCross, crossExtent, isRow, alignItems);
 
         resultCrossSize = maxCross;

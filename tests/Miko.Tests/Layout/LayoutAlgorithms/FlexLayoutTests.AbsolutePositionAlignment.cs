@@ -10,6 +10,8 @@ namespace Miko.Tests.Layout.LayoutAlgorithms;
 
 public partial class FlexLayoutTests
 {
+	private readonly LayoutEngine _layoutEngine = new();
+	
     [Fact]
     public void Should_CenterAbsolutePositionedItemCorrectly()
     {
