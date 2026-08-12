@@ -295,6 +295,28 @@ internal static class ListStyles
                 MarginLeft = Length.Px(t.ItemAvatarEndSlotMarginStart),
             },
 
+            // Thumbnail inside ion-item (item.md.scss / item.ios.scss ::slotted(ion-thumbnail…)):
+            // the item overrides the thumbnail's --size to 56px in BOTH modes
+            // ($item-{md|ios}-thumbnail-size) — larger than the standalone 48px, not smaller like
+            // the avatar. Ionic groups avatars and thumbnails under the same media-slot margin
+            // rules, so the ItemAvatar* margin values apply verbatim here: 8px vertical on md, and
+            // a 16px gap on the label-facing edge (md both slots; ios 8px leading for end-slotted).
+            [$".ion-item.{mode} .ion-thumbnail"] = new()
+            {
+                Width = Length.Px(t.ItemThumbnailSize),
+                Height = Length.Px(t.ItemThumbnailSize),
+                MarginTop = Length.Px(t.ItemAvatarSlotMarginVertical),
+                MarginBottom = Length.Px(t.ItemAvatarSlotMarginVertical),
+            },
+            [$".ion-item.{mode} .item-native > .ion-slot-start .ion-thumbnail"] = new()
+            {
+                MarginRight = Length.Px(t.ItemAvatarStartSlotMarginEnd),
+            },
+            [$".ion-item.{mode} .item-inner > .ion-slot-end .ion-thumbnail"] = new()
+            {
+                MarginLeft = Length.Px(t.ItemAvatarEndSlotMarginStart),
+            },
+
             // Detail chevron at the trailing edge: a muted, slightly smaller icon.
             [$".ion-item.{mode} .item-detail-icon"] = new()
             {
