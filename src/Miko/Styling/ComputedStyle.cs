@@ -801,6 +801,54 @@ public partial class ComputedStyle : Style
         GridTemplateRows = ResolveTracksSafeArea(GridTemplateRows, insets);
         GridAutoRows = ResolveTrackSafeArea(GridAutoRows, insets);
         GridAutoColumns = ResolveTrackSafeArea(GridAutoColumns, insets);
+
+        // translate() 的位移量也是长度，同样可以写成 calc(-8px - env(safe-area-inset-bottom))
+        // （Ionic toast 的进场动画终态就是这么定位的）。
+        Transform = ResolveTransformSafeArea(Transform, insets);
+    }
+
+    /// <summary>
+    /// 折算 transform 中各 translate 分量的 env() 值；无安全区分量时原样返回（不分配新对象）。
+    /// <para>
+    /// 注意必须构造新的 <see cref="Animation.Transform"/> 而非就地修改：Transform 是引用类型，
+    /// 计算样式里的实例常常直接来自样式表规则，就地写会污染规则本身（样式表不可变契约，见 ISSUE-096）。
+    /// </para>
+    /// </summary>
+    private static Animation.Transform ResolveTransformSafeArea(Animation.Transform transform, SafeAreaInsets insets)
+    {
+        // 先探测：绝大多数 transform 不含 env()，此时避免任何分配。
+        var needsResolve = false;
+        foreach (var fn in transform.Functions)
+        {
+            if (fn switch
+            {
+                TransformFunction.Translate t => t.X.HasSafeAreaComponent || t.Y.HasSafeAreaComponent,
+                TransformFunction.TranslateX t => t.X.HasSafeAreaComponent,
+                TransformFunction.TranslateY t => t.Y.HasSafeAreaComponent,
+                _ => false,
+            })
+            {
+                needsResolve = true;
+                break;
+            }
+        }
+        if (!needsResolve) return transform;
+
+        var resolved = new Animation.Transform();
+        foreach (var fn in transform.Functions)
+        {
+            resolved.Functions.Add(fn switch
+            {
+                TransformFunction.Translate t =>
+                    new TransformFunction.Translate(t.X.ResolveSafeArea(insets), t.Y.ResolveSafeArea(insets)),
+                TransformFunction.TranslateX t =>
+                    new TransformFunction.TranslateX(t.X.ResolveSafeArea(insets)),
+                TransformFunction.TranslateY t =>
+                    new TransformFunction.TranslateY(t.Y.ResolveSafeArea(insets)),
+                _ => fn,
+            });
+        }
+        return resolved;
     }
 
     /// <summary>折算轨道列表中各固定长度轨道的 env() 分量；无安全区分量时原样返回（不分配新列表）。</summary>

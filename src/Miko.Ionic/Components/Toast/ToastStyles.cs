@@ -1,3 +1,4 @@
+using Miko.Animation;
 using Miko.Common;
 using Miko.Styling;
 
@@ -56,9 +57,22 @@ internal static class ToastStyles
         // $toast-*-font-size: md 14px; ios 14px.
         var fontSize = 14f;
 
+        // The resting offset between the toast and its anchor edge. Ionic does NOT express this as a
+        // CSS offset — `.toast-top`/`.toast-bottom` really are at 0 — it is where the enter animation
+        // settles: translateY(calc(+offset + safe-area-top)) for top, and
+        // translateY(calc(-offset - safe-area-bottom)) for bottom (animations/utils.ts
+        // getAnimationPosition; md 8px, ios 10px). Modelled here as the animation's end transform,
+        // which is why a toast at `bottom: 0` still visibly clears the screen edge.
+        var restTop = Length.Px(t.ToastEdgeOffset) + Length.SafeAreaInsetTop;
+        var restBottom = -(Length.Px(t.ToastEdgeOffset) + Length.SafeAreaInsetBottom);
+
         var css = new CssObject
         {
-            // Host — a full-screen, pointer-transparent layer above the page.
+            // Host — a full-screen, pointer-transparent layer above the page. Always mounted (NOT
+            // display:none when closed) so the enter/leave animations can run: Miko detects a
+            // transition by diffing against the PREVIOUS frame's computed style, and a display:none
+            // element has no layout box to diff against — so a toast that only appears on open would
+            // jump straight to its end state. Same always-mounted approach as IonActionSheet.
             [$".ion-toast.{mode}"] = new()
             {
                 Position = Position.Absolute,
@@ -72,14 +86,17 @@ internal static class ToastStyles
                 ZIndex = 1000,
             },
 
-            // Closed toast is fully hidden.
+            // Closed & settled: transparent to input, so the page below stays interactive. Ionic's
+            // :host(.overlay-hidden) is display:none; here the host keeps its box (see above) and the
+            // wrapper is instead parked off-screen / at zero opacity by the rules below.
             [$".ion-toast.{mode}.overlay-hidden"] = new()
             {
-                Display = Display.None,
+                PointerEvents = PointerEvents.None,
             },
 
-            // Wrapper — the rounded card. Centered horizontally with margin:auto and side insets;
-            // pointer-events re-enabled so its buttons stay tappable on the transparent host.
+            // Wrapper — the rounded card. Centered horizontally with margin:auto and side insets.
+            // Pointer-events stay off until the host is mounted, so a closed (but still mounted)
+            // toast can't swallow taps meant for the page.
             [$".ion-toast.{mode} .toast-wrapper"] = new()
             {
                 Position = Position.Absolute,
@@ -93,11 +110,18 @@ internal static class ToastStyles
                 MaxWidth = Length.Px(maxWidth),
                 BackgroundColor = background,
                 BorderRadius = new BorderRadius(Length.Px(borderRadius)),
-                PointerEvents = PointerEvents.Auto,
+                PointerEvents = PointerEvents.None,
                 ZIndex = 10,
             },
 
-            // Position anchors.
+            // Open, or animating out: the card catches taps on its buttons.
+            [$".ion-toast.{mode}.toast-mounted .toast-wrapper"] = new()
+            {
+                PointerEvents = PointerEvents.Auto,
+            },
+
+            // Position anchors. Both edges really are at 0 — the visible gap is the resting transform
+            // applied by the enter animation below (see restTop/restBottom).
             [$".ion-toast.{mode} .toast-wrapper.toast-top"] = new()
             {
                 Top = Length.Px(0),
@@ -157,7 +181,7 @@ internal static class ToastStyles
                 FlexDirection = FlexDirection.Row,
             },
 
-            // Button — a bordered-less action; colored per mode.
+            // Button — a border-less action; colored per mode (--button-color).
             [$".ion-toast.{mode} .toast-button"] = new()
             {
                 PaddingTop = Length.Px(buttonPaddingY),
@@ -210,8 +234,10 @@ internal static class ToastStyles
             css[$".ion-toast.{mode} .toast-button-cancel"]!.Color = Color.FromHex("1a1a1a");
         }
 
+        AddAnimation(css, mode, ios, t, restTop, restBottom);
+
         // ion-color tinting: the wrapper fills with the named color's base and the text uses its
-        // contrast (createColorClasses / :host(.ion-color) .toast-wrapper). Cancel keeps inherited.
+        // contrast (createColorClasses / :host(.ion-color) .toast-wrapper).
         AddColor(css, mode, "primary", t.Primary, Color.White);
         AddColor(css, mode, "secondary", t.Secondary, Color.White);
         AddColor(css, mode, "tertiary", t.Tertiary, Color.White);
@@ -223,6 +249,81 @@ internal static class ToastStyles
         AddColor(css, mode, "dark", t.Dark, Color.White);
 
         return css;
+    }
+
+    /// <summary>
+    /// The enter/leave animations (<c>animations/{md|ios}.{enter|leave}.ts</c>).
+    /// <para>
+    /// Both modes animate only the wrapper. ios slides it in from off-screen —
+    /// <c>translateY(-100%) → translateY(restTop)</c> for <c>top</c>, <c>translateY(100%) →
+    /// translateY(restBottom)</c> for <c>bottom</c> — while md parks it at the resting transform and
+    /// only cross-fades opacity (0.01 → 1). <c>middle</c> is a pure fade in both modes.
+    /// </para>
+    /// <para>
+    /// NOTE on which duration goes where: Miko picks the transition list from the PREVIOUS frame's
+    /// computed style (MikoEngine captures it before re-layout), unlike CSS which reads the
+    /// after-change style. So the list on a rule governs the transition OUT of that state: the
+    /// closed (base) rule drives the ENTER animation, and the <c>.toast-open</c> rule drives the
+    /// LEAVE. Enter is 400ms, leave 300ms, in both modes.
+    /// </para>
+    /// </summary>
+    private static void AddAnimation(CssObject css, string mode, bool ios, IonicTheme t,
+        Length restTop, Length restBottom)
+    {
+        // ios easing differs between enter (a springy overshoot) and leave; md shares one curve.
+        static TransitionBuilder Enter(TransitionBuilder b, bool ios, float duration) => ios
+            ? b.Duration(duration).CubicBezier(0.155f, 1.105f, 0.295f, 1.12f)  // ios.enter.ts
+            : b.Duration(duration).CubicBezier(0.36f, 0.66f, 0.04f, 1f);       // md.enter.ts
+        static TransitionBuilder Leave(TransitionBuilder b, float duration) =>
+            b.Duration(duration).CubicBezier(0.36f, 0.66f, 0.04f, 1f);         // both leave.ts
+
+        var enterMs = t.ToastEnterDuration;
+        var leaveMs = t.ToastLeaveDuration;
+
+        // Closed wrapper: transparent, and (ios) parked off-screen. Its transition list drives ENTER.
+        css[$".ion-toast.{mode} .toast-wrapper"]!.Opacity = 0.01f;
+        css[$".ion-toast.{mode} .toast-wrapper"]!.Transitions = new List<Transition>
+        {
+            Enter(Transition.For(x => x.Opacity), ios, enterMs).Build(),
+            Enter(Transition.For(x => x.Transform), ios, enterMs).Build(),
+        };
+
+        // Open wrapper: fully opaque. Its list drives LEAVE.
+        css[$".ion-toast.{mode}.toast-open .toast-wrapper"] = new()
+        {
+            Opacity = 1f,
+            Transitions = new List<Transition>
+            {
+                Leave(Transition.For(x => x.Opacity), leaveMs).Build(),
+                Leave(Transition.For(x => x.Transform), leaveMs).Build(),
+            },
+        };
+
+        // Per-position parked (closed) transform. md never travels — it sits at its resting offset
+        // and only fades — so its closed and open transforms are identical.
+        var parkedTop = ios ? new Transform(new TransformFunction.TranslateY(Length.Percent(-100))) : new Transform(new TransformFunction.TranslateY(restTop));
+        var parkedBottom = ios ? new Transform(new TransformFunction.TranslateY(Length.Percent(100))) : new Transform(new TransformFunction.TranslateY(restBottom));
+
+        css[$".ion-toast.{mode} .toast-wrapper.toast-top"]!.Transform = parkedTop;
+        css[$".ion-toast.{mode} .toast-wrapper.toast-bottom"]!.Transform = parkedBottom;
+
+        // Resting (open) transform — the offset that lifts the toast off the screen edge.
+        css[$".ion-toast.{mode}.toast-open .toast-wrapper.toast-top"] = new()
+        {
+            Transform = new Transform(new TransformFunction.TranslateY(restTop)),
+        };
+        css[$".ion-toast.{mode}.toast-open .toast-wrapper.toast-bottom"] = new()
+        {
+            Transform = new Transform(new TransformFunction.TranslateY(restBottom)),
+        };
+
+        // middle — a pure fade with no travel in either mode; the wrapper is vertically centered
+        // (ios.enter.ts / md.enter.ts compute `top` from the host and wrapper heights).
+        css[$".ion-toast.{mode} .toast-wrapper.toast-middle"] = new()
+        {
+            Top = Length.Percent(50),
+            Transform = new Transform(new TransformFunction.TranslateY(Length.Percent(-50))),
+        };
     }
 
     // :host(.ion-color) { color: contrast } and .toast-wrapper { background: base }.
@@ -237,6 +338,19 @@ internal static class ToastStyles
             BackgroundColor = background,
         };
         css[$".ion-toast.{mode}.ion-color-{name} .toast-content"] = new()
+        {
+            Color = contrast,
+        };
+        // :host(.ion-color) { --button-color: inherit } — a tinted toast drops the default primary
+        // button color (which is near-invisible against a dark/primary surface) and reads the host's
+        // contrast color instead, so buttons match the message text. Miko has no CSS `inherit`, so
+        // the contrast value is mirrored onto the buttons directly.
+        css[$".ion-toast.{mode}.ion-color-{name} .toast-button"] = new()
+        {
+            Color = contrast,
+        };
+        // :host(.ion-color) .toast-button-cancel { color: inherit } — cancel also follows the host.
+        css[$".ion-toast.{mode}.ion-color-{name} .toast-button-cancel"] = new()
         {
             Color = contrast,
         };
