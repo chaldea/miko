@@ -1,3 +1,4 @@
+using Miko.Animation;
 using Miko.Common;
 using Miko.Core.DomElements;
 using Miko.Layout;
@@ -204,5 +205,92 @@ public class SafeAreaLayoutTests
         backdropBox.BoxModel.BorderBox.Left.ShouldBe(0f);
         backdropBox.BoxModel.BorderBox.Width.ShouldBe(ViewportW);
         backdropBox.BoxModel.BorderBox.Height.ShouldBe(ViewportH);
+    }
+
+    // ---- env() inside transform ------------------------------------------
+
+    // A card lifted off the bottom edge by translateY(calc(-8px - env(safe-area-inset-bottom))) —
+    // exactly how Ionic's toast settles its enter animation above the home indicator.
+    private static StyleSheet TranslatedOverlaySheet() => new()
+    {
+        Rules = new List<StyleRule>
+        {
+            new()
+            {
+                Selector = new ClassSelector("root"),
+                Style = new Style
+                {
+                    Display = Display.Block, Position = Position.Relative,
+                    Width = Length.Percent(100), Height = Length.Percent(100),
+                },
+            },
+            new()
+            {
+                Selector = new ClassSelector("card"),
+                Style = new Style
+                {
+                    Position = Position.Absolute,
+                    Bottom = Length.Px(0), Left = Length.Px(0),
+                    Width = Length.Px(100), Height = Length.Px(50),
+                    Transform = new Transform(new TransformFunction.TranslateY(
+                        -(Length.Px(8) + Length.SafeAreaInsetBottom))),
+                },
+            },
+        }
+    };
+
+    [Fact]
+    public void Transform_ResolvesSafeAreaComponent()
+    {
+        // translate() takes lengths, so it can carry an env() component just like padding/inset can.
+        // Before this was handled, the env() part silently resolved to 0 and the element stayed
+        // flush against the screen edge.
+        const float bottom = 34f;
+        var root = new DivElement { Class = "root" };
+        var card = new DivElement { Class = "card" };
+        root.AddChild(card);
+
+        var layout = _layoutEngine.Layout(root, new List<StyleSheet> { TranslatedOverlaySheet() },
+            ViewportW, ViewportH, new SafeAreaInsets(0, 0, 0, bottom));
+
+        var translateY = FindByClass(layout, "card")!.ComputedStyle.Transform
+            .Functions.OfType<TransformFunction.TranslateY>().Single().Y;
+        translateY.Value.ShouldBe(-(8f + bottom));
+        translateY.HasSafeAreaComponent.ShouldBeFalse();  // folded into px
+    }
+
+    [Fact]
+    public void Transform_WithZeroInsets_KeepsThePlainOffset()
+    {
+        var root = new DivElement { Class = "root" };
+        var card = new DivElement { Class = "card" };
+        root.AddChild(card);
+
+        var layout = _layoutEngine.Layout(root, new List<StyleSheet> { TranslatedOverlaySheet() },
+            ViewportW, ViewportH, SafeAreaInsets.Zero);
+
+        // Desktop / no insets: only the plain -8px remains.
+        FindByClass(layout, "card")!.ComputedStyle.Transform
+            .Functions.OfType<TransformFunction.TranslateY>().Single().Y.Value.ShouldBe(-8f);
+    }
+
+    [Fact]
+    public void Transform_ResolvingSafeArea_DoesNotMutateTheStyleSheetRule()
+    {
+        // ComputedStyle.Transform often IS the rule's Transform instance (a reference type), so the
+        // resolver must build a new one — otherwise the first laid-out frame would bake the insets
+        // into the shared rule and every later element would inherit them (stylesheet immutability).
+        var sheet = TranslatedOverlaySheet();
+        var root = new DivElement { Class = "root" };
+        root.AddChild(new DivElement { Class = "card" });
+
+        _layoutEngine.Layout(root, new List<StyleSheet> { sheet }, ViewportW, ViewportH,
+            new SafeAreaInsets(0, 0, 0, 34f));
+
+        var rule = sheet.Rules.Single(r => r.Style.Transform is not null);
+        rule.Style.Transform!.Value.TryGetValue(out var ruleTransform).ShouldBeTrue();
+        var ruleTranslate = ruleTransform
+            .Functions.OfType<TransformFunction.TranslateY>().Single().Y;
+        ruleTranslate.HasSafeAreaComponent.ShouldBeTrue();  // rule still symbolic
     }
 }

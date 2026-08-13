@@ -600,6 +600,21 @@ public class IonicTheme
     /// (<c>animations/{md|ios}.leave.ts</c> <c>.duration(450)</c>).</summary>
     public float ActionSheetLeaveDuration { get; set; } = 0.45f;
 
+    // Toast (toast.scss / .md.scss / .ios.scss + their *.vars.scss). A non-blocking notification card
+    // anchored to the top/middle/bottom of a pointer-transparent full-screen host.
+    /// <summary>Distance between the toast and the screen edge it is anchored to (md 8px, ios 10px).
+    /// In Ionic this is NOT a CSS offset: `.toast-top/.toast-bottom` really do sit at 0, and the gap
+    /// comes from the enter animation settling at <c>translateY(±offset ∓ safe-area)</c>
+    /// (<c>animations/utils.ts getAnimationPosition</c>). This port keeps that model — the offset is
+    /// the animation's resting transform, so the safe-area inset is added on top of it.</summary>
+    public float ToastEdgeOffset { get; set; } = 8f;
+    /// <summary>Enter (present) animation duration in seconds — 400ms in both modes
+    /// (<c>animations/{md|ios}.enter.ts</c> <c>.duration(400)</c>).</summary>
+    public float ToastEnterDuration { get; set; } = 0.4f;
+    /// <summary>Leave (dismiss) animation duration in seconds — 300ms in both modes
+    /// (<c>animations/{md|ios}.leave.ts</c> <c>.duration(300)</c>).</summary>
+    public float ToastLeaveDuration { get; set; } = 0.3f;
+
     // Alert (alert.scss / .md.scss / .ios.scss + their *.vars.scss). A centered modal card: a head
     // (title + sub-title), an optional message, an optional inputs group (text / radio / checkbox),
     // and a button group (row; column when >2 buttons). md left-aligns the head and right-aligns
@@ -742,6 +757,10 @@ public class IonicTheme
     // cropped (object-fit: cover). No per-mode difference (there is no thumbnail.md/.ios).
     /// <summary>Thumbnail width/height (<c>--size</c>, 48px both modes).</summary>
     public float ThumbnailSize { get; set; } = 48f;
+
+    /// <summary>Thumbnail size when slotted inside an <c>ion-item</c> — the item overrides
+    /// <c>--size</c> (<c>$item-{md|ios}-thumbnail-size</c>: 56px both modes).</summary>
+    public float ItemThumbnailSize { get; set; } = 56f;
 
     // Skeleton text (skeleton-text.scss / skeleton-text.vars.scss). A placeholder gray bar shown
     // while content loads. Background is rgba(text-color, .065); the animated variant pulses toward
@@ -1235,6 +1254,12 @@ public class IonicTheme
         t.ActionSheetEnterDuration = 0.4f;                        // md.enter.ts .duration(400)
         t.ActionSheetLeaveDuration = 0.45f;                       // md.leave.ts .duration(450)
 
+        // Toast (toast.md.scss / .md.vars.scss): the md enter/leave animations only cross-fade the
+        // wrapper; the ±8px edge offset comes from getAnimationPosition (mode === 'md' → 8).
+        t.ToastEdgeOffset = 8f;                                   // animations/utils.ts md offset
+        t.ToastEnterDuration = 0.4f;                              // md.enter.ts .duration(400)
+        t.ToastLeaveDuration = 0.3f;                              // md.leave.ts .duration(300)
+
         // Alert (alert.md.scss / .md.vars.scss): a 4px-radius white card with a 3-layer Material
         // shadow; left-aligned head (20px/500 title, 16px sub-title), step-450 message; a right-
         // aligned button row with 2px-radius, uppercase, primary-colored buttons. Radio/checkbox
@@ -1318,6 +1343,8 @@ public class IonicTheme
 
         // Thumbnail (thumbnail.scss): 48px square, no per-mode difference.
         t.ThumbnailSize = 48f;
+        // Item thumbnail (item.md.vars.scss $item-md-thumbnail-size): 56px when slotted in an item.
+        t.ItemThumbnailSize = 56f;
 
         // Skeleton text (skeleton-text.vars.scss): rgba(text,.065) fill; animated pulses to rgba(text,.135).
         t.SkeletonTextBackground = new Color(0, 0, 0, 17);        // rgba(0,0,0,.065)
@@ -1746,6 +1773,12 @@ public class IonicTheme
         t.ActionSheetEnterDuration = 0.4f;                        // ios.enter.ts .duration(400)
         t.ActionSheetLeaveDuration = 0.45f;                       // ios.leave.ts .duration(450)
 
+        // Toast (toast.ios.scss / .ios.vars.scss): the ios enter/leave animations slide the wrapper
+        // in from off-screen; the ±10px edge offset comes from getAnimationPosition (else → 10).
+        t.ToastEdgeOffset = 10f;                                  // animations/utils.ts ios offset
+        t.ToastEnterDuration = 0.4f;                              // ios.enter.ts .duration(400)
+        t.ToastLeaveDuration = 0.3f;                              // ios.leave.ts .duration(300)
+
         // Alert (alert.ios.scss / .ios.vars.scss): a 13px-radius #f9f9f9 card with no shadow;
         // centered head (17px/600 title, 14px step-400 sub-title), 13px message; a button row split
         // by hairline dividers, primary-colored, not uppercased. Backdrop is heavier (0.4).
@@ -1824,6 +1857,8 @@ public class IonicTheme
 
         // Thumbnail (thumbnail.scss): 48px square, no per-mode difference.
         t.ThumbnailSize = 48f;
+        // Item thumbnail (item.ios.vars.scss $item-ios-thumbnail-size): 56px when slotted in an item.
+        t.ItemThumbnailSize = 56f;
 
         // Skeleton text (skeleton-text.vars.scss): rgba(text,.065) fill; animated pulses to rgba(text,.135).
         t.SkeletonTextBackground = new Color(0, 0, 0, 17);        // rgba(0,0,0,.065)

@@ -17,8 +17,15 @@
    A toast is a non-blocking notification: it has NO backdrop. Ionic's overlay controller wires
    `trigger` / `present()`; Miko has no controller, so the host drives IsOpen (two-way) and the
    toast raises OnDidDismiss with the tapped button's role. Cancel-role buttons dismiss without
-   running as a normal action; other buttons run their handler then dismiss. The host is always
-   mounted; when closed it carries `overlay-hidden` (display:none). *@
+   running as a normal action; other buttons run their handler then dismiss.
+   The host is ALWAYS mounted and keeps its layout box even when closed — `overlay-hidden` maps to
+   pointer-events:none rather than display:none (see ToastStyles). That is what makes the
+   enter/leave animations possible: Miko detects a transition by diffing the previous frame's
+   computed style, so an element that only appears on open has nothing to animate from. The wrapper
+   slides/fades between its parked state and its resting offset, mirroring
+   animations/{md|ios}.{enter|leave}.ts. `toast-mounted` marks the host interactive while open or
+   animating out; it is dropped only after the leave animation finishes (deferred unmount driven by
+   AnimationManager.TransitionCompleted), the same pattern as IonActionSheet. *@
 <div class="@ClassMapper.Class" style="@Style">
     <div class="@_wrapperClass">
         <div class="toast-container">
@@ -94,8 +101,8 @@
     /// <summary>The buttons to show. Split into start/end groups by <see cref="IonToastButton.Side"/>.</summary>
     [Parameter] public IReadOnlyList<IonToastButton> Buttons { get; set; } = Array.Empty<IonToastButton>();
 
-    /// <summary>Number of milliseconds before auto-dismissing (Ionic <c>duration</c>). Marker only:
-    /// the auto-dismiss timer is not wired in this static port, but the value is kept for parity.</summary>
+    /// <summary>Number of milliseconds before auto-dismissing (Ionic <c>duration</c>).
+    /// When greater than zero, the toast dismisses automatically after the specified time.</summary>
     [Parameter] public int Duration { get; set; }
 
     /// <summary>Whether the toast is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
@@ -114,20 +121,53 @@
     /// <summary>Raised when the toast dismisses, with the tapped button's role (or null).</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
 
+    /// <summary>
+    /// The app's animation manager, used to defer the closed state until the leave animation
+    /// finishes. Resolved from the ambient service scope; null in a bare unit test, in which case
+    /// the toast settles to closed on the same frame (no slide/fade out).
+    /// </summary>
+    [Inject] protected AnimationManager? Animations { get; set; }
+
+    /// <summary>Marshals the auto-dismiss timer callback back onto the render thread. Null in a bare
+    /// unit test, in which case <see cref="Duration"/> is inert.</summary>
+    [Inject] private Platform.MikoDispatcher? Dispatcher { get; set; }
+
     private IReadOnlyList<IonToastButton> _startButtons = Array.Empty<IonToastButton>();
     private IReadOnlyList<IonToastButton> _endButtons = Array.Empty<IonToastButton>();
     private string _wrapperClass = "toast-wrapper ion-overlay-wrapper toast-bottom toast-layout-baseline";
 
+    // Stays true through the leave animation, so the toast keeps its on-screen state while fading
+    // out; cleared once the leave transition completes.
+    private bool _mounted;
+    private bool _subscribed;
+
+    // Guards against re-arming the auto-dismiss timer on every re-render while the toast stays open.
+    private bool _timerScheduled;
+    private CancellationTokenSource? _timerCancellation;
+
     protected override void OnParametersSet()
     {
+        if (!_subscribed && Animations is not null)
+        {
+            Animations.TransitionCompleted += OnTransitionCompleted;
+            _subscribed = true;
+        }
+
+        if (IsOpen) _mounted = true;
+
         var position = string.IsNullOrEmpty(Position) ? "bottom" : Position.ToLowerInvariant();
 
+        // Closed AND settled → overlay-hidden (inert). While open or animating out the host stays
+        // mounted/interactive; only `toast-open` (which drives the animation end state) is tied
+        // strictly to IsOpen.
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
             .Add("ion-toast")
-            .If(!IsOpen, "overlay-hidden")
+            .If(!IsOpen && !_mounted, "overlay-hidden")
+            .If(_mounted, "toast-mounted")
+            .If(IsOpen, "toast-open")
             .If(!string.IsNullOrEmpty(Color), "ion-color")
             .AddColor(Color)
             .If(Translucent, "toast-translucent");
@@ -137,6 +177,49 @@
         // Start group = side "start"; everything else (including undefined) goes end (toast.tsx).
         _startButtons = Buttons.Where(b => b.IsStart).ToList();
         _endButtons = Buttons.Where(b => !b.IsStart).ToList();
+
+        // Schedule auto-dismiss when opening with a positive duration (toast.tsx presentOverlay →
+        // durationTimeout). Re-arming is guarded so a re-render mid-toast doesn't restart the clock.
+        if (IsOpen && Duration > 0 && !_timerScheduled && Dispatcher is not null)
+        {
+            _timerScheduled = true;
+            ScheduleAutoDismiss();
+        }
+
+        // Closed → drop the flag and cancel any pending timer, so re-opening arms a fresh one.
+        if (!IsOpen)
+        {
+            _timerScheduled = false;
+            _timerCancellation?.Cancel();
+            _timerCancellation = null;
+        }
+    }
+
+    private void ScheduleAutoDismiss()
+    {
+        if (Dispatcher is null) return;
+
+        _timerCancellation?.Cancel();
+        _timerCancellation = new CancellationTokenSource();
+        var token = _timerCancellation.Token;
+        var dispatcher = Dispatcher;
+
+        _ = Task.Delay(Duration, token).ContinueWith(_ =>
+        {
+            if (token.IsCancellationRequested) return;
+
+            // Hop back to the render thread before touching component state.
+            dispatcher.Post(async () =>
+            {
+                if (token.IsCancellationRequested) return;
+                if (IsOpen)
+                {
+                    // A timed dismiss carries the "timeout" role (toast.tsx dismiss(undefined, 'timeout')).
+                    await DismissAsync("timeout");
+                    StateHasChanged();
+                }
+            });
+        }, TaskContinuationOptions.OnlyOnRanToCompletion);
     }
 
     // toast-button + icon-only/role/state markers (toast.tsx buttonClass()).
@@ -165,7 +248,46 @@
         {
             IsOpen = false;
             await IsOpenChanged.InvokeAsync(false);
+
+            // The toast is closing: stop the auto-dismiss timer so a pending tick can't fire a
+            // second dismiss after a button/host-driven close.
+            _timerScheduled = false;
+            _timerCancellation?.Cancel();
+            _timerCancellation = null;
+
+            // Without an animation manager nothing will report the leave animation as finished, so
+            // settle to the closed (inert) state immediately rather than staying mounted forever.
+            if (Animations is null) _mounted = false;
         }
         await OnDidDismiss.InvokeAsync(new IonOverlayDismissEventArgs(role, null));
+    }
+
+    protected override void OnDispose()
+    {
+        // Nested components are rebuilt each render; release the subscription so handlers from
+        // discarded instances don't accumulate, and drop the pending timer with them.
+        if (_subscribed && Animations is not null)
+        {
+            Animations.TransitionCompleted -= OnTransitionCompleted;
+            _subscribed = false;
+        }
+        _timerCancellation?.Cancel();
+        _timerCancellation = null;
+    }
+
+    private void OnTransitionCompleted(Element element, string property)
+    {
+        // Once the wrapper's leave animation finishes, drop the mounted state so the host settles to
+        // overlay-hidden (pointer-events:none) and stops intercepting taps. Guarded against a
+        // re-open mid-dismiss, and against the enter animation's completion. md fades the wrapper
+        // (Opacity) while ios slides it (Transform), so either property ends the leave.
+        if (!IsOpen
+            && _mounted
+            && (property == nameof(Style.Transform) || property == nameof(Style.Opacity))
+            && (element.Class?.Contains("toast-wrapper") ?? false))
+        {
+            _mounted = false;
+            StateHasChanged();
+        }
     }
 }
