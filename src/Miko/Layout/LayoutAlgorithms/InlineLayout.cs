@@ -68,14 +68,15 @@ public class InlineLayout
 
         // 行内格式化上下文统一断行（ISSUE-110）：文本片段与行内元素盒共享行盒、
         // 按序排列，超宽时在断行单元边界换行（首个排版遍）。
-        var run = InlineFormattingContext.Layout(
-            box.Children, 0, box.Children.Count,
-            contentX, contentY,
+        // 原子盒宽度（百分比解析基准）保持 null：本遍是 shrink-to-fit 的内容测量遍，
+        // 传入可用宽度会让 width:100% 的子盒按满宽求值，auto 宽父盒随之被撑满
+        // （见 ISSUE-077 / ISSUE-081，InlineBlockMinSizeTests 覆盖）。
+        // 嵌套 inline 盒的换行不依赖这个基准——它们在 IFC 中被透明化展开、
+        // 直接用本行内流的 wrapWidth 断行（ISSUE-126）。
+        var run = LayoutContents(
+            box, contentX, contentY,
             textWrapWidth,
-            null, null,
-            style.TextAlign,
-            BlockLayout.ResolveLineHeight(style),
-            TextWrapper.ShouldWrap(style.WhiteSpace));
+            null, null);
         float lineHeight = run.TotalHeight;
         float maxWidth = run.MaxLineWidth;
 
@@ -168,14 +169,10 @@ public class InlineLayout
         bool widthIsDefinite = widthIsForced || !widthIsAuto || minWidthEffective || maxWidthEffective;
         if (widthIsDefinite && contentWidth > 0 && box.Children.Count > 0)
         {
-            var rerun = InlineFormattingContext.Layout(
-                box.Children, 0, box.Children.Count,
-                contentX, contentY,
+            var rerun = LayoutContents(
+                box, contentX, contentY,
                 contentWidth,
-                contentWidth, null,
-                style.TextAlign,
-                BlockLayout.ResolveLineHeight(style),
-                TextWrapper.ShouldWrap(style.WhiteSpace));
+                contentWidth, null);
             lineHeight = rerun.TotalHeight;
         }
 
@@ -238,14 +235,10 @@ public class InlineLayout
         if (heightIsDefinite && contentHeight > 0 && box.Children.Count > 0
             && HasPercentHeightChild(box))
         {
-            InlineFormattingContext.Layout(
-                box.Children, 0, box.Children.Count,
-                contentX, contentY,
+            LayoutContents(
+                box, contentX, contentY,
                 widthIsDefinite && contentWidth > 0 ? contentWidth : textWrapWidth,
-                widthIsDefinite && contentWidth > 0 ? contentWidth : null, contentHeight,
-                style.TextAlign,
-                BlockLayout.ResolveLineHeight(style),
-                TextWrapper.ShouldWrap(style.WhiteSpace));
+                widthIsDefinite && contentWidth > 0 ? contentWidth : textWrapWidth, contentHeight);
         }
 
         // 强制换行元素（br）作为独立盒（如 flex 项）布局时，应生成一个行盒：宽 0、高一行行高。
@@ -259,6 +252,80 @@ public class InlineLayout
         }
 
         box.BoxModel.Content = new RectF(contentX, contentY, contentWidth, contentHeight);
+    }
+
+    /// <summary>
+    /// 布局行内盒的内容：连续的行内级子盒交给行内格式化上下文统一断行，块级子盒独占整行
+    /// （block-in-inline，ISSUE-126）。与 <see cref="BlockLayout"/> 主循环同构。
+    ///
+    /// 浏览器对 block-in-inline 会把 inline 盒拆成「块级前段 / 块级子元素 / 块级后段」三个
+    /// 匿名块；这里不做匿名块拆分，只让块级子盒占据独立的纵向区间、其前后行内内容各成一段
+    /// 行内流——最终的视觉排布与浏览器一致，而 inline 盒自身仍是单一盒（其片段矩形覆盖各行内段）。
+    /// </summary>
+    /// <returns>内容总高度与最宽行盒宽度。</returns>
+    private InlineFormattingContext.RunResult LayoutContents(
+        LayoutBox box,
+        float contentX,
+        float contentY,
+        float? wrapWidth,
+        float? atomicWidth,
+        float? atomicHeight)
+    {
+        var style = box.ComputedStyle;
+        float lineHeight = BlockLayout.ResolveLineHeight(style);
+        bool allowWrap = TextWrapper.ShouldWrap(style.WhiteSpace);
+
+        float currentY = contentY;
+        float maxWidth = 0;
+
+        int i = 0;
+        while (i < box.Children.Count)
+        {
+            var child = box.Children[i];
+
+            // 脱离文档流的子盒不参与常规流（已在调用方单独布局）。
+            if (BlockLayout.IsOutOfFlow(child))
+            {
+                i++;
+                continue;
+            }
+
+            if (BlockLayout.IsInlineOrInlineBlock(child))
+            {
+                int runStart = i;
+                while (i < box.Children.Count && BlockLayout.IsInlineOrInlineBlock(box.Children[i])
+                       && !BlockLayout.IsOutOfFlow(box.Children[i]))
+                {
+                    i++;
+                }
+
+                var run = InlineFormattingContext.Layout(
+                    box.Children, runStart, i,
+                    contentX, currentY,
+                    wrapWidth,
+                    atomicWidth, atomicHeight,
+                    style.TextAlign,
+                    lineHeight,
+                    allowWrap);
+
+                currentY += run.TotalHeight;
+                maxWidth = Math.Max(maxWidth, run.MaxLineWidth);
+            }
+            else
+            {
+                // 块级子盒：独占整行，垂直堆叠。
+                LayoutDispatcher.Dispatch(child, new LayoutConstraints(atomicWidth, atomicHeight), contentX, currentY);
+                currentY = child.BoxModel.MarginBox.Bottom;
+                maxWidth = Math.Max(maxWidth, child.BoxModel.MarginBox.Width);
+                i++;
+            }
+        }
+
+        return new InlineFormattingContext.RunResult
+        {
+            TotalHeight = currentY - contentY,
+            MaxLineWidth = maxWidth,
+        };
     }
 
     private void LayoutChild(LayoutBox child, LayoutConstraints constraints, float x, float y)

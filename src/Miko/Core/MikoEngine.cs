@@ -718,6 +718,23 @@ public class MikoEngine
 
         bool insideSelf = x >= adjustedLeft && x <= adjustedRight && y >= adjustedTop && y <= adjustedBottom;
 
+        // 跨行的非替换 inline 盒由逐行片段组成（ISSUE-126）：其边框盒并集覆盖了首行行尾与
+        // 末行行首之外的空白区域，按并集命中会让 <span> 吃掉这些空白处的点击。
+        // 命中判定改为「落在任一片段内」，与逐片段绘制的可视范围一致。
+        if (insideSelf && box.InlineFragments is { Count: > 0 } fragments)
+        {
+            insideSelf = false;
+            foreach (var frag in fragments)
+            {
+                if (x >= frag.Left - scrollOffsetX && x <= frag.Right - scrollOffsetX
+                    && y >= frag.Top - scrollOffsetY && y <= frag.Bottom - scrollOffsetY)
+                {
+                    insideSelf = true;
+                    break;
+                }
+            }
+        }
+
         // overflow:visible 的盒子不裁剪后代：溢出到盒外的子孙（绝对定位、负外边距等）在 CSS 中
         // 依然可命中，因此点在盒外时不能就此返回——仍需下探子树，只是本盒自身不能作为命中目标。
         // 反之，裁剪型盒子（overflow 非 visible，或已滚动）之外的一切都不可命中，可立即剪枝。

@@ -402,6 +402,17 @@ public class LayoutEngine
         var content = box.BoxModel.Content;
         box.BoxModel.Content = new RectF(content.X + dx, content.Y + dy, content.Width, content.Height);
 
+        // 行内盒的逐行片段存的是绝对坐标（ISSUE-126），须随盒一起平移。
+        // （文本节点的 LayoutFragments 相对内容盒原点，天然跟随，无需修正。）
+        var frags = box.InlineFragments;
+        if (frags != null)
+        {
+            for (int i = 0; i < frags.Count; i++)
+            {
+                frags[i] = new RectF(frags[i].X + dx, frags[i].Y + dy, frags[i].Width, frags[i].Height);
+            }
+        }
+
         foreach (var child in box.Children)
         {
             OffsetSubtree(child, dx, dy);

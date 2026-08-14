@@ -525,6 +525,16 @@ public class RenderEngine
     }
 
     /// <summary>
+    /// 盒的可视矩形列表：跨行的非替换 inline 盒有逐行片段（ISSUE-126），
+    /// 背景/边框/阴影/轮廓应逐片段绘制（浏览器的 inline box fragment 行为）；
+    /// 其余盒子只有单个边框盒。
+    /// </summary>
+    private static IReadOnlyList<RectF> PaintRects(LayoutBox box)
+        => box.InlineFragments is { Count: > 0 } frags
+            ? frags
+            : new[] { box.BoxModel.BorderBox };
+
+    /// <summary>
     /// 渲染盒阴影
     /// </summary>
     private void RenderBoxShadow(LayoutBox box)
@@ -537,11 +547,10 @@ public class RenderEngine
         if (boxShadow == null || boxShadow.Count == 0) return;
 
         var (tl, tr, br, bl) = ResolveBorderRadii(box);
-        _painter.DrawBoxShadow(
-            boxShadow,
-            box.BoxModel.BorderBox,
-            tl, tr, br, bl
-        );
+        foreach (var rect in PaintRects(box))
+        {
+            _painter.DrawBoxShadow(boxShadow, rect, tl, tr, br, bl);
+        }
     }
 
     /// <summary>
@@ -593,11 +602,10 @@ public class RenderEngine
         if (style.BackgroundColor.A > 0)
         {
             var (tl, tr, br, bl) = ResolveBorderRadii(box);
-            _painter.DrawBackground(
-                box.BoxModel.BorderBox,
-                style.BackgroundColor,
-                tl, tr, br, bl
-            );
+            foreach (var rect in PaintRects(box))
+            {
+                _painter.DrawBackground(rect, style.BackgroundColor, tl, tr, br, bl);
+            }
         }
 
         if (style.BackgroundImage?.Bitmap != null)
@@ -735,14 +743,17 @@ public class RenderEngine
         if (!hasVisibleBorder) return;
 
         var (tl, tr, br, bl) = ResolveBorderRadii(box);
-        _painter.DrawBorderSides(
-            box.BoxModel.BorderBox,
-            style.ComputedBorderTop,
-            style.ComputedBorderRight,
-            style.ComputedBorderBottom,
-            style.ComputedBorderLeft,
-            tl, tr, br, bl
-        );
+        foreach (var rect in PaintRects(box))
+        {
+            _painter.DrawBorderSides(
+                rect,
+                style.ComputedBorderTop,
+                style.ComputedBorderRight,
+                style.ComputedBorderBottom,
+                style.ComputedBorderLeft,
+                tl, tr, br, bl
+            );
+        }
     }
 
     /// <summary>
@@ -758,17 +769,20 @@ public class RenderEngine
         float width = style.OutlineWidth.ToPixels(0, style.FontSize.Value);
         float offset = style.OutlineOffset.ToPixels(0, style.FontSize.Value);
 
-        _painter.DrawOutline(
-            box.BoxModel.BorderBox,
-            width,
-            style.OutlineColor,
-            style.OutlineStyle,
-            offset,
-            style.BorderTopLeftRadius.Value,
-            style.BorderTopRightRadius.Value,
-            style.BorderBottomRightRadius.Value,
-            style.BorderBottomLeftRadius.Value
-        );
+        foreach (var rect in PaintRects(box))
+        {
+            _painter.DrawOutline(
+                rect,
+                width,
+                style.OutlineColor,
+                style.OutlineStyle,
+                offset,
+                style.BorderTopLeftRadius.Value,
+                style.BorderTopRightRadius.Value,
+                style.BorderBottomRightRadius.Value,
+                style.BorderBottomLeftRadius.Value
+            );
+        }
     }
 
     /// <summary>
