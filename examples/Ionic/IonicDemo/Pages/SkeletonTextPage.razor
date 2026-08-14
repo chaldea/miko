@@ -10,7 +10,9 @@
                 <IonBackButton DefaultHref="/"></IonBackButton>
             </Start>
             <End>
-                <IonButton OnClick="@ToggleSkeleton">Toggle</IonButton>
+                <IonButtons>
+                    <IonButton OnClick="@ToggleSkeleton">Toggle</IonButton>
+                </IonButtons>
             </End>
             <ChildContent>
                 <IonTitle>Skeleton Text</IonTitle>
@@ -34,7 +36,7 @@
                             </IonThumbnail>
                         </Start>
                         <ChildContent>
-                            <IonLabel>
+                            <IonLabel Class="sc-ion-label-md-s">
                                 <h3>@album.Title</h3>
                                 <p>@album.Artist</p>
                                 <p>@album.Year</p>
@@ -62,7 +64,7 @@
                             </IonThumbnail>
                         </Start>
                         <ChildContent>
-                            <IonLabel>
+                            <IonLabel Class="sc-ion-label-md-s">
                                 <h3>
                                     <IonSkeletonText Animated Style="@(new Style { Width = Length.Percent(80) })"></IonSkeletonText>
                                 </h3>

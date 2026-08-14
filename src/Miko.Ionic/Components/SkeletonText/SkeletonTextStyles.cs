@@ -47,6 +47,15 @@ internal static class SkeletonTextStyles
             {
                 BackgroundColor = t.SkeletonTextBackgroundAnimated,
             },
+
+            // When nested inside a media container (ion-avatar / ion-thumbnail), the skeleton
+            // text fills the container's full height with no margin (ports :host(.in-media)).
+            [$".ion-skeleton-text.{mode}.in-media"] = new()
+            {
+                MarginTop = Length.Px(0),
+                MarginBottom = Length.Px(0),
+                Height = Length.Percent(100),
+            },
         };
     }
 }
