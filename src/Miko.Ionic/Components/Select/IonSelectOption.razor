@@ -1,18 +1,36 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<option class="@ClassMapper.Class" style="@Style">
+@* Mirrors Ionic's <ion-select-option> (select-option.tsx render()):
+   <ion-select-option role="option" id="ion-selopt-N" class="{mode}"></ion-select-option>
+   The host renders NOTHING visible — select-option.scss is `:host { display: none }`. The element
+   exists purely as a data carrier: the parent ion-select reads its value / textContent / disabled
+   flag (select.tsx getOptionValue + childOpts) and renders the actual, selectable UI inside the
+   overlay it opens.
+   Miko has no live DOM registry for the parent to query, so the option registers itself into the
+   IonSelectOptionContext cascaded by the select while this subtree builds (see
+   IonSelectOptionContext). The rendered div keeps the `ion-select-option` class so the DOM contract
+   stays inspectable, and the stylesheet hides it exactly like the real component. The slotted text
+   is kept as the div's content so the option's text is readable from the built tree — and so the
+   registered Text can be recovered from it in Build(). *@
+<div class="@ClassMapper.Class" style="@Style" role="option">
     @ChildContent
-</option>
+</div>
 
 @code {
-    /// <summary>Option value. If null, the option text is used by the native select element.</summary>
+    /// <summary>The option's value. When null, Ionic falls back to the option's text content
+    /// (<c>getOptionValue()</c>), so an option is always identifiable.</summary>
     [Parameter] public string? Value { get; set; }
 
-    /// <summary>When true, the option cannot be selected.</summary>
+    /// <summary>If true, the user cannot select this option. Ionic notes this does not apply to
+    /// <c>interface="action-sheet"</c>, since action-sheet buttons cannot be disabled.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>When true, the option is selected when no parent value overrides it.</summary>
-    [Parameter] public bool Selected { get; set; }
+    // ChildContent (the option label, Ionic's default slot) is inherited from ComponentBase.
+
+    /// <summary>The owning select's registration channel. Null when the option is used standalone
+    /// (outside an <see cref="IonSelect"/>), in which case it simply renders hidden and registers
+    /// nowhere.</summary>
+    [CascadingParameter] public IonSelectOptionContext? SelectContext { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -24,15 +42,24 @@
             .If(Disabled, "select-option-disabled");
     }
 
+    /// <summary>
+    /// Registers this option with the owning select. The text is read back from the built subtree
+    /// (the slotted content), mirroring Ionic reading <c>option.textContent</c>; the value falls
+    /// back to that text when none was declared, exactly like <c>getOptionValue()</c>.
+    /// </summary>
     public override Element Build()
     {
         var root = base.Build();
-        if (root is OptionElement option)
+
+        var text = (root.TextContent ?? string.Empty).Trim();
+        SelectContext?.Register?.Invoke(new IonSelectOptionData
         {
-            option.Value = Value;
-            option.Selected = Selected;
-            if (Disabled) option.SetState(ElementState.Disabled);
-        }
+            Value = Value ?? text,
+            Text = text,
+            Disabled = Disabled,
+            CssClass = Class,
+        });
+
         return root;
     }
 }

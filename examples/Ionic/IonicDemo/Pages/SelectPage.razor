@@ -1,8 +1,7 @@
 @page "/select"
 
-@* NOTE: Miko's IonSelect has no `interface` parameter (Ionic's alert / popover / action-sheet
-   overlay styles). The "Select Interfaces" group is kept for content parity but every select
-   uses the single built-in presentation. *@
+@* Every select opens an overlay on tap. `Interface` picks which one — alert (the default),
+   action-sheet, popover, or modal — mirroring Ionic's `interface` property. *@
 
 <IonPage>
     <IonHeader>
@@ -62,18 +61,29 @@
             </IonListHeader>
 
             <IonItem>
-                <IonSelect Label="Gender" LabelPlacement="stacked" Placeholder="Popover Interface">
+                <IonSelect Label="Gender" LabelPlacement="stacked" Placeholder="Popover Interface"
+                           Interface="popover">
                     <IonSelectOption Value="f">Female</IonSelectOption>
                     <IonSelectOption Value="m">Male</IonSelectOption>
                 </IonSelect>
             </IonItem>
 
             <IonItem>
-                <IonSelect Label="Mute Notifications" LabelPlacement="stacked" Placeholder="Action Sheet Interface">
+                <IonSelect Label="Mute Notifications" LabelPlacement="stacked" Placeholder="Action Sheet Interface"
+                           Interface="action-sheet">
                     <IonSelectOption Value="mute_15">For 15 Minutes</IonSelectOption>
                     <IonSelectOption Value="mute_1">For 1 Hour</IonSelectOption>
                     <IonSelectOption Value="mute_23">For 24 Hours</IonSelectOption>
                     <IonSelectOption Value="mute_inf">Until I turn it back on</IonSelectOption>
+                </IonSelect>
+            </IonItem>
+
+            <IonItem Lines="full">
+                <IonSelect Label="Seat" LabelPlacement="stacked" Placeholder="Modal Interface"
+                           Interface="modal" InterfaceHeader="Choose a seat">
+                    <IonSelectOption Value="aisle">Aisle</IonSelectOption>
+                    <IonSelectOption Value="window">Window</IonSelectOption>
+                    <IonSelectOption Value="middle">Middle</IonSelectOption>
                 </IonSelect>
             </IonItem>
         </IonList>

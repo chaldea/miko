@@ -686,7 +686,65 @@ public class MikoEngine
     public Element? HitTest(float x, float y)
     {
         if (_currentLayout == null) return null;
+
+        // position: fixed 的盒子由渲染器的顶层 pass（RenderEngine.FlushFixed）最后绘制，因此在
+        // 命中测试里也必须最先被测——否则会「看得见但点不到」：正常递归会在裁剪型祖先处被
+        // `!insideSelf && clipsChildren` 剪枝掉，而 fixed 覆盖层恰恰总是溢出到祖先之外。
+        // 见 issues/ion-select.md 问题 4（ion-item 里的 select 覆盖层）。
+        var fixedBoxes = CollectFixedBoxes(_currentLayout);
+        if (fixedBoxes != null)
+        {
+            // 绘制是 z-index 升序（后画者在上），命中则反向：从最上层往下测。
+            for (int i = fixedBoxes.Count - 1; i >= 0; i--)
+            {
+                var hit = HitTestBox(fixedBoxes[i], x, y);
+                if (hit != null) return hit;
+            }
+        }
+
         return HitTestBox(_currentLayout, x, y);
+    }
+
+    /// <summary>
+    /// 收集整棵树里所有 <c>position: fixed</c> 的盒子，按 z-index 升序（与
+    /// <see cref="Rendering.RenderEngine.FlushFixed"/> 的绘制顺序一致）返回；没有则返回 null。
+    /// <para>
+    /// 不下探进 fixed 盒自身的子树：那里面的后代由该 fixed 盒的递归命中测试自行处理；若其中还
+    /// 嵌着更深的 fixed 盒，它们同样在那次递归里被测到。
+    /// </para>
+    /// </summary>
+    private static List<LayoutBox>? CollectFixedBoxes(LayoutBox root)
+    {
+        List<LayoutBox>? found = null;
+        Collect(root, ref found);
+        // 绝大多数树里一个 fixed 都没有；此时不分配任何东西就返回（HitTest 每次鼠标移动都会
+        // 走这条路来跟踪 :hover，见 MikoInteractionController.OnMouseMove）。
+        if (found == null) return null;
+        if (found.Count == 1) return found;
+
+        // 收集顺序为文档序，List.Sort 不稳定，故按 (z-index, 文档序) 双键排序保持同值的文档序。
+        var order = new Dictionary<LayoutBox, int>(found.Count);
+        for (int i = 0; i < found.Count; i++) order[found[i]] = i;
+        found.Sort((a, b) =>
+        {
+            int byZ = a.ComputedStyle.ZIndex.CompareTo(b.ComputedStyle.ZIndex);
+            return byZ != 0 ? byZ : order[a].CompareTo(order[b]);
+        });
+        return found;
+
+        static void Collect(LayoutBox box, ref List<LayoutBox>? found)
+        {
+            foreach (var child in box.Children)
+            {
+                if (child.ComputedStyle.Position == Common.Position.Fixed)
+                {
+                    (found ??= new List<LayoutBox>()).Add(child);
+                    continue;
+                }
+
+                Collect(child, ref found);
+            }
+        }
     }
 
     /// <summary>
@@ -777,6 +835,10 @@ public class MikoEngine
             if (deferred?.Contains(child) == true)
                 continue;
 
+            // fixed 后代已在 HitTest 入口的顶层 pass 中测过（且不受本盒裁剪影响），跳过。
+            if (child.ComputedStyle.Position == Common.Position.Fixed)
+                continue;
+
             var childRect = child.BoxModel.BorderBox;
             float childScreenTop = childRect.Top - childScrollOffsetY;
             float childScreenBottom = childRect.Bottom - childScrollOffsetY;
@@ -825,6 +887,10 @@ public class MikoEngine
         {
             foreach (var child in box.Children)
             {
+                // fixed 后代由 HitTest 入口的顶层 pass 处理，不能再从这里提取（与
+                // RenderEngine.CollectZOrderedDescendants 对称）。
+                if (child.ComputedStyle.Position == Common.Position.Fixed) continue;
+
                 if (IsZOrderedPositioned(child))
                 {
                     (found ??= new List<LayoutBox>()).Add(child);

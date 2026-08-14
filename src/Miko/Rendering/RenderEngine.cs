@@ -38,6 +38,12 @@ public class RenderEngine
     public Highlight.ISyntaxHighlighter SyntaxHighlighter { get; set; } = new Highlight.SyntaxHighlighter();
     private List<RectF>? _dirtyRegions;
     private readonly List<(LayoutBox box, SelectElement select, float scrollOffsetX, float scrollOffsetY)> _pendingDropdowns = new();
+
+    /// <summary>
+    /// 本帧遇到的 <c>position: fixed</c> 盒子，延迟到整棵树绘制完后由 <see cref="FlushFixed"/>
+    /// 在画布根状态下统一绘制（见那里的说明）。
+    /// </summary>
+    private readonly List<LayoutBox> _pendingFixed = new();
     private float _currentScrollOffsetX;
     private float _currentScrollOffsetY;
 
@@ -62,9 +68,11 @@ public class RenderEngine
 
         _dirtyRegions = null;
         _pendingDropdowns.Clear();
+        _pendingFixed.Clear();
         _currentScrollOffsetX = 0;
         _currentScrollOffsetY = 0;
         RenderBox(layoutRoot, null, isStackingRoot: true);
+        FlushFixed();
         FlushDropdowns();
         OverlayCallback?.Invoke(_canvas!);
     }
@@ -80,6 +88,7 @@ public class RenderEngine
 
         _dirtyRegions = null;
         _pendingDropdowns.Clear();
+        _pendingFixed.Clear();
         _currentScrollOffsetX = 0;
         _currentScrollOffsetY = 0;
 
@@ -92,6 +101,9 @@ public class RenderEngine
             _painter.Translate(offsetX, offsetY);
 
         RenderBox(layoutRoot, null, isStackingRoot: true);
+        // 转场图层的整体偏移与不透明度对覆盖层同样生效，故在本层的 Save 之内 flush：
+        // 页面切换时 fixed 覆盖层应随页面一起滑动/淡出，而不是钉在屏幕上不动。
+        FlushFixed();
         FlushDropdowns();
 
         if (hasOpacity) _painter.Restore();
@@ -120,7 +132,10 @@ public class RenderEngine
         {
             _painter.Save();
             _painter.ClipRect(region);
+            // fixed 覆盖层同样要限制在本脏区内重绘，故逐区收集并 flush（在该区的裁剪之内）。
+            _pendingFixed.Clear();
             RenderBox(layoutRoot, null, isStackingRoot: true);
+            FlushFixed();
             _painter.Restore();
         }
 
@@ -136,6 +151,50 @@ public class RenderEngine
     }
 
     /// <summary>
+    /// 绘制本帧收集到的 <c>position: fixed</c> 盒子——CSS 的「固定定位相对视口」在绘制侧的另一半。
+    /// <para>
+    /// fixed 盒的包含块是视口（<see cref="Layout.LayoutEngine"/> 已按视口解析其坐标），因此它
+    /// 既不该被任何祖先的 <c>overflow</c> 裁掉，也不该跟着祖先滚动。而正常递归绘制时它身处
+    /// 祖先的画布状态里：<see cref="RenderChildrenWithOverflow"/> 已经压了 clip 并
+    /// <c>Translate(-ScrollLeft, -ScrollTop)</c>，两者都会作用到它身上。z-index 提取路径也救不了
+    /// 它——<see cref="CollectZOrderedDescendants"/> 在会裁剪的祖先处刻意停止下探。
+    /// </para>
+    /// <para>
+    /// 所以改为 <see cref="RenderBox"/> 遇到 fixed 就地收集、跳过，等整棵树画完、所有祖先的
+    /// <c>Save</c> 都已 <c>Restore</c> 回画布根状态后，在这里按 z-index 升序统一绘制。这与
+    /// <c>&lt;select&gt;</c> 下拉的 <see cref="FlushDropdowns"/> 是同一套「顶层 pass」手法。
+    /// 症状见 issues/ion-select.md 问题 4：ion-item（<c>overflow:hidden</c> + 48px）里的
+    /// ion-select 打开覆盖层后，全屏 fixed 覆盖层被裁成 48px 高的一条。
+    /// </para>
+    /// </summary>
+    private void FlushFixed()
+    {
+        if (_pendingFixed.Count == 0) return;
+
+        // 收集顺序是深度优先前序（即文档序），OrderBy 稳定，故同 z-index 保持文档序。
+        var ordered = _pendingFixed.OrderBy(b => b.ComputedStyle.ZIndex).ToList();
+        _pendingFixed.Clear();
+
+        // 祖先的滚动偏移不适用于 fixed（它相对视口固定），从零开始。
+        float prevScrollX = _currentScrollOffsetX;
+        float prevScrollY = _currentScrollOffsetY;
+        _currentScrollOffsetX = 0;
+        _currentScrollOffsetY = 0;
+
+        foreach (var box in ordered)
+        {
+            // 每个 fixed 盒自成一个层叠上下文根，其内部的定位后代在它自己那一层里排序。
+            RenderBox(box, null, isStackingRoot: true, isFixedRoot: true);
+        }
+
+        _currentScrollOffsetX = prevScrollX;
+        _currentScrollOffsetY = prevScrollY;
+
+        // fixed 子树里还可能嵌着别的 fixed 盒（被上面的递归收集起来），继续排空。
+        FlushFixed();
+    }
+
+    /// <summary>
     /// 渲染盒子。
     /// </summary>
     /// <param name="box">要绘制的盒子。</param>
@@ -147,11 +206,27 @@ public class RenderEngine
     /// 本盒是否作为层叠上下文的根来收集并排序内部的定位后代。调用方在两种情况下传 true：
     /// 绘制整棵树的根，或绘制一个被提出的定位后代（它自成一层）。
     /// </param>
-    private void RenderBox(LayoutBox box, HashSet<LayoutBox>? inheritedDeferred = null, bool isStackingRoot = false)
+    /// <param name="isFixedRoot">
+    /// 本盒是否是 <see cref="FlushFixed"/> 正在绘制的那个 fixed 盒。仅对「本盒自身」生效，
+    /// 使它不再被自己重新收集；其子树里更深的 fixed 后代仍照常收集到下一轮 flush。
+    /// </param>
+    private void RenderBox(
+        LayoutBox box,
+        HashSet<LayoutBox>? inheritedDeferred = null,
+        bool isStackingRoot = false,
+        bool isFixedRoot = false)
     {
         if (_painter == null) return;
 
         if (!ShouldRender(box)) return;
+
+        // position: fixed —— 不在祖先的画布状态里就地绘制（那会挨上祖先的 overflow 裁剪与滚动
+        // 平移），改为收集起来，等回到画布根状态后由 FlushFixed 统一绘制。见 FlushFixed。
+        if (!isFixedRoot && box.ComputedStyle.Position == Common.Position.Fixed)
+        {
+            _pendingFixed.Add(box);
+            return;
+        }
 
         // 建立层叠上下文的盒子自行收集内部后代，祖先的延迟集合到此为止。
         if (!isStackingRoot && EstablishesStackingContext(box)) isStackingRoot = true;
@@ -315,6 +390,10 @@ public class RenderEngine
         {
             foreach (var child in box.Children)
             {
+                // fixed 后代由 FlushFixed 的顶层 pass 绘制，不能再被这里提取——否则会画两遍，
+                // 且提取出的那一遍仍活在祖先的裁剪/滚动状态里。
+                if (child.ComputedStyle.Position == Common.Position.Fixed) continue;
+
                 if (IsZOrderedPositioned(child))
                 {
                     (found ??= new List<LayoutBox>()).Add(child);
