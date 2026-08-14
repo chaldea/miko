@@ -1,5 +1,8 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Core
+@using Miko.Core.DomElements
+@using Miko.Events
 @* Mirrors Ionic's <ion-searchbar> host structure:
    <ion-searchbar class="searchbar ...">            <!-- host: flex row, the state classes -->
      <div class="searchbar-input-container">
@@ -20,27 +23,39 @@
    and a sibling of it in ios (text, default "Cancel") — matching the Ionic source. Search icon
    defaults to search-sharp (md) / search-outline (ios); clear icon to close-sharp (md) /
    close-circle (ios). Input value/placeholder/type/disabled are stamped in Build() because the
-   renderer's <input> attribute mapping does not carry them through. The focus/clear/cancel
-   interactivity is out of scope for the renderer (like IonButton.Href). *@
+   renderer's <input> attribute mapping does not carry them through. Clicking the field focuses
+   and edits it like any text input (the native <input> is InputType.Search).
+
+   Events mirror searchbar.tsx: OnInput (ionInput) per edit, OnChange (ionChange) on commit —
+   i.e. on blur when the value changed during that focus, or from clear/cancel — plus OnClear,
+   OnCancel, OnFocus, OnBlur, and ValueChanged for @bind-Value.
+
+   Two documented gaps, both because host classes are computed from parameters at build time
+   while focus lives on the element: showCancelButton/showClearButton="focus" behaves like
+   "never", and the clear button needs Value bound to appear (searchbar-has-value derives from
+   the parameter, and an unbound field's text only lives on the element). Ionic has neither
+   limitation because its value is a mutable component prop. See IonSearchbarEventTests. *@
 <div class="@ClassMapper.Class" style="@Style">
     <div class="searchbar-input-container">
-        <input class="searchbar-input" type="@_type" />
+        <input class="searchbar-input" type="@_type"
+               @oninput="HandleInput" @onchange="HandleChange"
+               @onfocus="HandleFocus" @onblur="HandleBlur" />
         @if (Mode == "md")
         {
-            <button class="searchbar-cancel-button">
+            <button class="searchbar-cancel-button" @onclick="HandleCancelClick">
                 <div>
                     <IonIcon Icon="@_cancelButtonIcon" />
                 </div>
             </button>
         }
         <IonIcon Icon="@_searchIcon" Class="searchbar-search-icon" />
-        <button class="searchbar-clear-button">
+        <button class="searchbar-clear-button" @onclick="HandleClearClick">
             <IonIcon Icon="@_clearIcon" Class="searchbar-clear-icon" />
         </button>
     </div>
     @if (Mode == "ios")
     {
-        <button class="searchbar-cancel-button">
+        <button class="searchbar-cancel-button" @onclick="HandleCancelClick">
             <div>@CancelButtonText</div>
         </button>
     }
@@ -53,6 +68,31 @@
 
     /// <summary>The current value of the search field (Ionic <c>value</c>).</summary>
     [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised (with the new value) as the user types — enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Raised each time the user modifies the value (Ionic <c>ionInput</c>).</summary>
+    [Parameter] public EventCallback<string?> OnInput { get; set; }
+
+    /// <summary>Raised when the value change is committed — on blur, or when the clear / cancel
+    /// button changes the value (Ionic <c>ionChange</c>). Not raised for programmatic value
+    /// changes, matching Ionic.</summary>
+    [Parameter] public EventCallback<string?> OnChange { get; set; }
+
+    /// <summary>Raised when the clear button is clicked (Ionic <c>ionClear</c>). Fires before the
+    /// value is cleared, like the Ionic source.</summary>
+    [Parameter] public EventCallback OnClear { get; set; }
+
+    /// <summary>Raised when the cancel button is clicked (Ionic <c>ionCancel</c>). Fires before the
+    /// value is cleared, like the Ionic source.</summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    /// <summary>Raised when the search field gains focus (Ionic <c>ionFocus</c>).</summary>
+    [Parameter] public EventCallback OnFocus { get; set; }
+
+    /// <summary>Raised when the search field loses focus (Ionic <c>ionBlur</c>).</summary>
+    [Parameter] public EventCallback OnBlur { get; set; }
 
     /// <summary>Placeholder text (Ionic <c>placeholder</c>). Defaults to <c>"Search"</c>.</summary>
     [Parameter] public string Placeholder { get; set; } = "Search";
@@ -101,6 +141,14 @@
     private string _clearIcon = Ionicons.CloseSharp;
     private string _cancelButtonIcon = Ionicons.ArrowBackSharp;
 
+    // 聚焦时的值快照（searchbar.tsx focusedValue）：失焦时与当前值比较，只有真的变了才发
+    // ionChange。原生 change 在这个渲染器里不为文本框发出（没有浏览器的提交语义），故由 blur 承担。
+    //
+    // 存在元素上而非组件字段上：祖先重渲染会换掉本组件实例，字段随之归零，而元素的状态会经
+    // CopyInteractionStateFrom 迁移到新实例（ISSUE-121）。这里借 input 自己的值做基准，
+    // 于是无需跨重渲染保活任何组件状态。
+    private string? _focusedValue;
+
     protected override void OnParametersSet()
     {
         var mode = Mode;
@@ -128,13 +176,18 @@
 
     private bool HasValue => !string.IsNullOrEmpty(Value);
 
-    // Mirrors searchbar.tsx shouldShowCancelButton/shouldShowClearButton. The port has no focus
-    // lifecycle, so "focus" behaves like "never" (the button never auto-reveals on focus).
-    private bool ShouldShowCancel =>
-        ShowCancelButton is "always" || (ShowCancelButton == "focus" && false);
+    // Mirrors searchbar.tsx shouldShowCancelButton/shouldShowClearButton, minus the focus arm.
+    //
+    // "focus" still behaves like "never": a host class driven by focus cannot be held on the
+    // component. The focus/blur callback receiver is typically an ancestor (that is what
+    // `@bind`-style wiring produces), and its re-render rebuilds this component from scratch —
+    // any `_hasFocus` field resets to false while the element keeps its Focus state (ISSUE-121).
+    // Reveal-on-focus therefore needs the state read at style-resolve time, i.e. `:focus-within`
+    // in the selector engine, which the port does not have yet. The focus/blur *callbacks* below
+    // are unaffected: they fire from the element, not from retained component state.
+    private bool ShouldShowCancel => ShowCancelButton is "always";
 
-    private bool ShouldShowClear =>
-        ShowClearButton is "always" || (ShowClearButton == "focus" && false);
+    private bool ShouldShowClear => ShowClearButton is "always";
 
     /// <summary>
     /// After the subtree is built, stamp the input's value/placeholder/type/disabled directly on
@@ -148,11 +201,146 @@
         var root = base.Build();
         if (root.FindByClass("searchbar-input").FirstOrDefault() is InputElement input)
         {
-            input.Value = Value ?? string.Empty;
+            // 只在组件确实带值时写入。写 null/空会记下一个「声明的空值」，把用户在未绑定搜索框里
+            // 键入的内容在祖先重渲染时冲掉（ISSUE-121 问题 2）——对齐浏览器：缺席的 value 属性
+            // 不动元素当前值。
+            if (Value is not null) input.Value = Value;
             input.Placeholder = Placeholder;
             input.Type = _type == "search" ? InputType.Search : InputType.Text;
             if (Disabled) input.SetState(ElementState.Disabled);
         }
         return root;
+    }
+
+    // --- Event handlers (searchbar.tsx onInput/onChange/onFocus/onBlur/onClearInput/onCancel) ---
+
+    private async Task HandleInput(InputEventArgs args)
+    {
+        if (Disabled) return;
+
+        var next = args.Data;
+        if (Value != next)
+        {
+            Value = next;
+            await ValueChanged.InvokeAsync(next);
+        }
+
+        await OnInput.InvokeAsync(next);
+    }
+
+    // 引擎没有浏览器那套「提交」语义，原生 change 只在少数控件上发；文本框的提交时机由
+    // HandleBlur 承担（对齐 searchbar.tsx：onBlur 里比较 focusedValue 后补发 ionChange）。
+    private async Task HandleChange(ChangeEventArgs args)
+    {
+        if (Disabled) return;
+
+        var next = args.NewValue ?? (args.Target as InputElement)?.Value;
+        if (Value != next)
+        {
+            Value = next;
+            await ValueChanged.InvokeAsync(next);
+        }
+
+        await EmitValueChangeAsync(next);
+    }
+
+    private async Task HandleFocus(FocusEventArgs args)
+    {
+        if (Disabled) return;
+
+        // 以元素的当前值为基准，而不是组件参数：未绑定时用户键入只写在元素上。
+        _focusedValue = (args.Target as InputElement)?.Value ?? Value;
+        await OnFocus.InvokeAsync();
+    }
+
+    private async Task HandleBlur(FocusEventArgs args)
+    {
+        await OnBlur.InvokeAsync();
+
+        // 提交语义：值在这次聚焦期间确实变了才发 ionChange（searchbar.tsx onBlur）。
+        var current = (args.Target as InputElement)?.Value ?? Value;
+        if (_focusedValue != current)
+        {
+            await EmitValueChangeAsync(current);
+        }
+        _focusedValue = null;
+    }
+
+    private async Task HandleClearClick(MouseEventArgs args)
+    {
+        if (Disabled) return;
+
+        // 点在清除按钮上不该继续冒泡到搜索框（否则一次点击既清空又把焦点/光标移到末尾）。
+        args.StopPropagation();
+
+        // ionClear 先于清值发出，与 searchbar.tsx onClearInput 一致。
+        await OnClear.InvokeAsync();
+        await ClearValueAsync(args.Target);
+    }
+
+    private async Task HandleCancelClick(MouseEventArgs args)
+    {
+        if (Disabled) return;
+
+        args.StopPropagation();
+
+        // ionCancel 先于清值发出，与 searchbar.tsx onCancelSearchbar 一致。
+        await OnCancel.InvokeAsync();
+
+        var input = FindInputFrom(args.Target);
+        var had = HasValue || !string.IsNullOrEmpty(input?.Value);
+        var wasFocused = input?.HasState(ElementState.Focus) == true;
+
+        await ClearValueAsync(args.Target);
+
+        // 原本有值、且当时并未聚焦（没有 blur 会来补发）时，在此手动补一次 ionChange
+        // ——照搬 searchbar.tsx onCancelSearchbar 的补发条件。
+        if (had && !wasFocused)
+        {
+            await EmitValueChangeAsync(Value);
+        }
+    }
+
+    /// <summary>
+    /// 清空搜索框：既要把值写回元素（未绑定时组件参数不会回流），也要让绑定方看到 string.Empty。
+    /// 与 searchbar.tsx onClearInput 一致，清空后同时发 ionInput。
+    /// </summary>
+    /// <param name="from">发起清除的按钮元素，用于在当前树中定位同一搜索框的原生 input。</param>
+    private async Task ClearValueAsync(Element? from)
+    {
+        var input = FindInputFrom(from);
+        var hadValue = HasValue || !string.IsNullOrEmpty(input?.Value);
+        if (!hadValue) return;
+
+        Value = string.Empty;
+        // 未绑定 Value 时，用户键入的文本只活在元素上，光改组件参数清不掉它——必须直接写元素。
+        if (input is not null)
+        {
+            input.Value = string.Empty;
+            input.CursorPosition = 0;
+        }
+
+        await ValueChanged.InvokeAsync(Value);
+        await OnInput.InvokeAsync(Value);
+        StateHasChanged();
+    }
+
+    private async Task EmitValueChangeAsync(string? value)
+    {
+        _focusedValue = value;
+        await OnChange.InvokeAsync(value);
+    }
+
+    /// <summary>
+    /// 从事件目标出发找到同一搜索框的原生 input：向上走到宿主（<c>ion-searchbar</c>），再向下找。
+    /// 不用组件持有的根引用——重渲染会换实例，事件目标才一定在当前树里。
+    /// </summary>
+    private static InputElement? FindInputFrom(Element? from)
+    {
+        var host = from;
+        while (host is not null && !host.HasClass("ion-searchbar"))
+            host = host.Parent;
+
+        return host?.FindByClass("searchbar-input").OfType<InputElement>().FirstOrDefault();
     }
 }

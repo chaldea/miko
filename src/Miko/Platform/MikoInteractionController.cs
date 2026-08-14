@@ -529,8 +529,10 @@ public sealed class MikoInteractionController
 
         switch (inputElement.Type)
         {
+            // 文本类输入（含 search，Ionic 的 ion-searchbar 用的就是它）点击即聚焦并把光标移到末尾。
             case InputType.Text:
             case InputType.Password:
+            case InputType.Search:
                 SetFocusCore(inputElement);
                 inputElement.MoveCursorToEnd();
                 break;

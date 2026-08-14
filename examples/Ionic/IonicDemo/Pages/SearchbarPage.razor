@@ -15,7 +15,7 @@
             </ChildContent>
         </IonToolbar>
         <IonToolbar>
-            <IonSearchbar></IonSearchbar>
+            <IonSearchbar OnInput="@HandleSearch"></IonSearchbar>
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
@@ -30,8 +30,7 @@
     </IonContent>
 </IonPage>
 @code {
-    private readonly string[] _cities =
-    {
+    private static readonly string[] _data = {
         "Amsterdam", "Bogota", "Buenos Aires", "Cairo", "Dhaka", "Edinburgh",
         "Geneva", "Genoa", "Glasglow", "Hanoi", "Hong Kong", "Islamabad",
         "Istanbul", "Jakarta", "Kiel", "Kyoto", "Le Havre", "Lebanon",
@@ -39,4 +38,12 @@
         "New York", "Olympia", "Oslo", "Panama City", "Peking", "Philadelphia",
         "San Francisco", "Seoul", "Taipeh", "Tel Aviv", "Tokio", "Uelzen", "Washington",
     };
+    private string[] _cities = _data.ToArray();
+
+    private void HandleSearch(string value)
+    {
+        _cities = _data
+            .Where(x => x.Contains(value, StringComparison.CurrentCultureIgnoreCase))
+            .ToArray();
+    }
 }

@@ -202,4 +202,38 @@ public class InputInvalidationTests
         input.Value.ShouldBe("b");   // 光标在 1，删除其前的 'a'
         engine.HasPendingVisualWork.ShouldBeTrue();
     }
+
+    /// <summary>
+    /// <c>type="search"</c> 与 text 同为文本控件：点击必须聚焦并把光标移到末尾，键盘输入
+    /// 必须落到值上。修复前 <c>HandleInputClick</c> 的 switch 与 <c>IsEditable</c> 都只列了
+    /// Text/Password，search 于是既不可聚焦也不可编辑（ion-searchbar 无法输入）。
+    /// </summary>
+    [Fact]
+    public void SearchInput_ClickFocuses_AndAcceptsTyping()
+    {
+        var input = new InputElement
+        {
+            Type = InputType.Search,
+            Value = "ab",
+            Style = new Style { Width = Length.Px(200), Height = Length.Px(20) },
+        };
+        var root = new DivElement { Children = { input } };
+        var options = new MikoAppOptions { RootComponentFactory = () => root };
+
+        var engine = new MikoEngine();
+        var controller = CreateController(options, engine);
+        using var surface = InitAndSettle(controller, engine);
+
+        controller.OnPointerDown(10, 10, MouseButton.Left);
+        controller.OnPointerUp(10, 10, MouseButton.Left);
+
+        input.HasState(ElementState.Focus).ShouldBeTrue();
+        input.CursorPosition.ShouldBe(2);        // 点击后光标落在末尾
+        engine.HasPendingVisualWork.ShouldBeTrue();
+
+        engine.Render(surface.Canvas);
+        controller.OnTextInput("c");
+        input.Value.ShouldBe("abc");
+        engine.HasPendingVisualWork.ShouldBeTrue();
+    }
 }
