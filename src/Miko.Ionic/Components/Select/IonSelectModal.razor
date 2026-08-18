@@ -1,0 +1,135 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-select-modal> (select-modal.tsx render()):
+   <ion-select-modal class="{mode}">
+     <ion-header><ion-toolbar>
+       [<ion-title>{header}</ion-title>]
+       <ion-buttons slot="end"><ion-button>{cancelText}</ion-button></ion-buttons>
+     </ion-toolbar></ion-header>
+     <ion-content><ion-list>
+       multiple → <ion-item class="item-checkbox-checked?"><ion-checkbox justify=start labelPlacement=end/></ion-item>…
+       single   → <ion-radio-group><ion-item lines="none" class="item-radio-checked?"><ion-radio/></ion-item>…</ion-radio-group>
+     </ion-list></ion-content>
+   </ion-select-modal>
+   This is the body ion-select renders INSIDE an ion-modal when interface="modal"; Ionic passes the
+   options through componentProps (select.tsx openModal). Miko has no ion-buttons component — the
+   toolbar's End slot is its equivalent (see IonToolbar), so the close button goes there.
+   Selecting in the single-value case closes the modal (Ionic's closeModal()); the owning select
+   performs the close when it receives OptionSelected. Multi-value keeps the modal open so more
+   boxes can be ticked, and the user closes it with the cancel button — matching Ionic. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <IonHeader>
+        <IonToolbar>
+            <End>
+                <IonButton OnClick="CancelAsync">@CancelText</IonButton>
+            </End>
+            <ChildContent>
+                @if (!string.IsNullOrEmpty(Header))
+                {
+                    <IonTitle>@Header</IonTitle>
+                }
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent>
+        <IonList>
+            @if (Multiple)
+            {
+                @foreach (var option in Options)
+                {
+                    var opt = option;
+                    <IonItem Class="@ItemClass(opt, "item-checkbox-checked")">
+                        <IonCheckbox Value="@opt.Value"
+                                     Checked="@IsChecked(opt)"
+                                     Disabled="@opt.Disabled"
+                                     Justify="start"
+                                     LabelPlacement="end"
+                                     CheckedChanged="@(checkedNow => ToggleAsync(opt, checkedNow))">
+                            @opt.Text
+                        </IonCheckbox>
+                    </IonItem>
+                }
+            }
+            else
+            {
+                <IonRadioGroup Value="@CheckedValue" ValueChanged="SelectAsync">
+                    @foreach (var option in Options)
+                    {
+                        var opt = option;
+                        <IonItem Lines="none" Class="@ItemClass(opt, "item-radio-checked")">
+                            <IonRadio Value="@opt.Value"
+                                      Disabled="@opt.Disabled"
+                                      Justify="start"
+                                      LabelPlacement="end">@opt.Text</IonRadio>
+                        </IonItem>
+                    }
+                </IonRadioGroup>
+            }
+        </IonList>
+    </IonContent>
+</div>
+
+@code {
+    /// <summary>The title shown in the modal's toolbar.</summary>
+    [Parameter] public string? Header { get; set; }
+
+    /// <summary>The text on the close button. Ionic's select-modal defaults to <c>"Close"</c>
+    /// (not <c>"Cancel"</c>, which is ion-select's own default).</summary>
+    [Parameter] public string CancelText { get; set; } = "Close";
+
+    /// <summary>If true, the options render as checkboxes and more than one may be selected.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>The options to render, supplied by the owning <see cref="IonSelect"/>.</summary>
+    [Parameter] public IReadOnlyList<IonSelectOptionData> Options { get; set; } = Array.Empty<IonSelectOptionData>();
+
+    /// <summary>The currently selected values (a single-element set unless <see cref="Multiple"/>).</summary>
+    [Parameter] public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
+
+    /// <summary>Raised with the full selected value set whenever an option is toggled.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> OptionSelected { get; set; }
+
+    /// <summary>Raised when the close button is tapped (Ionic's <c>closeModal()</c>).</summary>
+    [Parameter] public EventCallback Cancelled { get; set; }
+
+    /// <summary>The checked value for the radio group — Ionic takes the first checked option.</summary>
+    private string? CheckedValue => Options.FirstOrDefault(o => Values.Contains(o.Value))?.Value;
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(Class)
+            .Add(Mode)
+            .Add("ion-select-modal");
+    }
+
+    private bool IsChecked(IonSelectOptionData option) => Values.Contains(option.Value);
+
+    private string ItemClass(IonSelectOptionData option, string checkedClass)
+    {
+        var cls = "select-interface-option";
+        if (IsChecked(option)) cls += $" {checkedClass}";
+        if (!string.IsNullOrWhiteSpace(option.CssClass)) cls += $" {option.CssClass}";
+        return cls;
+    }
+
+    private async Task SelectAsync(string? value)
+    {
+        if (value is null) return;
+        await OptionSelected.InvokeAsync(new[] { value });
+    }
+
+    private async Task ToggleAsync(IonSelectOptionData option, bool isChecked)
+    {
+        var next = new List<string>();
+        foreach (var o in Options)
+        {
+            var selected = o.Value == option.Value ? isChecked : Values.Contains(o.Value);
+            if (selected) next.Add(o.Value);
+        }
+        await OptionSelected.InvokeAsync(next);
+    }
+
+    private async Task CancelAsync() => await Cancelled.InvokeAsync();
+}

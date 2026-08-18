@@ -114,9 +114,9 @@ public static class TextWrapper
                     lastWasNewline = false;
                 }
             }
-            else if (char.IsWhiteSpace(c))
+            else if (IsCollapsibleSpace(c))
             {
-                // 其他空白字符（空格、制表符等）
+                // 其他空白字符（空格、制表符等）。NBSP 不在此列（见 IsCollapsibleSpace）。
                 if (!lastWasSpace)
                 {
                     result.Append(' ');
@@ -133,8 +133,9 @@ public static class TextWrapper
             }
         }
 
-        // 去除首尾空白
-        string processed = result.ToString().Trim();
+        // 去除首尾空白。只修剪可折叠空白：NBSP 是普通字符，不能在这里被吃掉
+        // （否则 <span>&nbsp;</span> 会变成空串，行盒高度塌缩为 0）。
+        string processed = result.ToString().Trim(' ', '\t', '\n', '\r', '\f', '\v');
         return processed;
     }
 
@@ -221,6 +222,18 @@ public static class TextWrapper
     }
 
     /// <summary>
+    /// 该字符是否为「可折叠空白」（CSS white-space processing model 中参与折叠与行首/行尾消除的字符）。
+    /// <para>
+    /// 注意不能直接用 <see cref="char.IsWhiteSpace(char)"/>：它对不间断空格 U+00A0 也返回 true，
+    /// 但 CSS 明确规定 NBSP 不是可折叠空白——它是一个普通字符，只是禁止在其处断行。
+    /// 若把 NBSP 当作空白，<c>&lt;span&gt;&amp;nbsp;&lt;/span&gt;</c> 这类「靠 NBSP 撑出行高」的
+    /// 惯用写法（如 Ionic skeleton-text）会在行尾空白剥离阶段被整体丢弃，行盒高度塌缩为 0。
+    /// </para>
+    /// </summary>
+    internal static bool IsCollapsibleSpace(char c)
+        => c is ' ' or '\t' or '\n' or '\r' or '\f' or '\v';
+
+    /// <summary>
     /// 折叠连续空白但不修剪首尾（CSS 空白折叠的行内阶段）：
     /// 首尾空白是否消除取决于行首/行尾位置，由换行打包阶段决定（行首丢弃空白单元、
     /// 行尾剥离），不能在节点级别提前修剪——否则 "All &lt;code&gt;x&lt;/code&gt;" 中
@@ -238,7 +251,7 @@ public static class TextWrapper
         for (int i = 0; i < text.Length; i++)
         {
             char c = text[i];
-            bool isSpace = c == ' ' || c == '\t' || c == '\n' || c == '\r' || char.IsWhiteSpace(c);
+            bool isSpace = IsCollapsibleSpace(c);
             if (isSpace)
             {
                 if (lastWasSpace)

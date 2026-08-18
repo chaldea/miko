@@ -1,22 +1,37 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Animation
 @* Mirrors Ionic's <ion-skeleton-text>: a placeholder gray bar shown while content loads.
-   <ion-skeleton-text>            <!-- host: the mode + optional skeleton-text-animated class -->
-     <span>&#160;</span>         <!-- an inline-block spacer (a non-breaking space) giving the bar its height -->
+   <ion-skeleton-text>            <!-- host: the mode + optional skeleton-text-animated / in-media class -->
+     <span>&#160;</span>          <!-- an inline-block spacer (a non-breaking space) giving the bar its height -->
    </ion-skeleton-text>
-   The host paints the gray fill (rgba(text,.065)); the animated variant swaps to the lighter
-   rgba(text,.135) fill (Ionic uses a keyframe shimmer gradient, which Miko has no direct analog for,
-   so the animated state is modeled as the lighter static fill plus the marker class).
-   Ionic's markup uses a literal &nbsp;; here the inner span holds a U+00A0 so the layout matches
-   without relying on HTML entity decoding in the Razor compiler. *@
-<div class="@ClassMapper.Class" style="@Style">
-    <span> </span>
+   The span holds U+00A0 rather than a plain space: an ordinary space is collapsed away as
+   formatting whitespace and contributes no line box, leaving the bar 0px tall.
+   Ionic's animated variant slides a gradient across the bar (@keyframes shimmer over
+   background-position). Miko has no animatable background-position, so the shimmer is modeled as
+   the fill pulsing between the base and lighter tints — the same two colors Ionic's gradient
+   interpolates, just varying in time instead of in space.
+   in-media mirrors hostContext('ion-avatar' | 'ion-thumbnail'): inside a media container the bar
+   drops its margins and fills the container's height. *@
+<div class="@ClassMapper.Class" style="@_hostStyle">
+    <span>@Nbsp</span>
 </div>
 
 @code {
-    /// <summary>If true, the skeleton bar is marked animated (Ionic <c>animated</c>). Stamps the
-    /// <c>skeleton-text-animated</c> class the stylesheet maps to the lighter pulse fill.</summary>
+    /// <summary>The non-breaking space (U+00A0) Ionic's markup uses as <c>&amp;nbsp;</c>.</summary>
+    private const string Nbsp = " ";
+
+    /// <summary>If true, the skeleton bar animates (Ionic <c>animated</c>).</summary>
     [Parameter] public bool Animated { get; set; }
+
+    /// <summary>
+    /// Set when the bar is nested inside an <see cref="IonAvatar"/> or <see cref="IonThumbnail"/>,
+    /// which cascade a <see cref="Components.MediaContext"/>. Mirrors skeleton-text.tsx's
+    /// <c>hostContext('ion-avatar', el) || hostContext('ion-thumbnail', el)</c>.
+    /// </summary>
+    [CascadingParameter] public MediaContext? MediaContext { get; set; }
+
+    private Style? _hostStyle;
 
     protected override void OnParametersSet()
     {
@@ -25,6 +40,47 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-skeleton-text")
-            .If(Animated, "skeleton-text-animated");
+            .If(Animated, "skeleton-text-animated")
+            .If(MediaContext is not null, "in-media");
+
+        var animationStyle = BuildAnimationStyle();
+
+        if (Style is not null && animationStyle is not null)
+        {
+            _hostStyle = new Style();
+            _hostStyle.Merge(Style);
+            _hostStyle.Merge(animationStyle);
+        }
+        else
+        {
+            _hostStyle = animationStyle ?? Style;
+        }
+    }
+
+    /// <summary>
+    /// The shimmer. Ionic animates <c>background-position</c> across a three-stop gradient
+    /// (base → lighter → base) for 1s, linear, infinite. Miko cannot animate background-position,
+    /// so the same three stops are walked in time as background-color keyframes.
+    /// </summary>
+    private Style? BuildAnimationStyle()
+    {
+        if (!Animated) return null;
+
+        var theme = Mode == "ios" ? IonicTheme.CreateIos() : IonicTheme.CreateMd();
+
+        return new Style
+        {
+            Animations = new List<KeyframeAnimation>
+            {
+                new("ion-skeleton-shimmer", 1f,
+                    new Keyframe(0f, new Style { BackgroundColor = theme.SkeletonTextBackground }),
+                    new Keyframe(0.5f, new Style { BackgroundColor = theme.SkeletonTextBackgroundAnimated }),
+                    new Keyframe(1f, new Style { BackgroundColor = theme.SkeletonTextBackground }))
+                {
+                    Infinite = true,
+                    TimingFunction = TimingFunction.Linear,
+                },
+            },
+        };
     }
 }

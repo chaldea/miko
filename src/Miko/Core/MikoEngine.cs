@@ -686,7 +686,65 @@ public class MikoEngine
     public Element? HitTest(float x, float y)
     {
         if (_currentLayout == null) return null;
+
+        // position: fixed 的盒子由渲染器的顶层 pass（RenderEngine.FlushFixed）最后绘制，因此在
+        // 命中测试里也必须最先被测——否则会「看得见但点不到」：正常递归会在裁剪型祖先处被
+        // `!insideSelf && clipsChildren` 剪枝掉，而 fixed 覆盖层恰恰总是溢出到祖先之外。
+        // 见 issues/ion-select.md 问题 4（ion-item 里的 select 覆盖层）。
+        var fixedBoxes = CollectFixedBoxes(_currentLayout);
+        if (fixedBoxes != null)
+        {
+            // 绘制是 z-index 升序（后画者在上），命中则反向：从最上层往下测。
+            for (int i = fixedBoxes.Count - 1; i >= 0; i--)
+            {
+                var hit = HitTestBox(fixedBoxes[i], x, y);
+                if (hit != null) return hit;
+            }
+        }
+
         return HitTestBox(_currentLayout, x, y);
+    }
+
+    /// <summary>
+    /// 收集整棵树里所有 <c>position: fixed</c> 的盒子，按 z-index 升序（与
+    /// <see cref="Rendering.RenderEngine.FlushFixed"/> 的绘制顺序一致）返回；没有则返回 null。
+    /// <para>
+    /// 不下探进 fixed 盒自身的子树：那里面的后代由该 fixed 盒的递归命中测试自行处理；若其中还
+    /// 嵌着更深的 fixed 盒，它们同样在那次递归里被测到。
+    /// </para>
+    /// </summary>
+    private static List<LayoutBox>? CollectFixedBoxes(LayoutBox root)
+    {
+        List<LayoutBox>? found = null;
+        Collect(root, ref found);
+        // 绝大多数树里一个 fixed 都没有；此时不分配任何东西就返回（HitTest 每次鼠标移动都会
+        // 走这条路来跟踪 :hover，见 MikoInteractionController.OnMouseMove）。
+        if (found == null) return null;
+        if (found.Count == 1) return found;
+
+        // 收集顺序为文档序，List.Sort 不稳定，故按 (z-index, 文档序) 双键排序保持同值的文档序。
+        var order = new Dictionary<LayoutBox, int>(found.Count);
+        for (int i = 0; i < found.Count; i++) order[found[i]] = i;
+        found.Sort((a, b) =>
+        {
+            int byZ = a.ComputedStyle.ZIndex.CompareTo(b.ComputedStyle.ZIndex);
+            return byZ != 0 ? byZ : order[a].CompareTo(order[b]);
+        });
+        return found;
+
+        static void Collect(LayoutBox box, ref List<LayoutBox>? found)
+        {
+            foreach (var child in box.Children)
+            {
+                if (child.ComputedStyle.Position == Common.Position.Fixed)
+                {
+                    (found ??= new List<LayoutBox>()).Add(child);
+                    continue;
+                }
+
+                Collect(child, ref found);
+            }
+        }
     }
 
     /// <summary>
@@ -717,6 +775,23 @@ public class MikoEngine
         float adjustedBottom = rect.Bottom - scrollOffsetY;
 
         bool insideSelf = x >= adjustedLeft && x <= adjustedRight && y >= adjustedTop && y <= adjustedBottom;
+
+        // 跨行的非替换 inline 盒由逐行片段组成（ISSUE-126）：其边框盒并集覆盖了首行行尾与
+        // 末行行首之外的空白区域，按并集命中会让 <span> 吃掉这些空白处的点击。
+        // 命中判定改为「落在任一片段内」，与逐片段绘制的可视范围一致。
+        if (insideSelf && box.InlineFragments is { Count: > 0 } fragments)
+        {
+            insideSelf = false;
+            foreach (var frag in fragments)
+            {
+                if (x >= frag.Left - scrollOffsetX && x <= frag.Right - scrollOffsetX
+                    && y >= frag.Top - scrollOffsetY && y <= frag.Bottom - scrollOffsetY)
+                {
+                    insideSelf = true;
+                    break;
+                }
+            }
+        }
 
         // overflow:visible 的盒子不裁剪后代：溢出到盒外的子孙（绝对定位、负外边距等）在 CSS 中
         // 依然可命中，因此点在盒外时不能就此返回——仍需下探子树，只是本盒自身不能作为命中目标。
@@ -758,6 +833,10 @@ public class MikoEngine
             var child = box.Children[i];
             // Skip children already tested above
             if (deferred?.Contains(child) == true)
+                continue;
+
+            // fixed 后代已在 HitTest 入口的顶层 pass 中测过（且不受本盒裁剪影响），跳过。
+            if (child.ComputedStyle.Position == Common.Position.Fixed)
                 continue;
 
             var childRect = child.BoxModel.BorderBox;
@@ -808,6 +887,10 @@ public class MikoEngine
         {
             foreach (var child in box.Children)
             {
+                // fixed 后代由 HitTest 入口的顶层 pass 处理，不能再从这里提取（与
+                // RenderEngine.CollectZOrderedDescendants 对称）。
+                if (child.ComputedStyle.Position == Common.Position.Fixed) continue;
+
                 if (IsZOrderedPositioned(child))
                 {
                     (found ??= new List<LayoutBox>()).Add(child);

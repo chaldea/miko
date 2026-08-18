@@ -1,25 +1,82 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@ClassMapper.Class" style="@Style">
+@* Mirrors Ionic's <ion-select> (select.tsx render()):
+   <ion-select class="{mode} ion-focusable select-{rtl} select-label-placement-{p} [select-disabled]
+                      [select-expanded] [has-expanded-icon] [has-value] [has-placeholder] [has-focus]
+                      [label-floating] [select-fill-*] [select-justify-*] [select-shape-*] [ion-color-*]">
+     <label class="select-wrapper">
+       [fill=outline (md): <div class="select-outline-container">
+          <div class="select-outline-start"/><div class="select-outline-notch"><div class="notch-spacer"/></div>
+          <div class="select-outline-end"/></div>]
+       <div class="label-text-wrapper [label-text-wrapper-hidden]"><div class="label-text">{label}</div></div>
+       <div class="select-wrapper-inner">
+         <slot name="start"/>
+         <div class="native-wrapper">
+           <div class="select-text [select-placeholder]">{value text | placeholder}</div>
+           <button/>                        <!-- focusEl: the real focus target, aria host -->
+         </div>
+         <slot name="end"/>
+         [!floating/stacked → <ion-icon class="select-icon"/>]
+       </div>
+       [floating/stacked → <ion-icon class="select-icon"/>]   <!-- outside inner, so it centers on the whole select -->
+       [md && fill!=outline && !inItem → <div class="select-highlight"/>]
+     </label>
+     [helper/error → <div class="select-bottom"><div class="helper-text"/><div class="error-text"/></div>]
+   </ion-select>
+   NOTE there is NO native <select> here: Ionic renders its own text + a focus button and opens an
+   OVERLAY on click (select.tsx open() → createOverlay()), dispatching on `interface`:
+   alert (default) / action-sheet / popover / modal. ion-select-option renders nothing at all
+   (select-option.scss `:host{display:none}`) — it only carries data, which this port collects
+   through the cascaded IonSelectOptionContext.
+   Ionic opens overlays through a controller; Miko has none, so the four overlays are rendered
+   inline (always mounted, hidden via overlay-hidden) and driven by the _isExpanded state — the
+   same host-driven model the ported IonAlert / IonActionSheet / IonPopover / IonModal already use. *@
+@{
+    // Refresh the derived state on EVERY render path. A root-level re-render goes through
+    // ComponentBase.BuildNew(), which re-runs only this method — not OnParametersSet — so state
+    // changed by an interaction (overlay opened, focus, selection) would otherwise never reach the
+    // rendered classes. See RefreshDerivedState.
+    RefreshDerivedState();
+}
+<div class="@ClassMapper.Class" style="@Style" @onclick="HandleClickAsync">
     <label class="select-wrapper">
-        @if (HasLabel)
+        @if (HasOutlineFill)
         {
-            <div class="label-text-wrapper">
-                <div class="label-text">@Label</div>
+            <div class="select-outline-container">
+                <div class="select-outline-start"></div>
+                <div class="@_outlineNotchClass">
+                    <div class="notch-spacer">@Label</div>
+                </div>
+                <div class="select-outline-end"></div>
             </div>
         }
+        <div class="@_labelWrapperClass">
+            @if (Label is null)
+            {
+                @LabelSlot
+            }
+            else
+            {
+                <div class="label-text">@Label</div>
+            }
+        </div>
         <div class="select-wrapper-inner">
             @StartSlot
             <div class="native-wrapper">
-                <select class="select-native" @onchange="HandleChange">
-                    @ChildContent
-                </select>
                 <div class="@_textClass">@DisplayText</div>
+                <button class="select-focus-el" @onfocus="HandleFocusAsync" @onblur="HandleBlurAsync"></button>
             </div>
             @EndSlot
-            <IonIcon Icon="@_toggleIcon" Class="select-icon" />
+            @if (!HasFloatingOrStackedLabel)
+            {
+                <IonIcon Icon="@_toggleIcon" Class="select-icon" />
+            }
         </div>
-        @if (Mode == "md" && Fill != "outline")
+        @if (HasFloatingOrStackedLabel)
+        {
+            <IonIcon Icon="@_toggleIcon" Class="select-icon" />
+        }
+        @if (ShouldRenderHighlight)
         {
             <div class="select-highlight"></div>
         }
@@ -37,34 +94,96 @@
             }
         </div>
     }
+    @* The options live here purely to register themselves (each renders a display:none host), and
+       the overlay is mounted alongside them — both stay INSIDE the host so `.ion-select` remains
+       the component's single root element, mirroring Ionic's light-DOM ion-select-option children. *@
+    <CascadingValue TValue="IonSelectOptionContext" Value="_optionContext">
+        @ChildContent
+    </CascadingValue>
+    @switch (_resolvedInterface)
+    {
+        case "action-sheet":
+            <IonActionSheet IsOpen="_isExpanded"
+                            Header="@InterfaceHeader"
+                            SubHeader="@InterfaceSubHeader"
+                            Buttons="_actionSheetButtons"
+                            OnDidDismiss="HandleOverlayDismissAsync" />
+            break;
+
+        case "popover":
+            <IonPopover IsOpen="_isExpanded" Class="select-popover" OnDidDismiss="HandleOverlayDismissAsync">
+                <IonSelectPopover Header="@InterfaceHeader"
+                                  SubHeader="@InterfaceSubHeader"
+                                  Message="@InterfaceMessage"
+                                  Multiple="Multiple"
+                                  Options="_options"
+                                  Values="_selectedValues"
+                                  OptionSelected="HandleOverlaySelectionAsync" />
+            </IonPopover>
+            break;
+
+        case "modal":
+            <IonModal IsOpen="_isExpanded" Class="select-modal" OnDidDismiss="HandleOverlayDismissAsync">
+                <IonSelectModal Header="@InterfaceHeader"
+                                CancelText="@CancelText"
+                                Multiple="Multiple"
+                                Options="_options"
+                                Values="_selectedValues"
+                                OptionSelected="HandleOverlaySelectionAsync"
+                                Cancelled="HandleCancelAsync" />
+            </IonModal>
+            break;
+
+        default:
+            <IonAlert IsOpen="_isExpanded"
+                      Class="@_alertClass"
+                      Header="@AlertHeader"
+                      SubHeader="@InterfaceSubHeader"
+                      Message="@InterfaceMessage"
+                      Inputs="_alertInputs"
+                      Buttons="_alertButtons"
+                      OnDidDismiss="HandleOverlayDismissAsync" />
+            break;
+    }
 </div>
 
 @code {
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>The selected value.</summary>
+    /// <summary>The selected value. With <see cref="Multiple"/> use <see cref="Values"/> instead.</summary>
     [Parameter] public string? Value { get; set; }
 
-    /// <summary>Raised when the selected value changes.</summary>
+    /// <summary>Raised when the selected value changes (single-value selects).</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
 
-    /// <summary>Raised when the selected value changes.</summary>
+    /// <summary>The selected values when <see cref="Multiple"/> is set.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Raised when the selected values change (multi-value selects).</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>Raised when the value has changed, mirroring Ionic's <c>ionChange</c>.</summary>
     [Parameter] public EventCallback<ChangeEventArgs> OnChange { get; set; }
 
     /// <summary>Placeholder text shown when no value is selected.</summary>
     [Parameter] public string? Placeholder { get; set; }
 
-    /// <summary>Visible label text associated with the select.</summary>
+    /// <summary>Visible label text associated with the select. Takes priority over
+    /// <see cref="LabelSlot"/>, matching Ionic's label prop-over-slot rule.</summary>
     [Parameter] public string? Label { get; set; }
 
-    /// <summary>Label placement marker: start, end, floating, stacked, or fixed.</summary>
+    /// <summary>Custom label content (Ionic's <c>label</c> slot), used when <see cref="Label"/> is
+    /// not set.</summary>
+    [Parameter] public RenderFragment? LabelSlot { get; set; }
+
+    /// <summary>Label placement: start, end, floating, stacked, or fixed.</summary>
     [Parameter] public string LabelPlacement { get; set; } = "start";
 
-    /// <summary>Content shown at the start side of the select.</summary>
+    /// <summary>Content shown at the start side of the select (Ionic's <c>start</c> slot).</summary>
     [Parameter] public RenderFragment? StartSlot { get; set; }
 
-    /// <summary>Content shown at the end side of the select.</summary>
+    /// <summary>Content shown at the end side of the select (Ionic's <c>end</c> slot).</summary>
     [Parameter] public RenderFragment? EndSlot { get; set; }
 
     /// <summary>Helper text displayed below the control.</summary>
@@ -76,42 +195,166 @@
     /// <summary>When true, the user cannot interact with the select.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>When true, the select can accept multiple values. The native renderer stores a single selected index today.</summary>
+    /// <summary>When true, the select accepts multiple values.</summary>
     [Parameter] public bool Multiple { get; set; }
 
     /// <summary>Form field name marker.</summary>
     [Parameter] public string? Name { get; set; }
 
-    /// <summary>Fill marker: solid or outline.</summary>
+    /// <summary>Fill marker: solid or outline (outline only styled in md).</summary>
     [Parameter] public string? Fill { get; set; }
 
     /// <summary>Shape marker. Use <c>"round"</c> for round corners.</summary>
     [Parameter] public string? Shape { get; set; }
 
-    /// <summary>Justify marker: start, end, or space-between.</summary>
+    /// <summary>Justify marker: start, end, or space-between. Ignored for floating/stacked labels,
+    /// matching Ionic's <c>justifyEnabled</c>.</summary>
     [Parameter] public string? Justify { get; set; }
 
     /// <summary>Toggle icon when closed. Defaults to chevron-expand on iOS and caret-down-sharp on md.</summary>
     [Parameter] public string? ToggleIcon { get; set; }
 
-    /// <summary>Optional selected text override.</summary>
+    /// <summary>Toggle icon shown while the select is open. When set, stamps
+    /// <c>has-expanded-icon</c> (which disables the md icon rotation).</summary>
+    [Parameter] public string? ExpandedIcon { get; set; }
+
+    /// <summary>Optional selected-text override, shown instead of the selected options' text.</summary>
     [Parameter] public string? SelectedText { get; set; }
 
+    /// <summary>Which overlay the select opens: <c>"alert"</c> (default), <c>"action-sheet"</c>,
+    /// <c>"popover"</c>, or <c>"modal"</c>.</summary>
+    [Parameter] public string Interface { get; set; } = "alert";
+
+    /// <summary>Header text passed to the overlay (Ionic's <c>interfaceOptions.header</c>). The alert
+    /// interface falls back to the label text when unset, mirroring <c>openAlert()</c>.</summary>
+    [Parameter] public string? InterfaceHeader { get; set; }
+
+    /// <summary>Sub-header text passed to the overlay.</summary>
+    [Parameter] public string? InterfaceSubHeader { get; set; }
+
+    /// <summary>Message text passed to the alert / popover overlay.</summary>
+    [Parameter] public string? InterfaceMessage { get; set; }
+
+    /// <summary>The text on the cancel button (alert / action-sheet / modal).</summary>
+    [Parameter] public string CancelText { get; set; } = "Cancel";
+
+    /// <summary>The text on the alert's confirm button.</summary>
+    [Parameter] public string OkText { get; set; } = "OK";
+
+    /// <summary>Accessibility marker: announces the field as required. Does not block submission,
+    /// matching Ionic.</summary>
+    [Parameter] public bool Required { get; set; }
+
+    /// <summary>Raised when the selection is cancelled (Ionic's <c>ionCancel</c>).</summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    /// <summary>Raised when the overlay is dismissed (Ionic's <c>ionDismiss</c>).</summary>
+    [Parameter] public EventCallback OnDismiss { get; set; }
+
+    /// <summary>Raised when the select gains focus (Ionic's <c>ionFocus</c>).</summary>
+    [Parameter] public EventCallback OnFocus { get; set; }
+
+    /// <summary>Raised when the select loses focus (Ionic's <c>ionBlur</c>).</summary>
+    [Parameter] public EventCallback OnBlur { get; set; }
+
+    /// <summary>Provided by an ancestor <see cref="IonItem"/> when this select is hosted inside one.
+    /// Used to stamp Ionic's <c>in-item</c> host class and avoid drawing a second highlight.</summary>
+    [CascadingParameter] public IonItemContext? ItemContext { get; set; }
+
+    // ChildContent (the IonSelectOption children) is inherited from ComponentBase.
+
+    /// <summary>True while the overlay is open (Ionic's <c>isExpanded</c> state).</summary>
+    public bool IsExpanded => _isExpanded;
+
+    private readonly List<IonSelectOptionData> _options = new();
+    private IonSelectOptionContext _optionContext = new();
+
+    private bool _isExpanded;
+    private bool _hasFocus;
+
     private string _textClass = "select-text select-placeholder";
+    private string _labelWrapperClass = "label-text-wrapper";
+    private string _outlineNotchClass = "select-outline-notch";
     private string _toggleIcon = Ionicons.CaretDownSharp;
-    private string? _displayText;
+    private string _resolvedInterface = "alert";
+    private string _alertClass = "select-alert single-select-alert";
 
-    private bool HasLabel => !string.IsNullOrEmpty(Label);
+    private IReadOnlyList<string> _selectedValues = Array.Empty<string>();
+    private IReadOnlyList<IonAlertInput> _alertInputs = Array.Empty<IonAlertInput>();
+    private IReadOnlyList<IonAlertButton> _alertButtons = Array.Empty<IonAlertButton>();
+    private IReadOnlyList<IonActionSheetButton> _actionSheetButtons = Array.Empty<IonActionSheetButton>();
+
+    private bool HasLabel => Label is not null || LabelSlot is not null;
     private bool HasBottomContent => !string.IsNullOrEmpty(HelperText) || !string.IsNullOrEmpty(ErrorText);
-    private bool HasValue => !string.IsNullOrEmpty(Value);
-    private string DisplayText =>
-        !string.IsNullOrEmpty(SelectedText) ? SelectedText :
-        !string.IsNullOrEmpty(_displayText) ? _displayText :
-        Placeholder ?? string.Empty;
+    private bool HasFloatingOrStackedLabel
+        => LabelPlacementToken is "floating" or "stacked";
+    private bool HasOutlineFill => Mode == "md" && Fill == "outline";
+    private bool ShouldRenderHighlight => Mode == "md" && Fill != "outline" && ItemContext is null;
+    private string LabelPlacementToken => NormalizeToken(LabelPlacement, "start");
 
-    protected override void OnParametersSet()
+    /// <summary>The alert's header falls back to the label text (select.tsx <c>openAlert()</c>).</summary>
+    private string? AlertHeader => InterfaceHeader ?? Label;
+
+    /// <summary>The text shown in the field: the explicit override, else the selected options' text
+    /// joined by ", " (select.tsx <c>generateText()</c>), else the placeholder.</summary>
+    private string DisplayText
     {
-        var labelPlacement = NormalizeToken(LabelPlacement, "start");
+        get
+        {
+            var text = SelectedOptionsText;
+            if (!string.IsNullOrEmpty(text)) return text;
+            return Placeholder ?? string.Empty;
+        }
+    }
+
+    private string SelectedOptionsText
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(SelectedText)) return SelectedText;
+            // Ionic maps each selected value to its option's text and joins with ", ", dropping
+            // values that match no option (textForValue returning null).
+            var texts = _selectedValues
+                .Select(v => _options.FirstOrDefault(o => o.Value == v)?.Text)
+                .Where(t => !string.IsNullOrEmpty(t));
+            return string.Join(", ", texts);
+        }
+    }
+
+    protected override void OnParametersSet() => RefreshDerivedState();
+
+    /// <summary>
+    /// Recomputes everything the template reads: the host class list, the per-part class strings,
+    /// the toggle icon and the resolved interface.
+    /// <para>
+    /// This lives outside <see cref="OnParametersSet"/> because a re-render of a component that
+    /// sits at the tree root goes through <c>ComponentBase.BuildNew()</c>, which re-runs only
+    /// <c>BuildRenderTree</c> — not the parameter lifecycle. State changed by an interaction
+    /// (opening the overlay, focusing, selecting) would otherwise never reach the rendered classes,
+    /// leaving e.g. <c>select-expanded</c> off the host after a click.
+    /// </para>
+    /// </summary>
+    private void RefreshDerivedState()
+    {
+        _optionContext = new IonSelectOptionContext { Register = RegisterOption };
+
+        _selectedValues = ResolveSelectedValues();
+
+        // action-sheet cannot host a multi-value select — Ionic warns and falls back to alert
+        // (select.tsx createOverlay()).
+        var requested = NormalizeToken(Interface, "alert");
+        _resolvedInterface = requested == "action-sheet" && Multiple ? "alert" : requested;
+
+        _toggleIcon = _isExpanded && ExpandedIcon is not null
+            ? ExpandedIcon
+            : ToggleIcon ?? (Mode == "ios" ? Ionicons.ChevronExpand : Ionicons.CaretDownSharp);
+
+        // Ionic's justify is ignored when the label sits above the select. The class is built here
+        // rather than inline in the chain below: `If(cond, $"…{Justify}")` still evaluates its
+        // argument when the condition is false, which would dereference a null Justify.
+        var justifyClass = !HasFloatingOrStackedLabel && !string.IsNullOrWhiteSpace(Justify)
+            ? $"select-justify-{Justify.ToLowerInvariant()}"
+            : null;
 
         ClassMapper
             .Clear()
@@ -120,70 +363,302 @@
             .Add("ion-select")
             .Add("ion-focusable")
             .Add("select-ltr")
-            .Add($"select-label-placement-{labelPlacement}")
+            .Add($"select-label-placement-{LabelPlacementToken}")
             .If(Disabled, "select-disabled")
-            .If(HasValue || !string.IsNullOrEmpty(SelectedText), "has-value")
-            .If(!string.IsNullOrEmpty(Placeholder), "has-placeholder")
+            .If(_isExpanded, "select-expanded")
+            .If(ExpandedIcon is not null, "has-expanded-icon")
+            .If(HasValue, "has-value")
+            .If(Placeholder is not null, "has-placeholder")
+            .If(_hasFocus, "has-focus")
+            .If(LabelShouldFloat, "label-floating")
             .AddValue(Fill, "select-fill-")
             .AddValue(Shape, "select-shape-")
-            .AddValue(Justify, "select-justify-")
+            .Add(justifyClass)
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
-            .AddColor(Color);
+            .AddColor(Color)
+            .If(ItemContext is not null, "in-item");
 
-        _textClass = HasValue || !string.IsNullOrEmpty(SelectedText)
-            ? "select-text"
-            : "select-text select-placeholder";
-
-        _toggleIcon = ToggleIcon ?? (Mode == "ios" ? Ionicons.ChevronExpand : Ionicons.CaretDownSharp);
+        _textClass = HasValue ? "select-text" : "select-text select-placeholder";
+        _labelWrapperClass = HasLabel ? "label-text-wrapper" : "label-text-wrapper label-text-wrapper-hidden";
+        _outlineNotchClass = HasLabel ? "select-outline-notch" : "select-outline-notch select-outline-notch-hidden";
+        _alertClass = Multiple ? "select-alert multiple-select-alert" : "select-alert single-select-alert";
     }
 
+    /// <summary>
+    /// Ionic's <c>hasValue()</c> is <c>getText() !== ''</c> — the field counts as filled only when
+    /// there is text to show, not merely when a value was set.
+    /// </summary>
+    private bool HasValue => !string.IsNullOrEmpty(SelectedOptionsText);
+
+    /// <summary>
+    /// select.tsx: stacked labels always float; floating labels rise when the select has a value,
+    /// is open, or has start/end slot content.
+    /// </summary>
+    private bool LabelShouldFloat
+        => LabelPlacementToken == "stacked"
+           || (LabelPlacementToken == "floating"
+               && (HasValue || _isExpanded || StartSlot is not null || EndSlot is not null));
+
+    private IReadOnlyList<string> ResolveSelectedValues()
+    {
+        if (Multiple)
+            return Values ?? Array.Empty<string>();
+        return string.IsNullOrEmpty(Value) ? Array.Empty<string>() : new[] { Value };
+    }
+
+    /// <summary>
+    /// Collects an option as it builds. <see cref="Build"/> renders the child content twice and
+    /// clears the set only once, up front, so registration ignores values it already holds rather
+    /// than duplicating every option on the second pass.
+    /// </summary>
+    private void RegisterOption(IonSelectOptionData option)
+    {
+        if (_options.Any(o => o.Value == option.Value)) return;
+        _options.Add(option);
+    }
+
+    /// <summary>
+    /// Builds the subtree twice: the first pass exists only to let the
+    /// <see cref="IonSelectOption"/> children register themselves, the second renders with the
+    /// resolved option set.
+    /// <para>
+    /// Ionic reads its options up front by querying the light DOM, so by render time it already
+    /// knows every option's value and text. Here the options only exist once the child content has
+    /// built, yet the displayed text AND the overlay contents (the alert's inputs, the action
+    /// sheet's buttons, the popover/modal option lists) all depend on them. Patching the built tree
+    /// after the fact — the IonBreadcrumbs post-pass approach — cannot reach inside the nested
+    /// overlay components, which have already rendered from an empty option set. Rebuilding once
+    /// more with the options in hand is what makes the overlay contents correct on the very first
+    /// render.
+    /// </para>
+    /// </summary>
     public override Element Build()
     {
-        var root = base.Build();
-        var select = root.FindByClass("select-native").FirstOrDefault() as SelectElement;
-        if (select is null) return root;
+        _options.Clear();
 
-        select.Multiple = Multiple;
-        if (Disabled) select.SetState(ElementState.Disabled);
+        // Discovery pass: the options register themselves; this tree is otherwise thrown away.
+        base.Build();
 
-        if (Value is not null)
-            select.Value = Value;
+        // The option set is now known, so everything derived from it — the selected text, the
+        // has-value / label-floating classes, and the overlay contents — resolves correctly on the
+        // render that is actually returned (the template refreshes the rest itself).
+        // Re-registration during this pass is idempotent: RegisterOption ignores known values.
+        BuildOverlayContents();
+        return base.Build();
+    }
+
+    // Mirrors createAlertInputs / createActionSheetButtons / createOverlaySelectOptions in
+    // select.tsx — one option set, projected into whatever shape the chosen overlay consumes.
+    private void BuildOverlayContents()
+    {
+        if (_resolvedInterface == "alert")
+        {
+            var inputType = Multiple ? "checkbox" : "radio";
+
+            // IonAlert ticks a radio/checkbox by mutating the IonAlertInput objects it was handed
+            // (RadioClickAsync sets input.Checked), and it reports the result only later, on
+            // dismiss. Build() re-runs on every render, so minting fresh inputs each time would
+            // throw that tick away the moment the alert re-rendered — the option looked unticked
+            // and OK confirmed nothing (issues/ion-select.md 问题 4). Keep the same instances
+            // while the overlay is open and the option set is unchanged; only their labels and
+            // enabled state get refreshed.
+            if (_alertInputs.Count == _options.Count
+                && _alertInputs.Zip(_options, (input, o) => input.Value == o.Value && input.Type == inputType).All(same => same))
+            {
+                for (int i = 0; i < _options.Count; i++)
+                {
+                    _alertInputs[i].Label = _options[i].Text;
+                    _alertInputs[i].Disabled = _options[i].Disabled;
+                    _alertInputs[i].CssClass = OptionCssClass(_options[i]);
+                    // While closed the selection is the source of truth; while open the user's
+                    // in-overlay tick is, so it must not be stomped on here.
+                    if (!_isExpanded) _alertInputs[i].Checked = _selectedValues.Contains(_options[i].Value);
+                }
+            }
+            else
+            {
+                _alertInputs = _options.Select(o => new IonAlertInput
+                {
+                    Type = inputType,
+                    Label = o.Text,
+                    Value = o.Value,
+                    Checked = _selectedValues.Contains(o.Value),
+                    Disabled = o.Disabled,
+                    CssClass = OptionCssClass(o),
+                }).ToList();
+            }
+
+            _alertButtons = new[]
+            {
+                new IonAlertButton { Text = CancelText, Role = "cancel" },
+                new IonAlertButton { Text = OkText },
+            };
+        }
+        else if (_resolvedInterface == "action-sheet")
+        {
+            // Ionic marks the chosen option with role="selected" and appends a cancel button.
+            var buttons = _options.Select(o => new IonActionSheetButton
+            {
+                Text = o.Text,
+                Role = _selectedValues.Contains(o.Value) ? "selected" : string.Empty,
+                CssClass = OptionCssClass(o),
+                Data = o.Value,
+            }).ToList();
+
+            buttons.Add(new IonActionSheetButton { Text = CancelText, Role = "cancel" });
+            _actionSheetButtons = buttons;
+        }
+    }
+
+    private static string OptionCssClass(IonSelectOptionData option)
+        => string.IsNullOrWhiteSpace(option.CssClass)
+            ? "select-interface-option"
+            : $"select-interface-option {option.CssClass}";
+
+    /// <summary>
+    /// Host click → open the overlay. Ionic's <c>open()</c> is a no-op while disabled or already
+    /// expanded (select.tsx open()).
+    /// <para>
+    /// The overlay is mounted INSIDE this host (see the template note), so every tap on an option,
+    /// a button or the backdrop bubbles back up to here. In Ionic the overlay is a sibling created
+    /// by the overlay controller and no such bubbling exists. Left unguarded, the host handler runs
+    /// on the way up and re-asserts the expanded state, which is why picking an option appeared to
+    /// do nothing (issues/ion-select.md 问题 4).
+    /// </para>
+    /// </summary>
+    private async Task HandleClickAsync(MouseEventArgs args)
+    {
+        if (Disabled || _isExpanded) return;
+        // Only a tap on the field itself opens the overlay; taps that started inside the mounted
+        // overlay are its own business.
+        if (OriginatedInOverlay(args.Target)) return;
+
+        _isExpanded = true;
+        // The toggle icon and the floating label both depend on the expanded state.
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Whether an event target sits inside one of the overlays this select mounts (they are
+    /// descendants of the host, so a bubbled click is indistinguishable from a click on the field
+    /// without this check).
+    /// </summary>
+    private static bool OriginatedInOverlay(Element? target)
+    {
+        for (var node = target; node != null; node = node.Parent)
+        {
+            if (node.HasClass("ion-alert") || node.HasClass("ion-action-sheet")
+                || node.HasClass("ion-popover") || node.HasClass("ion-modal"))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private async Task HandleFocusAsync(FocusEventArgs _)
+    {
+        _hasFocus = true;
+        StateHasChanged();
+        await OnFocus.InvokeAsync();
+    }
+
+    private async Task HandleBlurAsync(FocusEventArgs _)
+    {
+        _hasFocus = false;
+        StateHasChanged();
+        await OnBlur.InvokeAsync();
+    }
+
+    /// <summary>
+    /// An overlay reported a selection. Single-value selects also close, mirroring Ionic
+    /// (<c>if (!this.multiple) this.close()</c> in the popover/modal option handler); multi-value
+    /// overlays stay open so more options can be ticked.
+    /// </summary>
+    private async Task HandleOverlaySelectionAsync(IReadOnlyList<string> values)
+    {
+        await ApplyValuesAsync(values);
+
+        if (!Multiple)
+        {
+            _isExpanded = false;
+            StateHasChanged();
+            await OnDismiss.InvokeAsync();
+        }
+    }
+
+    /// <summary>
+    /// The alert / action-sheet overlays report their result on dismiss: the alert's data carries
+    /// the checked input value(s), the action-sheet's carries the tapped button's value. A cancel
+    /// or backdrop dismiss selects nothing and raises <see cref="OnCancel"/>.
+    /// </summary>
+    private async Task HandleOverlayDismissAsync(IonOverlayDismissEventArgs args)
+    {
+        _isExpanded = false;
+
+        var isCancel = string.Equals(args.Role, "cancel", StringComparison.OrdinalIgnoreCase);
+        var isBackdrop = string.Equals(args.Role, "backdrop", StringComparison.OrdinalIgnoreCase);
+
+        if (isCancel || isBackdrop)
+        {
+            StateHasChanged();
+            if (isCancel) await OnCancel.InvokeAsync();
+            await OnDismiss.InvokeAsync();
+            return;
+        }
+
+        var values = ExtractValues(args.Data);
+        if (values is not null)
+            await ApplyValuesAsync(values);
         else
-            select.SelectedIndex = -1;
+            StateHasChanged();
 
-        _displayText = ResolveDisplayText(select);
-        if (!root.HasClass("has-value") && !string.IsNullOrEmpty(_displayText))
-            root.Class += " has-value";
-
-        if (root.FindByClass("select-text").FirstOrDefault() is { } text)
-        {
-            var display = DisplayText;
-            text.TextContent = display;
-            text.Class = string.IsNullOrEmpty(display) || (string.IsNullOrEmpty(_displayText) && !string.IsNullOrEmpty(Placeholder))
-                ? "select-text select-placeholder"
-                : "select-text";
-        }
-
-        return root;
+        await OnDismiss.InvokeAsync();
     }
 
-    private async Task HandleChange(ChangeEventArgs args)
-    {
-        var next = (args.Target as SelectElement)?.Value ?? args.NewValue;
-        if (Value != next)
+    // IonAlert.CollectInputData returns the checked radio's value (string) or the checked
+    // checkboxes' values (List<string>); IonActionSheetButton.Data carries the option's value.
+    private static IReadOnlyList<string>? ExtractValues(object? data)
+        => data switch
         {
-            Value = next;
-            await ValueChanged.InvokeAsync(next);
-        }
+            string s => new[] { s },
+            IEnumerable<string> many => many.ToList(),
+            _ => null,
+        };
 
-        await OnChange.InvokeAsync(args);
+    private async Task HandleCancelAsync()
+    {
+        _isExpanded = false;
+        StateHasChanged();
+        await OnCancel.InvokeAsync();
+        await OnDismiss.InvokeAsync();
     }
 
-    private string ResolveDisplayText(SelectElement select)
+    /// <summary>
+    /// Applies a new selection and emits the change events. Mirrors Ionic's <c>setValue()</c>,
+    /// which assigns the value then emits <c>ionChange</c>; nothing is emitted when the selection
+    /// is unchanged.
+    /// </summary>
+    private async Task ApplyValuesAsync(IReadOnlyList<string> values)
     {
-        if (!string.IsNullOrEmpty(SelectedText)) return SelectedText;
-        var option = select.GetSelectedOption();
-        return option?.TextContent ?? string.Empty;
+        if (_selectedValues.SequenceEqual(values)) return;
+
+        _selectedValues = values;
+
+        if (Multiple)
+        {
+            Values = values;
+            await ValuesChanged.InvokeAsync(values);
+        }
+        else
+        {
+            Value = values.FirstOrDefault();
+            await ValueChanged.InvokeAsync(Value);
+        }
+
+        StateHasChanged();
+        await OnChange.InvokeAsync(new ChangeEventArgs { NewValue = string.Join(",", values) });
     }
 
     private static string NormalizeToken(string? value, string fallback)

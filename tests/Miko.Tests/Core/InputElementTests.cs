@@ -534,6 +534,24 @@ public class InputElementTests
         }
     }
 
+    /// <summary>
+    /// <see cref="ITextEditable.IsEditable"/> 覆盖全部文本类类型：search 也是文本控件，
+    /// 漏掉它会让键盘输入被 <c>MikoInteractionController</c> 整体丢弃（ion-searchbar 无法输入）。
+    /// </summary>
+    [Theory]
+    [InlineData(InputType.Text, true)]
+    [InlineData(InputType.Password, true)]
+    [InlineData(InputType.Search, true)]
+    [InlineData(InputType.Checkbox, false)]
+    [InlineData(InputType.Radio, false)]
+    [InlineData(InputType.Range, false)]
+    public void IsEditable_CoversTextualTypesOnly(InputType type, bool expected)
+    {
+        var input = new InputElement { Type = type };
+
+        ((ITextEditable)input).IsEditable.ShouldBe(expected);
+    }
+
     #endregion
 
     #region Select Default Styles

@@ -1,0 +1,141 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@* Mirrors Ionic's <ion-select-popover> (select-popover.tsx render()):
+   <ion-select-popover class="{mode}">
+     <ion-list>
+       [<ion-list-header>{header}</ion-list-header>]
+       [<ion-item><ion-label class="ion-text-wrap">[<h3>{subHeader}</h3>][<p>{message}</p>]</ion-label></ion-item>]
+       multiple → <ion-item class="item-checkbox-checked?"><ion-checkbox justify=start labelPlacement=end/></ion-item>…
+       single   → <ion-radio-group><ion-item class="item-radio-checked?"><ion-radio/></ion-item>…</ion-radio-group>
+     </ion-list>
+   </ion-select-popover>
+   This is the body ion-select renders INSIDE an ion-popover when interface="popover"; Ionic passes
+   the options through componentProps (select.tsx openPopover). Here the owning select passes them
+   as the Options parameter and listens to OptionSelected.
+   Selecting in the single-value (radio) case dismisses the host popover — Ionic does this by
+   calling dismissParentPopover(); Miko's overlays are host-driven, so the select closes it when it
+   receives OptionSelected. The multi-value (checkbox) case keeps the popover open, matching Ionic. *@
+<div class="@ClassMapper.Class" style="@Style">
+    <IonList>
+        @if (!string.IsNullOrEmpty(Header))
+        {
+            <IonListHeader>@Header</IonListHeader>
+        }
+        @if (HasSubHeaderOrMessage)
+        {
+            <IonItem>
+                <IonLabel Class="ion-text-wrap">
+                    @if (!string.IsNullOrEmpty(SubHeader))
+                    {
+                        <h3>@SubHeader</h3>
+                    }
+                    @if (!string.IsNullOrEmpty(Message))
+                    {
+                        <p>@Message</p>
+                    }
+                </IonLabel>
+            </IonItem>
+        }
+        @if (Multiple)
+        {
+            @foreach (var option in Options)
+            {
+                var opt = option;
+                <IonItem Class="@ItemClass(opt, "item-checkbox-checked")">
+                    <IonCheckbox Value="@opt.Value"
+                                 Checked="@IsChecked(opt)"
+                                 Disabled="@opt.Disabled"
+                                 Justify="start"
+                                 LabelPlacement="end"
+                                 CheckedChanged="@(checkedNow => ToggleAsync(opt, checkedNow))">
+                        @opt.Text
+                    </IonCheckbox>
+                </IonItem>
+            }
+        }
+        else
+        {
+            <IonRadioGroup Value="@CheckedValue" ValueChanged="SelectAsync">
+                @foreach (var option in Options)
+                {
+                    var opt = option;
+                    <IonItem Class="@ItemClass(opt, "item-radio-checked")">
+                        <IonRadio Value="@opt.Value" Disabled="@opt.Disabled">@opt.Text</IonRadio>
+                    </IonItem>
+                }
+            </IonRadioGroup>
+        }
+    </IonList>
+</div>
+
+@code {
+    /// <summary>The header text of the popover.</summary>
+    [Parameter] public string? Header { get; set; }
+
+    /// <summary>The sub-header text of the popover.</summary>
+    [Parameter] public string? SubHeader { get; set; }
+
+    /// <summary>The text content of the popover body.</summary>
+    [Parameter] public string? Message { get; set; }
+
+    /// <summary>If true, the options render as checkboxes and more than one may be selected.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>The options to render, supplied by the owning <see cref="IonSelect"/>.</summary>
+    [Parameter] public IReadOnlyList<IonSelectOptionData> Options { get; set; } = Array.Empty<IonSelectOptionData>();
+
+    /// <summary>The currently selected values (a single-element set unless <see cref="Multiple"/>).</summary>
+    [Parameter] public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
+
+    /// <summary>Raised with the full selected value set whenever an option is toggled. Mirrors the
+    /// option <c>handler</c> Ionic invokes with the collected values (select-popover.tsx
+    /// <c>callOptionHandler</c> / <c>getValues</c>).</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> OptionSelected { get; set; }
+
+    private bool HasSubHeaderOrMessage => !string.IsNullOrEmpty(SubHeader) || !string.IsNullOrEmpty(Message);
+
+    /// <summary>The checked value for the radio group — Ionic takes the first checked option
+    /// (<c>options.filter(o =&gt; o.checked).map(o =&gt; o.value)[0]</c>).</summary>
+    private string? CheckedValue => Options.FirstOrDefault(o => Values.Contains(o.Value))?.Value;
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper
+            .Clear()
+            .Add(Class)
+            .Add(Mode)
+            .Add("ion-select-popover");
+    }
+
+    private bool IsChecked(IonSelectOptionData option) => Values.Contains(option.Value);
+
+    // The item carries the checked marker class plus the option's own copied classes, matching
+    // Ionic's `{ 'item-radio-checked': …, ...getClassMap(option.cssClass) }`.
+    private string ItemClass(IonSelectOptionData option, string checkedClass)
+    {
+        var cls = "select-interface-option";
+        if (IsChecked(option)) cls += $" {checkedClass}";
+        if (!string.IsNullOrWhiteSpace(option.CssClass)) cls += $" {option.CssClass}";
+        return cls;
+    }
+
+    // Radio (single-value): the tapped value becomes the whole selection.
+    private async Task SelectAsync(string? value)
+    {
+        if (value is null) return;
+        await OptionSelected.InvokeAsync(new[] { value });
+    }
+
+    // Checkbox (multi-value): add/remove the toggled value, then emit the full checked set —
+    // Ionic's getValues() returns every checked option's value.
+    private async Task ToggleAsync(IonSelectOptionData option, bool isChecked)
+    {
+        var next = new List<string>();
+        foreach (var o in Options)
+        {
+            var selected = o.Value == option.Value ? isChecked : Values.Contains(o.Value);
+            if (selected) next.Add(o.Value);
+        }
+        await OptionSelected.InvokeAsync(next);
+    }
+}
