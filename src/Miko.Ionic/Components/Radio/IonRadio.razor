@@ -71,6 +71,11 @@
     /// the radio is never checked (Ionic radios only track selection through a group).</summary>
     [CascadingParameter] public IonRadioGroupContext? Group { get; set; }
 
+    /// <summary>Provided by an ancestor <see cref="IonItem"/> when this radio is hosted inside one.
+    /// Used to stamp the <c>in-item</c> class, mirroring Ionic's
+    /// <c>hostContext('ion-item')</c> behavior.</summary>
+    [CascadingParameter] public IonItemContext? ItemContext { get; set; }
+
     private Style? _innerStyle;
 
     /// <summary>True when this radio's value matches the group's selected value.</summary>
@@ -96,7 +101,8 @@
             .AddValue(Justify, "radio-justify-")
             .AddValue(Alignment, "radio-alignment-")
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
-            .AddColor(Color);
+            .AddColor(Color)
+            .If(ItemContext is not null, "in-item");
 
         // The ios checkmark glyph, supplied as a template background image so it is tinted by the
         // computed color (see RadioStyles). Only ios draws a checkmark; md paints .radio-inner as a
