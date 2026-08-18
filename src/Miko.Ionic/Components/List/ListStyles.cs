@@ -17,7 +17,7 @@ internal static class ListStyles
 {
     internal static CssObject GenStyle(string mode, IonicTheme t)
     {
-        return new CssObject
+        var css = new CssObject
         {
             // ion-list — vertical stack of items with a small top/bottom inset.
             [$".ion-list.{mode}"] = new()
@@ -54,13 +54,63 @@ internal static class ListStyles
             {
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
+                JustifyContent = JustifyContent.SpaceBetween,
                 Width = Length.Percent(100),
                 MinHeight = Length.Px(t.ItemMinHeight),
                 PaddingLeft = Length.Px(t.ItemPaddingStart),
                 PaddingRight = Length.Px(t.ItemPaddingStart),
+                BackgroundColor = Color.Transparent,
                 FontSize = Length.Px(t.ListHeaderFontSize),
                 FontWeight = FontWeight.Medium,
                 Color = t.ListHeaderColor,
+                Overflow = Overflow.Hidden,
+            },
+
+            // list-header.scss .list-header-inner — the inner row carries inset lines and keeps
+            // the default slot laid out as a single flex row.
+            [$".ion-list-header.{mode} .list-header-inner"] = new()
+            {
+                Display = Display.Flex,
+                Position = Position.Relative,
+                Flex = 1,
+                AlignItems = AlignItems.Center,
+                AlignSelf = AlignSelf.Stretch,
+                MinHeight = Inherit,
+                Overflow = Overflow.Hidden,
+            },
+
+            // list-header.scss ::slotted(ion-label) { flex: 1 1 auto; }. Only a label in the
+            // header's own default slot receives this, not labels nested inside child controls.
+            [$".ion-list-header.{mode} .list-header-inner > .ion-label"] = new()
+            {
+                Flex = Flex.Auto,
+            },
+
+            // `lines="full"` draws across the host; `lines="inset"` starts after the host's
+            // leading padding by drawing on the inner row; `none` keeps both surfaces borderless.
+            [$".ion-list-header.{mode}.list-header-lines-full"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, t.ItemBorderColor),
+            },
+            [$".ion-list-header.{mode}.list-header-lines-full .list-header-inner"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            [$".ion-list-header.{mode}.list-header-lines-inset"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            [$".ion-list-header.{mode}.list-header-lines-inset .list-header-inner"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, t.ItemBorderColor),
+            },
+            [$".ion-list-header.{mode}.list-header-lines-none"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+            },
+            [$".ion-list-header.{mode}.list-header-lines-none .list-header-inner"] = new()
+            {
+                BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
             },
 
             // ion-item — the host: a block box that clips its native surface. The flex row lives
@@ -341,6 +391,28 @@ internal static class ListStyles
             {
                 BorderBottom = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
             },
+        };
+
+        AddListHeaderColor(css, mode, "primary", t.Primary, Color.White);
+        AddListHeaderColor(css, mode, "secondary", t.Secondary, Color.White);
+        AddListHeaderColor(css, mode, "tertiary", t.Tertiary, Color.White);
+        AddListHeaderColor(css, mode, "success", t.Success, Color.Black);
+        AddListHeaderColor(css, mode, "warning", t.Warning, Color.Black);
+        AddListHeaderColor(css, mode, "danger", t.Danger, Color.White);
+        AddListHeaderColor(css, mode, "light", t.Light, Color.Black);
+        AddListHeaderColor(css, mode, "medium", t.Medium, Color.White);
+        AddListHeaderColor(css, mode, "dark", t.Dark, Color.White);
+
+        return css;
+    }
+
+    private static void AddListHeaderColor(
+        CssObject css, string mode, string name, Color background, Color color)
+    {
+        css[$".ion-list-header.{mode}.ion-color-{name}"] = new()
+        {
+            BackgroundColor = background,
+            Color = color,
         };
     }
 
