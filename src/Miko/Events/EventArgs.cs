@@ -58,6 +58,21 @@ public class MouseEventArgs : MikoEventArgs
     /// </summary>
     public float Y { get; init; }
 
+    /// <summary>Pointer X coordinate relative to the event target's rendered border box.</summary>
+    public float OffsetX { get; init; }
+
+    /// <summary>Pointer Y coordinate relative to the event target's rendered border box.</summary>
+    public float OffsetY { get; init; }
+
+    /// <summary>Width of the event target's rendered border box.</summary>
+    public float TargetWidth { get; init; }
+
+    /// <summary>Height of the event target's rendered border box.</summary>
+    public float TargetHeight { get; init; }
+
+    /// <summary>Whether the pointer's primary button is currently pressed.</summary>
+    public bool IsButtonPressed { get; init; }
+
     /// <summary>
     /// 鼠标按钮
     /// </summary>

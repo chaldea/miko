@@ -1,8 +1,7 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
 @using Miko.Common
-@* Mirrors Ionic's <ion-range> (a single-knob slider — the base port omits dual knobs, ticks, and
-   drag gestures):
+@* Mirrors Ionic's single-knob <ion-range>. Dual knobs and tick rendering are not implemented:
    <ion-range class="{mode} ion-range range-label-placement-{start|end|fixed|stacked}
                      [range-has-pin] [range-disabled] [range-value-min|max] [ion-color ...]">
      <label class="range-wrapper">
@@ -25,9 +24,7 @@
        </div>
      </label>
    </ion-range>
-   The knob position and the active bar are computed from the value ratio (Value-Min)/(Max-Min).
-   This is a visual port: the knob does not drag. A track click sets the value proportionally when
-   the pointer position within the slider is known; otherwise it is a no-op (see HandleTrackClick). *@
+    The knob position and the active bar are computed from the value ratio (Value-Min)/(Max-Min). *@
 <div class="@ClassMapper.Class" style="@Style">
     <label class="range-wrapper">
         <div class="label-text-wrapper @(_hasLabel ? "" : "label-text-wrapper-hidden")">
@@ -42,7 +39,7 @@
         </div>
         <div class="native-wrapper">
             @StartSlot
-            <div class="range-slider" @onclick="HandleTrackClick">
+            <div class="range-slider" @onmousedown="HandlePointer" @onmousemove="HandlePointer">
                 <div class="range-bar-container">
                     <div class="range-bar"></div>
                     <div class="range-bar range-bar-active" style="@_activeBarStyle"></div>
@@ -50,7 +47,10 @@
                 <div class="range-knob-handle" style="@_knobStyle">
                     @if (Pin)
                     {
-                        <div class="range-pin">@FormatValue(Value)</div>
+                        <div class="range-pin">
+                            <div class="range-pin-arrow"></div>
+                            @FormatValue(Value)
+                        </div>
                     }
                     <div class="range-knob"></div>
                 </div>
@@ -82,7 +82,7 @@
     /// <summary>If true, a pin (value bubble) is shown above the knob.</summary>
     [Parameter] public bool Pin { get; set; }
 
-    /// <summary>If true, the knob snaps to tick marks along the bar (marker only in this port).</summary>
+    /// <summary>If true, the knob snaps to tick marks along the bar.</summary>
     [Parameter] public bool Snaps { get; set; }
 
     /// <summary>Named palette color (Ionic <c>color</c>). Stamped as an <c>ion-color-*</c> class.</summary>
@@ -145,16 +145,20 @@
         };
     }
 
-    /// <summary>
-    /// Track click. A full drag isn't implemented in this visual port; when the click carries a
-    /// position within the slider we could map it to a value, but Miko's click args do not expose the
-    /// slider width here, so this is currently a no-op placeholder that keeps the DOM contract intact.
-    /// Kept as the wiring point for a future proportional-set / drag implementation.
-    /// </summary>
-    private Task HandleTrackClick(MouseEventArgs _)
+    private async Task HandlePointer(MouseEventArgs args)
     {
-        // Intentionally visual-only: value changes are driven programmatically via Value/ValueChanged.
-        return Task.CompletedTask;
+        if (Disabled || !args.IsButtonPressed || args.TargetWidth <= 0 || Max <= Min) return;
+
+        var ratio = Math.Clamp(args.OffsetX / args.TargetWidth, 0.0, 1.0);
+        var rawValue = Min + ratio * (Max - Min);
+        var step = double.IsFinite(Step) && Step > 0 ? Step : 1.0;
+        var value = Min + Math.Round((rawValue - Min) / step, MidpointRounding.AwayFromZero) * step;
+        value = Math.Clamp(Math.Round(value, 12), Min, Max);
+
+        if (Math.Abs(Value - value) <= 1e-12) return;
+
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
     }
 
     // ratio = clamp((value - min) / (max - min), 0, 1). Mirrors range.tsx valueToRatio.

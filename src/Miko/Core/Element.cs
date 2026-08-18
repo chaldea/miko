@@ -201,6 +201,7 @@ public abstract class Element
     public MikoEventHandler<MouseEventArgs>? OnMouseLeave { get; set; }
     public MikoEventHandler<MouseEventArgs>? OnMouseDown { get; set; }
     public MikoEventHandler<MouseEventArgs>? OnMouseUp { get; set; }
+    public MikoEventHandler<MouseEventArgs>? OnMouseMove { get; set; }
     public MikoEventHandler<FocusEventArgs>? OnFocus { get; set; }
     public MikoEventHandler<FocusEventArgs>? OnBlur { get; set; }
     public MikoEventHandler<ChangeEventArgs>? OnChange { get; set; }
@@ -254,6 +255,7 @@ public abstract class Element
             EventTypes.MouseLeave => OnMouseLeave != null,
             EventTypes.MouseDown => OnMouseDown != null,
             EventTypes.MouseUp => OnMouseUp != null,
+            EventTypes.MouseMove => OnMouseMove != null,
             EventTypes.Focus => OnFocus != null,
             EventTypes.Blur => OnBlur != null,
             EventTypes.Change => OnChange != null,

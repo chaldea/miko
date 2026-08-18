@@ -7,6 +7,7 @@ namespace Miko.Components;
 [EventHandler("onmouseleave", typeof(MouseEventArgs))]
 [EventHandler("onmousedown",  typeof(MouseEventArgs),    true, true)]
 [EventHandler("onmouseup",    typeof(MouseEventArgs),    true, true)]
+[EventHandler("onmousemove",  typeof(MouseEventArgs),    true, true)]
 [EventHandler("onfocus",      typeof(FocusEventArgs))]
 [EventHandler("onblur",       typeof(FocusEventArgs))]
 [EventHandler("onchange",     typeof(ChangeEventArgs))]

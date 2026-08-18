@@ -38,6 +38,8 @@ public sealed class MikoInteractionController
     private RouteView? _routeView;
 
     private System.Numerics.Vector2? _mouseDownPosition;
+    private Element? _pointerDownTarget;
+    private RectF? _pointerDownBounds;
     private Cursor _currentCursor = Cursor.Default;
 
     // volatile because hot reload (UpdateApplication) sets this from a background thread,
@@ -293,6 +295,8 @@ public sealed class MikoInteractionController
         lock (_sync)
         {
             _mouseDownPosition = new System.Numerics.Vector2(x, y);
+            _pointerDownTarget = null;
+            _pointerDownBounds = null;
 
             // Check scrollbar hit first
             var scrollbarHit = _engine.HitTestScrollbar(x, y);
@@ -312,6 +316,14 @@ public sealed class MikoInteractionController
             }
 
             var target = _engine.HitTest(x, y);
+            if (target != null)
+            {
+                _pointerDownTarget = target;
+                _pointerDownBounds = GetRenderedBorderBox(target);
+                DispatchPointerEvent(target, EventTypes.MouseDown, x, y, button, isButtonPressed: true,
+                    _pointerDownBounds);
+            }
+
             if (target is InputElement { Type: InputType.Range } rangeInput)
             {
                 _isDragging = true;
@@ -346,6 +358,7 @@ public sealed class MikoInteractionController
 
                 _draggingRange = null;
                 _mouseDownPosition = null;
+                DispatchPointerUp(x, y, button);
                 return;
             }
 
@@ -353,6 +366,8 @@ public sealed class MikoInteractionController
 
             var position = _mouseDownPosition.Value;
             _mouseDownPosition = null;
+
+            DispatchPointerUp(x, y, button);
 
             var target = _engine.HitTest(position.X, position.Y);
             if (target == null)
@@ -390,11 +405,23 @@ public sealed class MikoInteractionController
             if (_isDragging && _draggingRange != null)
             {
                 UpdateRangeValue(_draggingRange, x);
+                DispatchCapturedPointerEvent(EventTypes.MouseMove, x, y, MouseButton.Left,
+                    isButtonPressed: true);
+                return;
+            }
+
+            if (_pointerDownTarget != null)
+            {
+                DispatchCapturedPointerEvent(EventTypes.MouseMove, x, y, MouseButton.Left,
+                    isButtonPressed: true);
                 return;
             }
 
             // 拖拽路径保持既有悬停不变（浏览器在拖拽期间也不更新 :hover）。
             var target = _engine.HitTest(x, y);
+            if (target != null)
+                DispatchPointerEvent(target, EventTypes.MouseMove, x, y, MouseButton.Left,
+                    isButtonPressed: false, GetRenderedBorderBox(target));
             UpdateHover(target);
             UpdateCursor(target);
         }
@@ -486,16 +513,8 @@ public sealed class MikoInteractionController
             return;
         }
 
-        var args = new MouseEventArgs
-        {
-            Target = target,
-            X = x,
-            Y = y,
-            Button = MouseButton.Left,
-            Bubbles = true
-        };
-
-        DispatchWithSyncContext(target, EventTypes.Click, args);
+        DispatchPointerEvent(target, EventTypes.Click, x, y, MouseButton.Left,
+            isButtonPressed: false, GetRenderedBorderBox(target));
 
         // 分发过程中的处理器（如 IonInput 的 @onclick）很可能已经重渲染了这棵子树，把 target
         // 换成了一个新实例。后续的焦点/光标处理必须落在<b>在场</b>的那个实例上——否则焦点写在
@@ -913,6 +932,64 @@ public sealed class MikoInteractionController
         var layout = _engine.GetCurrentLayout();
         if (layout == null) return null;
         return FindLayoutBoxRecursive(layout, element);
+    }
+
+    private RectF? GetRenderedBorderBox(Element element)
+    {
+        var box = FindLayoutBoxForElement(element);
+        if (box == null) return null;
+
+        var bounds = box.BoxModel.BorderBox;
+        var scrollOffset = GetAccumulatedScrollOffset(element);
+        return new RectF(bounds.X - scrollOffset.x, bounds.Y - scrollOffset.y,
+            bounds.Width, bounds.Height);
+    }
+
+    private void DispatchPointerUp(float x, float y, MouseButton button)
+    {
+        DispatchCapturedPointerEvent(EventTypes.MouseUp, x, y, button, isButtonPressed: false);
+        _pointerDownTarget = null;
+        _pointerDownBounds = null;
+    }
+
+    private void DispatchCapturedPointerEvent(
+        string eventType,
+        float x,
+        float y,
+        MouseButton button,
+        bool isButtonPressed)
+    {
+        if (_pointerDownTarget == null) return;
+
+        var target = _pointerDownTarget.ResolveSuperseded();
+        DispatchPointerEvent(target, eventType, x, y, button, isButtonPressed, _pointerDownBounds);
+    }
+
+    private void DispatchPointerEvent(
+        Element target,
+        string eventType,
+        float x,
+        float y,
+        MouseButton button,
+        bool isButtonPressed,
+        RectF? bounds)
+    {
+        var rect = bounds ?? GetRenderedBorderBox(target) ?? default;
+        var args = new MouseEventArgs
+        {
+            Target = target,
+            X = x,
+            Y = y,
+            OffsetX = x - rect.Left,
+            OffsetY = y - rect.Top,
+            TargetWidth = rect.Width,
+            TargetHeight = rect.Height,
+            IsButtonPressed = isButtonPressed,
+            Button = button,
+            Bubbles = true,
+        };
+
+        DispatchWithSyncContext(target, eventType, args);
     }
 
     private static LayoutBox? FindLayoutBoxRecursive(LayoutBox box, Element element)
