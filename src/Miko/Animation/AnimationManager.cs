@@ -39,6 +39,23 @@ internal class ActiveAnimation
     public float ElapsedTime { get; set; }
     public int CurrentIteration { get; set; }
     public bool IsComplete { get; set; }
+
+    /// <summary>
+    /// 该动画是否由元素的 <c>Style.Animations</c> 声明而来（对应 CSS 的 <c>animation</c> 属性）。
+    /// <para>声明式动画的存续<b>取决于样式里是否仍然声明它</b>：组件把动画从样式中撤下即应停止
+    /// （ISSUE-127）。而经 <c>MikoEngine.StartAnimation</c> 命令式启动的动画从不出现在任何样式里，
+    /// 其存续只由 <c>StopAnimation</c> 或自然播完决定——若一并按「是否仍被声明」剪枝，
+    /// 会在下一帧就把它误杀。</para>
+    /// </summary>
+    public bool IsDeclarative { get; set; }
+
+    /// <summary>
+    /// 本帧该条目的元素引用是否被 <c>MigrateSupersededTargets</c> 前推过（即元素是重渲染换上来的
+    /// 新实例）。用于区分「样式被原地改动」与「元素被整体替换」两种停止动画的场景：前者需要抹掉
+    /// 遗留在行内样式上的动画值，后者的新实例行内样式本就干净，抹除反而会清掉它自己声明的值
+    /// （ISSUE-127）。
+    /// </summary>
+    public bool WasMigrated { get; set; }
 }
 
 public class AnimationManager
@@ -96,6 +113,9 @@ public class AnimationManager
     }
 
     public void StartAnimation(Element element, KeyframeAnimation definition)
+        => StartAnimation(element, definition, isDeclarative: false);
+
+    private void StartAnimation(Element element, KeyframeAnimation definition, bool isDeclarative)
     {
         _animations.RemoveAll(a => a.Element == element && a.Definition.Name == definition.Name);
         _animations.Add(new ActiveAnimation
@@ -103,7 +123,8 @@ public class AnimationManager
             Element = element,
             Definition = definition,
             ElapsedTime = 0,
-            CurrentIteration = 0
+            CurrentIteration = 0,
+            IsDeclarative = isDeclarative
         });
         _logger.LogDebug("Animation started: \"{Name}\" on <{Tag} id=\"{Id}\">, duration={Duration}s, infinite={Infinite}, direction={Direction}",
             definition.Name, element.TagName, element.Id ?? "", definition.Duration, definition.Infinite, definition.Direction);
@@ -112,20 +133,191 @@ public class AnimationManager
     /// <summary>
     /// Starts an animation only if it's not already running. Used during re-renders to start
     /// animations on newly created elements without restarting animations that are already playing.
+    ///
+    /// <para>「已在运行」按 <c>(元素, 动画名)</c> 判定。命中时<b>不重启</b>（保住
+    /// <c>ElapsedTime</c>），但会把条目的 <c>Definition</c> 换成本次重渲染声明的那一份——
+    /// 同名动画的时长/播放态/关键帧都可能随参数变化（如 <c>animation-play-state</c> 切到
+    /// paused），沿用旧定义等于让这些声明失效（ISSUE-127）。</para>
     /// </summary>
     public void StartAnimationIfNotRunning(Element element, KeyframeAnimation definition)
     {
-        // Check if this animation is already running on this element
-        bool isRunning = _animations.Any(a => a.Element == element && a.Definition.Name == definition.Name);
-        if (isRunning)
+        // 元素引用在本帧稍早的 MigrateSupersededTargets 中已前推到在场实例，
+        // 故这里比引用即可命中重渲染前后的「同一个逻辑元素」。
+        var running = _animations.FirstOrDefault(a => a.Element == element
+                                                      && a.Definition.Name == definition.Name);
+        if (running != null)
         {
-            _logger.LogTrace("Animation \"{Name}\" already running on <{Tag} id=\"{Id}\">, skipping",
+            _logger.LogTrace("Animation \"{Name}\" already running on <{Tag} id=\"{Id}\">, refreshing definition",
                 definition.Name, element.TagName, element.Id ?? "");
+            // 只换定义，保留进度。ReferenceEquals 时是同一份对象，无需改写。
+            if (!ReferenceEquals(running.Definition, definition))
+                running.Definition = definition;
+            // 命令式启动的动画若随后又被样式声明，转由声明接管其存续。
+            running.IsDeclarative = true;
             return;
         }
 
         // Not running, start it
-        StartAnimation(element, definition);
+        StartAnimation(element, definition, isDeclarative: true);
+    }
+
+    /// <summary>
+    /// 把动画/过渡条目持有的元素引用沿 <c>SupersededBy</c> 链前推到当前在场的实例（ISSUE-127）。
+    ///
+    /// <para>进度（<c>ElapsedTime</c>）活在条目上并以元素引用为键，而组件每次
+    /// <c>StateHasChanged</c> 都产出<b>全新</b>元素实例。不迁移则同一个逻辑元素的动画每帧都被
+    /// 判为「未运行」而重启——现场表现是任意子组件回调都把页面上所有动画打回起点。</para>
+    ///
+    /// <para>必须在<b>过渡检测之前</b>调用：检测按元素引用去重（见 <see cref="TrackPropertyChange"/>
+    /// 的 <c>RemoveAll</c>），若此时条目还挂在旧实例上，替换元素上新检出的同一属性过渡会另起一条，
+    /// 同一个属性上就并存两条相互覆写的过渡。</para>
+    /// </summary>
+    internal void MigrateSupersededTargets()
+    {
+        foreach (var anim in _animations)
+        {
+            var resolved = anim.Element.ResolveSuperseded();
+            // 记下「元素被换过」：本帧若要停掉该动画，据此决定是否抹除行内遗留值。
+            if (!ReferenceEquals(resolved, anim.Element))
+            {
+                anim.Element = resolved;
+                anim.WasMigrated = true;
+            }
+        }
+
+        foreach (var transition in _transitions)
+            transition.Element = transition.Element.ResolveSuperseded();
+    }
+
+    /// <summary>
+    /// 回收已经不该继续播放的条目（ISSUE-127）：元素彻底脱离 DOM，或元素仍在树上但本次重渲染
+    /// 已不再声明该动画。
+    ///
+    /// <para><b>为什么必须回收</b>：此前没有任何清理，被替换掉的旧实例对应的条目永久留在列表里，
+    /// 继续每帧写入一棵孤儿树的行内样式并 <see cref="Element.BumpMutationVersion"/>。既泄漏
+    /// （旧子树被条目持有而无法回收），又让 <c>HasActiveAnimations</c> 恒为真，击穿 ISSUE-096
+    /// 的稳态空闲。</para>
+    ///
+    /// <para><b>声明消失也要停</b>：<c>Style.Animations</c> 是声明式的，组件把某个动画从样式里
+    /// 撤下（如骨架屏加载完成后去掉 shimmer）就等同于 CSS 里删掉 <c>animation</c> 属性，动画应当
+    /// 停止。只按「是否脱离 DOM」剪枝会让它在元素原地不动的情况下永远播下去。</para>
+    ///
+    /// <para>顺序要紧：<b>先迁移再回收</b>。否则刚被重渲染替换掉的元素会被当成「已脱离」而连同
+    /// 进度一起丢弃，等价于没修。过渡不参与「声明消失」这一支——过渡是一次性的属性插值，
+    /// 跑完自然结束，其存续不取决于样式里是否仍声明 <c>transition</c>。</para>
+    /// </summary>
+    /// <param name="declaredAnimations">
+    /// 本帧扫描到的、仍在 DOM 树中的元素 → 其 <c>Style.Animations</c> 声明的动画名集合。
+    /// 不在字典中的元素即已脱离 DOM。
+    /// </param>
+    internal void PruneDetachedTargets(Dictionary<Element, HashSet<string>> declaredAnimations)
+    {
+        for (int i = _animations.Count - 1; i >= 0; i--)
+        {
+            var anim = _animations[i];
+            bool attached = declaredAnimations.TryGetValue(anim.Element, out var names);
+
+            // 命令式动画（MikoEngine.StartAnimation）从不出现在样式里，只在元素脱离 DOM 时回收；
+            // 声明式动画还要求样式中仍然声明着它。
+            if (attached && (!anim.IsDeclarative || names!.Contains(anim.Definition.Name)))
+                continue;
+
+            _animations.RemoveAt(i);
+            // 声明被撤下、但元素<b>不是</b>重渲染换上来的新实例（原地改了 Style.Animations）：
+            // 动画最后一帧的值仍留在它的行内样式里，会盖过样式级联给出的值（骨架屏撤掉
+            // shimmer 后停在半路）。抹掉这些属性把控制权交还级联（ISSUE-127）。
+            //
+            // 反之，若元素是重渲染的替换实例，它的行内样式<b>本就是刚声明出来的干净状态</b>，
+            // 陈旧值留在已被丢弃的旧实例上。此时抹除只会把替换实例自己声明的值一起清掉。
+            if (attached && !anim.WasMigrated)
+                ClearAnimatedProperties(anim);
+
+            _logger.LogDebug("Animation \"{Name}\" removed: <{Tag} id=\"{Id}\"> left the DOM or no longer declares it",
+                anim.Definition.Name, anim.Element.TagName, anim.Element.Id ?? "");
+        }
+
+        for (int i = _transitions.Count - 1; i >= 0; i--)
+        {
+            var transition = _transitions[i];
+            if (declaredAnimations.ContainsKey(transition.Element)) continue;
+
+            _transitions.RemoveAt(i);
+            _logger.LogDebug("Transition \"{Property}\" removed: <{Tag} id=\"{Id}\"> left the DOM",
+                transition.Property.PropertyName, transition.Element.TagName, transition.Element.Id ?? "");
+        }
+    }
+
+    /// <summary>
+    /// 把每条动画与过渡在当前进度上的值重新写入其元素的行内样式（ISSUE-127）。
+    ///
+    /// <para>重渲染后元素是全新实例，行内样式是<b>刚声明出来的原始状态</b>，而上一帧的插值写在
+    /// 已被丢弃的旧实例上。若不补写：动画会在替换后的首帧画出起始态，下一次 <see cref="Update"/>
+    /// 才跳回正确位置（每次组件回调都闪一下）；过渡则更糟——它的目标值本就来自新样式，
+    /// 首帧会直接跳到终点，整段过渡被吃掉。</para>
+    ///
+    /// <para>由引擎在布局<b>之前</b>调用，使补写的值参与本帧的样式解析。</para>
+    /// </summary>
+    internal void ReapplyCurrentValues()
+    {
+        foreach (var anim in _animations)
+        {
+            if (anim.Definition.Duration <= 0) continue;
+
+            float activeTime = anim.ElapsedTime - anim.Definition.Delay;
+            if (activeTime < 0)
+            {
+                if (anim.Definition.FillMode is AnimationFillMode.Backwards or AnimationFillMode.Both)
+                    ApplyKeyframeAtProgress(anim, 0f);
+                continue;
+            }
+
+            float rawProgress = activeTime / anim.Definition.Duration;
+            int iteration = (int)MathF.Floor(rawProgress);
+            float localProgress = rawProgress - iteration;
+            float directionalProgress = GetDirectionalProgress(localProgress, iteration, anim.Definition.Direction);
+            float easedProgress = EasingFunctions.Evaluate(
+                anim.Definition.TimingFunction, directionalProgress, anim.Definition.CubicBezier);
+            ApplyKeyframeAtProgress(anim, easedProgress);
+        }
+
+        foreach (var transition in _transitions)
+        {
+            // 尚在 delay 阶段：起始值已在 TrackXxx 中写入，无需补写。
+            if (transition.ElapsedTime < transition.Delay) continue;
+
+            float activeTime = transition.ElapsedTime - transition.Delay;
+            float progress = transition.Duration <= 0
+                ? 1f
+                : Math.Clamp(activeTime / transition.Duration, 0f, 1f);
+            ApplyTransitionAtProgress(transition, progress);
+        }
+    }
+
+    /// <summary>
+    /// 把一条过渡在给定线性进度上的插值写入其元素。缓动与三种载荷（float/Color/Transform）的
+    /// 分派与 <see cref="UpdateTransitions"/> 完全一致。
+    /// </summary>
+    private static void ApplyTransitionAtProgress(ActiveTransition transition, float progress)
+    {
+        float eased = EasingFunctions.Evaluate(transition.TimingFunction, progress, transition.CubicBezier);
+
+        if (transition.ApplyFloat != null)
+        {
+            transition.ApplyFloat(transition.Element,
+                Lerp(transition.Property.StartValue, transition.Property.EndValue, eased));
+        }
+        else if (transition.ApplyColor != null
+                 && transition.Property.StartColor.HasValue && transition.Property.EndColor.HasValue)
+        {
+            transition.ApplyColor(transition.Element,
+                LerpColor(transition.Property.StartColor.Value, transition.Property.EndColor.Value, eased));
+        }
+        else if (transition.ApplyTransform != null
+                 && transition.Property.StartTransform != null && transition.Property.EndTransform != null)
+        {
+            transition.ApplyTransform(transition.Element,
+                LerpTransform(transition.Property.StartTransform, transition.Property.EndTransform, eased));
+        }
     }
 
     public void StopAnimation(Element element, string? animationName = null)
@@ -486,6 +678,63 @@ public class AnimationManager
         float segmentProgress = segmentLength > 0 ? (progress - from.Offset) / segmentLength : 1f;
 
         ApplyInterpolatedStyle(anim.Element, from.Style, to.Style, segmentProgress);
+    }
+
+    /// <summary>
+    /// 把某条动画曾经写入元素行内样式的属性统统抹回 <c>null</c>（＝未设置），
+    /// 使这些属性重新由样式级联决定（ISSUE-127）。
+    ///
+    /// <para>动画帧值是直接写在元素行内样式上的，优先级最高。声明被撤下时若不抹掉，
+    /// 元素就永远停在动画最后一帧的位置，盖过它自己声明的值。</para>
+    ///
+    /// <para>「曾经写入哪些属性」由该动画所有关键帧声明过的属性并集决定——与
+    /// <see cref="ApplyInterpolatedStyle"/> 写入的集合一一对应。</para>
+    /// </summary>
+    private static void ClearAnimatedProperties(ActiveAnimation anim)
+    {
+        var style = anim.Element.Style;
+        if (style == null) return;
+
+        foreach (var keyframe in anim.Definition.Keyframes)
+        {
+            var k = keyframe.Style;
+
+            if (k.Opacity.ValueOrNull() != null) style.Opacity = null;
+            if (k.Width.ValueOrNull() != null) style.Width = null;
+            if (k.Height.ValueOrNull() != null) style.Height = null;
+
+            if (k.MarginTop.ValueOrNull() != null) style.MarginTop = null;
+            if (k.MarginRight.ValueOrNull() != null) style.MarginRight = null;
+            if (k.MarginBottom.ValueOrNull() != null) style.MarginBottom = null;
+            if (k.MarginLeft.ValueOrNull() != null) style.MarginLeft = null;
+
+            if (k.PaddingTop.ValueOrNull() != null) style.PaddingTop = null;
+            if (k.PaddingRight.ValueOrNull() != null) style.PaddingRight = null;
+            if (k.PaddingBottom.ValueOrNull() != null) style.PaddingBottom = null;
+            if (k.PaddingLeft.ValueOrNull() != null) style.PaddingLeft = null;
+
+            if (k.Top.ValueOrNull() != null) style.Top = null;
+            if (k.Right.ValueOrNull() != null) style.Right = null;
+            if (k.Bottom.ValueOrNull() != null) style.Bottom = null;
+            if (k.Left.ValueOrNull() != null) style.Left = null;
+
+            if (k.FontSize.ValueOrNull() != null) style.FontSize = null;
+            if (k.BorderWidth.ValueOrNull() != null) style.BorderWidth = null;
+
+            if (k.BorderTopLeftRadius.ValueOrNull() != null) style.BorderTopLeftRadius = null;
+            if (k.BorderTopRightRadius.ValueOrNull() != null) style.BorderTopRightRadius = null;
+            if (k.BorderBottomRightRadius.ValueOrNull() != null) style.BorderBottomRightRadius = null;
+            if (k.BorderBottomLeftRadius.ValueOrNull() != null) style.BorderBottomLeftRadius = null;
+
+            if (k.BackgroundColor.ValueOrNull() != null) style.BackgroundColor = null;
+            if (k.Color.ValueOrNull() != null) style.Color = null;
+            if (k.BorderColor.ValueOrNull() != null) style.BorderColor = null;
+
+            if (k.Transform.RefValueOrNull() != null) style.Transform = null;
+        }
+
+        // 行内样式是布局输入，且这里绕过了 Element.Style setter 的版本追踪（ISSUE-096）。
+        Element.BumpMutationVersion();
     }
 
     private void ApplyInterpolatedStyle(Element element, Style from, Style to, float progress)

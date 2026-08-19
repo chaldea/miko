@@ -164,6 +164,10 @@ public class MikoEngine
 
         _logger.LogInformation("Engine initialized with viewport {Width}x{Height}", viewportWidth, viewportHeight);
 
+        // 对齐动画条目并补写当前进度值（ISSUE-127）。这里 _animationManager 刚被 Clear，
+        // 通常无事可做；保留调用是为了让三条渲染路径的顺序保持一致。
+        ReconcileAnimationTargets(root);
+
         // Capture old styles from transferred LayoutBoxes (before layout replaces them)
         var oldStyles = CaptureTransitionableStyles(root);
 
@@ -413,6 +417,11 @@ public class MikoEngine
         DrainPendingInvalidations();
 
         _renderEngine.SetCanvas(canvas);
+
+        // 把动画/过渡条目对齐到重渲染后的在场元素、回收停掉的条目，并把当前进度值补写回
+        // 行内样式（ISSUE-127）。必须早于 IsLayoutCurrent：这些写入会改动行内样式（即布局输入），
+        // 先判定就会用上一帧的结论走快速路径，把改动漏到下一帧。
+        ReconcileAnimationTargets(_root);
 
         // 快速路径（ISSUE-096）：布局输入（DOM/样式/视口/安全区）自上次布局后未变，
         // 直接复用现有布局树。此时不可能有新的 transition 触发（transition 由样式变化引起，
@@ -1474,25 +1483,91 @@ public class MikoEngine
             CollectImageElements(child, sink);
     }
 
-    private void ScanAndStartAnimations(Element element)
+    /// <summary>
+    /// 扫描整树，启动尚未运行的关键帧动画，并刷新已在运行者的定义。
+    ///
+    /// <para>调用于布局<b>之后</b>，与 <see cref="ReconcileAnimationTargets"/> 配对——后者在布局
+    /// 之前完成迁移、回收与补写。这里能安全地按引用比对，正是因为迁移已经发生过了（ISSUE-127）。</para>
+    ///
+    /// <para>本帧新启动的动画其首帧值由下一次 <c>Update</c> 写入，与旧行为一致。</para>
+    /// </summary>
+    private void ScanAndStartAnimations(Element root)
     {
-        var animations = element.Style?.Animations.RefValueOrNull();
-        if (animations != null)
+        foreach (var (element, names) in CollectDeclaredAnimations(root))
         {
+            if (names.Count == 0) continue;
+
+            var animations = element.Style?.Animations.RefValueOrNull();
+            if (animations == null) continue;
+
             foreach (var animation in animations)
             {
                 _logger.LogDebug("ScanAndStartAnimations: found animation \"{Name}\" on <{Tag} id=\"{Id}\">",
                     animation.Name, element.TagName, element.Id ?? "");
-                // 使用 StartAnimationIfNotRunning 避免重启已经运行的动画
+                // 已在运行者不重启，只刷新定义；未运行者从 0 起播。
                 _animationManager.StartAnimationIfNotRunning(element, animation);
             }
         }
+    }
+
+    /// <summary>
+    /// 在布局<b>之前</b>把动画/过渡条目对齐到重渲染后的在场元素实例、回收不该再播放的条目，
+    /// 并把当前进度值补写回行内样式（ISSUE-127）。
+    ///
+    /// <para>三件事都必须早于布局与过渡检测：</para>
+    /// <list type="bullet">
+    /// <item>迁移早于 <see cref="DetectAndTriggerTransitions"/>——过渡按元素引用去重，条目还挂在
+    ///   旧实例上时，替换元素上检出的同一属性过渡会另起一条，同属性并存两条相互覆写。</item>
+    /// <item>回收早于布局——停掉的动画要把自己写进行内样式的值一并抹掉，好让元素自己声明的值
+    ///   重新生效。晚于布局则本帧仍按动画最后一帧的值排版，元素停在半路。</item>
+    /// <item>补写早于布局——否则替换后的首帧按刚声明的原始样式布局，画出动画起始态或直接跳到
+    ///   过渡终点，每次组件回调都闪一下。</item>
+    /// </list>
+    ///
+    /// <para>回收发生在<b>本帧的启动之前</b>（启动在布局后的 <see cref="ScanAndStartAnimations"/>），
+    /// 因此判据用的是<b>当前 DOM 的声明</b>而非上一帧的：新增元素本就还没有条目，不会被误伤。</para>
+    /// </summary>
+    private void ReconcileAnimationTargets(Element root)
+    {
+        _animationManager.MigrateSupersededTargets();
+        _animationManager.PruneDetachedTargets(CollectDeclaredAnimations(root));
+        _animationManager.ReapplyCurrentValues();
+    }
+
+    /// <summary>
+    /// 收集树中每个元素及其 <c>Style.Animations</c> 声明的动画名。<c>Element</c> 未重写
+    /// <c>Equals</c>/<c>GetHashCode</c>，字典天然按引用做键——正是这里要的身份语义。
+    /// </summary>
+    private static Dictionary<Element, HashSet<string>> CollectDeclaredAnimations(Element root)
+    {
+        var sink = new Dictionary<Element, HashSet<string>>();
+        CollectDeclaredAnimations(root, sink);
+        return sink;
+    }
+
+    private static void CollectDeclaredAnimations(Element element, Dictionary<Element, HashSet<string>> sink)
+    {
+        // 绝大多数元素没有动画：共用一个空集合，避免每帧为每个元素各分配一个 HashSet
+        // （整树扫描每帧都跑，包括 ISSUE-096 的快速路径）。
+        var animations = element.Style?.Animations.RefValueOrNull();
+        if (animations == null || animations.Count == 0)
+        {
+            sink[element] = s_noDeclaredAnimations;
+        }
+        else
+        {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var animation in animations)
+                names.Add(animation.Name);
+            sink[element] = names;
+        }
 
         foreach (var child in element.Children)
-        {
-            ScanAndStartAnimations(child);
-        }
+            CollectDeclaredAnimations(child, sink);
     }
+
+    /// <summary>无动画声明的元素共用的空集合。只读使用，绝不写入。</summary>
+    private static readonly HashSet<string> s_noDeclaredAnimations = new(StringComparer.Ordinal);
 
     /// <summary>
     /// 将旧布局树的滚动状态恢复到新布局树。
