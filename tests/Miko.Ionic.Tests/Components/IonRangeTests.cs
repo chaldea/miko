@@ -1,4 +1,5 @@
 using Miko.Common;
+using Miko.Animation;
 using Miko.Components;
 using Miko.Ionic.Components;
 using Miko.Platform;
@@ -88,6 +89,51 @@ public class IonRangeTests : IonicComponentTestBase
         cut.Root.ShouldHaveClass("ion-color-secondary");
     }
 
+    [Fact]
+    public void IonRange_MdColor_OverridesTrackFillKnobAndPin()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderRange(Context, p =>
+        {
+            p.Add(nameof(IonRange.Color), "danger");
+            p.Add(nameof(IonRange.Pin), true);
+        });
+        var danger = IonicTheme.CreateMd().Danger;
+
+        cut.GetComputedStyle(cut.FindByClass("range-bar").First())!.BackgroundColor
+            .ShouldBe(new Color(danger.R, danger.G, danger.B, 66));
+        cut.GetComputedStyle(cut.FindByClass("range-bar-active").Single())!.BackgroundColor
+            .ShouldBe(danger);
+        cut.GetComputedStyle(cut.FindByClass("range-knob").Single())!.BackgroundColor
+            .ShouldBe(danger);
+
+        var pin = cut.GetComputedStyle(cut.FindByClass("range-pin").Single())!;
+        pin.BackgroundColor.ShouldBe(danger);
+        pin.Color.ShouldBe(Color.White);
+        cut.GetComputedStyle(cut.FindByClass("range-pin-arrow").Single())!
+            .BackgroundColor.ShouldBe(danger);
+    }
+
+    [Fact]
+    public void IonRange_IosColor_OverridesActiveBarOnly()
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderRange(Context, p =>
+        {
+            p.Add(nameof(IonRange.Color), "danger");
+            p.Add(nameof(IonRange.Pin), true);
+        });
+        var danger = IonicTheme.CreateIos().Danger;
+
+        cut.GetComputedStyle(cut.FindByClass("range-bar-active").Single())!.BackgroundColor
+            .ShouldBe(danger);
+        cut.GetComputedStyle(cut.FindByClass("range-knob").Single())!.BackgroundColor
+            .ShouldBe(Color.White);
+        cut.GetComputedStyle(cut.FindByClass("range-pin").Single())!.BackgroundColor
+            .ShouldBe(Color.Transparent);
+    }
+
     // ---- Computed positions ------------------------------------------------
 
     [Fact]
@@ -163,6 +209,70 @@ public class IonRangeTests : IonicComponentTestBase
 
         cut.FindByClass("range-pin").ShouldBeEmpty();
         cut.Root.ShouldNotHaveClass("range-has-pin");
+    }
+
+    [Fact]
+    public void IonRange_MdPin_AddsTopBufferAndPositionsBubbleAboveKnob()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderRange(Context, p =>
+        {
+            p.Add(nameof(IonRange.Pin), true);
+            p.Add(nameof(IonRange.Value), 42d);
+        });
+
+        cut.GetComputedStyle(cut.Root)!.PaddingTop.ShouldBe(Length.Px(28));
+
+        var pin = cut.FindByClass("range-pin").Single();
+        var pinStyle = cut.GetComputedStyle(pin)!;
+        pinStyle.Top.ShouldBe(Length.Px(-19));
+        pinStyle.Width.ShouldBe(Length.Px(28));
+        pinStyle.Height.ShouldBe(Length.Px(28));
+
+        var arrowStyle = cut.GetComputedStyle(cut.FindByClass("range-pin-arrow").Single())!;
+        arrowStyle.Display.ShouldBe(Display.Block);
+        arrowStyle.Transform.Functions.OfType<TransformFunction.Rotate>().Single().Degrees.ShouldBe(45);
+
+        var pinBox = cut.GetBoxModel(pin)!.BorderBox;
+        var knobBox = cut.GetBoxModel(cut.FindByClass("range-knob").Single())!.BorderBox;
+        pinBox.Bottom.ShouldBeLessThanOrEqualTo(knobBox.Top + 0.01f);
+    }
+
+    [Fact]
+    public void IonRange_StackedMdPin_UsesLabelBufferInsteadOfHostPadding()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderRange(Context, p =>
+        {
+            p.Add(nameof(IonRange.Pin), true);
+            p.Add(nameof(IonRange.Label), "Volume");
+            p.Add(nameof(IonRange.LabelPlacement), "stacked");
+        });
+
+        cut.GetComputedStyle(cut.Root)!.PaddingTop.ShouldBe(Length.Px(0));
+        cut.GetComputedStyle(cut.FindByClass("label-text-wrapper").Single())!
+            .MarginBottom.ShouldBe(Length.Px(28));
+    }
+
+    [Fact]
+    public void IonRange_IosPin_UsesTransparentLabelAboveKnobAndIosBuffer()
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderRange(Context, p => p.Add(nameof(IonRange.Pin), true));
+
+        cut.GetComputedStyle(cut.Root)!.PaddingTop.ShouldBe(Length.Px(20));
+
+        var pin = cut.FindByClass("range-pin").Single();
+        var style = cut.GetComputedStyle(pin)!;
+        style.Top.ShouldBe(Length.Px(-15));
+        style.MinWidth.ShouldBe(Length.Px(28));
+        style.PaddingTop.ShouldBe(Length.Px(8));
+        style.BackgroundColor.ShouldBe(Color.Transparent);
+
+        var pinBox = cut.GetBoxModel(pin)!.BorderBox;
+        var knobBox = cut.GetBoxModel(cut.FindByClass("range-knob").Single())!.BorderBox;
+        pinBox.Bottom.ShouldBeLessThanOrEqualTo(knobBox.Top + 0.01f);
     }
 
     // ---- Disabled ----------------------------------------------------------

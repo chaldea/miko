@@ -56,9 +56,9 @@ public static class ToolbarStyles
                 MinHeight = Length.Px(t.ToolbarMinHeight),
             },
 
-            // .toolbar-content — the flex-item for the default slot (title, progress bars, …).
-            // It gets flex:1 so it takes remaining space, but its own display must stay block
-            // (or flex column) so children stack vertically, not horizontally.
+            // .toolbar-content — the flex-item for the default slot. It gets flex:1 so it takes
+            // remaining space; normal children stay in block flow while a direct progress bar is
+            // taken out of flow by the ::slotted equivalent below.
             [$".ion-toolbar.{mode} .toolbar-content"] = new()
             {
                 FlexGrow = 1,
@@ -66,8 +66,20 @@ public static class ToolbarStyles
                 FlexBasis = Length.Auto,
                 MinWidth = Length.Px(0),
                 MaxWidth = Length.Percent(100),
-                // KEY: display:block so children (title, progress bar) stack vertically.
+                // Keep ordinary default-slot children in block flow rather than a horizontal row.
                 Display = Display.Block,
+            },
+
+            // toolbar.scss ::slotted(ion-progress-bar): pin a progress bar from the default slot
+            // across the toolbar container's bottom edge. Width is auto so left+right determine
+            // the size from the positioned toolbar-container rather than the slot wrapper width.
+            [$".ion-toolbar.{mode} .toolbar-content > .ion-progress-bar"] = new()
+            {
+                Position = Position.Absolute,
+                Right = Length.Px(0),
+                Bottom = Length.Px(0),
+                Left = Length.Px(0),
+                Width = Length.Auto,
             },
         };
 

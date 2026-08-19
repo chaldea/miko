@@ -8,19 +8,14 @@ using Shouldly;
 namespace Miko.Ionic.Tests.Components;
 
 /// <summary>
-/// Tests for ion-toolbar.md §3: the <c>.toolbar-content</c> div must have <c>display: block</c>
-/// so that children (title, progress bar, etc.) stack vertically instead of horizontally.
-/// Without it, children inherit the parent <c>.toolbar-container</c>'s <c>display: flex</c> and
-/// lay out side-by-side.
+/// Layout coverage for the toolbar's default slot. Ordinary children remain in block flow, while
+/// a directly slotted progress bar is absolutely pinned across the toolbar's bottom edge.
 /// </summary>
 public class IonToolbarContentLayoutTests : IonicComponentTestBase
 {
     [Fact]
-    public void ToolbarContent_StacksChildrenVertically()
+    public void ToolbarContent_ProgressBarAppearsBelowTitle()
     {
-        // Repro for ion-toolbar.md §3: a title + progress bar inside the toolbar should stack
-        // vertically (title on top, bar below), but without toolbar-content having display:block
-        // or flex-direction:column, they render side-by-side.
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
         Context.ViewportWidth = 400f;
         Context.ViewportHeight = 300f;
@@ -41,13 +36,12 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
         var titleBox = cut.GetBoxModel(title)!;
         var barBox = cut.GetBoxModel(bar)!;
 
-        // Vertical stacking: the bar's top should be below the title's bottom.
         barBox.MarginBox.Top.ShouldBeGreaterThan(titleBox.MarginBox.Bottom - 1f,
-            "Progress bar should render below the title, not beside it");
+            "Progress bar should be pinned below the title, not laid out beside it");
     }
 
     [Fact]
-    public void ToolbarContent_MultipleChildren_AllStackVertically()
+    public void ToolbarContent_MultipleTitlesStackAndProgressStaysAtBottom()
     {
         // Multiple children in toolbar content should all stack vertically.
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
@@ -75,7 +69,7 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
         var title2Box = cut.GetBoxModel(title2)!;
         var barBox = cut.GetBoxModel(bar)!;
 
-        // All three should stack vertically
+        // Titles remain in normal block flow; the progress bar is independently pinned below them.
         title2Box.MarginBox.Top.ShouldBeGreaterThan(title1Box.MarginBox.Bottom - 1f);
         barBox.MarginBox.Top.ShouldBeGreaterThan(title2Box.MarginBox.Bottom - 1f);
     }
@@ -83,9 +77,8 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
     [Theory]
     [InlineData(HostPlatform.Android)]  // md mode
     [InlineData(HostPlatform.Ios)]      // ios mode
-    public void ToolbarContent_BothModes_StacksVertically(HostPlatform platform)
+    public void ToolbarContent_BothModes_PlaceProgressBelowTitle(HostPlatform platform)
     {
-        // The display:block fix applies to both md and ios modes.
         UsePlatform(platform);
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
         Context.ViewportWidth = 400f;
@@ -128,6 +121,72 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
         var style = cut.GetComputedStyle(toolbarContent)!;
 
         style.Display.ShouldBe(Display.Block,
-            ".toolbar-content must have display:block so children stack vertically");
+            ".toolbar-content must keep ordinary default-slot children in block flow");
+    }
+
+    [Theory]
+    [InlineData(HostPlatform.Android)]
+    [InlineData(HostPlatform.Ios)]
+    public void ToolbarProgressBar_IsPinnedAcrossContainerBottom(HostPlatform platform)
+    {
+        UsePlatform(platform);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.ViewportWidth = 400f;
+        Context.ViewportHeight = 300f;
+
+        var cut = Context.Render<IonToolbar>(p =>
+        {
+            p.Add(nameof(IonToolbar.Start), (RenderFragment)(start =>
+            {
+                start.OpenComponent<IonBackButton>(0);
+                start.AddComponentParameter(1, nameof(IonBackButton.DefaultHref), "/");
+                start.CloseComponent();
+            }));
+            p.AddChildContent(content =>
+            {
+                content.OpenComponent<IonTitle>(0);
+                content.AddComponentParameter(1, nameof(IonTitle.ChildContent),
+                    (RenderFragment)(title => title.AddContent(0, "Progress")));
+                content.CloseComponent();
+                content.OpenComponent<IonProgressBar>(2);
+                content.AddComponentParameter(3, nameof(IonProgressBar.Type), "indeterminate");
+                content.AddComponentParameter(4, nameof(IonProgressBar.Color), "dark");
+                content.CloseComponent();
+            });
+        });
+
+        var container = cut.FindByClass("toolbar-container").Single();
+        var progress = cut.FindByClass("ion-progress-bar").Single();
+        var progressStyle = cut.GetComputedStyle(progress)!;
+
+        progressStyle.Position.ShouldBe(Position.Absolute);
+        progressStyle.Left.ShouldBe(Length.Px(0));
+        progressStyle.Right.ShouldBe(Length.Px(0));
+        progressStyle.Bottom.ShouldBe(Length.Px(0));
+        progressStyle.Width.ShouldBe(Length.Auto);
+
+        var containerBox = cut.GetBoxModel(container)!;
+        var progressBox = cut.GetBoxModel(progress)!;
+        progressBox.BorderBox.Left.ShouldBe(containerBox.PaddingBox.Left, 0.01f);
+        progressBox.BorderBox.Right.ShouldBe(containerBox.PaddingBox.Right, 0.01f);
+        progressBox.BorderBox.Bottom.ShouldBe(containerBox.PaddingBox.Bottom, 0.01f);
+        progressBox.BorderBox.Width.ShouldBeGreaterThan(0f);
+    }
+
+    [Fact]
+    public void NestedProgressBar_IsNotTreatedAsDirectSlottedContent()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonToolbar>(p => p.AddChildContent(content =>
+        {
+            content.OpenElement(0, "div");
+            content.OpenComponent<IonProgressBar>(1);
+            content.CloseComponent();
+            content.CloseElement();
+        }));
+
+        var progress = cut.FindByClass("ion-progress-bar").Single();
+        cut.GetComputedStyle(progress)!.Position.ShouldBe(Position.Relative);
     }
 }

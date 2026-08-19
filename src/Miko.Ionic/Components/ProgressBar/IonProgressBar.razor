@@ -1,38 +1,43 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Animation
 @using Miko.Common
 @* Mirrors Ionic's <ion-progress-bar> host structure:
    <ion-progress-bar class="{mode} ion-progress-bar progress-bar-{determinate|indeterminate} ...">
      determinate:
-       <div class="progress-buffer-bar" style="width: buffer%" />   <!-- the track, only when buffer < 1 -->
        <div class="progress" style="width: value%" />                <!-- the value fill -->
+       <div class="buffer-circles-container">
+         <div class="buffer-circles-container"><div class="buffer-circles" /></div>
+       </div>
+       <div class="progress-buffer-bar" style="width: buffer%" />   <!-- the background track -->
      indeterminate:
        <div class="progress-buffer-bar">
          <div class="indeterminate-bar-primary"><span class="progress-indeterminate" /></div>
          <div class="indeterminate-bar-secondary"><span class="progress-indeterminate" /></div>
        </div>
    Ionic scales the fill with `transform: scaleX(value)`; Miko has no `scaleX(var)` in a static
-   stylesheet, so the fill/buffer width is bound as an inline Length.Percent computed in @code.
-   The indeterminate stripes are rendered static (animation is a marker only). *@
+   stylesheet, so the fill/buffer width is bound as an inline Length.Percent computed in @code. *@
 <div class="@ClassMapper.Class">
     @if (IsIndeterminate)
     {
         <div class="progress-buffer-bar">
-            <div class="indeterminate-bar-primary">
-                <span class="progress-indeterminate"></span>
+            <div class="indeterminate-bar-primary" style="@_primaryTranslateStyle">
+                <span class="progress-indeterminate" style="@_primaryScaleStyle"></span>
             </div>
-            <div class="indeterminate-bar-secondary">
-                <span class="progress-indeterminate"></span>
+            <div class="indeterminate-bar-secondary" style="@_secondaryTranslateStyle">
+                <span class="progress-indeterminate" style="@_secondaryScaleStyle"></span>
             </div>
         </div>
     }
     else
     {
-        @if (_showBuffer)
-        {
-            <div class="progress-buffer-bar" style="@_bufferStyle"></div>
-        }
         <div class="progress" style="@_progressStyle"></div>
+        <div class="@_bufferCirclesContainerClass" style="@_bufferCirclesOuterStyle">
+            <div class="buffer-circles-container" style="@_bufferCirclesInnerStyle">
+                <div class="buffer-circles" style="@_bufferCirclesStyle"></div>
+            </div>
+        </div>
+        <div class="progress-buffer-bar" style="@_bufferStyle"></div>
     }
 </div>
 
@@ -56,7 +61,14 @@
 
     private Style? _progressStyle;
     private Style? _bufferStyle;
-    private bool _showBuffer;
+    private Style? _bufferCirclesOuterStyle;
+    private Style? _bufferCirclesInnerStyle;
+    private Style? _bufferCirclesStyle;
+    private string _bufferCirclesContainerClass = "buffer-circles-container ion-hide";
+    private Style? _primaryTranslateStyle;
+    private Style? _primaryScaleStyle;
+    private Style? _secondaryTranslateStyle;
+    private Style? _secondaryScaleStyle;
 
     private bool IsIndeterminate => string.Equals(Type, "indeterminate", StringComparison.OrdinalIgnoreCase);
 
@@ -64,7 +76,7 @@
     {
         var type = NormalizeToken(Type, "determinate");
         var buffer = Clamp01(Buffer);
-        // A solid bar has no buffer track (buffer == 1); the iOS solid style keys off this class.
+        // A solid bar still renders its full-width track; the class selects Ionic's iOS treatment.
         var progressSolid = buffer >= 1d;
 
         ClassMapper
@@ -82,11 +94,99 @@
         // (Ionic uses transform: scaleX; we express the same proportion as a percentage width.)
         var value = Clamp01(Value);
         _progressStyle = new Style { Width = Length.Percent((float)(value * 100)) };
-        _showBuffer = !progressSolid;
-        _bufferStyle = _showBuffer
-            ? new Style { Width = Length.Percent((float)(buffer * 100)) }
-            : null;
+        _bufferStyle = new Style { Width = Length.Percent((float)(buffer * 100)) };
+        _bufferCirclesContainerClass = progressSolid
+            ? "buffer-circles-container ion-hide"
+            : "buffer-circles-container";
+        _bufferCirclesOuterStyle = new Style
+        {
+            Transform = TranslateX(Length.Percent((float)(buffer * 100))),
+        };
+        _bufferCirclesInnerStyle = new Style
+        {
+            Transform = TranslateX(Length.Percent((float)(buffer * -100))),
+        };
+        _bufferCirclesStyle = progressSolid
+            ? null
+            : AnimationStyle(
+                "buffering",
+                0.45f,
+                (0f, TranslateX(Length.Px(0))),
+                (1f, TranslateX(Length.Px(-10))));
+
+        if (IsIndeterminate)
+        {
+            BuildIndeterminateAnimationStyles();
+        }
+        else
+        {
+            _primaryTranslateStyle = null;
+            _primaryScaleStyle = null;
+            _secondaryTranslateStyle = null;
+            _secondaryScaleStyle = null;
+        }
     }
+
+    private void BuildIndeterminateAnimationStyles()
+    {
+        _primaryTranslateStyle = AnimationStyle(
+            "primary-indeterminate-translate",
+            2f,
+            (0f, TranslateX(0f)),
+            (0.2f, TranslateX(0f)),
+            (0.5915f, TranslateX(83.67142f)),
+            (1f, TranslateX(200.611057f)));
+
+        _primaryScaleStyle = AnimationStyle(
+            "primary-indeterminate-scale",
+            2f,
+            (0f, ScaleX(0.08f)),
+            (0.3665f, ScaleX(0.08f)),
+            (0.6915f, ScaleX(0.661479f)),
+            (1f, ScaleX(0.08f)));
+
+        _secondaryTranslateStyle = AnimationStyle(
+            "secondary-indeterminate-translate",
+            2f,
+            (0f, TranslateX(0f)),
+            (0.25f, TranslateX(37.651913f)),
+            (0.4835f, TranslateX(84.386165f)),
+            (1f, TranslateX(160.277782f)));
+
+        _secondaryScaleStyle = AnimationStyle(
+            "secondary-indeterminate-scale",
+            2f,
+            (0f, ScaleX(0.08f)),
+            (0.1915f, ScaleX(0.457104f)),
+            (0.4415f, ScaleX(0.72796f)),
+            (1f, ScaleX(0.08f)));
+    }
+
+    private static Style AnimationStyle(
+        string name,
+        float duration,
+        params (float Offset, Transform Transform)[] frames)
+        => new()
+        {
+            Animations = new List<KeyframeAnimation>
+            {
+                new(name, duration, frames.Select(frame =>
+                    new Keyframe(frame.Offset, new Style { Transform = frame.Transform })).ToArray())
+                {
+                    Infinite = true,
+                    TimingFunction = TimingFunction.Linear,
+                },
+            },
+        };
+
+    private static Transform TranslateX(float percent)
+        => new(new TransformFunction.TranslateX(Length.Percent(percent)));
+
+    private static Transform TranslateX(Length distance)
+        => new(new TransformFunction.TranslateX(distance));
+
+    private static Transform ScaleX(float scale)
+        => new(new TransformFunction.ScaleX(scale));
 
     private static double Clamp01(double v) => v < 0d ? 0d : v > 1d ? 1d : v;
 

@@ -146,6 +146,9 @@ public class EventDispatcher
             case EventTypes.MouseUp when args is MouseEventArgs mouseArgs:
                 element.OnMouseUp?.Invoke(mouseArgs);
                 break;
+            case EventTypes.MouseMove when args is MouseEventArgs mouseArgs:
+                element.OnMouseMove?.Invoke(mouseArgs);
+                break;
             case EventTypes.Focus when args is FocusEventArgs focusArgs:
                 element.OnFocus?.Invoke(focusArgs);
                 break;

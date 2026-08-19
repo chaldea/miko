@@ -66,6 +66,18 @@ public class IonRadioTests : IonicComponentTestBase
         }
     };
 
+    private static ComponentUnderTest RenderRadioInItem(TestContext ctx,
+        string? justify = null, string? labelPlacement = null, string label = "Radio in an Item")
+        => ctx.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(b =>
+        {
+            b.OpenComponent<IonRadio>(0);
+            b.AddAttribute(1, nameof(IonRadio.Value), "a");
+            b.AddAttribute(2, nameof(IonRadio.ChildContent), Label(label));
+            if (justify is not null) b.AddAttribute(3, nameof(IonRadio.Justify), justify);
+            if (labelPlacement is not null) b.AddAttribute(4, nameof(IonRadio.LabelPlacement), labelPlacement);
+            b.CloseComponent();
+        })));
+
     // ---- DOM contract ------------------------------------------------------
 
     [Fact]
@@ -125,6 +137,22 @@ public class IonRadioTests : IonicComponentTestBase
         radio.ShouldHaveClass("radio-alignment-center");
         radio.ShouldHaveClass("ion-color");
         radio.ShouldHaveClass("ion-color-danger");
+    }
+
+    [Fact]
+    public void IonRadio_InsideItem_StampsInItemClass()
+    {
+        var cut = RenderRadioInItem(Context);
+
+        cut.FindByClass("ion-radio").Single().ShouldHaveClass("in-item");
+    }
+
+    [Fact]
+    public void IonRadio_Standalone_DoesNotStampInItemClass()
+    {
+        var cut = Context.Render<IonRadio>(p => p.Add(nameof(IonRadio.Value), "a"));
+
+        cut.Root.ShouldNotHaveClass("in-item");
     }
 
     [Fact]
@@ -280,5 +308,117 @@ public class IonRadioTests : IonicComponentTestBase
 
         var inner = cut.FindByClass("radio-inner").Single();
         cut.GetComputedStyle(inner)!.Opacity.ShouldBe(0f);
+    }
+
+    [Theory]
+    [InlineData("start", FlexDirection.Row)]
+    [InlineData("end", FlexDirection.RowReverse)]
+    [InlineData("stacked", FlexDirection.Column)]
+    public void IonRadio_Style_LabelPlacementChangesWrapperDirection(
+        string placement, FlexDirection expected)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, Radio("a", labelPlacement: placement));
+        var wrapper = cut.FindByClass("radio-wrapper").Single();
+
+        cut.GetComputedStyle(wrapper)!.FlexDirection.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IonRadio_Style_FixedPlacementGivesLabelFixedWidth()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, Radio("a", labelPlacement: "fixed"));
+        var label = cut.GetComputedStyle(cut.FindByClass("label-text-wrapper").Single())!;
+
+        label.Width.ShouldBe(Length.Px(100));
+        label.FlexBasis.ShouldBe(Length.Px(100));
+    }
+
+    [Fact]
+    public void IonRadio_Style_JustifyStartUsesAbsoluteStartAndBlockHost()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context,
+            Radio("a", justify: "start", labelPlacement: "end"));
+        var radio = cut.FindByClass("ion-radio").Single();
+        var wrapper = radio.FindByClass("radio-wrapper").Single();
+
+        cut.GetComputedStyle(radio)!.Display.ShouldBe(Display.Block);
+        cut.GetComputedStyle(wrapper)!.JustifyContent.ShouldBe(JustifyContent.Start);
+        cut.GetComputedStyle(wrapper)!.FlexDirection.ShouldBe(FlexDirection.RowReverse);
+    }
+
+    [Fact]
+    public void IonRadio_Style_AlignmentStartAlignsWrapper()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, Radio("a", alignment: "start"));
+        var wrapper = cut.FindByClass("radio-wrapper").Single();
+
+        cut.GetComputedStyle(wrapper)!.AlignItems.ShouldBe(AlignItems.FlexStart);
+    }
+
+    [Fact]
+    public void IonRadio_Style_InItemHostGrowsAndLabelGetsMargins()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderRadioInItem(Context);
+        var host = cut.GetComputedStyle(cut.FindByClass("ion-radio").Single())!;
+        var label = cut.GetComputedStyle(cut.FindByClass("label-text-wrapper").Single())!;
+
+        host.FlexGrow.ShouldBe(1f);
+        host.FlexShrink.ShouldBe(1f);
+        host.FlexBasis.ShouldBe(Length.Px(0));
+        label.MarginTop.ShouldBe(Length.Px(10));
+        label.MarginBottom.ShouldBe(Length.Px(10));
+    }
+
+    [Fact]
+    public void IonRadio_Style_InItemStackedUsesStackedVerticalRhythm()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderRadioInItem(Context, labelPlacement: "stacked");
+        var label = cut.GetComputedStyle(cut.FindByClass("label-text-wrapper").Single())!;
+        var native = cut.GetComputedStyle(cut.FindByClass("native-wrapper").Single())!;
+
+        label.MarginTop.ShouldBe(Length.Px(10));
+        label.MarginBottom.ShouldBe(Length.Px(16));
+        native.MarginBottom.ShouldBe(Length.Px(10));
+    }
+
+    [Fact]
+    public void IonRadio_Style_MdColorTintsCheckedRingAndDot()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, Radio("a", color: "danger"),
+            p => p.Add(nameof(IonRadioGroup.Value), "a"));
+        var expected = IonicTheme.CreateMd().Danger;
+        var icon = cut.GetComputedStyle(cut.FindByClass("radio-icon").Single())!;
+        var inner = cut.GetComputedStyle(cut.FindByClass("radio-inner").Single())!;
+
+        icon.BorderTopColor.ShouldBe(expected);
+        inner.BackgroundColor.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IonRadio_Style_IosColorTintsCheckedMark()
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderGroup(Context, Radio("a", color: "success"),
+            p => p.Add(nameof(IonRadioGroup.Value), "a"));
+        var expected = IonicTheme.CreateIos().Success;
+        var inner = cut.GetComputedStyle(cut.FindByClass("radio-inner").Single())!;
+
+        inner.Color.ShouldBe(expected);
     }
 }

@@ -247,6 +247,8 @@ public class RenderTreeBuilder
                 element.OnMouseDown = arg => _ = mc.InvokeAsync(arg); break;
             case "onmouseup" when callback is EventCallback<MouseEventArgs> mc:
                 element.OnMouseUp = arg => _ = mc.InvokeAsync(arg); break;
+            case "onmousemove" when callback is EventCallback<MouseEventArgs> mc:
+                element.OnMouseMove = arg => _ = mc.InvokeAsync(arg); break;
             case "onfocus" when callback is EventCallback<FocusEventArgs> fc:
                 element.OnFocus = arg => _ = fc.InvokeAsync(arg); break;
             case "onblur" when callback is EventCallback<FocusEventArgs> fc:

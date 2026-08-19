@@ -43,12 +43,16 @@
     /// <summary>Toolbar context cascaded from <see cref="IonToolbar"/> / <see cref="IonButtons"/>.</summary>
     [CascadingParameter] private ToolbarContext? ToolbarContext { get; set; }
 
+    /// <summary>Presence marker cascaded by an enclosing <see cref="IonListHeader"/>.</summary>
+    [CascadingParameter] private IonListHeaderContext? ListHeaderContext { get; set; }
+
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
     /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to fill / text color.</summary>
     [Parameter] public string? Color { get; set; }
 
     /// <summary>Fill style (Ionic <c>fill</c>): <c>"solid"</c> (default), <c>"outline"</c>, or
-    /// <c>"clear"</c>. Null defaults to solid outside a toolbar.</summary>
+    /// <c>"clear"</c>. Null defaults to clear inside toolbar button groups and list headers,
+    /// otherwise solid.</summary>
     [Parameter] public string? Fill { get; set; }
 
     /// <summary>Width expansion (Ionic <c>expand</c>): <c>"block"</c> (full-width) or
@@ -91,14 +95,15 @@
     {
         // Ionic resolves `fill` at render: solid by default, but clear inside a toolbar
         // (button.tsx `fill = this.inToolbar || this.inListHeader ? 'clear' : 'solid'`).
-        // A cascaded ToolbarContext tells us we're in a toolbar; InButtons narrows to the
-        // buttons-group case (Ionic's `closest('ion-buttons')`), which flips the default fill.
+        // Cascaded contexts model Ionic's ancestor checks. InButtons narrows toolbar handling to
+        // the buttons-group case; any button inside a list header also defaults to clear.
         // An explicit Fill parameter always wins (hasExplicitFill guards prevent the flip).
         var hasExplicitFill = !string.IsNullOrEmpty(Fill);
         var inToolbar = ToolbarContext is not null;
         var inButtons = ToolbarContext?.InButtons == true;
+        var inListHeader = ListHeaderContext is not null;
         var fill = hasExplicitFill ? Fill!.ToLowerInvariant()
-                   : inButtons ? "clear"
+                   : inButtons || inListHeader ? "clear"
                    : "solid";
 
         ClassMapper

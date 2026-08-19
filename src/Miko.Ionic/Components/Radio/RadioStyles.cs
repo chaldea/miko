@@ -53,6 +53,7 @@ internal static class RadioStyles
                 Color = t.ItemColor,
                 FontSize = Length.Px(t.SelectFontSize),
                 BoxSizing = BoxSizing.BorderBox,
+                MaxWidth = Length.Percent(100),
             },
 
             // .radio-wrapper — the flex click surface. Grows to fill the host, centers the box and
@@ -79,6 +80,7 @@ internal static class RadioStyles
                 WhiteSpace = WhiteSpace.Nowrap,
                 OverflowX = Overflow.Hidden,
                 OverflowY = Overflow.Hidden,
+                TextOverflow = TextOverflow.Ellipsis,
             },
             [$".ion-radio.{mode} .label-text-wrapper-hidden"] = new()
             {
@@ -109,33 +111,6 @@ internal static class RadioStyles
                 PointerEvents = PointerEvents.None,
             },
 
-            // Justify / alignment — setting either switches the host to block (Ionic's rule).
-            [$".ion-radio.{mode}.radio-justify-space-between .radio-wrapper"] = new()
-            {
-                JustifyContent = JustifyContent.SpaceBetween,
-            },
-            [$".ion-radio.{mode}.radio-justify-start .radio-wrapper"] = new()
-            {
-                JustifyContent = JustifyContent.FlexStart,
-            },
-            [$".ion-radio.{mode}.radio-justify-end .radio-wrapper"] = new()
-            {
-                JustifyContent = JustifyContent.FlexEnd,
-            },
-            [$".ion-radio.{mode}.radio-alignment-start .radio-wrapper"] = new()
-            {
-                AlignItems = AlignItems.FlexStart,
-            },
-            [$".ion-radio.{mode}.radio-alignment-center .radio-wrapper"] = new()
-            {
-                AlignItems = AlignItems.Center,
-            },
-            [$".ion-radio.{mode}.radio-justify-space-between"] = new() { Display = Display.Block },
-            [$".ion-radio.{mode}.radio-justify-start"] = new() { Display = Display.Block },
-            [$".ion-radio.{mode}.radio-justify-end"] = new() { Display = Display.Block },
-            [$".ion-radio.{mode}.radio-alignment-start"] = new() { Display = Display.Block },
-            [$".ion-radio.{mode}.radio-alignment-center"] = new() { Display = Display.Block },
-
             // Label placement — start (default): label left, radio right, margin on the label end.
             [$".ion-radio.{mode}.radio-label-placement-start .radio-wrapper"] = new()
             {
@@ -147,11 +122,10 @@ internal static class RadioStyles
                 MarginLeft = Length.Px(0),
             },
 
-            // Label placement — end: radio left, label right (row-reverse), packed to the start.
+            // Label placement — end: radio left, label right (row-reverse).
             [$".ion-radio.{mode}.radio-label-placement-end .radio-wrapper"] = new()
             {
                 FlexDirection = FlexDirection.RowReverse,
-                JustifyContent = JustifyContent.FlexStart,
             },
             [$".ion-radio.{mode}.radio-label-placement-end .label-text-wrapper"] = new()
             {
@@ -187,6 +161,85 @@ internal static class RadioStyles
                 MarginBottom = Length.Px(LabelMargin),
                 MaxWidth = Length.Percent(100),
             },
+
+            // Justify / alignment are intentionally declared after label placement. With equal
+            // specificity, this lets an explicit Justify override any placement default. Ionic
+            // uses the absolute start/end keywords, which do not flip under row-reverse.
+            [$".ion-radio.{mode}.radio-justify-space-between .radio-wrapper"] = new()
+            {
+                JustifyContent = JustifyContent.SpaceBetween,
+            },
+            [$".ion-radio.{mode}.radio-justify-start .radio-wrapper"] = new()
+            {
+                JustifyContent = JustifyContent.Start,
+            },
+            [$".ion-radio.{mode}.radio-justify-end .radio-wrapper"] = new()
+            {
+                JustifyContent = JustifyContent.End,
+            },
+            [$".ion-radio.{mode}.radio-alignment-start .radio-wrapper"] = new()
+            {
+                AlignItems = AlignItems.FlexStart,
+            },
+            [$".ion-radio.{mode}.radio-alignment-center .radio-wrapper"] = new()
+            {
+                AlignItems = AlignItems.Center,
+            },
+            [$".ion-radio.{mode}.radio-justify-space-between"] = new() { Display = Display.Block },
+            [$".ion-radio.{mode}.radio-justify-start"] = new() { Display = Display.Block },
+            [$".ion-radio.{mode}.radio-justify-end"] = new() { Display = Display.Block },
+            [$".ion-radio.{mode}.radio-alignment-start"] = new() { Display = Display.Block },
+            [$".ion-radio.{mode}.radio-alignment-center"] = new() { Display = Display.Block },
+
+            // In-item: fill the item's content area. Radios placed in the item's start/end slots
+            // reset to their intrinsic size, matching Ionic's slot-specific rule.
+            [$".ion-radio.{mode}.in-item"] = new()
+            {
+                FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = Length.Px(0),
+                Width = Length.Percent(100),
+                Height = Length.Percent(100),
+            },
+            [$".ion-slot-start .ion-radio.{mode}.in-item"] = new()
+            {
+                FlexGrow = 0,
+                FlexShrink = 0,
+                FlexBasis = Length.Auto,
+                Width = Length.Auto,
+                Height = Length.Auto,
+            },
+            [$".ion-slot-end .ion-radio.{mode}.in-item"] = new()
+            {
+                FlexGrow = 0,
+                FlexShrink = 0,
+                FlexBasis = Length.Auto,
+                Width = Length.Auto,
+                Height = Length.Auto,
+            },
+
+            // Miko has no Length.Inherit, so mirror the in-item host's height on the wrapper.
+            [$".ion-radio.{mode}.in-item .radio-wrapper"] = new()
+            {
+                Height = Length.Percent(100),
+            },
+
+            // Ionic radio.vars.scss: an in-item label has 10px vertical margins. For stacked
+            // placement the label-to-control gap is 16px and the control retains 10px below it.
+            [$".ion-radio.{mode}.in-item .label-text-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(10),
+            },
+            [$".ion-radio.{mode}.in-item.radio-label-placement-stacked .label-text-wrapper"] = new()
+            {
+                MarginTop = Length.Px(10),
+                MarginBottom = Length.Px(LabelMargin),
+            },
+            [$".ion-radio.{mode}.in-item.radio-label-placement-stacked .native-wrapper"] = new()
+            {
+                MarginBottom = Length.Px(10),
+            },
         };
 
         if (mode == "md")
@@ -198,7 +251,41 @@ internal static class RadioStyles
             GenIos(css, t);
         }
 
+        AddColor(css, mode, "primary", t.Primary);
+        AddColor(css, mode, "secondary", t.Secondary);
+        AddColor(css, mode, "tertiary", t.Tertiary);
+        AddColor(css, mode, "success", t.Success);
+        AddColor(css, mode, "warning", t.Warning);
+        AddColor(css, mode, "danger", t.Danger);
+        AddColor(css, mode, "light", t.Light);
+        AddColor(css, mode, "medium", t.Medium);
+        AddColor(css, mode, "dark", t.Dark);
+
         return css;
+    }
+
+    /// <summary>Resolves Ionic's <c>current-color(base)</c> radio variables for one palette entry.
+    /// MD colors both the checked outer ring and inner dot; iOS tints the checked mark.</summary>
+    private static void AddColor(CssObject css, string mode, string name, Color baseColor)
+    {
+        if (mode == "md")
+        {
+            css[$".ion-radio.{mode}.ion-color-{name}.radio-checked .radio-icon"] = new()
+            {
+                BorderColor = baseColor,
+            };
+            css[$".ion-radio.{mode}.ion-color-{name} .radio-inner"] = new()
+            {
+                BackgroundColor = baseColor,
+            };
+        }
+        else
+        {
+            css[$".ion-radio.{mode}.ion-color-{name}.radio-checked .radio-inner"] = new()
+            {
+                Color = baseColor,
+            };
+        }
     }
 
     // Material Design: outer ring + inner filled circle.

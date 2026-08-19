@@ -1,3 +1,4 @@
+using Miko.Animation;
 using Miko.Common;
 using Miko.Styling;
 
@@ -11,9 +12,9 @@ namespace Miko.Ionic.Components;
 /// <c>.progress-buffer-bar</c> is the track (background = primary @ .3) and the <c>.progress</c> is
 /// the value fill (background = solid primary), both absolutely positioned and filling the host
 /// height. Their horizontal extent scales with buffer / value — Ionic uses <c>transform:
-/// scaleX()</c>, but here the width is bound inline as a percentage (see the razor), so these rules
-/// intentionally do not pin a width. Indeterminate mode renders two stripe bars
-/// (<c>.indeterminate-bar-primary/secondary</c>); their sliding animation is a marker only.
+/// scaleX()</c>, but here determinate widths are bound inline as percentages (see the razor).
+/// The track defaults to full width for indeterminate mode. Indeterminate mode renders two stripe bars
+/// (<c>.indeterminate-bar-primary/secondary</c>) with keyframe animations bound by the component.
 /// </para>
 /// </summary>
 internal static class ProgressBarStyles
@@ -27,7 +28,7 @@ internal static class ProgressBarStyles
         var css = new CssObject
         {
             // ion-progress-bar — the host. Ionic's :host: block, relative, full width, fixed height,
-            // clipped. No background of its own (the buffer bar / track supplies it).
+            // clipped. The always-present buffer bar supplies the visible background track.
             [$".ion-progress-bar.{mode}"] = new()
             {
                 Display = Display.Block,
@@ -37,6 +38,13 @@ internal static class ProgressBarStyles
                 BorderRadius = radius,
                 OverflowX = Overflow.Hidden,
                 OverflowY = Overflow.Hidden,
+            },
+
+            // Reversing the host mirrors every fill and animation around its center, matching
+            // Ionic's :host(.progress-bar-reversed) { transform: scaleX(-1) }.
+            [$".ion-progress-bar.{mode}.progress-bar-reversed"] = new()
+            {
+                Transform = Transform.FromScale(-1f, 1f),
             },
 
             // .progress — the value fill. Absolutely positioned, full-height, solid primary; sits
@@ -49,6 +57,8 @@ internal static class ProgressBarStyles
                 Bottom = Length.Px(0),
                 Height = Length.Percent(100),
                 BackgroundColor = t.ProgressBarProgressBackground,
+                TransformOrigin = TransformOrigin.TopLeft,
+                ZIndex = 2,
             },
 
             // .progress-buffer-bar — the track. Full-height, primary @ .3; below the fill. Width comes
@@ -60,17 +70,44 @@ internal static class ProgressBarStyles
                 Top = Length.Px(0),
                 Left = Length.Px(0),
                 Bottom = Length.Px(0),
+                Width = Length.Percent(100),
                 Height = Length.Percent(100),
                 BackgroundColor = t.ProgressBarBackground,
+                ZIndex = 1,
             },
 
-            // Indeterminate stripe bars — absolutely positioned, full size, solid primary. The
-            // left-to-right slide animation is not modeled; the classes are markers.
-            [$".ion-progress-bar.{mode} .indeterminate-bar-primary"] = new()
+            // Buffer stream: two translated clipping containers expose only the unbuffered range.
+            [$".ion-progress-bar.{mode} .buffer-circles-container"] = new()
             {
                 Position = Position.Absolute,
                 Top = Length.Px(0),
                 Left = Length.Px(0),
+                Width = Length.Percent(100),
+                Height = Length.Percent(100),
+                OverflowX = Overflow.Hidden,
+                OverflowY = Overflow.Hidden,
+            },
+            [$".ion-progress-bar.{mode} .buffer-circles"] = new()
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(0),
+                Right = Length.Px(-10),
+                Bottom = Length.Px(0),
+                Left = Length.Px(-10),
+                Height = Length.Percent(100),
+                BoxSizing = BoxSizing.BorderBox,
+                BorderTopWidth = Length.Px(t.ProgressBarHeight),
+                BorderTopStyle = BorderStyle.Dotted,
+                BorderTopColor = t.ProgressBarBackground,
+                ZIndex = 0,
+            },
+
+            // Ionic offsets the two stripe containers before their translate animations run.
+            [$".ion-progress-bar.{mode} .indeterminate-bar-primary"] = new()
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(0),
+                Left = Length.Percent(-145.166611f),
                 Width = Length.Percent(100),
                 Height = Length.Percent(100),
             },
@@ -78,7 +115,7 @@ internal static class ProgressBarStyles
             {
                 Position = Position.Absolute,
                 Top = Length.Px(0),
-                Left = Length.Px(0),
+                Left = Length.Percent(-54.888891f),
                 Width = Length.Percent(100),
                 Height = Length.Percent(100),
             },
@@ -90,6 +127,8 @@ internal static class ProgressBarStyles
                 Width = Length.Percent(100),
                 Height = Length.Percent(100),
                 BackgroundColor = t.ProgressBarProgressBackground,
+                TransformOrigin = TransformOrigin.TopLeft,
+                ZIndex = 2,
             },
         };
 
@@ -123,6 +162,10 @@ internal static class ProgressBarStyles
         css[$".ion-progress-bar.{mode}.ion-color-{name} .progress-buffer-bar"] = new()
         {
             BackgroundColor = track,
+        };
+        css[$".ion-progress-bar.{mode}.ion-color-{name} .buffer-circles"] = new()
+        {
+            BorderTopColor = track,
         };
     }
 }

@@ -1,4 +1,5 @@
 using Miko.Common;
+using Miko.Animation;
 using Miko.Styling;
 
 namespace Miko.Ionic.Components;
@@ -17,7 +18,8 @@ namespace Miko.Ionic.Components;
 /// <para>
 /// Hardcoded from vars (kept off the shared <c>IonicTheme</c>): md bar-height 2px, knob 18px, slider
 /// 42px, pin 28px; ios bar-height 4px, knob 26px, slider 42px, bar radius 2px, knob box-shadow. Bar
-/// active / knob / pin use the primary color (theme token). The bar's inactive track uses a light
+/// active / knob / pin use the primary color (theme token), with named <c>Color</c> variants emitted
+/// as more-specific overrides. The bar's inactive track uses a light
 /// neutral (md a translucent primary, ios a grey step) — both hardcoded here. Disabled: md dims the
 /// label 0.38; ios dims the whole host 0.3.
 /// </para>
@@ -109,6 +111,7 @@ internal static class RangeStyles
                 Width = Length.Percent(100),
                 Height = Length.Px(barHeight),
                 BorderRadius = barRadius,
+                PointerEvents = PointerEvents.None,
             },
 
             // .range-bar — the inactive track (full width).
@@ -144,6 +147,7 @@ internal static class RangeStyles
                 Width = Length.Px(handleSize),
                 Height = Length.Px(handleSize),
                 TextAlign = TextAlign.Center,
+                PointerEvents = PointerEvents.None,
             },
 
             // .range-knob — the draggable thumb. Centered within the handle, circular, on top.
@@ -167,6 +171,13 @@ internal static class RangeStyles
                 JustifyContent = JustifyContent.Center,
                 TextAlign = TextAlign.Center,
                 BoxSizing = BoxSizing.BorderBox,
+                PointerEvents = PointerEvents.None,
+            },
+
+            [$".ion-range.{mode} .range-pin-arrow"] = new()
+            {
+                Display = Display.None,
+                PointerEvents = PointerEvents.None,
             },
 
             // Label placement — start (default): label left, slider right.
@@ -220,6 +231,15 @@ internal static class RangeStyles
 
         if (mode == "md")
         {
+            css[".ion-range.md.range-has-pin:not(.range-label-placement-stacked)"] = new()
+            {
+                PaddingTop = Length.Px(MdPinDimension),
+            };
+            css[".ion-range.md.range-has-pin.range-label-placement-stacked .label-text-wrapper"] = new()
+            {
+                MarginBottom = Length.Px(MdPinDimension),
+            };
+
             // md knob background = active bar color; no shadow. Pin is a filled primary circle.
             css[".ion-range.md .range-knob"] = new()
             {
@@ -240,11 +260,26 @@ internal static class RangeStyles
                 JustifyContent = JustifyContent.Center,
                 Width = Length.Px(MdPinDimension),
                 Height = Length.Px(MdPinDimension),
+                Top = Length.Px(-19),
                 BorderRadius = new BorderRadius(Length.Percent(50)),
                 BackgroundColor = t.Primary,      // --pin-background
                 Color = Color.White,              // --pin-color (primary contrast)
                 FontSize = Length.Px(12),         // $range-md-pin-font-size
                 BoxSizing = BoxSizing.BorderBox,
+                ZIndex = 3,
+                PointerEvents = PointerEvents.None,
+            };
+            css[".ion-range.md .range-pin-arrow"] = new()
+            {
+                Display = Display.Block,
+                Position = Position.Absolute,
+                Left = Length.Px(9),
+                Bottom = Length.Px(-3),
+                Width = Length.Px(10),
+                Height = Length.Px(10),
+                BackgroundColor = t.Primary,
+                Transform = new Transform(new TransformFunction.Rotate(45)),
+                PointerEvents = PointerEvents.None,
             };
 
             // Disabled: label dims; the bars turn to a neutral grey (approximated with the track grey).
@@ -255,6 +290,16 @@ internal static class RangeStyles
         }
         else
         {
+            const float iosPinBuffer = 20f; // 8px vertical padding + 12px pin font size
+            css[".ion-range.ios.range-has-pin:not(.range-label-placement-stacked)"] = new()
+            {
+                PaddingTop = Length.Px(iosPinBuffer),
+            };
+            css[".ion-range.ios.range-has-pin.range-label-placement-stacked .label-text-wrapper"] = new()
+            {
+                MarginBottom = Length.Px(iosPinBuffer),
+            };
+
             // ios knob is a white circle with a soft shadow.
             css[".ion-range.ios .range-knob"] = new()
             {
@@ -280,11 +325,19 @@ internal static class RangeStyles
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.Center,
                 MinWidth = Length.Px(28),         // $range-ios pin min-width
+                Height = Length.Px(28),
+                Top = Length.Px(-15),
+                PaddingTop = Length.Px(8),
+                PaddingRight = Length.Px(8),
+                PaddingBottom = Length.Px(8),
+                PaddingLeft = Length.Px(8),
                 BackgroundColor = Color.Transparent, // $range-ios-pin-background-color
                 Color = t.ItemColor,              // $range-ios-pin-color (text)
                 FontSize = Length.Px(12),         // $range-ios-pin-font-size
                 TextAlign = TextAlign.Center,
                 BoxSizing = BoxSizing.BorderBox,
+                ZIndex = 3,
+                PointerEvents = PointerEvents.None,
             };
 
             // Disabled: ios dims the whole host.
@@ -295,6 +348,63 @@ internal static class RangeStyles
             };
         }
 
+        // Named palette colors (range.md.scss / range.ios.scss `:host(.ion-color)` rules).
+        // Resolve the current-color tokens here because Miko emits concrete CSS values rather
+        // than CSS custom properties. The color selectors are more specific than the mode-only
+        // defaults above, so an explicit Color parameter wins over the primary defaults.
+        AddColor(css, mode, "primary", t.Primary);
+        AddColor(css, mode, "secondary", t.Secondary);
+        AddColor(css, mode, "tertiary", t.Tertiary);
+        AddColor(css, mode, "success", t.Success);
+        AddColor(css, mode, "warning", t.Warning);
+        AddColor(css, mode, "danger", t.Danger);
+        AddColor(css, mode, "light", t.Light);
+        AddColor(css, mode, "medium", t.Medium);
+        AddColor(css, mode, "dark", t.Dark);
+
         return css;
     }
+
+    private static void AddColor(CssObject css, string mode, string name, Color baseColor)
+    {
+        if (mode == "md")
+        {
+            var track = new Color(baseColor.R, baseColor.G, baseColor.B, 66); // base @ .26 alpha
+            var contrast = GetContrastColor(name);
+
+            css[$".ion-range.md.ion-color-{name} .range-bar"] = new()
+            {
+                BackgroundColor = track,
+            };
+            css[$".ion-range.md.ion-color-{name} .range-bar-active"] = new()
+            {
+                BackgroundColor = baseColor,
+            };
+            css[$".ion-range.md.ion-color-{name} .range-knob"] = new()
+            {
+                BackgroundColor = baseColor,
+            };
+            css[$".ion-range.md.ion-color-{name} .range-pin"] = new()
+            {
+                BackgroundColor = baseColor,
+                Color = contrast,
+            };
+            css[$".ion-range.md.ion-color-{name} .range-pin-arrow"] = new()
+            {
+                BackgroundColor = baseColor,
+            };
+        }
+        else
+        {
+            // iOS keeps its white knob and transparent pin; only the active bar is colorized.
+            css[$".ion-range.ios.ion-color-{name} .range-bar-active"] = new()
+            {
+                BackgroundColor = baseColor,
+            };
+        }
+    }
+
+    private static Color GetContrastColor(string name) => name is "success" or "warning" or "light"
+        ? Color.Black
+        : Color.White;
 }

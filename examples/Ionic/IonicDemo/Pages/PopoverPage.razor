@@ -11,11 +11,13 @@
                 <IonBackButton DefaultHref="/"></IonBackButton>
             </Start>
             <End>
-                <IonButton OnClick="@ShowPopover">
-                    <IconOnly>
-                        <IonIcon Ios="@Ionicons.EllipsisHorizontal" Md="@Ionicons.EllipsisVertical" Slot="icon-only"></IonIcon>
-                    </IconOnly>
-                </IonButton>
+                <IonButtons>
+                    <IonButton OnClick="@ShowPopover">
+                        <IconOnly>
+                            <IonIcon Ios="@Ionicons.EllipsisHorizontal" Md="@Ionicons.EllipsisVertical" Slot="icon-only"></IonIcon>
+                        </IconOnly>
+                    </IonButton>
+                </IonButtons>
             </End>
             <ChildContent>
                 <IonTitle>Popover</IonTitle>
