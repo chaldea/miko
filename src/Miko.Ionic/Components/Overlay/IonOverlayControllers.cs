@@ -14,6 +14,7 @@ public sealed class IonModalOptions
     public object? Presenting { get; set; }
     public double[]? Breakpoints { get; set; }
     public double? InitialBreakpoint { get; set; }
+    public bool? Handle { get; set; }
 }
 
 public sealed class IonAlertOptions
@@ -84,8 +85,9 @@ public sealed class IonModalController : IonOverlayControllerBase
             builder.AddComponentParameter(5, nameof(IonModal.Presenting), options.Presenting);
             builder.AddComponentParameter(6, nameof(IonModal.Breakpoints), options.Breakpoints);
             builder.AddComponentParameter(7, nameof(IonModal.InitialBreakpoint), options.InitialBreakpoint);
-            builder.AddComponentParameter(8, nameof(IonModal.OnDidDismiss), DismissCallback(overlay));
-            builder.AddComponentParameter(9, nameof(IonModal.ChildContent), BuildModalContent(options));
+            builder.AddComponentParameter(8, nameof(IonModal.Handle), options.Handle);
+            builder.AddComponentParameter(9, nameof(IonModal.OnDidDismiss), DismissCallback(overlay));
+            builder.AddComponentParameter(10, nameof(IonModal.ChildContent), BuildModalContent(options));
             builder.CloseComponent();
         }));
 

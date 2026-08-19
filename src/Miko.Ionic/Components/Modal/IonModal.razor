@@ -1,19 +1,8 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-@* Mirrors Ionic's <ion-modal> (modal.tsx render()):
-   <ion-modal class="{mode} modal-default|modal-card|modal-sheet overlay-hidden?" role="dialog">
-     <ion-backdrop />                                <!-- tappable dim layer -->
-     [<div class="modal-shadow" />]                  <!-- ios only -->
-     <div class="modal-wrapper ion-overlay-wrapper"> <!-- the centered card -->
-       <slot />                                       <!-- @ChildContent: usually IonHeader + IonContent -->
-     </div>
-   </ion-modal>
-   Miko supports both the declarative IsOpen path and IonModalController. The modal raises
-   OnWillDismiss then OnDidDismiss. The host is
-   always mounted; when closed it carries `overlay-hidden` (display:none). ChildContent is the modal
-   body and renders inside `.modal-wrapper`. Card/sheet gestures + precise breakpoints are out of
-   scope here — the sheet params are kept as markers (see comments) and the modal renders as a
-   centered card. *@
+@* Mirrors Ionic's <ion-modal> overlay contract. The modal can be declared with IsOpen or created
+   through IonModalController. A sheet modal is enabled when Breakpoints and InitialBreakpoint are
+   supplied; its full-height wrapper is positioned so only the active fraction remains visible. *@
 <IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
     <div class="@ClassMapper.Class" style="@Style" role="dialog">
         @if (ShowBackdrop)
@@ -22,9 +11,19 @@
         }
         @if (Mode == "ios")
         {
-            <div class="modal-shadow"></div>
+            <div class="modal-shadow" style="@_sheetStyle"></div>
         }
-        <div class="modal-wrapper ion-overlay-wrapper">
+        <div class="modal-wrapper ion-overlay-wrapper"
+             style="@_sheetStyle"
+             @onmousedown="OnSheetPointerDown"
+             @onmousemove="OnSheetPointerMove"
+             @onmouseup="OnSheetPointerUpAsync">
+            @if (_showHandle)
+            {
+                <button class="modal-handle"
+                        tabindex="-1"
+                        aria-label="Drag to adjust the size of the dialog overlaying the screen"></button>
+            }
             @ChildContent
         </div>
     </div>
@@ -32,6 +31,7 @@
 
 @code {
     private readonly string _overlayId = $"modal-{Guid.NewGuid():N}";
+
     /// <summary>Optional stable identifier used by the root overlay registry.</summary>
     [Parameter] public string? OverlayId { get; set; }
 
@@ -44,47 +44,83 @@
     /// <summary>If true (default), tapping the backdrop dismisses the modal.</summary>
     [Parameter] public bool BackdropDismiss { get; set; } = true;
 
-    /// <summary>If true (default), the backdrop is rendered behind the modal. When false the
-    /// backdrop element is omitted (there is nothing to dim/tap).</summary>
+    /// <summary>If true (default), the backdrop is rendered behind the modal.</summary>
     [Parameter] public bool ShowBackdrop { get; set; } = true;
 
-    /// <summary>Id of the element that opens the modal (Ionic <c>trigger</c>). Kept for API parity;
-    /// the host drives <see cref="IsOpen"/> in this port.</summary>
+    /// <summary>Id of the element that opens the modal. The host drives <see cref="IsOpen"/> in
+    /// this port, so this is retained for API parity.</summary>
     [Parameter] public string? Trigger { get; set; }
 
-    /// <summary>The element the modal is presented from (Ionic <c>presentingElement</c>). A marker
-    /// only — this port always renders a centered card modal (no ios card-modal stack effect).</summary>
+    /// <summary>The element the modal is presented from. On iOS this stamps the card marker;
+    /// stacked card animation is not currently implemented.</summary>
     [Parameter] public object? Presenting { get; set; }
 
-    /// <summary>Sheet-modal snap points, 0..1 (Ionic <c>breakpoints</c>). A marker only — sheet
-    /// gestures/snapping are out of scope; the modal renders as a centered card.</summary>
+    /// <summary>Sheet-modal snap points. Values outside the inclusive range 0..1 are ignored.</summary>
     [Parameter] public double[]? Breakpoints { get; set; }
 
-    /// <summary>Initial sheet-modal snap point (Ionic <c>initialBreakpoint</c>). A marker only —
-    /// see <see cref="Breakpoints"/>.</summary>
+    /// <summary>Initial visible fraction of a sheet modal. If it is not present in
+    /// <see cref="Breakpoints"/>, the nearest configured breakpoint is used.</summary>
     [Parameter] public double? InitialBreakpoint { get; set; }
 
-    /// <summary>Keep the child content mounted while the modal is closed (Ionic
-    /// <c>keepContentsMounted</c>). A marker only — in this port the host is always mounted, so the
-    /// content is always in the tree (hidden via <c>overlay-hidden</c> when closed).</summary>
+    /// <summary>Controls the sheet drag handle. It is shown by default for sheet modals.</summary>
+    [Parameter] public bool? Handle { get; set; }
+
+    /// <summary>Keep the child content mounted while the modal is closed. The component host is
+    /// always mounted in this port and is hidden with <c>overlay-hidden</c>.</summary>
     [Parameter] public bool KeepContentsMounted { get; set; }
 
-    // ChildContent (the modal body, rendered inside .modal-wrapper — usually an
-    // IonHeader + IonContent) is inherited from ComponentBase.
-
-    /// <summary>Raised before the modal dismisses (Ionic <c>ionModalWillDismiss</c>).</summary>
+    /// <summary>Raised before the modal dismisses.</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnWillDismiss { get; set; }
 
-    /// <summary>Raised after the modal dismisses (Ionic <c>ionModalDidDismiss</c>), with the role
-    /// (<c>"backdrop"</c> on a backdrop tap, otherwise the caller's role).</summary>
+    /// <summary>Raised after the modal dismisses.</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
+
+    private double[] _sheetBreakpoints = Array.Empty<double>();
+    private double? _resolvedInitialBreakpoint;
+    private double? _currentBreakpoint;
+    private Style? _sheetStyle;
+    private bool _isSheet;
+    private bool _showHandle;
+    private bool _wasOpen;
+
+    private bool _isDragging;
+    private double _dragStartY;
+    private double _dragStartBreakpoint;
+    private double _dragHeight;
 
     protected override void OnParametersSet()
     {
-        // isSheetModal in modal.tsx is `breakpoints && initialBreakpoint` — mirror the class stamp.
-        var isSheet = Breakpoints is { Length: > 0 } && InitialBreakpoint is not null;
-        var isCard = Presenting is not null && Mode == "ios";
+        var breakpoints = NormalizeBreakpoints(Breakpoints);
+        var requestedInitial = InitialBreakpoint;
+        var isSheet = breakpoints.Length > 0
+            && requestedInitial is { } initial
+            && double.IsFinite(initial);
+        double? resolvedInitial = isSheet
+            ? ResolveInitialBreakpoint(breakpoints, requestedInitial!.Value)
+            : null;
 
+        var configurationChanged = !_sheetBreakpoints.SequenceEqual(breakpoints)
+            || _resolvedInitialBreakpoint != resolvedInitial;
+        var opening = IsOpen && !_wasOpen;
+
+        _sheetBreakpoints = breakpoints;
+        _resolvedInitialBreakpoint = resolvedInitial;
+        _isSheet = isSheet;
+        _showHandle = isSheet && Handle != false;
+
+        if (!isSheet)
+        {
+            _currentBreakpoint = null;
+            _isDragging = false;
+        }
+        else if (configurationChanged || opening || _currentBreakpoint is null)
+        {
+            _currentBreakpoint = resolvedInitial;
+        }
+
+        UpdateSheetStyle();
+
+        var isCard = Presenting is not null && Mode == "ios";
         ClassMapper
             .Clear()
             .Add(Class)
@@ -94,6 +130,8 @@
             .If(isCard, "modal-card")
             .If(isSheet, "modal-sheet")
             .If(!IsOpen, "overlay-hidden");
+
+        _wasOpen = IsOpen;
     }
 
     private async Task OnBackdropTapAsync(MouseEventArgs _)
@@ -102,8 +140,74 @@
         await DismissAsync("backdrop", null);
     }
 
-    /// <summary>Dismisses the modal, raising <see cref="OnWillDismiss"/> then
-    /// <see cref="OnDidDismiss"/>. The host may call this to close the modal programmatically.</summary>
+    private void OnSheetPointerDown(MouseEventArgs args)
+    {
+        if (!_isSheet || !args.IsButtonPressed || args.Button != MouseButton.Left) return;
+
+        var wrapperHeight = args.CurrentTarget?.OffsetHeight ?? args.TargetHeight;
+        if (wrapperHeight <= 0) return;
+
+        _isDragging = true;
+        _dragStartY = args.Y;
+        _dragStartBreakpoint = _currentBreakpoint ?? _resolvedInitialBreakpoint ?? 0;
+        _dragHeight = wrapperHeight;
+        args.PreventDefault();
+    }
+
+    private void OnSheetPointerMove(MouseEventArgs args)
+    {
+        if (!_isDragging || !args.IsButtonPressed) return;
+        UpdateDraggedBreakpoint(args.Y);
+        args.PreventDefault();
+    }
+
+    private async Task OnSheetPointerUpAsync(MouseEventArgs args)
+    {
+        if (!_isDragging) return;
+
+        UpdateDraggedBreakpoint(args.Y);
+        _isDragging = false;
+
+        var current = _currentBreakpoint ?? 0;
+        var snapped = _sheetBreakpoints
+            .OrderBy(breakpoint => Math.Abs(breakpoint - current))
+            .First();
+        _currentBreakpoint = snapped;
+        UpdateSheetStyle();
+
+        if (snapped == 0)
+            await DismissAsync("gesture", null);
+    }
+
+    private void UpdateDraggedBreakpoint(double pointerY)
+    {
+        if (_dragHeight <= 0) return;
+        var delta = (pointerY - _dragStartY) / _dragHeight;
+        _currentBreakpoint = Math.Clamp(_dragStartBreakpoint - delta, 0, 1);
+        UpdateSheetStyle();
+    }
+
+    /// <summary>Moves a sheet modal to one of its configured breakpoints. Invalid values and
+    /// non-sheet modals are ignored, matching Ionic's method contract.</summary>
+    public Task SetCurrentBreakpointAsync(double breakpoint)
+    {
+        if (!_isSheet || !_sheetBreakpoints.Contains(breakpoint))
+            return Task.CompletedTask;
+        if (_currentBreakpoint == breakpoint)
+            return Task.CompletedTask;
+
+        _currentBreakpoint = breakpoint;
+        UpdateSheetStyle();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Returns the active sheet breakpoint, or null for a regular modal.</summary>
+    public Task<double?> GetCurrentBreakpointAsync()
+        => Task.FromResult(_currentBreakpoint);
+
+    /// <summary>Dismisses the modal, raising <see cref="OnWillDismiss"/> before
+    /// <see cref="OnDidDismiss"/>.</summary>
     public async Task DismissAsync(string? role = null, object? data = null)
     {
         var detail = new IonOverlayDismissEventArgs(role, data);
@@ -115,4 +219,39 @@
         }
         await OnDidDismiss.InvokeAsync(detail);
     }
+
+    private void UpdateSheetStyle()
+    {
+        if (!_isSheet || _currentBreakpoint is null)
+        {
+            _sheetStyle = null;
+            return;
+        }
+
+        var breakpoint = Math.Clamp(_currentBreakpoint.Value, 0, 1);
+        var offset = (float)((1 - breakpoint) * 100);
+        _sheetStyle = new Style
+        {
+            // Miko's hit testing uses layout boxes and intentionally does not apply transforms.
+            // Express the Ionic translate as top positioning so painted and tappable regions stay
+            // aligned while preserving the full sheet height for its maximum extent.
+            Top = Length.Percent(offset)
+                + Length.SafeAreaInsetTop * (float)breakpoint
+                + Length.Px(10 * (float)breakpoint),
+            Bottom = Length.Auto,
+        };
+    }
+
+    private static double[] NormalizeBreakpoints(double[]? breakpoints)
+        => breakpoints?
+            .Where(value => double.IsFinite(value) && value is >= 0 and <= 1)
+            .Distinct()
+            .OrderBy(value => value)
+            .ToArray()
+            ?? Array.Empty<double>();
+
+    private static double ResolveInitialBreakpoint(double[] breakpoints, double requested)
+        => breakpoints.Contains(requested)
+            ? requested
+            : breakpoints.OrderBy(value => Math.Abs(value - requested)).First();
 }

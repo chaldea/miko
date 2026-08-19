@@ -32,6 +32,26 @@ public sealed class IonOverlayControllerTests : IonicComponentTestBase
     }
 
     [Fact]
+    public async Task ModalController_ForwardsSheetConfiguration()
+    {
+        RegisterServices();
+        var controller = new IonModalController(_registry);
+        var cut = Context.Render<IonApp>();
+        var reference = await controller.CreateAsync(new IonModalOptions
+        {
+            Breakpoints = new[] { 0.0, 0.25, 1.0 },
+            InitialBreakpoint = 0.25,
+            Handle = true,
+        });
+
+        await reference.PresentAsync();
+
+        cut.FindInTopLayerByClass("ion-modal").ShouldHaveSingleItem()
+            .ShouldHaveClass("modal-sheet");
+        cut.FindInTopLayerByClass("modal-handle").ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public async Task ControllerDismiss_IsIdempotent_AndReturnsRoleAndData()
     {
         RegisterServices();
