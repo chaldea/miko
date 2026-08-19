@@ -1,0 +1,46 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+
+<div class="@ClassMapper.Class">
+    <CascadingValue TValue="IonOverlayRenderContext" Value="_renderContext">
+        @foreach (var entry in _entries)
+        {
+            @entry.Content
+        }
+    </CascadingValue>
+</div>
+
+@code {
+    [CascadingParameter] public IonOverlayContext? OverlayContext { get; set; }
+
+    private IReadOnlyList<IonOverlayEntry> _entries = Array.Empty<IonOverlayEntry>();
+    private readonly IonOverlayRenderContext _renderContext = new() { IsTopLayer = true };
+    private IonOverlayRegistry? _registry;
+
+    protected override void OnParametersSet()
+    {
+        ClassMapper.Clear().Add(Mode).Add("ion-overlay-host");
+
+        var registry = OverlayContext?.Registry;
+        if (!ReferenceEquals(_registry, registry))
+        {
+            if (_registry is not null) _registry.Changed -= HandleRegistryChanged;
+            _registry = registry;
+            if (_registry is not null) _registry.Changed += HandleRegistryChanged;
+        }
+
+        _entries = _registry?.Snapshot() ?? Array.Empty<IonOverlayEntry>();
+    }
+
+    protected override void OnDispose()
+    {
+        if (_registry is not null) _registry.Changed -= HandleRegistryChanged;
+        _registry = null;
+    }
+
+    private void HandleRegistryChanged()
+    {
+        _entries = _registry?.Snapshot() ?? Array.Empty<IonOverlayEntry>();
+        StateHasChanged();
+    }
+}

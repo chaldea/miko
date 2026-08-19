@@ -75,6 +75,21 @@ public class CascadingValueTests
         }
     }
 
+    private sealed class ReRenderingConsumer : ComponentBase
+    {
+        [CascadingParameter] public string? Msg { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "div");
+            builder.OpenComponent<StringConsumer>(1);
+            builder.CloseComponent();
+            builder.CloseElement();
+        }
+
+        public void Refresh() => StateHasChanged();
+    }
+
     // Helper: builds a CascadingValue<TValue> wrapping a child produced by `childFragment`.
     private static Element BuildProvider<TValue>(TValue value, string? name, RenderFragment childFragment)
     {
@@ -179,6 +194,17 @@ public class CascadingValueTests
         BuildProvider<string>("early", null, Child<LifecycleConsumer>(out var child));
 
         child()!.SeenInOnInitialized.ShouldBe("early");
+    }
+
+    [Fact]
+    public void CascadingValue_FlowsToNewDescendantsDuringChildStateHasChanged()
+    {
+        var root = BuildProvider<string>("retained", null, Child<ReRenderingConsumer>(out var child));
+        root.Children.Single().TextContent.ShouldBe("retained");
+
+        child()!.Refresh();
+
+        root.Children.Single().TextContent.ShouldBe("retained");
     }
 
     [Fact]

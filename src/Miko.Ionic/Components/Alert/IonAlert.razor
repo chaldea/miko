@@ -15,9 +15,10 @@
        </div>
      </div>
    </ion-alert>
-   Ionic's overlay controller wires `trigger`/`present()`; Miko has no controller, so the host
-   drives IsOpen (two-way) and the alert raises OnDidDismiss with the tapped button's role. The
+   Miko supports both the declarative IsOpen path and IonAlertController; the alert raises
+   OnDidDismiss with the tapped button's role. The
    button group goes vertical when there are more than two buttons (alert.tsx renderAlertButtons). *@
+<IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
 <div class="@ClassMapper.Class" style="@Style">
     <div class="ion-backdrop alert-backdrop" @onclick="OnBackdropTapAsync"></div>
     <div class="alert-wrapper ion-overlay-wrapper">
@@ -88,8 +89,13 @@
         </div>
     </div>
 </div>
+</IonPortal>
 
 @code {
+    private readonly string _overlayId = $"alert-{Guid.NewGuid():N}";
+    /// <summary>Optional stable identifier used by the root overlay registry.</summary>
+    [Parameter] public string? OverlayId { get; set; }
+
     /// <summary>The alert title.</summary>
     [Parameter] public string? Header { get; set; }
 

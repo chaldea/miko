@@ -1,10 +1,25 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
 <div class="@ClassMapper.Class" style="@Style">
-    @ChildContent
+    <CascadingValue TValue="IonOverlayContext" Value="_overlayContext">
+        @ChildContent
+        @if (_overlayContext is not null)
+        {
+            <IonOverlayHost />
+        }
+    </CascadingValue>
 </div>
 
 @code {
+    [Inject] private IonOverlayRegistry? OverlayRegistry { get; set; }
+
+    private IonOverlayContext? _overlayContext;
+
+    protected override void OnInitialized()
+    {
+        _overlayContext = OverlayRegistry is null ? null : new IonOverlayContext(OverlayRegistry);
+    }
+
     protected override void OnParametersSet()
     {
         ClassMapper

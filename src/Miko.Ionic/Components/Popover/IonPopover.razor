@@ -11,28 +11,34 @@
      </div>
    </ion-popover>
    Ionic's overlay controller wires `trigger` / `present(event)` and computes the popover position
-   relative to the trigger at runtime. Miko has no controller and does no runtime positioning here,
-   so the host drives IsOpen (two-way), the popover renders centered/static, and it raises
+   relative to the trigger at runtime. Miko provides IonPopoverController but does no runtime
+   positioning here, so the popover renders centered/static and raises
    OnWillDismiss then OnDidDismiss. `Side` stamps the direction class (used for the arrow rotation);
    the actual anchor math is a marker in this static port. The host is always mounted; when closed it
    carries `overlay-hidden` (display:none). *@
-<div class="@ClassMapper.Class" style="@Style" role="dialog">
-    @if (ShowBackdrop)
-    {
-        <div class="ion-backdrop popover-backdrop" @onclick="OnBackdropTapAsync"></div>
-    }
-    <div class="popover-wrapper ion-overlay-wrapper">
-        @if (Arrow)
+<IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
+    <div class="@ClassMapper.Class" style="@Style" role="dialog">
+        @if (ShowBackdrop)
         {
-            <div class="popover-arrow"></div>
+            <div class="ion-backdrop popover-backdrop" @onclick="OnBackdropTapAsync"></div>
         }
-        <div class="popover-content">
-            @ChildContent
+        <div class="popover-wrapper ion-overlay-wrapper">
+            @if (Arrow)
+            {
+                <div class="popover-arrow"></div>
+            }
+            <div class="popover-content">
+                @ChildContent
+            </div>
         </div>
     </div>
-</div>
+</IonPortal>
 
 @code {
+    private readonly string _overlayId = $"popover-{Guid.NewGuid():N}";
+    /// <summary>Optional stable identifier used by the root overlay registry.</summary>
+    [Parameter] public string? OverlayId { get; set; }
+
     /// <summary>Whether the popover is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
     [Parameter] public bool IsOpen { get; set; }
 

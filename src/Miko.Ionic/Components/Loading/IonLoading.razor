@@ -8,11 +8,12 @@
        [<div class="loading-content">Message</div>]                        <!-- if Message is set -->
      </div>
    </ion-loading>
-   Ionic's overlay controller wires `trigger` / `present()` at runtime; Miko has no controller, so
-   the host drives IsOpen (two-way) and the indicator raises OnDidDismiss (role null on a normal
+   Miko supports both the declarative IsOpen path and IonLoadingController. The indicator raises
+   OnDidDismiss (role null on a normal
    dismiss, "backdrop" when the backdrop is tapped). The host is always mounted; when closed it
    carries `overlay-hidden` (display:none). Loading blocks input by default (backdrop is NOT
    tappable — BackdropDismiss defaults to false). *@
+<IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
 <div class="@ClassMapper.Class" style="@Style" role="dialog">
     @if (ShowBackdrop)
     {
@@ -31,8 +32,13 @@
         }
     </div>
 </div>
+</IonPortal>
 
 @code {
+    private readonly string _overlayId = $"loading-{Guid.NewGuid():N}";
+    /// <summary>Optional stable identifier used by the root overlay registry.</summary>
+    [Parameter] public string? OverlayId { get; set; }
+
     /// <summary>Optional text content shown beside/under the spinner.</summary>
     [Parameter] public string? Message { get; set; }
 

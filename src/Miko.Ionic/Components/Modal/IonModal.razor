@@ -8,27 +8,33 @@
        <slot />                                       <!-- @ChildContent: usually IonHeader + IonContent -->
      </div>
    </ion-modal>
-   Ionic's overlay controller wires `trigger` / `present()` at runtime; Miko has no controller, so
-   the host drives IsOpen (two-way) and the modal raises OnWillDismiss then OnDidDismiss. The host is
+   Miko supports both the declarative IsOpen path and IonModalController. The modal raises
+   OnWillDismiss then OnDidDismiss. The host is
    always mounted; when closed it carries `overlay-hidden` (display:none). ChildContent is the modal
    body and renders inside `.modal-wrapper`. Card/sheet gestures + precise breakpoints are out of
    scope here — the sheet params are kept as markers (see comments) and the modal renders as a
    centered card. *@
-<div class="@ClassMapper.Class" style="@Style" role="dialog">
-    @if (ShowBackdrop)
-    {
-        <div class="ion-backdrop modal-backdrop" @onclick="OnBackdropTapAsync"></div>
-    }
-    @if (Mode == "ios")
-    {
-        <div class="modal-shadow"></div>
-    }
-    <div class="modal-wrapper ion-overlay-wrapper">
-        @ChildContent
+<IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
+    <div class="@ClassMapper.Class" style="@Style" role="dialog">
+        @if (ShowBackdrop)
+        {
+            <div class="ion-backdrop modal-backdrop" @onclick="OnBackdropTapAsync"></div>
+        }
+        @if (Mode == "ios")
+        {
+            <div class="modal-shadow"></div>
+        }
+        <div class="modal-wrapper ion-overlay-wrapper">
+            @ChildContent
+        </div>
     </div>
-</div>
+</IonPortal>
 
 @code {
+    private readonly string _overlayId = $"modal-{Guid.NewGuid():N}";
+    /// <summary>Optional stable identifier used by the root overlay registry.</summary>
+    [Parameter] public string? OverlayId { get; set; }
+
     /// <summary>Whether the modal is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
     [Parameter] public bool IsOpen { get; set; }
 

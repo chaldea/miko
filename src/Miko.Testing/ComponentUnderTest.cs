@@ -16,6 +16,12 @@ public class ComponentUnderTest
     public Element Root { get; }
 
     /// <summary>
+    /// The Ionic top-layer host when the rendered tree contains one; null for ordinary components.
+    /// Kept class-based so Miko.Testing does not depend on Miko.Ionic.
+    /// </summary>
+    public Element? TopLayerRoot => Root.FindByClass("ion-overlay-host").FirstOrDefault();
+
+    /// <summary>
     /// The layout tree built from the component's DOM.
     /// </summary>
     public LayoutBox Layout { get; }
@@ -58,6 +64,10 @@ public class ComponentUnderTest
     /// Finds all elements with the specified class name.
     /// </summary>
     public List<Element> FindByClass(string className) => Root.FindByClass(className);
+
+    /// <summary>Finds elements only inside the root overlay host.</summary>
+    public List<Element> FindInTopLayerByClass(string className)
+        => TopLayerRoot?.FindByClass(className) ?? new List<Element>();
 
     /// <summary>
     /// Finds all elements with the specified tag name.

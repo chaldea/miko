@@ -28,9 +28,9 @@
    alert (default) / action-sheet / popover / modal. ion-select-option renders nothing at all
    (select-option.scss `:host{display:none}`) — it only carries data, which this port collects
    through the cascaded IonSelectOptionContext.
-   Ionic opens overlays through a controller; Miko has none, so the four overlays are rendered
-   inline (always mounted, hidden via overlay-hidden) and driven by the _isExpanded state — the
-   same host-driven model the ported IonAlert / IonActionSheet / IonPopover / IonModal already use. *@
+   The four overlays remain declarative and are driven by _isExpanded. Inside IonApp their visual
+   content is portalled into the root IonOverlayHost; outside IonApp they use the inline compatibility
+   path provided by IonPortal. *@
 @{
     // Refresh the derived state on EVERY render path. A root-level re-render goes through
     // ComponentBase.BuildNew(), which re-runs only this method — not OnParametersSet — so state
@@ -94,16 +94,15 @@
             }
         </div>
     }
-    @* The options live here purely to register themselves (each renders a display:none host), and
-       the overlay is mounted alongside them — both stay INSIDE the host so `.ion-select` remains
-       the component's single root element, mirroring Ionic's light-DOM ion-select-option children. *@
+    @* Options remain data carriers under the select. Overlay declarations stay here for ownership,
+       while IonPortal moves their visual content to IonApp's root overlay host. *@
     <CascadingValue TValue="IonSelectOptionContext" Value="_optionContext">
         @ChildContent
     </CascadingValue>
     @switch (_resolvedInterface)
     {
         case "action-sheet":
-            <IonActionSheet IsOpen="_isExpanded"
+            <IonActionSheet OverlayId="@_actionSheetOverlayId" IsOpen="_isExpanded"
                             Header="@InterfaceHeader"
                             SubHeader="@InterfaceSubHeader"
                             Buttons="_actionSheetButtons"
@@ -111,7 +110,7 @@
             break;
 
         case "popover":
-            <IonPopover IsOpen="_isExpanded" Class="select-popover" OnDidDismiss="HandleOverlayDismissAsync">
+            <IonPopover OverlayId="@_popoverOverlayId" IsOpen="_isExpanded" Class="select-popover" OnDidDismiss="HandleOverlayDismissAsync">
                 <IonSelectPopover Header="@InterfaceHeader"
                                   SubHeader="@InterfaceSubHeader"
                                   Message="@InterfaceMessage"
@@ -123,7 +122,7 @@
             break;
 
         case "modal":
-            <IonModal IsOpen="_isExpanded" Class="select-modal" OnDidDismiss="HandleOverlayDismissAsync">
+            <IonModal OverlayId="@_modalOverlayId" IsOpen="_isExpanded" Class="select-modal" OnDidDismiss="HandleOverlayDismissAsync">
                 <IonSelectModal Header="@InterfaceHeader"
                                 CancelText="@CancelText"
                                 Multiple="Multiple"
@@ -135,7 +134,7 @@
             break;
 
         default:
-            <IonAlert IsOpen="_isExpanded"
+            <IonAlert OverlayId="@_alertOverlayId" IsOpen="_isExpanded"
                       Class="@_alertClass"
                       Header="@AlertHeader"
                       SubHeader="@InterfaceSubHeader"
@@ -148,6 +147,8 @@
 </div>
 
 @code {
+    [CascadingParameter] public IonOverlayContext? OverlayContext { get; set; }
+
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
     [Parameter] public string? Color { get; set; }
 
@@ -270,6 +271,10 @@
     private IonSelectOptionContext _optionContext = new();
 
     private bool _isExpanded;
+    private readonly string _alertOverlayId = $"select-alert-{Guid.NewGuid():N}";
+    private readonly string _actionSheetOverlayId = $"select-action-sheet-{Guid.NewGuid():N}";
+    private readonly string _popoverOverlayId = $"select-popover-{Guid.NewGuid():N}";
+    private readonly string _modalOverlayId = $"select-modal-{Guid.NewGuid():N}";
     private bool _hasFocus;
 
     private string _textClass = "select-text select-placeholder";
@@ -515,23 +520,11 @@
             ? "select-interface-option"
             : $"select-interface-option {option.CssClass}";
 
-    /// <summary>
-    /// Host click → open the overlay. Ionic's <c>open()</c> is a no-op while disabled or already
-    /// expanded (select.tsx open()).
-    /// <para>
-    /// The overlay is mounted INSIDE this host (see the template note), so every tap on an option,
-    /// a button or the backdrop bubbles back up to here. In Ionic the overlay is a sibling created
-    /// by the overlay controller and no such bubbling exists. Left unguarded, the host handler runs
-    /// on the way up and re-asserts the expanded state, which is why picking an option appeared to
-    /// do nothing (issues/ion-select.md 问题 4).
-    /// </para>
-    /// </summary>
+    /// <summary>Host click opens the overlay unless disabled or already expanded.</summary>
     private async Task HandleClickAsync(MouseEventArgs args)
     {
         if (Disabled || _isExpanded) return;
-        // Only a tap on the field itself opens the overlay; taps that started inside the mounted
-        // overlay are its own business.
-        if (OriginatedInOverlay(args.Target)) return;
+        if (OverlayContext is null && OriginatedInInlineOverlay(args.Target)) return;
 
         _isExpanded = true;
         // The toggle icon and the floating label both depend on the expanded state.
@@ -539,20 +532,15 @@
         await Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Whether an event target sits inside one of the overlays this select mounts (they are
-    /// descendants of the host, so a bubbled click is indistinguishable from a click on the field
-    /// without this check).
-    /// </summary>
-    private static bool OriginatedInOverlay(Element? target)
+    // The no-IonApp compatibility path renders overlays inline. Keep its event guard isolated from
+    // the normal portal path, where the overlay is not a descendant and cannot bubble here.
+    private static bool OriginatedInInlineOverlay(Element? target)
     {
-        for (var node = target; node != null; node = node.Parent)
+        for (var node = target; node is not null; node = node.Parent)
         {
             if (node.HasClass("ion-alert") || node.HasClass("ion-action-sheet")
                 || node.HasClass("ion-popover") || node.HasClass("ion-modal"))
-            {
                 return true;
-            }
         }
         return false;
     }

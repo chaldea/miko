@@ -305,6 +305,20 @@ public class RenderTreeBuilder
         _componentStack.Push(new T());
     }
 
+    /// <summary>Opens a component whose type is only known at runtime.</summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "Runtime component types supplied by the application must preserve their public constructors and properties.")]
+    public void OpenComponent(int seq,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] Type componentType)
+    {
+        if (!typeof(ComponentBase).IsAssignableFrom(componentType))
+            throw new ArgumentException($"{componentType} is not a Miko component.", nameof(componentType));
+
+        var component = Activator.CreateInstance(componentType) as ComponentBase
+            ?? throw new InvalidOperationException($"Unable to create component {componentType}.");
+        _componentStack.Push(component);
+    }
+
     [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Component types are preserved via DynamicallyAccessedMembers on OpenComponent<T>")]
     public void AddComponentParameter(int seq, string name, object? value)
     {
@@ -323,7 +337,12 @@ public class RenderTreeBuilder
         // (e.g. unsubscribe from events) when this element subtree is later discarded. When the
         // component produced several top-level elements, `element` is a transparent FragmentElement
         // that stays in the tree (and is skipped by layout); the callback lives on it as usual.
-        element.DisposeCallback = component.DisposeInternal;
+        var childDispose = element.DisposeCallback;
+        element.DisposeCallback = () =>
+        {
+            childDispose?.Invoke();
+            component.DisposeInternal();
+        };
         if (_stack.Count > 0)
             _stack.Peek().AddChild(element);
         else

@@ -65,6 +65,7 @@ public static class IonicStyleSheetFactory
 
     private static void AddMode(StyleSheet sheet, string mode, IonicTheme t)
     {
+        sheet.Add(OverlayStyles.GenStyle(mode));
         sheet.Add(PageStyles.GenStyle(mode, t));
         sheet.Add(ContentStyles.GenStyle(mode, t));
         sheet.Add(TabStyles.GenStyle(mode, t));

@@ -16,7 +16,7 @@ namespace Miko.Components;
 /// </summary>
 internal static class CascadingValueSource
 {
-    private readonly struct Frame
+    internal readonly struct Frame
     {
         public readonly Type ValueType;
         public readonly string? Name;
@@ -34,6 +34,33 @@ internal static class CascadingValueSource
     private static Stack<Frame>? _stack;
 
     private static Stack<Frame> Stack => _stack ??= new Stack<Frame>();
+
+    internal sealed class Snapshot
+    {
+        internal Snapshot(Frame[] frames) => Frames = frames;
+
+        internal Frame[] Frames { get; }
+        internal bool IsEmpty => Frames.Length == 0;
+
+        internal void PushOnto(Stack<Frame> stack)
+        {
+            foreach (var frame in Frames)
+                stack.Push(frame);
+        }
+    }
+
+    internal static Snapshot Capture()
+        => new(_stack is { Count: > 0 } ? _stack.Reverse().ToArray() : Array.Empty<Frame>());
+
+    internal static IDisposable RestoreIfEmpty(Snapshot? snapshot)
+    {
+        if (snapshot is null || snapshot.IsEmpty || _stack is { Count: > 0 })
+            return EmptyHandle.Instance;
+
+        var stack = Stack;
+        snapshot.PushOnto(stack);
+        return new PopManyHandle(stack, snapshot.Frames.Length);
+    }
 
     /// <summary>
     /// Pushes a cascading value onto the ambient stack and returns a handle that pops it when
@@ -91,5 +118,34 @@ internal static class CascadingValueSource
                 stack.Pop();
             _stack = null;
         }
+    }
+
+    private sealed class PopManyHandle : IDisposable
+    {
+        private Stack<Frame>? _stack;
+        private readonly int _count;
+
+        internal PopManyHandle(Stack<Frame> stack, int count)
+        {
+            _stack = stack;
+            _count = count;
+        }
+
+        public void Dispose()
+        {
+            var stack = _stack;
+            if (stack is not null)
+            {
+                for (var i = 0; i < _count && stack.Count > 0; i++)
+                    stack.Pop();
+            }
+            _stack = null;
+        }
+    }
+
+    private sealed class EmptyHandle : IDisposable
+    {
+        internal static readonly EmptyHandle Instance = new();
+        public void Dispose() { }
     }
 }

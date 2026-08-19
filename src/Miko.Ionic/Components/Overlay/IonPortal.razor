@@ -1,0 +1,53 @@
+@namespace Miko.Ionic.Components
+@inherits ComponentBase
+
+@if (OverlayContext is null || RenderContext?.IsTopLayer == true)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    [Parameter] public bool Active { get; set; } = true;
+
+    [CascadingParameter] public IonOverlayContext? OverlayContext { get; set; }
+    [CascadingParameter] internal IonOverlayRenderContext? RenderContext { get; set; }
+
+    private long _version;
+    private string? _registeredId;
+    private IonOverlayRegistry? _registry;
+
+    protected override void OnParametersSet()
+    {
+        if (OverlayContext is null || RenderContext?.IsTopLayer == true || ChildContent is null)
+        {
+            RemoveRegistration();
+            return;
+        }
+
+        var registry = OverlayContext.Registry;
+        if (!ReferenceEquals(_registry, registry) || _registeredId != Id)
+            RemoveRegistration();
+
+        if (!Active)
+        {
+            RemoveRegistration();
+            return;
+        }
+
+        _registry = registry;
+        _registeredId = Id;
+        _version = _registry.Register(Id, ChildContent);
+    }
+
+    protected override void OnDispose() => RemoveRegistration();
+
+    private void RemoveRegistration()
+    {
+        if (_registeredId is not null)
+            _registry?.Remove(_registeredId, _version);
+        _registry = null;
+        _registeredId = null;
+        _version = 0;
+    }
+}
