@@ -28,6 +28,7 @@ public abstract class ComponentBase : IComponent
     /// <see cref="StateHasChanged"/> (which runs outside the original ancestor's <c>Build</c>).
     /// </summary>
     private IServiceProvider? _services;
+    private CascadingValueSource.Snapshot? _cascadingSnapshot;
 
     protected virtual void BuildRenderTree(RenderTreeBuilder builder) { }
 
@@ -88,7 +89,9 @@ public abstract class ComponentBase : IComponent
         // below (matches Blazor, where cascading values arrive with the initial parameter set).
         // The ambient values are in scope because the providing CascadingValue<T>.Build is still
         // on the call stack (see CascadingValueSource).
+        using var cascadingScope = CascadingValueSource.RestoreIfEmpty(_cascadingSnapshot);
         SetCascadingParameters();
+        _cascadingSnapshot = CascadingValueSource.Capture();
 
         if (!_initialized)
         {
@@ -220,7 +223,7 @@ public abstract class ComponentBase : IComponent
                 TransferRuntimeState(_rootElement.Children[i], newElement.Children[i]);
             // The old children are discarded by ReplaceElementContent — tear down the nested
             // components that produced them first.
-            foreach (var oldChild in _rootElement.Children)
+            foreach (var oldChild in _rootElement.Children.ToArray())
                 DisposeSubtree(oldChild);
             ReplaceElementContent(_rootElement, newElement);
             return;
@@ -234,19 +237,23 @@ public abstract class ComponentBase : IComponent
         var rebuilt = Build();
         TransferLayoutBox(oldElement, rebuilt);
         TransferRuntimeState(oldElement, rebuilt);
-        // Carry the component link onto the new root. `Build()` produces a bare element; the link
-        // was stamped by RenderTreeBuilder.CloseComponent when an ancestor first rendered us, and
-        // it is what lets an ancestor's dispose walk find this component. Losing it here makes the
-        // component undiscardable: after the ancestor replaces our subtree we would keep
-        // re-rendering into an orphan tree forever (ISSUE-121, the @bind caret freeze).
-        rebuilt.DisposeCallback = oldElement.DisposeCallback;
+        // Build() preserves cleanup callbacks produced by the new nested subtree but does not stamp
+        // this component itself (that normally happens in an ancestor's CloseComponent). Compose
+        // the current component onto the new callback chain. Copying the old chain would retain
+        // callbacks for discarded nested components and lose callbacks for their replacements.
+        var nestedDispose = rebuilt.DisposeCallback;
+        rebuilt.DisposeCallback = () =>
+        {
+            nestedDispose?.Invoke();
+            DisposeInternal();
+        };
         parent.Children[index] = rebuilt;
         rebuilt.SetParent(parent);
         _rootElement = rebuilt;
         // The old subtree (and the nested component instances that produced it) is now
         // unreferenced — dispose those components so their event subscriptions are released.
         // Skip oldElement itself: this component instance persists and re-renders.
-        foreach (var oldChild in oldElement.Children)
+        foreach (var oldChild in oldElement.Children.ToArray())
             DisposeSubtree(oldChild);
     }
 
@@ -254,12 +261,13 @@ public abstract class ComponentBase : IComponent
     private static void DisposeSubtree(Element element)
     {
         element.DisposeCallback?.Invoke();
-        foreach (var child in element.Children)
+        foreach (var child in element.Children.ToArray())
             DisposeSubtree(child);
     }
 
     private Element BuildNew()
     {
+        using var cascadingScope = CascadingValueSource.RestoreIfEmpty(_cascadingSnapshot);
         SetCascadingParameters();
         var builder = new RenderTreeBuilder();
         // Re-push our captured provider so nested components rebuilt during StateHasChanged

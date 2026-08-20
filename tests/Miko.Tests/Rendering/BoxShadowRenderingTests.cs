@@ -83,6 +83,45 @@ public class BoxShadowRenderingTests : IDisposable
     }
 
     [Fact]
+    public void BoxShadow_TransparentSource_ShouldNotTintBoxInterior()
+    {
+        var root = new DivElement { Class = "box" };
+        var styleSheets = new List<StyleSheet>
+        {
+            new StyleSheet
+            {
+                Rules = new List<StyleRule>
+                {
+                    new StyleRule
+                    {
+                        Selector = new ClassSelector("box"),
+                        Style = new Style
+                        {
+                            Position = Position.Absolute,
+                            Left = Length.Px(50),
+                            Top = Length.Px(50),
+                            Width = Length.Px(50),
+                            Height = Length.Px(50),
+                            BoxShadow = new List<BoxShadow>
+                            {
+                                new BoxShadow(0, 0, 10, 0, new Color(0, 0, 0, 255))
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var layoutRoot = _layoutEngine.Layout(root, styleSheets, 200, 200);
+        _renderEngine.Render(layoutRoot);
+
+        // The shadow may extend around the box, but its source area must remain untouched even
+        // when the element has no opaque background of its own.
+        GetPixelColor(75, 75).ShouldBe(SKColors.White);
+        ((int)GetPixelColor(75, 45).Red).ShouldBeLessThan(255);
+    }
+
+    [Fact]
     public void BoxShadow_MultipleLayers_ShouldStackForDarkerShadow()
     {
         // Arrange - two boxes: one with a single semi-transparent shadow, one with the

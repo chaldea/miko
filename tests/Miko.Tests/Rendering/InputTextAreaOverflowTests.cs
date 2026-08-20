@@ -61,6 +61,24 @@ public class InputTextAreaOverflowTests : IDisposable
         return false;
     }
 
+    private (int left, int right)? FindDarkPixelBounds(RectF rect)
+    {
+        int left = int.MaxValue;
+        int right = int.MinValue;
+        for (int y = Math.Max(0, (int)rect.Top); y < Math.Min(_bitmap.Height, (int)Math.Ceiling(rect.Bottom)); y++)
+        for (int x = Math.Max(0, (int)rect.Left); x < Math.Min(_bitmap.Width, (int)Math.Ceiling(rect.Right)); x++)
+        {
+            var c = _bitmap.GetPixel(x, y);
+            if (c.Red < 128 && c.Green < 128 && c.Blue < 128)
+            {
+                left = Math.Min(left, x);
+                right = Math.Max(right, x);
+            }
+        }
+
+        return left == int.MaxValue ? null : (left, right);
+    }
+
     // ---------------------------------------------------------------------
     // TextWrapper：无空格长文本应逐字符断行（overflow-wrap: anywhere）
     // ---------------------------------------------------------------------
@@ -216,6 +234,33 @@ public class InputTextAreaOverflowTests : IDisposable
         return input;
     }
 
+    private InputElement CreateCenteredInput(string value, int cursorPos, bool focused, out LayoutBox box)
+    {
+        var input = new InputElement
+        {
+            Type = InputType.Text,
+            Value = value,
+            CursorPosition = cursorPos,
+            Class = "centered-input"
+        };
+        if (focused) input.SetState(ElementState.Focus);
+
+        var sheet = new StyleSheet();
+        sheet.AddRule(new ClassSelector("centered-input"), new Style
+        {
+            Width = Length.Px(80),
+            Height = Length.Px(40),
+            BoxSizing = BoxSizing.BorderBox,
+            FontSize = Length.Px(16),
+            Color = Color.Black,
+            CaretColor = Color.Black,
+            TextAlign = TextAlign.Center,
+        });
+
+        box = _layoutEngine.Layout(input, new List<StyleSheet> { sheet }, 400, 300);
+        return input;
+    }
+
     [Fact]
     public void Input_LongValue_DoesNotRenderBeyondContentBox()
     {
@@ -303,5 +348,34 @@ public class InputTextAreaOverflowTests : IDisposable
         int rightEdge = (int)Math.Ceiling(padding.Right);
         HasDarkPixelInColumns(rightEdge + 2, rightEdge + 80, 0, 300)
             .ShouldBeFalse("unfocused overflow must be clipped");
+    }
+
+    [Fact]
+    public void Input_TextAlignCenter_PaintsShortTextInTheCenter()
+    {
+        var box = default(LayoutBox)!;
+        CreateCenteredInput("1", 1, focused: false, out box);
+
+        _renderEngine.Render(box);
+
+        var bounds = FindDarkPixelBounds(box.BoxModel.Content);
+        bounds.ShouldNotBeNull();
+        var center = (bounds.Value.left + bounds.Value.right) / 2f;
+        center.ShouldBe(box.BoxModel.Content.X + box.BoxModel.Content.Width / 2f, 2f);
+    }
+
+    [Fact]
+    public void Input_TextAlignCenter_PaintsFocusedCaretAfterCenteredText()
+    {
+        var box = default(LayoutBox)!;
+        CreateCenteredInput("1", 1, focused: true, out box);
+
+        _renderEngine.Render(box);
+
+        var bounds = FindDarkPixelBounds(box.BoxModel.Content);
+        bounds.ShouldNotBeNull();
+        var center = (bounds.Value.left + bounds.Value.right) / 2f;
+        center.ShouldBe(box.BoxModel.Content.X + box.BoxModel.Content.Width / 2f, 2f);
+        bounds.Value.left.ShouldBeGreaterThan((int)box.BoxModel.Content.Left + 20);
     }
 }

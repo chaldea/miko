@@ -111,4 +111,31 @@ public class IonPickerTests : IonicComponentTestBase
         // picker.scss :host height: 200px.
         style.Height.ShouldBe(Length.Px(200));
     }
+
+    // ---- Highlight band (issue 2: md has no highlight, only ios) ------------
+
+    [Fact]
+    public void IonPicker_Highlight_IsTransparentInMdMode()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderPicker(Context, Column("a"));
+
+        var highlight = cut.FindByClass("picker-highlight").ShouldHaveSingleItem();
+        // picker.md.scss gives --highlight-background no default → the band is invisible.
+        cut.GetComputedStyle(highlight)!.BackgroundColor.ShouldBe(Color.Transparent);
+    }
+
+    [Fact]
+    public void IonPicker_Highlight_IsFilledInIosMode()
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderPicker(Context, Column("a"));
+
+        var highlight = cut.FindByClass("picker-highlight").ShouldHaveSingleItem();
+        // The iOS step-150 band is translucent so it remains legible if a host cannot isolate it.
+        cut.GetComputedStyle(highlight)!.BackgroundColor.ShouldBe(Color.FromRgba(238, 238, 239, 0.72f));
+    }
 }

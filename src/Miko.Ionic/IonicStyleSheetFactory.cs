@@ -65,6 +65,7 @@ public static class IonicStyleSheetFactory
 
     private static void AddMode(StyleSheet sheet, string mode, IonicTheme t)
     {
+        sheet.Add(OverlayStyles.GenStyle(mode));
         sheet.Add(PageStyles.GenStyle(mode, t));
         sheet.Add(ContentStyles.GenStyle(mode, t));
         sheet.Add(TabStyles.GenStyle(mode, t));
@@ -98,6 +99,7 @@ public static class IonicStyleSheetFactory
         sheet.Add(RadioStyles.GenStyle(mode, t));
         sheet.Add(RangeStyles.GenStyle(mode, t));
         sheet.Add(InputStyles.GenStyle(mode, t));
+        sheet.Add(InputOtpStyles.GenStyle(mode, t));
         sheet.Add(TextareaStyles.GenStyle(mode, t));
         sheet.Add(ReorderStyles.GenStyle(mode, t));
         sheet.Add(ProgressBarStyles.GenStyle(mode, t));

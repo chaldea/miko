@@ -15,7 +15,7 @@
             </ChildContent>
         </IonToolbar>
     </IonHeader>
-    <IonContent Fullscreen>
+    <IonContent Class="component-content" Fullscreen>
         <ComponentDetails Name="Picker">
             The Picker is a dialog that displays columns with options in each column. It appears
             inline with your page content, but it can also be displayed over your content by using
@@ -36,13 +36,17 @@
                 Open Picker in a Modal
             </IonButton>
 
-            <IonModal IsOpen="@_isModalOpen" IsOpenChanged="@(open => _isModalOpen = open)">
+            <IonModal Class="modal-custom" IsOpen="@_isModalOpen" IsOpenChanged="@(open => _isModalOpen = open)">
                 <IonToolbar>
                     <Start>
-                        <IonButton OnClick="@DismissModal">Cancel</IonButton>
+                        <IonButtons>
+                            <IonButton OnClick="@DismissModal">Cancel</IonButton>
+                        </IonButtons>
                     </Start>
                     <End>
-                        <IonButton OnClick="@DismissModal">Done</IonButton>
+                        <IonButtons>
+                            <IonButton OnClick="@DismissModal">Done</IonButton>
+                        </IonButtons>
                     </End>
                 </IonToolbar>
                 <IonPicker>

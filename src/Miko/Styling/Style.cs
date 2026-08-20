@@ -543,6 +543,7 @@ public partial class Style
     // 溢出
     public StyleProperty<Overflow>? OverflowX { get; set; }
     public StyleProperty<Overflow>? OverflowY { get; set; }
+    public StyleProperty<ScrollbarWidth>? ScrollbarWidth { get; set; }
 
     // 动画与过渡
     public StyleProperty<Transform>? Transform { get; set; }

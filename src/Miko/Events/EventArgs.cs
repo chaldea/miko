@@ -70,6 +70,12 @@ public class MouseEventArgs : MikoEventArgs
     /// <summary>Height of the event target's rendered border box.</summary>
     public float TargetHeight { get; init; }
 
+    /// <summary>Width of the viewport in which the pointer event occurred.</summary>
+    public float ViewportWidth { get; init; }
+
+    /// <summary>Height of the viewport in which the pointer event occurred.</summary>
+    public float ViewportHeight { get; init; }
+
     /// <summary>Whether the pointer's primary button is currently pressed.</summary>
     public bool IsButtonPressed { get; init; }
 

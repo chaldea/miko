@@ -146,6 +146,52 @@ public class OverflowTests
     }
 
     [Fact]
+    public void ScrollbarWidthNone_ShouldNotReserveWidthButRemainScrollable()
+    {
+        var root = new DivElement
+        {
+            Style = new Style
+            {
+                Display = Display.Block,
+                Width = Length.Px(200),
+                Height = Length.Px(100),
+                OverflowY = Overflow.Scroll,
+                ScrollbarWidth = ScrollbarWidth.None,
+            },
+            Children = { new DivElement { Style = new Style { Height = Length.Px(300) } } }
+        };
+
+        var layout = _layoutEngine.Layout(root, new List<StyleSheet>(), 800, 600);
+
+        layout.HasVerticalScrollbar.ShouldBeTrue();
+        layout.ShowsVerticalScrollbar.ShouldBeFalse();
+        layout.Children[0].BoxModel.Content.Width.ShouldBe(200f);
+    }
+
+    [Fact]
+    public void ScrollbarWidthThin_ShouldReserveThinWidth()
+    {
+        var root = new DivElement
+        {
+            Style = new Style
+            {
+                Display = Display.Block,
+                Width = Length.Px(200),
+                Height = Length.Px(100),
+                OverflowY = Overflow.Scroll,
+                ScrollbarWidth = ScrollbarWidth.Thin,
+            },
+            Children = { new DivElement() }
+        };
+
+        var layout = _layoutEngine.Layout(root, new List<StyleSheet>(), 800, 600);
+
+        layout.ShowsVerticalScrollbar.ShouldBeTrue();
+        layout.VerticalScrollbarThickness.ShouldBe(LayoutBox.ThinScrollbarThickness);
+        layout.Children[0].BoxModel.Content.Width.ShouldBe(200 - LayoutBox.ThinScrollbarThickness);
+    }
+
+    [Fact]
     public void OverflowHidden_ShouldNotShowScrollbar()
     {
         var root = new DivElement
@@ -232,6 +278,7 @@ public class OverflowTests
 
         computed.OverflowX.ShouldBe(Overflow.Visible);
         computed.OverflowY.ShouldBe(Overflow.Visible);
+        computed.ScrollbarWidth.ShouldBe(ScrollbarWidth.Auto);
     }
 
     [Fact]

@@ -1,8 +1,10 @@
 using Miko.Components;
+using Miko.Common;
 using Miko.Events;
 using Miko.Ionic.Components;
 using Miko.Platform;
 using Miko.Testing;
+using Miko.Styling;
 using Shouldly;
 
 namespace Miko.Ionic.Tests.Components;
@@ -210,6 +212,138 @@ public class IonPopoverTests : IonicComponentTestBase
         var cut = RenderPopover(Context);
 
         cut.Root.Class.ShouldStartWith("ios ion-popover");
+    }
+
+    [Fact]
+    public void IonPopover_ContentAndWrapper_ExpandToChildContent()
+    {
+        Context.ViewportWidth = 390;
+        Context.ViewportHeight = 844;
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonPopover>(p =>
+        {
+            p.Add(nameof(IonPopover.IsOpen), true);
+            p.Add(nameof(IonPopover.ChildContent), (RenderFragment)(builder =>
+            {
+                builder.OpenComponent<IonList>(0);
+                builder.AddAttribute(1, nameof(IonList.ChildContent), (RenderFragment)(list =>
+                {
+                    list.OpenComponent<IonItem>(0);
+                    list.AddAttribute(1, nameof(IonItem.ChildContent),
+                        (RenderFragment)(item => item.AddContent(0, "Body")));
+                    list.CloseComponent();
+                }));
+                builder.CloseComponent();
+            }));
+        });
+        var wrapper = cut.FindByClass("popover-wrapper").ShouldHaveSingleItem();
+        var content = cut.FindByClass("popover-content").ShouldHaveSingleItem();
+
+        var wrapperBox = cut.GetBoxModel(wrapper).ShouldNotBeNull();
+        var contentBox = cut.GetBoxModel(content).ShouldNotBeNull();
+        wrapperBox.BorderBox.Height.ShouldBeGreaterThan(48f);
+        contentBox.BorderBox.Height.ShouldBeGreaterThan(48f);
+        wrapperBox.BorderBox.Height.ShouldBe(contentBox.BorderBox.Height, 0.01f);
+    }
+
+    [Fact]
+    public void IonPopover_Event_AnchorsWrapperToTrigger()
+    {
+        Context.ViewportWidth = 390;
+        Context.ViewportHeight = 844;
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var trigger = new Miko.Core.DomElements.DivElement();
+        var cut = Context.Render<IonPopover>(p =>
+        {
+            p.Add(nameof(IonPopover.IsOpen), true);
+            p.Add(nameof(IonPopover.Event), new MouseEventArgs
+            {
+                Target = trigger,
+                X = 50,
+                Y = 100,
+                OffsetX = 10,
+                OffsetY = 20,
+                TargetWidth = 100,
+                TargetHeight = 40,
+            });
+            p.Add(nameof(IonPopover.ChildContent), Body);
+        });
+
+        var wrapper = cut.FindByClass("popover-wrapper").ShouldHaveSingleItem();
+        var style = cut.GetComputedStyle(wrapper)!;
+        style.Position.ShouldBe(Position.Absolute);
+        style.Left.ShouldBe(Length.Px(40));
+        style.Top.ShouldBe(Length.Px(120));
+    }
+
+    [Fact]
+    public void IonPopover_NearRightEdge_ShiftsContentLeftIntoViewport()
+    {
+        Context.ViewportWidth = 390;
+        Context.ViewportHeight = 844;
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var trigger = new Miko.Core.DomElements.DivElement();
+        var cut = Context.Render<IonPopover>(p =>
+        {
+            p.Add(nameof(IonPopover.IsOpen), true);
+            p.Add(nameof(IonPopover.Event), new MouseEventArgs
+            {
+                Target = trigger,
+                X = 365,
+                Y = 50,
+                OffsetX = 5,
+                OffsetY = 10,
+                TargetWidth = 30,
+                TargetHeight = 40,
+                ViewportWidth = 390,
+                ViewportHeight = 844,
+            });
+            p.Add(nameof(IonPopover.ChildContent), Body);
+        });
+
+        var wrapper = cut.FindByClass("popover-wrapper").ShouldHaveSingleItem();
+        var style = cut.GetComputedStyle(wrapper)!;
+        var box = cut.GetBoxModel(wrapper).ShouldNotBeNull().BorderBox;
+        style.Left.ShouldBe(Length.Px(132));
+        box.Right.ShouldBeLessThanOrEqualTo(382.01f);
+        cut.Root.ShouldHaveClass("popover-side-bottom");
+    }
+
+    [Fact]
+    public void IonPopover_NearBottomEdge_FlipsAboveTrigger()
+    {
+        Context.ViewportWidth = 390;
+        Context.ViewportHeight = 844;
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var trigger = new Miko.Core.DomElements.DivElement();
+        var cut = Context.Render<IonPopover>(p =>
+        {
+            p.Add(nameof(IonPopover.IsOpen), true);
+            p.Add(nameof(IonPopover.Event), new MouseEventArgs
+            {
+                Target = trigger,
+                X = 100,
+                Y = 790,
+                OffsetX = 10,
+                OffsetY = 10,
+                TargetWidth = 100,
+                TargetHeight = 40,
+                ViewportWidth = 390,
+                ViewportHeight = 844,
+            });
+            p.Add(nameof(IonPopover.ChildContent), Body);
+        });
+
+        var wrapper = cut.FindByClass("popover-wrapper").ShouldHaveSingleItem();
+        var style = cut.GetComputedStyle(wrapper)!;
+        var box = cut.GetBoxModel(wrapper).ShouldNotBeNull().BorderBox;
+        style.Bottom.ToPixels(844).ShouldBe(64f, 0.01f);
+        box.Bottom.ShouldBe(780f, 0.01f);
+        cut.Root.ShouldHaveClass("popover-side-top");
     }
 
     // Invokes a private async handler on the component (mirrors what a click/tap dispatches).

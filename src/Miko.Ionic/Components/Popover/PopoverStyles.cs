@@ -81,6 +81,8 @@ internal static class PopoverStyles
             [$".ion-popover.{mode} .popover-wrapper"] = new()
             {
                 Position = Position.Relative,
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Column,
                 ZIndex = 10,                                 // $z-index-overlay-wrapper
             },
 
@@ -91,7 +93,11 @@ internal static class PopoverStyles
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Column,
                 Width = width,                               // --width per mode
-                MaxHeight = Length.Percent(90),              // --max-height: 90%
+                Height = Length.Auto,                         // --height: auto
+                MinHeight = Length.Px(0),                     // --min-height: 0
+                // The host fills the viewport, so 90vh is equivalent to Ionic's 90%. Unlike a
+                // percentage, it stays definite while this native flex tree measures auto height.
+                MaxHeight = Length.Vh(90),                    // --max-height: 90%
                 BackgroundColor = t.BackgroundColor,         // --background: $popover-background-color
                 BorderRadius = new BorderRadius(Length.Px(borderRadius)),
                 BoxShadow = boxShadow,

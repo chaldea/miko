@@ -45,8 +45,26 @@ public class LayoutBox
     public bool HasHorizontalScrollbar => ComputedStyle.OverflowX == Overflow.Scroll ||
         (ComputedStyle.OverflowX == Overflow.Auto && ScrollableContentWidth > BoxModel.PaddingBox.Width + 0.01f);
 
+    // scrollbar-width controls presentation only. A hidden scrollbar remains a scroll container.
+    public bool ShowsVerticalScrollbar => HasVerticalScrollbar && ComputedStyle.ScrollbarWidth != ScrollbarWidth.None;
+    public bool ShowsHorizontalScrollbar => HasHorizontalScrollbar && ComputedStyle.ScrollbarWidth != ScrollbarWidth.None;
+
+    public float VerticalScrollbarThickness => ShowsVerticalScrollbar ? GetScrollbarThickness(ComputedStyle) : 0f;
+    public float HorizontalScrollbarThickness => ShowsHorizontalScrollbar ? GetScrollbarThickness(ComputedStyle) : 0f;
+
+    // Prevent scroll-state restoration from overwriting a component's explicit initial position.
+    internal bool InitialScrollTopApplied { get; set; }
+
     // Classic 滚动条宽度（占用布局空间）
     public const float ScrollbarThickness = 12f;
+    public const float ThinScrollbarThickness = 6f;
+
+    public static float GetScrollbarThickness(ComputedStyle style) => style.ScrollbarWidth switch
+    {
+        ScrollbarWidth.None => 0f,
+        ScrollbarWidth.Thin => ThinScrollbarThickness,
+        _ => ScrollbarThickness,
+    };
 
     public override string ToString() => $"LayoutBox({Element.TagName}, Type: {Type})";
 }

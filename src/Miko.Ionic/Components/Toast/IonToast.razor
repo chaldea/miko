@@ -15,8 +15,8 @@
      </div>
    </ion-toast>
    A toast is a non-blocking notification: it has NO backdrop. Ionic's overlay controller wires
-   `trigger` / `present()`; Miko has no controller, so the host drives IsOpen (two-way) and the
-   toast raises OnDidDismiss with the tapped button's role. Cancel-role buttons dismiss without
+   Miko supports both the declarative IsOpen path and IonToastController. The toast raises
+   OnDidDismiss with the tapped button's role. Cancel-role buttons dismiss without
    running as a normal action; other buttons run their handler then dismiss.
    The host is ALWAYS mounted and keeps its layout box even when closed — `overlay-hidden` maps to
    pointer-events:none rather than display:none (see ToastStyles). That is what makes the
@@ -26,6 +26,7 @@
    animations/{md|ios}.{enter|leave}.ts. `toast-mounted` marks the host interactive while open or
    animating out; it is dropped only after the leave animation finishes (deferred unmount driven by
    AnimationManager.TransitionCompleted), the same pattern as IonActionSheet. *@
+<IonPortal Id="@(OverlayId ?? _overlayId)" Active="@(IsOpen || _mounted)">
 <div class="@ClassMapper.Class" style="@Style">
     <div class="@_wrapperClass">
         <div class="toast-container">
@@ -80,8 +81,13 @@
         </div>
     </div>
 </div>
+</IonPortal>
 
 @code {
+    private readonly string _overlayId = $"toast-{Guid.NewGuid():N}";
+    /// <summary>Optional stable identifier used by the root overlay registry.</summary>
+    [Parameter] public string? OverlayId { get; set; }
+
     /// <summary>The body message.</summary>
     [Parameter] public string? Message { get; set; }
 

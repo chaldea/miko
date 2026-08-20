@@ -504,6 +504,7 @@ public partial class ComputedStyle : Style
 
     public new Overflow OverflowX { get; set; } = Overflow.Visible;
     public new Overflow OverflowY { get; set; } = Overflow.Visible;
+    public new ScrollbarWidth ScrollbarWidth { get; set; } = Common.ScrollbarWidth.Auto;
 
     // vertical-align 默认 baseline（与 CSS 一致）。
     public new VerticalAlign VerticalAlign { get; set; } = Common.VerticalAlign.Baseline;

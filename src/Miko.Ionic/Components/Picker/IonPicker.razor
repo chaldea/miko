@@ -9,10 +9,11 @@
      <slot></slot>                         <!-- ChildContent: the IonPickerColumn children -->
    </ion-picker>
    The picker is mostly a styled flex container: it lays its columns out in a row and paints a
-   center highlight band plus top/bottom fade gradients. Ionic's input-mode / scroll / haptics logic
-   is runtime DOM behavior with no Miko equivalent, so it is omitted. The `picker-has-multiple-columns`
-   marker is computed in Build() by counting the .ion-picker-column descendants (like
-   IonBreadcrumbs' Build() post-pass), since it can only be known once the children exist. *@
+   center highlight band plus top/bottom fade gradients. Ionic's input-mode (hidden numeric keyboard
+   entry) / haptics logic is runtime DOM behavior with no Miko equivalent, so it is omitted; the wheel
+   scroll lives in IonPickerColumn. The `picker-has-multiple-columns` marker is computed in Build() by
+   counting the .ion-picker-column descendants (like IonBreadcrumbs' Build() post-pass), since it can
+   only be known once the children exist. *@
 <div class="@ClassMapper.Class" style="@Style">
     <div class="picker-before"></div>
     <div class="picker-after"></div>

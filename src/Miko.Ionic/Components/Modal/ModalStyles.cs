@@ -4,47 +4,27 @@ using Miko.Styling;
 namespace Miko.Ionic.Components;
 
 /// <summary>
-/// Styles for <c>ion-modal</c>. Ported from the Ionic source: <c>modal.scss</c> / <c>.md.scss</c> /
-/// <c>.ios.scss</c> (+ their <c>*.vars.scss</c>).
+/// Styles for <c>ion-modal</c>. Ported from Ionic's <c>modal.scss</c>, <c>modal.md.scss</c>, and
+/// <c>modal.ios.scss</c>.
 /// <para>
-/// A centered card overlay: a fixed full-screen host that centers a wrapper (the modal content
-/// surface). The wrapper carries the card background/border-radius/shadow and hosts the modal body
-/// (<c>@ChildContent</c> — usually an <c>IonHeader</c> + <c>IonContent</c>). ios also draws a
-/// <c>.modal-shadow</c> layer behind the wrapper. In the web the wrapper is fullscreen and only
-/// insets past a 768px breakpoint (<c>$modal-inset-*</c>); this native port renders the inset card
-/// directly (a capped-width centered surface) since there is no browser viewport media query and the
-/// sheet/card gestures are out of scope. Rules are scoped by the active mode class (<c>md</c> /
-/// <c>ios</c>); see <see cref="PageStyles"/> for the mode-scoping rationale.
+/// The default modal surface fills the overlay host. Sheet modals keep that full-height surface,
+/// anchor it to the bottom, and translate it according to the active breakpoint.
 /// </para>
 /// </summary>
 internal static class ModalStyles
 {
     internal static CssObject GenStyle(string mode, IonicTheme t)
     {
-        // $modal-inset-width = 600px, $modal-inset-height-small = 500px (modal.vars.scss). We cap the
-        // centered card to these so it reads as a modal rather than a fullscreen sheet.
-        var insetWidth = Length.Px(600);   // $modal-inset-width
-        var insetHeight = Length.Px(500);  // $modal-inset-height-small
-
-        // --border-radius: modal.scss default 0; md inset = 2px ($modal.md.scss); ios card/sheet =
-        // 10px ($modal-ios-border-radius).
-        var borderRadius = mode == "ios" ? 10f : 2f;
-
-        // Card elevation. md inset: $modal-inset-box-shadow = 0 28px 48px rgba(0,0,0,.4).
-        // ios card (tablet): 0px 0px 30px 10px rgba(0,0,0,0.1).
-        var boxShadow = mode == "ios"
-            ? new List<BoxShadow>
-            {
-                new BoxShadow(Length.Px(0), Length.Px(0), Length.Px(30), Length.Px(10), new Color(0, 0, 0, 26)),
-            }
-            : new List<BoxShadow>
-            {
-                new BoxShadow(Length.Px(0), Length.Px(28), Length.Px(48), Length.Px(0), new Color(0, 0, 0, 102)),
-            };
+        var iosCardShadow = new List<BoxShadow>
+        {
+            new BoxShadow(Length.Px(0), Length.Px(0), Length.Px(30), Length.Px(10),
+                new Color(0, 0, 0, 26)),
+        };
 
         var css = new CssObject
         {
-            // Host — a fixed full-screen overlay that centers its wrapper (modal.scss :host).
+            // The overlay host always covers the viewport. Flex centering remains useful when a
+            // caller gives the modal surface a custom size.
             [$".ion-modal.{mode}"] = new()
             {
                 Position = Position.Fixed,
@@ -55,18 +35,15 @@ internal static class ModalStyles
                 Display = Display.Flex,
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.Center,
-                Color = t.TextColor,                        // $modal-text-color = $text-color
+                Color = t.TextColor,
                 ZIndex = 1000,
             },
 
-            // Closed modal is fully hidden (:host(.overlay-hidden)).
             [$".ion-modal.{mode}.overlay-hidden"] = new()
             {
                 Display = Display.None,
             },
 
-            // Backdrop — the tappable dim layer filling the host.
-            // --backdrop-opacity: md 0.32, ios 0.4.
             [$".ion-modal.{mode} .modal-backdrop"] = new()
             {
                 Position = Position.Absolute,
@@ -74,41 +51,98 @@ internal static class ModalStyles
                 Right = Length.Px(0),
                 Bottom = Length.Px(0),
                 Left = Length.Px(0),
-                BackgroundColor = t.AlertBackdropColor,     // black; shared overlay backdrop color
-                Opacity = mode == "ios" ? 0.4f : 0.32f,     // $modal --backdrop-opacity per mode
+                BackgroundColor = t.AlertBackdropColor,
+                Opacity = mode == "ios" ? 0.4f : 0.32f,
                 Cursor = Cursor.Pointer,
             },
 
-            // Wrapper — the centered card. Carries the modal surface (background / radius / shadow).
-            // modal.scss: width/height var(--width/--height) (100%); capped by the inset max-* so the
-            // card stays modal-sized on wide viewports.
+            // modal.scss base variables: width/height 100%, min/max auto, radius 0, shadow none.
             [$".ion-modal.{mode} .modal-wrapper"] = new()
             {
                 Position = Position.Relative,
                 Display = Display.Flex,
                 FlexDirection = FlexDirection.Column,
-                Width = Length.Percent(100),                // --width: 100%
-                MaxWidth = insetWidth,                       // $modal-inset-width (600px)
-                Height = Length.Percent(100),               // --height: 100%
-                MaxHeight = insetHeight,                     // $modal-inset-height-small (500px)
-                BackgroundColor = t.BackgroundColor,         // --background: $background-color
-                BorderRadius = new BorderRadius(Length.Px(borderRadius)),
-                BoxShadow = boxShadow,
-                OverflowX = Overflow.Hidden,                 // --overflow: hidden
+                Width = Length.Percent(100),
+                MinWidth = Length.Auto,
+                MaxWidth = Length.Auto,
+                Height = Length.Percent(100),
+                MinHeight = Length.Auto,
+                MaxHeight = Length.Auto,
+                BackgroundColor = t.BackgroundColor,
+                BorderRadius = BorderRadius.None,
+                BoxShadow = new List<BoxShadow>(),
+                OverflowX = Overflow.Hidden,
                 OverflowY = Overflow.Hidden,
                 ZIndex = 10,
             },
 
-            // Shadow layer — sits behind the wrapper (ios draws it; modal.scss .modal-shadow).
+            // iOS renders this transparent sibling behind the wrapper for card/sheet effects.
             [$".ion-modal.{mode} .modal-shadow"] = new()
             {
                 Position = Position.Absolute,
                 Width = Length.Percent(100),
-                MaxWidth = insetWidth,
+                MinWidth = Length.Auto,
+                MaxWidth = Length.Auto,
                 Height = Length.Percent(100),
-                MaxHeight = insetHeight,
-                BackgroundColor = Color.Transparent,         // .modal-shadow background: transparent
-                BorderRadius = new BorderRadius(Length.Px(borderRadius)),
+                MinHeight = Length.Auto,
+                MaxHeight = Length.Auto,
+                BackgroundColor = Color.Transparent,
+                BorderRadius = BorderRadius.None,
+                BoxShadow = new List<BoxShadow>(),
+                OverflowX = Overflow.Hidden,
+                OverflowY = Overflow.Hidden,
+                ZIndex = 10,
+            },
+
+            // A sheet leaves the top safe area plus Ionic's 10px visual gap uncovered.
+            [$".ion-modal.{mode}.modal-sheet .modal-wrapper"] = new()
+            {
+                Position = Position.Absolute,
+                Height = Length.Percent(100) - Length.SafeAreaInsetTop - Length.Px(10),
+            },
+
+            [$".ion-modal.{mode}.modal-sheet .modal-shadow"] = new()
+            {
+                Position = Position.Absolute,
+                Height = Length.Percent(100) - Length.SafeAreaInsetTop - Length.Px(10),
+            },
+
+            // Ionic only rounds the exposed top corners of an iOS sheet.
+            [".ion-modal.ios.modal-sheet .modal-wrapper"] = new()
+            {
+                BorderRadius = new BorderRadius(
+                    Length.Px(10), Length.Px(10), Length.Px(0), Length.Px(0)),
+            },
+
+            [".ion-modal.ios.modal-sheet .modal-shadow"] = new()
+            {
+                BorderRadius = new BorderRadius(Length.Px(10)),
+            },
+
+            // Keep the existing iOS presenting/card affordance without changing the default
+            // fullscreen modal surface.
+            [".ion-modal.ios.modal-card .modal-wrapper"] = new()
+            {
+                BorderRadius = new BorderRadius(Length.Px(10)),
+                BoxShadow = iosCardShadow,
+            },
+
+            [$".ion-modal.{mode} .modal-handle"] = new()
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(5),
+                Left = Length.Px(0),
+                Right = Length.Px(0),
+                Width = Length.Px(36),
+                Height = Length.Px(5),
+                MarginLeft = Length.Auto,
+                MarginRight = Length.Auto,
+                BorderWidth = Length.Px(0),
+                BorderStyle = BorderStyle.None,
+                BorderRadius = new BorderRadius(Length.Px(8)),
+                BackgroundColor = Color.FromHex("c0c0be"),
+                Cursor = Cursor.Pointer,
+                ZIndex = 11,
             },
         };
 

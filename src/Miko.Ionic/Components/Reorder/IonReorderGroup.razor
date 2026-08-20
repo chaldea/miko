@@ -9,10 +9,8 @@
    handle can decide whether to show. Ionic defaults `disabled` to true (the group must be explicitly
    enabled to allow reordering); this port keeps that default.
 
-   NOTE: this is a structural / visual port only. The live drag-to-reorder gesture (pointer tracking,
-   item translation, ionItemReorder/ionReorderEnd completion) is NOT implemented — Miko has no gesture
-   engine here. OnItemReorder is exposed as a marker callback so consuming code can compile against the
-   same surface, but it is never raised. *@
+   The bubbling pointer handlers below track the selected logical child, apply transient shift classes,
+   and raise OnItemReorder on release. *@
 <div class="@ClassMapper.Class" style="@Style">
     <CascadingValue TValue="IonReorderGroupContext" Value="_context">
         @ChildContent
@@ -24,14 +22,26 @@
     /// non-interactive. Set to false to reveal the handles.</summary>
     [Parameter] public bool Disabled { get; set; } = true;
 
-    /// <summary>Marker for Ionic's <c>ionItemReorder</c> / <c>ionReorderEnd</c> event. Never raised in
-    /// this base port because the drag gesture is not implemented; present so consuming code can bind
-    /// to the same surface.</summary>
+    /// <summary>Raised when a drag gesture completes, with the original and destination child indexes.
+    /// The callback is raised even when the item is released at its original index, matching Ionic's
+    /// <c>ionReorderEnd</c> contract.</summary>
     [Parameter] public EventCallback<(int From, int To)> OnItemReorder { get; set; }
 
     // ChildContent (the reorderable list items, each typically containing an IonReorder) is inherited from ComponentBase.
 
     private IonReorderGroupContext _context = new();
+
+    private bool _isDragging;
+    private int _fromIndex = -1;
+    private int _toIndex = -1;
+    private float _startY;
+    private float _dragOffsetY;
+    private float _selectedItemHeight;
+    private float[] _itemHeights = Array.Empty<float>();
+    private float[] _siblingOffsets = Array.Empty<float>();
+    private Element[] _dragItems = Array.Empty<Element>();
+    private Style?[] _originalItemStyles = Array.Empty<Style?>();
+    private Element? _activeGroupElement;
 
     protected override void OnParametersSet()
     {
@@ -40,11 +50,323 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-reorder-group")
-            .If(Disabled, "reorder-group-disabled");
+            .If(Disabled, "reorder-group-disabled")
+            .If(!Disabled, "reorder-enabled")
+            .If(_isDragging, "reorder-list-active");
 
         _context = new IonReorderGroupContext
         {
             Disabled = Disabled,
         };
+    }
+
+    public override Element Build()
+    {
+        var root = base.Build();
+
+        // Raw handlers are intentional here. Razor event callbacks automatically rebuild the
+        // component after every mouse move; ChildContent is opaque to the group, so that rebuild
+        // replaces and discards the runtime transforms applied to its logical list items.
+        root.OnMouseDown = OnPointerDown;
+        root.OnMouseMove = OnPointerMove;
+        root.OnMouseUp = args => _ = OnPointerUpAsync(args);
+        return root;
+    }
+
+    private void OnPointerDown(MouseEventArgs args)
+    {
+        if (Disabled || _isDragging || args.Button != MouseButton.Left || !args.IsButtonPressed)
+            return;
+
+        var groupElement = args.CurrentTarget;
+        var handle = FindAncestor(args.Target, "ion-reorder");
+        var nearestGroup = FindAncestor(args.Target, "ion-reorder-group");
+        if (groupElement is null || handle is null || !ReferenceEquals(nearestGroup, groupElement))
+            return;
+
+        var items = GetReorderableItems(groupElement);
+        var item = FindReorderItem(handle, items);
+        if (item is null)
+            return;
+        var from = items.IndexOf(item);
+        if (from < 0)
+            return;
+
+        _isDragging = true;
+        _fromIndex = from;
+        _toIndex = from;
+        _startY = args.Y;
+        _dragOffsetY = 0;
+        _itemHeights = items.Select(child => child.OffsetHeight > 0 ? child.OffsetHeight : 1f).ToArray();
+        _siblingOffsets = new float[items.Count];
+        _selectedItemHeight = _itemHeights[from];
+        _dragItems = items.ToArray();
+        _originalItemStyles = items.Select(child => child.Style).ToArray();
+        _activeGroupElement = groupElement;
+
+        AddClass(groupElement, "reorder-list-active");
+        AddClass(item, "reorder-selected");
+        ApplyDragVisuals();
+        args.PreventDefault();
+    }
+
+    private void OnPointerMove(MouseEventArgs args)
+    {
+        if (!_isDragging || !args.IsButtonPressed)
+            return;
+
+        _dragOffsetY = args.Y - _startY;
+        var next = CalculateTargetIndex(_dragOffsetY);
+        if (next != _toIndex)
+            _toIndex = next;
+
+        ApplyDragVisuals();
+
+        args.PreventDefault();
+    }
+
+    private async Task OnPointerUpAsync(MouseEventArgs args)
+    {
+        if (!_isDragging)
+            return;
+
+        if (args.IsButtonPressed)
+        {
+            _dragOffsetY = args.Y - _startY;
+            _toIndex = CalculateTargetIndex(_dragOffsetY);
+        }
+
+        var from = _fromIndex;
+        var to = _toIndex;
+        var groupElement = _activeGroupElement;
+        try
+        {
+            // Keep the item at its final pointer position while the owner applies the new order.
+            // Clearing first makes the selected item jump back to its origin before the callback
+            // rebuilds the list, which appears as a duplicate drop animation.
+            await OnItemReorder.InvokeAsync((from, to));
+        }
+        finally
+        {
+            ClearDragState(groupElement);
+        }
+    }
+
+    private int CalculateTargetIndex(float deltaY)
+    {
+        if (_fromIndex < 0 || _itemHeights.Length == 0)
+            return _fromIndex;
+
+        var target = _fromIndex;
+        if (deltaY > 0)
+        {
+            var distance = 0f;
+            for (var index = _fromIndex + 1; index < _itemHeights.Length; index++)
+            {
+                distance += (_itemHeights[index - 1] + _itemHeights[index]) / 2f;
+                if (deltaY < distance) break;
+                target = index;
+            }
+        }
+        else if (deltaY < 0)
+        {
+            var distance = 0f;
+            for (var index = _fromIndex - 1; index >= 0; index--)
+            {
+                distance += (_itemHeights[index + 1] + _itemHeights[index]) / 2f;
+                if (-deltaY < distance) break;
+                target = index;
+            }
+        }
+
+        return target;
+    }
+
+    private void ApplyDragVisuals()
+    {
+        if (_activeGroupElement is null)
+            return;
+
+        CalculateSiblingOffsets();
+        for (var index = 0; index < _dragItems.Length; index++)
+        {
+            var item = _dragItems[index];
+            var style = index < _originalItemStyles.Length
+                ? _originalItemStyles[index]?.Clone() ?? new Style()
+                : new Style();
+
+            // Pointer movement owns transforms during a reorder. An active transform transition
+            // writes its animation start value back into the inline style, so the next move first
+            // shows the destination and then jumps back to the start of the transition.
+            style.Transitions = new List<Transition>();
+
+            RemoveClass(item, "reorder-item-shift-up");
+            RemoveClass(item, "reorder-item-shift-down");
+            if (index == _fromIndex)
+            {
+                AddClass(item, "reorder-selected");
+                style.Transform = TranslateWithOriginal(style.Transform, _dragOffsetY);
+                style.Position = Position.Relative;
+                style.ZIndex = 101;
+                item.Style = style;
+                continue;
+            }
+
+            var offsetY = _siblingOffsets[index];
+            if (offsetY < 0)
+            {
+                AddClass(item, "reorder-item-shift-up");
+                style.Transform = TranslateWithOriginal(style.Transform, offsetY);
+            }
+            else if (offsetY > 0)
+            {
+                AddClass(item, "reorder-item-shift-down");
+                style.Transform = TranslateWithOriginal(style.Transform, offsetY);
+            }
+
+            item.Style = style;
+        }
+    }
+
+    private void CalculateSiblingOffsets()
+    {
+        Array.Clear(_siblingOffsets);
+        if (_dragOffsetY > 0)
+        {
+            var start = 0f;
+            for (var index = _fromIndex + 1; index < _itemHeights.Length; index++)
+            {
+                var distance = (_itemHeights[index - 1] + _itemHeights[index]) / 2f;
+                var progress = Math.Clamp((_dragOffsetY - start) / distance, 0f, 1f);
+                _siblingOffsets[index] = -_selectedItemHeight * progress;
+                start += distance;
+                if (progress <= 0) break;
+            }
+        }
+        else if (_dragOffsetY < 0)
+        {
+            var distanceFromStart = -_dragOffsetY;
+            var start = 0f;
+            for (var index = _fromIndex - 1; index >= 0; index--)
+            {
+                var distance = (_itemHeights[index + 1] + _itemHeights[index]) / 2f;
+                var progress = Math.Clamp((distanceFromStart - start) / distance, 0f, 1f);
+                _siblingOffsets[index] = _selectedItemHeight * progress;
+                start += distance;
+                if (progress <= 0) break;
+            }
+        }
+    }
+
+    private void ClearDragState(Element? groupElement)
+    {
+        if (groupElement is not null)
+        {
+            RemoveClass(groupElement, "reorder-list-active");
+
+            // Restore styles by element identity. The reorder callback can change DOM order, so
+            // restoring by the post-callback child index can apply one item's original style to
+            // a different item.
+            for (var index = 0; index < _dragItems.Length; index++)
+            {
+                var item = _dragItems[index];
+                RemoveClass(item, "reorder-selected");
+                RemoveClass(item, "reorder-item-shift-up");
+                RemoveClass(item, "reorder-item-shift-down");
+                item.Style = index < _originalItemStyles.Length
+                    ? _originalItemStyles[index]
+                    : null;
+            }
+
+            // A callback may replace children while retaining the group element. Ensure no
+            // transient marker survives on those replacement nodes.
+            foreach (var item in GetReorderableItems(groupElement))
+            {
+                RemoveClass(item, "reorder-selected");
+                RemoveClass(item, "reorder-item-shift-up");
+                RemoveClass(item, "reorder-item-shift-down");
+            }
+        }
+
+        _isDragging = false;
+        _activeGroupElement = null;
+        _fromIndex = -1;
+        _toIndex = -1;
+        _dragOffsetY = 0;
+        _selectedItemHeight = 0;
+        _itemHeights = Array.Empty<float>();
+        _siblingOffsets = Array.Empty<float>();
+        _dragItems = Array.Empty<Element>();
+        _originalItemStyles = Array.Empty<Style?>();
+    }
+
+    private static Transform TranslateWithOriginal(StyleProperty<Transform>? original, float offsetY)
+    {
+        var transform = new Transform();
+        if (original is { } property && property.TryGetValue(out var value))
+            transform.Functions.AddRange(value.Functions);
+        transform.Functions.Add(new TransformFunction.TranslateY(Length.Px(offsetY)));
+        return transform;
+    }
+
+    private static List<Element> GetReorderableItems(Element group)
+    {
+        var items = new List<Element>();
+        foreach (var child in group.Children)
+            CollectReorderableItems(child, items);
+        return items;
+    }
+
+    private static void CollectReorderableItems(Element element, List<Element> items)
+    {
+        if (element.FindByClass("ion-reorder").Count == 0)
+            return;
+
+        // RenderFragment introduces transparent fragment nodes. Flatten those nodes so the
+        // logical list items remain addressable even when ChildContent emits several siblings.
+        if (string.Equals(element.TagName, "fragment", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var child in element.Children)
+                CollectReorderableItems(child, items);
+        }
+        else
+        {
+            items.Add(element);
+        }
+    }
+
+    private static Element? FindReorderItem(Element handle, IReadOnlyList<Element> items)
+    {
+        for (var current = handle; current is not null; current = current.Parent)
+        {
+            if (items.Contains(current)) return current;
+        }
+        return null;
+    }
+
+    private static Element? FindAncestor(Element? element, string className)
+    {
+        for (var current = element; current is not null; current = current.Parent)
+        {
+            if (current.HasClass(className)) return current;
+        }
+        return null;
+    }
+
+    private static void AddClass(Element element, string className)
+    {
+        if (element.HasClass(className)) return;
+        element.Class = string.IsNullOrWhiteSpace(element.Class)
+            ? className
+            : $"{element.Class} {className}";
+    }
+
+    private static void RemoveClass(Element element, string className)
+    {
+        if (string.IsNullOrWhiteSpace(element.Class)) return;
+        var classes = element.Class.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(value => !string.Equals(value, className, StringComparison.Ordinal))
+            .ToArray();
+        element.Class = classes.Length == 0 ? null : string.Join(' ', classes);
     }
 }

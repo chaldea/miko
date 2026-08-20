@@ -13,8 +13,8 @@ namespace Miko.Ionic.Tests.Components;
 /// derived from the enclosing <see cref="IonReorderGroup"/>'s cascaded disabled flag, and mode
 /// stamping.
 /// <para>
-/// This is a structural / visual port: the live drag-to-reorder gesture is not implemented, so there
-/// is no interaction to drive here — only the class + cascade contract.
+/// Gesture behavior belongs to <see cref="IonReorderGroupTests"/>; these tests cover the handle's
+/// rendering and enabled/disabled state.
 /// </para>
 /// </summary>
 public class IonReorderTests : IonicComponentTestBase

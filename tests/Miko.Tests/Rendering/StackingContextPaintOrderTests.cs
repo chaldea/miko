@@ -209,6 +209,41 @@ public class StackingContextPaintOrderTests : IDisposable
     }
 
     [Fact]
+    public void NegativeZIndex_PaintsBehindNormalFlowContent()
+    {
+        var highlight = new DivElement { Class = "highlight" };
+        var content = new DivElement { Class = "content" };
+        var root = new DivElement { Class = "root" };
+        root.AddChild(highlight);
+        root.AddChild(content);
+
+        Render(root,
+            Rule("root", new Style
+            {
+                Position = Position.Relative,
+                ZIndex = 0,
+                Width = Length.Px(W),
+                Height = Length.Px(H),
+            }),
+            Rule("highlight", new Style
+            {
+                Position = Position.Absolute,
+                ZIndex = -1,
+                Width = Length.Px(60),
+                Height = Length.Px(60),
+                BackgroundColor = Red,
+            }),
+            Rule("content", new Style
+            {
+                Width = Length.Px(60),
+                Height = Length.Px(60),
+                BackgroundColor = Blue,
+            }));
+
+        IsBlueAt(30, 30).ShouldBeTrue("normal content must paint over a negative z-index highlight");
+    }
+
+    [Fact]
     public void AClippingAncestor_StillClipsAZIndexedDescendant()
     {
         // Lifting a descendant out for z-ordering must not let it escape an ancestor's clip:

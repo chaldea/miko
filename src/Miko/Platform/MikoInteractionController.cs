@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Miko.Common;
+using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
@@ -170,11 +171,14 @@ public sealed class MikoInteractionController
     /// <summary>构建根元素（路由优先，否则使用根组件工厂）。</summary>
     public Element BuildRoot()
     {
-        if (_routeView != null && _navigationManager != null)
-            return _routeView.Render(_navigationManager.CurrentPath);
+        using (ComponentServiceScope.Push(_serviceProvider))
+        {
+            if (_routeView != null && _navigationManager != null)
+                return _routeView.Render(_navigationManager.CurrentPath);
 
-        return _options.RootComponentFactory?.Invoke()
-            ?? throw new InvalidOperationException("No root component or router configured.");
+            return _options.RootComponentFactory?.Invoke()
+                ?? throw new InvalidOperationException("No root component or router configured.");
+        }
     }
 
     /// <summary>初始化引擎并构建首帧 DOM 树。</summary>
@@ -716,6 +720,10 @@ public sealed class MikoInteractionController
                 sel.HandleBlur();
         }
 
+        // A blur callback can rebuild the component subtree. Resolve the requested target after
+        // dispatch so focus is applied to the replacement that is still in the live DOM, matching
+        // the click path's post-dispatch resolution above.
+        newFocus = newFocus?.ResolveSuperseded();
         _focusedElement = newFocus;
 
         if (newFocus != null)
@@ -762,8 +770,9 @@ public sealed class MikoInteractionController
             };
             DispatchWithSyncContext(editableElement, EventTypes.KeyDown, keyArgs);
 
-            ProcessKeyAction(key);
-            return false;
+            if (!keyArgs.DefaultPrevented)
+                ProcessKeyAction(key);
+            return keyArgs.DefaultPrevented;
         }
     }
 
@@ -984,6 +993,8 @@ public sealed class MikoInteractionController
             OffsetY = y - rect.Top,
             TargetWidth = rect.Width,
             TargetHeight = rect.Height,
+            ViewportWidth = _engine.ViewportWidth,
+            ViewportHeight = _engine.ViewportHeight,
             IsButtonPressed = isButtonPressed,
             Button = button,
             Bubbles = true,

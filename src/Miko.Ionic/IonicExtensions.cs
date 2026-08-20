@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Miko.Hosting;
+using Miko.Ionic.Components;
 using Miko.Platform;
 
 namespace Miko.Ionic;
@@ -54,6 +55,15 @@ public static class IonicExtensions
 
         if (forced is { } platform)
             builder.Services.AddSingleton<IPlatformInfo>(new PlatformInfo(platform));
+
+        builder.Services.AddSingleton<IonOverlayRegistry>();
+        builder.Services.AddSingleton<IonOverlayManager>();
+        builder.Services.AddSingleton<IonModalController>();
+        builder.Services.AddSingleton<IonAlertController>();
+        builder.Services.AddSingleton<IonActionSheetController>();
+        builder.Services.AddSingleton<IonLoadingController>();
+        builder.Services.AddSingleton<IonPopoverController>();
+        builder.Services.AddSingleton<IonToastController>();
 
         builder.AddStyleSheet(styleSheet);
         return builder;

@@ -21,17 +21,23 @@
             <h2>Enter Verification Code</h2>
             <p>Please enter the 4-digit code sent to your device</p>
 
-            <div class="otp-row ion-margin-top">
-                @for (var i = 0; i < 4; i++)
-                {
-                    <IonInput Class="otp-box" Fill="outline"></IonInput>
-                }
-            </div>
-
-            <p>Didn't get the code? <IonText Color="primary">Resend Code</IonText></p>
+            <IonInputOtp Separators="2" OnComplete="@HandleOtpComplete">
+                Didn't get the code? <a>Resend Code</a>
+            </IonInputOtp>
         </div>
     </IonContent>
 </IonPage>
 @code {
+    [Inject] public IonToastController ToastController { get; set; } = null!;
 
+    private async Task HandleOtpComplete(string value)
+    {
+        var toast = await ToastController.CreateAsync(new IonToastOptions()
+        {
+            Message = $"Entered OTP: {value}",
+            Duration = 1000,
+            Position = "bottom"
+        });
+        await toast.PresentAsync();
+    }
 }

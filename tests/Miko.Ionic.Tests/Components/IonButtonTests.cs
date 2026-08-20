@@ -621,6 +621,20 @@ public class IonButtonTests : IonicComponentTestBase
     }
 
     [Fact]
+    public void IonButton_ForwardsMouseEventToOnClick()
+    {
+        MouseEventArgs? received = null;
+        var cut = RenderButton(Context, p => p.Add(nameof(IonButton.OnClick),
+            EventCallback.Factory.Create(this, (MouseEventArgs args) => received = args)));
+        var native = cut.Root.Children[0];
+        var sent = new MouseEventArgs { Target = native, X = 42, Y = 84 };
+
+        native.OnClick!.Invoke(sent);
+
+        received.ShouldBeSameAs(sent);
+    }
+
+    [Fact]
     public void IonButton_DoesNotInvokeOnClick_WhenDisabled()
     {
         var clicked = false;
