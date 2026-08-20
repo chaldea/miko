@@ -66,6 +66,22 @@ public class Painter
             else
             {
                 // 外阴影: 在背景之下绘制
+                // Outer shadows must not tint the source box itself. Remove the source shape
+                // from the canvas before painting the blurred shadow; otherwise a transparent
+                // box exposes the filled shadow through its content area.
+                _canvas.Save();
+                if (topLeftRadius > 0 || topRightRadius > 0 ||
+                    bottomRightRadius > 0 || bottomLeftRadius > 0)
+                {
+                    using var sourcePath = CreateRoundRectPath(rect.ToSKRect(),
+                        topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius);
+                    _canvas.ClipPath(sourcePath, SKClipOperation.Difference, antialias: true);
+                }
+                else
+                {
+                    _canvas.ClipRect(rect.ToSKRect(), SKClipOperation.Difference, antialias: true);
+                }
+
                 if (shadowTopLeftRadius > 0 || shadowTopRightRadius > 0 ||
                     shadowBottomRightRadius > 0 || shadowBottomLeftRadius > 0)
                 {
@@ -78,6 +94,8 @@ public class Painter
                 {
                     _canvas.DrawRect(shadowRect.ToSKRect(), paint);
                 }
+
+                _canvas.Restore();
             }
         }
     }

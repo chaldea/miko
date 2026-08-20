@@ -69,6 +69,20 @@ internal static class ReorderStyles
             {
                 Display = Display.Block,
             },
+
+            [$".ion-reorder-group.{mode}.reorder-enabled"] = new()
+            {
+                UserSelect = UserSelect.None,
+            },
+
+            [$".ion-reorder-group.{mode}.reorder-list-active .reorder-selected"] = new()
+            {
+                Opacity = 0.8f,
+                BoxShadow = new List<BoxShadow>
+                {
+                    new(0, 0, 10, 0, Color.Rgba(0, 0, 0, 0.4f)),
+                },
+            },
         };
 
         return css;

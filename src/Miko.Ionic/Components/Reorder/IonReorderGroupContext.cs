@@ -13,10 +13,8 @@ namespace Miko.Ionic.Components;
 /// (matched by type through a <see cref="Microsoft.AspNetCore.Components.CascadingValue{TValue}"/>)
 /// and stamps its own enabled/disabled class.
 /// </para>
-/// <para>
-/// This is a structural / visual port: the live drag-to-reorder gesture is NOT implemented (Miko has
-/// no gesture engine here). The context models only the disabled cascade.
-/// </para>
+/// The group also owns the pointer gesture and raises its reorder callback; this context intentionally
+/// remains limited to the cascaded disabled state consumed by each handle.
 /// </summary>
 public sealed class IonReorderGroupContext
 {
