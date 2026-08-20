@@ -136,6 +136,25 @@ public abstract class Element
     // 布局后的盒子模型引用
     internal LayoutBox? LayoutBox { get; set; }
 
+    private float? _initialScrollTop;
+
+    /// <summary>
+    /// Requests a vertical scroll offset for the next layout. The request is consumed once layout
+    /// applies it. Components use this for an initial or externally-controlled scroll position.
+    /// </summary>
+    public float? InitialScrollTop
+    {
+        get => _initialScrollTop;
+        set => _initialScrollTop = value;
+    }
+
+    internal float? ConsumeInitialScrollTop()
+    {
+        var value = _initialScrollTop;
+        _initialScrollTop = null;
+        return value;
+    }
+
     /// <summary>
     /// 元素边框盒的宽度（对应 DOM 的 offsetWidth）。尚未布局时为 0。
     /// </summary>

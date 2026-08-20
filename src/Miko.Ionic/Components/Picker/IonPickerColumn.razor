@@ -1,36 +1,57 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Layout
 @* Mirrors Ionic's <ion-picker-column> (picker-column.tsx render()):
    <ion-picker-column class="{mode} ion-picker-column picker-column-disabled? ion-color? ...">
      <slot name="prefix"></slot>          <!-- SlotPrefix -->
-     <div class="picker-opts">            <!-- the scrollable option list -->
+     <div class="picker-opts">            <!-- the scrollable wheel -->
+       <div class="picker-item-empty"/>   <!-- 3 empty spacer rows (before) -->
+       <div class="picker-item-empty"/>
+       <div class="picker-item-empty"/>
        <slot></slot>                      <!-- ChildContent: the IonPickerColumnOption children -->
+       <div class="picker-item-empty"/>   <!-- 3 empty spacer rows (after) -->
+       <div class="picker-item-empty"/>
+       <div class="picker-item-empty"/>
      </div>
      <slot name="suffix"></slot>          <!-- SlotSuffix -->
    </ion-picker-column>
    The column owns the single selected Value and cascades it (plus a RequestSelect callback) to its
-   options via CascadingValue<IonPickerColumnContext>. Options match the context by type. When an
-   option is tapped it calls back through SelectAsync, which sets Value and re-emits ValueChanged so
-   the host can update the shared selected value — exactly the single-select column→option cascade of
-   IonAccordionGroup. Ionic's scroll-snap wheel / IntersectionObserver / keyboard logic is runtime DOM
-   behavior with no Miko equivalent, so it is omitted; selection here is click-driven.
-   The empty spacer rows Ionic renders inside .picker-opts (to allow the first/last option to scroll
-   to center) are omitted since there is no scroll wheel. *@
+   options via CascadingValue<IonPickerColumnContext>. Options match the context by type and register
+   their metadata into the context's ordered Options list, so the column can map a wheel scroll offset to
+   the option under the center. Selection has two paths, mirroring Ionic's setValue + scrollCallback:
+   - click (RequestSelect → SelectAsync): sets Value and centers the newly-selected option in the
+     scrollable wheel (centerPickerItemInView).
+   - scroll (@onscroll on .picker-opts → HandleScroll): the wheel was scrolled (mouse wheel / drag),
+     so the nearest enabled option is selected and snapped to the center.
+   Ionic's IntersectionObserver / keyboard / haptics logic is runtime DOM behavior with no Miko
+   equivalent and remains omitted. *@
 <div class="@ClassMapper.Class" style="@Style">
     @SlotPrefix
-    <div class="picker-opts">
+    <div class="picker-opts" @onscroll="HandleScroll">
+        <div class="picker-item-empty">&nbsp;</div>
+        <div class="picker-item-empty">&nbsp;</div>
+        <div class="picker-item-empty">&nbsp;</div>
         <CascadingValue TValue="IonPickerColumnContext" Value="_context">
             @ChildContent
         </CascadingValue>
+        <div class="picker-item-empty">&nbsp;</div>
+        <div class="picker-item-empty">&nbsp;</div>
+        <div class="picker-item-empty">&nbsp;</div>
     </div>
     @SlotSuffix
 </div>
 
 @code {
+    // Wheel geometry — must stay in sync with PickerStyles: 34px option rows, three empty spacer
+    // rows padding each end of the list, and a 200px viewport whose center sits at 100px.
+    private const float OptionHeight = 34f;
+    private const float PickerHeight = 200f;
+    private const int LeadingSpacers = 3;
+
     /// <summary>The column's selected option value. Bind two-way with <see cref="ValueChanged"/>.</summary>
     [Parameter] public string? Value { get; set; }
 
-    /// <summary>Raised with the new value when an option is tapped.</summary>
+    /// <summary>Raised with the new value when an option is tapped or the wheel is scrolled.</summary>
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
 
     /// <summary>If true, the whole column is dimmed and non-interactive.</summary>
@@ -46,7 +67,13 @@
     /// <summary>Content shown on the right of the options (Ionic <c>slot="suffix"</c>).</summary>
     [Parameter] public RenderFragment? SlotSuffix { get; set; }
 
+    /// <summary>The engine, used to center the wheel on a selected option. Null in bare tests.</summary>
+    [Inject] protected MikoEngine? Engine { get; set; }
+
     private IonPickerColumnContext _context = new();
+
+    // The .picker-opts scroll container, captured in Build() so SelectAsync can center it.
+    private Element? _optsElement;
 
     protected override void OnParametersSet()
     {
@@ -69,16 +96,138 @@
         };
     }
 
+    /// <summary>Captures the scrollable <c>.picker-opts</c> element for <see cref="SelectAsync"/>.</summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        _optsElement = root.FindByClass("picker-opts").FirstOrDefault();
+        if (_optsElement is not null)
+        {
+            var selectedIndex = _context.Options.FindIndex(option => option.Value == Value && !option.Disabled);
+            if (selectedIndex >= 0)
+                _optsElement.InitialScrollTop = ScrollTopForOption(selectedIndex);
+        }
+        return root;
+    }
+
     /// <summary>
     /// Invoked by a child option to request becoming the selected one. Mirrors Ionic's
     /// <c>setValue()</c> — no-op when the column is disabled or the value is unchanged; otherwise sets
-    /// <see cref="Value"/> and emits <see cref="ValueChanged"/>.
+    /// <see cref="Value"/>, centers the option in the wheel, and emits <see cref="ValueChanged"/>.
     /// </summary>
     private async Task SelectAsync(string value)
     {
         if (Disabled || value == Value) return;
         Value = value;
+        ScrollActiveIntoView();
         await ValueChanged.InvokeAsync(value);
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// The wheel was scrolled (mouse wheel / drag): select whichever option now sits under the center
+    /// of the viewport. Mirrors Ionic's <c>initializeScrollListener</c> scroll callback, which reads
+    /// the centered item and calls <c>setValue</c>. Miko then applies the equivalent of Ionic's
+    /// mandatory scroll snap so the chosen enabled option lands exactly at the center.
+    /// </summary>
+    private async Task HandleScroll(ScrollEventArgs args)
+    {
+        if (Disabled) return;
+
+        var options = _context.Options;
+        if (options.Count == 0) return;
+
+        var centeredIndex = OptionIndexForScrollTop(args.ScrollTop, options.Count);
+        var option = FindNearestEnabledOption(options, centeredIndex, args.DeltaY);
+        if (option is not { } selectedOption) return;
+
+        var value = selectedOption.Value;
+        if (value == Value)
+        {
+            ScrollActiveIntoView();
+            return;
+        }
+
+        Value = value;
+        ScrollActiveIntoView();
+        await ValueChanged.InvokeAsync(value);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Centers the currently-selected option by setting the wheel's scroll offset. Reads the option's
+    /// index from the ordered <see cref="IonPickerColumnContext.Options"/> list and sets the
+    /// <c>.picker-opts</c> scroll box directly (the same imperative write DevTools uses), then
+    /// invalidates it so the frame repaints. No-op when the engine or layout is unavailable.
+    /// </summary>
+    private void ScrollActiveIntoView()
+    {
+        if (Engine is null || _optsElement is null) return;
+
+        var layout = Engine.GetCurrentLayout();
+        if (layout is null) return;
+
+        var optsBox = FindBox(layout, _optsElement);
+        if (optsBox is null || !optsBox.HasVerticalScrollbar) return;
+
+        var index = _context.Options.FindIndex(option => option.Value == Value && !option.Disabled);
+        if (index < 0) return;
+
+        var target = ScrollTopForOption(index);
+        var max = Math.Max(0f, optsBox.ScrollableContentHeight - optsBox.BoxModel.PaddingBox.Height);
+        var clamped = Math.Clamp(target, 0f, max);
+        if (Math.Abs(optsBox.ScrollTop - clamped) < 0.01f) return;
+
+        optsBox.ScrollTop = clamped;
+        Engine.InvalidateElement(optsBox.Element);
+    }
+
+    // scrollTop that centers option `index`: its center lands on the 100px viewport center.
+    private static float ScrollTopForOption(int index) =>
+        (LeadingSpacers + index) * OptionHeight + OptionHeight / 2f - PickerHeight / 2f;
+
+    // Inverse of ScrollTopForOption: the option whose center is closest to the viewport center.
+    private static int OptionIndexForScrollTop(float scrollTop, int count)
+    {
+        var offset = LeadingSpacers * OptionHeight + OptionHeight / 2f - PickerHeight / 2f;
+        return Math.Clamp((int)MathF.Round((scrollTop - offset) / OptionHeight), 0, count - 1);
+    }
+
+    private static IonPickerColumnOptionInfo? FindNearestEnabledOption(
+        IReadOnlyList<IonPickerColumnOptionInfo> options, int centeredIndex, float deltaY)
+    {
+        if (!options[centeredIndex].Disabled) return options[centeredIndex];
+
+        for (var distance = 1; distance < options.Count; distance++)
+        {
+            var forward = centeredIndex + distance;
+            var backward = centeredIndex - distance;
+
+            // When both sides are equally close, continue in the user's scroll direction.
+            if (deltaY >= 0)
+            {
+                if (forward < options.Count && !options[forward].Disabled) return options[forward];
+                if (backward >= 0 && !options[backward].Disabled) return options[backward];
+            }
+            else
+            {
+                if (backward >= 0 && !options[backward].Disabled) return options[backward];
+                if (forward < options.Count && !options[forward].Disabled) return options[forward];
+            }
+        }
+
+        return null;
+    }
+
+    // Finds the layout box for `element` by walking the (already-laid-out) layout tree.
+    private static LayoutBox? FindBox(LayoutBox box, Element element)
+    {
+        if (ReferenceEquals(box.Element, element)) return box;
+        foreach (var child in box.Children)
+        {
+            var found = FindBox(child, element);
+            if (found is not null) return found;
+        }
+        return null;
     }
 }

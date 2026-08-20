@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Events;
 using Miko.Layout;
 using Miko.Styling;
 using Shouldly;
@@ -96,6 +97,18 @@ public class ScrollbarInteractionTests
         var hit = engine.HitTestScrollbar(390, 150);
 
         hit.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ScrollbarWidthNone_DisablesHitTestingButNotWheelScrolling()
+    {
+        var root = CreateScrollableRoot();
+        root.Style!.ScrollbarWidth = ScrollbarWidth.None;
+        var engine = CreateEngine(root);
+
+        engine.HitTestScrollbar(399, 150).ShouldBeNull();
+        engine.ScrollBy(200, 150, 0, 40).ShouldBeTrue();
+        engine.GetCurrentLayout()!.ScrollTop.ShouldBe(40f);
     }
 
     [Fact]
@@ -234,6 +247,21 @@ public class ScrollbarInteractionTests
         bool invalidated = engine.DragVerticalThumb(layout, 150, 0);
 
         invalidated.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DragVerticalThumb_DispatchesScrollEvent()
+    {
+        var root = CreateScrollableRoot();
+        ScrollEventArgs? received = null;
+        root.OnScroll = args => received = args;
+        var engine = CreateEngine(root);
+
+        engine.DragVerticalThumb(engine.GetCurrentLayout()!, 150, 0).ShouldBeTrue();
+
+        received.ShouldNotBeNull();
+        received!.ScrollTop.ShouldBeGreaterThan(0f);
+        received.DeltaY.ShouldBeGreaterThan(0f);
     }
 
     [Fact]

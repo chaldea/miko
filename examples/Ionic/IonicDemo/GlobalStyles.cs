@@ -12,7 +12,14 @@ internal class GlobalStyles
         {
             [".component-content"] = new()
             {
-                BackgroundColor = (Color)"#f2f2f7",
+                [".background-content"] = new()
+                {
+                    BackgroundColor = (Color)"#f2f2f7",
+                },
+                [".ion-picker"] = new()
+                {
+                    BackgroundColor = (Color)"#fff",
+                }
             },
             [".component-icon"] = new()
             {
@@ -184,6 +191,15 @@ internal class GlobalStyles
             {
                 Width = Px(56),
                 TextAlign = TextAlign.Center,
+            },
+
+            [".modal-custom"] = new()
+            {
+                AlignItems = AlignItems.FlexEnd,
+                [".modal-wrapper"] = new()
+                {
+                    Height = Length.Auto,
+                },
             },
         });
         return styleSheet;

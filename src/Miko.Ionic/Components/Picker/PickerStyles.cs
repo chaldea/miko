@@ -11,11 +11,13 @@ namespace Miko.Ionic.Components;
 /// <para>
 /// The picker is a fixed-height (200px) flex row that lays its columns out side by side and paints a
 /// centered horizontal <b>highlight band</b> (<c>.picker-highlight</c>) behind the selected row. Each
-/// column is a centered vertical list of option buttons; the active option (its value matches the
-/// column's selected value) is tinted the color base and shown at full opacity, while the others are
-/// faded. Ionic's real wheel picker fades non-selected rows with the top/bottom gradient overlays
-/// (<c>.picker-before</c> / <c>.picker-after</c>); with no scroll wheel here we instead fade the
-/// inactive options directly so the selected option reads as picked.
+/// column is a scrollable vertical wheel of option buttons (three transparent spacer rows before and
+/// after the options let the first/last option scroll to center); the active option (its value matches
+/// the column's selected value) is tinted the color base and shown at full opacity, while the others
+/// are faded. Ionic fades non-selected rows with the top/bottom gradient overlays
+/// (<c>.picker-before</c> / <c>.picker-after</c>) — Miko has no gradient fill, so the inactive options
+/// are faded directly as the stand-in. The highlight band itself is filled only in <c>ios</c> mode
+/// (picker.ios.scss gives <c>--highlight-background</c> its step-150 default; picker.md.scss does not).
 /// </para>
 /// <para>
 /// There are no picker theme tokens (see <see cref="IonicTheme"/>); the picker-specific dimensions
@@ -44,10 +46,11 @@ internal static class PickerStyles
 
     internal static CssObject GenStyle(string mode, IonicTheme t)
     {
-        // Highlight band background — Ionic's ios default is --ion-color-step-150 (#eeeeef); md has
-        // no default fill, but a subtle band reads better in a static (non-wheel) picker, so we use
-        // the same light step-150 tint for both modes.
-        var highlightBackground = Color.FromHex("eeeeef");
+        // Highlight band background. picker.scss sets `background: var(--highlight-background)` with
+        // no default; picker.ios.scss gives --highlight-background the step-150 (#eeeeef) default,
+        // while picker.md.scss leaves it undefined — so the band is only visible on iOS. Keep the
+        // iOS tint translucent as a defensive fallback in hosts with incomplete layer isolation.
+        var highlightBackground = Color.FromRgba(238, 238, 239, 0.72f);
 
         var css = new CssObject
         {
@@ -68,6 +71,7 @@ internal static class PickerStyles
 
             // .picker-highlight — the center selection band. Absolutely positioned, vertically
             // centered, inset 8px on each side (width: calc(100% - 16px)), behind the columns.
+            // Its fill is only present in ios mode (see the GenStyle header note).
             [$".ion-picker.{mode} .picker-highlight"] = new()
             {
                 Position = Position.Absolute,
@@ -76,9 +80,14 @@ internal static class PickerStyles
                 Right = Length.Px(HighlightInsetX / 2f),
                 Height = Length.Px(HighlightHeight),
                 MarginTop = Length.Px(-HighlightHeight / 2f),      // stand-in for transform: translateY(-50%)
-                BackgroundColor = highlightBackground,
+                BackgroundColor = mode == "ios" ? highlightBackground : Color.Transparent,
                 BorderRadius = new BorderRadius(Length.Px(HighlightBorderRadius)),
                 ZIndex = -1,
+                // The band sits behind the options (z-index -1), but Miko's hit test gives
+                // negative-z-index descendants priority over normal-flow content, so without this
+                // the band would swallow the wheel scroll. It is decorative — never interactive —
+                // exactly like .picker-before / .picker-after.
+                PointerEvents = PointerEvents.None,
             },
 
             // .picker-before / .picker-after — the top/bottom fade gradient markers. Miko has no
@@ -127,19 +136,33 @@ internal static class PickerStyles
                 PointerEvents = PointerEvents.None,
             },
 
-            // .picker-opts — the option list. Side padding keeps the focus highlight from being
-            // overly narrow; a min-width avoids layout shift between columns.
+            // .picker-opts — the scrollable option list. Fixed to the picker height and clipped
+            // (overflow-y: scroll), so the spacer rows + options form a wheel that scrolls behind
+            // the center highlight. Side padding keeps the focus highlight from being overly
+            // narrow; a min-width avoids layout shift between columns. Block flow (not flex) so the
+            // options never shrink to fit — they keep their 34px row height and overflow instead.
             [$".ion-picker-column.{mode} .picker-opts"] = new()
             {
-                Display = Display.Flex,
-                FlexDirection = FlexDirection.Column,
-                AlignItems = AlignItems.Stretch,
-                JustifyContent = JustifyContent.Center,
+                Display = Display.Block,
+                Height = Length.Px(PickerHeight),
                 PaddingLeft = Length.Px(OptsPaddingX),
                 PaddingRight = Length.Px(OptsPaddingX),
                 MinWidth = Length.Px(OptsMinWidth),
-                MaxHeight = Length.Px(PickerHeight),
+                OverflowX = Overflow.Hidden,
+                OverflowY = Overflow.Scroll,
+                ScrollbarWidth = ScrollbarWidth.None,
                 TextAlign = TextAlign.Center,
+            },
+
+            // .picker-item-empty — the six transparent spacer rows (three before, three after the
+            // options) that let the first/last option scroll up/down to the center of the wheel.
+            [$".ion-picker-column.{mode} .picker-item-empty"] = new()
+            {
+                Display = Display.Block,
+                Width = Length.Percent(100),
+                Height = Length.Px(OptionHeight),
+                LineHeight = Length.Px(OptionHeight),
+                BackgroundColor = Color.Transparent,
             },
 
             // ion-picker-column-option — the option button (host). Full width, 34px tall centered

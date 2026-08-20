@@ -215,6 +215,16 @@ public enum Overflow
 }
 
 /// <summary>
+/// Classic scrollbar presentation. This does not change whether an overflow container can scroll.
+/// </summary>
+public enum ScrollbarWidth
+{
+    Auto,
+    Thin,
+    None
+}
+
+/// <summary>
 /// 文本装饰
 /// </summary>
 public enum TextDecoration

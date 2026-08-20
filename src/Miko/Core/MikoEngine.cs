@@ -1676,8 +1676,9 @@ public class MikoEngine
                 : IsSamePresentedContent(oldBox.Element, newBox.Element)))
         {
             // 新内容可能比旧的短（列表被裁剪），按新的可滚动范围夹取，避免越界。
-            newBox.ScrollTop = ClampScrollOffset(
-                oldBox.ScrollTop, newBox.ScrollableContentHeight, newBox.BoxModel.PaddingBox.Height);
+            if (!newBox.InitialScrollTopApplied)
+                newBox.ScrollTop = ClampScrollOffset(
+                    oldBox.ScrollTop, newBox.ScrollableContentHeight, newBox.BoxModel.PaddingBox.Height);
             newBox.ScrollLeft = ClampScrollOffset(
                 oldBox.ScrollLeft, newBox.ScrollableContentWidth, newBox.BoxModel.PaddingBox.Width);
         }
@@ -1808,7 +1809,7 @@ public class MikoEngine
         if (Math.Abs(deltaY) > 0.01f && scrollableBox.HasVerticalScrollbar)
         {
             float maxScrollTop = scrollableBox.ScrollableContentHeight - scrollableBox.BoxModel.PaddingBox.Height
-                + (scrollableBox.HasHorizontalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+                + scrollableBox.HorizontalScrollbarThickness;
             maxScrollTop = Math.Max(0, maxScrollTop);
             scrollableBox.ScrollTop = Math.Clamp(scrollableBox.ScrollTop + deltaY, 0, maxScrollTop);
             _logger.LogTrace("ScrollBy: vertical scroll {Old} -> {New} (max={Max})", oldScrollTop, scrollableBox.ScrollTop, maxScrollTop);
@@ -1818,7 +1819,7 @@ public class MikoEngine
         if (Math.Abs(deltaX) > 0.01f && scrollableBox.HasHorizontalScrollbar)
         {
             float maxScrollLeft = scrollableBox.ScrollableContentWidth - scrollableBox.BoxModel.PaddingBox.Width
-                + (scrollableBox.HasVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+                + scrollableBox.VerticalScrollbarThickness;
             maxScrollLeft = Math.Max(0, maxScrollLeft);
             scrollableBox.ScrollLeft = Math.Clamp(scrollableBox.ScrollLeft + deltaX, 0, maxScrollLeft);
             _logger.LogTrace("ScrollBy: horizontal scroll {Old} -> {New} (max={Max})", oldScrollLeft, scrollableBox.ScrollLeft, maxScrollLeft);
@@ -1829,45 +1830,7 @@ public class MikoEngine
 
         if (scrolled)
         {
-            // 分发滚动事件
-            var scrollArgs = new ScrollEventArgs
-            {
-                Target = scrollableBox.Element,
-                DeltaX = scrollableBox.ScrollLeft - oldScrollLeft,
-                DeltaY = scrollableBox.ScrollTop - oldScrollTop,
-                ScrollLeft = scrollableBox.ScrollLeft,
-                ScrollTop = scrollableBox.ScrollTop,
-                // 滚动几何量，供监听者按 DOM 语义判断位置（如 ion-infinite-scroll 的阈值计算）。
-                ScrollWidth = scrollableBox.ScrollableContentWidth,
-                ScrollHeight = scrollableBox.ScrollableContentHeight,
-                ClientWidth = scrollableBox.BoxModel.PaddingBox.Width,
-                ClientHeight = scrollableBox.BoxModel.PaddingBox.Height,
-                Bubbles = true
-            };
-
-            // Scroll events may have async handlers; wrap with SynchronizationContext.
-            // (The dispatcher is already drained at the start of this frame, so any
-            // continuations will run next frame.)
-            var prevContext = SynchronizationContext.Current;
-            var syncContext = new Platform.MikoSynchronizationContext(_dispatcher);
-            SynchronizationContext.SetSynchronizationContext(syncContext);
-            try
-            {
-                _eventDispatcher.Dispatch(scrollableBox.Element, EventTypes.Scroll, scrollArgs);
-
-                // 目标+冒泡只覆盖祖先链，但关心滚动的组件通常位于滚动容器*内部*
-                // （ion-infinite-scroll 就是 ion-content .inner-scroll 的后代）。DOM 里这类
-                // 组件会直接在滚动元素上加监听器；Miko 的组件拿不到祖先引用，因此这里额外
-                // 向下通知一次。嵌套的独立滚动容器整棵剪掉：外层滚动不应触发内层的监听器。
-                _eventDispatcher.DispatchToDescendants(
-                    scrollableBox.Element, EventTypes.Scroll, scrollArgs, IsNestedScrollContainer);
-            }
-            finally
-            {
-                SynchronizationContext.SetSynchronizationContext(prevContext);
-            }
-
-            InvalidateElement(scrollableBox.Element);
+            DispatchScrollEvent(scrollableBox, oldScrollLeft, oldScrollTop);
             _logger.LogTrace("ScrollBy: scrolled, new position=({ScrollLeft}, {ScrollTop})", scrollableBox.ScrollLeft, scrollableBox.ScrollTop);
         }
         else
@@ -1876,6 +1839,38 @@ public class MikoEngine
         }
 
         return scrolled;
+    }
+
+    private void DispatchScrollEvent(LayoutBox box, float oldScrollLeft, float oldScrollTop)
+    {
+        var scrollArgs = new ScrollEventArgs
+        {
+            Target = box.Element,
+            DeltaX = box.ScrollLeft - oldScrollLeft,
+            DeltaY = box.ScrollTop - oldScrollTop,
+            ScrollLeft = box.ScrollLeft,
+            ScrollTop = box.ScrollTop,
+            ScrollWidth = box.ScrollableContentWidth,
+            ScrollHeight = box.ScrollableContentHeight,
+            ClientWidth = box.BoxModel.PaddingBox.Width,
+            ClientHeight = box.BoxModel.PaddingBox.Height,
+            Bubbles = true,
+        };
+
+        var prevContext = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new Platform.MikoSynchronizationContext(_dispatcher));
+        try
+        {
+            _eventDispatcher.Dispatch(box.Element, EventTypes.Scroll, scrollArgs);
+            _eventDispatcher.DispatchToDescendants(
+                box.Element, EventTypes.Scroll, scrollArgs, IsNestedScrollContainer);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(prevContext);
+        }
+
+        InvalidateElement(box.Element);
     }
 
     /// <summary>
@@ -1968,10 +1963,10 @@ public class MikoEngine
         float pRight = pLeft + paddingBox.Width;
         float pBottom = pTop + paddingBox.Height;
 
-        if (box.HasVerticalScrollbar)
+        if (box.ShowsVerticalScrollbar)
         {
-            float trackX = pRight - LayoutBox.ScrollbarThickness;
-            float trackHeight = paddingBox.Height - (box.HasHorizontalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            float trackX = pRight - box.VerticalScrollbarThickness;
+            float trackHeight = paddingBox.Height - box.HorizontalScrollbarThickness;
 
             if (x >= trackX && x <= pRight && y >= pTop && y <= pTop + trackHeight)
             {
@@ -1984,10 +1979,10 @@ public class MikoEngine
             }
         }
 
-        if (box.HasHorizontalScrollbar)
+        if (box.ShowsHorizontalScrollbar)
         {
-            float trackY = pBottom - LayoutBox.ScrollbarThickness;
-            float trackWidth = paddingBox.Width - (box.HasVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            float trackY = pBottom - box.HorizontalScrollbarThickness;
+            float trackWidth = paddingBox.Width - box.VerticalScrollbarThickness;
 
             if (x >= pLeft && x <= pLeft + trackWidth && y >= trackY && y <= pBottom)
             {
@@ -2042,7 +2037,7 @@ public class MikoEngine
         var current = FindLayoutBoxForElement(_currentLayout!, box.Element);
         if (current == null) return false;
 
-        float trackHeight = current.BoxModel.PaddingBox.Height - (current.HasHorizontalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+        float trackHeight = current.BoxModel.PaddingBox.Height - current.HorizontalScrollbarThickness;
         var (_, thumbHeight) = GetVerticalThumbGeometry(current, trackHeight);
         float scrollableTrack = trackHeight - thumbHeight;
         if (scrollableTrack <= 0) return false;
@@ -2055,8 +2050,9 @@ public class MikoEngine
         float newScrollTop = ratio * maxScroll;
 
         if (Math.Abs(current.ScrollTop - newScrollTop) < 0.01f) return false;
+        float oldScrollTop = current.ScrollTop;
         current.ScrollTop = newScrollTop;
-        InvalidateElement(current.Element);
+        DispatchScrollEvent(current, current.ScrollLeft, oldScrollTop);
         return true;
     }
 
@@ -2065,7 +2061,7 @@ public class MikoEngine
         var current = FindLayoutBoxForElement(_currentLayout!, box.Element);
         if (current == null) return false;
 
-        float trackWidth = current.BoxModel.PaddingBox.Width - (current.HasVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+        float trackWidth = current.BoxModel.PaddingBox.Width - current.VerticalScrollbarThickness;
         var (_, thumbWidth) = GetHorizontalThumbGeometry(current, trackWidth);
         float scrollableTrack = trackWidth - thumbWidth;
         if (scrollableTrack <= 0) return false;
@@ -2078,8 +2074,9 @@ public class MikoEngine
         float newScrollLeft = ratio * maxScroll;
 
         if (Math.Abs(current.ScrollLeft - newScrollLeft) < 0.01f) return false;
+        float oldScrollLeft = current.ScrollLeft;
         current.ScrollLeft = newScrollLeft;
-        InvalidateElement(current.Element);
+        DispatchScrollEvent(current, oldScrollLeft, current.ScrollTop);
         return true;
     }
 
@@ -2095,15 +2092,16 @@ public class MikoEngine
         {
             float viewportH = current.BoxModel.PaddingBox.Height;
             float pageSize = viewportH * 0.875f;
-            float trackHeight = viewportH - (current.HasHorizontalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            float trackHeight = viewportH - current.HorizontalScrollbarThickness;
             var (thumbTop, _) = GetVerticalThumbGeometry(current, trackHeight);
             float delta = mouseY < thumbTop ? -pageSize : pageSize;
 
             float maxScroll = Math.Max(0, current.ScrollableContentHeight - viewportH);
             float newScrollTop = Math.Clamp(current.ScrollTop + delta, 0, maxScroll);
             if (Math.Abs(current.ScrollTop - newScrollTop) < 0.01f) return false;
+            float oldScrollTop = current.ScrollTop;
             current.ScrollTop = newScrollTop;
-            InvalidateElement(current.Element);
+            DispatchScrollEvent(current, current.ScrollLeft, oldScrollTop);
             return true;
         }
 
@@ -2111,15 +2109,16 @@ public class MikoEngine
         {
             float viewportW = current.BoxModel.PaddingBox.Width;
             float pageSize = viewportW * 0.875f;
-            float trackWidth = viewportW - (current.HasVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0);
+            float trackWidth = viewportW - current.VerticalScrollbarThickness;
             var (thumbLeft, _) = GetHorizontalThumbGeometry(current, trackWidth);
             float delta = mouseX < thumbLeft ? -pageSize : pageSize;
 
             float maxScroll = Math.Max(0, current.ScrollableContentWidth - viewportW);
             float newScrollLeft = Math.Clamp(current.ScrollLeft + delta, 0, maxScroll);
             if (Math.Abs(current.ScrollLeft - newScrollLeft) < 0.01f) return false;
+            float oldScrollLeft = current.ScrollLeft;
             current.ScrollLeft = newScrollLeft;
-            InvalidateElement(current.Element);
+            DispatchScrollEvent(current, oldScrollLeft, current.ScrollTop);
             return true;
         }
 

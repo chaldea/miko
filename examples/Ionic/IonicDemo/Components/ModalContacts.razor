@@ -8,14 +8,18 @@
 <IonHeader>
     <IonToolbar>
         <Start>
-            <IonButton OnClick="@OnDismiss">Cancel</IonButton>
+            <IonButtons>
+                <IonButton OnClick="@OnDismiss">Cancel</IonButton>
+            </IonButtons>
         </Start>
         <End>
-            <IonButton>
-                <IconOnly>
-                    <IonIcon Icon="@Ionicons.Add" Slot="icon-only"></IonIcon>
-                </IconOnly>
-            </IonButton>
+            <IonButtons>
+                <IonButton>
+                    <IconOnly>
+                        <IonIcon Icon="@Ionicons.Add" Slot="icon-only"></IonIcon>
+                    </IconOnly>
+                </IonButton>
+            </IonButtons>
         </End>
         <ChildContent>
             <IonTitle>Contacts</IonTitle>

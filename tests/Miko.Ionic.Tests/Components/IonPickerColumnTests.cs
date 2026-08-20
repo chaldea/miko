@@ -1,3 +1,4 @@
+using Miko.Common;
 using Miko.Components;
 using Miko.Events;
 using Miko.Ionic;
@@ -184,5 +185,40 @@ public class IonPickerColumnTests : IonicComponentTestBase
         var cut = RenderColumn(Context);
 
         cut.Root.Class.ShouldStartWith("ios ion-picker-column");
+    }
+
+    // ---- Wheel structure ---------------------------------------------------
+
+    [Fact]
+    public void IonPickerColumn_Opts_IsScrollContainerWithSpacerRows()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderColumn(Context);
+
+        // picker-column.scss .picker-opts: overflow-y scroll — the wheel is a real scroll container.
+        var opts = cut.FindByClass("picker-opts").ShouldHaveSingleItem();
+        cut.GetComputedStyle(opts)!.OverflowY.ShouldBe(Overflow.Scroll);
+
+        // Six transparent spacer rows (3 before + 3 after) let the first/last option center.
+        cut.FindByClass("picker-item-empty").Count.ShouldBe(6);
+    }
+
+    // ---- Wheel scroll selects the centered option ---------------------------
+
+    [Fact]
+    public void IonPickerColumn_Scroll_SelectsTheCenteredOption()
+    {
+        string? changed = null;
+        var cut = RenderColumn(Context, p =>
+            p.Add(nameof(IonPickerColumn.ValueChanged),
+                EventCallback.Factory.Create<string>(this, v => changed = v)));
+
+        var opts = cut.FindByClass("picker-opts").ShouldHaveSingleItem();
+
+        // 34px rows + 3 leading spacers: scrollTop 53 centers option index 1 ("typescript").
+        opts.OnScroll!.Invoke(new ScrollEventArgs { Target = opts, ScrollTop = 53 });
+
+        changed.ShouldBe("typescript");
     }
 }

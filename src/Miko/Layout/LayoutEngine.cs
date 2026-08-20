@@ -108,6 +108,7 @@ public class LayoutEngine
         // fixed 的包含块恒为视口（不随定位祖先改变），故单独传递。
         var viewportBlock = new RectF(0f, 0f, viewportWidth, viewportHeight);
         ApplyPositioning(layoutRoot, viewportBlock, viewportBlock);
+        ApplyInitialScrollOffsets(layoutRoot);
 
         // 记录缓存键。变更版本号在布局完成后读取：布局期间用户代码（事件回调等）
         // 造成的任何修改都会使版本号领先于缓存值，下一帧必然重排，不会复用到中间态。
@@ -121,6 +122,19 @@ public class LayoutEngine
         _cachedResult = layoutRoot;
 
         return layoutRoot;
+    }
+
+    private static void ApplyInitialScrollOffsets(LayoutBox box)
+    {
+        if (box.Element.ConsumeInitialScrollTop() is float requested)
+        {
+            var max = Math.Max(0f, box.ScrollableContentHeight - box.BoxModel.PaddingBox.Height);
+            box.ScrollTop = Math.Clamp(requested, 0f, max);
+            box.InitialScrollTopApplied = true;
+        }
+
+        foreach (var child in box.Children)
+            ApplyInitialScrollOffsets(child);
     }
 
     /// <summary>

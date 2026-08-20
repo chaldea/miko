@@ -301,6 +301,17 @@ public class RenderEngine
             if (zOrdered != null) deferred = new HashSet<LayoutBox>(zOrdered);
         }
 
+        // Negative z-index descendants paint behind normal-flow content, but above this box's
+        // background. They must not be deferred until after normal children.
+        if (zOrdered != null)
+        {
+            foreach (var descendant in zOrdered)
+            {
+                if (descendant.ComputedStyle.ZIndex >= 0) break;
+                RenderBox(descendant, null, isStackingRoot: true);
+            }
+        }
+
         // 处理 overflow 裁剪和滚动
         bool hasOverflow = box.ComputedStyle.OverflowX != Overflow.Visible ||
                            box.ComputedStyle.OverflowY != Overflow.Visible;
@@ -323,6 +334,7 @@ public class RenderEngine
         {
             foreach (var descendant in zOrdered)
             {
+                if (descendant.ComputedStyle.ZIndex < 0) continue;
                 RenderBox(descendant, null, isStackingRoot: true);
             }
         }
@@ -508,13 +520,13 @@ public class RenderEngine
         float clipWidth = paddingBox.Width;
         float clipHeight = paddingBox.Height;
 
-        if (box.HasVerticalScrollbar)
+        if (box.ShowsVerticalScrollbar)
         {
-            clipWidth -= LayoutBox.ScrollbarThickness;
+            clipWidth -= box.VerticalScrollbarThickness;
         }
-        if (box.HasHorizontalScrollbar)
+        if (box.ShowsHorizontalScrollbar)
         {
-            clipHeight -= LayoutBox.ScrollbarThickness;
+            clipHeight -= box.HorizontalScrollbarThickness;
         }
 
         var clipRect = new RectF(paddingBox.X, paddingBox.Y, clipWidth, clipHeight);
@@ -559,14 +571,15 @@ public class RenderEngine
         if (_painter == null) return;
 
         var paddingBox = box.BoxModel.PaddingBox;
-        bool hasVScrollbar = box.HasVerticalScrollbar;
-        bool hasHScrollbar = box.HasHorizontalScrollbar;
+        bool hasVScrollbar = box.ShowsVerticalScrollbar;
+        bool hasHScrollbar = box.ShowsHorizontalScrollbar;
 
         if (hasVScrollbar)
         {
-            float trackX = paddingBox.Right - LayoutBox.ScrollbarThickness;
-            float trackHeight = paddingBox.Height - (hasHScrollbar ? LayoutBox.ScrollbarThickness : 0);
-            var trackRect = new RectF(trackX, paddingBox.Y, LayoutBox.ScrollbarThickness, trackHeight);
+            float thickness = box.VerticalScrollbarThickness;
+            float trackX = paddingBox.Right - thickness;
+            float trackHeight = paddingBox.Height - box.HorizontalScrollbarThickness;
+            var trackRect = new RectF(trackX, paddingBox.Y, thickness, trackHeight);
 
             _painter.DrawVerticalScrollbar(
                 trackRect,
@@ -577,9 +590,10 @@ public class RenderEngine
 
         if (hasHScrollbar)
         {
-            float trackY = paddingBox.Bottom - LayoutBox.ScrollbarThickness;
-            float trackWidth = paddingBox.Width - (hasVScrollbar ? LayoutBox.ScrollbarThickness : 0);
-            var trackRect = new RectF(paddingBox.X, trackY, trackWidth, LayoutBox.ScrollbarThickness);
+            float thickness = box.HorizontalScrollbarThickness;
+            float trackY = paddingBox.Bottom - thickness;
+            float trackWidth = paddingBox.Width - box.VerticalScrollbarThickness;
+            var trackRect = new RectF(paddingBox.X, trackY, trackWidth, thickness);
 
             _painter.DrawHorizontalScrollbar(
                 trackRect,

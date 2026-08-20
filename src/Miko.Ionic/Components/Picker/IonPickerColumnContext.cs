@@ -28,6 +28,15 @@ public sealed class IonPickerColumnContext
     /// one. Mirrors Ionic's <c>pickerColumn.setValue(option.value)</c>.</summary>
     public EventCallback<string> RequestSelect { get; init; }
 
+    /// <summary>
+    /// The ordered options of the column, in DOM order. Values and disabled state are registered
+    /// during rendering so wheel selection can ignore disabled rows.
+    /// </summary>
+    public List<IonPickerColumnOptionInfo> Options { get; } = new();
+
     /// <summary>True when <paramref name="value"/> is the column's selected value.</summary>
     public bool IsSelected(string value) => Value == value;
 }
+
+/// <summary>Metadata used by the picker column's wheel calculations.</summary>
+public readonly record struct IonPickerColumnOptionInfo(string Value, bool Disabled);

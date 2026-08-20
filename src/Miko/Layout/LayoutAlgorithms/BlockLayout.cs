@@ -180,7 +180,7 @@ public class BlockLayout
 
         // 判断是否需要为滚动条预留空间（Classic 模式占用布局）
         bool needsVerticalScrollbar = style.OverflowY == Overflow.Scroll;
-        float scrollbarReservedWidth = needsVerticalScrollbar ? LayoutBox.ScrollbarThickness : 0;
+        float scrollbarReservedWidth = needsVerticalScrollbar ? LayoutBox.GetScrollbarThickness(style) : 0;
         float childAvailableWidth = contentWidth - scrollbarReservedWidth;
 
         // 3. 计算内容区域的位置
@@ -375,9 +375,10 @@ public class BlockLayout
         if (style.OverflowY == Overflow.Auto && !needsVerticalScrollbar &&
             childrenTotalHeight > contentHeight && contentHeight > 0)
         {
-            scrollbarReservedWidth = LayoutBox.ScrollbarThickness;
+            scrollbarReservedWidth = LayoutBox.GetScrollbarThickness(style);
             childAvailableWidth = contentWidth - scrollbarReservedWidth;
-            RelayoutChildren(box, childAvailableWidth, contentX, contentY);
+            if (scrollbarReservedWidth > 0f)
+                RelayoutChildren(box, childAvailableWidth, contentX, contentY);
         }
     }
 

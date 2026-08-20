@@ -38,6 +38,11 @@
     {
         Active = Column?.IsSelected(Value) == true;
 
+        // Register this option's value with the enclosing column so it can map scroll offsets to
+        // values (the column's context carries an ordered list, appended in render order — see
+        // IonPickerColumnContext.Options). No-op when rendered standalone (Column is null).
+        Column?.Options.Add(new IonPickerColumnOptionInfo(Value, Disabled));
+
         ClassMapper
             .Clear()
             .Add(Class)
