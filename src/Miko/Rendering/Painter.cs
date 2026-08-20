@@ -1390,23 +1390,47 @@ public class Painter
     /// 绘制文本光标。<paramref name="caretColor"/> 为 <c>caret-color</c> 的解析结果
     /// （调用方传入 <see cref="Styling.ComputedStyle.ResolvedCaretColor"/>，即显式颜色或回落到 color）。
     /// </summary>
-    public void DrawTextCursor(RectF contentRect, string text, int cursorPosition, string fontFamily, float fontSize, FontWeight fontWeight, Color caretColor)
+    public void DrawTextCursor(
+        RectF contentRect,
+        string text,
+        int cursorPosition,
+        string fontFamily,
+        float fontSize,
+        FontWeight fontWeight,
+        Color caretColor,
+        TextAlign textAlign = TextAlign.Left)
     {
         var fontManager = FontManager.Instance;
-        var textBeforeCursor = text.Substring(0, Math.Min(cursorPosition, text.Length));
+        var clampedPosition = Math.Clamp(cursorPosition, 0, text.Length);
+        var textBeforeCursor = text.Substring(0, clampedPosition);
 
-        float cursorX = contentRect.Left;
-        if (textBeforeCursor.Length > 0)
+        var fallbackResolver = new FontFallbackResolver(fontManager);
+        var textRuns = fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight);
+        var prefixRuns = fallbackResolver.ResolveTextRuns(textBeforeCursor, fontFamily, fontWeight);
+
+        float textWidth = 0;
+        foreach (var run in textRuns)
         {
-            var fallbackResolver = new FontFallbackResolver(fontManager);
-            var runs = fallbackResolver.ResolveTextRuns(textBeforeCursor, fontFamily, fontWeight);
             using var measurePaint = new SKPaint { IsAntialias = true };
-            foreach (var run in runs)
-            {
-                using var font = CreateHighQualityFont(run.Typeface, fontSize);
-                cursorX += font.MeasureText(run.Text, measurePaint);
-            }
+            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            textWidth += font.MeasureText(run.Text, measurePaint);
         }
+
+        float prefixWidth = 0;
+        foreach (var run in prefixRuns)
+        {
+            using var measurePaint = new SKPaint { IsAntialias = true };
+            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            prefixWidth += font.MeasureText(run.Text, measurePaint);
+        }
+
+        float alignedTextStart = textAlign switch
+        {
+            TextAlign.Center => contentRect.Left + (contentRect.Width - textWidth) / 2,
+            TextAlign.Right => contentRect.Right - textWidth,
+            _ => contentRect.Left,
+        };
+        float cursorX = alignedTextStart + prefixWidth;
 
         float cursorY = contentRect.Top + (contentRect.Height - fontSize) / 2;
         float cursorHeight = fontSize;

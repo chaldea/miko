@@ -1,0 +1,387 @@
+@namespace Miko.Ionic.Components
+@inherits IonicComponentBase
+@using System.Text.RegularExpressions
+@using Miko.Platform
+
+<div class="@ClassMapper.Class" style="@Style">
+    <div class="input-otp-group">
+        @for (var index = 0; index < _inputValues.Count; index++)
+        {
+            <div class="native-wrapper">
+                <input class="native-input" type="text"
+                       @oninput="HandleInput"
+                       @onfocus="HandleFocus"
+                       @onblur="HandleBlur"
+                       @onkeydown="HandleKeyDown" />
+            </div>
+            @if (_separatorPositions.Contains(index + 1) && index < _inputValues.Count - 1)
+            {
+                <div class="input-otp-separator"></div>
+            }
+        }
+    </div>
+    <div class="@_descriptionClass">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Autocapitalize { get; set; } = "off";
+    [Parameter] public string? Color { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string Fill { get; set; } = "outline";
+    [Parameter] public string? Inputmode { get; set; }
+    [Parameter] public int Length { get; set; } = 4;
+    [Parameter] public string? Pattern { get; set; }
+    [Parameter] public bool Readonly { get; set; }
+
+    /// <summary>
+    /// Separator positions. Accepts <c>"all"</c>, a comma-separated string such as
+    /// <c>"1,3"</c>, or an <see cref="IEnumerable{Int32}"/>.
+    /// </summary>
+    [Parameter] public object? Separators { get; set; }
+
+    [Parameter] public string Shape { get; set; } = "round";
+    [Parameter] public string Size { get; set; } = "medium";
+    [Parameter] public string Type { get; set; } = "number";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public EventCallback<string?> OnInput { get; set; }
+    [Parameter] public EventCallback<string?> OnChange { get; set; }
+    [Parameter] public EventCallback<string> OnComplete { get; set; }
+    [Parameter] public EventCallback OnFocus { get; set; }
+    [Parameter] public EventCallback OnBlur { get; set; }
+    [Inject] private MikoInteractionController? InteractionController { get; set; }
+
+    private readonly string _inputId = $"ion-input-otp-{Guid.NewGuid():N}";
+    private List<string> _inputValues = new();
+    private HashSet<int> _separatorPositions = new();
+    private string _descriptionClass = "input-otp-description input-otp-description-hidden";
+    private string? _focusedValue;
+    private bool _hasFocus;
+    private IReadOnlyList<InputElement> _builtInputs = Array.Empty<InputElement>();
+
+    protected override void OnParametersSet()
+    {
+        var fill = NormalizeToken(Fill, "outline", "outline", "solid");
+        var shape = NormalizeToken(Shape, "round", "round", "soft", "rectangular");
+        var size = NormalizeToken(Size, "medium", "small", "medium", "large");
+
+        ClassMapper
+            .Clear()
+            .Add(Class)
+            .Add(Mode)
+            .Add("ion-input-otp")
+            .If(_hasFocus, "has-focus")
+            .Add($"input-otp-size-{size}")
+            .Add($"input-otp-shape-{shape}")
+            .Add($"input-otp-fill-{fill}")
+            .If(Disabled, "input-otp-disabled")
+            .If(Readonly, "input-otp-readonly")
+            .AddColor(Color);
+
+        _inputValues = Value is null && _builtInputs.Count > 0
+            ? _builtInputs.Select(input => input.Value ?? string.Empty).ToList()
+            : CreateValues(Value);
+        if (Value is not null)
+            Value = string.Concat(_inputValues);
+
+        _separatorPositions = ParseSeparators(_inputValues.Count);
+        _descriptionClass = ChildContent is null
+            ? "input-otp-description input-otp-description-hidden"
+            : "input-otp-description";
+    }
+
+    public override Element Build()
+    {
+        var root = base.Build();
+        var inputs = root.FindByClass("native-input").OfType<InputElement>().ToList();
+        for (var index = 0; index < inputs.Count; index++)
+        {
+            var input = inputs[index];
+            input.Id = $"{_inputId}-{index}";
+            input.Type = InputType.Text;
+            input.Value = _inputValues[index];
+            input.CursorPosition = input.Value.Length;
+            if (Disabled)
+                input.SetState(ElementState.Disabled);
+        }
+
+        _builtInputs = inputs;
+
+        var description = root.FindByClass("input-otp-description").FirstOrDefault();
+        if (description is not null && string.IsNullOrWhiteSpace(GetDescendantText(description)))
+            description.Class = "input-otp-description input-otp-description-hidden";
+
+        return root;
+    }
+
+    /// <summary>Focuses a specific box, or the first empty box when no index is supplied.</summary>
+    public Task SetFocus(int? index = null)
+    {
+        if (InteractionController is null || _builtInputs.Count == 0 || Disabled)
+            return Task.CompletedTask;
+
+        var target = index.HasValue
+            ? Math.Clamp(index.Value, 0, _builtInputs.Count - 1)
+            : GetTabbableIndex(_builtInputs.Select(input => input.Value ?? string.Empty).ToList());
+        InteractionController.SetFocus(_builtInputs[target]);
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleInput(InputEventArgs args)
+    {
+        if (args.Target is not InputElement target) return;
+        var inputs = FindInputs(args.Target);
+        var index = inputs.IndexOf(target);
+        if (index < 0) return;
+
+        var values = CreateValues(Value);
+        var raw = target.Value ?? args.Data;
+
+        if (Disabled || Readonly)
+        {
+            WriteValues(inputs, values);
+            return;
+        }
+
+        var valid = raw.EnumerateRunes()
+            .Select(rune => rune.ToString())
+            .Where(IsValidCharacter)
+            .ToList();
+
+        if (raw.Length > 0 && valid.Count == 0)
+        {
+            WriteValues(inputs, values);
+            return;
+        }
+
+        if (valid.Count > 1)
+        {
+            // Miko reports composed/autofill text in one input event. Ionic distributes it from
+            // the first box, irrespective of which native input received the text.
+            values = EmptyValues();
+            for (var i = 0; i < Math.Min(values.Count, valid.Count); i++)
+                values[i] = valid[i];
+
+            WriteValues(inputs, values);
+            Value = string.Concat(values);
+            FocusInput(inputs, Math.Min(valid.Count, values.Count) < values.Count
+                ? valid.Count
+                : values.Count - 1);
+        }
+        else if (valid.Count == 1)
+        {
+            var newCharacter = valid[0];
+            if (!string.IsNullOrEmpty(values[index]) && values[^1].Length == 0)
+            {
+                for (var i = values.Count - 1; i > index; i--)
+                    values[i] = values[i - 1];
+            }
+
+            values[index] = newCharacter;
+            WriteValues(inputs, values);
+            Value = string.Concat(values);
+            if (index < values.Count - 1)
+                FocusInput(inputs, index + 1);
+        }
+        else
+        {
+            values[index] = string.Empty;
+            WriteValues(inputs, values);
+            Value = string.Concat(values);
+        }
+
+        await UpdateValueAsync(values);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Target is not InputElement target) return;
+        var inputs = FindInputs(args.Target);
+        var index = inputs.IndexOf(target);
+        if (index < 0 || Disabled) return;
+
+        var key = args.Key;
+        var isDeletion = key is "Backspace" or "Delete";
+        if (Readonly && isDeletion)
+        {
+            args.PreventDefault();
+            return;
+        }
+
+        if (key == "Backspace")
+        {
+            args.PreventDefault();
+            var values = inputs.Select(input => input.Value ?? string.Empty).ToList();
+            if (values[index].Length > 0)
+            {
+                for (var i = index; i < values.Count - 1; i++)
+                    values[i] = values[i + 1];
+                values[^1] = string.Empty;
+                WriteValues(inputs, values);
+                await UpdateValueAsync(values);
+            }
+            else if (index > 0)
+            {
+                FocusInput(inputs, index - 1);
+            }
+        }
+        else if (key is "Left" or "ArrowLeft")
+        {
+            args.PreventDefault();
+            if (index > 0) FocusInput(inputs, index - 1);
+        }
+        else if (key is "Right" or "ArrowRight")
+        {
+            args.PreventDefault();
+            if (index < inputs.Count - 1 && !string.IsNullOrEmpty(inputs[index].Value))
+                FocusInput(inputs, index + 1);
+        }
+    }
+
+    private async Task HandleFocus(FocusEventArgs args)
+    {
+        if (args.Target is not InputElement target) return;
+        var inputs = FindInputs(args.Target);
+        var index = inputs.IndexOf(target);
+        if (index < 0 || Disabled) return;
+
+        if (!_hasFocus)
+        {
+            _hasFocus = true;
+            _focusedValue = ReadValue(inputs);
+            await OnFocus.InvokeAsync();
+        }
+
+        // Mouse focus on an empty box is redirected to the first empty box. A filled box remains
+        // directly addressable, matching Ionic's click behavior.
+        if (string.IsNullOrEmpty(inputs[index].Value))
+        {
+            var firstEmpty = inputs.FindIndex(input => string.IsNullOrEmpty(input.Value));
+            if (firstEmpty >= 0 && firstEmpty != index)
+                FocusInput(inputs, firstEmpty);
+        }
+    }
+
+    private async Task HandleBlur(FocusEventArgs args)
+    {
+        if (IsInputInSameComponent(args.Target, args.RelatedTarget))
+            return;
+
+        var current = ReadValue(FindInputs(args.Target));
+        _hasFocus = false;
+        await OnBlur.InvokeAsync();
+        if (_focusedValue != current)
+            await OnChange.InvokeAsync(current);
+        _focusedValue = null;
+    }
+
+    private async Task UpdateValueAsync(IReadOnlyList<string> values)
+    {
+        var next = string.Concat(values);
+        Value = next;
+        await ValueChanged.InvokeAsync(next);
+        await OnInput.InvokeAsync(next);
+        if (next.EnumerateRunes().Count() == Math.Max(1, Length))
+            await OnComplete.InvokeAsync(next);
+    }
+
+    private List<string> CreateValues(string? source)
+    {
+        var values = EmptyValues();
+        if (string.IsNullOrEmpty(source)) return values;
+
+        var validCharacters = source.EnumerateRunes()
+            .Select(rune => rune.ToString())
+            .Where(IsValidCharacter)
+            .Take(values.Count)
+            .ToList();
+        for (var index = 0; index < validCharacters.Count; index++)
+            values[index] = validCharacters[index];
+        return values;
+    }
+
+    private List<string> EmptyValues()
+        => Enumerable.Repeat(string.Empty, Math.Max(1, Length)).ToList();
+
+    private bool IsValidCharacter(string character)
+    {
+        var pattern = !string.IsNullOrWhiteSpace(Pattern)
+            ? Pattern
+            : string.Equals(Type, "text", StringComparison.OrdinalIgnoreCase)
+                ? @"[\p{L}\p{N}]"
+                : @"[\p{N}]";
+        return Regex.IsMatch(character, $"^(?:{pattern})$", RegexOptions.CultureInvariant);
+    }
+
+    private HashSet<int> ParseSeparators(int length)
+    {
+        IEnumerable<int> positions = Separators switch
+        {
+            null => Array.Empty<int>(),
+            string text when string.Equals(text, "all", StringComparison.OrdinalIgnoreCase)
+                => Enumerable.Range(1, Math.Max(0, length - 1)),
+            string text => text.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(part => int.TryParse(part.Trim(), out var position) ? position : -1),
+            IEnumerable<int> values => values,
+            _ => Array.Empty<int>(),
+        };
+
+        return positions.Where(position => position > 0 && position < length).ToHashSet();
+    }
+
+    private void FocusInput(IReadOnlyList<InputElement> inputs, int index)
+    {
+        if (InteractionController is null || index < 0 || index >= inputs.Count) return;
+        InteractionController.SetFocus(inputs[index]);
+        inputs[index].MoveCursorToEnd();
+    }
+
+    private static List<InputElement> FindInputs(Element target)
+    {
+        var root = FindComponentRoot(target);
+        return root?.FindByClass("native-input").OfType<InputElement>().ToList() ?? new();
+    }
+
+    private static Element? FindComponentRoot(Element? element)
+    {
+        for (var current = element; current is not null; current = current.Parent)
+            if (current.HasClass("ion-input-otp")) return current;
+        return null;
+    }
+
+    private static bool IsInputInSameComponent(Element target, Element? relatedTarget)
+        => relatedTarget is not null &&
+           ReferenceEquals(FindComponentRoot(target), FindComponentRoot(relatedTarget));
+
+    private static string ReadValue(IEnumerable<InputElement> inputs)
+        => string.Concat(inputs.Select(input => input.Value ?? string.Empty));
+
+    private static void WriteValues(IReadOnlyList<InputElement> inputs, IReadOnlyList<string> values)
+    {
+        for (var index = 0; index < Math.Min(inputs.Count, values.Count); index++)
+        {
+            inputs[index].Value = values[index];
+            inputs[index].CursorPosition = values[index].Length;
+        }
+    }
+
+    private static int GetTabbableIndex(IReadOnlyList<string> values)
+    {
+        for (var index = 0; index < values.Count; index++)
+            if (values[index].Length == 0) return index;
+        return values.Count - 1;
+    }
+
+    private static string GetDescendantText(Element element)
+        => string.Concat(element.Children.Select(child => child is TextNode text
+            ? text.Text
+            : GetDescendantText(child)));
+
+    private static string NormalizeToken(string? value, string fallback, params string[] allowed)
+    {
+        var normalized = value?.Trim().ToLowerInvariant();
+        return normalized is not null && allowed.Contains(normalized) ? normalized : fallback;
+    }
+}

@@ -1301,12 +1301,20 @@ public class RenderEngine
                         style.FontFamily,
                         style.FontSize.Value,
                         style.FontWeight,
-                        TextAlign.Left,
+                        scrollX > 0 ? TextAlign.Left : style.TextAlign,
                         VerticalAlign.Middle
                     );
                     if (isFocused)
                     {
-                        _painter.DrawTextCursor(scrolledRect, inputElement.Value, inputElement.CursorPosition, style.FontFamily, style.FontSize.Value, style.FontWeight, style.ResolvedCaretColor);
+                        _painter.DrawTextCursor(
+                            scrolledRect,
+                            inputElement.Value,
+                            inputElement.CursorPosition,
+                            style.FontFamily,
+                            style.FontSize.Value,
+                            style.FontWeight,
+                            style.ResolvedCaretColor,
+                            scrollX > 0 ? TextAlign.Left : style.TextAlign);
                     }
                 }
                 else
@@ -1326,7 +1334,15 @@ public class RenderEngine
                     }
                     if (isFocused)
                     {
-                        _painter.DrawTextCursor(contentRect, string.Empty, 0, style.FontFamily, style.FontSize.Value, style.FontWeight, style.ResolvedCaretColor);
+                        _painter.DrawTextCursor(
+                            contentRect,
+                            string.Empty,
+                            0,
+                            style.FontFamily,
+                            style.FontSize.Value,
+                            style.FontWeight,
+                            style.ResolvedCaretColor,
+                            style.TextAlign);
                     }
                 }
                 _painter.Restore();
