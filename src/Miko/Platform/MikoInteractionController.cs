@@ -993,6 +993,8 @@ public sealed class MikoInteractionController
             OffsetY = y - rect.Top,
             TargetWidth = rect.Width,
             TargetHeight = rect.Height,
+            ViewportWidth = _engine.ViewportWidth,
+            ViewportHeight = _engine.ViewportHeight,
             IsButtonPressed = isButtonPressed,
             Button = button,
             Bubbles = true,

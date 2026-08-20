@@ -1,4 +1,5 @@
 using Miko.Components;
+using Miko.Events;
 
 namespace Miko.Ionic.Components;
 
@@ -50,11 +51,14 @@ public sealed class IonLoadingOptions
 public sealed class IonPopoverOptions
 {
     public RenderFragment? Content { get; set; }
+    /// <summary>Pointer event used to anchor the popover to its presenting trigger.</summary>
+    public MouseEventArgs? Event { get; set; }
     public bool BackdropDismiss { get; set; } = true;
     public bool ShowBackdrop { get; set; } = true;
     public string Side { get; set; } = "bottom";
     public string? Alignment { get; set; }
     public bool Arrow { get; set; } = true;
+    public bool Translucent { get; set; }
     public string? CssClass { get; set; }
 }
 
@@ -200,14 +204,16 @@ public sealed class IonPopoverController : IonOverlayControllerBase
         {
             builder.OpenComponent<IonPopover>(0);
             builder.AddComponentParameter(1, nameof(IonPopover.IsOpen), overlay.IsOpen);
-            builder.AddComponentParameter(2, nameof(IonPopover.BackdropDismiss), options.BackdropDismiss);
-            builder.AddComponentParameter(3, nameof(IonPopover.ShowBackdrop), options.ShowBackdrop);
-            builder.AddComponentParameter(4, nameof(IonPopover.Side), options.Side);
-            builder.AddComponentParameter(5, nameof(IonPopover.Alignment), options.Alignment);
-            builder.AddComponentParameter(6, nameof(IonPopover.Arrow), options.Arrow);
-            builder.AddComponentParameter(7, nameof(IonPopover.Class), options.CssClass);
-            builder.AddComponentParameter(8, nameof(IonPopover.ChildContent), options.Content);
-            builder.AddComponentParameter(9, nameof(IonPopover.OnDidDismiss),
+            builder.AddComponentParameter(2, nameof(IonPopover.Event), options.Event);
+            builder.AddComponentParameter(3, nameof(IonPopover.BackdropDismiss), options.BackdropDismiss);
+            builder.AddComponentParameter(4, nameof(IonPopover.ShowBackdrop), options.ShowBackdrop);
+            builder.AddComponentParameter(5, nameof(IonPopover.Side), options.Side);
+            builder.AddComponentParameter(6, nameof(IonPopover.Alignment), options.Alignment);
+            builder.AddComponentParameter(7, nameof(IonPopover.Arrow), options.Arrow);
+            builder.AddComponentParameter(8, nameof(IonPopover.Translucent), options.Translucent);
+            builder.AddComponentParameter(9, nameof(IonPopover.Class), options.CssClass);
+            builder.AddComponentParameter(10, nameof(IonPopover.ChildContent), options.Content);
+            builder.AddComponentParameter(11, nameof(IonPopover.OnDidDismiss),
                 EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this,
                     args => CompleteDismissAsync(overlay, args)));
             builder.CloseComponent();

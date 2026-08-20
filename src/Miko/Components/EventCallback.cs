@@ -51,6 +51,11 @@ public readonly struct EventCallback : IEquatable<EventCallback>
     /// After the Task completes, the receiver component is re-rendered (StateHasChanged).
     /// </summary>
     public Task InvokeAsync()
+        => InvokeAsync(null);
+
+    /// <summary>Invokes a payload-aware handler bound to a non-generic callback. No-argument
+    /// handlers continue to ignore the supplied payload.</summary>
+    public Task InvokeAsync(object? arg)
     {
         if (Delegate is null) return Task.CompletedTask;
 
@@ -62,7 +67,9 @@ public readonly struct EventCallback : IEquatable<EventCallback>
                 case Action a: a(); task = Task.CompletedTask; break;
                 case Func<Task> f: task = f() ?? Task.CompletedTask; break;
                 default:
-                    var result = Delegate.DynamicInvoke();
+                    var result = Delegate.Method.GetParameters().Length == 0
+                        ? Delegate.DynamicInvoke()
+                        : Delegate.DynamicInvoke(arg);
                     task = result is Task t ? t : Task.CompletedTask;
                     break;
             }
@@ -230,6 +237,12 @@ public sealed class EventCallbackFactory
         => new(receiver, callback);
 
     public EventCallback Create(object receiver, Func<Task> callback)
+        => new(receiver, callback);
+
+    public EventCallback Create(object receiver, Action<MouseEventArgs> callback)
+        => new(receiver, callback);
+
+    public EventCallback Create(object receiver, Func<MouseEventArgs, Task> callback)
         => new(receiver, callback);
 
     // ---------------- EventCallback<TValue> (with payload) ------------------

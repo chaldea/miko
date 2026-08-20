@@ -11,23 +11,21 @@
      </div>
    </ion-popover>
    Ionic's overlay controller wires `trigger` / `present(event)` and computes the popover position
-   relative to the trigger at runtime. Miko provides IonPopoverController but does no runtime
-   positioning here, so the popover renders centered/static and raises
-   OnWillDismiss then OnDidDismiss. `Side` stamps the direction class (used for the arrow rotation);
-   the actual anchor math is a marker in this static port. The host is always mounted; when closed it
-   carries `overlay-hidden` (display:none). *@
+   relative to the trigger at runtime. Miko accepts the originating MouseEvent and applies the
+   equivalent viewport-relative position to the wrapper; without an event it keeps the centered
+   fallback. The host is always mounted; when closed it carries `overlay-hidden` (display:none). *@
 <IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
     <div class="@ClassMapper.Class" style="@Style" role="dialog">
         @if (ShowBackdrop)
         {
             <div class="ion-backdrop popover-backdrop" @onclick="OnBackdropTapAsync"></div>
         }
-        <div class="popover-wrapper ion-overlay-wrapper">
+        <div class="popover-wrapper ion-overlay-wrapper" style="@_positionStyle">
             @if (Arrow)
             {
                 <div class="popover-arrow"></div>
             }
-            <div class="popover-content">
+            <div class="popover-content" style="@_contentPositionStyle">
                 @ChildContent
             </div>
         </div>
@@ -48,6 +46,10 @@
     /// <summary>Id of the element that opens the popover (Ionic <c>trigger</c>). Kept for API parity;
     /// the host drives <see cref="IsOpen"/> in this port.</summary>
     [Parameter] public string? Trigger { get; set; }
+
+    /// <summary>The click/pointer event used to anchor the popover. Controllers pass Ionic's
+    /// <c>event</c> option here; declarative callers can bind the event received by their trigger.</summary>
+    [Parameter] public MouseEventArgs? Event { get; set; }
 
     /// <summary>How the trigger opens the popover: <c>"click"</c> (default), <c>"context-menu"</c>,
     /// or <c>"hover"</c> (Ionic <c>triggerAction</c>). Stored for API parity; there is no runtime
@@ -94,15 +96,163 @@
     protected override void OnParametersSet()
     {
         var side = string.IsNullOrEmpty(Side) ? "bottom" : Side.ToLowerInvariant();
+        var position = BuildPositionStyle(side, Alignment, Mode, Event);
 
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
             .Add("ion-popover")
-            .Add($"popover-side-{side}")
+            .Add($"popover-side-{position.Side}")
             .If(Translucent, "popover-translucent")
             .If(!IsOpen, "overlay-hidden");
+
+        _positionStyle = position.WrapperStyle;
+        _contentPositionStyle = position.ContentStyle;
+    }
+
+    private Style? _positionStyle;
+    private Style? _contentPositionStyle;
+
+    private readonly record struct PopoverPosition(
+        string Side, Style? WrapperStyle, Style? ContentStyle);
+
+    private static PopoverPosition BuildPositionStyle(
+        string side, string? requestedAlignment, string mode, MouseEventArgs? args)
+    {
+        var physicalSide = side switch
+        {
+            "start" => "left",
+            "end" => "right",
+            "top" or "left" or "right" => side,
+            _ => "bottom",
+        };
+        if (args is null) return new PopoverPosition(physicalSide, null, null);
+
+        // Mouse coordinates are viewport-relative. OffsetX/Y and the target dimensions let us
+        // reconstruct the trigger's border box without requiring browser-only DOM APIs.
+        var targetLeft = args.X - args.OffsetX;
+        var targetTop = args.Y - args.OffsetY;
+        var targetWidth = args.TargetWidth > 0 ? args.TargetWidth : args.Target?.OffsetWidth ?? 0;
+        var targetHeight = args.TargetHeight > 0 ? args.TargetHeight : args.Target?.OffsetHeight ?? 0;
+        var targetRight = targetLeft + targetWidth;
+        var targetBottom = targetTop + targetHeight;
+        var contentWidth = mode == "ios" ? 200f : 250f;
+        const float edge = 8f;
+        var alignment = requestedAlignment?.ToLowerInvariant() switch
+        {
+            "center" => "center",
+            "end" => "end",
+            "start" => "start",
+            _ => mode == "ios" ? "center" : "start",
+        };
+
+        var viewportWidth = args.ViewportWidth;
+        var viewportHeight = args.ViewportHeight;
+        var spaceAbove = Math.Max(0, targetTop - edge);
+        var spaceBelow = viewportHeight > 0
+            ? Math.Max(0, viewportHeight - targetBottom - edge)
+            : float.MaxValue;
+        var spaceLeft = Math.Max(0, targetLeft - edge);
+        var spaceRight = viewportWidth > 0
+            ? Math.Max(0, viewportWidth - targetRight - edge)
+            : float.MaxValue;
+
+        // Flip to the opposite side when the preferred side cannot accommodate the popover as
+        // well as the opposite side. Vertical content is auto-sized, so the larger region is the
+        // stable choice; horizontal content has a definite 250/200px width and can be exact.
+        if (physicalSide == "bottom" && viewportHeight > 0 && spaceBelow < spaceAbove)
+            physicalSide = "top";
+        else if (physicalSide == "top" && viewportHeight > 0 && spaceAbove < spaceBelow)
+            physicalSide = "bottom";
+        else if (physicalSide == "right" && viewportWidth > 0
+                 && spaceRight < contentWidth && spaceLeft > spaceRight)
+            physicalSide = "left";
+        else if (physicalSide == "left" && viewportWidth > 0
+                 && spaceLeft < contentWidth && spaceRight > spaceLeft)
+            physicalSide = "right";
+
+        var style = new Style { Position = Position.Absolute };
+        var contentStyle = new Style();
+        switch (physicalSide)
+        {
+            case "top":
+                style.Bottom = Length.Vh(100) - Length.Px(targetTop);
+                SetHorizontalPosition(style, targetLeft, targetRight, targetWidth, contentWidth,
+                    viewportWidth, edge, alignment);
+                if (viewportHeight > 0)
+                    contentStyle.MaxHeight = Length.Px(Math.Min(spaceAbove, viewportHeight * 0.9f));
+                break;
+            case "left":
+                style.Right = Length.Vw(100) - Length.Px(targetLeft);
+                SetVerticalPosition(style, targetTop, targetBottom, targetHeight,
+                    viewportHeight, edge, alignment);
+                if (viewportWidth > 0 && spaceLeft < contentWidth)
+                    contentStyle.MaxWidth = Length.Px(spaceLeft);
+                break;
+            case "right":
+                style.Left = Length.Px(targetRight);
+                SetVerticalPosition(style, targetTop, targetBottom, targetHeight,
+                    viewportHeight, edge, alignment);
+                if (viewportWidth > 0 && spaceRight < contentWidth)
+                    contentStyle.MaxWidth = Length.Px(spaceRight);
+                break;
+            default:
+                style.Top = Length.Px(targetBottom);
+                SetHorizontalPosition(style, targetLeft, targetRight, targetWidth, contentWidth,
+                    viewportWidth, edge, alignment);
+                if (viewportHeight > 0)
+                    contentStyle.MaxHeight = Length.Px(Math.Min(spaceBelow, viewportHeight * 0.9f));
+                break;
+        }
+
+        return new PopoverPosition(physicalSide, style,
+            contentStyle.HasAnyPropertyOrVars() ? contentStyle : null);
+    }
+
+    private static void SetHorizontalPosition(
+        Style style, float left, float right, float triggerWidth, float contentWidth,
+        float viewportWidth, float edge, string alignment)
+    {
+        var desiredLeft = alignment switch
+        {
+            "center" => left + (triggerWidth - contentWidth) / 2,
+            "end" => right - contentWidth,
+            _ => left,
+        };
+
+        if (viewportWidth > 0)
+            desiredLeft = Math.Clamp(desiredLeft, edge, Math.Max(edge, viewportWidth - edge - contentWidth));
+        style.Left = Length.Px(desiredLeft);
+    }
+
+    private static void SetVerticalPosition(
+        Style style, float top, float bottom, float triggerHeight,
+        float viewportHeight, float edge, string alignment)
+    {
+        // For side popovers the content height is not known until layout. Near the bottom edge,
+        // anchor its bottom to the trigger; near the top, anchor its top. This keeps either edge in
+        // the viewport while max-height below caps unusually tall content.
+        if (viewportHeight > 0 && top + triggerHeight / 2 > viewportHeight / 2)
+        {
+            style.Bottom = Length.Vh(100) - Length.Px(Math.Min(bottom, viewportHeight - edge));
+            return;
+        }
+
+        switch (alignment)
+        {
+            case "center":
+                style.Top = Length.Px(top + triggerHeight / 2);
+                style.Transform = new Transform(
+                    new TransformFunction.TranslateY(Length.Percent(-50)));
+                break;
+            case "end":
+                style.Bottom = Length.Vh(100) - Length.Px(bottom);
+                break;
+            default:
+                style.Top = Length.Px(top);
+                break;
+        }
     }
 
     private async Task OnBackdropTapAsync(MouseEventArgs _)

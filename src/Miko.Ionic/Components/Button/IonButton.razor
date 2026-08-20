@@ -144,9 +144,9 @@
         return root;
     }
 
-    private async Task HandleClick(MouseEventArgs _)
+    private async Task HandleClick(MouseEventArgs args)
     {
         if (Disabled) return;
-        await OnClick.InvokeAsync();
+        await OnClick.InvokeAsync(args);
     }
 }

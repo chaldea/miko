@@ -54,6 +54,12 @@ public class MikoEngine
     private LayoutBox? _currentLayout;
     private float _viewportWidth;
     private float _viewportHeight;
+
+    /// <summary>Width of the currently initialized viewport.</summary>
+    public float ViewportWidth => _viewportWidth;
+
+    /// <summary>Height of the currently initialized viewport.</summary>
+    public float ViewportHeight => _viewportHeight;
     private SafeAreaInsets _safeArea;
 
     // 页面转场状态（ISSUE-108）：转场期间旧页面树（leaving 层）被保留，与新页面树

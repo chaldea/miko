@@ -1,5 +1,5 @@
 @page "/popover"
-
+@using Miko.Events
 @* NOTE: Ionic creates the popover imperatively via popoverController.create({ component, event }),
    anchoring it to the click event. Miko's IonPopover is declarative — the host binds IsOpen and the
    content is written inline rather than resolved from a component tag. *@
@@ -33,24 +33,30 @@
         <div class="ion-padding-start ion-padding-end">
             <IonButton Class="ion-text-wrap" Expand="block" OnClick="@ShowPopover">Open Popover</IonButton>
         </div>
-
-        <IonPopover Translucent
-                    IsOpen="@_isOpen"
-                    IsOpenChanged="@(open => _isOpen = open)">
-            <IonList>
-                <IonListHeader>
-                    <IonLabel>Ionic</IonLabel>
-                </IonListHeader>
-                <IonItem Button>Learn Ionic</IonItem>
-                <IonItem Button>Documentation</IonItem>
-                <IonItem Button>Showcase</IonItem>
-                <IonItem Button>GitHub Repo</IonItem>
-            </IonList>
-        </IonPopover>
     </IonContent>
 </IonPage>
 @code {
-    private bool _isOpen;
+    [Inject] public IonPopoverController PopoverController { get; set; }
 
-    private void ShowPopover() => _isOpen = true;
+    private RenderFragment _popList =@<IonList>
+                                          <IonListHeader>
+                                              <IonLabel>Ionic</IonLabel>
+                                          </IonListHeader>
+                                          <IonItem Button>Learn Ionic</IonItem>
+                                          <IonItem Button>Documentation</IonItem>
+                                          <IonItem Button>Showcase</IonItem>
+                                          <IonItem Button>GitHub Repo</IonItem>
+                                      </IonList>
+    ;
+
+    private async Task ShowPopover(MouseEventArgs args)
+    {
+        var popover = await PopoverController.CreateAsync(new IonPopoverOptions()
+        {
+            Content = _popList,
+            Event = args,
+            Translucent = true,
+        });
+        await popover.PresentAsync();
+    }
 }

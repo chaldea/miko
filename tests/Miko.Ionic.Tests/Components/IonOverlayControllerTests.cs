@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Miko.Common;
 using Miko.Components;
+using Miko.Events;
 using Miko.Ionic.Components;
 using Shouldly;
 
@@ -175,6 +177,40 @@ public sealed class IonOverlayControllerTests : IonicComponentTestBase
         var manager = new IonOverlayManager(_registry);
         manager.Count.ShouldBe(6);
         (await manager.GetTopIdAsync()).ShouldBe(toast.Id);
+    }
+
+    [Fact]
+    public async Task PopoverController_ForwardsPresentEventToAnchorPosition()
+    {
+        RegisterServices();
+        Context.ViewportWidth = 390;
+        Context.ViewportHeight = 844;
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonApp>();
+        var trigger = new Miko.Core.DomElements.DivElement();
+        var controller = new IonPopoverController(_registry);
+        var reference = await controller.CreateAsync(new IonPopoverOptions
+        {
+            Event = new MouseEventArgs
+            {
+                Target = trigger,
+                X = 80,
+                Y = 120,
+                OffsetX = 20,
+                OffsetY = 30,
+                TargetWidth = 120,
+                TargetHeight = 48,
+            },
+            Content = builder => builder.AddContent(0, "Body"),
+        });
+
+        await reference.PresentAsync();
+
+        var wrapper = cut.FindInTopLayerByClass("popover-wrapper").ShouldHaveSingleItem();
+        var style = wrapper.Style!;
+        style.Position.ShouldBe(Position.Absolute);
+        style.Left.ShouldBe(Length.Px(60));
+        style.Top.ShouldBe(Length.Px(138));
     }
 
     public sealed class ControllerModalContent : ComponentBase

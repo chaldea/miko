@@ -110,7 +110,7 @@
             break;
 
         case "popover":
-            <IonPopover OverlayId="@_popoverOverlayId" IsOpen="_isExpanded" Class="select-popover" OnDidDismiss="HandleOverlayDismissAsync">
+            <IonPopover OverlayId="@_popoverOverlayId" IsOpen="_isExpanded" Event="@_popoverEvent" Class="select-popover" OnDidDismiss="HandleOverlayDismissAsync">
                 <IonSelectPopover Header="@InterfaceHeader"
                                   SubHeader="@InterfaceSubHeader"
                                   Message="@InterfaceMessage"
@@ -271,6 +271,7 @@
     private IonSelectOptionContext _optionContext = new();
 
     private bool _isExpanded;
+    private MouseEventArgs? _popoverEvent;
     private readonly string _alertOverlayId = $"select-alert-{Guid.NewGuid():N}";
     private readonly string _actionSheetOverlayId = $"select-action-sheet-{Guid.NewGuid():N}";
     private readonly string _popoverOverlayId = $"select-popover-{Guid.NewGuid():N}";
@@ -527,6 +528,7 @@
         if (OverlayContext is null && OriginatedInInlineOverlay(args.Target)) return;
 
         _isExpanded = true;
+        _popoverEvent = args;
         // The toggle icon and the floating label both depend on the expanded state.
         StateHasChanged();
         await Task.CompletedTask;
