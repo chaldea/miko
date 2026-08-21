@@ -21,7 +21,7 @@
             @ChildContent
         </span>
     </button>
-    <div class="segment-button-indicator">
+    <div class="segment-button-indicator segment-button-indicator-animated" style="@_indicatorStyle">
         <div class="segment-button-indicator-background"></div>
     </div>
 </div>
@@ -40,7 +40,7 @@
     /// Content arrangement (Ionic <c>layout</c>: <c>"icon-top"</c>, <c>"icon-start"</c>, …).
     /// Kept for API parity; emitted as a marker class only in this base port.
     /// </summary>
-    [Parameter] public string? Layout { get; set; }
+    [Parameter] public string? Layout { get; set; } = "icon-top";
 
     /// <summary>Selection/select callback supplied by the enclosing <see cref="IonSegment"/>.</summary>
     [CascadingParameter] public IonSegmentContext? SegmentContext { get; set; }
@@ -48,16 +48,34 @@
     /// <summary>True when this button's value matches the segment's selected value.</summary>
     public bool Selected { get; private set; }
 
+    private Style? _indicatorStyle;
+
     protected override void OnParametersSet()
     {
         Selected = SegmentContext is not null && SegmentContext.Value == Value;
+        var wasSelected = SegmentContext is not null &&
+                          SegmentContext.PreviousValue == Value &&
+                          SegmentContext.Value != Value;
+
+        _indicatorStyle = null;
+        if (SegmentContext is not null)
+        {
+            SegmentContext.RegisterButton(Value);
+            // Give every indicator an absolute position relative to the selected button. This
+            // makes the transform derivable from the current render alone, so @bind-Value can
+            // rebuild the parent/segment instance without losing the transition's start state.
+            _indicatorStyle = SegmentContext.IndicatorStyle(Value);
+        }
 
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
             .Add("ion-segment-button")
+            .If(!string.IsNullOrWhiteSpace(SegmentContext?.SegmentColor), "in-segment-color")
+            .AddColor(SegmentContext?.SegmentColor)
             .If(Selected, "segment-button-checked")
+            .If(wasSelected, "segment-button-previous")
             .If(Disabled, "segment-button-disabled")
             .AddValue(Layout, "segment-button-layout-");
     }
@@ -67,8 +85,7 @@
     /// <c>segment-button-has-label</c>/<c>-icon</c> and the <c>-label-only</c>/<c>-icon-only</c>
     /// variants. Ionic resolves these at render via <c>querySelector</c>; here we scan the built
     /// subtree for an <c>ion-label</c>/<c>ion-icon</c> descendant and append the classes to the
-    /// host button. The <c>-has-label-only</c> marker drives the md label margin rule
-    /// (<c>segment-button.md.scss</c>).
+    /// host button so the same layout-state contract is available to component styles.
     /// </summary>
     public override Element Build()
     {
@@ -80,6 +97,10 @@
         if (hasIcon) root.Class += " segment-button-has-icon";
         if (hasLabel && !hasIcon) root.Class += " segment-button-has-label-only";
         if (hasIcon && !hasLabel) root.Class += " segment-button-has-icon-only";
+
+        SegmentContext?.RegisterButtonElement(Value, root);
+        var indicator = root.FindByClass("segment-button-indicator").Single();
+        SegmentContext?.RegisterIndicator(Value, indicator);
 
         return root;
     }

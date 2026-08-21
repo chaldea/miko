@@ -12,9 +12,8 @@ namespace Miko.Ionic.Tests.Components;
 
 /// <summary>
 /// ISSUE-064 §3: an <c>ion-label</c> inside an <c>ion-segment-button</c> (with no icon) must stamp
-/// the <c>segment-button-has-label-only</c> marker on the button host, which drives the md label
-/// margin rule (<c>segment-button.md.scss :host(.segment-button-has-label-only) ::slotted(ion-label)
-/// { margin: 12px }</c>). iOS has no such rule.
+/// the <c>segment-button-has-label-only</c> marker on the button host. Also verifies Ionic's MD
+/// slotted-label margin, which applies to labels both with and without a sibling icon.
 /// </summary>
 public class IonSegmentButtonLabelMarkerTests
 {
@@ -136,7 +135,7 @@ public class IonSegmentButtonLabelMarkerTests
     }
 
     [Fact]
-    public void MdButtonWithLabelAndIcon_LabelGetsNoLabelOnlyMargin()
+    public void MdButtonWithLabelAndIcon_LabelKeepsBaseVerticalMargin()
     {
         using var ctx = ContextFor(HostPlatform.Android);
         var cut = ctx.Render<IonSegmentButton>(p =>
@@ -152,7 +151,8 @@ public class IonSegmentButtonLabelMarkerTests
         var label = cut.Root.FindByClass("ion-label").First();
         var style = cut.GetComputedStyle(label)!;
 
-        // Not label-only → the margin rule doesn't apply.
-        style.MarginTop.Value.ShouldNotBe(12f);
+        // segment-button.md.scss applies 12px vertical margin to every slotted ion-label.
+        style.MarginTop.Value.ShouldBe(12f);
+        style.MarginBottom.Value.ShouldBe(12f);
     }
 }

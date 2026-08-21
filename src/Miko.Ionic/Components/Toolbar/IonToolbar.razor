@@ -50,4 +50,18 @@
             .Add(Mode)
             .Add("ion-toolbar");
     }
+
+    /// <summary>
+    /// Mirrors Ionic's child <c>ionStyle</c> handling. An iOS segment in the default slot makes
+    /// the toolbar content an inline flex container, allowing the segment's <c>width:auto</c> to
+    /// use its flex-item max-content size instead of filling a block containing box.
+    /// </summary>
+    public override Element Build()
+    {
+        var root = base.Build();
+        var content = root.FindByClass("toolbar-content").FirstOrDefault();
+        if (content?.FindByClass("ion-segment").Count > 0)
+            root.Class += " toolbar-segment";
+        return root;
+    }
 }

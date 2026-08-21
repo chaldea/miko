@@ -17,7 +17,7 @@ public class IonSegmentButtonTests : IonicComponentTestBase
         // Assert - The host is a <div> carrying the ion-segment-button classes; the clickable
         // native <button> (button-native) is its first child.
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("md ion-segment-button");
+        cut.Root.Class.ShouldBe("md ion-segment-button segment-button-layout-icon-top");
         cut.Root.Children[0].TagName.ShouldBe("button");
         cut.Root.Children[0].Class.ShouldBe("button-native");
     }
@@ -78,7 +78,7 @@ public class IonSegmentButtonTests : IonicComponentTestBase
         var buttonElement = FindButtonInTree(cut.Root);
         buttonElement.ShouldNotBeNull();
         buttonElement.ShouldNotHaveClass("segment-button-checked");
-        buttonElement.Class.ShouldBe("md ion-segment-button");
+        buttonElement.Class.ShouldBe("md ion-segment-button segment-button-layout-icon-top");
     }
 
     [Fact]

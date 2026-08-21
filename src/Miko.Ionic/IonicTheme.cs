@@ -182,6 +182,7 @@ public class IonicTheme
 
     // Segment
     public Color SegmentBackground { get; set; }
+    public float SegmentBorderRadius { get; set; }
     public Color SegmentButtonColor { get; set; }
     /// <summary>Text color of the checked button. MD turns the label the primary color; iOS keeps
     /// the default dark text (the pill behind it provides the contrast).</summary>
@@ -195,10 +196,13 @@ public class IonicTheme
     public float SegmentIndicatorBorderRadius { get; set; }
     /// <summary>Indicator elevation. MD: none. iOS: a soft drop shadow under the pill.</summary>
     public List<BoxShadow> SegmentIndicatorBoxShadow { get; set; } = new();
-    public float SegmentButtonFontSize { get; set; } = 12f;
-    public float SegmentButtonMaxWidth { get; set; } = 168f;
+    public float SegmentButtonFontSize { get; set; } = 14f;
+    public float SegmentButtonMinWidth { get; set; } = 90f;
     public float SegmentButtonMinHeight { get; set; } = 48f;
-    public float SegmentButtonPaddingX { get; set; } = 8f;
+    public float SegmentButtonLineHeight { get; set; } = 40f;
+    public Length SegmentButtonLetterSpacing { get; set; } = Length.Em(0.06f);
+    public float SegmentButtonPaddingX { get; set; } = 16f;
+    public float SegmentButtonMarginY { get; set; }
     /// <summary>Top/bottom padding of a segment button. 0 in Ionic (both md and ios):
     /// <c>$segment-button-md-padding-top/-bottom</c> and the ios <c>--padding-top/-bottom</c>.
     /// The button's height comes from <see cref="SegmentButtonMinHeight"/>, not vertical padding.</summary>
@@ -969,20 +973,24 @@ public class IonicTheme
         t.ItemOptionColor = Color.FromHex("ffffff");
         t.ItemOptionBackground = t.Primary;
 
-        // Segment (segment.md.scss / segment-button.md.scss): translucent track; the checked
+        // Segment (segment.md.scss / segment-button.md.scss): transparent track; the checked
         // button shows a 2px primary underline bar (the indicator) and its label turns primary —
         // the button background stays transparent (md does NOT fill the whole button).
-        t.SegmentBackground = new Color(0, 0, 0, 13);            // rgba(0,0,0,.05) light track
-        t.SegmentButtonColor = Color.FromHex("595959");          // step-350
+        t.SegmentBackground = Color.Transparent;                 // --background: transparent
+        t.SegmentBorderRadius = 0f;
+        t.SegmentButtonColor = new Color(0, 0, 0, 153);         // rgba(text-color-rgb, .6)
         t.SegmentButtonCheckedColor = t.Primary;                 // --color-checked: primary
         t.SegmentIndicatorColor = t.Primary;                     // --indicator-color: color-checked
         t.SegmentIndicatorHeight = Length.Px(2);                 // --indicator-height: 2px
         t.SegmentIndicatorBorderRadius = 0f;                     // square underline bar
         t.SegmentIndicatorBoxShadow = new();                     // --indicator-box-shadow: none
-        t.SegmentButtonFontSize = 12f;
-        t.SegmentButtonMaxWidth = 168f;
-        t.SegmentButtonMinHeight = 48f;                            // md $segment-button-md-min-height
-        t.SegmentButtonPaddingX = 8f;
+        t.SegmentButtonFontSize = 14f;
+        t.SegmentButtonMinWidth = 90f;
+        t.SegmentButtonMinHeight = 48f;
+        t.SegmentButtonLineHeight = 40f;
+        t.SegmentButtonLetterSpacing = Length.Em(0.06f);
+        t.SegmentButtonPaddingX = 16f;
+        t.SegmentButtonMarginY = 0f;
         t.SegmentButtonPaddingY = 0f;                            // md padding-top/bottom: 0
 
         // Button (button.md.scss / button.md.vars.scss). Solid fill = primary, white label;
@@ -1502,7 +1510,8 @@ public class IonicTheme
         // button shows a full-height light rounded pill (the indicator) with a soft shadow sliding
         // behind the label. Unlike md, the label color stays the default dark text — the pill
         // provides the contrast, so the button background itself stays transparent.
-        t.SegmentBackground = new Color(0, 0, 0, 13);            // rgba(0,0,0,.05)
+        t.SegmentBackground = new Color(0, 0, 0, 17);            // rgba(0,0,0,.065)
+        t.SegmentBorderRadius = 8f;
         t.SegmentButtonColor = Color.FromHex("000000");          // iOS text color (dark)
         t.SegmentButtonCheckedColor = Color.FromHex("000000");   // checked label stays dark
         t.SegmentIndicatorColor = Color.FromHex("ffffff");       // light elevated pill surface
@@ -1512,10 +1521,13 @@ public class IonicTheme
         {
             new BoxShadow(Length.Px(0), Length.Px(0), Length.Px(5), Length.Px(0), new Color(0, 0, 0, 41)),
         };
-        t.SegmentButtonFontSize = 13f;                           // iOS slightly larger
-        t.SegmentButtonMaxWidth = 240f;                          // iOS wider max
+        t.SegmentButtonFontSize = 13f;
+        t.SegmentButtonMinWidth = 70f;
         t.SegmentButtonMinHeight = 28f;                          // iOS slightly shorter
-        t.SegmentButtonPaddingX = 6f;
+        t.SegmentButtonLineHeight = 37f;
+        t.SegmentButtonLetterSpacing = Length.Px(0);
+        t.SegmentButtonPaddingX = 13f;
+        t.SegmentButtonMarginY = 2f;
         t.SegmentButtonPaddingY = 0f;                            // iOS padding-top/bottom: 0
 
         // Button (button.ios.scss / button.ios.vars.scss). Same solid=primary/white,

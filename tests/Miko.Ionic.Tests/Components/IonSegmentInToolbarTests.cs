@@ -28,16 +28,23 @@ public class IonSegmentInToolbarTests
         return ctx;
     }
 
-    // Renders <IonToolbar><IonSegment/></IonToolbar> and returns the segment element.
+    // Renders <IonToolbar><IonSegment/></IonToolbar> with the common two-button example.
     private static ComponentUnderTest RenderSegmentInToolbar(TestContext ctx) =>
         ctx.Render<IonToolbar>(p => p.Add(nameof(IonToolbar.ChildContent), (RenderFragment)(b =>
         {
             b.OpenComponent<IonSegment>(0);
-            b.AddComponentParameter(1, nameof(IonSegment.Value), "a");
+            b.AddComponentParameter(1, nameof(IonSegment.Value), "all");
             b.AddComponentParameter(2, nameof(IonSegment.ChildContent), (RenderFragment)(seg =>
             {
                 seg.OpenComponent<IonSegmentButton>(0);
-                seg.AddComponentParameter(1, nameof(IonSegmentButton.Value), "a");
+                seg.AddComponentParameter(1, nameof(IonSegmentButton.Value), "all");
+                seg.AddComponentParameter(2, nameof(IonSegmentButton.ChildContent),
+                    (RenderFragment)(label => label.AddContent(0, "All")));
+                seg.CloseComponent();
+                seg.OpenComponent<IonSegmentButton>(3);
+                seg.AddComponentParameter(4, nameof(IonSegmentButton.Value), "favorites");
+                seg.AddComponentParameter(5, nameof(IonSegmentButton.ChildContent),
+                    (RenderFragment)(label => label.AddContent(0, "Favorites")));
                 seg.CloseComponent();
             }));
             b.CloseComponent();
@@ -55,6 +62,7 @@ public class IonSegmentInToolbarTests
         var cut = RenderSegmentInToolbar(ctx);
         var style = cut.GetComputedStyle(Segment(cut))!;
 
+        Segment(cut).ShouldHaveClass("in-toolbar");
         style.MinHeight.Unit.ShouldBe(LengthUnit.Px);
         style.MinHeight.Value.ShouldBe(toolbarMinHeight);
     }
@@ -88,6 +96,57 @@ public class IonSegmentInToolbarTests
 
         // iOS's .in-toolbar rule sets margin/width/background, NOT min-height.
         var cut = RenderSegmentInToolbar(ctx);
-        cut.GetComputedStyle(Segment(cut))!.MinHeight.Value.ShouldNotBe(toolbarMinHeight);
+        var style = cut.GetComputedStyle(Segment(cut))!;
+        Segment(cut).ShouldHaveClass("in-toolbar");
+        style.MinHeight.Value.ShouldNotBe(toolbarMinHeight);
+        style.Width.IsAuto.ShouldBeTrue();
+        style.MarginLeft.IsAuto.ShouldBeTrue();
+        style.MarginRight.IsAuto.ShouldBeTrue();
+        style.MarginTop.Value.ShouldBe(0f);
+        style.MarginBottom.Value.ShouldBe(0f);
+    }
+
+    [Fact]
+    public void IosSegment_InToolbar_AutoWidthShrinksToContentAndCenters()
+    {
+        using var ctx = ContextFor(HostPlatform.Ios);
+
+        var cut = RenderSegmentInToolbar(ctx);
+        var toolbar = cut.Root;
+        var content = cut.FindByClass("toolbar-content").ShouldHaveSingleItem();
+        var segment = Segment(cut);
+
+        toolbar.ShouldHaveClass("toolbar-segment");
+        cut.GetComputedStyle(content)!.Display.ShouldBe(Display.InlineFlex);
+
+        var contentBox = cut.GetBoxModel(content).ShouldNotBeNull();
+        var segmentBox = cut.GetBoxModel(segment).ShouldNotBeNull();
+        segmentBox.BorderBox.Width.ShouldBeLessThan(contentBox.Content.Width);
+        segmentBox.BorderBox.Width.ShouldBeGreaterThanOrEqualTo(140f);
+        segmentBox.BorderBox.Left.ShouldBe(
+            contentBox.Content.Left + (contentBox.Content.Width - segmentBox.BorderBox.Width) / 2f,
+            0.01f);
+    }
+
+    [Fact]
+    public void IosSegment_Standalone_RemainsFullWidth()
+    {
+        using var ctx = ContextFor(HostPlatform.Ios);
+        var cut = ctx.Render<IonSegment>(p =>
+        {
+            p.Add(nameof(IonSegment.Value), "all");
+            p.Add(nameof(IonSegment.ChildContent), (RenderFragment)(seg =>
+            {
+                seg.OpenComponent<IonSegmentButton>(0);
+                seg.AddComponentParameter(1, nameof(IonSegmentButton.Value), "all");
+                seg.AddComponentParameter(2, nameof(IonSegmentButton.ChildContent),
+                    (RenderFragment)(label => label.AddContent(0, "All")));
+                seg.CloseComponent();
+            }));
+        });
+
+        var segment = Segment(cut);
+        cut.GetComputedStyle(segment)!.Width.ShouldBe(Length.Percent(100));
+        cut.GetBoxModel(segment)!.BorderBox.Width.ShouldBe(ctx.ViewportWidth, 0.01f);
     }
 }

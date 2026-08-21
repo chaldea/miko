@@ -201,6 +201,14 @@ internal class GlobalStyles
                     Height = Length.Auto,
                 },
             },
+            [".component-segment .ion-header .ion-segment"] = new()
+            {
+                Left = Px(-30)
+            },
+            [".component-segment .ion-content .ion-segment"] = new()
+            {
+                Margin = new Margin(10, Length.Auto)
+            },
         });
         return styleSheet;
     }

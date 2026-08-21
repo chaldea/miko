@@ -98,12 +98,19 @@ public static class ToolbarStyles
     private static void GenMd(CssObject css, IonicTheme t)
     {
         // Material Design toolbar.md.scss
-        css[".ion-toolbar.md .toolbar-background"].BorderBottomWidth = Length.Px(1);
+        css[".ion-toolbar.md .toolbar-background"].BorderBottomWidth = Length.Px(0);
     }
 
     private static void GenIos(CssObject css, IonicTheme t)
     {
         // iOS toolbar.ios.scss
-        css[".ion-toolbar.ios .toolbar-background"].BorderBottomWidth = Length.Px(0.55f);
+        css[".ion-toolbar.ios .toolbar-background"].BorderBottomWidth = Length.Px(0f);
+
+        // toolbar.ios.scss: :host(.toolbar-segment) .toolbar-content { display: inline-flex; }
+        // IonSegment's width:auto then participates as a flex item and shrinks to its content.
+        css[".ion-toolbar.ios.toolbar-segment .toolbar-content"] = new()
+        {
+            Display = Display.InlineFlex,
+        };
     }
 }
