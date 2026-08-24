@@ -300,8 +300,9 @@ internal static class ListStyles
                 Height = Length.Px(24),
             },
 
-            // start-slotted icon: 12px (md) / 7px (ios) vertical, plus a 32px gap before the
-            // label on md ($item-md-icon-start-slot-margin-end; the iOS vars are null).
+            // start-slotted icon: 12px (md) / 7px (ios) vertical, plus a gap before the label:
+            // 32px on md; 16px on iOS, inherited from iOS's generic start-slot margin because
+            // the later icon rule only specifies vertical margins.
             [$".ion-item.{mode} .item-native > .ion-slot-start > .ion-icon"] = new()
             {
                 Width = Length.Px(24),

@@ -36,7 +36,6 @@ namespace IonicDemo.Services
                 new("Loading", icon, "/loading"),
                 new("Menu", icon, "/menu"),
                 new("Modal", icon, "/modal"),
-                new("Navigation", icon, "/nav"),
                 new("Note", icon, "/note"),
                 new("Picker", icon, "/picker"),
                 new("Popover", icon, "/popover"),

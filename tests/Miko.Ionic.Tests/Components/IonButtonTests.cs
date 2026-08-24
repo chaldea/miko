@@ -4,6 +4,7 @@ using Miko.Core;
 using Miko.Events;
 using Miko.Ionic;
 using Miko.Ionic.Components;
+using Miko.Styling;
 using Miko.Testing;
 using Shouldly;
 
@@ -205,13 +206,16 @@ public class IonButtonTests : IonicComponentTestBase
     }
 
     private static ComponentUnderTest RenderIconOnlyButton(TestContext ctx,
-        Action<ComponentParameterBuilder<IonButton>>? configure = null)
+        Action<ComponentParameterBuilder<IonButton>>? configure = null,
+        string? iconClass = null)
         => ctx.Render<IonButton>(p =>
         {
             p.Add(nameof(IonButton.IconOnly), (RenderFragment)(b =>
             {
                 b.OpenComponent<IonIcon>(0);
                 b.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
+                if (iconClass is not null)
+                    b.AddComponentParameter(2, nameof(IonIcon.Class), iconClass);
                 b.CloseComponent();
             }));
             configure?.Invoke(p);
@@ -255,10 +259,12 @@ public class IonButtonTests : IonicComponentTestBase
         var cut = RenderIconOnlyButton(Context);
         var icon = cut.Root.FindByClass("ion-icon")[0];
         var style = cut.GetComputedStyle(icon)!;
+        var box = cut.GetBoxModel(icon)!;
 
         // md default icon-only icon size.
-        style.Width.Value.ShouldBe(22.4f);
-        style.Height.Value.ShouldBe(22.4f);
+        style.FontSize.Value.ShouldBe(22.4f, 0.01f);
+        box.Content.Width.ShouldBe(22.4f, 0.01f);
+        box.Content.Height.ShouldBe(22.4f, 0.01f);
     }
 
     [Fact]
@@ -268,11 +274,13 @@ public class IonButtonTests : IonicComponentTestBase
 
         var cut = RenderIconOnlyButton(Context, p => p.Add(nameof(IonButton.Size), "small"));
         var hostStyle = cut.GetComputedStyle(cut.Root)!;
-        var iconStyle = cut.GetComputedStyle(cut.Root.FindByClass("ion-icon")[0])!;
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+        var iconStyle = cut.GetComputedStyle(icon)!;
 
         hostStyle.MinWidth.Value.ShouldBe(28f);
         hostStyle.MinHeight.Value.ShouldBe(28f);
-        iconStyle.Width.Value.ShouldBe(16f);
+        iconStyle.FontSize.Value.ShouldBe(16f, 0.01f);
+        cut.GetBoxModel(icon)!.Content.Width.ShouldBe(16f, 0.01f);
     }
 
     [Fact]
@@ -282,11 +290,13 @@ public class IonButtonTests : IonicComponentTestBase
 
         var cut = RenderIconOnlyButton(Context, p => p.Add(nameof(IonButton.Size), "large"));
         var hostStyle = cut.GetComputedStyle(cut.Root)!;
-        var iconStyle = cut.GetComputedStyle(cut.Root.FindByClass("ion-icon")[0])!;
+        var icon = cut.Root.FindByClass("ion-icon")[0];
+        var iconStyle = cut.GetComputedStyle(icon)!;
 
         hostStyle.MinWidth.Value.ShouldBe(50f);
         hostStyle.MinHeight.Value.ShouldBe(50f);
-        iconStyle.Width.Value.ShouldBe(28f);
+        iconStyle.FontSize.Value.ShouldBe(28f, 0.01f);
+        cut.GetBoxModel(icon)!.Content.Width.ShouldBe(28f, 0.01f);
     }
 
     // --- Native surface min-height mirrors the host (Ionic: min-height: inherit) --------------
@@ -419,10 +429,10 @@ public class IonButtonTests : IonicComponentTestBase
     }
 
     [Fact]
-    public void IonButton_IconOnlyIcon_KeepsExplicitSize_OverSlottedIconRule()
+    public void IonButton_IconOnlyIcon_UsesIconOnlyFontSize_OverSlottedIconRule()
     {
-        // The icon-only rules carry explicit px sizes at higher specificity, so the generic
-        // 1.35em slotted-icon rule must not leak onto the icon-only box.
+        // The icon-only rule carries a font-size at higher specificity, so the generic 1.35em
+        // slotted-icon rule must not leak onto the icon-only box.
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
 
         var cut = RenderIconOnlyButton(Context);
@@ -431,6 +441,45 @@ public class IonButtonTests : IonicComponentTestBase
 
         box.Content.Width.ShouldBe(22.4f, 0.01f);
         box.Content.Height.ShouldBe(22.4f, 0.01f);
+    }
+
+    [Fact]
+    public void IonButton_IconOnlyIcon_RespondsToFontSizeOnButton()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.AddStyleSheet(CreateLargeIconStyle());
+
+        var cut = RenderIconOnlyButton(Context,
+            p => p.Add(nameof(IonButton.Class), "icon-large"));
+        var icon = cut.Root.FindByClass("ion-icon").Single();
+
+        cut.GetComputedStyle(icon)!.FontSize.Value.ShouldBe(44.8f, 0.01f);
+        cut.GetBoxModel(icon)!.Content.Width.ShouldBe(44.8f, 0.01f);
+        cut.GetBoxModel(icon)!.Content.Height.ShouldBe(44.8f, 0.01f);
+    }
+
+    [Fact]
+    public void IonButton_IconOnlyIcon_RespondsToFontSizeOnIcon()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.AddStyleSheet(CreateLargeIconStyle());
+
+        var cut = RenderIconOnlyButton(Context, iconClass: "icon-large");
+        var icon = cut.Root.FindByClass("ion-icon").Single();
+
+        cut.GetComputedStyle(icon)!.FontSize.Value.ShouldBe(28f, 0.01f);
+        cut.GetBoxModel(icon)!.Content.Width.ShouldBe(28f, 0.01f);
+        cut.GetBoxModel(icon)!.Content.Height.ShouldBe(28f, 0.01f);
+    }
+
+    private static StyleSheet CreateLargeIconStyle()
+    {
+        var sheet = new StyleSheet();
+        sheet.Add(new CssObject
+        {
+            [".icon-large"] = new() { FontSize = Length.Rem(1.75f) },
+        });
+        return sheet;
     }
 
     [Fact]

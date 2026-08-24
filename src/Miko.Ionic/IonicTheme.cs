@@ -148,7 +148,8 @@ public class IonicTheme
     /// <c>$item-ios-icon-slot-margin-top/bottom</c>: 7px).</summary>
     public float ItemIconSlotMarginVertical { get; set; } = 12f;
     /// <summary>Trailing margin of a start-slotted <c>ion-icon</c> in an <c>ion-item</c>
-    /// (<c>$item-md-icon-start-slot-margin-end</c>: 32px; iOS has none).</summary>
+    /// (<c>$item-md-icon-start-slot-margin-end</c>: 32px; iOS inherits the generic start-slot
+    /// margin: 16px).</summary>
     public float ItemIconStartSlotMarginEnd { get; set; } = 32f;
     /// <summary>Leading margin of an end-slotted <c>ion-icon</c> in an <c>ion-item</c>
     /// (<c>$item-md-icon-end-slot-margin-start</c>: 16px; iOS has none).</summary>
@@ -1488,7 +1489,7 @@ public class IonicTheme
         t.ItemLabelMarginVertical = 10f;                        // item.ios.scss ::slotted(ion-label)
         t.ItemLabelMarginEnd = 8f;                              // item.ios.scss ::slotted(ion-label)
         t.ItemIconSlotMarginVertical = 7f;                      // $item-ios-icon-slot-margin-top/bottom
-        t.ItemIconStartSlotMarginEnd = 0f;                      // iOS gives slotted icons no horizontal margin
+        t.ItemIconStartSlotMarginEnd = 16f;                     // $item-ios-slot-start-margin-end survives the icon rule
         t.ItemIconEndSlotMarginStart = 0f;                      // iOS gives slotted icons no horizontal margin
         t.ItemAvatarSlotMarginVertical = 0f;                    // iOS sizes slotted avatars only
         t.ItemAvatarStartSlotMarginEnd = 0f;                    // iOS gives start avatars no margin
