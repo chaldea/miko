@@ -120,6 +120,35 @@ public class PointerEventDispatchTests
     }
 
     [Fact]
+    public void TouchDrag_DoesNotScrollWhenPointerMovePreventsDefault()
+    {
+        var scroller = new DivElement
+        {
+            Style = new Style
+            {
+                Width = Length.Px(200),
+                Height = Length.Px(100),
+                OverflowY = Overflow.Auto,
+            },
+        };
+        scroller.AddChild(new DivElement
+        {
+            Style = new Style { Width = Length.Px(200), Height = Length.Px(400) },
+        });
+        scroller.OnPointerMove = args => args.PreventDefault();
+
+        var (controller, _, surface, _) = CreateController(scroller, 200, 100);
+        using (surface)
+        {
+            controller.OnPointerDown(50, 80, MouseButton.Left, PointerType.Touch);
+            controller.OnPointerMove(50, 20);
+            controller.OnPointerUp(50, 20, MouseButton.Left, PointerType.Touch);
+        }
+
+        scroller.LayoutBox!.ScrollTop.ShouldBe(0f);
+    }
+
+    [Fact]
     public void PointerCancel_DispatchesCancel_AndSuppressesClick()
     {
         var element = new DivElement

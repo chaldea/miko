@@ -16,27 +16,30 @@
         </IonToolbar>
     </IonHeader>
     <IonContent Fullscreen>
-        <IonRefresher State="@_refresherState" OnRefresh="@HandleRefresh">
-            <IonRefresherContent></IonRefresherContent>
-        </IonRefresher>
-
-        <IonList>
-            @foreach (var item in _items)
-            {
-                <IonItem>
-                    <Start>
-                        <div class="@(item.Unread ? "dot dot-unread" : "dot")"></div>
-                    </Start>
-                    <ChildContent>
-                        <IonLabel Class="sc-ion-label-md-s">
-                            <h2>@item.Author</h2>
-                            <h3>@item.Title</h3>
-                            <p>@item.Message</p>
-                        </IonLabel>
-                    </ChildContent>
-                </IonItem>
-            }
-        </IonList>
+        <Fixed>
+            <IonRefresher State="@_refresherState" OnRefresh="@HandleRefresh">
+                <IonRefresherContent></IonRefresherContent>
+            </IonRefresher>
+        </Fixed>
+        <ChildContent>
+            <IonList>
+                @foreach (var item in _items)
+                {
+                    <IonItem>
+                        <Start>
+                            <div class="@(item.Unread ? "dot dot-unread" : "dot")"></div>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel Class="sc-ion-label-md-s">
+                                <h2>@item.Author</h2>
+                                <h3>@item.Title</h3>
+                                <p>@item.Message</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                }
+            </IonList>
+        </ChildContent>
     </IonContent>
 </IonPage>
 @code {
