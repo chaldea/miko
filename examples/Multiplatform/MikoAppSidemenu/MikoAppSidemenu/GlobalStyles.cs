@@ -11,14 +11,6 @@ internal static class GlobalStyles
 
         styleSheet.Add(new CssObject
         {
-            // Full-viewport host for the routed page so the IonApp inside (height:100%)
-            // resolves against a definite height.
-            [".app-root"] = new()
-            {
-                Width = Length.Percent(100),
-                Height = Length.Percent(100),
-            },
-
             [".demo-content"] = new()
             {
                 Padding = new Padding(20),

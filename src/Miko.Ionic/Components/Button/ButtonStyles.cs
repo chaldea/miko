@@ -121,8 +121,8 @@ internal static class ButtonStyles
             // The 1.35em font-size resolves against the inherited button font — which the
             // button-small / button-large host rules change — so start/end icons follow Size
             // (md: 13/14/20px → 17.55/18.9/27px); width/height: 1em then turns that font-size
-            // into the icon box. The icon-only rules below override the box with explicit px at
-            // higher specificity, so they are unaffected (ISSUE: #6).
+            // into the icon box. The icon-only rules below override the font-size at higher
+            // specificity, so they retain their distinct defaults (ISSUE: #6).
             [$".ion-button.{mode} .ion-icon"] = new()
             {
                 FontSize = Length.Em(1.35f),
@@ -270,11 +270,11 @@ internal static class ButtonStyles
             PaddingRight = Length.Px(0),
         };
         // The icon-only icon is larger than a start/end icon (button.*.scss
-        // ::slotted(ion-icon[slot="icon-only"])).
+        // ::slotted(ion-icon[slot="icon-only"])). Keep width/height at IonIcon's 1em so application
+        // font-size rules on either the button or icon can resize the rendered box (ISSUE: #8).
         css[$".ion-button.{mode}.button-has-icon-only .ion-slot-icon-only .ion-icon"] = new()
         {
-            Width = Length.Px(t.ButtonIconOnlyIconSize),
-            Height = Length.Px(t.ButtonIconOnlyIconSize),
+            FontSize = Length.Em(t.ButtonIconOnlyIconSize / t.ButtonFontSize),
         };
 
         // Small icon-only: a smaller square with a smaller icon
@@ -294,8 +294,7 @@ internal static class ButtonStyles
         };
         css[$".ion-button.{mode}.button-small.button-has-icon-only .ion-slot-icon-only .ion-icon"] = new()
         {
-            Width = Length.Px(t.ButtonSmallIconOnlyIconSize),
-            Height = Length.Px(t.ButtonSmallIconOnlyIconSize),
+            FontSize = Length.Em(t.ButtonSmallIconOnlyIconSize / t.ButtonSmallFontSize),
         };
 
         // Large icon-only: a larger square with a larger icon
@@ -313,8 +312,7 @@ internal static class ButtonStyles
         };
         css[$".ion-button.{mode}.button-large.button-has-icon-only .ion-slot-icon-only .ion-icon"] = new()
         {
-            Width = Length.Px(t.ButtonLargeIconOnlyIconSize),
-            Height = Length.Px(t.ButtonLargeIconOnlyIconSize),
+            FontSize = Length.Em(t.ButtonLargeIconOnlyIconSize / t.ButtonLargeFontSize),
         };
 
         // --- Strong --------------------------------------------------------------------------
@@ -456,8 +454,7 @@ internal static class ButtonStyles
             MarginLeft = Length.Em(0.4f),
             MarginRight = Length.Px(0),
         };
-        // The icon-only icon is sized purely by font-size here (width/height stay 1em from the base
-        // rule), so it must beat the base .button-has-icon-only rule's explicit px box.
+        // The icon-only icon is sized purely by font-size here (width/height stay 1em from IonIcon).
         css[$".ion-button.{mode}.in-buttons.button-has-icon-only .ion-slot-icon-only .ion-icon"] = new()
         {
             FontSize = Length.Em(t.ToolbarButtonIconOnlyFontSize),

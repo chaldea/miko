@@ -113,16 +113,6 @@ internal class GlobalStyles
                 PaddingRight = Px(10),
             },
 
-            // GridPage — the boxed cell content (grid.css).
-            [".ion-col > div"] = new()
-            {
-                BackgroundColor = (Color)"#f7f7f7",
-                BorderWidth = Px(1),
-                BorderStyle = BorderStyle.Solid,
-                BorderColor = (Color)"#ddd",
-                Padding = Px(10),
-            },
-
             // CardPage — the demo's card imagery and music controls (card.css).
             [".header-img"] = new()
             {
@@ -141,13 +131,27 @@ internal class GlobalStyles
             [".music-card"] = new()
             {
                 TextAlign = TextAlign.Center,
+                [".ion-card-header"] = new()
+                {
+                    AlignItems = AlignItems.Center,
+                    JustifyContent = JustifyContent.Center,
+                },
 
                 ["img"] = new()
                 {
                     Width = Px(248),
                     Height = Px(248),
+                    BoxShadow = new List<BoxShadow>
+                    {
+                        new BoxShadow(0, 2, 8, Rgba(2, 8, 20, 0.1f)),
+                        new BoxShadow(0, 8, 16, Rgba(2, 8, 20, 0.08f)),
+                    },
                     BorderRadius = Px(6),
                 },
+            },
+            [".button-largest"] = new()
+            {
+                FontSize = Rem(1.75f)
             },
 
             [".col-align-end"] = new()
@@ -201,6 +205,20 @@ internal class GlobalStyles
                     Height = Length.Auto,
                 },
             },
+            [".component-segment .ion-header .ion-segment"] = new()
+            {
+                Left = Px(-30)
+            },
+            [".component-segment .ion-content .ion-segment"] = new()
+            {
+                Margin = new Margin(10, Length.Auto)
+            },
+            [".component-grid .ion-col>div"] = new()
+            {
+                BackgroundColor = (Color)"#f7f7f7",
+                Border = new Border(1, BorderStyle.Solid, "#ddd"),
+                Padding = new Padding(10),
+            }
         });
         return styleSheet;
     }

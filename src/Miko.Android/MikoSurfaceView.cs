@@ -204,14 +204,16 @@ public class MikoSurfaceView : SKGLSurfaceView
         switch (e.ActionMasked)
         {
             case MotionEventActions.Down:
-                _controller.OnPointerDown(x, y, MouseButton.Left);
+                _controller.OnPointerDown(x, y, MouseButton.Left, PointerType.Touch, e.GetPointerId(0));
                 break;
             case MotionEventActions.Move:
                 _controller.OnPointerMove(x, y);
                 break;
             case MotionEventActions.Up:
+                _controller.OnPointerUp(x, y, MouseButton.Left, PointerType.Touch, e.GetPointerId(0));
+                break;
             case MotionEventActions.Cancel:
-                _controller.OnPointerUp(x, y, MouseButton.Left);
+                _controller.OnPointerCancel(x, y, e.GetPointerId(0));
                 break;
             default:
                 return base.OnTouchEvent(e);

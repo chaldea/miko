@@ -1,5 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Layout
 @* Mirrors Ionic's <ion-segment>: a row of segment buttons where exactly one is selected.
    The segment owns the selected Value and cascades it (plus a select callback) to its buttons
    via CascadingValue<IonSegmentContext>. Buttons match the context by type. When a button is
@@ -21,31 +22,111 @@
     /// <summary>When true the whole segment is dimmed and non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>Named Ionic palette color (for example <c>primary</c> or <c>danger</c>).</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Allows the segment buttons to overflow horizontally and centers selections.</summary>
+    [Parameter] public bool Scrollable { get; set; }
+
+    /// <summary>The active engine used for imperative horizontal centering.</summary>
+    [Inject] protected MikoEngine? Engine { get; set; }
+
+    /// <summary>Toolbar context used to apply Ionic's mode-specific <c>in-toolbar</c> host rules.</summary>
+    [CascadingParameter] public ToolbarContext? ToolbarContext { get; set; }
+
     private IonSegmentContext _context = new();
+    private readonly Dictionary<string, int> _buttonIndexes = new(StringComparer.Ordinal);
+    private string? _previousValue;
+    private string? _renderedValue;
+    private bool _hasRenderedValue;
+    private Element? _segmentElement;
 
     protected override void OnParametersSet()
     {
+        if (_hasRenderedValue && Value != _renderedValue)
+        {
+            _previousValue = _renderedValue;
+            ScrollButtonIntoView(Value);
+        }
+        _renderedValue = Value;
+        _hasRenderedValue = true;
+
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
             .Add("ion-segment")
+            .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
+            .AddColor(Color)
+            .If(ToolbarContext is not null, "in-toolbar")
+            .If(Scrollable, "segment-scrollable")
             .If(Disabled, "segment-disabled");
 
         // Rebuild the cascaded context each render so buttons read the current Value and a
         // select callback bound to this segment instance.
-        _context = new IonSegmentContext
-        {
-            Value = Value,
-            Select = EventCallback.Factory.Create<string>(this, SelectAsync),
-        };
+        _context = CreateContext();
     }
 
     /// <summary>Invoked by a child button to request becoming the selected one.</summary>
     private async Task SelectAsync(string value)
     {
         if (Disabled || value == Value) return;
+        _previousValue = Value;
+        ScrollButtonIntoView(value);
         Value = value;
+        _renderedValue = value;
+        _context = CreateContext();
         await ValueChanged.InvokeAsync(value);
     }
+
+    public override Element Build()
+    {
+        var root = base.Build();
+        _segmentElement = root;
+        return root;
+    }
+
+    private void ScrollButtonIntoView(string? value)
+    {
+        if (!Scrollable || value is null || Engine is null || _segmentElement is null ||
+            !_context.Buttons.TryGetValue(value, out var buttonElement))
+            return;
+
+        var layout = Engine.GetCurrentLayout();
+        if (layout is null) return;
+
+        var segmentBox = FindBox(layout, _segmentElement);
+        var buttonBox = FindBox(layout, buttonElement);
+        if (segmentBox is null || buttonBox is null || !segmentBox.HasHorizontalScrollbar) return;
+
+        var viewport = segmentBox.BoxModel.PaddingBox;
+        var button = buttonBox.BoxModel.BorderBox;
+        var target = button.Left + button.Width / 2f - viewport.Left - viewport.Width / 2f;
+        var max = Math.Max(0f, segmentBox.ScrollableContentWidth - viewport.Width);
+        var clamped = Math.Clamp(target, 0f, max);
+        if (Math.Abs(segmentBox.ScrollLeft - clamped) < 0.01f) return;
+
+        segmentBox.ScrollLeft = clamped;
+        Engine.InvalidateElement(segmentBox.Element);
+    }
+
+    private static LayoutBox? FindBox(LayoutBox box, Element element)
+    {
+        if (box.Element == element) return box;
+        foreach (var child in box.Children)
+        {
+            var found = FindBox(child, element);
+            if (found is not null) return found;
+        }
+        return null;
+    }
+
+    private IonSegmentContext CreateContext() => new()
+    {
+        Value = Value,
+        SegmentColor = Color,
+        PreviousValue = _previousValue,
+        Select = EventCallback.Factory.Create<string>(this, SelectAsync),
+        ButtonIndexes = _buttonIndexes,
+    };
 }

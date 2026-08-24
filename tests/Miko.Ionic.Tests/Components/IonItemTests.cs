@@ -845,7 +845,7 @@ public class IonItemTests : IonicComponentTestBase
     }
 
     [Fact]
-    public void IonItem_StartSlotIcon_HasNoHorizontalMargin_OnIos()
+    public void IonItem_StartSlotIcon_Has16PxEndMargin_OnIos()
     {
         UsePlatform(Miko.Platform.HostPlatform.Ios);
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
@@ -856,13 +856,15 @@ public class IonItemTests : IonicComponentTestBase
             parameters.Add(nameof(IonItem.ChildContent), Label);
         });
 
-        // item.ios.scss ::slotted(ion-icon[slot="start"]): 7px vertical, no horizontal margin.
+        // The generic iOS start-slot rule supplies the 16px end margin; the icon-specific rule
+        // that follows only overrides the vertical margins to 7px.
         var icon = cut.FindByClass("ion-slot-start").Single().FindByClass("ion-icon").Single();
         var style = cut.GetComputedStyle(icon);
         style.ShouldNotBeNull();
         style.MarginTop.ShouldBe(Miko.Common.Length.Px(7));
         style.MarginBottom.ShouldBe(Miko.Common.Length.Px(7));
-        style.MarginRight.ShouldBe(Miko.Common.Length.Px(0));
+        style.MarginLeft.ShouldBe(Miko.Common.Length.Px(0));
+        style.MarginRight.ShouldBe(Miko.Common.Length.Px(16));
     }
 
     [Fact]

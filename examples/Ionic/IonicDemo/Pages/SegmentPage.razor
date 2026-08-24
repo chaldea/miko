@@ -1,25 +1,46 @@
 @page "/segment"
+@inherits IonicComponentBase
 
 @* NOTE: Miko's IonSegment has no `Color` or `Scrollable` parameters (Ionic's color theming and
    horizontal scrolling). The colored / scrollable variants below are rendered with the default
    segment styling; the per-button `Layout` variants are supported. *@
 
-<IonPage>
+<IonPage Class="component-segment">
     <IonHeader>
-        <IonToolbar>
-            <Start>
-                <IonBackButton DefaultHref="/"></IonBackButton>
-            </Start>
-            <ChildContent>
+        @if (Mode == "ios")
+        {
+            <IonToolbar>
+                <Start>
+                    <IonBackButton DefaultHref="/"></IonBackButton>
+                </Start>
+                <ChildContent>
+                    <IonSegment @bind-Value="_headerSegment">
+                        <IonSegmentButton Value="all">All</IonSegmentButton>
+                        <IonSegmentButton Value="favorites">Favorites</IonSegmentButton>
+                    </IonSegment>
+                </ChildContent>
+            </IonToolbar>
+            <IonToolbar>
                 <IonTitle>Segment</IonTitle>
-            </ChildContent>
-        </IonToolbar>
-        <IonToolbar>
-            <IonSegment @bind-Value="_headerSegment">
-                <IonSegmentButton Value="all">All</IonSegmentButton>
-                <IonSegmentButton Value="favorites">Favorites</IonSegmentButton>
-            </IonSegment>
-        </IonToolbar>
+            </IonToolbar>
+        }
+        else
+        {
+            <IonToolbar>
+                <Start>
+                    <IonBackButton DefaultHref="/"></IonBackButton>
+                </Start>
+                <ChildContent>
+                    <IonTitle>Segment</IonTitle>
+                </ChildContent>
+            </IonToolbar>
+            <IonToolbar>
+                <IonSegment @bind-Value="_headerSegment">
+                    <IonSegmentButton Value="all">All</IonSegmentButton>
+                    <IonSegmentButton Value="favorites">Favorites</IonSegmentButton>
+                </IonSegment>
+            </IonToolbar>
+        }
     </IonHeader>
     <IonContent Fullscreen>
         <IonListHeader>
@@ -39,7 +60,7 @@
                 </IonSegmentButton>
             </IonSegment>
 
-            <IonSegment @bind-Value="_iconSegment">
+            <IonSegment @bind-Value="_iconSegment" Color="secondary">
                 <IonSegmentButton Value="call">
                     <IonIcon Icon="@Ionicons.Call"></IonIcon>
                 </IonSegmentButton>
@@ -51,7 +72,7 @@
                 </IonSegmentButton>
             </IonSegment>
 
-            <IonSegment @bind-Value="_bothSegment">
+            <IonSegment @bind-Value="_bothSegment" Color="tertiary">
                 @foreach (var entry in _entries)
                 {
                     <IonSegmentButton Value="@entry.Value">
@@ -61,7 +82,7 @@
                 }
             </IonSegment>
 
-            <IonSegment @bind-Value="_iconBottomSegment">
+            <IonSegment @bind-Value="_iconBottomSegment" Color="success">
                 @foreach (var entry in _entries)
                 {
                     <IonSegmentButton Value="@entry.Value" Layout="icon-bottom">
@@ -71,7 +92,7 @@
                 }
             </IonSegment>
 
-            <IonSegment @bind-Value="_iconStartSegment">
+            <IonSegment @bind-Value="_iconStartSegment" Color="warning">
                 @foreach (var entry in _entries)
                 {
                     <IonSegmentButton Value="@entry.Value" Layout="icon-start">
@@ -81,7 +102,7 @@
                 }
             </IonSegment>
 
-            <IonSegment @bind-Value="_iconEndSegment">
+            <IonSegment @bind-Value="_iconEndSegment" Color="danger">
                 @foreach (var entry in _entries)
                 {
                     <IonSegmentButton Value="@entry.Value" Layout="icon-end">
@@ -97,7 +118,7 @@
         </IonListHeader>
 
         <div class="ion-padding-horizontal">
-            <IonSegment @bind-Value="_scrollableLabels">
+            <IonSegment @bind-Value="_scrollableLabels" Scrollable>
                 @foreach (var entry in _scrollable)
                 {
                     <IonSegmentButton Value="@entry.Value">
@@ -106,7 +127,7 @@
                 }
             </IonSegment>
 
-            <IonSegment @bind-Value="_scrollableIcons">
+            <IonSegment @bind-Value="_scrollableIcons" Color="tertiary" Scrollable>
                 @foreach (var entry in _scrollable)
                 {
                     <IonSegmentButton Value="@entry.Value">

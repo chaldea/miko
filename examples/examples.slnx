@@ -6,6 +6,7 @@
   </Folder>
   <Folder Name="/Ionic/">
     <Project Path="Ionic/IonicComponents/IonicComponents.csproj" />
+    <Project Path="Ionic/IonicDemo/IonicDemo.csproj" />
   </Folder>
   <Folder Name="/Libs/">
     <Project Path="../src/Miko.Bootstrap/Miko.Bootstrap.csproj" />

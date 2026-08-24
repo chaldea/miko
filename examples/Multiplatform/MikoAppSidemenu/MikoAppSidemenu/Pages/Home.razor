@@ -7,41 +7,47 @@
    hit-test reaches the (full-screen) menu host first. IonMenu owns its own backdrop and the
    deferred-unmount timing — the page only flips _menuOpen. The AnimationManager is passed
    down because nested components don't receive DI injection. *@
-<IonApp>
-    <IonPage>
-        <IonHeader>
-            <IonToolbar>
-                <IonButtons Slot="start">
-                    <IonMenuButton OnClick="OpenMenu" />
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonButtons>
+                    <IonMenuButton OnClick="OpenMenu"/>
                 </IonButtons>
+            </Start>
+            <ChildContent>
                 <IonTitle>Inbox</IonTitle>
-            </IonToolbar>
-        </IonHeader>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
 
-        <IonContent Fullscreen="true">
-            <div class="demo-content">
-                <p>This is the sidemenu layout demo.</p>
-                <p>Tap the menu button in the top-left to slide the navigation drawer in over
-                   the page. Tap the dimmed backdrop to slide it back out.</p>
-            </div>
-        </IonContent>
-    </IonPage>
+    <IonContent Fullscreen="true">
+        <div class="demo-content">
+            <p>This is the sidemenu layout demo.</p>
+            <p>Tap the menu button in the top-left to slide the navigation drawer in over
+               the page. Tap the dimmed backdrop to slide it back out.</p>
+        </div>
+    </IonContent>
+</IonPage>
 
-    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu" Animations="Animations">
-        <IonContent>
-            <IonList Id="inbox-list">
-                <IonListHeader>Inbox</IonListHeader>
-                @foreach (var item in _pages)
-                {
-                    <IonItem Lines="none">
-                        <IonIcon Icon="@item.Icon" />
+<IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu" Animations="Animations">
+    <IonContent>
+        <IonList Id="inbox-list">
+            <IonListHeader>Inbox</IonListHeader>
+            @foreach (var item in _pages)
+            {
+                <IonItem Lines="none">
+                    <Start>
+                        <IonIcon Icon="@item.Icon"/>
+                    </Start>
+                    <ChildContent>
                         <IonLabel>@item.Title</IonLabel>
-                    </IonItem>
-                }
-            </IonList>
-        </IonContent>
-    </IonMenu>
-</IonApp>
+                    </ChildContent>
+                </IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonMenu>
 
 @code {
     private bool _menuOpen;
