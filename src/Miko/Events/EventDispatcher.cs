@@ -149,6 +149,21 @@ public class EventDispatcher
             case EventTypes.MouseMove when args is MouseEventArgs mouseArgs:
                 element.OnMouseMove?.Invoke(mouseArgs);
                 break;
+            case EventTypes.PointerDown when args is PointerEventArgs pointerArgs:
+                element.OnPointerDown?.Invoke(pointerArgs);
+                break;
+            case EventTypes.PointerUp when args is PointerEventArgs pointerArgs:
+                element.OnPointerUp?.Invoke(pointerArgs);
+                break;
+            case EventTypes.PointerMove when args is PointerEventArgs pointerArgs:
+                element.OnPointerMove?.Invoke(pointerArgs);
+                break;
+            case EventTypes.PointerCancel when args is PointerEventArgs pointerArgs:
+                element.OnPointerCancel?.Invoke(pointerArgs);
+                break;
+            case EventTypes.LongPress when args is PointerEventArgs pointerArgs:
+                element.OnLongPress?.Invoke(pointerArgs);
+                break;
             case EventTypes.Focus when args is FocusEventArgs focusArgs:
                 element.OnFocus?.Invoke(focusArgs);
                 break;

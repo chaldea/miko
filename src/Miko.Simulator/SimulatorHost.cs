@@ -606,7 +606,7 @@ public sealed class SimulatorHost
         {
             var (ax, ay) = ToAppCoords(x, y);
             _appPointerActive = true;
-            _appController.OnPointerDown(ax, ay, mikoButton);
+            _appController.OnPointerDown(ax, ay, mikoButton, PointerType.Touch);
         }
     }
 
@@ -621,7 +621,7 @@ public sealed class SimulatorHost
         {
             _appPointerActive = false;
             var (ax, ay) = ToAppCoords(x, y);
-            _appController.OnPointerUp(ax, ay, mikoButton);
+            _appController.OnPointerUp(ax, ay, mikoButton, PointerType.Touch);
             return;
         }
 

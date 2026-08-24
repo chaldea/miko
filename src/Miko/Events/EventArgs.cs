@@ -86,6 +86,28 @@ public class MouseEventArgs : MikoEventArgs
 }
 
 /// <summary>
+/// A platform-neutral pointer event. A pointer can originate from a mouse, touchscreen, or pen.
+/// </summary>
+public class PointerEventArgs : MouseEventArgs
+{
+    /// <summary>The device category that produced the pointer.</summary>
+    public PointerType PointerType { get; init; }
+
+    /// <summary>Identifier used to correlate a pointer's down, move, up, and cancel events.</summary>
+    public int PointerId { get; init; } = 1;
+
+    /// <summary>Whether this is the primary pointer for its pointer type.</summary>
+    public bool IsPrimary { get; init; } = true;
+}
+
+public enum PointerType
+{
+    Mouse,
+    Touch,
+    Pen,
+}
+
+/// <summary>
 /// 焦点事件参数
 /// </summary>
 public class FocusEventArgs : MikoEventArgs

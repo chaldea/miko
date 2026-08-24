@@ -63,6 +63,133 @@ public class PointerEventDispatchTests
         events[^1].args.IsButtonPressed.ShouldBeFalse();
     }
 
+    [Fact]
+    public void PointerEvents_ExposeTouchSource_AndKeepLegacyMouseHandlersWorking()
+    {
+        var element = new DivElement
+        {
+            Style = new Style { Width = Length.Px(200), Height = Length.Px(100) },
+        };
+        PointerEventArgs? pointerArgs = null;
+        var legacyDown = 0;
+        element.OnPointerDown = args => pointerArgs = args;
+        element.OnMouseDown = _ => legacyDown++;
+
+        var (controller, _, surface, _) = CreateController(element, 200, 100);
+        using (surface)
+        {
+            controller.OnPointerDown(25, 30, MouseButton.Left, PointerType.Touch, pointerId: 7);
+            controller.OnPointerUp(25, 30, MouseButton.Left, PointerType.Touch, pointerId: 7);
+        }
+
+        pointerArgs.ShouldNotBeNull();
+        pointerArgs!.PointerType.ShouldBe(PointerType.Touch);
+        pointerArgs.PointerId.ShouldBe(7);
+        legacyDown.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TouchDrag_ScrollsContainer_AndSuppressesClick()
+    {
+        var scroller = new DivElement
+        {
+            Style = new Style
+            {
+                Width = Length.Px(200),
+                Height = Length.Px(100),
+                OverflowY = Overflow.Auto,
+            },
+        };
+        scroller.AddChild(new DivElement
+        {
+            Style = new Style { Width = Length.Px(200), Height = Length.Px(400) },
+        });
+        var clicks = 0;
+        scroller.OnClick = _ => clicks++;
+
+        var (controller, _, surface, _) = CreateController(scroller, 200, 100);
+        using (surface)
+        {
+            controller.OnPointerDown(50, 80, MouseButton.Left, PointerType.Touch);
+            controller.OnPointerMove(50, 20);
+            controller.OnPointerUp(50, 20, MouseButton.Left, PointerType.Touch);
+        }
+
+        scroller.LayoutBox!.ScrollTop.ShouldBe(60f);
+        clicks.ShouldBe(0);
+    }
+
+    [Fact]
+    public void PointerCancel_DispatchesCancel_AndSuppressesClick()
+    {
+        var element = new DivElement
+        {
+            Style = new Style { Width = Length.Px(200), Height = Length.Px(100) },
+        };
+        var cancels = 0;
+        var clicks = 0;
+        element.OnPointerCancel = _ => cancels++;
+        element.OnClick = _ => clicks++;
+
+        var (controller, _, surface, _) = CreateController(element, 200, 100);
+        using (surface)
+        {
+            controller.OnPointerDown(20, 20, MouseButton.Left, PointerType.Touch);
+            controller.OnPointerCancel(20, 20);
+            controller.OnPointerUp(20, 20, MouseButton.Left, PointerType.Touch);
+        }
+
+        cancels.ShouldBe(1);
+        clicks.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task LongPress_FiresAfterHold_AndSuppressesClick()
+    {
+        var element = new DivElement
+        {
+            Style = new Style { Width = Length.Px(200), Height = Length.Px(100) },
+        };
+        var presses = 0;
+        var clicks = 0;
+        element.OnLongPress = _ => presses++;
+        element.OnClick = _ => clicks++;
+
+        var (controller, _, surface, dispatcher) = CreateController(element, 200, 100);
+        using (surface)
+        {
+            controller.OnPointerDown(20, 20, MouseButton.Left, PointerType.Touch);
+            await Task.Delay(650);
+            controller.HasPendingWork.ShouldBeTrue();
+            dispatcher.Drain();
+            controller.OnPointerUp(20, 20, MouseButton.Left, PointerType.Touch);
+        }
+
+        presses.ShouldBe(1);
+        clicks.ShouldBe(0);
+    }
+
+    private static (MikoInteractionController controller, MikoEngine engine, SKSurface surface,
+        MikoDispatcher dispatcher) CreateController(Element root, int width, int height)
+    {
+        var options = new MikoAppOptions { RootComponentFactory = () => root };
+        var engine = new MikoEngine();
+        var dispatcher = new MikoDispatcher();
+        var controller = new MikoInteractionController(
+            Options.Create(options),
+            new EmptyServiceProvider(),
+            engine,
+            new EventDispatcher(),
+            dispatcher,
+            new HotReloadService(NullLogger<HotReloadService>.Instance),
+            NullLogger<MikoInteractionController>.Instance);
+
+        var surface = SKSurface.Create(new SKImageInfo(width, height));
+        controller.Initialize(surface.Canvas, width, height);
+        engine.Render(surface.Canvas);
+        return (controller, engine, surface, dispatcher);
+    }
+
     private sealed class EmptyServiceProvider : IServiceProvider
     {
         public object? GetService(Type serviceType) => null;

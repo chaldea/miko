@@ -11,6 +11,11 @@ public static class EventTypes
     public const string MouseDown = "mousedown";
     public const string MouseUp = "mouseup";
     public const string MouseMove = "mousemove";
+    public const string PointerDown = "pointerdown";
+    public const string PointerUp = "pointerup";
+    public const string PointerMove = "pointermove";
+    public const string PointerCancel = "pointercancel";
+    public const string LongPress = "longpress";
     public const string Focus = "focus";
     public const string Blur = "blur";
     public const string Change = "change";

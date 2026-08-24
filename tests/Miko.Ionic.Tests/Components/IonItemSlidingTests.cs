@@ -1,6 +1,7 @@
 using Miko.Testing;
 using Miko.Ionic.Components;
 using Miko.Components;
+using Miko.Events;
 using Shouldly;
 
 namespace Miko.Ionic.Tests.Components;
@@ -74,4 +75,59 @@ public class IonItemSlidingTests : IonicComponentTestBase
         style.ShouldNotBeNull();
         style.OverflowX.ShouldBe(Miko.Common.Overflow.Hidden);
     }
+
+    [Fact]
+    public void IonItemSliding_LeftSwipeOpensEndOptions_AndReverseSwipeCloses()
+    {
+        var cut = Context.Render<IonItemSliding>(parameters =>
+            parameters.Add(nameof(IonItemSliding.ChildContent), MinimalChild));
+
+        cut.Root.OnPointerDown.ShouldNotBeNull();
+        cut.Root.OnPointerMove.ShouldNotBeNull();
+        cut.Root.OnPointerUp.ShouldNotBeNull();
+
+        Swipe(cut.Root, fromX: 100, toX: 50);
+
+        cut.Root.ShouldHaveClass("item-sliding-open-end");
+
+        Swipe(cut.Root, fromX: 50, toX: 100);
+
+        cut.Root.ShouldNotHaveClass("item-sliding-open");
+    }
+
+    [Fact]
+    public void IonItemSliding_VerticalDragDoesNotOpenOrStealScrollGesture()
+    {
+        var cut = Context.Render<IonItemSliding>(parameters =>
+            parameters.Add(nameof(IonItemSliding.ChildContent), MinimalChild));
+
+        var dispatcher = new EventDispatcher();
+        dispatcher.Dispatch(cut.Root, EventTypes.PointerDown, PointerArgs(cut.Root, 80, 20, true));
+        dispatcher.Dispatch(cut.Root, EventTypes.PointerMove, PointerArgs(cut.Root, 75, 70, true));
+        dispatcher.Dispatch(cut.Root, EventTypes.PointerUp, PointerArgs(cut.Root, 75, 70, false));
+
+        cut.Root.ShouldNotHaveClass("item-sliding-open");
+    }
+
+    private static void Swipe(Miko.Core.Element target, float fromX, float toX)
+    {
+        var dispatcher = new EventDispatcher();
+        dispatcher.Dispatch(target, EventTypes.PointerDown, PointerArgs(target, fromX, 20, true));
+        dispatcher.Dispatch(target, EventTypes.PointerMove, PointerArgs(target, toX, 20, true));
+        dispatcher.Dispatch(target, EventTypes.PointerUp, PointerArgs(target, toX, 20, false));
+    }
+
+    private static PointerEventArgs PointerArgs(
+        Miko.Core.Element target,
+        float x,
+        float y,
+        bool pressed) => new()
+    {
+        Target = target,
+        X = x,
+        Y = y,
+        Button = MouseButton.Left,
+        IsButtonPressed = pressed,
+        PointerType = PointerType.Touch,
+    };
 }

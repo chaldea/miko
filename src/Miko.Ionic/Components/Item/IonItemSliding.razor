@@ -2,11 +2,12 @@
 @inherits IonicComponentBase
 @* Mirrors Ionic's <ion-item-sliding>: a row whose <ion-item> can be slid aside to reveal one or
    two sets of <ion-item-options> (anchored to the start and/or end edge). Ionic drives the slide
-   with a drag gesture; this port exposes the resting state declaratively via <see cref="Open"/>
-   (and which side is revealed via <see cref="OpenSide"/>), stamping the active-slide class that
-   the stylesheet uses to translate the options into view. The host clips its overflow so the
-   options stay hidden off the edge until revealed. *@
-<div class="@ClassMapper.Class" style="@Style">
+   with a pointer gesture and stamps the active-slide class that reveals the selected options. *@
+<div class="@ClassMapper.Class" style="@Style"
+     @onpointerdown="HandlePointerDown"
+     @onpointermove="HandlePointerMove"
+     @onpointerup="HandlePointerUp"
+     @onpointercancel="HandlePointerCancel">
     @ChildContent
 </div>
 
@@ -14,15 +15,43 @@
     /// <summary>When true the row is slid open, revealing the options on <see cref="OpenSide"/>.</summary>
     [Parameter] public bool Open { get; set; }
 
+    /// <summary>Raised when a swipe opens or closes the row.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
     /// <summary>Which side's options are revealed when <see cref="Open"/> is true: <c>"end"</c>
     /// (default) or <c>"start"</c>.</summary>
     [Parameter] public string OpenSide { get; set; } = "end";
 
     /// <summary>When true, the row cannot be slid (Ionic <c>disabled</c> disables the swipe
-    /// gesture). This port has no gesture, so it is stamped as a marker class for API parity.</summary>
+    /// gesture).</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>Raised after a recognized swipe with <c>"start"</c> or <c>"end"</c>.</summary>
+    [Parameter] public EventCallback<string> OnSwipe { get; set; }
+
+    private const float SwipeThreshold = 32f;
+    private bool _open;
+    private string _openSide = "end";
+    private bool _tracking;
+    private float _startX;
+    private float _startY;
+    private bool? _lastOpenParameter;
+
     protected override void OnParametersSet()
+    {
+        var requestedSide = NormalizeSide(OpenSide);
+        if (_lastOpenParameter == null || _lastOpenParameter != Open)
+        {
+            _open = Open;
+            _lastOpenParameter = Open;
+        }
+        if (!_tracking && Open)
+            _openSide = requestedSide;
+
+        UpdateClasses();
+    }
+
+    private void UpdateClasses()
     {
         ClassMapper
             .Clear()
@@ -31,12 +60,54 @@
             .Add("ion-item-sliding")
             .If(Disabled, "item-sliding-disabled");
 
-        if (Open)
+        if (_open)
         {
-            var side = string.Equals(OpenSide, "start", StringComparison.OrdinalIgnoreCase) ? "start" : "end";
             ClassMapper
                 .Add("item-sliding-open")
-                .Add($"item-sliding-open-{side}");
+                .Add($"item-sliding-open-{_openSide}");
         }
     }
+
+    private void HandlePointerDown(PointerEventArgs args)
+    {
+        if (Disabled || args.Button != MouseButton.Left || !args.IsButtonPressed) return;
+        _tracking = true;
+        _startX = args.X;
+        _startY = args.Y;
+    }
+
+    private void HandlePointerMove(PointerEventArgs args)
+    {
+        if (!_tracking || !args.IsButtonPressed) return;
+        var deltaX = args.X - _startX;
+        var deltaY = args.Y - _startY;
+        if (Math.Abs(deltaY) > Math.Abs(deltaX) && Math.Abs(deltaY) >= 8f)
+            _tracking = false;
+    }
+
+    private async Task HandlePointerUp(PointerEventArgs args)
+    {
+        if (!_tracking) return;
+        _tracking = false;
+
+        var deltaX = args.X - _startX;
+        if (Math.Abs(deltaX) < SwipeThreshold) return;
+
+        var side = deltaX < 0 ? "end" : "start";
+        var shouldClose = _open && side != _openSide;
+        _open = !shouldClose;
+        if (_open) _openSide = side;
+        UpdateClasses();
+
+        await OnSwipe.InvokeAsync(side);
+        await OpenChanged.InvokeAsync(_open);
+    }
+
+    private void HandlePointerCancel(PointerEventArgs _)
+    {
+        _tracking = false;
+    }
+
+    private static string NormalizeSide(string? side) =>
+        string.Equals(side, "start", StringComparison.OrdinalIgnoreCase) ? "start" : "end";
 }

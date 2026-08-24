@@ -33,15 +33,25 @@ public sealed class MikoInteractionController
     private readonly ILogger<MikoInteractionController> _logger;
     private readonly EventDispatcher _eventDispatcher;
     private readonly MikoSynchronizationContext _syncContext;
+    private readonly MikoDispatcher _dispatcher;
 
     private Router? _router;
     private NavigationManager? _navigationManager;
     private RouteView? _routeView;
 
     private System.Numerics.Vector2? _mouseDownPosition;
+    private System.Numerics.Vector2? _lastPointerPosition;
     private Element? _pointerDownTarget;
     private RectF? _pointerDownBounds;
+    private PointerType _activePointerType = PointerType.Mouse;
+    private int _activePointerId = 1;
+    private bool _pointerMoved;
+    private bool _longPressFired;
+    private CancellationTokenSource? _longPressCancellation;
     private Cursor _currentCursor = Cursor.Default;
+
+    private const float GestureThreshold = 8f;
+    private static readonly TimeSpan LongPressDelay = TimeSpan.FromMilliseconds(500);
 
     // volatile because hot reload (UpdateApplication) sets this from a background thread,
     // while the render loop reads it on the render thread. Without volatile the render
@@ -89,6 +99,7 @@ public sealed class MikoInteractionController
         _serviceProvider = serviceProvider;
         _engine = engine;
         _eventDispatcher = eventDispatcher;
+        _dispatcher = dispatcher;
         _hotReloadService = hotReloadService;
         _logger = logger;
         _syncContext = new MikoSynchronizationContext(dispatcher);
@@ -154,7 +165,13 @@ public sealed class MikoInteractionController
     /// </summary>
     public bool HasPendingWork
     {
-        get { lock (_sync) { return _needsRebuild || _engine.HasPendingVisualWork; } }
+        get
+        {
+            lock (_sync)
+            {
+                return _needsRebuild || _dispatcher.HasPendingActions || _engine.HasPendingVisualWork;
+            }
+        }
     }
 
     /// <summary>
@@ -293,17 +310,28 @@ public sealed class MikoInteractionController
     // 指针输入（坐标为已根据像素密度换算后的逻辑坐标）
     // ---------------------------------------------------------------------
 
-    public void OnPointerDown(float x, float y, MouseButton button)
+    public void OnPointerDown(
+        float x,
+        float y,
+        MouseButton button,
+        PointerType pointerType = PointerType.Mouse,
+        int pointerId = 1)
     {
         if (button != MouseButton.Left) return;
         lock (_sync)
         {
             _mouseDownPosition = new System.Numerics.Vector2(x, y);
+            _lastPointerPosition = _mouseDownPosition;
             _pointerDownTarget = null;
             _pointerDownBounds = null;
+            _activePointerType = pointerType;
+            _activePointerId = pointerId;
+            _pointerMoved = false;
+            _longPressFired = false;
+            CancelLongPress();
 
             // Check scrollbar hit first
-            var scrollbarHit = _engine.HitTestScrollbar(x, y);
+            var scrollbarHit = pointerType == PointerType.Mouse ? _engine.HitTestScrollbar(x, y) : null;
             if (scrollbarHit != null)
             {
                 _logger.LogTrace("Scrollbar hit: type={HitType}, element={Tag}#{Id}, thumbOffset={Offset}, pos=({X}, {Y})",
@@ -324,8 +352,9 @@ public sealed class MikoInteractionController
             {
                 _pointerDownTarget = target;
                 _pointerDownBounds = GetRenderedBorderBox(target);
-                DispatchPointerEvent(target, EventTypes.MouseDown, x, y, button, isButtonPressed: true,
-                    _pointerDownBounds);
+                DispatchPointerPair(target, EventTypes.PointerDown, EventTypes.MouseDown,
+                    x, y, button, isButtonPressed: true, _pointerDownBounds);
+                ScheduleLongPress();
             }
 
             if (target is InputElement { Type: InputType.Range } rangeInput)
@@ -337,11 +366,18 @@ public sealed class MikoInteractionController
         }
     }
 
-    public void OnPointerUp(float x, float y, MouseButton button)
+    public void OnPointerUp(
+        float x,
+        float y,
+        MouseButton button,
+        PointerType pointerType = PointerType.Mouse,
+        int pointerId = 1)
     {
         if (button != MouseButton.Left) return;
         lock (_sync)
         {
+            if (_pointerDownTarget != null && pointerId != _activePointerId) return;
+            CancelLongPress();
             if (_isDragging)
             {
                 _isDragging = false;
@@ -362,6 +398,7 @@ public sealed class MikoInteractionController
 
                 _draggingRange = null;
                 _mouseDownPosition = null;
+                _lastPointerPosition = null;
                 DispatchPointerUp(x, y, button);
                 return;
             }
@@ -373,14 +410,22 @@ public sealed class MikoInteractionController
 
             DispatchPointerUp(x, y, button);
 
+            if (_pointerMoved || _longPressFired)
+            {
+                _lastPointerPosition = null;
+                return;
+            }
+
             var target = _engine.HitTest(position.X, position.Y);
             if (target == null)
             {
                 SetFocusCore(null);
+                _lastPointerPosition = null;
                 return;
             }
 
             HandleClick(target, position.X, position.Y);
+            _lastPointerPosition = null;
         }
     }
 
@@ -409,25 +454,52 @@ public sealed class MikoInteractionController
             if (_isDragging && _draggingRange != null)
             {
                 UpdateRangeValue(_draggingRange, x);
-                DispatchCapturedPointerEvent(EventTypes.MouseMove, x, y, MouseButton.Left,
-                    isButtonPressed: true);
+                DispatchCapturedPointerPair(EventTypes.PointerMove, EventTypes.MouseMove,
+                    x, y, MouseButton.Left, isButtonPressed: true);
                 return;
             }
 
-            if (_pointerDownTarget != null)
+            if (_pointerDownTarget != null && _mouseDownPosition is { } down)
             {
-                DispatchCapturedPointerEvent(EventTypes.MouseMove, x, y, MouseButton.Left,
-                    isButtonPressed: true);
+                var current = new System.Numerics.Vector2(x, y);
+                var previous = _lastPointerPosition ?? down;
+                if (!_pointerMoved && System.Numerics.Vector2.Distance(down, current) >= GestureThreshold)
+                {
+                    _pointerMoved = true;
+                    CancelLongPress();
+                }
+
+                DispatchCapturedPointerPair(EventTypes.PointerMove, EventTypes.MouseMove,
+                    x, y, MouseButton.Left, isButtonPressed: true);
+
+                if (_activePointerType != PointerType.Mouse && _pointerMoved)
+                    _engine.ScrollBy(down.X, down.Y, previous.X - current.X, previous.Y - current.Y);
+
+                _lastPointerPosition = current;
                 return;
             }
 
             // 拖拽路径保持既有悬停不变（浏览器在拖拽期间也不更新 :hover）。
             var target = _engine.HitTest(x, y);
             if (target != null)
-                DispatchPointerEvent(target, EventTypes.MouseMove, x, y, MouseButton.Left,
-                    isButtonPressed: false, GetRenderedBorderBox(target));
+                DispatchPointerPair(target, EventTypes.PointerMove, EventTypes.MouseMove,
+                    x, y, MouseButton.Left, isButtonPressed: false, GetRenderedBorderBox(target),
+                    PointerType.Mouse, pointerId: 1);
             UpdateHover(target);
             UpdateCursor(target);
+        }
+    }
+
+    /// <summary>Cancels the active pointer without producing a click.</summary>
+    public void OnPointerCancel(float x, float y, int pointerId = 1)
+    {
+        lock (_sync)
+        {
+            if (_pointerDownTarget == null || pointerId != _activePointerId) return;
+            CancelLongPress();
+            DispatchCapturedPointerEvent(EventTypes.PointerCancel, x, y, MouseButton.Left,
+                isButtonPressed: false);
+            ResetPointerState();
         }
     }
 
@@ -518,7 +590,7 @@ public sealed class MikoInteractionController
         }
 
         DispatchPointerEvent(target, EventTypes.Click, x, y, MouseButton.Left,
-            isButtonPressed: false, GetRenderedBorderBox(target));
+            isButtonPressed: false, GetRenderedBorderBox(target), _activePointerType, _activePointerId);
 
         // 分发过程中的处理器（如 IonInput 的 @onclick）很可能已经重渲染了这棵子树，把 target
         // 换成了一个新实例。后续的焦点/光标处理必须落在<b>在场</b>的那个实例上——否则焦点写在
@@ -956,9 +1028,25 @@ public sealed class MikoInteractionController
 
     private void DispatchPointerUp(float x, float y, MouseButton button)
     {
-        DispatchCapturedPointerEvent(EventTypes.MouseUp, x, y, button, isButtonPressed: false);
+        DispatchCapturedPointerPair(EventTypes.PointerUp, EventTypes.MouseUp,
+            x, y, button, isButtonPressed: false);
         _pointerDownTarget = null;
         _pointerDownBounds = null;
+    }
+
+    private void DispatchCapturedPointerPair(
+        string pointerEventType,
+        string legacyMouseEventType,
+        float x,
+        float y,
+        MouseButton button,
+        bool isButtonPressed)
+    {
+        if (_pointerDownTarget == null) return;
+
+        var target = _pointerDownTarget.ResolveSuperseded();
+        DispatchPointerPair(target, pointerEventType, legacyMouseEventType,
+            x, y, button, isButtonPressed, _pointerDownBounds);
     }
 
     private void DispatchCapturedPointerEvent(
@@ -971,7 +1059,26 @@ public sealed class MikoInteractionController
         if (_pointerDownTarget == null) return;
 
         var target = _pointerDownTarget.ResolveSuperseded();
-        DispatchPointerEvent(target, eventType, x, y, button, isButtonPressed, _pointerDownBounds);
+        DispatchPointerEvent(target, eventType, x, y, button, isButtonPressed, _pointerDownBounds,
+            _activePointerType, _activePointerId);
+    }
+
+    private void DispatchPointerPair(
+        Element target,
+        string pointerEventType,
+        string legacyMouseEventType,
+        float x,
+        float y,
+        MouseButton button,
+        bool isButtonPressed,
+        RectF? bounds,
+        PointerType? pointerType = null,
+        int? pointerId = null)
+    {
+        DispatchPointerEvent(target, pointerEventType, x, y, button, isButtonPressed, bounds,
+            pointerType ?? _activePointerType, pointerId ?? _activePointerId);
+        DispatchPointerEvent(target.ResolveSuperseded(), legacyMouseEventType, x, y, button,
+            isButtonPressed, bounds, pointerType ?? _activePointerType, pointerId ?? _activePointerId);
     }
 
     private void DispatchPointerEvent(
@@ -981,10 +1088,12 @@ public sealed class MikoInteractionController
         float y,
         MouseButton button,
         bool isButtonPressed,
-        RectF? bounds)
+        RectF? bounds,
+        PointerType pointerType = PointerType.Mouse,
+        int pointerId = 1)
     {
         var rect = bounds ?? GetRenderedBorderBox(target) ?? default;
-        var args = new MouseEventArgs
+        var args = new PointerEventArgs
         {
             Target = target,
             X = x,
@@ -997,10 +1106,63 @@ public sealed class MikoInteractionController
             ViewportHeight = _engine.ViewportHeight,
             IsButtonPressed = isButtonPressed,
             Button = button,
+            PointerType = pointerType,
+            PointerId = pointerId,
             Bubbles = true,
         };
 
         DispatchWithSyncContext(target, eventType, args);
+    }
+
+    private void ScheduleLongPress()
+    {
+        if (_pointerDownTarget == null) return;
+
+        var cancellation = new CancellationTokenSource();
+        _longPressCancellation = cancellation;
+        _ = Task.Delay(LongPressDelay, cancellation.Token).ContinueWith(
+            task =>
+            {
+                if (task.IsCanceled) return;
+                _dispatcher.Post(() =>
+                {
+                    lock (_sync)
+                    {
+                        if (cancellation.IsCancellationRequested || _pointerMoved ||
+                            _pointerDownTarget == null)
+                            return;
+
+                        _longPressFired = true;
+                        DispatchCapturedPointerEvent(EventTypes.LongPress,
+                            _mouseDownPosition?.X ?? 0,
+                            _mouseDownPosition?.Y ?? 0,
+                            MouseButton.Left,
+                            isButtonPressed: true);
+                    }
+                });
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+    }
+
+    private void CancelLongPress()
+    {
+        _longPressCancellation?.Cancel();
+        _longPressCancellation = null;
+    }
+
+    private void ResetPointerState()
+    {
+        _mouseDownPosition = null;
+        _lastPointerPosition = null;
+        _pointerDownTarget = null;
+        _pointerDownBounds = null;
+        _pointerMoved = false;
+        _longPressFired = false;
+        _isDragging = false;
+        _draggingRange = null;
+        _draggingScrollbar = null;
     }
 
     private static LayoutBox? FindLayoutBoxRecursive(LayoutBox box, Element element)
