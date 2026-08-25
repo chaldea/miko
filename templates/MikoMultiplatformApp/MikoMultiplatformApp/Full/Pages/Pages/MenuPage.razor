@@ -1,0 +1,60 @@
+@page "/menu"
+
+@* NOTE: Ionic opens the drawer imperatively via menuController.open() and links it to the page
+   with contentId. Miko's IonMenu is declarative — the host binds IsOpen and passes the
+   AnimationManager down (nested components don't get DI). *@
+
+<IonPage>
+    <IonMenu Side="start"
+             IsOpen="@_isMenuOpen"
+             OnClose="@(() => _isMenuOpen = false)"
+             Animations="@Animations">
+        <IonHeader>
+            <IonToolbar>
+                <IonTitle>Menu</IonTitle>
+            </IonToolbar>
+        </IonHeader>
+        <IonContent Fullscreen>
+            <IonList>
+                @foreach (var entry in _entries)
+                {
+                    <IonItem>
+                        <Start>
+                            <IonIcon Icon="@entry.Icon"></IonIcon>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>@entry.Label</IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                }
+            </IonList>
+        </IonContent>
+    </IonMenu>
+
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Home</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Class="ion-padding">
+        <IonButton Expand="block" OnClick="@(() => _isMenuOpen = true)">Open Menu</IonButton>
+    </IonContent>
+</IonPage>
+@code {
+    [Inject] public Miko.Animation.AnimationManager? Animations { get; set; }
+
+    private bool _isMenuOpen;
+
+    private readonly (string Label, string Icon)[] _entries =
+    {
+        ("Home", Ionicons.Home),
+        ("Profile", Ionicons.Person),
+        ("Messages", Ionicons.Chatbubbles),
+        ("Settings", Ionicons.Settings),
+    };
+}

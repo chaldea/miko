@@ -19,7 +19,7 @@
     /// <summary>Invoked when the tab button is clicked.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
-    /// <summary>The owning <see cref="IonTabs"/>, cascaded from its <c>Bar</c> fragment. Tab
+    /// <summary>The owning <see cref="IonTabs"/>, cascaded from its top or bottom slot. Tab
     /// navigation is owned by IonTabs (root-level, no transition) — the button reports clicks
     /// to it after raising <see cref="OnClick"/>.</summary>
     [CascadingParameter] public IonTabs? Tabs { get; set; }

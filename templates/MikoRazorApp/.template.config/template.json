@@ -3,7 +3,7 @@
   "author": "Miko",
   "classifications": [ "Miko", "Razor", "WinUI", "Desktop", "Empty" ],
   "identity": "Miko.Razor.WinUI.Empty",
-  "name": "Miko Razor WinUI App (Empty)",
+  "name": "Miko Razor WinUI App",
   "shortName": "miko-razor",
   "description": "An empty Miko desktop application using Razor components, rendered with SkiaSharp.",
   "tags": {
@@ -34,7 +34,9 @@
       "choices": [
         { "choice": "blank",    "description": "An empty page (default)." },
         { "choice": "sidemenu", "description": "Ionic side-menu drawer over a content page." },
-        { "choice": "tabs",     "description": "Ionic bottom tab bar with three routed tab pages." }
+        { "choice": "tabs",     "description": "Ionic bottom tab bar with three routed tab pages." },
+        { "choice": "list",     "description": "Ionic list page." },
+        { "choice": "full",     "description": "Ionic component showcase with every demo page." }
       ]
     },
     "displayName": {
@@ -56,7 +58,9 @@
     "useBlank":    { "type": "computed", "value": "(layout == \"blank\")" },
     "useSidemenu": { "type": "computed", "value": "(layout == \"sidemenu\")" },
     "useTabs":     { "type": "computed", "value": "(layout == \"tabs\")" },
-    "useIonic":    { "type": "computed", "value": "(layout == \"sidemenu\" || layout == \"tabs\")" },
+    "useList":     { "type": "computed", "value": "(layout == \"list\")" },
+    "useFull":     { "type": "computed", "value": "(layout == \"full\")" },
+    "useIonic":    { "type": "computed", "value": "(layout == \"blank\" || layout == \"sidemenu\" || layout == \"tabs\" || layout == \"list\" || layout == \"full\")" },
     "agent": {
       "type": "parameter",
       "datatype": "choice",
@@ -88,6 +92,14 @@
           ]
         },
         {
+          "condition": "(!useFull)",
+          "exclude": [ "**/Full/**" ]
+        },
+        {
+          "condition": "(!useList)",
+          "exclude": [ "**/MainLayout.list.razor", "**/GlobalStyles.list.cs", "**/Pages/Home.list.razor" ]
+        },
+        {
           "condition": "(agentNone)",
           "exclude": [
             ".miko/**",
@@ -117,9 +129,11 @@
             "MainLayout.sidemenu.razor",
             "GlobalStyles.tabs.cs",
             "GlobalStyles.sidemenu.cs",
+            "GlobalStyles.list.cs",
             "_Imports.tabs.razor",
             "_Imports.sidemenu.razor",
             "Pages/Home.sidemenu.razor",
+            "Pages/Home.list.razor",
             "Pages/Tab1Page.razor",
             "Pages/Tab2Page.razor",
             "Pages/Tab3Page.razor"
@@ -137,9 +151,11 @@
             "MainLayout.sidemenu.razor",
             "GlobalStyles.blank.cs",
             "GlobalStyles.sidemenu.cs",
+            "GlobalStyles.list.cs",
             "_Imports.sidemenu.razor",
             "Pages/Home.blank.razor",
-            "Pages/Home.sidemenu.razor"
+            "Pages/Home.sidemenu.razor",
+            "Pages/Home.list.razor"
           ],
           "rename": {
             "MainLayout.tabs.razor": "MainLayout.razor",
@@ -154,8 +170,10 @@
             "MainLayout.tabs.razor",
             "GlobalStyles.blank.cs",
             "GlobalStyles.tabs.cs",
+            "GlobalStyles.list.cs",
             "_Imports.tabs.razor",
             "Pages/Home.blank.razor",
+            "Pages/Home.list.razor",
             "Pages/Tab1Page.razor",
             "Pages/Tab2Page.razor",
             "Pages/Tab3Page.razor"
@@ -165,6 +183,43 @@
             "GlobalStyles.sidemenu.cs":  "GlobalStyles.cs",
             "_Imports.sidemenu.razor":   "_Imports.razor",
             "Pages/Home.sidemenu.razor": "Pages/Home.razor"
+          }
+        },
+        {
+          "condition": "(useList)",
+          "exclude": [
+            "**/MainLayout.blank.razor", "**/MainLayout.sidemenu.razor", "**/MainLayout.tabs.razor",
+            "**/GlobalStyles.blank.cs", "**/GlobalStyles.sidemenu.cs", "**/GlobalStyles.tabs.cs",
+            "**/_Imports.sidemenu.razor", "**/_Imports.tabs.razor",
+            "**/Pages/Home.blank.razor", "**/Pages/Home.sidemenu.razor",
+            "**/Pages/Tab1Page.razor", "**/Pages/Tab2Page.razor", "**/Pages/Tab3Page.razor"
+          ],
+          "rename": {
+            "MainLayout.list.razor": "MainLayout.razor",
+            "GlobalStyles.list.cs": "GlobalStyles.cs",
+            "Pages/Home.list.razor": "Pages/Home.razor"
+          }
+        },
+        {
+          "condition": "(useFull)",
+          "exclude": [
+            "**/MainLayout.blank.razor", "**/MainLayout.sidemenu.razor", "**/MainLayout.tabs.razor", "**/MainLayout.list.razor",
+            "**/GlobalStyles.blank.cs", "**/GlobalStyles.sidemenu.cs", "**/GlobalStyles.tabs.cs", "**/GlobalStyles.list.cs",
+            "**/_Imports.sidemenu.razor", "**/_Imports.tabs.razor", "_Imports.razor",
+            "**/Pages/Home.blank.razor", "**/Pages/Home.sidemenu.razor", "**/Pages/Home.list.razor",
+            "**/Pages/Tab1Page.razor", "**/Pages/Tab2Page.razor", "**/Pages/Tab3Page.razor",
+            "**/Full/Pages/Home.blank.razor", "**/Full/Pages/Home.sidemenu.razor", "**/Full/Pages/Home.list.razor",
+            "**/Full/Pages/Tab1Page.razor", "**/Full/Pages/Tab2Page.razor", "**/Full/Pages/Tab3Page.razor"
+          ],
+          "rename": {
+            "Full/MainLayout.razor": "MainLayout.razor",
+            "Full/GlobalStyles.cs": "GlobalStyles.cs",
+            "Full/GlobalUsings.cs": "GlobalUsings.cs",
+            "Full/_Imports.razor": "_Imports.razor",
+            "Full/Pages/Pages": "Pages",
+            "Full/Components": "Components",
+            "Full/Services": "Services",
+            "Full/Assets": "Assets"
           }
         }
       ]

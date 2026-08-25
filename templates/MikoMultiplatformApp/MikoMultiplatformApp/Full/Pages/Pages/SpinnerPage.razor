@@ -1,0 +1,40 @@
+@page "/spinner"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Spinner</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        @foreach (var spinner in _spinners)
+        {
+            <IonItem>
+                <Start>
+                    <IonSpinner Name="@spinner.Name" Paused="@spinner.Paused"></IonSpinner>
+                </Start>
+                <ChildContent>
+                    <IonLabel>@spinner.Label</IonLabel>
+                </ChildContent>
+            </IonItem>
+        }
+    </IonContent>
+</IonPage>
+@code {
+    private readonly (string Label, string? Name, bool Paused)[] _spinners =
+    {
+        ("Default Spinner", null, false),
+        ("Lines", "lines", false),
+        ("Lines Small", "lines-small", false),
+        ("Dots", "dots", false),
+        ("Bubbles", "bubbles", false),
+        ("Circles", "circles", false),
+        ("Crescent", "crescent", false),
+        ("Paused Spinner", null, true),
+    };
+}

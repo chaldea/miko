@@ -4,15 +4,9 @@ using Miko.Styling;
 namespace Miko.Ionic.Components;
 
 /// <summary>
-/// Styles for the page-structure components (<c>ion-page</c>, <c>ion-header</c>,
-/// <c>ion-toolbar</c>, <c>ion-title</c>). Ported from the Ionic source:
-/// <c>header.scss</c> / <c>header.md.scss</c> / <c>header.ios.scss</c>,
-/// <c>toolbar.scss</c> / <c>toolbar.md.scss</c> / <c>toolbar.ios.scss</c>,
-/// <c>title.scss</c> / <c>title.md.scss</c> / <c>title.ios.scss</c>.
-/// <para>
-/// <c>ion-content</c>'s rules live alongside their component in
-/// <see cref="ContentStyles"/> (ported from <c>content.scss</c>).
-/// </para>
+/// Styles for the <c>ion-page</c> shell. Component-specific rules live alongside their
+/// respective components in <see cref="HeaderStyles"/>, <see cref="ToolbarStyles"/>, and
+/// <see cref="TitleStyles"/>.
 /// <para>
 /// Rules are scoped by the active mode class (<c>md</c> / <c>ios</c>) that each component
 /// stamps onto its root element, so a single stylesheet carries both modes and switching the
@@ -40,114 +34,6 @@ internal static class PageStyles
                 Height = Length.Percent(100),
             },
 
-            // ion-header — block band above the content (order: -1 in Ionic).
-            // MD mode renders an elevation shadow; iOS mode a hairline bottom border.
-            // position:relative + z-index lift the header (and its shadow) above the
-            // content that follows it in normal flow.
-            [$".ion-header.{mode}"] = new()
-            {
-                Display = Display.Block,
-                Position = Position.Relative,
-                Width = Length.Percent(100),
-                BoxShadow = t.HeaderBoxShadow.Count > 0 ? (StyleProperty<List<BoxShadow>>?)t.HeaderBoxShadow : null,
-                BorderBottom = t.HeaderBorderWidth > 0
-                    ? new BorderSide(Length.Px(t.HeaderBorderWidth), BorderStyle.Solid, t.HeaderBorderColor)
-                    : new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
-                ZIndex = 10,
-            },
-
-            // ion-toolbar — full-width bar holding the title. Every toolbar clears a side notch
-            // via env(safe-area-inset-left/right) (Ionic's toolbar.scss :host), but NOT the top:
-            // only the FIRST toolbar in a header sits under the status bar, so its top inset is
-            // applied by the header rule below — matching Ionic's
-            // `ion-header ion-toolbar:first-of-type { padding-top: safe-area-top }`.
-            // On desktop / zero-inset platforms these env() lengths resolve to 0 (no-op).
-            [$".ion-toolbar.{mode}"] = new()
-            {
-                Display = Display.Block,
-                Position = Position.Relative,
-                Width = Length.Percent(100),
-                BackgroundColor = t.ToolbarBackground,
-                Color = t.ToolbarColor,
-                PaddingLeft = Length.SafeAreaInsetLeft,
-                PaddingRight = Length.SafeAreaInsetRight,
-            },
-
-            // toolbar-background — absolutely positioned layer covering the toolbar behind the
-            // container content. Ported from toolbar.scss `.toolbar-background` (inset 0, abs).
-            // Holding the background here (rather than on :host) keeps it under the content and
-            // lets the safe-area padding on the root push the container inward without moving it.
-            [$".ion-toolbar.{mode} .toolbar-background"] = new()
-            {
-                Position = Position.Absolute,
-                Top = Length.Px(0),
-                Right = Length.Px(0),
-                Bottom = Length.Px(0),
-                Left = Length.Px(0),
-                BackgroundColor = t.ToolbarBackground,
-                ZIndex = 0,
-            },
-
-            // Only the first toolbar inside a header gets the top safe-area inset (it's the one
-            // under the system status bar). Subsequent toolbars in the same header keep zero top
-            // padding. Ported from header.scss: `ion-header ion-toolbar:first-of-type`.
-            [$".ion-header.{mode} .ion-toolbar:first-of-type"] = new()
-            {
-                PaddingTop = Length.SafeAreaInsetTop,
-            },
-
-            [$".ion-toolbar.{mode} .toolbar-container"] = new()
-            {
-                Display = Display.Flex,
-                Position = Position.Relative,
-                FlexDirection = FlexDirection.Row,
-                AlignItems = AlignItems.Center,
-                JustifyContent = JustifyContent.SpaceBetween,
-                Width = Length.Percent(100),
-                // Ionic uses --min-height: 56px; the flex layout honors explicit height,
-                // so set it directly to give the toolbar its fixed band height.
-                Height = Length.Px(t.ToolbarMinHeight),
-                MinHeight = Length.Px(t.ToolbarMinHeight),
-                // Lift the content above the absolutely-positioned toolbar-background.
-                ZIndex = 1,
-            },
-
-            // toolbar-content — wraps the default slot (the title). Grows to fill the space
-            // between the start/end slots. Ported from toolbar.{md,ios}.scss `.toolbar-content`.
-            [$".ion-toolbar.{mode} .toolbar-content"] = new()
-            {
-                Display = Display.Flex,
-                FlexGrow = 1,
-                FlexShrink = 1,
-                FlexBasis = Length.Px(0),
-                AlignItems = AlignItems.Center,
-                MinWidth = Length.Px(0),
-            },
-
-            // ion-title — grows to fill the toolbar. MD left-aligns; iOS centers.
-            [$".ion-title.{mode}"] = new()
-            {
-                Display = Display.Flex,
-                FlexGrow = 1,
-                AlignItems = AlignItems.Center,
-                JustifyContent = t.TitleTextAlign == TextAlign.Center
-                    ? JustifyContent.Center
-                    : JustifyContent.FlexStart,
-                PaddingLeft = Length.Px(t.TitlePaddingX),
-                PaddingRight = Length.Px(t.TitlePaddingX),
-                FontSize = Length.Px(t.TitleFontSize),
-                FontWeight = t.TitleFontWeight,
-                Color = t.ToolbarColor,
-            },
-
-            [$".ion-title.{mode} .toolbar-title"] = new()
-            {
-                Display = Display.Block,
-                Width = Length.Percent(100),
-                WhiteSpace = WhiteSpace.Nowrap,
-                OverflowX = Overflow.Hidden,
-                TextAlign = t.TitleTextAlign,
-            },
         };
     }
 }

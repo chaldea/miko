@@ -27,12 +27,12 @@ public class IonTabsTests : IonicComponentTestBase
         return (nav, () => last);
     }
 
-    // Renders an IonTabs whose bar holds a single tab button.
+    // Renders an IonTabs whose bottom slot holds a single tab button.
     private ComponentUnderTest RenderTabs(string? href, Action<ComponentParameterBuilder<IonTabs>>? configure = null)
         => Context.Render<IonTabs>(p =>
         {
             p.Add(nameof(IonTabs.Content), (RenderFragment)(b => b.AddContent(0, "tab content")));
-            p.Add(nameof(IonTabs.Bar), (RenderFragment)(bar =>
+            p.Add(nameof(IonTabs.Bottom), (RenderFragment)(bar =>
             {
                 bar.OpenComponent<IonTabBar>(0);
                 bar.AddComponentParameter(1, nameof(IonTabBar.ChildContent), (RenderFragment)(bb =>
@@ -110,7 +110,7 @@ public class IonTabsTests : IonicComponentTestBase
         var cut = Context.Render<IonTabs>(p =>
         {
             p.Add(nameof(IonTabs.Content), (RenderFragment)(b => b.AddContent(0, "tab content")));
-            p.Add(nameof(IonTabs.Bar), (RenderFragment)(bar =>
+            p.Add(nameof(IonTabs.Bottom), (RenderFragment)(bar =>
             {
                 bar.OpenComponent<IonTabButton>(0);
                 bar.AddComponentParameter(1, nameof(IonTabButton.Tab), "tab1");
@@ -129,7 +129,7 @@ public class IonTabsTests : IonicComponentTestBase
     }
 
     [Fact]
-    public void Tabs_KeepsDomContract_WithCascadingBar()
+    public void Tabs_KeepsDomContract_WithCascadingBottomSlot()
     {
         // The cascading value wrapper is transparent: tabs-inner content + tab bar are still
         // direct children of the ion-tabs host.
@@ -138,5 +138,36 @@ public class IonTabsTests : IonicComponentTestBase
         cut.Root.ShouldHaveClass("ion-tabs");
         cut.FindByClass("tabs-inner").ShouldHaveSingleItem();
         cut.FindByClass("ion-tab-button").ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void Tabs_RendersTopContentBeforeInnerAndBottomContentAfterInner()
+    {
+        var cut = Context.Render<IonTabs>(p =>
+        {
+            p.Add(nameof(IonTabs.Top), (RenderFragment)(top =>
+            {
+                top.OpenComponent<IonTabBar>(0);
+                top.AddComponentParameter(1, nameof(IonTabBar.Slot), "top");
+                top.CloseComponent();
+            }));
+            p.Add(nameof(IonTabs.Content), (RenderFragment)(content =>
+                content.AddContent(0, "content")));
+            p.Add(nameof(IonTabs.Bottom), (RenderFragment)(bottom =>
+            {
+                bottom.OpenComponent<IonTabBar>(0);
+                bottom.AddComponentParameter(1, nameof(IonTabBar.Slot), "bottom");
+                bottom.CloseComponent();
+            }));
+        });
+
+        var directStructure = cut.GetAllElements()
+            .Where(element => element.HasClass("ion-tab-bar-top")
+                || element.HasClass("tabs-inner")
+                || element.HasClass("ion-tab-bar-bottom"))
+            .Select(element => element.Class)
+            .ToArray();
+
+        directStructure.ShouldBe(new[] { "md ion-tab-bar ion-tab-bar-top", "tabs-inner", "md ion-tab-bar ion-tab-bar-bottom" });
     }
 }

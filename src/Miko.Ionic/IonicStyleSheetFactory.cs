@@ -67,6 +67,7 @@ public static class IonicStyleSheetFactory
     {
         sheet.Add(OverlayStyles.GenStyle(mode));
         sheet.Add(PageStyles.GenStyle(mode, t));
+        sheet.Add(HeaderStyles.GenStyle(mode, t));
         sheet.Add(ContentStyles.GenStyle(mode, t));
         sheet.Add(TabStyles.GenStyle(mode, t));
         sheet.Add(IconStyles.GenStyle(mode, t));
@@ -76,6 +77,7 @@ public static class IonicStyleSheetFactory
         sheet.Add(ItemStyles.GenStyle(mode, t));
         sheet.Add(SegmentStyles.GenStyle(mode, t));
         sheet.Add(ToolbarStyles.GenStyle(mode, t));
+        sheet.Add(TitleStyles.GenStyle(mode, t));
         sheet.Add(ButtonStyles.GenStyle(mode, t));
         sheet.Add(BackButtonStyles.GenStyle(mode, t));
         sheet.Add(SearchbarStyles.GenStyle(mode, t));

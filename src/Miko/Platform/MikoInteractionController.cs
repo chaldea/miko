@@ -469,10 +469,11 @@ public sealed class MikoInteractionController
                     CancelLongPress();
                 }
 
-                DispatchCapturedPointerPair(EventTypes.PointerMove, EventTypes.MouseMove,
+                var pointerArgs = DispatchCapturedPointerPair(EventTypes.PointerMove, EventTypes.MouseMove,
                     x, y, MouseButton.Left, isButtonPressed: true);
 
-                if (_activePointerType != PointerType.Mouse && _pointerMoved)
+                if (_activePointerType != PointerType.Mouse && _pointerMoved
+                    && pointerArgs?.DefaultPrevented != true)
                     _engine.ScrollBy(down.X, down.Y, previous.X - current.X, previous.Y - current.Y);
 
                 _lastPointerPosition = current;
@@ -1034,7 +1035,7 @@ public sealed class MikoInteractionController
         _pointerDownBounds = null;
     }
 
-    private void DispatchCapturedPointerPair(
+    private PointerEventArgs? DispatchCapturedPointerPair(
         string pointerEventType,
         string legacyMouseEventType,
         float x,
@@ -1042,10 +1043,10 @@ public sealed class MikoInteractionController
         MouseButton button,
         bool isButtonPressed)
     {
-        if (_pointerDownTarget == null) return;
+        if (_pointerDownTarget == null) return null;
 
         var target = _pointerDownTarget.ResolveSuperseded();
-        DispatchPointerPair(target, pointerEventType, legacyMouseEventType,
+        return DispatchPointerPair(target, pointerEventType, legacyMouseEventType,
             x, y, button, isButtonPressed, _pointerDownBounds);
     }
 
@@ -1063,7 +1064,7 @@ public sealed class MikoInteractionController
             _activePointerType, _activePointerId);
     }
 
-    private void DispatchPointerPair(
+    private PointerEventArgs DispatchPointerPair(
         Element target,
         string pointerEventType,
         string legacyMouseEventType,
@@ -1075,13 +1076,14 @@ public sealed class MikoInteractionController
         PointerType? pointerType = null,
         int? pointerId = null)
     {
-        DispatchPointerEvent(target, pointerEventType, x, y, button, isButtonPressed, bounds,
+        var pointerArgs = DispatchPointerEvent(target, pointerEventType, x, y, button, isButtonPressed, bounds,
             pointerType ?? _activePointerType, pointerId ?? _activePointerId);
         DispatchPointerEvent(target.ResolveSuperseded(), legacyMouseEventType, x, y, button,
             isButtonPressed, bounds, pointerType ?? _activePointerType, pointerId ?? _activePointerId);
+        return pointerArgs;
     }
 
-    private void DispatchPointerEvent(
+    private PointerEventArgs DispatchPointerEvent(
         Element target,
         string eventType,
         float x,
@@ -1112,6 +1114,7 @@ public sealed class MikoInteractionController
         };
 
         DispatchWithSyncContext(target, eventType, args);
+        return args;
     }
 
     private void ScheduleLongPress()

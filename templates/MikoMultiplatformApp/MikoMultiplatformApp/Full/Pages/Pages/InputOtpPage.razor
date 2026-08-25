@@ -1,0 +1,43 @@
+@page "/input-otp"
+
+@* NOTE: Miko.Ionic has no IonInputOtp component (Ionic's <ion-input-otp> with its `separators`
+   prop, ionComplete event and setFocus() method). The surrounding page is migrated as-is and the
+   OTP boxes are approximated with plain IonInput fields so the layout is representative. Replace
+   this block once an IonInputOtp port lands. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Input OTP</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent>
+        <div class="ion-padding ion-text-center">
+            <h2>Enter Verification Code</h2>
+            <p>Please enter the 4-digit code sent to your device</p>
+
+            <IonInputOtp Separators="2" OnComplete="@HandleOtpComplete">
+                Didn't get the code? <a>Resend Code</a>
+            </IonInputOtp>
+        </div>
+    </IonContent>
+</IonPage>
+@code {
+    [Inject] public IonToastController ToastController { get; set; } = null!;
+
+    private async Task HandleOtpComplete(string value)
+    {
+        var toast = await ToastController.CreateAsync(new IonToastOptions()
+        {
+            Message = $"Entered OTP: {value}",
+            Duration = 1000,
+            Position = "bottom"
+        });
+        await toast.PresentAsync();
+    }
+}

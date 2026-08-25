@@ -1,0 +1,68 @@
+@page "/item-group"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Item Group</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            @foreach (var group in _groups)
+            {
+                <IonItemGroup>
+                    <IonItemDivider>
+                        <IonLabel>@group.Letter</IonLabel>
+                    </IonItemDivider>
+
+                    @foreach (var person in group.People)
+                    {
+                        <IonItem>
+                            <IonLabel>
+                                @if (!string.IsNullOrEmpty(person.First))
+                                {
+                                    @($"{person.First} ")
+                                }
+                                <b>@person.Last</b>
+                            </IonLabel>
+                        </IonItem>
+                    }
+                </IonItemGroup>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+    private record Person(string First, string Last);
+    private record Group(string Letter, Person[] People);
+
+    private readonly Group[] _groups =
+    {
+        new("A", new[]
+        {
+            new Person("", "Abigail"),
+            new Person("Jesse", "Adams"),
+            new Person("", "Alan"),
+        }),
+        new("B", new[]
+        {
+            new Person("James", "Bach"),
+            new Person("Flora", "Ball"),
+            new Person("London", "Black"),
+            new Person("Alisha", "Brady"),
+            new Person("", "Brianna"),
+            new Person("Monica", "Brown"),
+        }),
+        new("C", new[]
+        {
+            new Person("", "Carla"),
+            new Person("Brian", "Clark"),
+            new Person("Robert", "Cline"),
+        }),
+    };
+}

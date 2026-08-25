@@ -22,11 +22,36 @@
 
     private float _progress;
     private string _state = "inactive";
+    private bool _tracking;
+    private bool _pullStarted;
+    private float _startX;
+    private float _startY;
+    private Element? _hostElement;
+    private Element? _scrollElement;
+    private Element? _backgroundElement;
+    private Style? _scrollStyle;
+    private Style? _backgroundStyle;
+    private IonRefresherContext? _attachedContext;
 
     protected override void OnParametersSet()
     {
         _state = NormalizeState(State);
+        _attachedContext = IonRefresherContext.Current;
+        _attachedContext?.Attach(this);
         BuildClass();
+    }
+
+    protected override void OnDispose() => _attachedContext?.Detach(this);
+
+    public override Element Build()
+    {
+        _hostElement = base.Build();
+        _hostElement.Class = ClassMapper.Class;
+        _hostElement.OnPointerDown = HandleContentPointerDown;
+        _hostElement.OnPointerMove = HandleContentPointerMove;
+        _hostElement.OnPointerUp = HandleContentPointerUp;
+        _hostElement.OnPointerCancel = HandleContentPointerCancel;
+        return _hostElement;
     }
 
     /// <summary>Programmatically enters refreshing state and emits <see cref="OnRefresh"/>.</summary>
@@ -36,6 +61,8 @@
         _state = "refreshing";
         _progress = 1f;
         BuildClass();
+        UpdateRenderedClass();
+        ApplyPullOffset(Math.Max(0, PullMin));
         await OnRefresh.InvokeAsync();
     }
 
@@ -45,7 +72,8 @@
         _state = "inactive";
         _progress = 0;
         BuildClass();
-        StateHasChanged();
+        UpdateRenderedClass();
+        RestorePullOffset();
         return Task.CompletedTask;
     }
 
@@ -55,7 +83,8 @@
         _state = "inactive";
         _progress = 0;
         BuildClass();
-        StateHasChanged();
+        UpdateRenderedClass();
+        RestorePullOffset();
         return Task.CompletedTask;
     }
 
@@ -73,6 +102,151 @@
             .If(!Disabled && _state != "inactive", "refresher-active")
             .If(Disabled, "refresher-disabled")
             .If(_state != "inactive", $"refresher-{_state}");
+    }
+
+    private void UpdateRenderedClass()
+    {
+        if (_hostElement is not null)
+            _hostElement.Class = ClassMapper.Class;
+    }
+
+    internal void HandleContentPointerDown(PointerEventArgs args)
+    {
+        if (Disabled || _state is "refreshing" or "completing" || _tracking
+            || args.Button != MouseButton.Left || !args.IsButtonPressed)
+            return;
+
+        var scroll = FindAncestor(args.Target, "inner-scroll");
+        if (scroll is null || scroll.ScrollTop > 0.01f)
+            return;
+
+        _tracking = true;
+        _pullStarted = false;
+        _startX = args.X;
+        _startY = args.Y;
+        _scrollElement = scroll;
+        _backgroundElement = FindAncestor(args.Target, "ion-content")?.FindByClass("background-content").FirstOrDefault();
+        _scrollStyle = scroll.Style;
+        _backgroundStyle = _backgroundElement?.Style;
+    }
+
+    internal void HandleContentPointerMove(PointerEventArgs args)
+    {
+        if (!_tracking || !args.IsButtonPressed)
+            return;
+
+        var deltaX = args.X - _startX;
+        var deltaY = args.Y - _startY;
+        if (deltaY <= 0 || Math.Abs(deltaX) > Math.Abs(deltaY))
+        {
+            if (!_pullStarted) ResetGesture();
+            return;
+        }
+
+        if (!_pullStarted)
+        {
+            _pullStarted = true;
+            _state = "pulling";
+            _progress = 0;
+            BuildClass();
+            UpdateRenderedClass();
+        }
+
+        var pull = deltaY;
+        _progress = PullMin > 0 ? pull / PullMin : 1f;
+        ApplyPullOffset(Math.Min(pull, Math.Max(0, PullMin)));
+        args.PreventDefault();
+
+        var pullMax = PullMax ?? PullMin + 60;
+        if (pullMax > 0 && pull >= pullMax)
+            _ = BeginRefreshFromGesture();
+        else if (pull >= Math.Max(1, PullMin))
+        {
+            _state = "ready";
+            BuildClass();
+            UpdateRenderedClass();
+        }
+    }
+
+    internal void HandleContentPointerUp(PointerEventArgs args)
+    {
+        if (!_tracking) return;
+        var shouldRefresh = _pullStarted && args.Y - _startY >= Math.Max(1, PullMin)
+            && _state is "ready" or "pulling";
+        _tracking = false;
+
+        if (shouldRefresh)
+            _ = BeginRefreshFromGesture();
+        else
+            CancelGesture();
+    }
+
+    internal void HandleContentPointerCancel(PointerEventArgs _)
+    {
+        if (!_tracking) return;
+        _tracking = false;
+        CancelGesture();
+    }
+
+    private async Task BeginRefreshFromGesture()
+    {
+        if (_state == "refreshing" || Disabled) return;
+        _tracking = false;
+        _state = "refreshing";
+        _progress = 1f;
+        BuildClass();
+        UpdateRenderedClass();
+        ApplyPullOffset(Math.Max(0, PullMin));
+        await OnRefresh.InvokeAsync();
+    }
+
+    private void CancelGesture()
+    {
+        _state = "inactive";
+        _progress = 0;
+        BuildClass();
+        UpdateRenderedClass();
+        RestorePullOffset();
+        ResetGesture();
+    }
+
+    private void ResetGesture()
+    {
+        _tracking = false;
+        _pullStarted = false;
+        _scrollElement = null;
+        _backgroundElement = null;
+        _scrollStyle = null;
+        _backgroundStyle = null;
+    }
+
+    private void ApplyPullOffset(float offset)
+    {
+        if (_scrollElement is null) return;
+        _scrollElement.Style = WithTranslateY(_scrollStyle, offset);
+        if (_backgroundElement is not null)
+            _backgroundElement.Style = WithTranslateY(_backgroundStyle, offset);
+    }
+
+    private void RestorePullOffset()
+    {
+        if (_scrollElement is not null) _scrollElement.Style = _scrollStyle;
+        if (_backgroundElement is not null) _backgroundElement.Style = _backgroundStyle;
+        ResetGesture();
+    }
+
+    private static Style WithTranslateY(Style? original, float offset)
+    {
+        var style = original?.Clone() ?? new Style();
+        style.Transform = new Transform(new TransformFunction.TranslateY(Length.Px(offset)));
+        return style;
+    }
+
+    private static Element? FindAncestor(Element? element, string className)
+    {
+        for (var current = element; current is not null; current = current.Parent)
+            if (current.HasClass(className)) return current;
+        return null;
     }
 
     private static string NormalizeState(string? state) => state?.ToLowerInvariant() switch

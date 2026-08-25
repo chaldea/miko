@@ -1,22 +1,27 @@
 @inherits Miko.Components.LayoutComponentBase
 @namespace MikoRazorApp
 
-<IonTabs>
-    <Content>@Body</Content><Bar><IonTabBar Slot="bottom">
-        <IonTabButton Tab="tab1" Href="/tab1" Selected="@IsActive("/tab1", "/")">
-            <IonIcon Icon="@Ionicons.Triangle" />
-            <IonLabel>Tab 1</IonLabel>
-        </IonTabButton>
-        <IonTabButton Tab="tab2" Href="/tab2" Selected="@IsActive("/tab2")">
-            <IonIcon Icon="@Ionicons.Ellipse" />
-            <IonLabel>Tab 2</IonLabel>
-        </IonTabButton>
-        <IonTabButton Tab="tab3" Href="/tab3" Selected="@IsActive("/tab3")">
-            <IonIcon Icon="@Ionicons.Square" />
-            <IonLabel>Tab 3</IonLabel>
-        </IonTabButton>
-    </IonTabBar></Bar>
-</IonTabs>
+<IonApp>
+    <IonTabs>
+        <Content>@Body</Content>
+        <Bottom>
+            <IonTabBar Slot="bottom">
+                <IonTabButton Tab="tab1" Href="/tab1" Selected="@IsActive("/tab1", "/")">
+                    <IonIcon Icon="@Ionicons.Triangle" />
+                    <IonLabel>Tab 1</IonLabel>
+                </IonTabButton>
+                <IonTabButton Tab="tab2" Href="/tab2" Selected="@IsActive("/tab2")">
+                    <IonIcon Icon="@Ionicons.Ellipse" />
+                    <IonLabel>Tab 2</IonLabel>
+                </IonTabButton>
+                <IonTabButton Tab="tab3" Href="/tab3" Selected="@IsActive("/tab3")">
+                    <IonIcon Icon="@Ionicons.Square" />
+                    <IonLabel>Tab 3</IonLabel>
+                </IonTabButton>
+            </IonTabBar>
+        </Bottom>
+    </IonTabs>
+</IonApp>
 
 @code {
     private string CurrentPath => NavigationManager?.CurrentPath ?? "/";

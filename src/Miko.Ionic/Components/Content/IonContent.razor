@@ -94,6 +94,7 @@
     private string _innerScrollClass = "inner-scroll";
     private bool _fixedBefore;
     private bool _showTransitionShadow;
+    private readonly IonRefresherContext _refresherContext = new();
 
     /// <summary>
     /// Ionic's <c>shouldForceOverscroll()</c>: the explicit <see cref="ForceOverscroll"/> when set,
@@ -149,7 +150,12 @@
     /// </summary>
     public override Element Build()
     {
+        using var refresherScope = IonRefresherContext.Push(_refresherContext);
         var root = base.Build();
+        root.OnPointerDown = _refresherContext.PointerDown;
+        root.OnPointerMove = _refresherContext.PointerMove;
+        root.OnPointerUp = _refresherContext.PointerUp;
+        root.OnPointerCancel = _refresherContext.PointerCancel;
         if (Fixed is not null)
         {
             foreach (var child in root.Children)

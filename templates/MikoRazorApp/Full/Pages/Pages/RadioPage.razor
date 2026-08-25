@@ -1,0 +1,60 @@
+@page "/radio"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Radio</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            <IonRadioGroup @bind-Value="_fruit">
+                <IonListHeader>
+                    <IonLabel>Fruit</IonLabel>
+                </IonListHeader>
+
+                <IonItem>
+                    <IonRadio LabelPlacement="end" Justify="start" Color="success" Value="apple">Apple</IonRadio>
+                </IonItem>
+                <IonItem>
+                    <IonRadio LabelPlacement="end" Justify="start" Color="tertiary" Value="grape">Grape</IonRadio>
+                </IonItem>
+                <IonItem>
+                    <IonRadio LabelPlacement="end" Justify="start" Color="danger" Value="cherry">Cherry</IonRadio>
+                </IonItem>
+            </IonRadioGroup>
+
+            <IonRadioGroup @bind-Value="_topping" AllowEmptySelection>
+                <IonListHeader>
+                    <IonLabel>Pizza Topping</IonLabel>
+                </IonListHeader>
+
+                @foreach (var topping in _toppings)
+                {
+                    <IonItem>
+                        <IonRadio Color="@topping.Color" Value="@topping.Value">@topping.Label</IonRadio>
+                    </IonItem>
+                }
+            </IonRadioGroup>
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+    private string? _fruit = "grape";
+    private string? _topping = "anchovies";
+
+    private readonly (string Label, string Value, string Color)[] _toppings =
+    {
+        ("Beef", "beef", "primary"),
+        ("Anchovies", "anchovies", "secondary"),
+        ("Sausage", "sausage", "tertiary"),
+        ("Bellpepper", "tomato", "success"),
+        ("Tomato", "carrot", "warning"),
+        ("Pepperoni", "pepperoni", "danger"),
+    };
+}

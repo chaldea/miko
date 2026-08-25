@@ -1,7 +1,13 @@
 using Miko.DevTools;
 using Miko.Hosting;
+//#if (useFull)
+using Microsoft.Extensions.DependencyInjection;
+//#endif
 //#if (useIonic)
 using Miko.Ionic;
+//#endif
+//#if (useFull)
+using MikoRazorApp.Services;
 //#endif
 
 namespace MikoRazorApp;
@@ -25,6 +31,10 @@ public static class App
         builder.AddIonic();
         //#endif
         builder.AddStyleSheet(GlobalStyles.Create());
+        //#if (useFull)
+        builder.Services.AddScoped<ComponentService>();
+        builder.AddResourceAssembly(typeof(App).Assembly);
+        //#endif
 
         // Routes and the default layout are wired up by Miko.Razor.Compiler.
         builder.UseGeneratedRoutes();

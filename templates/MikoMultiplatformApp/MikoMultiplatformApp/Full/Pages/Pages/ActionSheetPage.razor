@@ -1,0 +1,80 @@
+@page "/action-sheet"
+@inherits IonicComponentBase
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Action Sheet</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <ComponentDetails Name="Action Sheet">
+            The Action Sheet is a dialog that displays a set of options. It appears on
+            top of the app’s content, and must be manually dismissed by the user before they can
+            resume interaction with the app. There are multiple ways to dismiss the action sheet,
+            including tapping the backdrop or hitting the escape key.
+        </ComponentDetails>
+        
+        <div class="ion-padding-start ion-padding-end">
+            <IonButton Class="ion-text-wrap" Expand="block" OnClick="@Open">Open Action Sheet</IonButton>
+        </div>
+        
+        <IonActionSheet Header="Albums" IsOpen="@_isOpen" IsOpenChanged="@Change" Buttons="@_buttons">
+        </IonActionSheet>
+    </IonContent>
+</IonPage>
+@code {
+
+    private IReadOnlyList<IonActionSheetButton> _buttons = [];
+
+    protected override void OnInitialized()
+    {
+        _buttons = new List<IonActionSheetButton>()
+        {
+            new()
+            {
+                Text = "Delete",
+                Role = "destructive",
+                Icon = Mode != "ios" ? Ionicons.TrashOutline : null,
+            },
+            new()
+            {
+                Text = "Share",
+                Icon = Mode != "ios" ? Ionicons.ShareOutline : null,
+            },
+            new()
+            {
+                Text = "Play (open modal)",
+                Icon = Mode != "ios" ? Ionicons.PlayCircleOutline : null,
+            },
+            new()
+            {
+                Text = "Favorite",
+                Icon = Mode != "ios" ? Ionicons.HeartOutline : null,
+            },
+            new()
+            {
+                Text = "Cancel",
+                Role = "cancel",
+                Icon = Mode != "ios" ? Ionicons.Close : null,
+            },
+        };
+    }
+
+    private bool _isOpen = false;
+
+    public void Change(bool open)
+    {
+        _isOpen = open;
+    }
+
+    public void Open()
+    {
+        _isOpen = true;
+    }
+}

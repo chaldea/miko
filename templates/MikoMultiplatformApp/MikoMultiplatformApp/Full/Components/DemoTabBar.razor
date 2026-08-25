@@ -1,0 +1,25 @@
+@namespace MikoMultiplatformApp.Components
+@inherits IonicComponentBase
+
+@* Shared tab bar for the three tab pages. Miko's IonTabButton navigates by Href (root-level,
+   no transition), so each tab is a real route rather than an <ion-tab component="..."> slot. *@
+
+<IonTabBar Slot="bottom">
+    <IonTabButton Tab="tabs-music" Href="/tabs-music" Selected="@(Selected == "tabs-music")">
+        <IonIcon Icon="@Ionicons.MusicalNote"></IonIcon>
+        <IonLabel>Music</IonLabel>
+    </IonTabButton>
+    <IonTabButton Tab="tabs-movies" Href="/tabs-movies" Selected="@(Selected == "tabs-movies")">
+        <IonIcon Icon="@Ionicons.Videocam"></IonIcon>
+        <IonLabel>Movies</IonLabel>
+    </IonTabButton>
+    <IonTabButton Tab="tabs-games" Href="/tabs-games" Selected="@(Selected == "tabs-games")">
+        <IonIcon Icon="@Ionicons.GameController"></IonIcon>
+        <IonLabel>Games</IonLabel>
+    </IonTabButton>
+</IonTabBar>
+
+@code {
+    /// <summary>The tab identifier of the currently active page.</summary>
+    [Parameter] public string? Selected { get; set; }
+}

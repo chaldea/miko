@@ -1,0 +1,74 @@
+@page "/range"
+
+@* NOTE: Miko's IonRange has no dual-knobs support (Ionic's `dual-knobs` prop and the
+   {lower, upper} object value). The "Brush Size" row is rendered as a single-knob range. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Range</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            <IonListHeader>
+                <IonLabel>Adjust Display</IonLabel>
+            </IonListHeader>
+
+            <IonItem>
+                <IonRange @bind-Value="_brightness">
+                    <StartSlot>
+                        <IonIcon Icon="@Ionicons.Sunny" Size="small"></IonIcon>
+                    </StartSlot>
+                    <EndSlot>
+                        <IonIcon Icon="@Ionicons.Sunny"></IonIcon>
+                    </EndSlot>
+                </IonRange>
+            </IonItem>
+
+            <IonItem>
+                <IonRange Min="-200" Max="200" Pin Color="secondary" @bind-Value="_contrast">
+                    <StartSlot>
+                        <IonIcon Icon="@Ionicons.Contrast" Size="small"></IonIcon>
+                    </StartSlot>
+                    <EndSlot>
+                        <IonIcon Icon="@Ionicons.Contrast"></IonIcon>
+                    </EndSlot>
+                </IonRange>
+            </IonItem>
+
+            <IonItem>
+                <IonRange Pin Color="dark" @bind-Value="_brushSize">
+                    <StartSlot>
+                        <IonIcon Icon="@Ionicons.Brush" Size="small"></IonIcon>
+                    </StartSlot>
+                    <EndSlot>
+                        <IonIcon Icon="@Ionicons.Brush"></IonIcon>
+                    </EndSlot>
+                </IonRange>
+            </IonItem>
+
+            <IonItem>
+                <IonRange Min="1000" Max="2000" Step="100" Snaps Color="danger" @bind-Value="_temperature">
+                    <StartSlot>
+                        <IonIcon Icon="@Ionicons.Thermometer" Size="small" Color="danger"></IonIcon>
+                    </StartSlot>
+                    <EndSlot>
+                        <IonIcon Icon="@Ionicons.Thermometer" Color="danger"></IonIcon>
+                    </EndSlot>
+                </IonRange>
+            </IonItem>
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+    private double _brightness = 20;
+    private double _contrast = 0;
+    private double _brushSize = 33;
+    private double _temperature = 1400;
+}

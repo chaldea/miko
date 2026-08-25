@@ -3,7 +3,7 @@
   "author": "Miko",
   "classifications": [ "Miko", "Razor", "Multiplatform", "Desktop", "Android", "iOS", "Empty" ],
   "identity": "Miko.Razor.Multiplatform.Empty",
-  "name": "Miko Razor Multiplatform App (Empty)",
+  "name": "Miko Razor Multiplatform App",
   "shortName": "miko-multiplatform",
   "description": "An empty Miko cross-platform application (Desktop/Android/iOS) using Razor components, rendered with SkiaSharp.",
   "tags": {
@@ -21,7 +21,9 @@
       "choices": [
         { "choice": "blank",    "description": "An empty page (default)." },
         { "choice": "sidemenu", "description": "Ionic side-menu drawer over a content page." },
-        { "choice": "tabs",     "description": "Ionic bottom tab bar with three routed tab pages." }
+        { "choice": "tabs",     "description": "Ionic bottom tab bar with three routed tab pages." },
+        { "choice": "list",     "description": "Ionic list page." },
+        { "choice": "full",     "description": "Ionic component showcase with every demo page." }
       ]
     },
     "displayName": {
@@ -52,7 +54,9 @@
     "useBlank":    { "type": "computed", "value": "(layout == \"blank\")" },
     "useSidemenu": { "type": "computed", "value": "(layout == \"sidemenu\")" },
     "useTabs":     { "type": "computed", "value": "(layout == \"tabs\")" },
-    "useIonic":    { "type": "computed", "value": "(layout == \"sidemenu\" || layout == \"tabs\")" },
+    "useList":     { "type": "computed", "value": "(layout == \"list\")" },
+    "useFull":     { "type": "computed", "value": "(layout == \"full\")" },
+    "useIonic":    { "type": "computed", "value": "(layout == \"blank\" || layout == \"sidemenu\" || layout == \"tabs\" || layout == \"list\" || layout == \"full\")" },
     "agent": {
       "type": "parameter",
       "datatype": "choice",
@@ -80,6 +84,14 @@
             "**/*.user",
             "nuget.config"
           ]
+        },
+        {
+          "condition": "(!useFull)",
+          "exclude": [ "**/Full/**" ]
+        },
+        {
+          "condition": "(!useList)",
+          "exclude": [ "**/MainLayout.list.razor", "**/GlobalStyles.list.cs", "**/Pages/Home.list.razor" ]
         },
         {
           "condition": "(agentNone)",
@@ -112,9 +124,11 @@
             "**/MainLayout.sidemenu.razor",
             "**/GlobalStyles.tabs.cs",
             "**/GlobalStyles.sidemenu.cs",
+            "**/GlobalStyles.list.cs",
             "**/_Imports.tabs.razor",
             "**/_Imports.sidemenu.razor",
             "**/Pages/Home.sidemenu.razor",
+            "**/Pages/Home.list.razor",
             "**/Pages/Tab1Page.razor",
             "**/Pages/Tab2Page.razor",
             "**/Pages/Tab3Page.razor"
@@ -132,9 +146,11 @@
             "**/MainLayout.sidemenu.razor",
             "**/GlobalStyles.blank.cs",
             "**/GlobalStyles.sidemenu.cs",
+            "**/GlobalStyles.list.cs",
             "**/_Imports.sidemenu.razor",
             "**/Pages/Home.blank.razor",
-            "**/Pages/Home.sidemenu.razor"
+            "**/Pages/Home.sidemenu.razor",
+            "**/Pages/Home.list.razor"
           ],
           "rename": {
             "MikoMultiplatformApp/MainLayout.tabs.razor": "MikoMultiplatformApp/MainLayout.razor",
@@ -149,8 +165,10 @@
             "**/MainLayout.tabs.razor",
             "**/GlobalStyles.blank.cs",
             "**/GlobalStyles.tabs.cs",
+            "**/GlobalStyles.list.cs",
             "**/_Imports.tabs.razor",
             "**/Pages/Home.blank.razor",
+            "**/Pages/Home.list.razor",
             "**/Pages/Tab1Page.razor",
             "**/Pages/Tab2Page.razor",
             "**/Pages/Tab3Page.razor"
@@ -160,6 +178,43 @@
             "MikoMultiplatformApp/GlobalStyles.sidemenu.cs":  "MikoMultiplatformApp/GlobalStyles.cs",
             "MikoMultiplatformApp/_Imports.sidemenu.razor":   "MikoMultiplatformApp/_Imports.razor",
             "MikoMultiplatformApp/Pages/Home.sidemenu.razor": "MikoMultiplatformApp/Pages/Home.razor"
+          }
+        },
+        {
+          "condition": "(useList)",
+          "exclude": [
+            "**/MainLayout.blank.razor", "**/MainLayout.sidemenu.razor", "**/MainLayout.tabs.razor",
+            "**/GlobalStyles.blank.cs", "**/GlobalStyles.sidemenu.cs", "**/GlobalStyles.tabs.cs",
+            "**/_Imports.sidemenu.razor", "**/_Imports.tabs.razor",
+            "**/Pages/Home.blank.razor", "**/Pages/Home.sidemenu.razor",
+            "**/Pages/Tab1Page.razor", "**/Pages/Tab2Page.razor", "**/Pages/Tab3Page.razor"
+          ],
+          "rename": {
+            "MikoMultiplatformApp/MainLayout.list.razor": "MikoMultiplatformApp/MainLayout.razor",
+            "MikoMultiplatformApp/GlobalStyles.list.cs": "MikoMultiplatformApp/GlobalStyles.cs",
+            "MikoMultiplatformApp/Pages/Home.list.razor": "MikoMultiplatformApp/Pages/Home.razor"
+          }
+        },
+        {
+          "condition": "(useFull)",
+          "exclude": [
+            "**/MainLayout.blank.razor", "**/MainLayout.sidemenu.razor", "**/MainLayout.tabs.razor", "**/MainLayout.list.razor",
+            "**/GlobalStyles.blank.cs", "**/GlobalStyles.sidemenu.cs", "**/GlobalStyles.tabs.cs", "**/GlobalStyles.list.cs",
+            "**/_Imports.sidemenu.razor", "**/_Imports.tabs.razor", "MikoMultiplatformApp/_Imports.razor",
+            "**/Pages/Home.blank.razor", "**/Pages/Home.sidemenu.razor", "**/Pages/Home.list.razor",
+            "**/Pages/Tab1Page.razor", "**/Pages/Tab2Page.razor", "**/Pages/Tab3Page.razor",
+            "**/Full/Pages/Home.blank.razor", "**/Full/Pages/Home.sidemenu.razor", "**/Full/Pages/Home.list.razor",
+            "**/Full/Pages/Tab1Page.razor", "**/Full/Pages/Tab2Page.razor", "**/Full/Pages/Tab3Page.razor"
+          ],
+          "rename": {
+            "MikoMultiplatformApp/Full/MainLayout.razor": "MikoMultiplatformApp/MainLayout.razor",
+            "MikoMultiplatformApp/Full/GlobalStyles.cs": "MikoMultiplatformApp/GlobalStyles.cs",
+            "MikoMultiplatformApp/Full/GlobalUsings.cs": "MikoMultiplatformApp/GlobalUsings.cs",
+            "MikoMultiplatformApp/Full/_Imports.razor": "MikoMultiplatformApp/_Imports.razor",
+            "MikoMultiplatformApp/Full/Pages/Pages": "MikoMultiplatformApp/Pages",
+            "MikoMultiplatformApp/Full/Components": "MikoMultiplatformApp/Components",
+            "MikoMultiplatformApp/Full/Services": "MikoMultiplatformApp/Services",
+            "MikoMultiplatformApp/Full/Assets": "MikoMultiplatformApp/Assets"
           }
         }
       ]
