@@ -38,9 +38,8 @@ internal static class TabStyles
             },
 
             // tabs-inner — the routed content area; grows to push the tab bar to the edge.
-            // A flex column so its child page fills the available height. OverflowY:Hidden
-            // makes it adopt the flex-assigned height as its content height (so the grow
-            // child page is sized correctly) instead of collapsing to a zero basis.
+            // Ionic positions this box but does not clip it. Clipping would prevent a positioned
+            // IonHeader from being z-ordered above the following IonContent, hiding its MD shadow.
             [$".ion-tabs.{mode} .tabs-inner"] = new()
             {
                 FlexGrow = 1,
@@ -48,8 +47,8 @@ internal static class TabStyles
                 FlexBasis = Length.Px(0),
                 Width = Length.Percent(100),
                 Display = Display.Flex,
+                Position = Position.Relative,
                 FlexDirection = FlexDirection.Column,
-                OverflowY = Overflow.Hidden,
             },
 
             // ion-tab-bar — the bar holding the tab buttons. On mobile the bar sits at the bottom

@@ -17,15 +17,19 @@ public static class ToolbarStyles
             // :host — the toolbar container with color/background/border/padding CSS variables
             [$".ion-toolbar.{mode}"] = new()
             {
+                Display = Display.Block,
+                Width = Length.Percent(100),
+                BackgroundColor = t.ToolbarBackground,
                 Color = t.ToolbarColor,
                 TextAlign = TextAlign.Left,
                 Position = Position.Relative,
                 ZIndex = 10,
                 BoxSizing = BoxSizing.BorderBox,
                 MinHeight = Length.Px(t.ToolbarMinHeight),
-                // Note: PaddingLeft/Right are set by PageStyles to Length.SafeAreaInsetLeft/Right
-                // for notch handling. PaddingTop is set by PageStyles' ion-header rule for the
-                // first toolbar only. Don't override them here.
+                // Every toolbar clears a side notch. HeaderStyles adds the top inset only to the
+                // first toolbar in a header.
+                PaddingLeft = Length.SafeAreaInsetLeft,
+                PaddingRight = Length.SafeAreaInsetRight,
             },
 
             // .toolbar-background — the solid backdrop
@@ -53,7 +57,12 @@ public static class ToolbarStyles
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.SpaceBetween,
                 Width = Length.Percent(100),
+                // Ionic uses --min-height: 56px; the flex layout honors explicit height, so set
+                // it directly to give the toolbar its fixed band height.
+                Height = Length.Px(t.ToolbarMinHeight),
                 MinHeight = Length.Px(t.ToolbarMinHeight),
+                // Keep the content above the absolutely-positioned toolbar background.
+                ZIndex = 1,
             },
 
             // .toolbar-content — the flex-item for the default slot. It gets flex:1 so it takes
@@ -66,6 +75,7 @@ public static class ToolbarStyles
                 FlexBasis = Length.Auto,
                 MinWidth = Length.Px(0),
                 MaxWidth = Length.Percent(100),
+                AlignItems = AlignItems.Center,
                 // Keep ordinary default-slot children in block flow rather than a horizontal row.
                 Display = Display.Block,
             },

@@ -5,24 +5,30 @@
    no page transition) — see issues/ion-animation. Miko wires this through a cascading value:
    IonTabButton descendants receive this IonTabs instance and report clicks to SelectTab. *@
 <div class="@ClassMapper.Class" style="@Style">
-    <div class="tabs-inner">
-        @Content
-    </div>
     <CascadingValue TValue="IonTabs" Value="this">
-        @Bar
+        @Top
+        <div class="tabs-inner">
+            @Content
+        </div>
+        @Bottom
     </CascadingValue>
 </div>
 
 @code {
     /// <summary>
-    /// Main content area shown above (slot="bottom") or below (slot="top") the tab bar.
+    /// Content area between the optional top and bottom tab bars.
     /// </summary>
     [Parameter] public RenderFragment? Content { get; set; }
 
     /// <summary>
-    /// The tab bar (<c>ion-tab-bar</c>) holding the tab buttons.
+    /// Content rendered before the main tabs area, corresponding to Ionic's <c>slot="top"</c>.
     /// </summary>
-    [Parameter] public RenderFragment? Bar { get; set; }
+    [Parameter] public RenderFragment? Top { get; set; }
+
+    /// <summary>
+    /// Content rendered after the main tabs area, corresponding to Ionic's <c>slot="bottom"</c>.
+    /// </summary>
+    [Parameter] public RenderFragment? Bottom { get; set; }
 
     protected override void OnParametersSet()
     {

@@ -2,7 +2,7 @@
 @namespace MikoAppTabs
 
 <IonTabs>
-    <Content>@Body</Content><Bar><IonTabBar Slot="bottom">
+    <Content>@Body</Content><Bottom><IonTabBar Slot="bottom">
         <IonTabButton Tab="tab1" Href="/tab1" Selected="@IsActive("/tab1", "/")">
             <IonIcon Icon="@Ionicons.Triangle" />
             <IonLabel>Tab 1</IonLabel>
@@ -15,7 +15,7 @@
             <IonIcon Icon="@Ionicons.Square" />
             <IonLabel>Tab 3</IonLabel>
         </IonTabButton>
-    </IonTabBar></Bar>
+    </IonTabBar></Bottom>
 </IonTabs>
 
 @code {
