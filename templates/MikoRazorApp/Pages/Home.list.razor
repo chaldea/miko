@@ -1,0 +1,38 @@
+@page "/"
+@namespace MikoRazorApp.Pages
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <IonTitle>List</IonTitle>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen="true">
+        <IonList>
+            @foreach (var item in _items)
+            {
+                <IonItem>
+                    <Start>
+                        <IonIcon Icon="@item.Icon" />
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>@item.Title</IonLabel>
+                    </ChildContent>
+                </IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+
+@code {
+    private readonly ListItem[] _items =
+    {
+        new("Inbox", Ionicons.MailOutline),
+        new("Outbox", Ionicons.PaperPlaneOutline),
+        new("Favorites", Ionicons.HeartOutline),
+        new("Archived", Ionicons.ArchiveOutline),
+        new("Trash", Ionicons.TrashOutline),
+    };
+
+    private readonly record struct ListItem(string Title, string Icon);
+}

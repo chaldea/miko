@@ -116,13 +116,16 @@ A window opens showing the home page (`Pages/Home.razor`). Add a page by droppin
 
 #### Choose a layout
 
-Both templates accept a `--layout` option to scaffold a starting UI. The default is `blank`;
-`tabs` and `sidemenu` scaffold Ionic-based layouts (and add the `Miko.Ionic` package):
+Both templates accept a `--layout` option to scaffold a starting UI. Every layout uses the
+Ionic component tree; `blank` is the default, while `tabs`, `sidemenu`, and `list` provide
+common shells and `full` copies the complete Ionic component showcase:
 
 ```bash
 dotnet new miko-razor --layout blank     -o MyApp   # empty page (default)
 dotnet new miko-razor --layout tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
 dotnet new miko-razor --layout sidemenu  -o MyApp   # Ionic side-menu drawer over a page
+dotnet new miko-razor --layout list      -o MyApp   # Ionic list page
+dotnet new miko-razor --layout full      -o MyApp   # all Ionic component demos
 ```
 
 For a cross-platform app (Desktop + Android + iOS), use the multiplatform template instead:

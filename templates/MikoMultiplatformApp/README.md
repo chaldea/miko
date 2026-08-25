@@ -17,6 +17,11 @@ The shared project exposes `App.CreateContext()`, which returns a platform-neutr
 `MikoAppContext`. Each startup project consumes that context and drives the render loop
 for its platform.
 
+## Layouts
+
+The template accepts `--layout blank`, `tabs`, `sidemenu`, `list`, or `full`. The `full`
+layout includes the Ionic component showcase and its embedded demo assets.
+
 ## Run
 
 Desktop:

@@ -19,6 +19,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--#if (useFull) -->
+    <EmbeddedResource Include="Assets\**\*" />
+    <!--#endif -->
     <PackageReference Include="Miko" Version="1.0.0" />
     <PackageReference Include="Miko.Windowing" Version="1.0.0" />
     <PackageReference Include="Miko.DevTools" Version="1.0.0" />

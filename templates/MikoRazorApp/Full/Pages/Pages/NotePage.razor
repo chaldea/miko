@@ -1,0 +1,46 @@
+@page "/note"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Note</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList>
+            <IonListHeader>
+                <IonLabel>List Notes</IonLabel>
+            </IonListHeader>
+
+            @foreach (var note in _notes)
+            {
+                <IonItem>
+                    <End>
+                        <IonNote Color="@note.Color">@note.Value</IonNote>
+                    </End>
+                    <ChildContent>
+                        <IonLabel>@note.Label</IonLabel>
+                    </ChildContent>
+                </IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+    private readonly (string Label, string? Color, string Value)[] _notes =
+    {
+        ("Default", null, "11"),
+        ("Primary", "primary", "22"),
+        ("Secondary", "secondary", "33"),
+        ("Tertiary", "tertiary", "44"),
+        ("Success", "success", "55"),
+        ("Warning", "warning", "66"),
+        ("Danger", "danger", "77"),
+        ("Dark", "dark", "88"),
+    };
+}

@@ -1,0 +1,44 @@
+@page "/toast"
+
+@* NOTE: Ionic creates the overlay imperatively via toastController.create().present();
+   Miko's IonToast is declarative — the host binds IsOpen. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Toast</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <ComponentDetails Name="Toast">
+            The Toast is a subtle notification commonly used in modern applications. It can be used
+            to provide feedback about an operation or to display a system message. It appears on top
+            of the app's content, and can be dismissed by the app to resume user interaction with the app.
+        </ComponentDetails>
+
+        <div class="ion-padding-start ion-padding-end">
+            <IonButton Expand="block" OnClick="@(() => _isOpen = true)">Open Toast</IonButton>
+        </div>
+
+        <IonToast Color="dark"
+                  Duration="2000"
+                  Message="Paired successfully"
+                  Buttons="@_buttons"
+                  IsOpen="@_isOpen"
+                  IsOpenChanged="@(open => _isOpen = open)">
+        </IonToast>
+    </IonContent>
+</IonPage>
+@code {
+    private bool _isOpen;
+
+    private readonly IReadOnlyList<IonToastButton> _buttons = new List<IonToastButton>
+    {
+        new() { Text = "Close", Role = "cancel" },
+    };
+}

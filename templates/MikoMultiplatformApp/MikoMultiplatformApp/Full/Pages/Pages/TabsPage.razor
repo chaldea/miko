@@ -1,0 +1,32 @@
+@page "/tabs"
+@page "/tabs-music"
+
+@* NOTE: Ionic's <ion-tab tab="..." component="..."> mounts each tab's component inside
+   <ion-tabs>. Miko has no IonTab component — IonTabButton navigates by Href instead, so each
+   tab is its own route (/tabs-music, /tabs-movies, /tabs-games) sharing the DemoTabBar. *@
+
+<IonPage>
+    <IonTabs>
+        <Content>
+            <IonHeader>
+                <IonToolbar>
+                    <Start>
+                        <IonBackButton DefaultHref="/"></IonBackButton>
+                    </Start>
+                    <ChildContent>
+                        <IonTitle>Music</IonTitle>
+                    </ChildContent>
+                </IonToolbar>
+            </IonHeader>
+            <IonContent Fullscreen Class="ion-padding">
+                <h1>Music</h1>
+            </IonContent>
+        </Content>
+        <Bar>
+            <DemoTabBar Selected="tabs-music"></DemoTabBar>
+        </Bar>
+    </IonTabs>
+</IonPage>
+@code {
+
+}

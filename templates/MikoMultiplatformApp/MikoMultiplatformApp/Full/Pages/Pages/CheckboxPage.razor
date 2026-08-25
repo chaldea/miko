@@ -1,0 +1,59 @@
+@page "/checkbox"
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Checkbox</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Fullscreen>
+        <IonList Lines="full">
+            <IonListHeader>
+                <IonLabel>Characters</IonLabel>
+            </IonListHeader>
+            @foreach (var character in _characters)
+            {
+                <IonItem>
+                    <IonCheckbox Color="@character.Color"
+                                 @bind-Checked="@character.Checked"
+                                 Disabled="@character.Disabled"
+                                 LabelPlacement="end"
+                                 Justify="start">
+                        @character.Name
+                    </IonCheckbox>
+                </IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+@code {
+
+    private sealed class Character
+    {
+        public string Name { get; init; } = string.Empty;
+        public string? Color { get; init; }
+        public bool Checked { get; set; }
+        public bool Disabled { get; init; }
+    }
+
+    private readonly List<Character> _characters = new()
+    {
+        new() { Name = "Jon Snow", Color = "primary", Checked = true },
+        new() { Name = "Daenerys Targaryen", Color = "dark", Checked = true },
+        new() { Name = "Arya Stark", Disabled = true },
+        new() { Name = "Tyrion Lannister", Color = "secondary" },
+        new() { Name = "Sansa Stark", Color = "danger", Checked = true },
+        new() { Name = "Khal Drogo", Color = "primary" },
+        new() { Name = "Cersei Lannister", Color = "tertiary", Checked = true },
+        new() { Name = "Stannis Baratheon", Color = "medium", Checked = true },
+        new() { Name = "Petyr Baelish", Color = "primary", Disabled = true },
+        new() { Name = "Hodor", Color = "dark", Checked = true },
+        new() { Name = "Catelyn Stark", Color = "secondary", Checked = true },
+        new() { Name = "Bronn", Color = "primary" },
+    };
+}

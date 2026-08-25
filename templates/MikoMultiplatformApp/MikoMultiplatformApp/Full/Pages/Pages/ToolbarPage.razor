@@ -1,0 +1,249 @@
+@page "/toolbar"
+
+@* NOTE: the original demo branches on getMode() and swaps the main toolbar for a searchbar.
+   Miko's IonSearchbar has no cancel event, and IonTitle has no `size` parameter (Ionic's
+   size="large") or `collapse="condense"` header, so those variants render at default size.
+   The footer's DOM-mutating "toggle text" button is replaced by a bound flag. *@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/"></IonBackButton>
+            </Start>
+            <ChildContent>
+                <IonTitle>Toolbar</IonTitle>
+            </ChildContent>
+            <End>
+                <IonButtons>
+                    <IonButton>
+                        <IconOnly>
+                            <IonIcon Icon="@Ionicons.SearchSharp" Slot="icon-only"></IonIcon>
+                        </IconOnly>
+                    </IonButton>
+                </IonButtons>
+            </End>
+        </IonToolbar>
+        <IonToolbar>
+            <IonSegment @bind-Value="_segment">
+                <IonSegmentButton Value="all">All</IonSegmentButton>
+                <IonSegmentButton Value="favorites">Favorites</IonSegmentButton>
+            </IonSegment>
+        </IonToolbar>
+    </IonHeader>
+
+    <IonContent>
+        <IonHeader>
+            <IonToolbar>
+                <Primary>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.EllipsisHorizontal" Md="@Ionicons.EllipsisVertical" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
+                </Primary>
+                <ChildContent>
+                    <IonTitle>Page title</IonTitle>
+                </ChildContent>
+            </IonToolbar>
+        </IonHeader>
+
+        <IonHeader>
+            <IonToolbar>
+                <Primary>
+                    <IonButtons>
+                        <IonButton>Edit</IonButton>
+                    </IonButtons>
+                </Primary>
+                <ChildContent>
+                    <IonTitle>Page title</IonTitle>
+                </ChildContent>
+                <End>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.AddOutline" Md="@Ionicons.AddSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
+                </End>
+            </IonToolbar>
+        </IonHeader>
+
+        <IonHeader>
+            <IonToolbar>
+                <Start>
+                    <IonButtons>
+                        <IonBackButton DefaultHref="#" Text="@(Mode == "ios" ? "February" : "")"></IonBackButton>
+                    </IonButtons>
+                </Start>
+                <End>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.ListOutline" Md="@Ionicons.ListSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.SearchOutline" Md="@Ionicons.SearchSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.AddOutline" Md="@Ionicons.AddSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
+                </End>
+            </IonToolbar>
+        </IonHeader>
+
+        <IonHeader>
+            <IonToolbar>
+                <Primary>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.HeartOutline" Md="@Ionicons.HeartSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
+                </Primary>
+                <End>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.SearchOutline" Md="@Ionicons.SearchSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
+                </End>
+                <ChildContent>
+                    <IonTitle>Page title</IonTitle>
+                </ChildContent>
+            </IonToolbar>
+        </IonHeader>
+
+        <IonHeader>
+            <IonToolbar>
+                <Primary>
+                    <IonButtons>
+                        <IonButton>Reset</IonButton>
+                    </IonButtons>
+                </Primary>
+                <End>
+                    <IonButtons>
+                        <IonButton>Done</IonButton>
+                    </IonButtons>
+                </End>
+                <ChildContent>
+                    <IonTitle>Page title</IonTitle>
+                </ChildContent>
+            </IonToolbar>
+        </IonHeader>
+
+        <IonHeader>
+            <IonToolbar>
+                <Start>
+                    <IonButtons>
+                        <IonBackButton DefaultHref="#" Text="@(Mode == "ios" ? "Notes" : "")"></IonBackButton>
+                    </IonButtons>
+                </Start>
+                <End>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Icon="@Ionicons.PersonCircleOutline" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Icon="@Ionicons.ShareOutline" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
+                </End>
+            </IonToolbar>
+        </IonHeader>
+
+        <IonHeader>
+            <IonToolbar>
+                <Start>
+                    <IonButtons>
+                        <IonMenuButton></IonMenuButton>
+                    </IonButtons>
+                </Start>
+                <ChildContent>
+                    <IonTitle>Page title</IonTitle>
+                </ChildContent>
+            </IonToolbar>
+        </IonHeader>
+
+        <IonHeader>
+            <IonToolbar>
+                <Start>
+                    <IonButtons>
+                        <IonBackButton DefaultHref="#"></IonBackButton>
+                    </IonButtons>
+                </Start>
+                <End>
+                    <IonButtons>
+                        <IonButton>
+                            <IconOnly>
+                                <IonIcon Ios="@Ionicons.StarOutline" Md="@Ionicons.StarSharp" Slot="icon-only"></IonIcon>
+                            </IconOnly>
+                        </IonButton>
+                    </IonButtons>
+                </End>
+                <ChildContent>
+                    <IonTitle>Page title</IonTitle>
+                </ChildContent>
+            </IonToolbar>
+        </IonHeader>
+
+        <IonHeader>
+            <IonToolbar>
+                <IonTitle>Page title</IonTitle>
+                <IonProgressBar Value="0.4"></IonProgressBar>
+            </IonToolbar>
+        </IonHeader>
+    </IonContent>
+
+    <IonFooter>
+        <IonToolbar>
+            <End>
+                <IonButtons>
+                    <IonButton OnClick="@ToggleText">
+                        <Start>
+                            <IonIcon Icon="@Ionicons.Refresh"></IonIcon>
+                        </Start>
+                        <ChildContent>
+                            @if (_showToggleText)
+                            {
+                                <span>Toggle</span>
+                            }
+                        </ChildContent>
+                    </IonButton>
+                </IonButtons>
+            </End>
+            <ChildContent>
+                <IonTitle>Click Button to Toggle Text</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonFooter>
+</IonPage>
+@code {
+    [Inject] public Miko.Platform.IPlatformInfo? PlatformInfo { get; set; }
+
+    /// <summary>The active Ionic mode ("ios" / "md") — the page equivalent of
+    /// IonicComponentBase.Mode, which page components don't inherit.</summary>
+    private string Mode => IonicModeResolver.ResolveClass(PlatformInfo);
+
+    private string? _segment = "all";
+    private bool _showToggleText;
+
+    private void ToggleText() => _showToggleText = !_showToggleText;
+}

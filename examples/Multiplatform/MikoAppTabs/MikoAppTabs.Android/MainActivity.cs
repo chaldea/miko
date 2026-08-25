@@ -26,6 +26,6 @@ public class MainActivity : Activity
         }
 
         // Reuse the shared app configuration; Miko.Android drives rendering and touch input.
-        SetContentView(MikoAndroidApp.CreateView(this, MikoAppTabs.App.CreateContext));
+        SetContentView(MikoAndroidApp.CreateView(this, () => MikoAppTabs.App.CreateContext()));
     }
 }

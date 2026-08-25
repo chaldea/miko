@@ -1,0 +1,27 @@
+@page "/tabs-movies"
+
+<IonPage>
+    <IonTabs>
+        <Content>
+            <IonHeader>
+                <IonToolbar>
+                    <Start>
+                        <IonBackButton DefaultHref="/"></IonBackButton>
+                    </Start>
+                    <ChildContent>
+                        <IonTitle>Movies</IonTitle>
+                    </ChildContent>
+                </IonToolbar>
+            </IonHeader>
+            <IonContent Fullscreen Class="ion-padding">
+                <h1>Movies</h1>
+            </IonContent>
+        </Content>
+        <Bar>
+            <DemoTabBar Selected="tabs-movies"></DemoTabBar>
+        </Bar>
+    </IonTabs>
+</IonPage>
+@code {
+
+}

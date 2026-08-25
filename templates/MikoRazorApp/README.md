@@ -3,6 +3,11 @@
 An empty [Miko](https://github.com/chaldea/miko) desktop application that uses Razor components for its UI,
 rendered with SkiaSharp.
 
+## Layouts
+
+The template accepts `--layout blank`, `tabs`, `sidemenu`, `list`, or `full`. The `full`
+layout includes the Ionic component showcase and its embedded demo assets.
+
 ## Run
 
 ```bash
