@@ -5,6 +5,7 @@ using SkiaSharp;
 
 namespace Miko.Tests.Fonts;
 
+[Collection(Miko.Tests.GlobalFontStateCollection.Name)] // 进程级字体/度量状态，需串行（ISSUE-129）
 public class BootstrapIconsTests : IDisposable
 {
     private readonly FontManager _fontManager;

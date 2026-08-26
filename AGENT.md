@@ -104,12 +104,17 @@ dotnet run --project examples/Ionic/IonicDemo
 ### 渲染、动画与资源
 
 - 修改 DOM、样式、文本、状态、滚动或输入后应通过现有 invalidation 机制触发布局/绘制；不要无条件调用全量 `Render`。
-- 单引擎宿主用 `MikoEngine.HasPendingVisualWork` 判断是否需要新帧；同进程次级引擎（DevTools）不能使用它，因为 `Element.MutationVersion` 是全局静态版本号，应使用 `HasPendingRenderWork` 并自行判断 DOM 是否需要重建。
+- **不改 DOM 却改画面**的变化（典型是 `RenderEngine.OverlayCallback` 的内容变了，如 DevTools 在主窗口高亮选中节点）必须调 `MikoEngine.RequestRepaint()`：这类变化没有元素可标脏，不请求就会被空闲跳帧整帧跳过，画面停在上一帧。`RequestRepaint` 只重绘、不使布局失效，画完一帧即自动消费。
+- 所有宿主（含 DevTools、模拟器面板等同进程次级引擎）都用 `MikoEngine.HasPendingVisualWork` 判断是否需要新帧。变更版本号按引擎实例计（`MikoEngine.Mutations`，ISSUE-129），一个引擎的 DOM 变更不会击穿另一个引擎的布局缓存。`HasPendingRenderWork` 仍保留，供「自行掌握 DOM 重建时机、只想查询引擎内部待办」的宿主使用。
+- 引擎一律经容器构造：独立引擎用 `new MikoEngineBuilder().Build()`，完整应用用 `MikoAppBuilder`（内部复用同一个 `Services.AddMikoEngine()`）。不要直接 `new MikoEngine(...)`——那样绕过 DI，拿不到图片加载器/高亮器/视频后端等可选服务。
+- `AddMikoEngine` 的默认注册**一律用 `TryAdd`**：既可重复调用，也绝不覆盖调用方已有的注册——自定义 `IImageLoader`/`ISyntaxHighlighter`/`IVideoBackend` 无论注册在它之前还是之后都胜出。这是必须的，因为 `MikoEngineBuilder.ConfigureServices` 在 `Build()` 之前执行，而 `Build()` 内部才调 `AddMikoEngine()`；若用 `AddSingleton`，默认实现会后注册并覆盖掉自定义实现（DI 单服务解析取最后一项）。宿主侧覆盖用 `Replace` 而非 `Add`。
+- `Element.Children` 是 `ElementCollection` 而非裸 `List<Element>`：对它的**任何**写入（`Add`/`Insert`/`Clear`/`Remove`/`RemoveAt`/`RemoveAll`/索引器）都会设置父引用、下发引擎归属并递增变更版本号。记账必须落在集合里，因为 `Children` 是公开成员，集合初始化器、`TextContent` setter、组件重渲染都直接写它而绕过 `AddChild`；漏记就会导致稳态帧之后的结构变化不使布局缓存失效，增删改的节点根本不呈现。`RemoveChild` 会清除被移除子树的归属，游离元素不再为旧引擎产生无意义的重排。
+- 引擎实例之间隔离的是：变更版本号、布局缓存、脏区域、动画状态、视频/图片会话。**进程共享**的是 `FontManager.Instance`（字体注册表 + 字形缓存）与 `TextMeasurer` 的度量缓存——二者内容寻址，并发**只读**命中正确且有益。但写全局字体状态不是并发安全的：`FontManager.ResetInstance()` 会释放当前字体对象，`RegisterFont`/注销会改变全局度量结果——应在任何引擎渲染前完成注册；测试若要调用这些 API，须加入 `GlobalFontStateCollection`（`DisableParallelization`）以串行执行。
 - Silk 宿主关闭自动交换（`ShouldSwapAutomatically = false`），只有实际绘制后才 `SwapBuffers`。跳帧时必须维护待呈现计数，避免后备缓冲闪烁。
 - 每帧创建的 `GRBackendRenderTarget` 和 `SKSurface` 必须 `using`/`Dispose`；必要时设置合理的 `GRContext` 资源缓存上限。宿主退出时释放 GL、输入上下文、surface 和 context。
 - 模拟器高 DPI 离屏 surface 使用 `SKSurfaceProperties`；缩放合成使用高质量采样（当前为 Mitchell cubic）。SVG 栅格化和位图绘制要启用抗锯齿/高质量采样。
 - 动画条目以逻辑元素身份迁移到 `SupersededBy` 新实例；迁移发生在过渡检测前，随后回收脱离 DOM 或已撤下声明的动画。组件回调触发 `StateHasChanged` 不应重置正在运行的动画。
-- 图片通过 DI 管理的 `ResourceManager` 加载，支持 `file://`、`res://`、HTTP(S) 和 data URI。多平台嵌入资源先用 `AddResourceAssembly` 注册；相对文件路径基于 `AppContext.BaseDirectory` 解析。视频必须由平台注入 `IVideoBackend`，核心层不能依赖 FFmpeg 或原生控件。
+- 图片通过 DI 管理的 `ResourceManager` 加载，支持 `file://`、`res://`、HTTP(S) 和 data URI。多平台嵌入资源先用 `AddResourceAssembly` 注册；相对文件路径基于 `AppContext.BaseDirectory` 解析。视频由平台在 DI 中注册 `IVideoBackend`（桌面为 `FFmpegVideoBackend`），经构造器注入；核心层只有空实现 `NullVideoBackend`（不建会话，`<video>` 仅显示背景/poster），不能依赖 FFmpeg 或原生控件。
 
 ### 路由、滚动与平台
 

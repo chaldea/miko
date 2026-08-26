@@ -28,7 +28,7 @@ public class IonSegmentScrollableTests : IDisposable
 
     private (Element Root, MikoEngine Engine) BuildAndInitialize(HostPlatform platform = HostPlatform.Ios)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var context = new TestContext
         {
             ViewportWidth = ViewportWidth,
@@ -126,7 +126,7 @@ public class IonSegmentScrollableTests : IDisposable
     [Fact]
     public void Ios_DebugDemoStructure_ClickingWatch_CentersButtonInViewport()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var context = new TestContext
         {
             ViewportWidth = 400f,

@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Styling;
 using Shouldly;
@@ -62,7 +63,7 @@ public class ScrollRestorationTests
         layout.AddChild(mainContent);
 
         // 初始化引擎
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(800, 300));
         engine.Initialize(layout, new List<StyleSheet>(), surface.Canvas, 800, 300);
 
@@ -145,7 +146,7 @@ public class ScrollRestorationTests
             Children = { new DivElement { Style = new Style { Height = Length.Px(800) } } }
         };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(400, 300));
         engine.Initialize(scrollable, new List<StyleSheet>(), surface.Canvas, 400, 300);
 
@@ -202,7 +203,7 @@ public class ScrollRestorationTests
         };
         outerContainer.AddChild(innerScrollable);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(400, 300));
         engine.Initialize(outerContainer, new List<StyleSheet>(), surface.Canvas, 400, 300);
 
@@ -271,7 +272,7 @@ public class ScrollRestorationTests
             }
         };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(400, 300));
         engine.Initialize(scrollable, new List<StyleSheet>(), surface.Canvas, 400, 300);
 
@@ -354,7 +355,7 @@ public class ScrollRestorationTests
             return layout;
         }
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(800, 300));
         engine.Initialize(BuildLayout(), new List<StyleSheet>(), surface.Canvas, 800, 300);
 
@@ -402,7 +403,7 @@ public class ScrollRestorationTests
                 TextContent = $"Button {i}"
             });
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(600, 300));
         engine.Initialize(longContent, new List<StyleSheet>(), surface.Canvas, 600, 300);
 
@@ -466,7 +467,7 @@ public class ScrollRestorationTests
             return list;
         }
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(400, 300));
         engine.Initialize(BuildList("v1"), new List<StyleSheet>(), surface.Canvas, 400, 300);
 
@@ -534,7 +535,7 @@ public class ScrollRestorationTests
             return root;
         }
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(500, 500));
         // 初始：面板折叠。
         engine.Initialize(BuildRoot(expanded: false), new List<StyleSheet>(), surface.Canvas, 500, 500);

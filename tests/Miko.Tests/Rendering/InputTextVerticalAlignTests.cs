@@ -14,6 +14,7 @@ namespace Miko.Tests.Rendering;
 /// ISSUE-041 回归测试：
 /// 验证 Input 元素设置高度后，文本内容和光标都能垂直居中。
 /// </summary>
+[Collection(Miko.Tests.GlobalFontStateCollection.Name)] // 进程级字体/度量状态，需串行（ISSUE-129）
 public class InputTextVerticalAlignTests : IDisposable
 {
     private readonly SKBitmap _bitmap;

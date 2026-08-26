@@ -326,7 +326,14 @@ public class CircularSizeDependencyTests
         // border-box 下：总高度 36px，内容区 = 36 - 16 = 20px
         nativeBox.BoxModel.Content.Height.ShouldBe(20f, 0.5f);
 
-        // button-inner: height:100% 应相对于 button-native 的内容区（20px和浏览器值存在偏差，Miko差不多17-18左右）
-        innerBox.BoxModel.Content.Height.ShouldBe(18f, 0.5f);
+        // button-inner: height:100% 应相对于 button-native 的内容区（20px 和浏览器值存在偏差）。
+        // 此处 height:100% 退化为 auto（见 memory: percent-indefinite-degrades-auto），故实际高度
+        // 由文本行高决定。inner 自己没声明 font-size，从 button-native 继承 14px → 约 15.6px。
+        //
+        // 该期望值曾是 18f（对应 font-size 16 的默认值）：ISSUE-129 之前 `Children = { ... }`
+        // 集合初始化器**不设置 Parent**，而样式继承走 element.Parent，于是本测试（直接调
+        // LayoutEngine，不经引擎的 EnsureParentReferences）整棵树都没有父链，继承静默失效。
+        // ElementCollection 现在会在写入时设置父引用，继承恢复正常，数值随之修正。
+        innerBox.BoxModel.Content.Height.ShouldBe(15.6f, 0.5f);
     }
 }

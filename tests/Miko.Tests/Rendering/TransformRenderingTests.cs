@@ -2,6 +2,7 @@ using Miko.Animation;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Rendering;
 using Miko.Styling;
@@ -127,7 +128,7 @@ public class TransformRenderingTests : IDisposable
 
     private void RenderElement(Element root)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [], _canvas, 200, 200);
         engine.Render(_canvas);
     }
@@ -158,7 +159,7 @@ public class TransformRenderingTests : IDisposable
             Style = afterStyle
         });
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 200, 200);
 
         // Now mutate the style to add Transform
@@ -251,7 +252,7 @@ public class TransformRenderingTests : IDisposable
         var root1 = new DivElement { Class = "panel" };
         root1.Style = new Style { Width = Length.Px(100), Height = Length.Px(100) };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root1, [styleSheet], _canvas, 200, 200);
 
         // Second Initialize: class="panel open" (now .open matches, Transform applied)
@@ -309,7 +310,7 @@ public class TransformRenderingTests : IDisposable
         root.Style = new Style { Width = Length.Px(200), Height = Length.Px(200) };
         root.AddChild(panel);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 200, 200);
 
         // Simulate StateHasChanged: change class in place

@@ -11,6 +11,34 @@ namespace Miko.Layout;
 /// </summary>
 public class LayoutEngine
 {
+    // 所属引擎的变更计数器（ISSUE-129）。布局缓存以它为键之一，因此必须是「本引擎的」计数器
+    // ——用进程级全局计数会让任一引擎的 DOM 变更击穿所有引擎的布局缓存（ISSUE-117）。
+    private readonly MutationTracker _mutations;
+
+    // 独立构造（无引擎归属）时为 true：此时布局结果缓存被彻底禁用，见下面的构造函数说明。
+    private readonly bool _cachingEnabled;
+
+    /// <summary>DI 构造：使用所属引擎容器中的变更计数器，布局结果缓存正常生效。</summary>
+    public LayoutEngine(MutationTracker mutations)
+    {
+        _mutations = mutations;
+        _cachingEnabled = true;
+    }
+
+    /// <summary>
+    /// 独立构造。供「不接入引擎、直接跑布局」的调用方使用（布局/渲染单元测试、基准测试）。
+    ///
+    /// <para>这种用法下树上的元素没有 <see cref="Element.Owner"/>，其变更<b>不会</b>递增任何
+    /// 计数器，缓存键因此恒定不变——若仍启用缓存，「改了树再布局一次」会静默返回上一次的
+    /// 结果。故独立构造下直接<b>禁用</b>布局结果缓存：每次 <see cref="Layout"/> 都真实重排。
+    /// 缓存是 ISSUE-096 的稳态帧优化，只对逐帧渲染的引擎有意义。</para>
+    /// </summary>
+    public LayoutEngine()
+    {
+        _mutations = new MutationTracker();
+        _cachingEnabled = false;
+    }
+
     private readonly StyleResolver _styleResolver = new();
     private readonly BlockLayout _blockLayout = new();
     private readonly InlineLayout _inlineLayout = new();
@@ -28,8 +56,8 @@ public class LayoutEngine
     private ViewportInfo _viewport = new(0, 0);
 
     // ---- 布局结果缓存（ISSUE-096）----
-    // 一次完整布局的输入为：根元素、样式表列表、视口尺寸、安全区、以及全局变更版本号
-    // （Element.MutationVersion 覆盖结构/文本/class/行内样式/状态/图片尺寸等所有布局输入）。
+    // 一次完整布局的输入为：根元素、样式表列表、视口尺寸、安全区、以及本引擎的变更版本号
+    // （MutationTracker 覆盖结构/文本/class/行内样式/状态/图片尺寸等所有布局输入）。
     // 这些输入全部未变时，重跑布局必然得到相同结果，因此直接复用上次的布局树，
     // 稳态帧（仅视频新帧、滚动等绘制级失效）不再产生任何样式/布局分配。
     private Element? _cachedRoot;
@@ -42,8 +70,8 @@ public class LayoutEngine
     private LayoutBox? _cachedResult;
 
     /// <summary>
-    /// 使缓存的布局结果失效。一般无需调用——所有常规变更都会递增
-    /// <see cref="Element.MutationVersion"/> 而被自动检测。仅在引擎外发生了未被追踪的
+    /// 使缓存的布局结果失效。一般无需调用——所有常规变更都会递增本引擎的
+    /// <see cref="MutationTracker.Version"/> 而被自动检测。仅在引擎外发生了未被追踪的
     /// 变化时（如运行时注册新字体改变了文本度量、直接改写样式表规则内容）调用。
     /// </summary>
     public void InvalidateCache()
@@ -58,14 +86,15 @@ public class LayoutEngine
     public bool IsLayoutCurrent(Element? root, List<StyleSheet> styleSheets, float viewportWidth, float viewportHeight,
         SafeAreaInsets safeArea = default)
     {
-        return _cachedResult != null
+        return _cachingEnabled
+            && _cachedResult != null
             && ReferenceEquals(_cachedRoot, root)
             && ReferenceEquals(_cachedStyleSheets, styleSheets)
             && _cachedStyleSheetCount == styleSheets.Count
             && Math.Abs(_cachedViewportWidth - viewportWidth) < 0.01f
             && Math.Abs(_cachedViewportHeight - viewportHeight) < 0.01f
             && _cachedSafeArea == safeArea
-            && _cachedMutationVersion == Element.MutationVersion;
+            && _cachedMutationVersion == _mutations.Version;
     }
 
     /// <summary>
@@ -118,7 +147,7 @@ public class LayoutEngine
         _cachedViewportWidth = viewportWidth;
         _cachedViewportHeight = viewportHeight;
         _cachedSafeArea = safeArea;
-        _cachedMutationVersion = Element.MutationVersion;
+        _cachedMutationVersion = _mutations.Version;
         _cachedResult = layoutRoot;
 
         return layoutRoot;

@@ -2,6 +2,7 @@ using Miko.Animation;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Styling;
 using Shouldly;
 using SkiaSharp;
@@ -51,7 +52,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         // 初始状态：MaxHeight = 0
@@ -89,7 +90,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         // 触发 transition
@@ -129,7 +130,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         box.Class = "box open";
@@ -167,7 +168,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         box.Class = "box open";
@@ -207,7 +208,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         box.Class = "box open";
@@ -251,7 +252,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         // 触发 transition
@@ -295,7 +296,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         box.Class = "box open";
@@ -333,7 +334,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         box.Class = "box open";
@@ -365,7 +366,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         var completed = new List<(Element element, string property)>();
@@ -413,7 +414,7 @@ public class TransitionTriggerTests : IDisposable
         var box = new DivElement { Class = "box" };
         root.AddChild(box);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [styleSheet], _canvas, 600, 600);
 
         // 切换到 closed 状态，触发 300 -> 0 的 transition

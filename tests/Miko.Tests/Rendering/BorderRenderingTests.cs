@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Rendering;
 using Miko.Styling;
@@ -203,7 +204,7 @@ public class BorderRenderingTests : IDisposable
 
     private void RenderElement(Element root)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [], _canvas, 600, 600);
         engine.Render(_canvas);
     }

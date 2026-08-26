@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Styling;
 using Miko.Styling.Selectors;
 using Shouldly;
@@ -77,7 +78,7 @@ public class SafeAreaInsetsEngineTests : IDisposable
     {
         // The viewport is not shrunk: a full-size root without env() padding fills the screen.
         var root = new DivElement { Class = "root" };
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { RootSheet(new Color(255, 255, 255)) }, _canvas, 390, 844);
 
         engine.SetSafeAreaInsets(new SafeAreaInsets(0, 48, 0, 24));
@@ -94,7 +95,7 @@ public class SafeAreaInsetsEngineTests : IDisposable
     {
         // A root that opts into env() padding gets its content box inset after a relayout.
         var root = new DivElement { Class = "root" };
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { SafeAreaPaddedSheet(new Color(255, 255, 255)) }, _canvas, 390, 844);
 
         engine.SetSafeAreaInsets(new SafeAreaInsets(0, 48, 0, 24));
@@ -112,7 +113,7 @@ public class SafeAreaInsetsEngineTests : IDisposable
     public void SetSafeAreaInsets_ExposedViaProperty()
     {
         var root = new DivElement { Class = "root" };
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { RootSheet(new Color(255, 255, 255)) }, _canvas, 390, 844);
 
         var insets = new SafeAreaInsets(12, 48, 8, 24);
@@ -125,7 +126,7 @@ public class SafeAreaInsetsEngineTests : IDisposable
     public void SetSafeAreaInsets_SameValue_DoesNotRelayout()
     {
         var root = new DivElement { Class = "root" };
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { RootSheet(new Color(255, 255, 255)) }, _canvas, 390, 844);
 
         engine.SetSafeAreaInsets(new SafeAreaInsets(0, 48, 0, 24));
@@ -143,7 +144,7 @@ public class SafeAreaInsetsEngineTests : IDisposable
     public void SetSafeAreaInsets_DifferentValue_Relayouts()
     {
         var root = new DivElement { Class = "root" };
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { SafeAreaPaddedSheet(new Color(255, 255, 255)) }, _canvas, 390, 844);
 
         engine.SetSafeAreaInsets(new SafeAreaInsets(0, 48, 0, 24));
@@ -162,7 +163,7 @@ public class SafeAreaInsetsEngineTests : IDisposable
     public void GetRootBackgroundColor_ReturnsResolvedColor()
     {
         var root = new DivElement { Class = "root" };
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var bg = new Color(18, 52, 86);
         engine.Initialize(root, new List<StyleSheet> { RootSheet(bg) }, _canvas, 390, 844);
 
@@ -177,7 +178,7 @@ public class SafeAreaInsetsEngineTests : IDisposable
     public void GetRootBackgroundColor_TransparentRoot_ReturnsNull()
     {
         var root = new DivElement { Class = "root" };
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         // No background color rule -> root defaults to transparent.
         engine.Initialize(root, new List<StyleSheet>(), _canvas, 390, 844);
 

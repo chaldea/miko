@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Components;
 using Miko.Core;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Styling;
 using Shouldly;
@@ -76,7 +77,7 @@ public class ScrollPageRerenderTests
         var page = new ListPage { Rows = 20 };
         var root = page.Build();
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
         engine.Initialize(root, new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
 

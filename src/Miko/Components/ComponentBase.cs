@@ -247,8 +247,9 @@ public abstract class ComponentBase : IComponent
             nestedDispose?.Invoke();
             DisposeInternal();
         };
+        // ElementCollection 的索引器会自动设置父引用、下发引擎归属并记账这次结构替换
+        // （ISSUE-129）——缺了记账，下一帧的布局缓存判定会认为「无事发生」而复用旧布局。
         parent.Children[index] = rebuilt;
-        rebuilt.SetParent(parent);
         _rootElement = rebuilt;
         // The old subtree (and the nested component instances that produced it) is now
         // unreferenced — dispose those components so their event subscriptions are released.
@@ -309,8 +310,8 @@ public abstract class ComponentBase : IComponent
         for (int i = 0; i < source.Children.Count; i++)
         {
             var newChild = source.Children[i];
+            // Add 会自动设置父引用、下发引擎归属并记账（见 ElementCollection，ISSUE-129）。
             target.Children.Add(newChild);
-            newChild.SetParent(target);
 
             if (i < oldChildren.Count)
                 TransferLayoutBox(oldChildren[i], newChild);

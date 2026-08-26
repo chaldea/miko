@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Styling;
 using Shouldly;
@@ -58,7 +59,7 @@ public class VisibilityUserSelectTests
         var root = new DivElement { Children = { target } };
 
         using var surface = SKSurface.Create(new SKImageInfo(400, 400));
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet>(), surface.Canvas, 400, 400);
 
         target.IsSelectable.ShouldBeFalse();
@@ -78,7 +79,7 @@ public class VisibilityUserSelectTests
         var root = new DivElement { Children = { parent } };
 
         using var surface = SKSurface.Create(new SKImageInfo(400, 400));
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet>(), surface.Canvas, 400, 400);
 
         child.IsSelectable.ShouldBeFalse();

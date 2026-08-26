@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Miko.Common;
 using Miko.Components;
 using Miko.Core;
+using Miko.Hosting;
 using Miko.Ionic.Components;
 using Miko.Platform;
 using Miko.Styling;
@@ -103,7 +104,7 @@ public class IonInfiniteScrollIntegrationTests : IDisposable
     {
         var root = BuildTree(host);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(
             root,
             new List<StyleSheet> { IonicStyleSheetFactory.CreateAllModes() },

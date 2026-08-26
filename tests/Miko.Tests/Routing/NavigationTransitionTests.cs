@@ -2,6 +2,7 @@ using Miko.Animation;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Routing;
 using Miko.Styling;
 using Shouldly;
@@ -53,7 +54,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void Initialize_WithTransition_ShouldActivateTransition_AndRenderFirstFrameAtProgressZero()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
 
         var slide = new SlideTransition();
@@ -70,7 +71,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void Initialize_WithTransition_WithoutPreviousPage_ShouldFallBackToInstantSwitch()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var slide = new SlideTransition();
 
         // 首帧导航：没有旧页面，转场不生效
@@ -83,7 +84,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void Initialize_WithZeroDurationTransition_ShouldBeTreatedAsInstantSwitch()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
 
         engine.Initialize(CreatePage(0, 255, 0), [], _canvas, W, H, Info(new SlideTransition(duration: 0f)));
@@ -95,7 +96,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void Advance_ForwardSlide_ShouldMoveEnteringLayerOverLeavingLayer()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
         engine.Initialize(CreatePage(0, 255, 0), [], _canvas, W, H, Info(new SlideTransition()));
 
@@ -111,7 +112,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void Advance_BackSlide_ShouldSlideLeavingLayerOut_RevealingEnteringLayerBelow()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
 
         // 返回转场：旧页面（红色）在上方向右滑出，露出下方的新页面（绿色）
@@ -128,7 +129,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void Advance_PastDuration_ShouldCompleteTransition_AndDropLeavingLayer()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
 
         var slide = new SlideTransition();
@@ -152,7 +153,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void NewNavigation_WithoutTransition_ShouldCancelActiveTransition()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
 
         var slide = new SlideTransition();
@@ -173,7 +174,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void FadeTransition_ShouldBlendLayersByOpacity()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
         engine.Initialize(CreatePage(0, 255, 0), [], _canvas, W, H, Info(new FadeTransition()));
 
@@ -190,7 +191,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void HasPendingVisualWork_ShouldBeTrueDuringTransition_AndFalseAfterCompletion()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
         engine.Render(_canvas);
         engine.HasPendingVisualWork.ShouldBeFalse(); // 稳态（ISSUE-096）
@@ -207,7 +208,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void Tick_ShouldAdvanceTransition()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
         engine.Initialize(CreatePage(0, 255, 0), [], _canvas, W, H, Info(new SlideTransition()));
 
@@ -221,7 +222,7 @@ public class NavigationTransitionTests : IDisposable
     [Fact]
     public void Update_ShouldRepaintTransitionFrame_EvenWithoutDirtyRegions()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(CreatePage(255, 0, 0), [], _canvas, W, H);
         engine.Initialize(CreatePage(0, 255, 0), [], _canvas, W, H, Info(new SlideTransition()));
 

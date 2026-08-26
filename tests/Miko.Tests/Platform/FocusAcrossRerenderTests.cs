@@ -108,7 +108,7 @@ public class FocusAcrossRerenderTests
             StyleSheets = { sheet },
         };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         var surface = SKSurface.Create(new SKImageInfo(300, 200));
         controller.Initialize(surface.Canvas, 300, 200);

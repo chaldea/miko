@@ -5,6 +5,7 @@ using Miko.Core.DomElements;
 using Miko.DevTools.Panels;
 using Miko.DevTools.Styles;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Rendering;
 using Silk.NET.Input;
@@ -69,7 +70,7 @@ internal class DevToolsWindow
     {
         _bridge = bridge;
         _options = options;
-        _engine = new MikoEngine();
+        _engine = new MikoEngineBuilder().Build();
         _width = options.Width;
         _height = options.Height;
     }
@@ -165,16 +166,13 @@ internal class DevToolsWindow
 
     /// <summary>
     /// 每帧入口。稳态下**既不重建 DOM 也不产帧**（见 ISSUE-117）。
-    /// <para>与 <c>SilkDesktopHost.RenderLoop</c> 的空闲跳帧同构，但判据不同：DevTools 引擎
-    /// 不能用 <see cref="MikoEngine.HasPendingVisualWork"/>。原因是 <c>Element.MutationVersion</c>
-    /// 是**进程级全局静态**，主窗口在另一线程持续变更自己的 DOM 就会不断递增它，于是
-    /// DevTools 引擎的 <c>IsLayoutCurrent</c> 恒为 false，<c>HasPendingVisualWork</c> 也就恒为 true，
-    /// 永远无法空闲。因此这里改用两段判据：</para>
-    /// <list type="number">
-    /// <item>DOM 是否需要重建 —— 由 <see cref="ConsumeRebuildRequest"/> 按输入指纹判断；</item>
-    /// <item>引擎内部是否有待呈现工作 —— 用不含布局时效性检查的
-    /// <see cref="MikoEngine.HasPendingRenderWork"/>（脏区域、动画、跨线程失效）。</item>
-    /// </list>
+    /// <para>与 <c>SilkDesktopHost.RenderLoop</c> 的空闲跳帧同构，判据也已统一为
+    /// <see cref="MikoEngine.HasPendingVisualWork"/>：ISSUE-129 把变更版本号从进程级全局静态
+    /// 改成了按引擎实例计数，主窗口的 DOM 变更不再击穿 DevTools 引擎的布局缓存，
+    /// 因此这里不必再用变通的 <see cref="MikoEngine.HasPendingRenderWork"/>。</para>
+    /// <para>DOM 是否需要重建仍由 <see cref="ConsumeRebuildRequest"/> 按输入指纹判断——
+    /// DevTools 的 DOM 是从**主窗口引擎**的状态投影出来的，那些变化发生在本引擎的树之外，
+    /// 引擎自身无从察觉。</para>
     /// </summary>
     private void OnRender(double _)
     {
@@ -195,7 +193,7 @@ internal class DevToolsWindow
         // 内容有任何变化（重建或引擎内部脏区域/动画）都要刷满整个缓冲链，而不是只画一帧：
         // 引擎是增量绘制（只重绘脏区域），双缓冲下若只画一个后备缓冲，下次交换会露出
         // 另一个仍是旧内容的缓冲 → 画面在新旧之间闪烁。
-        if (shouldRebuild || _engine.HasPendingRenderWork)
+        if (shouldRebuild || _engine.HasPendingVisualWork)
         {
             _pendingPresents = SwapChainDepth;
         }

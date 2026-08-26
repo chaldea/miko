@@ -69,7 +69,7 @@ Author a page in Razor:
 var root = new DivElement { Class = "container" };
 root.AddChild(new H1Element { TextContent = "Hello Miko" });
 
-var engine = new MikoEngine();
+var engine = new MikoEngineBuilder().Build();
 engine.Initialize(root, new List<StyleSheet> { styleSheet }, canvas, 800, 600);
 engine.Render(canvas);
 ```

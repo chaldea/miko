@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Styling;
 using Miko.Styling.Selectors;
 using Shouldly;
@@ -68,7 +69,7 @@ public class IncrementalRenderThresholdTests : IDisposable
     {
         var root = BuildRows(40, out var rows);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet>(), _canvas, 400, 1200);
 
         // Mark every row dirty (40 > default threshold of 30) -> full-render fallback path
@@ -107,7 +108,7 @@ public class IncrementalRenderThresholdTests : IDisposable
     {
         var root = BuildRows(3, out var rows);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet>(), _canvas, 400, 1200);
 
         foreach (var row in rows)

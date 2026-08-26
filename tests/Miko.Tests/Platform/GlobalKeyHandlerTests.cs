@@ -38,7 +38,7 @@ public class GlobalKeyHandlerTests
     private static MikoInteractionController CreateInitializedController(MikoAppOptions options)
     {
         options.RootComponentFactory ??= () => new DivElement();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = SKSurface.Create(new SKImageInfo(100, 100));
         controller.Initialize(surface.Canvas, 100, 100);

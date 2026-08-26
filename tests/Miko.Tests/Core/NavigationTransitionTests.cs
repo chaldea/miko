@@ -2,6 +2,7 @@ using Miko.Animation;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Styling;
 using Shouldly;
 using SkiaSharp;
@@ -75,7 +76,7 @@ public class NavigationTransitionTests : IDisposable
     public void PageSwitch_ShouldNotTriggerOldPageTransition_OnNewPageElement()
     {
         var styleSheet = BuildStyleSheet();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
 
         // 渲染 /button 页面
         engine.Initialize(BuildButtonPage(), [styleSheet], _canvas, 600, 600);
@@ -100,7 +101,7 @@ public class NavigationTransitionTests : IDisposable
     public void PageSwitch_ToSameStructure_ShouldStillPreserveIdentity_ForMatchingElements()
     {
         var styleSheet = BuildStyleSheet();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
 
         // 两次渲染相同结构的 /button 页面：LayoutBox 身份应保持，元素无 transition 被错误触发
         engine.Initialize(BuildButtonPage(), [styleSheet], _canvas, 600, 600);

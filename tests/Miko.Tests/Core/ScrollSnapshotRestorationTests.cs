@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Routing;
 using Miko.Styling;
@@ -78,7 +79,7 @@ public class ScrollSnapshotRestorationTests
     public void Back_ShouldRestoreScrollOfPreviousPage_AfterFullPageReplacement()
     {
         // ISSUE-118 主场景：AppHome 滚到底 → push 详情页 → back 回 AppHome，列表应停在原位。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(600, 300));
 
         engine.Initialize(BuildListPage(20), new List<StyleSheet>(), surface.Canvas, 600, 300);
@@ -105,7 +106,7 @@ public class ScrollSnapshotRestorationTests
     public void Forward_ShouldNotRestoreScroll_WhenEnteringPage()
     {
         // 压栈进入是一次新的页面访问：即便该路径此前滚动过，也应从顶部开始。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(600, 300));
 
         engine.Initialize(BuildListPage(20), new List<StyleSheet>(), surface.Canvas, 600, 300);
@@ -126,7 +127,7 @@ public class ScrollSnapshotRestorationTests
     public void Root_ShouldDropAllSnapshots()
     {
         // Root（Tab 切换）清空历史栈，栈上页面都不再可返回，其快照随之作废。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(600, 300));
 
         engine.Initialize(BuildListPage(20), new List<StyleSheet>(), surface.Canvas, 600, 300);
@@ -147,7 +148,7 @@ public class ScrollSnapshotRestorationTests
     public void Back_ShouldClampRestoredScroll_WhenReturnedPageIsShorter()
     {
         // 返回页比离开时更短（如图片尚未加载完）：偏移必须夹取到合法上限，不能越界。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(600, 300));
 
         engine.Initialize(BuildListPage(20), new List<StyleSheet>(), surface.Canvas, 600, 300);
@@ -171,7 +172,7 @@ public class ScrollSnapshotRestorationTests
     {
         // 返回页的结构与离开时不同（可滚动盒子所在的索引路径上标签名已变）：
         // 宁可从顶部开始，也不要把偏移写到不相干的盒子上。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(600, 300));
 
         // 离开时，可滚动盒子是根下第 0 个子节点（<div>）。
@@ -223,7 +224,7 @@ public class ScrollSnapshotRestorationTests
             return page;
         }
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(600, 300));
 
         engine.Initialize(BuildNested(), new List<StyleSheet>(), surface.Canvas, 600, 300);
@@ -245,7 +246,7 @@ public class ScrollSnapshotRestorationTests
     {
         // 返回即出栈：该历史条目的快照被消费掉，避免快照无限增长，也避免之后
         // 再次「返回」到同一路径时套用一份早已过期的偏移。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(600, 300));
 
         engine.Initialize(BuildListPage(20), new List<StyleSheet>(), surface.Canvas, 600, 300);
@@ -276,7 +277,7 @@ public class ScrollSnapshotRestorationTests
     {
         // 非导航重建（热重载：navigation 为 null）不涉及历史栈，既不拍快照也不回放，
         // 同树内的滚动保持仍由 ISSUE-092 的机制负责。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo(600, 300));
 
         engine.Initialize(BuildListPage(20), new List<StyleSheet>(), surface.Canvas, 600, 300);

@@ -10,19 +10,55 @@ namespace Miko.Core;
 /// </summary>
 public abstract class Element
 {
-    // 全局 DOM/样式变更版本号：任何影响样式匹配或布局结果的修改（结构、文本、class/id、
-    // 行内样式替换、元素状态、图片内禀尺寸等）都会使其递增。布局引擎据此判断上一次
-    // 布局结果是否仍然有效——版本未变且视口/样式表未变时整棵布局树可直接复用（ISSUE-096）。
-    private static long s_mutationVersion;
-
-    /// <summary>当前全局变更版本号（单调递增）。</summary>
-    public static long MutationVersion => Interlocked.Read(ref s_mutationVersion);
+    /// <summary>
+    /// 本元素所属引擎的变更计数器（ISSUE-129）。由引擎在 <c>Initialize</c> / 每帧渲染时
+    /// 沿树下发（见 <see cref="AssignOwner"/>）。
+    ///
+    /// <para>为 null 表示该元素尚未挂入任何引擎（构造期的游离元素）：此时它的变更静默
+    /// 不计数——没有引擎在观察它，也就没有布局缓存需要失效。元素被挂入引擎时的
+    /// <see cref="AssignOwner"/> 遍历本身就发生在一次结构变更之后，不会漏掉更新。</para>
+    /// </summary>
+    internal MutationTracker? Owner { get; private set; }
 
     /// <summary>
-    /// 递增全局变更版本号。由元素自身的变更入口自动调用；引擎在元素外完成的
+    /// 递增所属引擎的变更版本号。由元素自身的变更入口自动调用；引擎在元素外完成的
     /// 布局相关写入（动画帧值、图片内禀尺寸等）也应调用，否则下一帧可能复用过期布局。
     /// </summary>
-    internal static void BumpMutationVersion() => Interlocked.Increment(ref s_mutationVersion);
+    internal void BumpMutationVersion() => Owner?.Bump();
+
+    /// <summary>
+    /// 把本子树的归属设为 <paramref name="tracker"/>（ISSUE-129）。
+    ///
+    /// <para>由引擎在 <c>Initialize</c> 与每帧渲染时对根元素调用。<b>必须</b>是引擎侧的树遍历
+    /// 而非只在 <see cref="AddChild"/> 里传播：<see cref="Children"/> 是公开的 List，
+    /// 集合初始化器（<c>Children = { ... }</c>）、<see cref="TextContent"/> setter、
+    /// 组件重渲染的子树替换（<c>ComponentBase.ReplaceElementContent</c>）都会绕过
+    /// <see cref="AddChild"/> 直接写入该 List。</para>
+    ///
+    /// <para>刻意<b>不</b>在「本节点归属已正确」时剪枝：正因为上面那些路径能把新子节点直接
+    /// 塞进一个归属已正确的父节点的 <see cref="Children"/> 里，剪枝会让这些新子树永远拿不到
+    /// 归属，其后所有变更都静默丢失（布局缓存不失效 → 界面不更新）。遍历成本可以接受——
+    /// 引擎每帧本来就要为动画对齐整树扫描一遍（<c>CollectDeclaredAnimations</c>），
+    /// 本方法不增加渐近成本。</para>
+    /// </summary>
+    internal void AssignOwner(MutationTracker tracker)
+    {
+        Owner = tracker;
+        foreach (var child in Children)
+            child.AssignOwner(tracker);
+    }
+
+    /// <summary>
+    /// 清除本子树的引擎归属（ISSUE-129）。在子树被移出 DOM 时调用：此后它的变更不再递增
+    /// 任何引擎的版本号，回到「游离元素不记账」的初始语义。若该子树日后被挂回某个引擎，
+    /// <see cref="AddChild"/> 或引擎的 <see cref="AssignOwner"/> 遍历会重新为它赋予归属。
+    /// </summary>
+    internal void ClearOwner()
+    {
+        Owner = null;
+        foreach (var child in Children)
+            child.ClearOwner();
+    }
 
     private string? _id;
     private string? _class;
@@ -39,13 +75,30 @@ public abstract class Element
         get => _class;
         set { if (_class != value) { _class = value; IsDirty = true; BumpMutationVersion(); } }
     }
-    public List<Element> Children { get; set; } = new();
+    /// <summary>
+    /// 子节点集合。所有增删改都会自动设置父引用、下发引擎归属并使布局缓存失效
+    /// （见 <see cref="ElementCollection"/>，ISSUE-129）——直接写这个集合与调用
+    /// <see cref="AddChild"/> 同样安全。
+    /// </summary>
+    public ElementCollection Children { get; }
+
+    protected Element()
+    {
+        Children = new ElementCollection(this);
+    }
+
     public Element? Parent { get; private set; }
 
     internal void SetParent(Element parent)
     {
         Parent = parent;
     }
+
+    /// <summary>断开父引用。供 <see cref="ElementCollection"/> 在子节点被移除/替换时调用。</summary>
+    internal void ClearParent() => Parent = null;
+
+    /// <summary>标记本元素需要重绘。供 <see cref="ElementCollection"/> 在结构变更时调用。</summary>
+    internal void MarkDirty() => IsDirty = true;
     /// <summary>
     /// 行内样式。替换整个对象会递增变更版本号；但直接改写其属性（<c>Style.Width = ...</c>）
     /// 不会被追踪——引擎内这样做的只有 AnimationManager（已显式递增版本号），
@@ -117,14 +170,16 @@ public abstract class Element
         }
         set
         {
-            // 移除已有的文本节点。
-            Children.RemoveAll(c => c is TextNode);
+            // 移除已有的文本节点。用不记账的原始写入，本 setter 末尾统一记账一次。
+            Children.RemoveAllInternal(c => c is TextNode);
             if (!string.IsNullOrEmpty(value))
             {
                 // 重建为单个前置文本节点，保持旧「文本排在子元素之前」的语义。
                 var textNode = new TextNode(value);
                 textNode.SetParent(this);
-                Children.Insert(0, textNode);
+                // 该节点绕过 AddChild 直接写入集合，需自行继承引擎归属（ISSUE-129）。
+                if (Owner != null) textNode.AssignOwner(Owner);
+                Children.InsertInternal(0, textNode);
             }
             IsDirty = true;
             BumpMutationVersion();
@@ -395,8 +450,13 @@ public abstract class Element
             child.Parent.RemoveChild(child);
         }
 
-        Children.Add(child);
+        // 用不记账的原始写入，本方法自己完成父引用/归属/记账（否则版本号会被递增两次）。
+        Children.AddInternal(child);
         child.Parent = this;
+        // 新子树立即继承本元素的引擎归属，使其在挂入后的变更马上被计入，而不必等到
+        // 下一帧引擎的 AssignOwner 遍历（ISSUE-129）。本元素尚无归属时不下发，
+        // 该子树会在整棵树被挂入引擎时一并赋值。
+        if (Owner != null) child.AssignOwner(Owner);
         IsDirty = true;
         BumpMutationVersion();
     }
@@ -406,11 +466,17 @@ public abstract class Element
     /// </summary>
     public bool RemoveChild(Element child)
     {
-        if (Children.Remove(child))
+        // 用不记账的原始写入，本方法自己完成记账（否则版本号会被递增两次）。
+        if (Children.RemoveInternal(child))
         {
             child.Parent = null;
+            // 移除本身是结构变更，必须先记在**旧引擎**头上——它的布局缓存要失效。
             IsDirty = true;
             BumpMutationVersion();
+            // 随后才清除被移除子树的归属：已脱离 DOM 的元素继续被修改时不应再递增旧引擎的
+            // 版本号，否则会产生无意义的重排工作，也违背「未挂入引擎的游离元素不记账」的
+            // 归属语义（ISSUE-129）。顺序不能颠倒。
+            child.ClearOwner();
             return true;
         }
         return false;

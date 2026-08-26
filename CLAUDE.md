@@ -360,7 +360,9 @@ Built-in fallback chain: Arial → Segoe UI → Microsoft YaHei → SimSun → M
 Video is implemented via platform-injected `IVideoBackend`:
 - `VideoElement` in DOM triggers video session creation
 - Sessions are cached in `MikoEngine._videoSessions` and reused across rebuilds
-- Platform hosts inject backend via `MikoEngine.VideoBackend`
+- Platform hosts register their backend in DI (desktop: `FFmpegVideoBackend`); it reaches the engine
+  by constructor injection. The core default is `NullVideoBackend`, which creates no sessions —
+  `<video>` then renders background/poster only.
 - Frame sources provide `IVideoFrameSource` for zero-copy GPU texture wrapping
 
 ### Image Loading
@@ -407,9 +409,54 @@ root.AddChild(new ParagraphElement { TextContent = "Lightweight rendering" });
 using var surface = SKSurface.Create(new SKImageInfo(800, 600));
 var canvas = surface.Canvas;
 
-var engine = new MikoEngine();
+var engine = new MikoEngineBuilder().Build();
 engine.Initialize(root, new List<StyleSheet> { styleSheet }, canvas, 800, 600);
 ```
+
+### Multiple engine instances and isolation
+
+Engines are always constructed through a DI container — never `new MikoEngine(...)` directly:
+
+- `new MikoEngineBuilder().Build()` — a standalone engine (DevTools window, simulator settings
+  panel, unit tests).
+- `MikoAppBuilder` — a full app (routing, hot reload, interaction controller). It reuses the same
+  `Services.AddMikoEngine()` registration, so both paths yield identically-wired engines.
+
+One container = one engine. Each instance owns its own **mutation version** (`MikoEngine.Mutations`),
+layout cache, dirty regions, animation state, and video/image sessions, so several engines can run in
+one process without interfering (ISSUE-129).
+
+Elements are attributed to an engine via `Element.Owner`, which the engine assigns by walking the
+tree in `Initialize` and again each frame in `Render`/`Update`. Elements not yet attached to any
+engine have no owner and their mutations are silently uncounted — nothing is observing them.
+`RemoveChild` clears the owner of the detached subtree, so elements outside the DOM stop generating
+invalidation work for the engine they used to belong to.
+
+`Element.Children` is an `ElementCollection`, not a bare `List<Element>`. Every write to it (`Add`,
+`Insert`, `Clear`, `Remove`, `RemoveAt`, `RemoveAll`, and the indexer) sets the child's parent
+reference, propagates engine ownership, and bumps the mutation version. That accounting has to live
+in the collection because `Children` is public: callers — including collection initializers
+(`Children = { ... }`), the `TextContent` setter, and component re-renders — write to it directly,
+bypassing `AddChild`. If those writes went unrecorded, a structural change after an idle frame would
+not invalidate the layout cache and the added/removed/replaced nodes simply would not appear.
+Collection initializers still work, since the type exposes a public `Add`.
+
+**Registration is `TryAdd`-based.** `AddMikoEngine` registers every default with `TryAdd`, so it is
+idempotent *and* never overrides a registration the caller already made — a custom `IImageLoader`,
+`ISyntaxHighlighter`, or `IVideoBackend` wins regardless of whether it was registered before or
+after. This matters because `MikoEngineBuilder.ConfigureServices` runs *before* `Build()` calls
+`AddMikoEngine()`; with plain `AddSingleton`, the defaults would be registered last and Microsoft DI
+resolves a single service to the last registration, silently discarding the customization.
+
+Those three optional services are plain constructor parameters on `MikoEngine` — each has an
+in-core default (`ResourceManager`, `SyntaxHighlighter`, and `NullVideoBackend`), so the engine
+needs no `IServiceProvider` for optional resolution. `NullVideoBackend` creates no sessions, which
+is exactly the old "no backend registered" behavior: `<video>` renders background/poster only.
+
+**Shared across the whole process (deliberately):** `FontManager.Instance` (font registry + glyph
+cache) and `TextMeasurer`'s measurement caches. These are content-addressed (keys include font
+family, size, and text), so sharing is both correct and beneficial. Note that `FontManager.RegisterFont`
+is a global side effect that changes text metrics — register fonts before any engine renders.
 
 ### Incremental updates
 

@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Styling;
 using Shouldly;
@@ -73,7 +74,7 @@ public class ScrollAppendRestorationTests
     public void AppendingRows_ShouldKeepScrollPosition()
     {
         // 这正是无限滚动的场景：滚到底 → 加载出新数据追加到末尾 → 视图不应弹回顶部。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(BuildList(20), new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
@@ -104,7 +105,7 @@ public class ScrollAppendRestorationTests
             return page;
         }
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(BuildPage(20), new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
@@ -143,7 +144,7 @@ public class ScrollAppendRestorationTests
             return scroller;
         }
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(BuildWithSentinel(20), new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
@@ -161,7 +162,7 @@ public class ScrollAppendRestorationTests
     public void RemovingRows_ShouldKeepScrollPosition_ClampedToNewRange()
     {
         // 变短也属于「旧树与新树共享前缀」：保留偏移，由夹取逻辑收进新范围即可。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(BuildList(40), new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
@@ -185,7 +186,7 @@ public class ScrollAppendRestorationTests
         // 这是两害相权取其轻：保留偏移最多让位置偏移几行，而重置会把用户直接弹回顶部——
         // 后者正是本次要修的症状。ion-infinite-scroll 默认 position="bottom"（追加），前插
         // （position="top"）本就是少数场景。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(BuildList(20), new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
@@ -204,7 +205,7 @@ public class ScrollAppendRestorationTests
         // 子序列判定的直接后果：只要原有行还按原顺序在场，插入位置（首/中/尾）都保留偏移。
         // 无限滚动依赖的正是这一点——列表末尾跟着 ion-infinite-scroll 哨兵，新行插在它<b>之前</b>，
         // 属于"中间插入"而非"末尾追加"。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(BuildList(20), new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
@@ -236,7 +237,7 @@ public class ScrollAppendRestorationTests
     public void ReplacingContentEntirely_ShouldResetScrollPosition()
     {
         // ISSUE-092 的既有语义必须保住：整页内容被替换时滚动条回到顶部。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(BuildList(20), new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);

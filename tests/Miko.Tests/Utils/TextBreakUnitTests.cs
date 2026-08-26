@@ -8,6 +8,7 @@ namespace Miko.Tests.Utils;
 /// <summary>
 /// ISSUE-110：断行单元切分（CJK 按字符、拉丁按单词）与 CJK 文本换行的单元测试。
 /// </summary>
+[Collection(Miko.Tests.GlobalFontStateCollection.Name)] // 进程级字体/度量状态，需串行（ISSUE-129）
 public class TextBreakUnitTests
 {
     // ---- SplitBreakUnits ----------------------------------------------------

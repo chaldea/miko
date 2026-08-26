@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Miko.Highlight;
 
 namespace Miko.Hosting;
@@ -17,7 +18,8 @@ public static class HighlightingExtensions
     /// </summary>
     public static IServiceCollection AddSyntaxHighlighter(this IServiceCollection service)
     {
-        service.AddSingleton<ISyntaxHighlighter, SyntaxHighlighter>();
+        // TryAdd：默认实现绝不覆盖调用方已注册的自定义 ISyntaxHighlighter（ISSUE-129）。
+        service.TryAddSingleton<ISyntaxHighlighter, SyntaxHighlighter>();
         return service;
     }
 
@@ -27,7 +29,8 @@ public static class HighlightingExtensions
     public static MikoAppBuilder UseSyntaxHighlighter<THighlighter>(this MikoAppBuilder builder)
         where THighlighter : class, ISyntaxHighlighter
     {
-        builder.Services.AddSingleton<ISyntaxHighlighter, THighlighter>();
+        // Replace 而非 Add：无论默认实现是先注册还是后注册，自定义实现都确定生效（ISSUE-129）。
+        builder.Services.Replace(ServiceDescriptor.Singleton<ISyntaxHighlighter, THighlighter>());
         return builder;
     }
 }

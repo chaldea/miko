@@ -104,20 +104,9 @@ public sealed class MikoInteractionController
         _logger = logger;
         _syncContext = new MikoSynchronizationContext(dispatcher);
 
-        // 视频后端为可选服务：注册了平台后端（如桌面 FFmpegVideoBackend）时注入引擎，
-        // 否则 <video> 元素仅显示背景/poster。
-        _engine.VideoBackend = serviceProvider.GetService<IVideoBackend>();
-
-        // 图片加载器：优先用 DI 注册的实现（应用可经 UseImageLoading 自定义）；
-        // 否则注入内置 ResourceManager，复用 DI 中的 HttpClient（若已注册）与入口程序集解析 res://。
-        _engine.ImageLoader = serviceProvider.GetService<IImageLoader>();
-
-        // 语法高亮器：默认注册内置实现；应用可重新注册 ISyntaxHighlighter 覆盖
-        // （如自定义配色、新增语言或接入完整语法分析，见 ISSUE-098）。
-        if (serviceProvider.GetService<Highlight.ISyntaxHighlighter>() is { } syntaxHighlighter)
-        {
-            _engine.SyntaxHighlighter = syntaxHighlighter;
-        }
+        // 注：视频后端、图片加载器、语法高亮器的注入已上移到 AddMikoEngine 的引擎工厂
+        // （见 Hosting/EngineExtensions.cs）。此前放在这里，导致不经 App 宿主创建的引擎
+        // （DevTools、模拟器面板、测试）永远拿不到这些可选服务（ISSUE-129）。
 
         if (_options.RouteAssemblies != null || _options.RouteConfigurator != null)
         {

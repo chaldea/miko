@@ -3,6 +3,7 @@ using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Platform;
 using Miko.Rendering;
@@ -63,7 +64,7 @@ public class AnimationManagerReRenderTests
         root.AddChild(spinner);
 
         // Trigger re-render (simulates StateHasChanged in Razor)
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         // Assert: the animation should now be active
@@ -113,7 +114,7 @@ public class AnimationManagerReRenderTests
             }
         };
         root.AddChild(spinner);
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
 
         // First render after adding element
         engine.Render(canvas);
@@ -215,7 +216,7 @@ public class AnimationManagerReRenderTests
             root.AddChild(spinner);
         }
 
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         // Assert: all three animations should be active
@@ -254,7 +255,7 @@ public class AnimationManagerReRenderTests
         root.RemoveChild(bar);
         root.AddChild(rebuilt);
 
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         // 仍是同一条动画，进度未被重置，且已改挂到在场的新实例上。
@@ -284,7 +285,7 @@ public class AnimationManagerReRenderTests
         root.RemoveChild(bar);
         root.AddChild(rebuilt);
 
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         // The first rendered replacement frame must keep the current visual value instead of
@@ -353,7 +354,7 @@ public class AnimationManagerReRenderTests
         root.RemoveChild(spinner);
         root.AddChild(rebuilt);
 
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         var activeDefinition = GetAnimationDefinition(engine.AnimationManager, 0);
@@ -384,7 +385,7 @@ public class AnimationManagerReRenderTests
         root.RemoveChild(skeleton);
         root.AddChild(rebuilt);
 
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         GetActiveAnimationCount(engine.AnimationManager).ShouldBe(0);
@@ -419,7 +420,7 @@ public class AnimationManagerReRenderTests
         root.RemoveChild(animated);
         root.AddChild(rebuilt);
 
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         // Removing the animation must not leave the last animated inline value (42.5px) overriding
@@ -470,7 +471,7 @@ public class AnimationManagerReRenderTests
         root.RemoveChild(box);
         root.AddChild(rebuilt);
 
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         engine.AnimationManager.ActiveTransitionCount.ShouldBe(1);
@@ -519,7 +520,7 @@ public class AnimationManagerReRenderTests
         root.RemoveChild(box);
         root.AddChild(rebuilt);
 
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         // The migrated transition must keep its current interpolation value, rather than letting
@@ -548,7 +549,7 @@ public class AnimationManagerReRenderTests
 
         // 元素真正离开 DOM（没有 SupersededBy 转发）——条目应被回收。
         root.RemoveChild(spinner);
-        Element.BumpMutationVersion();
+        root.BumpMutationVersion();
         engine.Render(canvas);
 
         GetActiveAnimationCount(engine.AnimationManager).ShouldBe(0);
@@ -616,17 +617,7 @@ public class AnimationManagerReRenderTests
         return layout!;
     }
 
-    private MikoEngine CreateEngine()
-    {
-        var layoutEngine = new LayoutEngine();
-        var renderEngine = new RenderEngine();
-        var dirtyManager = new DirtyRegionManager();
-        var eventDispatcher = new EventDispatcher();
-        var animationManager = new AnimationManager();
-        var dispatcher = new MikoDispatcher();
-
-        return new MikoEngine(layoutEngine, renderEngine, dirtyManager, eventDispatcher, animationManager, dispatcher);
-    }
+    private MikoEngine CreateEngine() => new MikoEngineBuilder().Build();
 
     // Helper to access the count of active animations via reflection
     private int GetActiveAnimationCount(AnimationManager manager)

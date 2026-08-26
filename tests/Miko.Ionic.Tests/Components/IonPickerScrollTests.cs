@@ -3,6 +3,7 @@ using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Ionic.Components;
 using Miko.Platform;
 using Miko.Styling;
@@ -77,7 +78,7 @@ public class IonPickerScrollTests : IDisposable
     /// </summary>
     private (Element Root, MikoEngine Engine) BuildAndInitialize(PickerHost host)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
 
         using var context = new TestContext
         {

@@ -4,6 +4,7 @@ using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Ionic;
 using Miko.Ionic.Components;
 using Miko.Platform;
@@ -245,7 +246,7 @@ public class IonSegmentButtonIndicatorTests
         var cut = ctx.Render<BoundSegmentHost>();
         using var bitmap = new SKBitmap((int)ctx.ViewportWidth, (int)ctx.ViewportHeight);
         using var canvas = new SKCanvas(bitmap);
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(cut.Root, ctx.StyleSheets, canvas, ctx.ViewportWidth, ctx.ViewportHeight);
         engine.Render(canvas);
 
@@ -290,7 +291,7 @@ public class IonSegmentButtonIndicatorTests
         using var bitmap = new SKBitmap((int)ctx.ViewportWidth, (int)ctx.ViewportHeight);
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear(SKColors.White);
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(cut.Root, ctx.StyleSheets, canvas, ctx.ViewportWidth, ctx.ViewportHeight);
         engine.Render(canvas);
         CountDarkPixels(bitmap, 0, 150).ShouldBeGreaterThan(0);

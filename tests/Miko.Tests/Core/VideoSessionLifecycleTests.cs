@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Platform.Video;
 using Miko.Styling;
@@ -43,7 +44,8 @@ public class VideoSessionLifecycleTests : IDisposable
     public void Initialize_WithVideoElement_CreatesSession()
     {
         var backend = new FakeVideoBackend();
-        var engine = new MikoEngine { VideoBackend = backend };
+        var engine = new MikoEngineBuilder().Build();
+        engine.VideoBackend = backend;
         var video = new VideoElement { Source = "movie.mp4" };
         var root = new DivElement { Children = { video } };
 
@@ -58,7 +60,8 @@ public class VideoSessionLifecycleTests : IDisposable
     public void VideoWithoutSource_DoesNotCreateSession()
     {
         var backend = new FakeVideoBackend();
-        var engine = new MikoEngine { VideoBackend = backend };
+        var engine = new MikoEngineBuilder().Build();
+        engine.VideoBackend = backend;
         var root = new DivElement { Children = { new VideoElement() } };
 
         engine.Initialize(root, VideoSheet(), _canvas, 800, 600);
@@ -70,7 +73,8 @@ public class VideoSessionLifecycleTests : IDisposable
     public void LoadedEvent_WritesIntrinsicSize_AndRelayoutUsesIt()
     {
         var backend = new FakeVideoBackend();
-        var engine = new MikoEngine { VideoBackend = backend };
+        var engine = new MikoEngineBuilder().Build();
+        engine.VideoBackend = backend;
         var video = new VideoElement { Source = "movie.mp4" };
         var root = new DivElement { Children = { video } };
 
@@ -95,7 +99,8 @@ public class VideoSessionLifecycleTests : IDisposable
     public void VideoRemovedFromTree_DisposesSession()
     {
         var backend = new FakeVideoBackend();
-        var engine = new MikoEngine { VideoBackend = backend };
+        var engine = new MikoEngineBuilder().Build();
+        engine.VideoBackend = backend;
         var video = new VideoElement { Source = "movie.mp4" };
         var root = new DivElement { Children = { video } };
 
@@ -115,7 +120,8 @@ public class VideoSessionLifecycleTests : IDisposable
     public void DisposeVideoSessions_DisposesAll()
     {
         var backend = new FakeVideoBackend();
-        var engine = new MikoEngine { VideoBackend = backend };
+        var engine = new MikoEngineBuilder().Build();
+        engine.VideoBackend = backend;
         var root = new DivElement
         {
             Children =
@@ -136,7 +142,7 @@ public class VideoSessionLifecycleTests : IDisposable
     [Fact]
     public void PostInvalidate_IsThreadSafeEntryPoint()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var root = new DivElement();
         engine.Initialize(root, VideoSheet(), _canvas, 800, 600);
 

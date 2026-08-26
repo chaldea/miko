@@ -46,8 +46,8 @@ public sealed class SimulatorHost
     // different device so platform-dependent UI (e.g. Ionic's md/ios mode) switches with it.
     private readonly PlatformInfo? _platformInfo;
 
-    // 面板引擎（与应用引擎相互独立）。
-    private readonly MikoEngine _panelEngine = new();
+    // 面板引擎（与应用引擎相互独立：各自的变更计数器、布局缓存与动画状态，见 ISSUE-129）。
+    private readonly MikoEngine _panelEngine = new MikoEngineBuilder().Build();
     private readonly EventDispatcher _panelDispatcher = new();
 
     private IWindow? _window;

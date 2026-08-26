@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Styling;
 using Shouldly;
@@ -52,7 +53,7 @@ public class ScrollUpdateInPlaceTests
     {
         // 无限滚动的真实路径：处理器就地把新行加进列表，下一帧 Update 重排。
         var scroller = BuildScroller(20);
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
         engine.Initialize(scroller, new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
 
@@ -85,7 +86,7 @@ public class ScrollUpdateInPlaceTests
         sentinel.AddChild(inner);
         scroller.AddChild(sentinel);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
         engine.Initialize(scroller, new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
 
@@ -108,7 +109,7 @@ public class ScrollUpdateInPlaceTests
     {
         // 既有行为回归：只改文本不动结构时，滚动同样必须保持。
         var scroller = BuildScroller(20);
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
         engine.Initialize(scroller, new List<StyleSheet>(), surface.Canvas, ViewportW, ViewportH);
 

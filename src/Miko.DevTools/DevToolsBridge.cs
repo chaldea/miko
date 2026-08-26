@@ -13,7 +13,12 @@ public class DevToolsBridge
     private DevToolsWindow? _devToolsWindow;
 
     public MikoEngine? MainEngine { get; private set; }
-    public RenderEngine? MainRenderEngine { get; private set; }
+
+    /// <summary>
+    /// 主引擎的渲染引擎（高亮覆盖层挂在它上面）。取自 <see cref="MikoEngine.RenderEngine"/>，
+    /// 保证与主引擎实际使用的是同一个实例——多引擎下从 DI 另行解析不再有此保证（ISSUE-129）。
+    /// </summary>
+    public RenderEngine? MainRenderEngine => MainEngine?.RenderEngine;
     public LogBuffer LogBuffer { get; }
     public bool IsOpen { get; internal set; }
 
@@ -38,10 +43,13 @@ public class DevToolsBridge
         LogBuffer = new LogBuffer(options.MaxBufferedEntries);
     }
 
-    public void Initialize(MikoEngine mainEngine, RenderEngine mainRenderEngine)
+    /// <summary>
+    /// 绑定主引擎。渲染引擎不再单独传入——从 <see cref="MikoEngine.RenderEngine"/> 取，
+    /// 保证与主引擎实际使用的是同一个实例（ISSUE-129）。
+    /// </summary>
+    public void Initialize(MikoEngine mainEngine)
     {
         MainEngine = mainEngine;
-        MainRenderEngine = mainRenderEngine;
     }
 
     public void ToggleDevTools()
@@ -82,6 +90,8 @@ public class DevToolsBridge
         if (selected == null)
         {
             MainRenderEngine.OverlayCallback = null;
+            // 请求主窗口重绘一帧，把高亮擦掉（理由同下）。
+            MainEngine?.RequestRepaint();
             return;
         }
 
@@ -101,6 +111,15 @@ public class DevToolsBridge
 
             DrawHighlight(canvas, layoutBox, scrollX, scrollY);
         };
+
+        // 覆盖层的内容变了，但主窗口的 DOM 一个字节都没动，因此没有任何元素可以标脏。
+        // 不显式请求重绘，主窗口就会在 HasPendingVisualWork == false 时整帧跳过
+        // （ISSUE-096 的空闲跳帧），高亮永远画不出来。
+        //
+        // 变更版本号还是进程级全局静态时这里能侥幸工作：DevTools 窗口自身的 DOM 重建会不断
+        // 递增全局计数，连带击穿主引擎的布局缓存，主窗口因此永不空闲。ISSUE-129 按引擎隔离
+        // 之后这个巧合消失，必须显式请求（否则表现为「点 DOM 树，主窗口不高亮」）。
+        MainEngine?.RequestRepaint();
     }
 
     private static LayoutBox? FindLayoutBox(LayoutBox root, Element element, ref float scrollX, ref float scrollY)

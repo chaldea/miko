@@ -4,6 +4,7 @@ using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Ionic;
 using Miko.Ionic.Components;
 using Miko.Platform;
@@ -634,7 +635,7 @@ public class IonToastTests : IonicComponentTestBase
         host.AddChild(wrapper);
         root.AddChild(host);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [IonicStyleSheetFactory.CreateAllModes()], canvas, 600, 600);
         engine.AnimationManager.HasActiveAnimations.ShouldBeFalse();
 

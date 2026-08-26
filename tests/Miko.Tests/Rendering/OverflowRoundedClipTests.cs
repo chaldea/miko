@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Styling;
 using Shouldly;
 using SkiaSharp;
@@ -120,7 +121,7 @@ public class OverflowRoundedClipTests : IDisposable
 
     private void RenderElement(Element root)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [], _canvas, 200, 200);
         engine.Render(_canvas);
     }

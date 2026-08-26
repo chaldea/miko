@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Styling;
 using Shouldly;
@@ -48,7 +49,7 @@ public class MaxWidthInFlexTests
         using var surface = SKSurface.Create(new SKImageInfo(800, 800));
         var canvas = surface.Canvas;
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { sheet }, canvas, 800, 800);
 
         // Assert
@@ -108,7 +109,7 @@ public class MaxWidthInFlexTests
         using var surface = SKSurface.Create(new SKImageInfo(800, 800));
         var canvas = surface.Canvas;
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { sheet }, canvas, 800, 800);
 
         // Assert
@@ -168,7 +169,7 @@ public class MaxWidthInFlexTests
         });
 
         using var surface = SKSurface.Create(new SKImageInfo(800, 800));
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { sheet }, surface.Canvas, 800, 800);
 
         var wrapperBox = root.LayoutBox!.Children[0].Children[0];
@@ -230,7 +231,7 @@ public class MaxWidthInFlexTests
         });
 
         using var surface = SKSurface.Create(new SKImageInfo(800, 800));
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { sheet }, surface.Canvas, 800, 800);
 
         var wrapperBox = root.LayoutBox!.Children[0].Children[0];
@@ -284,7 +285,7 @@ public class MaxWidthInFlexTests
         });
 
         using var surface = SKSurface.Create(new SKImageInfo(800, 800));
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { sheet }, surface.Canvas, 800, 800);
 
         var wrapperBox = root.LayoutBox!.Children[0].Children[0];
@@ -331,7 +332,7 @@ public class MaxWidthInFlexTests
         });
 
         using var surface = SKSurface.Create(new SKImageInfo(800, 800));
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { sheet }, surface.Canvas, 800, 800);
 
         var wrapperBox = root.LayoutBox!.Children[0].Children[0];
