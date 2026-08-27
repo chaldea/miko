@@ -68,6 +68,10 @@ public class AnimationManager
     private readonly HashSet<(Element, string)> _recentlyCompleted = new();
     private ILogger _logger = NullLogger.Instance;
 
+    public AnimatedStyleOverlay Overlay { get; } = new();
+
+    internal Action<Element>? PaintInvalidated { get; set; }
+
     public AnimationManager() { }
 
     public AnimationManager(ILogger<AnimationManager> logger) => _logger = logger;
@@ -92,6 +96,7 @@ public class AnimationManager
             _transitions.Count, _animations.Count);
         _transitions.Clear();
         _animations.Clear();
+        Overlay.Clear();
     }
 
     public void RegisterAnimation(KeyframeAnimation animation)
@@ -118,16 +123,39 @@ public class AnimationManager
     private void StartAnimation(Element element, KeyframeAnimation definition, bool isDeclarative)
     {
         _animations.RemoveAll(a => a.Element == element && a.Definition.Name == definition.Name);
-        _animations.Add(new ActiveAnimation
+        var animation = new ActiveAnimation
         {
             Element = element,
             Definition = definition,
             ElapsedTime = 0,
             CurrentIteration = 0,
             IsDeclarative = isDeclarative
-        });
+        };
+        _animations.Add(animation);
+
+        // Apply the effective t=0 value before the element's first animated frame is painted.
+        // Otherwise declaration discovery happens after the base style has already been drawn,
+        // and the next Update jumps back to the first keyframe before playing forward.
+        ApplyInitialValue(animation);
         _logger.LogDebug("Animation started: \"{Name}\" on <{Tag} id=\"{Id}\">, duration={Duration}s, infinite={Infinite}, direction={Direction}",
             definition.Name, element.TagName, element.Id ?? "", definition.Duration, definition.Infinite, definition.Direction);
+    }
+
+    private void ApplyInitialValue(ActiveAnimation animation)
+    {
+        var definition = animation.Definition;
+        if (definition.Keyframes.Count == 0 || definition.Duration <= 0) return;
+
+        // During a positive delay CSS only applies the first keyframe for backwards/both fill.
+        if (definition.Delay > 0 && definition.FillMode is not (AnimationFillMode.Backwards or AnimationFillMode.Both))
+            return;
+
+        float directionalProgress = GetDirectionalProgress(0f, 0, definition.Direction);
+        float easedProgress = EasingFunctions.Evaluate(
+            definition.TimingFunction, directionalProgress, definition.CubicBezier);
+        ApplyKeyframeAtProgress(animation, easedProgress);
+        if (!HasLayoutAnimatedProperties(definition))
+            PaintInvalidated?.Invoke(animation.Element);
     }
 
     /// <summary>
@@ -180,13 +208,18 @@ public class AnimationManager
             // 记下「元素被换过」：本帧若要停掉该动画，据此决定是否抹除行内遗留值。
             if (!ReferenceEquals(resolved, anim.Element))
             {
+                Overlay.Migrate(anim.Element, resolved);
                 anim.Element = resolved;
                 anim.WasMigrated = true;
             }
         }
 
         foreach (var transition in _transitions)
-            transition.Element = transition.Element.ResolveSuperseded();
+        {
+            var resolved = transition.Element.ResolveSuperseded();
+            Overlay.Migrate(transition.Element, resolved);
+            transition.Element = resolved;
+        }
     }
 
     /// <summary>
@@ -222,6 +255,7 @@ public class AnimationManager
             if (attached && (!anim.IsDeclarative || names!.Contains(anim.Definition.Name)))
                 continue;
 
+            Overlay.Remove(anim.Element);
             _animations.RemoveAt(i);
             // 声明被撤下、但元素<b>不是</b>重渲染换上来的新实例（原地改了 Style.Animations）：
             // 动画最后一帧的值仍留在它的行内样式里，会盖过样式级联给出的值（骨架屏撤掉
@@ -241,6 +275,7 @@ public class AnimationManager
             var transition = _transitions[i];
             if (declaredAnimations.ContainsKey(transition.Element)) continue;
 
+            Overlay.Remove(transition.Element);
             _transitions.RemoveAt(i);
             _logger.LogDebug("Transition \"{Property}\" removed: <{Tag} id=\"{Id}\"> left the DOM",
                 transition.Property.PropertyName, transition.Element.TagName, transition.Element.Id ?? "");
@@ -324,13 +359,23 @@ public class AnimationManager
     {
         if (animationName == null)
         {
-            int count = _animations.RemoveAll(a => a.Element == element);
+            int count = _animations.RemoveAll(a =>
+            {
+                if (a.Element != element) return false;
+                Overlay.Remove(element);
+                return true;
+            });
             _logger.LogDebug("StopAnimation: removed all ({Count}) animations from <{Tag} id=\"{Id}\">",
                 count, element.TagName, element.Id ?? "");
         }
         else
         {
-            int count = _animations.RemoveAll(a => a.Element == element && a.Definition.Name == animationName);
+            int count = _animations.RemoveAll(a =>
+            {
+                if (a.Element != element || a.Definition.Name != animationName) return false;
+                Overlay.Remove(element);
+                return true;
+            });
             _logger.LogDebug("StopAnimation: removed \"{Name}\" ({Count}) from <{Tag} id=\"{Id}\">",
                 animationName, count, element.TagName, element.Id ?? "");
         }
@@ -348,7 +393,9 @@ public class AnimationManager
 
         _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == property);
 
-        var applier = GetFloatApplier(property);
+        var applier = IsPaintOnlyProperty(property)
+            ? (Action<Element, float>)((e, v) => Overlay.SetOpacity(e, v))
+            : GetFloatApplier(property);
         var activeTransition = new ActiveTransition
         {
             Element = element,
@@ -382,7 +429,9 @@ public class AnimationManager
 
         _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == property);
 
-        var applier = GetColorApplier(property);
+        var applier = IsPaintOnlyProperty(property)
+            ? (Action<Element, Color>)((e, c) => Overlay.SetColor(e, property, c))
+            : GetColorApplier(property);
         var activeTransition = new ActiveTransition
         {
             Element = element,
@@ -428,7 +477,7 @@ public class AnimationManager
             TimingFunction = transition.TimingFunction,
             CubicBezier = transition.CubicBezier,
             ElapsedTime = 0,
-            ApplyTransform = (e, t) => { e.Style ??= new Style(); e.Style.Transform = t; }
+            ApplyTransform = (e, t) => Overlay.SetTransform(e, t)
         };
 
         _transitions.Add(activeTransition);
@@ -463,7 +512,7 @@ public class AnimationManager
 
         _transitions.Add(activeTransition);
         applier(element, oldValue);
-        // 起始值直接写入行内样式（绕过 Element.Style setter 的版本追踪），显式递增版本号（ISSUE-096）。
+        // Custom appliers target pseudo-element/runtime styles, not the element paint overlay.
         element.BumpMutationVersion();
     }
 
@@ -529,13 +578,14 @@ public class AnimationManager
         _recentlyCompleted.Clear();
         UpdateTransitions(deltaTime);
         UpdateAnimations(deltaTime);
-        // 动画/过渡的帧值直接改写元素行内样式（绕过 Element.Style setter 的版本追踪），
-        // 显式递增本引擎的变更版本号，使下一帧布局重新解析样式（ISSUE-096）。
-        // 一个 AnimationManager 只服务一个引擎，故任取一个在场元素记账即可（ISSUE-129）。
-        if (_transitions.Count > 0)
-            _transitions[0].Element.BumpMutationVersion();
-        else if (_animations.Count > 0)
-            _animations[0].Element.BumpMutationVersion();
+        // Paint-only values live in the overlay and must not invalidate layout. Layout properties
+        // still use the mutation tracker so their computed styles are recalculated.
+        if (_transitions.Any(t => !IsPaintOnlyProperty(t.Property.PropertyName)) ||
+            _animations.Any(a => HasLayoutAnimatedProperties(a.Definition)))
+        {
+            (_transitions.FirstOrDefault(t => !IsPaintOnlyProperty(t.Property.PropertyName))?.Element ??
+             _animations.FirstOrDefault(a => HasLayoutAnimatedProperties(a.Definition))?.Element)?.BumpMutationVersion();
+        }
     }
 
     private void UpdateTransitions(float deltaTime)
@@ -567,11 +617,15 @@ public class AnimationManager
                 transition.ApplyTransform(transition.Element, transform);
             }
 
+            if (IsPaintOnlyProperty(transition.Property.PropertyName))
+                PaintInvalidated?.Invoke(transition.Element);
+
             transition.Element.IsDirty = true;
 
             if (transition.IsComplete)
             {
                 _recentlyCompleted.Add((transition.Element, transition.Property.PropertyName));
+                Overlay.RemoveProperty(transition.Element, transition.Property.PropertyName);
                 _transitions.RemoveAt(i);
                 _logger.LogDebug("Transition completed: \"{Property}\" on <{Tag} id=\"{Id}\">",
                     transition.Property.PropertyName, transition.Element.TagName, transition.Element.Id ?? "");
@@ -610,6 +664,7 @@ public class AnimationManager
             {
                 _logger.LogWarning("Animation \"{Name}\" has zero duration, removing", anim.Definition.Name);
                 anim.IsComplete = true;
+                Overlay.Remove(anim.Element);
                 _animations.RemoveAt(i);
                 continue;
             }
@@ -625,6 +680,10 @@ public class AnimationManager
                     ApplyKeyframeAtProgress(anim, finalProgress);
                 }
                 anim.IsComplete = true;
+                if (anim.Definition.FillMode is not (AnimationFillMode.Forwards or AnimationFillMode.Both))
+                {
+                    Overlay.Remove(anim.Element);
+                }
                 _animations.RemoveAt(i);
                 _logger.LogDebug("Animation completed: \"{Name}\" on <{Tag} id=\"{Id}\">, iterations={Iterations}",
                     anim.Definition.Name, anim.Element.TagName, anim.Element.Id ?? "", iteration);
@@ -640,6 +699,8 @@ public class AnimationManager
                 anim.Definition.Name, iteration, localProgress, easedProgress);
 
             ApplyKeyframeAtProgress(anim, easedProgress);
+            if (!HasLayoutAnimatedProperties(anim.Definition))
+                PaintInvalidated?.Invoke(anim.Element);
             anim.Element.IsDirty = true;
         }
     }
@@ -752,7 +813,7 @@ public class AnimationManager
         {
             float fromVal = fromOpacity ?? 1f;
             float toVal = toOpacity ?? 1f;
-            element.Style.Opacity = Lerp(fromVal, toVal, progress);
+            Overlay.SetOpacity(element, Lerp(fromVal, toVal, progress));
         }
 
         InterpolateLengthProperty(element, from.Width.ValueOrNull(), to.Width.ValueOrNull(), progress, (s, v) => s.Width = v);
@@ -785,28 +846,28 @@ public class AnimationManager
         var toBg = to.BackgroundColor.ValueOrNull();
         if (fromBg != null || toBg != null)
         {
-            element.Style.BackgroundColor = LerpColor(fromBg ?? Color.Transparent, toBg ?? Color.Transparent, progress);
+            Overlay.SetColor(element, nameof(Style.BackgroundColor), LerpColor(fromBg ?? Color.Transparent, toBg ?? Color.Transparent, progress));
         }
 
         var fromColor = from.Color.ValueOrNull();
         var toColor = to.Color.ValueOrNull();
         if (fromColor != null || toColor != null)
         {
-            element.Style.Color = LerpColor(fromColor ?? Color.Black, toColor ?? Color.Black, progress);
+            Overlay.SetColor(element, nameof(Style.Color), LerpColor(fromColor ?? Color.Black, toColor ?? Color.Black, progress));
         }
 
         var fromBorderColor = from.BorderColor.ValueOrNull();
         var toBorderColor = to.BorderColor.ValueOrNull();
         if (fromBorderColor != null || toBorderColor != null)
         {
-            element.Style.BorderColor = LerpColor(fromBorderColor ?? Color.Transparent, toBorderColor ?? Color.Transparent, progress);
+            Overlay.SetColor(element, nameof(Style.BorderColor), LerpColor(fromBorderColor ?? Color.Transparent, toBorderColor ?? Color.Transparent, progress));
         }
 
         var fromTransform = from.Transform.RefValueOrNull();
         var toTransform = to.Transform.RefValueOrNull();
         if (fromTransform != null || toTransform != null)
         {
-            element.Style.Transform = LerpTransform(fromTransform ?? Transform.None, toTransform ?? Transform.None, progress);
+            Overlay.SetTransform(element, LerpTransform(fromTransform ?? Transform.None, toTransform ?? Transform.None, progress));
         }
     }
 
@@ -965,5 +1026,31 @@ public class AnimationManager
             nameof(Style.BorderColor) => (e, c) => { e.Style ??= new Style(); e.Style.BorderColor = c; },
             _ => null
         };
+    }
+
+    private static bool IsPaintOnlyProperty(string property)
+        => property is nameof(Style.Opacity) or nameof(Style.Transform) or nameof(Style.Color)
+            or nameof(Style.BackgroundColor) or nameof(Style.BorderColor)
+            or nameof(Style.BorderTopColor) or nameof(Style.BorderRightColor)
+            or nameof(Style.BorderBottomColor) or nameof(Style.BorderLeftColor);
+
+    private static bool HasLayoutAnimatedProperties(KeyframeAnimation definition)
+    {
+        foreach (var keyframe in definition.Keyframes)
+        {
+            var style = keyframe.Style;
+            if (style.Width.ValueOrNull() != null || style.Height.ValueOrNull() != null ||
+                style.MarginTop.ValueOrNull() != null || style.MarginRight.ValueOrNull() != null ||
+                style.MarginBottom.ValueOrNull() != null || style.MarginLeft.ValueOrNull() != null ||
+                style.PaddingTop.ValueOrNull() != null || style.PaddingRight.ValueOrNull() != null ||
+                style.PaddingBottom.ValueOrNull() != null || style.PaddingLeft.ValueOrNull() != null ||
+                style.Top.ValueOrNull() != null || style.Right.ValueOrNull() != null ||
+                style.Bottom.ValueOrNull() != null || style.Left.ValueOrNull() != null ||
+                style.FontSize.ValueOrNull() != null || style.BorderWidth.ValueOrNull() != null ||
+                style.BorderTopLeftRadius.ValueOrNull() != null || style.BorderTopRightRadius.ValueOrNull() != null ||
+                style.BorderBottomRightRadius.ValueOrNull() != null || style.BorderBottomLeftRadius.ValueOrNull() != null)
+                return true;
+        }
+        return false;
     }
 }

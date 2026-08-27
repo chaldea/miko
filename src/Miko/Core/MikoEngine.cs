@@ -45,6 +45,8 @@ public class MikoEngine
         _animationManager = animationManager;
         _dispatcher = dispatcher;
         _mutations = mutations;
+        _renderEngine.AnimatedStyles = animationManager.Overlay;
+        _animationManager.PaintInvalidated = InvalidatePaintOnly;
         // 三个可选服务在核心库里都有默认实现（NullVideoBackend / ResourceManager /
         // SyntaxHighlighter），因此可以直接构造器注入，无需引擎依赖 IServiceProvider
         // 做可选解析（ISSUE-129）。平台宿主/应用重新注册接口即可覆盖。
@@ -85,6 +87,9 @@ public class MikoEngine
     /// <summary>Height of the currently initialized viewport.</summary>
     public float ViewportHeight => _viewportHeight;
     private SafeAreaInsets _safeArea;
+    private long _lastAssignedMutationVersion = -1;
+    private long _lastAnimationReconciledVersion = -1;
+    private long _lastAnimationDeclarationVersion = -1;
 
     // 页面转场状态（ISSUE-108）：转场期间旧页面树（leaving 层）被保留，与新页面树
     // （entering 层，即 _root/_currentLayout）作为两个叠放图层共同绘制；
@@ -196,6 +201,9 @@ public class MikoEngine
         EnsureParentReferences(root);
         // 认领整棵树：此后树上任何元素的变更都记到本引擎的计数器上（ISSUE-129）。
         root.AssignOwner(_mutations);
+        _lastAssignedMutationVersion = _mutations.Version;
+        _lastAnimationReconciledVersion = -1;
+        _lastAnimationDeclarationVersion = -1;
         _renderEngine.SetCanvas(canvas);
 
         _logger.LogInformation("Engine initialized with viewport {Width}x{Height}", viewportWidth, viewportHeight);
@@ -203,6 +211,11 @@ public class MikoEngine
         // 对齐动画条目并补写当前进度值（ISSUE-127）。这里 _animationManager 刚被 Clear，
         // 通常无事可做；保留调用是为了让三条渲染路径的顺序保持一致。
         ReconcileAnimationTargets(root);
+
+        // Discover declarations and apply their effective t=0 values before the first layout and
+        // paint. Starting after Render would flash the base/end state for one frame, then jump back.
+        ScanAndStartAnimations(root);
+        _lastAnimationDeclarationVersion = _mutations.Version;
 
         // Capture old styles from transferred LayoutBoxes (before layout replaces them)
         var oldStyles = CaptureTransitionableStyles(root);
@@ -261,7 +274,6 @@ public class MikoEngine
         // 本次返回导航的快照已回放完毕（可能因 transition 重新布局而回放了两次），消费掉它。
         ConsumeScrollSnapshot(transition);
 
-        ScanAndStartAnimations(root);
     }
 
     private static void MapElementIdentityRecursive(Element oldElement, Element newElement)
@@ -402,7 +414,7 @@ public class MikoEngine
         _dispatcher.Drain();
         DrainPendingInvalidations();
         // 认领本帧树上的新子树（ISSUE-129，与 Render 同理）。
-        _root.AssignOwner(_mutations);
+        EnsureOwnersAssigned();
         SyncVideoSessions(_root);
         SyncImageSources(_root);
 
@@ -463,12 +475,20 @@ public class MikoEngine
         // 认领本帧树上的新子树（ISSUE-129）。Razor 重渲染每次产出全新实例的整棵子树再挂接，
         // 其中经 ComponentBase.ReplaceElementContent 等路径直接写 Children 的部分不会继承归属。
         // 必须早于 IsLayoutCurrent：新子树没有归属就不会记账，其变更会被快速路径当作「无事发生」。
-        _root.AssignOwner(_mutations);
+        EnsureOwnersAssigned();
 
         // 把动画/过渡条目对齐到重渲染后的在场元素、回收停掉的条目，并把当前进度值补写回
         // 行内样式（ISSUE-127）。必须早于 IsLayoutCurrent：这些写入会改动行内样式（即布局输入），
         // 先判定就会用上一帧的结论走快速路径，把改动漏到下一帧。
-        ReconcileAnimationTargets(_root);
+        if (_lastAnimationReconciledVersion != _mutations.Version)
+        {
+            ReconcileAnimationTargets(_root);
+            _lastAnimationReconciledVersion = _mutations.Version;
+        }
+
+        // New declarations must be started before IsLayoutCurrent/layout so their first keyframe
+        // participates in this same frame instead of appearing one frame late.
+        ScanAnimationsIfNeeded(_root);
 
         // 快速路径（ISSUE-096）：布局输入（DOM/样式/视口/安全区）自上次布局后未变，
         // 直接复用现有布局树。此时不可能有新的 transition 触发（transition 由样式变化引起，
@@ -480,10 +500,6 @@ public class MikoEngine
             SyncVideoSessions(_root);
             // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
             SyncImageSources(_root);
-            // DOM 可能在 Razor 重渲染中新增带动画的元素（如 IonLoading 打开时才渲染 IonSpinner），
-            // 扫描并启动新元素上的 Style.Animations（已启动的动画不会重复启动）。
-            ScanAndStartAnimations(_root);
-
             RenderCurrentFrame();
             _dirtyManager.Clear();
             return;
@@ -504,10 +520,6 @@ public class MikoEngine
         SyncVideoSessions(_root);
         // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
         SyncImageSources(_root);
-        // DOM 可能在 Razor 重渲染中新增带动画的元素（如 IonLoading 打开时才渲染 IonSpinner），
-        // 扫描并启动新元素上的 Style.Animations（已启动的动画不会重复启动）。
-        ScanAndStartAnimations(_root);
-
         RestoreScrollState(oldLayout, _currentLayout);
         RenderCurrentFrame();
         _dirtyManager.Clear();
@@ -520,6 +532,9 @@ public class MikoEngine
     {
         _dirtyManager.MarkDirty(element);
     }
+
+    /// <summary>Marks an element for repaint without invalidating computed style or layout.</summary>
+    internal void InvalidatePaintOnly(Element element) => _dirtyManager.MarkDirty(element);
 
     // 外部请求的「重绘一帧」标志。与脏区域不同：它不对应 DOM 里的任何矩形，
     // 只表示「本帧画出来的东西会和上一帧不同」。见 RequestRepaint。
@@ -624,6 +639,20 @@ public class MikoEngine
         }
         foreach (var element in batch)
             _dirtyManager.MarkDirty(element);
+    }
+
+    private void EnsureOwnersAssigned()
+    {
+        if (_root == null || _lastAssignedMutationVersion == _mutations.Version) return;
+        _root.AssignOwner(_mutations);
+        _lastAssignedMutationVersion = _mutations.Version;
+    }
+
+    private void ScanAnimationsIfNeeded(Element root)
+    {
+        if (_lastAnimationDeclarationVersion == _mutations.Version) return;
+        ScanAndStartAnimations(root);
+        _lastAnimationDeclarationVersion = _mutations.Version;
     }
 
     public AnimationManager AnimationManager => _animationManager;

@@ -1024,6 +1024,22 @@ public sealed class MikoInteractionController
         _pointerDownBounds = null;
     }
 
+    /// <summary>
+    /// 取回捕获目标当前在场的实例，并把字段本身前推到该实例。
+    ///
+    /// <para>前推是为了让字段只握住最新一代：拖动期间每个 mousemove 都可能触发重渲染，字段若一直
+    /// 停在第 0 代，就会经 <c>SupersededBy</c> 前向链把中间各代一并留住。
+    /// <c>ResolveSuperseded</c> 的路径压缩只改写链头那一格，无法让字段自己松手。</para>
+    /// </summary>
+    private Element? ResolveAndReanchorPointerDownTarget()
+    {
+        if (_pointerDownTarget == null) return null;
+        var resolved = _pointerDownTarget.ResolveSuperseded();
+        // 重新锚定后，被跳过的各代不再从本字段可达，可以正常回收。
+        _pointerDownTarget = resolved;
+        return resolved;
+    }
+
     private PointerEventArgs? DispatchCapturedPointerPair(
         string pointerEventType,
         string legacyMouseEventType,
@@ -1032,9 +1048,9 @@ public sealed class MikoInteractionController
         MouseButton button,
         bool isButtonPressed)
     {
-        if (_pointerDownTarget == null) return null;
+        var target = ResolveAndReanchorPointerDownTarget();
+        if (target == null) return null;
 
-        var target = _pointerDownTarget.ResolveSuperseded();
         return DispatchPointerPair(target, pointerEventType, legacyMouseEventType,
             x, y, button, isButtonPressed, _pointerDownBounds);
     }
@@ -1046,9 +1062,9 @@ public sealed class MikoInteractionController
         MouseButton button,
         bool isButtonPressed)
     {
-        if (_pointerDownTarget == null) return;
+        var target = ResolveAndReanchorPointerDownTarget();
+        if (target == null) return;
 
-        var target = _pointerDownTarget.ResolveSuperseded();
         DispatchPointerEvent(target, eventType, x, y, button, isButtonPressed, _pointerDownBounds,
             _activePointerType, _activePointerId);
     }

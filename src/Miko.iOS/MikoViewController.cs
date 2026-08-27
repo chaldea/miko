@@ -7,8 +7,8 @@ using UIKit;
 namespace Miko.iOS;
 
 /// <summary>
-/// 承载 <see cref="MikoGLView"/> 的视图控制器。通过 <see cref="CADisplayLink"/> 驱动连续渲染，
-/// 使动画与热重载得以推进。iOS 启动项目通常将其设为根视图控制器。
+/// 承载 <see cref="MikoGLView"/> 的视图控制器。通过 <see cref="CADisplayLink"/> 按需调度渲染，
+/// 使动画与热重载得以推进，同时让静态页面在空闲时停止提交帧。
 /// </summary>
 public class MikoViewController : UIViewController
 {
@@ -37,7 +37,8 @@ public class MikoViewController : UIViewController
 
     private void OnFrame()
     {
-        _glView?.SetNeedsDisplay();
+        if (_context.Controller.HasPendingWork)
+            _glView?.SetNeedsDisplay();
     }
 
     protected override void Dispose(bool disposing)

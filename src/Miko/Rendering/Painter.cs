@@ -906,7 +906,35 @@ public class Painter
     /// </summary>
     public int Save() => _canvas.Save();
 
-    public int SaveLayerAlpha(byte alpha) => _canvas.SaveLayer(new SKPaint { Color = new SKColor(255, 255, 255, alpha) });
+    /// <summary>
+    /// 为 <c>opacity &lt; 1</c> 开启一个 alpha 合成层。
+    ///
+    /// <para><paramref name="bounds"/><b>必须</b>传入该层实际绘制内容的包围盒。不传 bounds 时
+    /// Skia 会按当前裁剪区（通常是整个表面）分配离屏缓冲，成本与页面尺寸而非元素尺寸成正比——
+    /// 实测 800×5000 表面上 50 个半透明元素每帧约 226 ms，传 bounds 后约 0.57 ms（约 400 倍）。
+    /// 离屏层是 native 内存，不计入托管分配统计，故该开销只体现为耗时。</para>
+    ///
+    /// <para>层的内容会被 bounds 裁掉，所以调用方须覆盖整棵子树的绘制范围（含阴影、轮廓、
+    /// 变换后的几何与溢出的后代）；见 <c>RenderEngine.ComputeLayerBounds</c>。</para>
+    ///
+    /// <para><paramref name="paint"/> 由调用方持有并复用，避免每帧每元素新建 <see cref="SKPaint"/>
+    /// （native 资源，不 Dispose 即泄漏）。</para>
+    /// </summary>
+    public int SaveLayerAlpha(byte alpha, RectF bounds, SKPaint paint)
+    {
+        paint.Color = new SKColor(255, 255, 255, alpha);
+        return _canvas.SaveLayer(bounds.ToSKRect(), paint);
+    }
+
+    /// <summary>
+    /// 无 bounds 的 alpha 合成层。仅用于「层就是整个画布」的场景（如页面转场的整层淡入淡出），
+    /// 此时按裁剪区分配离屏层本就是正确尺寸。逐元素的 opacity 一律用带 bounds 的重载。
+    /// </summary>
+    public int SaveLayerAlpha(byte alpha, SKPaint paint)
+    {
+        paint.Color = new SKColor(255, 255, 255, alpha);
+        return _canvas.SaveLayer(paint);
+    }
 
     /// <summary>
     /// 恢复画布状态

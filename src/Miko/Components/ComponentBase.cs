@@ -1,4 +1,5 @@
 using Miko.Core;
+using Miko.Core.DomElements;
 using Miko.Layout;
 using Miko.Routing;
 using System.Diagnostics.CodeAnalysis;
@@ -325,19 +326,46 @@ public abstract class ComponentBase : IComponent
 
     private static void TransferLayoutBox(Element oldElement, Element newElement)
     {
+        LayoutBox? transferred = null;
         if (oldElement.LayoutBox != null)
         {
-            newElement.LayoutBox = new LayoutBox
+            transferred = new LayoutBox
             {
                 Element = newElement,
                 ComputedStyle = oldElement.LayoutBox.ComputedStyle,
-                Children = oldElement.LayoutBox.Children
             };
+            newElement.LayoutBox = transferred;
         }
 
         int count = Math.Min(oldElement.Children.Count, newElement.Children.Count);
         for (int i = 0; i < count; i++)
             TransferLayoutBox(oldElement.Children[i], newElement.Children[i]);
+
+        // 子 LayoutBox 必须重新挂上本次配对产出的新盒，绝不能沿用 oldElement.LayoutBox.Children。
+        //
+        // 旧写法直接 `Children = oldElement.LayoutBox.Children`，于是新盒握着的是**上一代**的子盒，
+        // 而子盒的 .Element 指向上一代元素、后者又经 SupersededBy 指向下一代……每次重渲染就多套一层。
+        // 拖动滑块时每个 mousemove 都重渲染，于是整条历史全部可达：内存随拖动持续上涨、G2 暴涨，
+        // 且 GC 完全无法回收（弱引用实测 30 步后 30 代全存活）。
+        //
+        // 未配对到的尾部子元素（新树更长）此处无盒可继承，交由下一次布局正常生成。
+        if (transferred != null)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var childBox = newElement.Children[i].LayoutBox;
+                if (childBox != null) transferred.Children.Add(childBox);
+            }
+
+            // 伪元素盒（::before/::after）由布局阶段合成，在 DOM 里没有对应子元素可配对，
+            // 因此必须显式带过来——否则 CaptureTransitionableStyles 读不到它们的旧计算样式，
+            // 伪元素上的 transition 会在重渲染后丢掉起始值。它们各自持有当次布局新建的
+            // PseudoElement，不牵连上一代 DOM，搬运是安全的。
+            foreach (var childBox in oldElement.LayoutBox!.Children)
+            {
+                if (childBox.Element is PseudoElement) transferred.Children.Add(childBox);
+            }
+        }
     }
 
     /// <summary>
