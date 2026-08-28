@@ -122,6 +122,7 @@ internal class DevToolsWindow
         });
 
         _grContext = GRContext.CreateGl(grInterface);
+        GpuResourceCache.Configure(_grContext);
 
         _inputContext = _window!.CreateInput();
         foreach (var mouse in _inputContext.Mice)
@@ -405,6 +406,7 @@ internal class DevToolsWindow
         _inputContext?.Dispose();
         _initSurface?.Dispose();
         _initSurface = null;
+        GpuResourceCache.PurgeAllResources(_grContext);
         _grContext?.Dispose();
         _gl?.Dispose();
     }

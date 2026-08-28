@@ -44,18 +44,16 @@ public class Painter
             float shadowBottomRightRadius = bottomRightRadius + shadow.SpreadRadius;
             float shadowBottomLeftRadius = bottomLeftRadius + shadow.SpreadRadius;
 
+            using var maskFilter = shadow.BlurRadius > 0
+                ? SKMaskFilter.CreateBlur(SKBlurStyle.Normal, shadow.BlurRadius / 2f)
+                : null;
             using var paint = new SKPaint
             {
                 Color = shadow.Color.ToSKColor(),
                 Style = SKPaintStyle.Fill,
-                IsAntialias = true
+                IsAntialias = true,
+                MaskFilter = maskFilter
             };
-
-            // 应用模糊
-            if (shadow.BlurRadius > 0)
-            {
-                paint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, shadow.BlurRadius / 2f);
-            }
 
             if (shadow.Inset)
             {
@@ -132,29 +130,15 @@ public class Painter
     {
         if (width <= 0 || color.A == 0 || style == BorderStyle.None) return;
 
+        using var pathEffect = CreateBorderPathEffect(style, width);
         using var paint = new SKPaint
         {
             Color = color.ToSKColor(),
             StrokeWidth = width,
             Style = SKPaintStyle.Stroke,
-            IsAntialias = true
+            IsAntialias = true,
+            PathEffect = pathEffect
         };
-
-        // 根据边框样式设置
-        switch (style)
-        {
-            case BorderStyle.Dotted:
-                paint.PathEffect = SKPathEffect.CreateDash(new[] { width, width }, 0);
-                break;
-
-            case BorderStyle.Dashed:
-                paint.PathEffect = SKPathEffect.CreateDash(new[] { width * 3, width * 2 }, 0);
-                break;
-
-            case BorderStyle.Double:
-                // TODO: 实现双线边框
-                break;
-        }
 
         // 将绘制矩形向内收缩半个边框宽度，使描边完全在 BorderBox 内部
         float halfWidth = width / 2;
@@ -192,23 +176,15 @@ public class Painter
     {
         if (width <= 0 || color.A == 0 || style == BorderStyle.None) return;
 
+        using var pathEffect = CreateBorderPathEffect(style, width);
         using var paint = new SKPaint
         {
             Color = color.ToSKColor(),
             StrokeWidth = width,
             Style = SKPaintStyle.Stroke,
-            IsAntialias = true
+            IsAntialias = true,
+            PathEffect = pathEffect
         };
-
-        switch (style)
-        {
-            case BorderStyle.Dotted:
-                paint.PathEffect = SKPathEffect.CreateDash(new[] { width, width }, 0);
-                break;
-            case BorderStyle.Dashed:
-                paint.PathEffect = SKPathEffect.CreateDash(new[] { width * 3, width * 2 }, 0);
-                break;
-        }
 
         // 描边中心线位于边框盒外扩 (offset + width/2) 处，使轮廓内缘正好距边框盒 offset。
         float expand = offset + width / 2f;
@@ -281,7 +257,8 @@ public class Painter
     {
         if (!border.IsVisible) return;
 
-        using var paint = CreateBorderPaint(border);
+        using var pathEffect = CreateBorderPathEffect(border.Style, border.Width.Value);
+        using var paint = CreateBorderPaint(border, pathEffect);
         float halfWidth = border.Width.Value / 2;
 
         float insetTop = rect.Top + halfWidth;
@@ -323,7 +300,8 @@ public class Painter
     {
         if (!border.IsVisible) return;
 
-        using var paint = CreateBorderPaint(border);
+        using var pathEffect = CreateBorderPathEffect(border.Style, border.Width.Value);
+        using var paint = CreateBorderPaint(border, pathEffect);
         float halfWidth = border.Width.Value / 2;
 
         float insetRight = rect.Right - halfWidth;
@@ -365,7 +343,8 @@ public class Painter
     {
         if (!border.IsVisible) return;
 
-        using var paint = CreateBorderPaint(border);
+        using var pathEffect = CreateBorderPathEffect(border.Style, border.Width.Value);
+        using var paint = CreateBorderPaint(border, pathEffect);
         float halfWidth = border.Width.Value / 2;
 
         float insetBottom = rect.Bottom - halfWidth;
@@ -407,7 +386,8 @@ public class Painter
     {
         if (!border.IsVisible) return;
 
-        using var paint = CreateBorderPaint(border);
+        using var pathEffect = CreateBorderPathEffect(border.Style, border.Width.Value);
+        using var paint = CreateBorderPaint(border, pathEffect);
         float halfWidth = border.Width.Value / 2;
 
         float insetLeft = rect.Left + halfWidth;
@@ -443,32 +423,29 @@ public class Painter
     }
 
     /// <summary>
+    /// 创建边框路径效果
+    /// </summary>
+    private static SKPathEffect? CreateBorderPathEffect(BorderStyle style, float width) => style switch
+    {
+        BorderStyle.Dotted => SKPathEffect.CreateDash(new[] { width, width }, 0),
+        BorderStyle.Dashed => SKPathEffect.CreateDash(new[] { width * 3, width * 2 }, 0),
+        _ => null
+    };
+
+    /// <summary>
     /// 创建边框画笔
     /// </summary>
-    private static SKPaint CreateBorderPaint(BorderSide border)
+    private static SKPaint CreateBorderPaint(BorderSide border, SKPathEffect? pathEffect)
     {
-        var paint = new SKPaint
+        return new SKPaint
         {
             Color = border.Color.ToSKColor(),
             StrokeWidth = border.Width.Value,
             Style = SKPaintStyle.Stroke,
             IsAntialias = true,
-            StrokeCap = SKStrokeCap.Butt
+            StrokeCap = SKStrokeCap.Butt,
+            PathEffect = pathEffect
         };
-
-        switch (border.Style)
-        {
-            case BorderStyle.Dotted:
-                paint.PathEffect = SKPathEffect.CreateDash(
-                    new[] { border.Width.Value, border.Width.Value }, 0);
-                break;
-            case BorderStyle.Dashed:
-                paint.PathEffect = SKPathEffect.CreateDash(
-                    new[] { border.Width.Value * 3, border.Width.Value * 2 }, 0);
-                break;
-        }
-
-        return paint;
     }
 
     /// <summary>
@@ -877,11 +854,16 @@ public class Painter
         // 启用抗锯齿和高质量采样，改善图像（特别是 SVG）的渲染质量
         // 将 SKBitmap 转换为 SKImage 以使用支持 SKSamplingOptions 的 API
         using var image = SKImage.FromBitmap(bitmap);
-        using var paint = new SKPaint { IsAntialias = true };
         // 模板图标（如 Ionicons）用元素的 color 着色：以图像 alpha 作为遮罩，
         // 用 SrcIn 混合替换其 RGB，对应 CSS 的 fill: currentColor。
-        if (tint is { } t)
-            paint.ColorFilter = SKColorFilter.CreateBlendMode(t.ToSKColor(), SKBlendMode.SrcIn);
+        using var colorFilter = tint is { } t
+            ? SKColorFilter.CreateBlendMode(t.ToSKColor(), SKBlendMode.SrcIn)
+            : null;
+        using var paint = new SKPaint
+        {
+            IsAntialias = true,
+            ColorFilter = colorFilter
+        };
         var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
         _canvas.DrawImage(image, rect.ToSKRect(), sampling, paint);
     }
@@ -1344,7 +1326,7 @@ public class Painter
             new(bottomLeft, bottomLeft)
         };
 
-        var roundRect = new SKRoundRect();
+        using var roundRect = new SKRoundRect();
         roundRect.SetRectRadii(rect, radii);
 
         var path = new SKPath();

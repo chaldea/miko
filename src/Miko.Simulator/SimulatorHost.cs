@@ -7,6 +7,7 @@ using Miko.Core;
 using Miko.Events;
 using Miko.Hosting;
 using Miko.Platform;
+using Miko.Rendering;
 using Silk.NET.Core;
 using Silk.NET.Input;
 using Silk.NET.Maths;
@@ -222,6 +223,7 @@ public sealed class SimulatorHost
         var grInterface = GRGlInterface.Create(name =>
             _window!.GLContext!.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
         _grContext = GRContext.CreateGl(grInterface);
+        GpuResourceCache.Configure(_grContext);
 
         _inputContext = _window!.CreateInput();
         foreach (var mouse in _inputContext.Mice)
@@ -256,7 +258,18 @@ public sealed class SimulatorHost
         var (logicalW, logicalH) = CurrentLogicalSize();
         var (pixelW, pixelH) = CurrentPixelSize();
 
-        _appSurface?.Dispose();
+        if (_appSurface != null)
+        {
+            var usageBefore = GpuResourceCache.GetUsage(_grContext!);
+            _appSurface.Dispose();
+            _appSurface = null;
+            GpuResourceCache.PurgeUnlockedResources(_grContext);
+            var usageAfter = GpuResourceCache.GetUsage(_grContext!);
+            _logger.LogDebug(
+                "Purged unlocked GPU resources after surface replacement: {BeforeCount} resources/{BeforeBytes} bytes -> {AfterCount} resources/{AfterBytes} bytes",
+                usageBefore.ResourceCount, usageBefore.ResourceBytes,
+                usageAfter.ResourceCount, usageAfter.ResourceBytes);
+        }
 
         // 使用 SKSurfaceProperties 指定像素几何信息，改善文字和图形的渲染质量。
         // 创建 GPU 支持的 Surface 时，指定 surface properties 以启用更好的子像素渲染。
@@ -378,6 +391,8 @@ public sealed class SimulatorHost
     {
         _appController.Engine.DisposeVideoSessions();
         _appSurface?.Dispose();
+        _appSurface = null;
+        GpuResourceCache.PurgeAllResources(_grContext);
         // 自定义光标通过 Image 属性设置，无需手动释放 ICursor 本身。
         _inputContext?.Dispose();
         _grContext?.Dispose();
