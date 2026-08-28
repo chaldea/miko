@@ -104,20 +104,9 @@ public sealed class MikoInteractionController
         _logger = logger;
         _syncContext = new MikoSynchronizationContext(dispatcher);
 
-        // 视频后端为可选服务：注册了平台后端（如桌面 FFmpegVideoBackend）时注入引擎，
-        // 否则 <video> 元素仅显示背景/poster。
-        _engine.VideoBackend = serviceProvider.GetService<IVideoBackend>();
-
-        // 图片加载器：优先用 DI 注册的实现（应用可经 UseImageLoading 自定义）；
-        // 否则注入内置 ResourceManager，复用 DI 中的 HttpClient（若已注册）与入口程序集解析 res://。
-        _engine.ImageLoader = serviceProvider.GetService<IImageLoader>();
-
-        // 语法高亮器：默认注册内置实现；应用可重新注册 ISyntaxHighlighter 覆盖
-        // （如自定义配色、新增语言或接入完整语法分析，见 ISSUE-098）。
-        if (serviceProvider.GetService<Highlight.ISyntaxHighlighter>() is { } syntaxHighlighter)
-        {
-            _engine.SyntaxHighlighter = syntaxHighlighter;
-        }
+        // 注：视频后端、图片加载器、语法高亮器的注入已上移到 AddMikoEngine 的引擎工厂
+        // （见 Hosting/EngineExtensions.cs）。此前放在这里，导致不经 App 宿主创建的引擎
+        // （DevTools、模拟器面板、测试）永远拿不到这些可选服务（ISSUE-129）。
 
         if (_options.RouteAssemblies != null || _options.RouteConfigurator != null)
         {
@@ -537,6 +526,20 @@ public sealed class MikoInteractionController
 
         _hoveredElements.Clear();
         _hoveredElements.AddRange(chain);
+        // The buffer is only scratch storage. Keeping the copied chain here would give every
+        // hovered element a second long-lived root while captured moves skip UpdateHover.
+        chain.Clear();
+    }
+
+    /// <summary>
+    /// Moves cached hover references to their live replacements after component re-rendering.
+    /// Captured pointer moves intentionally do not recompute :hover from hit testing, but the
+    /// cached references must still advance or their SupersededBy chains retain every old tree.
+    /// </summary>
+    private void ReanchorHoveredElements()
+    {
+        for (int i = 0; i < _hoveredElements.Count; i++)
+            _hoveredElements[i] = _hoveredElements[i].ResolveSuperseded();
     }
 
     /// <summary>
@@ -1035,6 +1038,23 @@ public sealed class MikoInteractionController
         _pointerDownBounds = null;
     }
 
+    /// <summary>
+    /// 取回捕获目标当前在场的实例，并把字段本身前推到该实例。
+    ///
+    /// <para>前推是为了让字段只握住最新一代：拖动期间每个 mousemove 都可能触发重渲染，字段若一直
+    /// 停在第 0 代，就会经 <c>SupersededBy</c> 前向链把中间各代一并留住。
+    /// <c>ResolveSuperseded</c> 的路径压缩只改写链头那一格，无法让字段自己松手。</para>
+    /// </summary>
+    private Element? ResolveAndReanchorPointerDownTarget()
+    {
+        ReanchorHoveredElements();
+        if (_pointerDownTarget == null) return null;
+        var resolved = _pointerDownTarget.ResolveSuperseded();
+        // 重新锚定后，被跳过的各代不再从本字段可达，可以正常回收。
+        _pointerDownTarget = resolved;
+        return resolved;
+    }
+
     private PointerEventArgs? DispatchCapturedPointerPair(
         string pointerEventType,
         string legacyMouseEventType,
@@ -1043,9 +1063,9 @@ public sealed class MikoInteractionController
         MouseButton button,
         bool isButtonPressed)
     {
-        if (_pointerDownTarget == null) return null;
+        var target = ResolveAndReanchorPointerDownTarget();
+        if (target == null) return null;
 
-        var target = _pointerDownTarget.ResolveSuperseded();
         return DispatchPointerPair(target, pointerEventType, legacyMouseEventType,
             x, y, button, isButtonPressed, _pointerDownBounds);
     }
@@ -1057,9 +1077,9 @@ public sealed class MikoInteractionController
         MouseButton button,
         bool isButtonPressed)
     {
-        if (_pointerDownTarget == null) return;
+        var target = ResolveAndReanchorPointerDownTarget();
+        if (target == null) return;
 
-        var target = _pointerDownTarget.ResolveSuperseded();
         DispatchPointerEvent(target, eventType, x, y, button, isButtonPressed, _pointerDownBounds,
             _activePointerType, _activePointerId);
     }

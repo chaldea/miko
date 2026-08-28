@@ -12,6 +12,7 @@ namespace Miko.Rendering;
 /// </summary>
 public class RenderEngine
 {
+    public AnimatedStyleOverlay? AnimatedStyles { get; set; }
     /// <summary>
     /// 增量渲染脏区域数量阈值。脏区域超过该数量时，多次全树遍历的成本会超过一次全量渲染
     /// （见基准报告 §2 拐点 30–50），此时应回退到全量渲染。
@@ -44,6 +45,13 @@ public class RenderEngine
     /// 在画布根状态下统一绘制（见那里的说明）。
     /// </summary>
     private readonly List<LayoutBox> _pendingFixed = new();
+    private readonly List<LayoutBox> _fixedRenderBuffer = new();
+
+    /// <summary>
+    /// 复用的合成层 paint。SKPaint 是 native 资源，每帧每元素新建即为泄漏（托管堆看不见），
+    /// 且 SetCanvas 每帧调用，故由引擎持有而非 Painter。
+    /// </summary>
+    private readonly SKPaint _layerPaint = new();
     private float _currentScrollOffsetX;
     private float _currentScrollOffsetY;
 
@@ -96,7 +104,8 @@ public class RenderEngine
 
         _painter.Save();
         if (hasOpacity)
-            _painter.SaveLayerAlpha((byte)(Math.Clamp(opacity, 0f, 1f) * 255));
+            // 转场图层的淡入淡出作用于整页，层就是整个画布，故这里按裁剪区分配即为正确尺寸。
+            _painter.SaveLayerAlpha((byte)(Math.Clamp(opacity, 0f, 1f) * 255), _layerPaint);
         if (offsetX != 0 || offsetY != 0)
             _painter.Translate(offsetX, offsetY);
 
@@ -172,8 +181,11 @@ public class RenderEngine
         if (_pendingFixed.Count == 0) return;
 
         // 收集顺序是深度优先前序（即文档序），OrderBy 稳定，故同 z-index 保持文档序。
-        var ordered = _pendingFixed.OrderBy(b => b.ComputedStyle.ZIndex).ToList();
+        _fixedRenderBuffer.Clear();
+        _fixedRenderBuffer.AddRange(_pendingFixed);
         _pendingFixed.Clear();
+        var ordered = _fixedRenderBuffer;
+        StableSortByZIndex(ordered);
 
         // 祖先的滚动偏移不适用于 fixed（它相对视口固定），从零开始。
         float prevScrollX = _currentScrollOffsetX;
@@ -189,6 +201,7 @@ public class RenderEngine
 
         _currentScrollOffsetX = prevScrollX;
         _currentScrollOffsetY = prevScrollY;
+        ordered.Clear();
 
         // fixed 子树里还可能嵌着别的 fixed 盒（被上面的递归收集起来），继续排空。
         FlushFixed();
@@ -220,6 +233,9 @@ public class RenderEngine
 
         if (!ShouldRender(box)) return;
 
+        // Project paint-only animation values onto the stable computed style for this draw pass.
+        AnimatedStyles?.Apply(box.Element);
+
         // position: fixed —— 不在祖先的画布状态里就地绘制（那会挨上祖先的 overflow 裁剪与滚动
         // 平移），改为收集起来，等回到画布根状态后由 FlushFixed 统一绘制。见 FlushFixed。
         if (!isFixedRoot && box.ComputedStyle.Position == Common.Position.Fixed)
@@ -237,7 +253,9 @@ public class RenderEngine
         if (hasOpacity)
         {
             byte alpha = (byte)(opacity * 255);
-            _painter.SaveLayerAlpha(alpha);
+            // 必须传 bounds：否则 Skia 按整个裁剪区分配离屏层，成本与页面尺寸成正比
+            // （800×5000 上 50 个半透明元素每帧约 226 ms vs 0.57 ms）。见 Painter.SaveLayerAlpha。
+            _painter.SaveLayerAlpha(alpha, ComputeLayerBounds(box), _layerPaint);
         }
 
         bool hasTransform = box.ComputedStyle.Transform.Functions.Count > 0;
@@ -322,9 +340,14 @@ public class RenderEngine
         }
         else
         {
-            foreach (var child in OrderedChildren(box, deferred))
+            if (deferred == null)
             {
-                RenderBox(child, deferred);
+                foreach (var child in box.Children) RenderBox(child, null);
+            }
+            else
+            {
+                foreach (var child in box.Children)
+                    if (!deferred.Contains(child)) RenderBox(child, deferred);
             }
         }
 
@@ -395,8 +418,9 @@ public class RenderEngine
         Collect(root, ref found);
         if (found == null || found.Count == 0) return null;
 
-        // 稳定排序：文档序由收集顺序（深度优先前序）天然给出，OrderBy 在 .NET 中是稳定的。
-        return found.OrderBy(b => b.ComputedStyle.ZIndex).ToList();
+        // 文档序由收集顺序给出; the insertion sort below is stable for equal z-index values.
+        StableSortByZIndex(found);
+        return found;
 
         static void Collect(LayoutBox box, ref List<LayoutBox>? found)
         {
@@ -429,13 +453,153 @@ public class RenderEngine
     }
 
     /// <summary>
-    /// 返回正常递归时要绘制的子元素——即跳过那些已被 <paramref name="deferred"/> 提出、
-    /// 稍后按 z-index 统一绘制的后代。<paramref name="deferred"/> 为 null 时原样返回子列表。
+    /// 计算 <c>opacity &lt; 1</c> 合成层需要覆盖的绘制包围盒（绝对坐标）。
+    ///
+    /// <para>层的内容会被这个矩形裁掉，因此必须是**上界**：宁可略大，不能略小。覆盖范围包括本盒
+    /// 及其整棵子树的边框盒、逐行片段、阴影/轮廓外扩，以及变换后的几何。opacity 会建立层叠上下文
+    /// （见 <see cref="EstablishesStackingContext"/>），所以带 z-index 的后代也在层内绘制、同样要算进来。</para>
+    ///
+    /// <para>裁剪盒（<c>overflow != visible</c>）处停止下探：其后代被裁到 padding box 内，
+    /// 不会画到外面去。滚动偏移同理已被裁剪框住。</para>
     /// </summary>
-    private static IEnumerable<LayoutBox> OrderedChildren(LayoutBox box, HashSet<LayoutBox>? deferred)
+    private static RectF ComputeLayerBounds(LayoutBox box)
     {
-        if (deferred == null) return box.Children;
-        return box.Children.Where(c => !deferred.Contains(c));
+        var bounds = SelfPaintBounds(box);
+        AccumulateSubtree(box, ref bounds);
+
+        // 变换在层内部应用（见 RenderBox：SaveLayerAlpha 先于 ApplyTransform），故包围盒要取
+        // 变换后的范围。这里用四角映射求轴对齐上界，覆盖 rotate/scale/skew/matrix。
+        if (box.ComputedStyle.Transform.Functions.Count > 0)
+            bounds = RectF.Union(bounds, TransformedBounds(box, bounds));
+
+        // 留 1px 余量吸收抗锯齿与浮点误差。
+        return new RectF(bounds.X - 1f, bounds.Y - 1f, bounds.Width + 2f, bounds.Height + 2f);
+
+        static void AccumulateSubtree(LayoutBox box, ref RectF bounds)
+        {
+            // 裁剪盒把后代关在 padding box 内，无需继续下探。
+            if (box.ComputedStyle.OverflowX != Overflow.Visible ||
+                box.ComputedStyle.OverflowY != Overflow.Visible)
+                return;
+
+            foreach (var child in box.Children)
+            {
+                if (child.ComputedStyle.Display == Display.None) continue;
+                // fixed 后代不在本层绘制（由 FlushFixed 在画布根状态下统一绘制）。
+                if (child.ComputedStyle.Position == Common.Position.Fixed) continue;
+
+                var childBounds = SelfPaintBounds(child);
+                AccumulateSubtree(child, ref childBounds);
+                if (child.ComputedStyle.Transform.Functions.Count > 0)
+                    childBounds = RectF.Union(childBounds, TransformedBounds(child, childBounds));
+                bounds = RectF.Union(bounds, childBounds);
+            }
+        }
+
+        // 本盒自身的绘制范围：边框盒/逐行片段，外扩阴影与轮廓。
+        static RectF SelfPaintBounds(LayoutBox box)
+        {
+            var rects = PaintRects(box);
+            var bounds = rects[0];
+            for (int i = 1; i < rects.Count; i++)
+                bounds = RectF.Union(bounds, rects[i]);
+
+            var style = box.ComputedStyle;
+
+            var shadows = style.BoxShadow.RefValueOrNull();
+            if (shadows != null)
+            {
+                foreach (var shadow in shadows)
+                {
+                    if (shadow.Color.A == 0 || shadow.Inset) continue;
+                    // DrawBoxShadow 按 offset ± spread 定位，再按 BlurRadius/2 做高斯模糊；
+                    // 模糊会向外扩散，取 blur 全量作为上界。
+                    float grow = shadow.SpreadRadius + shadow.BlurRadius;
+                    bounds = RectF.Union(bounds, new RectF(
+                        bounds.X + shadow.OffsetX - grow,
+                        bounds.Y + shadow.OffsetY - grow,
+                        bounds.Width + grow * 2,
+                        bounds.Height + grow * 2));
+                }
+            }
+
+            if (style.HasVisibleOutline)
+            {
+                float outline = style.OutlineWidth.ToPixels(0, style.FontSize.Value)
+                    + style.OutlineOffset.ToPixels(0, style.FontSize.Value);
+                if (outline > 0)
+                    bounds = new RectF(bounds.X - outline, bounds.Y - outline,
+                        bounds.Width + outline * 2, bounds.Height + outline * 2);
+            }
+
+            return bounds;
+        }
+
+        // 把 rect 的四角按本盒的 transform 映射，返回轴对齐包围盒。
+        static RectF TransformedBounds(LayoutBox box, RectF rect)
+        {
+            var matrix = BuildTransformMatrix(box);
+            var skRect = matrix.MapRect(rect.ToSKRect());
+            return new RectF(skRect.Left, skRect.Top, skRect.Width, skRect.Height);
+        }
+    }
+
+    /// <summary>
+    /// 构造与 <see cref="ApplyTransform"/> 等价的矩阵。二者必须保持同步：前者作用于画布，
+    /// 后者用于求合成层包围盒，若不一致会把变换后的内容裁掉。
+    /// </summary>
+    private static SKMatrix BuildTransformMatrix(LayoutBox box)
+    {
+        var borderBox = box.BoxModel.BorderBox;
+        var origin = box.ComputedStyle.TransformOrigin;
+
+        float originX = origin.X.Unit == LengthUnit.Percent
+            ? borderBox.X + borderBox.Width * origin.X.Value / 100f
+            : borderBox.X + origin.X.Value;
+        float originY = origin.Y.Unit == LengthUnit.Percent
+            ? borderBox.Y + borderBox.Height * origin.Y.Value / 100f
+            : borderBox.Y + origin.Y.Value;
+
+        var matrix = SKMatrix.CreateTranslation(originX, originY);
+
+        foreach (var fn in box.ComputedStyle.Transform.Functions)
+        {
+            var step = fn switch
+            {
+                TransformFunction.Translate t => SKMatrix.CreateTranslation(
+                    t.X.Unit == LengthUnit.Percent ? borderBox.Width * t.X.Value / 100f : t.X.Value,
+                    t.Y.Unit == LengthUnit.Percent ? borderBox.Height * t.Y.Value / 100f : t.Y.Value),
+                TransformFunction.TranslateX t => SKMatrix.CreateTranslation(
+                    t.X.Unit == LengthUnit.Percent ? borderBox.Width * t.X.Value / 100f : t.X.Value, 0),
+                TransformFunction.TranslateY t => SKMatrix.CreateTranslation(0,
+                    t.Y.Unit == LengthUnit.Percent ? borderBox.Height * t.Y.Value / 100f : t.Y.Value),
+                TransformFunction.Rotate r => SKMatrix.CreateRotationDegrees(r.Degrees),
+                TransformFunction.Scale s => SKMatrix.CreateScale(s.X, s.Y),
+                TransformFunction.ScaleX s => SKMatrix.CreateScale(s.X, 1f),
+                TransformFunction.ScaleY s => SKMatrix.CreateScale(1f, s.Y),
+                TransformFunction.SkewX s => SKMatrix.CreateSkew(MathF.Tan(s.Degrees * MathF.PI / 180f), 0),
+                TransformFunction.SkewY s => SKMatrix.CreateSkew(0, MathF.Tan(s.Degrees * MathF.PI / 180f)),
+                TransformFunction.Skew s => SKMatrix.CreateSkew(
+                    MathF.Tan(s.DegreesX * MathF.PI / 180f), MathF.Tan(s.DegreesY * MathF.PI / 180f)),
+                TransformFunction.Matrix m => new SKMatrix(m.A, m.C, m.Tx, m.B, m.D, m.Ty, 0, 0, 1),
+                _ => SKMatrix.Identity
+            };
+            matrix = matrix.PreConcat(step);
+        }
+
+        return matrix.PreConcat(SKMatrix.CreateTranslation(-originX, -originY));
+    }
+
+    private static void StableSortByZIndex(List<LayoutBox> items)
+    {
+        for (int i = 1; i < items.Count; i++)
+        {
+            var item = items[i];
+            int j = i - 1;
+            while (j >= 0 && items[j].ComputedStyle.ZIndex > item.ComputedStyle.ZIndex)
+                items[j + 1] = items[j--];
+            items[j + 1] = item;
+        }
     }
 
     private void ApplyTransform(LayoutBox box)
@@ -552,9 +716,14 @@ public class RenderEngine
 
         // 裁剪盒的后代不会被提取（CollectZOrderedDescendants 在会裁剪的祖先处停止下探），
         // 故这里一般 deferred 为空；仍传递以保持与非裁剪分支同一语义。
-        foreach (var child in OrderedChildren(box, deferred))
+        if (deferred == null)
         {
-            RenderBox(child, deferred);
+            foreach (var child in box.Children) RenderBox(child, null);
+        }
+        else
+        {
+            foreach (var child in box.Children)
+                if (!deferred.Contains(child)) RenderBox(child, deferred);
         }
 
         _painter.Restore();

@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Miko.Platform.Resources;
 
 namespace Miko.Hosting;
@@ -20,10 +21,11 @@ public static class ImageLoadingExtensions
         service.AddOptions<ResourceAssemblyOptions>();
 
         // 注册资源程序集提供器为单例
-        service.AddSingleton<IResourceAssemblyProvider, ResourceAssemblyProvider>();
+        service.TryAddSingleton<IResourceAssemblyProvider, ResourceAssemblyProvider>();
 
         // 注册 ResourceManager 作为 IImageLoader，从 DI 解析依赖
-        service.AddSingleton<IImageLoader, ResourceManager>();
+        // TryAdd：默认实现绝不覆盖调用方已注册的自定义 IImageLoader（ISSUE-129）。
+        service.TryAddSingleton<IImageLoader, ResourceManager>();
         return service;
     }
 
@@ -61,7 +63,8 @@ public static class ImageLoadingExtensions
     public static MikoAppBuilder UseImageLoading<TLoader>(this MikoAppBuilder builder)
         where TLoader : class, IImageLoader
     {
-        builder.Services.AddSingleton<IImageLoader, TLoader>();
+        // Replace 而非 Add：无论默认实现是先注册还是后注册，自定义实现都确定生效（ISSUE-129）。
+        builder.Services.Replace(ServiceDescriptor.Singleton<IImageLoader, TLoader>());
         return builder;
     }
 }

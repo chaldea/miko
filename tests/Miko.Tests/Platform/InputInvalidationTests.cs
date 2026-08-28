@@ -84,7 +84,7 @@ public class InputInvalidationTests
     public void Range_TrackClick_MovesThumbImmediately_AndSchedulesRepaint()
     {
         var (options, range) = CreateRangeRepro();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = InitAndSettle(controller, engine);
 
@@ -102,7 +102,7 @@ public class InputInvalidationTests
     public void Range_Drag_ThumbFollowsPointer_EachMoveSchedulesRepaint()
     {
         var (options, range) = CreateRangeRepro();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = InitAndSettle(controller, engine);
 
@@ -133,7 +133,7 @@ public class InputInvalidationTests
     public void Range_AfterPointerUp_MoveDoesNotChangeValue()
     {
         var (options, range) = CreateRangeRepro();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = InitAndSettle(controller, engine);
 
@@ -156,7 +156,7 @@ public class InputInvalidationTests
         var root = new DivElement { Children = { checkbox } };
         var options = new MikoAppOptions { RootComponentFactory = () => root };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = InitAndSettle(controller, engine);
 
@@ -178,7 +178,7 @@ public class InputInvalidationTests
         var root = new DivElement { Children = { input } };
         var options = new MikoAppOptions { RootComponentFactory = () => root };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = InitAndSettle(controller, engine);
 
@@ -220,7 +220,7 @@ public class InputInvalidationTests
         var root = new DivElement { Children = { input } };
         var options = new MikoAppOptions { RootComponentFactory = () => root };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = InitAndSettle(controller, engine);
 

@@ -88,25 +88,37 @@ public class MikoGLView : SKGLView
     public override void TouchesBegan(NSSet touches, UIEvent? evt)
     {
         if (TryGetPoint(touches, out var x, out var y))
+        {
             _controller.OnPointerDown(x, y, MouseButton.Left, PointerType.Touch);
+            SetNeedsDisplay();
+        }
     }
 
     public override void TouchesMoved(NSSet touches, UIEvent? evt)
     {
         if (TryGetPoint(touches, out var x, out var y))
+        {
             _controller.OnPointerMove(x, y);
+            if (_controller.HasPendingWork) SetNeedsDisplay();
+        }
     }
 
     public override void TouchesEnded(NSSet touches, UIEvent? evt)
     {
         if (TryGetPoint(touches, out var x, out var y))
+        {
             _controller.OnPointerUp(x, y, MouseButton.Left, PointerType.Touch);
+            SetNeedsDisplay();
+        }
     }
 
     public override void TouchesCancelled(NSSet touches, UIEvent? evt)
     {
         if (TryGetPoint(touches, out var x, out var y))
+        {
             _controller.OnPointerCancel(x, y);
+            SetNeedsDisplay();
+        }
     }
 
     private bool TryGetPoint(NSSet touches, out float x, out float y)

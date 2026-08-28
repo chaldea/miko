@@ -35,8 +35,7 @@ public static class DevToolsExtensions
             o.PostInitHooks.Add(sp =>
             {
                 var engine = sp.GetRequiredService<Core.MikoEngine>();
-                var renderEngine = sp.GetRequiredService<RenderEngine>();
-                bridge.Initialize(engine, renderEngine);
+                bridge.Initialize(engine);
             });
         });
 

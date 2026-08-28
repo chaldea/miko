@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Routing;
 using Miko.Styling;
@@ -117,7 +118,7 @@ public class ScrollRouteSwitchTests
     public void SwitchingRoute_ShouldResetContentScroll_EvenWhenPagesLookStructurallySimilar()
     {
         // ISSUE-120 主场景：/item(滚到底) → /list，新页面必须从顶部开始。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(
@@ -143,7 +144,7 @@ public class ScrollRouteSwitchTests
     {
         // 与主场景互补：跨导航一直在场的侧栏（内容未变）仍必须保留偏移，
         // 否则「修好内容区」会以牺牲 ISSUE-092 的主场景为代价。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(
@@ -169,7 +170,7 @@ public class ScrollRouteSwitchTests
     {
         // 与主场景对照：路径没变（StateHasChanged / 加载更多）时仍走宽松的子序列判定，
         // 追加内容不得把用户弹回顶部（ion-infinite-scroll 问题 2 的语义必须保住）。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)ViewportW, (int)ViewportH));
 
         engine.Initialize(

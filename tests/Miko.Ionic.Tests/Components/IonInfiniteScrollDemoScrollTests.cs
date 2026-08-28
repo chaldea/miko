@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Miko.Components;
 using Miko.Core;
+using Miko.Hosting;
 using Miko.Ionic.Components;
 using Miko.Layout;
 using Miko.Platform;
@@ -110,7 +111,7 @@ public class IonInfiniteScrollDemoScrollTests : IDisposable
     [Fact]
     public void LoadingMoreRows_MustNotResetScrollToTop()
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         Initialize(engine, BuildPage(15));
 
         engine.ScrollBy(ViewportW / 2, ViewportH / 2, 0, 99999);
@@ -128,7 +129,7 @@ public class IonInfiniteScrollDemoScrollTests : IDisposable
     public void LoadingMoreRowsRepeatedly_KeepsScrollPosition()
     {
         // 连续加载多批，模拟用户一路往下刷。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         Initialize(engine, BuildPage(15));
 
         float previous = 0;
@@ -149,7 +150,7 @@ public class IonInfiniteScrollDemoScrollTests : IDisposable
     public void ReplacingThePageEntirely_StillResetsScroll()
     {
         // 既有语义回归：换成结构完全不同的页面时，滚动仍应回到顶部。
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         Initialize(engine, BuildPage(15));
 
         engine.ScrollBy(ViewportW / 2, ViewportH / 2, 0, 99999);

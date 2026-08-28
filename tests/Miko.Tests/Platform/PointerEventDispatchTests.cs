@@ -27,7 +27,7 @@ public class PointerEventDispatchTests
         element.OnMouseUp = args => events.Add((EventTypes.MouseUp, args));
 
         var options = new MikoAppOptions { RootComponentFactory = () => element };
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = new MikoInteractionController(
             Options.Create(options),
             new EmptyServiceProvider(),
@@ -202,7 +202,7 @@ public class PointerEventDispatchTests
         MikoDispatcher dispatcher) CreateController(Element root, int width, int height)
     {
         var options = new MikoAppOptions { RootComponentFactory = () => root };
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var dispatcher = new MikoDispatcher();
         var controller = new MikoInteractionController(
             Options.Create(options),

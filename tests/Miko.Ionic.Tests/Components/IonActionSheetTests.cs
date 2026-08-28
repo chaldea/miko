@@ -3,6 +3,7 @@ using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Ionic;
 using Miko.Ionic.Components;
 using Miko.Platform;
@@ -441,7 +442,7 @@ public class IonActionSheetTests : IonicComponentTestBase
         host.AddChild(wrapper);
         root.AddChild(host);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [IonicStyleSheetFactory.CreateAllModes()], canvas, 600, 600);
         engine.AnimationManager.HasActiveAnimations.ShouldBeFalse();
 
@@ -453,12 +454,12 @@ public class IonActionSheetTests : IonicComponentTestBase
         engine.AnimationManager.ActiveTransitionCount.ShouldBe(2);
 
         // Mid-flight the wrapper sits between the parked and slid-in positions rather than at the
-        // end state — i.e. it is genuinely animating. The manager writes each interpolated frame to
-        // the element's inline Style.
+        // end state — i.e. it is genuinely animating. Paint-only values live in the overlay so the
+        // declared style and layout inputs remain stable.
         engine.AnimationManager.Update(0.2f);
-        var animated = wrapper.Style?.Transform;
-        animated.ShouldNotBeNull();
-        var mid = TranslateYPercent(animated!.Value.Value)
+        engine.AnimationManager.Overlay.TryGet(wrapper, out var animated).ShouldBeTrue();
+        animated.Transform.ShouldNotBeNull();
+        var mid = TranslateYPercent(animated.Transform!)
             ?? throw new Exception("wrapper carries no translateY mid-animation");
         mid.ShouldBeGreaterThan(0f);
         mid.ShouldBeLessThan(100f);

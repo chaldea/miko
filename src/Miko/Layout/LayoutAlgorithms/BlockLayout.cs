@@ -458,8 +458,11 @@ public class BlockLayout
         {
             if (IsOutOfFlow(child)) continue;
 
-            LayoutChild(child, new LayoutConstraints(null, null), 0, 0);
-            float w = child.BoxModel.MarginBox.Width;
+            // 经 MeasureIntrinsic 取内容自然尺寸：本次布局内每个盒子只真正预排一次。
+            // 直接预排会与上层 flex 的多次测量相乘，派发次数逐层翻倍（见 ISSUE-132）。
+            var (iw, _) = LayoutDispatcher.MeasureIntrinsic(child);
+            float w = iw + child.BoxModel.Margin.Horizontal
+                + child.BoxModel.Border.Horizontal + child.BoxModel.Padding.Horizontal;
 
             if (IsInlineOrInlineBlock(child))
             {

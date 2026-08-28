@@ -21,6 +21,7 @@ public class MikoEngine
     private readonly EventDispatcher _eventDispatcher;
     private readonly AnimationManager _animationManager;
     private readonly Platform.MikoDispatcher _dispatcher;
+    private readonly MutationTracker _mutations;
     private List<StyleSheet> _styleSheets = new();
     private ILogger _logger = NullLogger.Instance;
 
@@ -31,6 +32,10 @@ public class MikoEngine
         EventDispatcher eventDispatcher,
         AnimationManager animationManager,
         Platform.MikoDispatcher dispatcher,
+        MutationTracker mutations,
+        IVideoBackend videoBackend,
+        Platform.Resources.IImageLoader imageLoader,
+        Highlight.ISyntaxHighlighter syntaxHighlighter,
         ILogger<MikoEngine>? logger = null)
     {
         _layoutEngine = layoutEngine;
@@ -39,10 +44,31 @@ public class MikoEngine
         _eventDispatcher = eventDispatcher;
         _animationManager = animationManager;
         _dispatcher = dispatcher;
+        _mutations = mutations;
+        _renderEngine.AnimatedStyles = animationManager.Overlay;
+        _animationManager.PaintInvalidated = InvalidatePaintOnly;
+        // 三个可选服务在核心库里都有默认实现（NullVideoBackend / ResourceManager /
+        // SyntaxHighlighter），因此可以直接构造器注入，无需引擎依赖 IServiceProvider
+        // 做可选解析（ISSUE-129）。平台宿主/应用重新注册接口即可覆盖。
+        VideoBackend = videoBackend;
+        ImageLoader = imageLoader;
+        SyntaxHighlighter = syntaxHighlighter;
         if (logger != null) _logger = logger;
     }
 
-    public MikoEngine() : this(new(), new(), new(), new(), new(), new()) { }
+    /// <summary>
+    /// 本引擎的 DOM/样式变更版本号（ISSUE-129）。挂在本引擎树上的元素的所有变更都递增它，
+    /// 其它引擎的变更不会。布局缓存以它为键之一，因此它也是「引擎之间互不干扰」的支点。
+    /// </summary>
+    public MutationTracker Mutations => _mutations;
+
+    /// <summary>
+    /// 本引擎使用的渲染引擎。调试/宿主集成需要它来挂
+    /// <see cref="RenderEngine.OverlayCallback"/> 之类的绘制钩子。
+    /// <para>直接取自引擎自身的依赖，因此调用方拿到的必定是<b>这个</b>引擎正在用的实例——
+    /// 从 DI 另行解析在多引擎场景下不再保证是同一个（ISSUE-129）。</para>
+    /// </summary>
+    public RenderEngine RenderEngine => _renderEngine;
 
     public void SetLogger(ILogger logger)
     {
@@ -61,6 +87,9 @@ public class MikoEngine
     /// <summary>Height of the currently initialized viewport.</summary>
     public float ViewportHeight => _viewportHeight;
     private SafeAreaInsets _safeArea;
+    private long _lastAssignedMutationVersion = -1;
+    private long _lastAnimationReconciledVersion = -1;
+    private long _lastAnimationDeclarationVersion = -1;
 
     // 页面转场状态（ISSUE-108）：转场期间旧页面树（leaving 层）被保留，与新页面树
     // （entering 层，即 _root/_currentLayout）作为两个叠放图层共同绘制；
@@ -72,10 +101,14 @@ public class MikoEngine
     private float _navElapsed;
 
     /// <summary>
-    /// 视频后端。由平台宿主在初始化时从 DI 注入（未注册视频后端时为 null，
-    /// <c>&lt;video&gt;</c> 元素将只显示背景/poster）。
+    /// 视频后端。由 DI 构造器注入；未注册平台后端时为内置的 <see cref="NullVideoBackend"/>，
+    /// 此时不创建任何会话，<c>&lt;video&gt;</c> 元素只显示背景/poster。
+    /// <para>仍允许运行时赋值（宿主可在创建引擎后替换后端）；置为 null 与注入空后端等价。</para>
     /// </summary>
     public IVideoBackend? VideoBackend { get; set; }
+
+    /// <summary>本引擎当前是否具备真实的视频播放能力（未注册后端或注册的是空后端时为 false）。</summary>
+    private bool HasVideoBackend => VideoBackend is not null and not NullVideoBackend;
 
     /// <summary>
     /// 图片资源加载器。由平台宿主在初始化时从 DI 注入（默认注入内置 <c>ResourceManager</c>）。
@@ -153,8 +186,11 @@ public class MikoEngine
             _navLeavingLayout = _currentLayout;
         }
 
-        // Transfer old LayoutBox references to new elements for transition detection
-        if (_root != null)
+        // Transfer old LayoutBox references for same-tree transition detection only when the old
+        // layout is no longer painted. During a navigation transition the leaving layer remains
+        // live; sharing its boxes with the entering tree would let layout pooling recycle and
+        // overwrite ComputedStyles that RenderLayer still reads.
+        if (_root != null && !startTransition)
         {
             MapElementIdentityRecursive(_root, root);
         }
@@ -166,6 +202,11 @@ public class MikoEngine
 
         _animationManager.Clear();
         EnsureParentReferences(root);
+        // 认领整棵树：此后树上任何元素的变更都记到本引擎的计数器上（ISSUE-129）。
+        root.AssignOwner(_mutations);
+        _lastAssignedMutationVersion = _mutations.Version;
+        _lastAnimationReconciledVersion = -1;
+        _lastAnimationDeclarationVersion = -1;
         _renderEngine.SetCanvas(canvas);
 
         _logger.LogInformation("Engine initialized with viewport {Width}x{Height}", viewportWidth, viewportHeight);
@@ -173,6 +214,11 @@ public class MikoEngine
         // 对齐动画条目并补写当前进度值（ISSUE-127）。这里 _animationManager 刚被 Clear，
         // 通常无事可做；保留调用是为了让三条渲染路径的顺序保持一致。
         ReconcileAnimationTargets(root);
+
+        // Discover declarations and apply their effective t=0 values before the first layout and
+        // paint. Starting after Render would flash the base/end state for one frame, then jump back.
+        ScanAndStartAnimations(root);
+        _lastAnimationDeclarationVersion = _mutations.Version;
 
         // Capture old styles from transferred LayoutBoxes (before layout replaces them)
         var oldStyles = CaptureTransitionableStyles(root);
@@ -231,7 +277,6 @@ public class MikoEngine
         // 本次返回导航的快照已回放完毕（可能因 transition 重新布局而回放了两次），消费掉它。
         ConsumeScrollSnapshot(transition);
 
-        ScanAndStartAnimations(root);
     }
 
     private static void MapElementIdentityRecursive(Element oldElement, Element newElement)
@@ -371,6 +416,8 @@ public class MikoEngine
         // 排空跨线程失效请求（视频解码线程投递的新帧/加载完成）。
         _dispatcher.Drain();
         DrainPendingInvalidations();
+        // 认领本帧树上的新子树（ISSUE-129，与 Render 同理）。
+        EnsureOwnersAssigned();
         SyncVideoSessions(_root);
         SyncImageSources(_root);
 
@@ -418,16 +465,33 @@ public class MikoEngine
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
+        // 本帧就要画出来，重绘请求到此消费掉。放在最前面：两条出口（快速路径与完整重排）
+        // 最终都会调用 RenderCurrentFrame，因此这里清一次即可覆盖全部路径。
+        _repaintRequested = false;
+
         // 排空跨线程失效请求（如视频解码线程投递的新帧/加载完成）。
         _dispatcher.Drain();
         DrainPendingInvalidations();
 
         _renderEngine.SetCanvas(canvas);
 
+        // 认领本帧树上的新子树（ISSUE-129）。Razor 重渲染每次产出全新实例的整棵子树再挂接，
+        // 其中经 ComponentBase.ReplaceElementContent 等路径直接写 Children 的部分不会继承归属。
+        // 必须早于 IsLayoutCurrent：新子树没有归属就不会记账，其变更会被快速路径当作「无事发生」。
+        EnsureOwnersAssigned();
+
         // 把动画/过渡条目对齐到重渲染后的在场元素、回收停掉的条目，并把当前进度值补写回
         // 行内样式（ISSUE-127）。必须早于 IsLayoutCurrent：这些写入会改动行内样式（即布局输入），
         // 先判定就会用上一帧的结论走快速路径，把改动漏到下一帧。
-        ReconcileAnimationTargets(_root);
+        if (_lastAnimationReconciledVersion != _mutations.Version)
+        {
+            ReconcileAnimationTargets(_root);
+            _lastAnimationReconciledVersion = _mutations.Version;
+        }
+
+        // New declarations must be started before IsLayoutCurrent/layout so their first keyframe
+        // participates in this same frame instead of appearing one frame late.
+        ScanAnimationsIfNeeded(_root);
 
         // 快速路径（ISSUE-096）：布局输入（DOM/样式/视口/安全区）自上次布局后未变，
         // 直接复用现有布局树。此时不可能有新的 transition 触发（transition 由样式变化引起，
@@ -439,10 +503,6 @@ public class MikoEngine
             SyncVideoSessions(_root);
             // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
             SyncImageSources(_root);
-            // DOM 可能在 Razor 重渲染中新增带动画的元素（如 IonLoading 打开时才渲染 IonSpinner），
-            // 扫描并启动新元素上的 Style.Animations（已启动的动画不会重复启动）。
-            ScanAndStartAnimations(_root);
-
             RenderCurrentFrame();
             _dirtyManager.Clear();
             return;
@@ -463,10 +523,6 @@ public class MikoEngine
         SyncVideoSessions(_root);
         // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
         SyncImageSources(_root);
-        // DOM 可能在 Razor 重渲染中新增带动画的元素（如 IonLoading 打开时才渲染 IonSpinner），
-        // 扫描并启动新元素上的 Style.Animations（已启动的动画不会重复启动）。
-        ScanAndStartAnimations(_root);
-
         RestoreScrollState(oldLayout, _currentLayout);
         RenderCurrentFrame();
         _dirtyManager.Clear();
@@ -479,6 +535,31 @@ public class MikoEngine
     {
         _dirtyManager.MarkDirty(element);
     }
+
+    /// <summary>Marks an element for repaint without invalidating computed style or layout.</summary>
+    internal void InvalidatePaintOnly(Element element) => _dirtyManager.MarkDirty(element);
+
+    // 外部请求的「重绘一帧」标志。与脏区域不同：它不对应 DOM 里的任何矩形，
+    // 只表示「本帧画出来的东西会和上一帧不同」。见 RequestRepaint。
+    private volatile bool _repaintRequested;
+
+    /// <summary>
+    /// 请求重绘一帧，但不使布局失效（ISSUE-129）。
+    ///
+    /// <para>用于<b>不改变 DOM 却会改变画面</b>的变化——典型是
+    /// <see cref="Rendering.RenderEngine.OverlayCallback"/> 所绘制的覆盖层内容变了
+    /// （DevTools 在主窗口上高亮选中节点即属此类）。这类变化没有对应的元素或矩形可以标脏，
+    /// 因此 <see cref="InvalidateElement"/> 用不上；而布局输入确实没变，也不该强制重排。</para>
+    ///
+    /// <para>不调用它就会「看不见」：宿主在 <see cref="HasPendingVisualWork"/> 为 false 时
+    /// 会跳过整帧（ISSUE-096 的空闲跳帧），画面于是停留在上一帧。变更版本号还是进程级全局
+    /// 静态时，这类调用方能侥幸工作——次级引擎（DevTools 窗口）自身的 DOM 重建会不断递增
+    /// 全局计数，把主引擎的布局缓存一并击穿，主窗口因此永不空闲、每帧都重绘。ISSUE-129
+    /// 按引擎隔离后这个巧合消失，就必须显式请求重绘。</para>
+    ///
+    /// <para>线程安全：可从任意线程调用（DevTools 窗口在自己的线程上响应点击）。</para>
+    /// </summary>
+    public void RequestRepaint() => _repaintRequested = true;
 
     /// <summary>
     /// 线程安全的失效入口。供外部线程（视频解码线程、异步资源加载等）调用：
@@ -518,20 +599,24 @@ public class MikoEngine
     }
 
     /// <summary>
-    /// 与 <see cref="HasPendingVisualWork"/> 相同，但**不含**「布局输入是否变化」这一项。
-    /// <para>专供**同进程内的次级引擎**（如 DevTools 的独立窗口）判断空闲：
-    /// <c>Element.MutationVersion</c> 是进程级全局静态，任何引擎的 DOM 变更都会递增它，
-    /// 因此次级引擎的 <c>IsLayoutCurrent</c> 会被其他窗口的活动持续击穿而恒为 false，
-    /// 使 <see cref="HasPendingVisualWork"/> 恒为 true、永远无法空闲（见 ISSUE-117）。
-    /// 这类宿主需自行判断其 DOM 是否真的需要重建，再用本属性捕获引擎内部的工作
-    /// （脏区域、动画、跨线程失效等）。</para>
-    /// <para>常规的单引擎宿主应使用 <see cref="HasPendingVisualWork"/>。</para>
+    /// 与 <see cref="HasPendingVisualWork"/> 相同，但**不含**「布局输入是否变化」这一项：
+    /// 只反映引擎内部已排队的工作（脏区域、动画、页面转场、跨线程失效等）。
+    ///
+    /// <para>历史背景：变更版本号曾是进程级全局静态，任何引擎的 DOM 变更都会递增它，使次级
+    /// 引擎（DevTools 独立窗口）的 <c>IsLayoutCurrent</c> 被其它窗口的活动持续击穿而恒为
+    /// false，<see cref="HasPendingVisualWork"/> 因此恒为 true、永远无法空闲（ISSUE-117）。
+    /// 本属性当时是那个问题的变通判据。</para>
+    ///
+    /// <para>ISSUE-129 起变更版本号已按引擎实例隔离（见 <see cref="Mutations"/>），
+    /// <see cref="HasPendingVisualWork"/> 对次级引擎同样有效，是**所有宿主的默认选择**。
+    /// 本属性保留给「自行掌握 DOM 重建时机、只想查询引擎内部待办」的宿主。</para>
     /// </summary>
     public bool HasPendingRenderWork
     {
         get
         {
             if (_root == null || _currentLayout == null) return true;   // 首帧尚未渲染
+            if (_repaintRequested) return true;                         // 外部请求重绘（覆盖层变化等）
             if (_dispatcher.HasPendingActions) return true;             // 排队回调可能修改 DOM
             if (HasPendingInvalidations) return true;                   // 跨线程失效（视频帧、图片加载）
             if (_dirtyManager.HasDirtyRegions()) return true;           // 已标脏未绘制
@@ -557,6 +642,20 @@ public class MikoEngine
         }
         foreach (var element in batch)
             _dirtyManager.MarkDirty(element);
+    }
+
+    private void EnsureOwnersAssigned()
+    {
+        if (_root == null || _lastAssignedMutationVersion == _mutations.Version) return;
+        _root.AssignOwner(_mutations);
+        _lastAssignedMutationVersion = _mutations.Version;
+    }
+
+    private void ScanAnimationsIfNeeded(Element root)
+    {
+        if (_lastAnimationDeclarationVersion == _mutations.Version) return;
+        ScanAndStartAnimations(root);
+        _lastAnimationDeclarationVersion = _mutations.Version;
     }
 
     public AnimationManager AnimationManager => _animationManager;
@@ -667,7 +766,7 @@ public class MikoEngine
         _styleSheets.Add(styleSheet);
 
         // 样式变化需要重新布局
-        Element.BumpMutationVersion();
+        _mutations.Bump();
         if (_root != null)
         {
             InvalidateElement(_root);
@@ -1261,7 +1360,7 @@ public class MikoEngine
     /// </summary>
     private void SyncVideoSessions(Element root)
     {
-        if (VideoBackend == null) return;
+        if (!HasVideoBackend) return;
 
         // 收集当前树中所有 VideoElement
         var present = new HashSet<VideoElement>();
@@ -1354,7 +1453,7 @@ public class MikoEngine
                 video.IntrinsicWidth = loaded.Width;
                 video.IntrinsicHeight = loaded.Height;
                 // 内禀尺寸是布局输入：递增版本号使下一帧重排（区别于新帧到达的纯绘制失效）。
-                Element.BumpMutationVersion();
+                _mutations.Bump();
                 PostInvalidate(video);
                 break;
 
@@ -1472,7 +1571,7 @@ public class MikoEngine
                 img.IntrinsicWidth = bmp.Width;
                 img.IntrinsicHeight = bmp.Height;
                 // 内禀尺寸是布局输入（auto 尺寸的 img 按真实尺寸布局）：递增版本号触发重排。
-                Element.BumpMutationVersion();
+                _mutations.Bump();
             }
             // 即使失败也投递失效：让占位图/背景在下一帧稳定呈现。
             PostInvalidate(img);

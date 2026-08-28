@@ -76,7 +76,7 @@ public class HoverStateTests
     public void PointerMove_OverElement_SetsHoverOnElementAndAncestors()
     {
         var (options, root, btn) = CreateRepro();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = SKSurface.Create(new SKImageInfo(500, 500));
         controller.Initialize(surface.Canvas, 500, 500);
@@ -101,7 +101,7 @@ public class HoverStateTests
     public void PointerMove_HoverReflectedInComputedStyle_AfterNextFrame()
     {
         var (options, root, btn) = CreateRepro();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = SKSurface.Create(new SKImageInfo(500, 500));
         controller.Initialize(surface.Canvas, 500, 500);
@@ -126,7 +126,7 @@ public class HoverStateTests
     public void PointerMove_BetweenSiblings_MovesHoverChain()
     {
         var (options, root, btn) = CreateRepro();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = SKSurface.Create(new SKImageInfo(500, 500));
         controller.Initialize(surface.Canvas, 500, 500);

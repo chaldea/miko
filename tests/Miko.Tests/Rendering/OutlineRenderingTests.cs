@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Styling;
 using Shouldly;
 using SkiaSharp;
@@ -30,7 +31,7 @@ public class OutlineRenderingTests : IDisposable
 
     private void Render(Element root)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [], _canvas, 400, 400);
         engine.Render(_canvas);
     }

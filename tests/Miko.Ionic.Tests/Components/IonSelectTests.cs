@@ -2,6 +2,7 @@ using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Ionic.Components;
 using Miko.Styling;
 using Miko.Testing;
@@ -662,7 +663,7 @@ public class IonSelectTests : IonicComponentTestBase
 
         // The paint + hit-test halves of the fix: a point far below the 48px item — inside the
         // overlay's backdrop — must resolve into the overlay subtree, not to whatever sits behind.
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(
             new SKImageInfo((int)Context.ViewportWidth, (int)Context.ViewportHeight));
         engine.Initialize(list.Root, Context.StyleSheets, surface.Canvas,

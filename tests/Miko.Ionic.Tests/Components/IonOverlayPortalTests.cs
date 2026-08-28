@@ -3,6 +3,7 @@ using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Ionic.Components;
 using Miko.Styling;
 using Shouldly;
@@ -101,7 +102,7 @@ public sealed class IonOverlayPortalTests : IonicComponentTestBase
 
         using var surface = SKSurface.Create(new SKImageInfo(
             (int)Context.ViewportWidth, (int)Context.ViewportHeight));
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(cut.Root, Context.StyleSheets, surface.Canvas,
             Context.ViewportWidth, Context.ViewportHeight);
 
@@ -185,7 +186,7 @@ public sealed class IonOverlayPortalTests : IonicComponentTestBase
 
         using var surface = SKSurface.Create(new SKImageInfo(
             (int)Context.ViewportWidth, (int)Context.ViewportHeight));
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(cut.Root, Context.StyleSheets, surface.Canvas,
             Context.ViewportWidth, Context.ViewportHeight);
 
@@ -214,7 +215,7 @@ public sealed class IonOverlayPortalTests : IonicComponentTestBase
 
         using var surface = SKSurface.Create(new SKImageInfo(
             (int)Context.ViewportWidth, (int)Context.ViewportHeight));
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(cut.Root, Context.StyleSheets, surface.Canvas,
             Context.ViewportWidth, Context.ViewportHeight);
 

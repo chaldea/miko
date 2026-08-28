@@ -64,14 +64,14 @@ public class HoverInvalidationTests
     public void PointerMove_WithoutHoverRules_DoesNotInvalidateLayout()
     {
         var (options, h1, p) = CreateIssueRepro();
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = SKSurface.Create(new SKImageInfo(500, 500));
         controller.Initialize(surface.Canvas, 500, 500);
         engine.Render(surface.Canvas);
         engine.HasPendingVisualWork.ShouldBeFalse();   // 稳态
 
-        long version = Element.MutationVersion;
+        long version = engine.Mutations.Version;
 
         // 鼠标在 p 上进/出循环（坐标取自实际布局盒，避免硬编码）。
         var h1Rect = h1.LayoutBox!.BoxModel.BorderBox;
@@ -89,7 +89,7 @@ public class HoverInvalidationTests
         h1.HasState(ElementState.Hover).ShouldBeTrue();
 
         // 但没有 :hover 规则 → 悬停不可能影响样式 → 全程零失效、零待呈现工作。
-        Element.MutationVersion.ShouldBe(version);
+        engine.Mutations.Version.ShouldBe(version);
         engine.HasPendingVisualWork.ShouldBeFalse();
     }
 
@@ -114,7 +114,7 @@ public class HoverInvalidationTests
             StyleSheets = { sheet },
         };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = SKSurface.Create(new SKImageInfo(500, 500));
         controller.Initialize(surface.Canvas, 500, 500);
@@ -125,16 +125,16 @@ public class HoverInvalidationTests
         float pX = pRect.Left + 1, pY = pRect.Top + 1;
         var btnRect = btn.LayoutBox!.BoxModel.BorderBox;
 
-        long version = Element.MutationVersion;
+        long version = engine.Mutations.Version;
         controller.OnPointerMove(pX, pY);
         text.HasState(ElementState.Hover).ShouldBeTrue();
-        Element.MutationVersion.ShouldBe(version);
+        engine.Mutations.Version.ShouldBe(version);
         engine.HasPendingVisualWork.ShouldBeFalse();
 
         // 移到与 .btn:hover 相关的元素上：必须失效并在下一帧应用悬停样式。
         controller.OnPointerMove(btnRect.Left + 1, btnRect.Top + 1);
         btn.HasState(ElementState.Hover).ShouldBeTrue();
-        Element.MutationVersion.ShouldBeGreaterThan(version);
+        engine.Mutations.Version.ShouldBeGreaterThan(version);
         engine.HasPendingVisualWork.ShouldBeTrue();
 
         engine.Render(surface.Canvas);
@@ -170,7 +170,7 @@ public class HoverInvalidationTests
             StyleSheets = { sheet },
         };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
         using var surface = SKSurface.Create(new SKImageInfo(500, 500));
         controller.Initialize(surface.Canvas, 500, 500);

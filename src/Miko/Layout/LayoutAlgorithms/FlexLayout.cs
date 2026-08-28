@@ -904,10 +904,10 @@ public class FlexLayout
             // flex-basis 为百分比且容器主轴不确定时退化为 auto（见 ISSUE-077 Flex 循环依赖）。
             if (style.FlexBasis.HasPercentComponent && mainSizeIsIndefinite)
             {
-                // 退化为内容尺寸
-                var childConstraints = new LayoutConstraints(null, null);
-                LayoutDispatcher.Dispatch(child, childConstraints, 0, 0);
-                basisContentSize = isRow ? child.BoxModel.Content.Width : child.BoxModel.Content.Height;
+                // 退化为内容尺寸。经 MeasureIntrinsic 取（本次布局内每盒只真正预排一次，
+                // 否则逐层 flex 的重复预排会指数级放大，见 ISSUE-132）。
+                var (iw, ih) = LayoutDispatcher.MeasureIntrinsic(child);
+                basisContentSize = isRow ? iw : ih;
                 usedAutoSize = true;
             }
             else
@@ -925,10 +925,9 @@ public class FlexLayout
             }
             else
             {
-                // 使用内容自然尺寸。
-                var childConstraints = new LayoutConstraints(null, null);
-                LayoutDispatcher.Dispatch(child, childConstraints, 0, 0);
-                basisContentSize = isRow ? child.BoxModel.Content.Width : child.BoxModel.Content.Height;
+                // 使用内容自然尺寸（同上，经缓存的内在尺寸测量，见 ISSUE-132）。
+                var (iw, ih) = LayoutDispatcher.MeasureIntrinsic(child);
+                basisContentSize = isRow ? iw : ih;
                 usedAutoSize = true;
             }
         }
@@ -981,7 +980,13 @@ public class FlexLayout
     private static void ResolveFlexibleLengths(List<FlexChildInfo> infos, float freeSpace,
         float lineMainSize, float totalGapSize, bool isGrow)
     {
-        var unfrozen = new List<FlexChildInfo>(infos.Count);
+        // 池化：本方法在一次布局里被调用成百上千次（每层 flex 的每一行各一次），
+        // 每次新建一个列表会累积可观的垃圾（ISSUE-132）。取出/归还用 Interlocked，
+        // 并发布局时冲突则退化为新建，语义不变。
+        var unfrozen = Interlocked.Exchange(ref s_pooledUnfrozen, null) ?? new List<FlexChildInfo>();
+        unfrozen.Clear();
+        try
+        {
         foreach (var info in infos)
         {
             info.Frozen = false;
@@ -1042,7 +1047,16 @@ public class FlexLayout
                 break;
             }
         }
+        }
+        finally
+        {
+            unfrozen.Clear();
+            Interlocked.CompareExchange(ref s_pooledUnfrozen, unfrozen, null);
+        }
     }
+
+    // 池化的 grow/shrink 求解暂存列表（ISSUE-132）。见 ResolveFlexibleLengths 中的说明。
+    private static List<FlexChildInfo>? s_pooledUnfrozen;
 
     /// <summary>
     /// 布局一行 flex 子元素（行方向）或一列（列方向），应用 flex-grow/shrink + gap。

@@ -2,6 +2,7 @@ using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Styling;
 using Shouldly;
 using SkiaSharp;
@@ -59,7 +60,7 @@ public class ScrollDescendantDispatchTests
 
     private static MikoEngine InitEngine(Element root, SKCanvas canvas)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet>(), canvas, ViewportW, ViewportH);
         return engine;
     }

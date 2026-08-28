@@ -36,7 +36,7 @@ using var surface = SKSurface.Create(new SKImageInfo(800, 600));
 var canvas = surface.Canvas;
 canvas.Clear(SKColors.White);
 
-var engine = new MikoEngine();
+var engine = new MikoEngineBuilder().Build();
 engine.Initialize(root, new List<StyleSheet> { styleSheet }, canvas, 800, 600);
 engine.Render(canvas);
 

@@ -4,6 +4,7 @@ using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Events;
+using Miko.Hosting;
 using Miko.Ionic;
 using Miko.Ionic.Components;
 using Miko.Platform;
@@ -634,7 +635,7 @@ public class IonToastTests : IonicComponentTestBase
         host.AddChild(wrapper);
         root.AddChild(host);
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [IonicStyleSheetFactory.CreateAllModes()], canvas, 600, 600);
         engine.AnimationManager.HasActiveAnimations.ShouldBeFalse();
 
@@ -645,11 +646,11 @@ public class IonToastTests : IonicComponentTestBase
         engine.AnimationManager.ActiveTransitionCount.ShouldBeGreaterThan(0);
 
         // Mid-flight the wrapper sits between 0.01 and 1 rather than at the end state — i.e. it is
-        // genuinely animating. The manager writes each interpolated frame to the inline Style.
+        // genuinely animating. Paint-only values live in the overlay, leaving declarations stable.
         engine.AnimationManager.Update(0.2f);
-        var opacity = wrapper.Style?.Opacity;
-        opacity.ShouldNotBeNull();
-        var mid = opacity!.Value.Value;
+        engine.AnimationManager.Overlay.TryGet(wrapper, out var animated).ShouldBeTrue();
+        animated.Opacity.ShouldNotBeNull();
+        var mid = animated.Opacity!.Value;
         mid.ShouldBeGreaterThan(0.01f);
         mid.ShouldBeLessThan(1f);
     }

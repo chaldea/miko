@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Styling;
 using Miko.Styling.Selectors;
 using Shouldly;
@@ -58,7 +59,7 @@ public class FixedEscapesClipTests : IDisposable
     private MikoEngine Render(Element root, params StyleRule[] rules)
     {
         _canvas.Clear(SKColors.White);
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [new StyleSheet { Rules = rules.ToList() }], _canvas, W, H);
         engine.Render(_canvas);
         return engine;

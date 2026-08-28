@@ -53,7 +53,7 @@ public class KeyRepeatTests
         var root = new DivElement { Children = { input } };
         var options = new MikoAppOptions { RootComponentFactory = () => root };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
 
         var surface = SKSurface.Create(new SKImageInfo(500, 500));

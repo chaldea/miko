@@ -71,7 +71,7 @@ public class ConcurrentInputRenderTests
             GlobalKeyDownHandlers = { _ => { mutate(); return true; } }
         };
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         var controller = CreateController(options, engine);
 
         using var surface = SKSurface.Create(new SKImageInfo(400, 400));

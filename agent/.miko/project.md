@@ -142,7 +142,7 @@ root.AddChild(new H1Element { TextContent = "Hello Miko" });
 root.AddChild(new ParagraphElement { TextContent = "Lightweight rendering" });
 
 using var surface = SKSurface.Create(new SKImageInfo(800, 600));
-var engine = new MikoEngine();
+var engine = new MikoEngineBuilder().Build();
 engine.Initialize(root, new List<StyleSheet> { styleSheet }, surface.Canvas, 800, 600);
 engine.Render(surface.Canvas);
 ```

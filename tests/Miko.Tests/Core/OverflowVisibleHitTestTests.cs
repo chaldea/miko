@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Styling;
 using Miko.Styling.Selectors;
 using Shouldly;
@@ -47,7 +48,7 @@ public class OverflowVisibleHitTestTests : IDisposable
 
     private MikoEngine Build(Element root, params StyleRule[] rules)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, [new StyleSheet { Rules = rules.ToList() }], _canvas, ViewportW, ViewportH);
         return engine;
     }

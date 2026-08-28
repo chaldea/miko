@@ -8,6 +8,7 @@ namespace Miko.Tests.Utils;
 /// <summary>
 /// Tests for TextMeasurer measurement caching (ISSUE-036 performance optimization).
 /// </summary>
+[Collection(Miko.Tests.GlobalFontStateCollection.Name)] // 进程级字体/度量状态，需串行（ISSUE-129）
 public class TextMeasurerCacheTests : IDisposable
 {
     public TextMeasurerCacheTests()

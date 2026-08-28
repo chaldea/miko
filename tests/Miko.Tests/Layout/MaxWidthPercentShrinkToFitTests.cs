@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Styling;
 using Shouldly;
@@ -84,7 +85,7 @@ public class MaxWidthPercentShrinkToFitTests
         using var surface = SKSurface.Create(new SKImageInfo(800, 800));
         var canvas = surface.Canvas;
 
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         engine.Initialize(root, new List<StyleSheet> { sheet }, canvas, 800, 800);
 
         // Assert
@@ -133,7 +134,7 @@ public class MaxWidthPercentShrinkToFitTests
             sheet.Add(labelStyle);
 
             using var surface = SKSurface.Create(new SKImageInfo(800, 800));
-            var engine = new MikoEngine();
+            var engine = new MikoEngineBuilder().Build();
             // button-inner 处于不确定宽度的父约束下（root width auto in a shrink-to-fit context）
             var host = new DivElement { Class = "host" };
             host.AddChild(buttonInner);

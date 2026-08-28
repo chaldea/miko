@@ -41,8 +41,9 @@ public class MikoSurfaceView : SKGLSurfaceView
         Log.Info("MikoSurfaceView",
             $"Screen density: {_density}, Physical size: {context.Resources?.DisplayMetrics?.WidthPixels}×{context.Resources?.DisplayMetrics?.HeightPixels}");
 
-        // 连续渲染，使动画与热重载得以推进。
-        RenderMode = global::Android.Opengl.Rendermode.Continuously;
+        // Render only when the engine has visual work. The frame callback requests the next
+        // render while an animation, invalidation, or queued callback is active.
+        RenderMode = global::Android.Opengl.Rendermode.WhenDirty;
 
         // 接收系统窗口 inset 以便计算安全区（edge-to-edge 下系统栏会覆盖内容）。
         SetFitsSystemWindows(false);
@@ -121,6 +122,9 @@ public class MikoSurfaceView : SKGLSurfaceView
             // 背景规则（与 surface 清屏的白色保持一致）。
             SyncSystemBarAppearance(rootBg ?? Color.White);
         });
+
+        if (_controller.HasPendingWork)
+            RequestRender();
     }
 
     /// <summary>
@@ -218,6 +222,9 @@ public class MikoSurfaceView : SKGLSurfaceView
             default:
                 return base.OnTouchEvent(e);
         }
+
+        // Input can create dirty regions or queued component work while the view is idle.
+        RequestRender();
 
         return true;
     }

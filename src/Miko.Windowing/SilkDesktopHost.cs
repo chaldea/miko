@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Common;
 using Miko.Hosting;
 using Miko.Platform;
+using Miko.Rendering;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -192,6 +193,7 @@ public sealed class SilkDesktopHost
 
         // 在持有上下文的本线程释放 GL 资源与视频会话。
         _controller.Engine.DisposeVideoSessions();
+        GpuResourceCache.PurgeAllResources(_grContext);
         _grContext?.Dispose();
         _gl?.Dispose();
         _window!.GLContext?.Clear();
@@ -207,6 +209,7 @@ public sealed class SilkDesktopHost
             _window.GLContext!.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
 
         _grContext = GRContext.CreateGl(grInterface);
+        GpuResourceCache.Configure(_grContext);
         _logger.LogInformation("OpenGL context initialized on render thread");
 
         // 把 GPU 上下文交给引擎，供视频帧源把解码 GPU 资源零拷贝包装为图像。

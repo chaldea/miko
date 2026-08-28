@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Styling;
 using Shouldly;
 using SkiaSharp;
@@ -18,7 +19,7 @@ public class TextNodeHitTestTests
 
     private static MikoEngine CreateEngine(Element root, List<StyleSheet>? sheets = null)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)W, (int)H));
         engine.Initialize(root, sheets ?? new List<StyleSheet>(), surface.Canvas, W, H);
         return engine;

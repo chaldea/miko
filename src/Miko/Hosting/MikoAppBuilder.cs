@@ -20,28 +20,19 @@ public class MikoAppBuilder
     public static MikoAppBuilder CreateDefault()
     {
         var builder = new MikoAppBuilder();
-        builder.Services.AddLogging();
+
+        // 引擎及其全部依赖（含变更计数器、图片加载、语法高亮）统一由此注册，
+        // 与 MikoEngineBuilder 共用同一套定义（ISSUE-129）。
+        builder.Services.AddMikoEngine();
+
         builder.Services.AddOptions<MikoAppOptions>();
-        builder.Services.AddSingleton<AnimationManager>();
         builder.Services.AddSingleton<NavigationManager>();
         // Host platform info (auto-detected from the OS). Singleton so platform hosts / the
         // device simulator can resolve and override it; component libraries derive UI choices
         // from it (e.g. Miko.Ionic's md/ios mode).
         builder.Services.AddSingleton<IPlatformInfo, PlatformInfo>();
-        builder.Services.AddSingleton<LayoutEngine>();
-        builder.Services.AddSingleton<RenderEngine>();
-        builder.Services.AddSingleton<DirtyRegionManager>();
-        builder.Services.AddSingleton<EventDispatcher>();
-        builder.Services.AddSingleton<MikoDispatcher>();
-        builder.Services.AddSingleton<MikoEngine>();
         builder.Services.AddSingleton<HotReloadService>();
         builder.Services.AddSingleton<MikoInteractionController>();
-
-        // 默认注册图片加载服务
-        builder.Services.AddImageLoader();
-
-        // 默认注册语法高亮服务（应用可重新注册 ISyntaxHighlighter 覆盖，见 ISSUE-098）
-        builder.Services.AddSyntaxHighlighter();
 
         return builder;
     }

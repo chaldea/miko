@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Platform.Resources;
 using Miko.Styling;
@@ -43,7 +44,8 @@ public class ImageLoadLifecycleTests : IDisposable
     public void Initialize_WithImage_RequestsLoadOnce()
     {
         var loader = new FakeImageLoader();
-        var engine = new MikoEngine { ImageLoader = loader };
+        var engine = new MikoEngineBuilder().Build();
+        engine.ImageLoader = loader;
         var img = new ImageElement { Source = "https://x/a.png" };
         var root = new DivElement { Children = { img } };
 
@@ -60,7 +62,8 @@ public class ImageLoadLifecycleTests : IDisposable
     public void ImageWithoutSource_DoesNotLoad()
     {
         var loader = new FakeImageLoader();
-        var engine = new MikoEngine { ImageLoader = loader };
+        var engine = new MikoEngineBuilder().Build();
+        engine.ImageLoader = loader;
         var root = new DivElement { Children = { new ImageElement() } };
 
         engine.Initialize(root, ImageSheet(), _canvas, 800, 600);
@@ -72,7 +75,8 @@ public class ImageLoadLifecycleTests : IDisposable
     public void LoadCompletion_SetsBitmapAndIntrinsicSize_AndRelayoutUsesIt()
     {
         var loader = new FakeImageLoader();
-        var engine = new MikoEngine { ImageLoader = loader };
+        var engine = new MikoEngineBuilder().Build();
+        engine.ImageLoader = loader;
         var img = new ImageElement { Source = "https://x/a.png" };
         var root = new DivElement { Children = { img } };
 
@@ -94,7 +98,8 @@ public class ImageLoadLifecycleTests : IDisposable
     public void ImageRemovedFromTree_DropsTracking_AndAllowsReload()
     {
         var loader = new FakeImageLoader();
-        var engine = new MikoEngine { ImageLoader = loader };
+        var engine = new MikoEngineBuilder().Build();
+        engine.ImageLoader = loader;
         var img = new ImageElement { Source = "https://x/a.png" };
         var root = new DivElement { Children = { img } };
 

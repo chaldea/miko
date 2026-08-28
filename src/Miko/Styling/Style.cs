@@ -1,6 +1,7 @@
 using Miko.Animation;
 using Miko.Common;
 using Miko.Core;
+using Miko.Diagnostics;
 using Miko.Styling.Selectors;
 using System.Collections.Concurrent;
 
@@ -11,6 +12,8 @@ namespace Miko.Styling;
 /// </summary>
 public partial class Style
 {
+    public Style() => LayoutAllocationDiagnostics.RecordStyleCreated();
+
     // 布局属性
     public StyleProperty<Display>? Display { get; set; }
     public StyleProperty<FlexDirection>? FlexDirection { get; set; }

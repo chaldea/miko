@@ -3,6 +3,7 @@ using Miko.Core;
 using Miko.Examples.Bootstrap;
 using Miko.Examples.Bootstrap.Examples;
 using Miko.Fonts;
+using Miko.Hosting;
 using Miko.Routing;
 using MikoApp1;
 using SkiaSharp;
@@ -29,7 +30,7 @@ var styleSheets = new List<Miko.Styling.StyleSheet>
     MainLayout.CreateLayoutStyleSheet()
 };
 
-var engine = new MikoEngine();
+var engine = new MikoEngineBuilder().Build();
 using var surface = SKSurface.Create(new SKImageInfo(width, height));
 var canvas = surface.Canvas;
 canvas.Clear(SKColors.White);

@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Hosting;
 using Miko.Layout;
 using Miko.Styling;
 using Shouldly;
@@ -12,7 +13,7 @@ public class HitTestScrollTests
 {
     private MikoEngine CreateEngine(Element root, float width = 400, float height = 300)
     {
-        var engine = new MikoEngine();
+        var engine = new MikoEngineBuilder().Build();
         using var surface = SKSurface.Create(new SKImageInfo((int)width, (int)height));
         engine.Initialize(root, new List<StyleSheet>(), surface.Canvas, width, height);
         return engine;
