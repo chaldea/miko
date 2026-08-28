@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Miko\Miko.csproj" />
+    <ProjectReference Include="..\Miko.Windowing.Common\Miko.Windowing.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>
