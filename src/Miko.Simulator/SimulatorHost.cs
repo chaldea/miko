@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -42,6 +43,7 @@ public sealed class SimulatorHost
     private readonly MikoInteractionController _appController;
     private readonly SimulatorOptions _options;
     private readonly ILogger _logger;
+    private readonly SimulatorInputMethod _inputMethod;
 
     // The app's mutable host-platform singleton (if registered). Updated as the user selects a
     // different device so platform-dependent UI (e.g. Ionic's md/ios mode) switches with it.
@@ -158,6 +160,8 @@ public sealed class SimulatorHost
         _appController = appContext.Controller;
         _options = options;
         _logger = logger ?? NullLogger<SimulatorHost>.Instance;
+        _inputMethod = new SimulatorInputMethod();
+        _appController.AttachInputMethod(_inputMethod);
         _device = options.InitialDevice ?? options.Devices[0];
         _orientation = options.InitialOrientation;
 
@@ -193,7 +197,18 @@ public sealed class SimulatorHost
         _window.Closing += OnClose;
 
         _logger.LogInformation("Starting Miko simulator: {Title}", options.Title);
-        _window.Run();
+        _window.Initialize();
+        while (!_window.IsClosing)
+        {
+            _inputMethod.ApplyPendingState();
+            _window.DoEvents();
+            // Windows resets IMM placement while dispatching WM_IME_STARTCOMPOSITION.
+            _inputMethod.ApplyPendingState();
+            if (_window.IsClosing) break;
+            _window.DoUpdate();
+            _window.DoRender();
+        }
+        _window.Reset();
         _window.Dispose();
     }
 
@@ -219,6 +234,9 @@ public sealed class SimulatorHost
     private void OnLoad()
     {
         _gl = _window!.CreateOpenGL();
+
+        _inputMethod.SetWindowHandle(_window!.Native?.Win32?.Hwnd ?? IntPtr.Zero);
+        _inputMethod.SetLogicalViewport(_windowWidth, _windowHeight);
 
         var grInterface = GRGlInterface.Create(name =>
             _window!.GLContext!.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
@@ -385,6 +403,7 @@ public sealed class SimulatorHost
 
         _gl?.Viewport(size);
         _panelEngine.SetViewportSize(PanelWidth, _windowHeight);
+        _inputMethod.SetLogicalViewport(_windowWidth, _windowHeight);
     }
 
     private void OnClose()
@@ -406,6 +425,9 @@ public sealed class SimulatorHost
     private void OnRender(double _)
     {
         if (_grContext == null || _gl == null || _appSurface == null) return;
+
+        // Keep IMM placement current even when rendering is skipped while idle.
+        _inputMethod.ApplyPendingState();
 
         // 排空跨线程调用队列（MCP 等后台线程投递的 DOM 读写操作），在任何渲染前于本线程执行。
         DrainRenderThreadQueue();
@@ -460,6 +482,7 @@ public sealed class SimulatorHost
 
         canvas.Clear(new SKColor(24, 25, 28));
         CompositeDevice(canvas);
+        _inputMethod.SetDeviceOffset(_deviceScreenRect.Left, _deviceScreenRect.Top);
         RenderPanel(canvas);
 
         canvas.Flush();
@@ -467,6 +490,7 @@ public sealed class SimulatorHost
 
         // 手动交换缓冲（ShouldSwapAutomatically = false，见 Run 中窗口选项）。
         _window!.GLContext?.SwapBuffers();
+        _inputMethod.ApplyPendingState();
     }
 
     // 把应用渲染进离屏画布。RenderFrame 持有输入/渲染锁，保证输入引发的 DOM 变更不与渲染竞争。
@@ -721,7 +745,9 @@ public sealed class SimulatorHost
     private void OnKeyChar(IKeyboard keyboard, char character)
     {
         // 文本输入仅转发给应用（面板无文本输入控件）。
-        _appController.OnTextInput(character.ToString());
+        _inputMethod.ApplyPendingState();
+        _inputMethod.Commit(character.ToString());
+        _inputMethod.ApplyPendingState();
     }
 
     private void OnKeyDown(IKeyboard keyboard, Key key, int scancode)
@@ -884,5 +910,139 @@ public sealed class SimulatorHost
         if (keyboard.IsKeyPressed(Key.AltLeft) || keyboard.IsKeyPressed(Key.AltRight))
             mods |= MikoKeyModifiers.Alt;
         return mods;
+    }
+
+    private sealed class SimulatorInputMethod : InputMethodBase
+    {
+        private InputMethodState? _state;
+        private IntPtr _windowHandle;
+        private int _viewportWidth;
+        private int _viewportHeight;
+        private float _deviceOffsetX;
+        private float _deviceOffsetY;
+
+        public override void SetState(InputMethodState? state)
+            => Volatile.Write(ref _state, state);
+
+        public void SetWindowHandle(IntPtr windowHandle) => _windowHandle = windowHandle;
+
+        public void SetLogicalViewport(int width, int height)
+        {
+            Volatile.Write(ref _viewportWidth, width);
+            Volatile.Write(ref _viewportHeight, height);
+        }
+
+        public void SetDeviceOffset(float x, float y)
+        {
+            Volatile.Write(ref _deviceOffsetX, x);
+            Volatile.Write(ref _deviceOffsetY, y);
+        }
+
+        public void ApplyPendingState()
+        {
+            var state = Volatile.Read(ref _state);
+            if (state == null) return;
+
+            var rect = state.CursorRect;
+            rect = new RectF(
+                rect.X + Volatile.Read(ref _deviceOffsetX),
+                rect.Y + Volatile.Read(ref _deviceOffsetY),
+                rect.Width,
+                rect.Height);
+            UpdateWindowsInputPosition(
+                _windowHandle,
+                rect,
+                Volatile.Read(ref _viewportWidth),
+                Volatile.Read(ref _viewportHeight));
+        }
+
+        public void Commit(string text) => CommitText(text);
+
+        private static void UpdateWindowsInputPosition(IntPtr hwnd, RectF rect, int viewportWidth, int viewportHeight)
+        {
+            if (!OperatingSystem.IsWindows() || hwnd == IntPtr.Zero || !IsWindow(hwnd)) return;
+            if (GetClientRect(hwnd, out var clientRect) && viewportWidth > 0 && viewportHeight > 0)
+            {
+                var scaleX = (clientRect.Right - clientRect.Left) / (float)viewportWidth;
+                var scaleY = (clientRect.Bottom - clientRect.Top) / (float)viewportHeight;
+                rect = new RectF(rect.X * scaleX, rect.Y * scaleY, rect.Width * scaleX, rect.Height * scaleY);
+            }
+
+            var himc = ImmGetContext(hwnd);
+            if (himc == IntPtr.Zero) return;
+            try
+            {
+                var point = new Point
+                {
+                    X = (int)MathF.Round(rect.Left),
+                    Y = (int)MathF.Round(rect.Bottom),
+                };
+                var composition = new CompositionForm { Style = CfsPoint, Position = point };
+                ImmSetCompositionWindow(himc, ref composition);
+
+                var candidate = new CandidateForm
+                {
+                    Index = 0,
+                    Style = CfsExclude,
+                    Position = point,
+                    Area = new NativeRect
+                    {
+                        Left = (int)MathF.Floor(rect.Left),
+                        Top = (int)MathF.Floor(rect.Top),
+                        Right = (int)MathF.Ceiling(rect.Right),
+                        Bottom = (int)MathF.Ceiling(rect.Bottom),
+                    },
+                };
+                ImmSetCandidateWindow(himc, ref candidate);
+            }
+            finally
+            {
+                ImmReleaseContext(hwnd, himc);
+            }
+        }
+
+        private const int CfsPoint = 0x0002;
+        private const int CfsExclude = 0x0080;
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr hwnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetClientRect(IntPtr hwnd, out NativeRect rect);
+
+        [DllImport("imm32.dll")]
+        private static extern IntPtr ImmGetContext(IntPtr hwnd);
+
+        [DllImport("imm32.dll")]
+        private static extern bool ImmReleaseContext(IntPtr hwnd, IntPtr himc);
+
+        [DllImport("imm32.dll")]
+        private static extern bool ImmSetCandidateWindow(IntPtr himc, ref CandidateForm form);
+
+        [DllImport("imm32.dll")]
+        private static extern bool ImmSetCompositionWindow(IntPtr himc, ref CompositionForm form);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Point { public int X, Y; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NativeRect { public int Left, Top, Right, Bottom; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct CandidateForm
+        {
+            public int Index;
+            public int Style;
+            public Point Position;
+            public NativeRect Area;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct CompositionForm
+        {
+            public int Style;
+            public Point Position;
+            public NativeRect Area;
+        }
     }
 }

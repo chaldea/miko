@@ -72,6 +72,7 @@ public sealed class SilkDesktopHost
     private const long KeyRepeatIntervalMs = 33;
 
     private IMouse? _primaryMouse;
+    private readonly SilkInputMethod _inputMethod;
 
     public SilkDesktopHost(MikoAppContext context, ILogger<SilkDesktopHost>? logger = null)
     {
@@ -80,6 +81,9 @@ public sealed class SilkDesktopHost
         _logger = logger ?? NullLogger<SilkDesktopHost>.Instance;
         _width = context.Options.Width;
         _height = context.Options.Height;
+        _inputMethod = new SilkInputMethod();
+        _inputMethod.SetLogicalViewport(_width, _height);
+        _controller.AttachInputMethod(_inputMethod);
 
         _controller.CursorChanged += OnCursorChanged;
     }
@@ -120,7 +124,10 @@ public sealed class SilkDesktopHost
         // 拖动/缩放时 DoEvents 会阻塞在模态循环里——但渲染在另一线程，画面不冻结。
         while (!_window.IsClosing)
         {
+            _inputMethod.ApplyPendingState();
             _window.DoEvents();
+            // WM_IME_STARTCOMPOSITION may reset placement while DoEvents is dispatching it.
+            _inputMethod.ApplyPendingState();
             PumpKeyRepeat();
             ApplyPendingCursor();
             Thread.Sleep(1);
@@ -142,6 +149,7 @@ public sealed class SilkDesktopHost
     /// </summary>
     private void OnLoad()
     {
+        _inputMethod.SetWindowHandle(_window!.Native?.Win32?.Hwnd ?? IntPtr.Zero);
         _inputContext = _window!.CreateInput();
         foreach (var mouse in _inputContext.Mice)
         {
@@ -280,7 +288,7 @@ public sealed class SilkDesktopHost
                     _controller.RepeatKey(msg.Key);
                     break;
                 case MessageKind.TextInput:
-                    _controller.OnTextInput(msg.Text!);
+                    _inputMethod.Commit(msg.Text!);
                     break;
                 case MessageKind.Resize:
                     ApplyResize((int)msg.X, (int)msg.Y);
@@ -306,6 +314,7 @@ public sealed class SilkDesktopHost
 
     private void OnResize(Vector2D<int> size)
     {
+        _inputMethod.SetLogicalViewport(size.X, size.Y);
         _messages.Enqueue(InputMessage.Resize(size.X, size.Y));
     }
 

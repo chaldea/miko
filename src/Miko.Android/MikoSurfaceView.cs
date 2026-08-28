@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using Android.Content;
+using Android.Text;
 using Android.Util;
 using Android.Views;
+using Android.Views.InputMethods;
+using Java.Lang;
 using Miko.Common;
 using Miko.Events;
 using Miko.Hosting;
@@ -23,6 +26,7 @@ public class MikoSurfaceView : SKGLSurfaceView
     private readonly Stopwatch _frameTimer = new();
     private float _lastFrameTime;
     private bool _initialized;
+    private readonly AndroidInputMethod _inputMethod;
 
     // 用于在每帧根据根背景色亮度调整状态栏/导航栏图标外观（深/浅）。
     // 持有 Activity 引用以便 Post 到 UI 线程修改 Window；上一次应用的“浅色背景”判定
@@ -36,6 +40,8 @@ public class MikoSurfaceView : SKGLSurfaceView
     {
         _context = appContext;
         _controller = appContext.Controller;
+        _inputMethod = new AndroidInputMethod(this, _controller);
+        _controller.AttachInputMethod(_inputMethod);
         _activity = context as global::Android.App.Activity;
         _density = context.Resources?.DisplayMetrics?.Density ?? 1f;
         Log.Info("MikoSurfaceView",
@@ -47,6 +53,8 @@ public class MikoSurfaceView : SKGLSurfaceView
 
         // 接收系统窗口 inset 以便计算安全区（edge-to-edge 下系统栏会覆盖内容）。
         SetFitsSystemWindows(false);
+        Focusable = true;
+        FocusableInTouchMode = true;
     }
 
     /// <summary>
@@ -227,5 +235,130 @@ public class MikoSurfaceView : SKGLSurfaceView
         RequestRender();
 
         return true;
+    }
+
+    public override bool OnCheckIsTextEditor() => true;
+
+    public override IInputConnection? OnCreateInputConnection(EditorInfo? outAttrs)
+        => _inputMethod.CreateConnection(outAttrs);
+
+    private sealed class AndroidInputMethod : InputMethodBase
+    {
+        private readonly MikoSurfaceView _view;
+        private readonly MikoInteractionController _controller;
+        private InputMethodState? _state;
+        private bool _keyboardShown;
+        private string _composingText = string.Empty;
+
+        public AndroidInputMethod(MikoSurfaceView view, MikoInteractionController controller)
+        {
+            _view = view;
+            _controller = controller;
+        }
+
+        public override void SetState(InputMethodState? state)
+        {
+            _state = state;
+            _view.Post(() =>
+            {
+                if (state == null)
+                {
+                    _keyboardShown = false;
+                    var manager = _view.Context?.GetSystemService(global::Android.Content.Context.InputMethodService)
+                        as InputMethodManager;
+                    if (_view.WindowToken != null)
+                        manager?.HideSoftInputFromWindow(_view.WindowToken, HideSoftInputFlags.None);
+                    _view.ClearFocus();
+                    return;
+                }
+
+                _view.RequestFocus();
+                var inputManager = _view.Context?.GetSystemService(global::Android.Content.Context.InputMethodService)
+                    as InputMethodManager;
+                if (!_keyboardShown)
+                {
+                    _keyboardShown = true;
+                    inputManager?.ShowSoftInput(_view, ShowFlags.Implicit);
+                }
+                else
+                {
+                    inputManager?.RestartInput(_view);
+                }
+            });
+        }
+
+        public IInputConnection CreateConnection(EditorInfo? info)
+        {
+            var state = _state;
+            if (info != null)
+            {
+                var type = InputTypes.ClassText;
+                if (state?.IsMultiline == true) type |= InputTypes.TextFlagMultiLine;
+                if (state?.InputType == InputMethodType.Password)
+                    type |= InputTypes.TextVariationPassword;
+                else if (state?.InputType == InputMethodType.Number)
+                    type = InputTypes.ClassNumber;
+                info.InputType = type;
+                info.ImeOptions = state?.IsMultiline == true
+                    ? (ImeFlags)ImeAction.None
+                    : (ImeFlags)ImeAction.Done;
+            }
+            return new Connection(this);
+        }
+
+        public void Commit(string text) => End(text);
+        public void Begin() => StartComposition();
+        public void Update(string text)
+        {
+            _composingText = text ?? string.Empty;
+            UpdateComposition(_composingText);
+        }
+        public void End(string? text = null)
+        {
+            var committed = text ?? _composingText;
+            _composingText = string.Empty;
+            EndComposition(string.IsNullOrEmpty(committed) ? null : committed);
+        }
+
+        private sealed class Connection : BaseInputConnection
+        {
+            private readonly AndroidInputMethod _owner;
+
+            public Connection(AndroidInputMethod owner) : base(owner._view, true) => _owner = owner;
+
+            public override bool CommitText(ICharSequence? text, int newCursorPosition)
+            {
+                _owner.Commit(text?.ToString() ?? string.Empty);
+                return true;
+            }
+
+            public override bool SetComposingText(ICharSequence? text, int newCursorPosition)
+            {
+                _owner.Begin();
+                _owner.Update(text?.ToString() ?? string.Empty);
+                return true;
+            }
+
+            public override bool FinishComposingText()
+            {
+                _owner.End();
+                return true;
+            }
+
+            public override bool DeleteSurroundingText(int beforeLength, int afterLength)
+            {
+                for (var i = 0; i < beforeLength; i++)
+                    _owner._controller.OnKeyDown(MikoKey.Backspace, MikoKeyModifiers.None);
+                for (var i = 0; i < afterLength; i++)
+                    _owner._controller.OnKeyDown(MikoKey.Delete, MikoKeyModifiers.None);
+                return true;
+            }
+
+            public override bool SetSelection(int start, int end)
+            {
+                _owner._controller.SetTextSelection(start, end);
+                return true;
+            }
+        }
     }
 }
