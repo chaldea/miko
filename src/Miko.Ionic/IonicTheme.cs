@@ -380,9 +380,9 @@ public class IonicTheme
     public Color SelectErrorColor { get; set; }
     public float SelectFontSize { get; set; } = 16f;
     public float SelectMinHeight { get; set; } = 48f;
-    public float SelectPaddingTop { get; set; } = 8f;
+    public float SelectPaddingTop { get; set; } = 0f;
     public float SelectPaddingEnd { get; set; } = 0f;
-    public float SelectPaddingBottom { get; set; } = 8f;
+    public float SelectPaddingBottom { get; set; } = 0f;
     public float SelectPaddingStart { get; set; } = 0f;
     public float SelectBorderRadius { get; set; } = 4f;
     public float SelectRoundBorderRadius { get; set; } = 999f;
@@ -1142,8 +1142,8 @@ public class IonicTheme
         t.SelectErrorColor = t.Danger;
         t.SelectFontSize = 16f;
         t.SelectMinHeight = 48f;
-        t.SelectPaddingTop = 8f;
-        t.SelectPaddingBottom = 8f;
+        t.SelectPaddingTop = 0f;
+        t.SelectPaddingBottom = 0f;
         t.SelectBorderRadius = 4f;
         t.SelectRoundBorderRadius = 999f;
 
@@ -1668,8 +1668,8 @@ public class IonicTheme
         t.SelectErrorColor = t.Danger;
         t.SelectFontSize = 17f;
         t.SelectMinHeight = 44f;
-        t.SelectPaddingTop = 8f;
-        t.SelectPaddingBottom = 8f;
+        t.SelectPaddingTop = 0f;
+        t.SelectPaddingBottom = 0f;
         t.SelectBorderRadius = 10f;
         t.SelectRoundBorderRadius = 999f;
 
