@@ -186,8 +186,11 @@ public class MikoEngine
             _navLeavingLayout = _currentLayout;
         }
 
-        // Transfer old LayoutBox references to new elements for transition detection
-        if (_root != null)
+        // Transfer old LayoutBox references for same-tree transition detection only when the old
+        // layout is no longer painted. During a navigation transition the leaving layer remains
+        // live; sharing its boxes with the entering tree would let layout pooling recycle and
+        // overwrite ComputedStyles that RenderLayer still reads.
+        if (_root != null && !startTransition)
         {
             MapElementIdentityRecursive(_root, root);
         }

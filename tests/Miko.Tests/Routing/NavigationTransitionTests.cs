@@ -69,6 +69,31 @@ public class NavigationTransitionTests : IDisposable
     }
 
     [Fact]
+    public void RelayoutDuringTransition_ShouldNotRecycleLeavingLayerComputedStyles()
+    {
+        var engine = new MikoEngineBuilder().Build();
+        var leaving = CreatePage(255, 0, 0);
+        engine.Initialize(leaving, [], _canvas, W, H);
+        var leavingLayout = engine.GetCurrentLayout()!;
+
+        var entering = CreatePage(0, 255, 0);
+        engine.Initialize(entering, [], _canvas, W, H, Info(new SlideTransition()));
+
+        // Force another entering-page layout while progress is still zero. The leaving layout is
+        // still painted and therefore continues to own every ComputedStyle reachable from it.
+        entering.Style = new Style
+        {
+            Width = Length.Px(W),
+            Height = Length.Px(H),
+            BackgroundColor = Color.FromRgb(0, 255, 0)
+        };
+        engine.Render(_canvas);
+
+        leavingLayout.ComputedStyle.BackgroundColor.ShouldBe(Color.FromRgb(255, 0, 0));
+        Pixel(100, 50).ShouldBe(SKColors.Red);
+    }
+
+    [Fact]
     public void Initialize_WithTransition_WithoutPreviousPage_ShouldFallBackToInstantSwitch()
     {
         var engine = new MikoEngineBuilder().Build();

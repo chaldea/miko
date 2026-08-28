@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Diagnostics;
 using Miko.Layout.LayoutAlgorithms;
 using Miko.Styling;
 
@@ -69,6 +70,10 @@ public class LayoutEngine
     private long _cachedMutationVersion = -1;
     private LayoutBox? _cachedResult;
 
+    // 上一帧的计算样式，等本帧整棵树算完后统一归还给池（ISSUE-132）。
+    // 见 ComputeStyles 中的说明：回收必须晚于整树解析，否则会回收掉正在被继承读取的实例。
+    private readonly List<ComputedStyle> _recyclableStyles = new();
+
     /// <summary>
     /// 使缓存的布局结果失效。一般无需调用——所有常规变更都会递增本引擎的
     /// <see cref="MutationTracker.Version"/> 而被自动检测。仅在引擎外发生了未被追踪的
@@ -117,7 +122,18 @@ public class LayoutEngine
         // 1. 样式计算：为每个元素计算最终样式（并折算其 env() 安全区分量与 vw/vh 视窗分量）。
         var viewport = new ViewportInfo(viewportWidth, viewportHeight);
         _viewport = viewport;
+        _recyclableStyles.Clear();
         ComputeStyles(root, styleSheets, viewport);
+
+        // 整棵树的新样式都已算完，上一帧那批实例再无引用者，归还给池（ISSUE-132）。
+        //
+        // 有意**不做**去重：同一个实例理论上可能被两个元素的盒子引用（引擎的
+        // MapElementIdentityRecursive 与组件的 TransferLayoutBox 会跨代搬运布局盒），
+        // 那样它会被归还两次、池里出现两份，随后被两个元素同时取用而相互覆写。
+        // 用一个「已归还」标记挡住重复入池，代价是每个实例一个 bool。
+        for (int i = 0; i < _recyclableStyles.Count; i++)
+            ComputedStyle.Return(_recyclableStyles[i]);
+        _recyclableStyles.Clear();
 
         // 2. 构建布局树：根据 display 属性过滤和组织
         var layoutRoot = BuildLayoutTree(root, styleSheets);
@@ -126,6 +142,10 @@ public class LayoutEngine
         {
             throw new InvalidOperationException("Failed to build layout tree");
         }
+
+        // 开启一次新的布局遍历：作废上一遍的内在尺寸缓存（ISSUE-132）。
+        // 缓存以「测量代号」为键，因此只在本次遍历内有效，跨帧自动失效、不会漏掉 DOM 变化。
+        LayoutDispatcher.BeginLayoutPass();
 
         // 3. 布局计算：从视口原点 (0,0) 开始，覆盖整个视口。
         // 根元素的 AvailableHeight 是填充指令：height:auto + overflow 的根盒子撑满视口高度
@@ -467,6 +487,15 @@ public class LayoutEngine
     /// </summary>
     private void ComputeStyles(Element element, List<StyleSheet> styleSheets, ViewportInfo viewport)
     {
+        // 上一帧为本元素算出的计算样式即将被下面新建的盒子顶掉。它是逐帧抛弃的对象
+        // （实测 9336 字节/个），先记下来，等**整棵树都算完**再统一归还给池（ISSUE-132）。
+        //
+        // 不能在这里就归还：本元素的样式解析要读**父元素**的计算样式做继承，而后代的解析
+        // 还要读本元素的——一边算一边回收，会把正在被读的实例发给池、随即被别的元素取走覆写。
+        // 因此只收集，回收推迟到 Layout() 里整树 ComputeStyles 返回之后。
+        if (element.LayoutBox?.ComputedStyle is { } stale)
+            _recyclableStyles.Add(stale);
+
         var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport);
 
         // 折算该元素声明的视窗单位（vw/vh）为像素。vw/vh 始终相对整个视口，与包含块无关，
@@ -643,6 +672,7 @@ public class LayoutEngine
         // 传入视口以折算伪元素自身 font-size 中的 vw/vh（须先于其 em 解析）。
         var hostVarScope = element.LayoutBox?.ComputedStyle?.Vars;
         var computedStyle = ComputedStyle.FromStyle(matchedStyle, varScope: hostVarScope, viewport: _viewport);
+        LayoutAllocationDiagnostics.RecordPseudoComputedStyleCreated();
         // content 文本通过 facade setter 变为 pseudoElement 的 TextNode 子节点（见 ISSUE-086）。
         // Content 可能是 Var(...) 引用，用计算样式解析后的具体值。
         computedStyle.TryResolveStyleProperty(matchedStyle.Content ?? default, out string? resolvedContent);
@@ -681,6 +711,7 @@ public class LayoutEngine
             if (child is TextNode)
             {
                 var textStyle = ComputedStyle.FromStyle(new Style());
+                LayoutAllocationDiagnostics.RecordPseudoComputedStyleCreated();
                 InheritComputedStyle(textStyle, computedStyle);
                 child.LayoutBox = new LayoutBox
                 {

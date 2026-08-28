@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Core;
+using Miko.Diagnostics;
 using Miko.Styling;
 
 namespace Miko.Layout;
@@ -9,6 +10,8 @@ namespace Miko.Layout;
 /// </summary>
 public class LayoutBox
 {
+    public LayoutBox() => LayoutAllocationDiagnostics.RecordLayoutBoxCreated();
+
     public Element Element { get; set; } = null!;
     public ComputedStyle ComputedStyle { get; set; } = null!;
 
@@ -54,6 +57,27 @@ public class LayoutBox
 
     // Prevent scroll-state restoration from overwriting a component's explicit initial position.
     internal bool InitialScrollTopApplied { get; set; }
+
+    // ---- 内在尺寸测量缓存（ISSUE-132）----
+    //
+    // Flex 布局要知道每个子项的「内容自然尺寸」（flex-basis: auto / width: auto），做法是以
+    // (null, null) 约束把该子项**整棵子树**预排一遍，再读它的内容盒——见
+    // FlexLayout.ComputeFlexBasis。问题在于同一个子项在一次布局里会被这样测量**多次**：
+    // PartitionIntoLines 分行时一次、LayoutLine 求解主轴尺寸时又一次，随后才是真正的排布。
+    //
+    // 每一层 flex 容器都这样对下一层做 2 次以上的完整子树预排，于是派发次数**逐层翻倍**：
+    // 实测嵌套 n 层 flex、总共 n+2 个节点时，一次布局的派发数是 2^(n+1)
+    // （depth 1→4 次、3→22、5→94、7→382）。真实的 Ionic RangePage 里
+    // ion-page → item-native → item-inner → input-wrapper → ion-range → range-wrapper →
+    // native-wrapper → range-knob-handle 共 7 层 flex 嵌套，87 个元素的页面一帧要派发
+    // 12905 次、同一个盒子被排布 1276 遍，约 2 MB 分配——这才是拖动 IonRange 时 G2 暴涨的根因。
+    //
+    // 修复：内在尺寸只取决于子树自身内容，与外部约束无关，因此在**一次布局遍历内**测一次就够。
+    // 这里按「测量代号」缓存结果：代号由 LayoutDispatcher 在每次顶层布局开始时递增，
+    // 因此缓存天然限定在单次布局内，跨帧不会漏掉 DOM 变化。
+    internal long IntrinsicMeasureStamp = -1;
+    internal float IntrinsicContentWidth;
+    internal float IntrinsicContentHeight;
 
     // Classic 滚动条宽度（占用布局空间）
     public const float ScrollbarThickness = 12f;

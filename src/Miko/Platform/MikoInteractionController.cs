@@ -526,6 +526,20 @@ public sealed class MikoInteractionController
 
         _hoveredElements.Clear();
         _hoveredElements.AddRange(chain);
+        // The buffer is only scratch storage. Keeping the copied chain here would give every
+        // hovered element a second long-lived root while captured moves skip UpdateHover.
+        chain.Clear();
+    }
+
+    /// <summary>
+    /// Moves cached hover references to their live replacements after component re-rendering.
+    /// Captured pointer moves intentionally do not recompute :hover from hit testing, but the
+    /// cached references must still advance or their SupersededBy chains retain every old tree.
+    /// </summary>
+    private void ReanchorHoveredElements()
+    {
+        for (int i = 0; i < _hoveredElements.Count; i++)
+            _hoveredElements[i] = _hoveredElements[i].ResolveSuperseded();
     }
 
     /// <summary>
@@ -1033,6 +1047,7 @@ public sealed class MikoInteractionController
     /// </summary>
     private Element? ResolveAndReanchorPointerDownTarget()
     {
+        ReanchorHoveredElements();
         if (_pointerDownTarget == null) return null;
         var resolved = _pointerDownTarget.ResolveSuperseded();
         // 重新锚定后，被跳过的各代不再从本字段可达，可以正常回收。

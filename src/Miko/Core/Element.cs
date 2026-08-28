@@ -1,4 +1,5 @@
 using Miko.Core.DomElements;
+using Miko.Diagnostics;
 using Miko.Events;
 using Miko.Layout;
 using Miko.Styling;
@@ -84,6 +85,7 @@ public abstract class Element
 
     protected Element()
     {
+        LayoutAllocationDiagnostics.RecordElementCreated();
         Children = new ElementCollection(this);
     }
 

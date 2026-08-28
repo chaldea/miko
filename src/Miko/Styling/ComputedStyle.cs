@@ -1,5 +1,6 @@
 using Miko.Animation;
 using Miko.Common;
+using Miko.Diagnostics;
 
 namespace Miko.Styling;
 
@@ -549,6 +550,109 @@ public partial class ComputedStyle : Style
     /// </summary>
     private ComputedStyle? _keywordResolutionParent;
 
+    // ---- 实例池化（ISSUE-132）----
+    //
+    // ComputedStyle 单个实例实测 9336 字节：它继承 Style（约 137 个 StyleProperty<T>? 槽，
+    // 6984 字节），自己又遮蔽了约 133 个已解析属性。而每帧每个元素都要新建一个——
+    // 87 个元素的 Ionic 页面一帧就是 812 KB，直接冲垮 Gen0 预算、被提升进 Gen2。
+    // 拖动 IonRange 时每秒几十帧，G2 于是单调上涨。
+    //
+    // 这些对象是**逐帧抛弃**的：上一帧的计算样式在本帧重排后就不再被引用。因此改为池化，
+    // 由引擎在每帧布局开始时归还上一帧的实例（见 LayoutEngine.RecycleComputedStyles）。
+    //
+    // 复位用生成的 ResetComputedGenerated：ComputedStyle 的 133 个遮蔽属性各自带着不同的
+    // CSS 初始值（Display=Block、FlexShrink=1、BorderColor=Black…），手写一份复位代码既冗长
+    // 又极易与属性声明脱节——漏掉一个就是一个跨帧脏值 bug。由源生成器从同一份属性清单产出，
+    // 与声明同源。
+
+    // 每线程一个池：多引擎可能在各自线程上并发布局（ISSUE-129），按线程隔离免加锁。
+    [ThreadStatic]
+    private static Stack<ComputedStyle>? t_pool;
+
+    /// <summary>池化上限。超出则交给 GC——避免一次超大页面把池永久撑大。</summary>
+    private const int PoolCapacity = 4096;
+
+    /// <summary>
+    /// 从池中取一个已复位的实例，池空时新建（ISSUE-132）。
+    /// </summary>
+    internal static ComputedStyle Rent()
+    {
+        var pool = t_pool;
+        if (pool != null && pool.Count > 0)
+        {
+            var reused = pool.Pop();
+            reused._pooled = false;
+            reused.ResetToPristine();
+            LayoutAllocationDiagnostics.RecordComputedStyleRentReused(reused);
+            return reused;
+        }
+        LayoutAllocationDiagnostics.RecordComputedStyleRentNew();
+        return new ComputedStyle();
+    }
+
+    /// <summary>
+    /// 归还一个不再被引用的实例。调用方必须确保它<b>确实</b>不再被任何布局盒/元素引用
+    /// ——归还后它会被下一次 <see cref="Rent"/> 取走并覆写。
+    /// <para>重复归还是安全的（直接忽略）：同一个实例可能被两个元素的布局盒引用
+    /// ——引擎的 <c>MapElementIdentityRecursive</c> 与组件的 <c>TransferLayoutBox</c> 会跨代
+    /// 搬运布局盒——若两边都归还，池里就会出现同一实例两份，随后被两个元素同时取用而相互覆写。</para>
+    /// </summary>
+    internal static void Return(ComputedStyle style)
+    {
+        if (style._pooled)
+        {
+            LayoutAllocationDiagnostics.RecordComputedStyleReturnAlreadyPooled();
+            return;
+        }
+
+        var pool = t_pool ??= new Stack<ComputedStyle>();
+        if (pool.Count >= PoolCapacity)
+        {
+            LayoutAllocationDiagnostics.RecordComputedStyleReturnRejectedCapacity();
+            return;
+        }
+
+        style._pooled = true;
+        // 断开对父计算样式与变量作用域的引用，避免池子把整条旧的样式链一直留在内存里。
+        style._keywordResolutionParent = null;
+        style.Vars = null;
+        pool.Push(style);
+        LayoutAllocationDiagnostics.RecordComputedStyleReturnAccepted();
+    }
+
+    // 本实例当前是否躺在池里（防重复归还，见 Return）。
+    private bool _pooled;
+
+    /// <summary>把本实例的所有字段复位为「刚构造」的状态（见池化说明）。</summary>
+    private void ResetToPristine()
+    {
+        ResetComputedGenerated();
+
+        // 生成的复位逐个<b>赋值</b>属性，因此带副作用的 setter 会被再次触发：
+        // `ZIndex` 的 setter 会顺带把 HasZIndex 置为 true（用于区分 z-index:auto 与 z-index:0），
+        // 于是复位后的实例会谎称「显式声明过 z-index」，让所有定位元素都建立层叠上下文。
+        // 这类派生状态生成器看不见（HasZIndex 是私有 setter，不在属性清单里），只能在此显式收尾。
+        HasZIndex = false;
+
+        // 变量作用域是每个元素各自的，绝不能跨实例残留。
+        Vars = null;
+        _keywordResolutionParent = null;
+
+        // Transitions / Animations 是懒初始化的列表（见其声明）。生成的复位对它们做的是
+        // `Transitions = pristine.Transitions`，那会**触发模板的懒初始化**，并把模板那一个
+        // 列表实例分发给池中所有对象——两个元素的过渡定义就会互相污染。
+        // 必须直接把后备字段清空，回到「尚未分配」的初始状态。
+        _transitions = null;
+        _animations = null;
+    }
+
+    /// <summary>
+    /// 由源生成器实现：把所有<b>已解析</b>属性写回其 CSS 初始值，并清空基类
+    /// （<see cref="Style"/>）的属性槽。生成而非手写，是为了与属性声明<b>同源</b>
+    /// ——漏掉一个属性就是一个跨帧脏值 bug，不能靠人工维护清单。
+    /// </summary>
+    partial void ResetComputedGenerated();
+
     /// <summary>
     /// 解析一个 <see cref="StyleProperty{T}"/>：具体值直接返回；变量引用则查当前
     /// <see cref="Vars"/> 作用域，未命中时用引用自带的 fallback，仍未命中返回 false
@@ -646,7 +750,7 @@ public partial class ComputedStyle : Style
         Dictionary<string, VarValue>? varScope = null, ComputedStyle? parent = null,
         ViewportInfo? viewport = null)
     {
-        var computed = new ComputedStyle();
+        var computed = Rent();
         // 先设作用域与父上下文：ApplyStylePropertiesGenerated 与下方特例都会经
         // TryResolveStyleProperty 读取它们来解析变量引用与 inherit/unset 关键词。
         computed.Vars = varScope;
