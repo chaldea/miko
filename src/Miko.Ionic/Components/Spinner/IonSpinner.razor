@@ -101,10 +101,11 @@
     private Style? BuildHostStyle()
     {
         var seconds = (Duration ?? DefaultDuration(_spinnerName)) / 1000f;
-        if (seconds <= 0) return null;
+        if (seconds <= 0 || _spinnerName == "dots") return null;
 
         return new Style
         {
+            TransformOrigin = TransformOrigin.Center,
             Animations = new List<KeyframeAnimation>
             {
                 new("ion-spinner-rotate", seconds,
@@ -123,10 +124,78 @@
     {
         if (_spinnerName == "dots")
         {
+            var seconds = (Duration ?? DefaultDuration(_spinnerName)) / 1000f;
+            if (seconds <= 0) return new Style();
+
             return new Style
             {
-                Opacity = MathF.Max(0.4f, 1f - index * 0.2f),
+                Animations = new List<KeyframeAnimation>
+                {
+                    new("ion-spinner-dots", seconds,
+                        new Keyframe(0f, new Style
+                        {
+                            Transform = Transform.FromScale(1f, 1f),
+                            Opacity = 0.9f,
+                        }),
+                        new Keyframe(0.5f, new Style
+                        {
+                            Transform = Transform.FromScale(0.4f, 0.4f),
+                            Opacity = 0.3f,
+                        }),
+                        new Keyframe(1f, new Style
+                        {
+                            Transform = Transform.FromScale(1f, 1f),
+                            Opacity = 0.9f,
+                        }))
+                    {
+                        Delay = -0.11f * (_segmentCount - index - 1),
+                        Infinite = true,
+                        TimingFunction = TimingFunction.Linear,
+                        PlayState = Paused ? AnimationPlayState.Paused : AnimationPlayState.Running,
+                    },
+                },
             };
+        }
+
+        if (_spinnerName is "bubbles" or "circles")
+        {
+            var ringAngle = 2f * MathF.PI * index / _segmentCount;
+            var style = new Style
+            {
+                Top = Length.Percent(50f + 32f * MathF.Sin(ringAngle)),
+                Left = Length.Percent(50f + 32f * MathF.Cos(ringAngle)),
+                Opacity = MathF.Max(0.25f, 1f - index * 0.07f),
+                Transform = Transform.None,
+                TransformOrigin = TransformOrigin.Center,
+            };
+
+            if (_spinnerName == "bubbles")
+            {
+                var seconds = (Duration ?? DefaultDuration(_spinnerName)) / 1000f;
+                if (seconds > 0)
+                {
+                    style.Animations = new List<KeyframeAnimation>
+                    {
+                        new("ion-spinner-scale-out", seconds,
+                            new Keyframe(0f, new Style
+                            {
+                                Transform = Transform.FromScale(1f, 1f),
+                            }),
+                            new Keyframe(1f, new Style
+                            {
+                                Transform = Transform.FromScale(0f, 0f),
+                            }))
+                        {
+                            Delay = seconds * index / _segmentCount - seconds,
+                            Infinite = true,
+                            TimingFunction = TimingFunction.Linear,
+                            PlayState = Paused ? AnimationPlayState.Paused : AnimationPlayState.Running,
+                        },
+                    };
+                }
+            }
+
+            return style;
         }
 
         var angle = 360f / _segmentCount * index;

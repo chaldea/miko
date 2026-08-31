@@ -190,6 +190,123 @@ public class IonAlertTests : IonicComponentTestBase
     }
 
     [Fact]
+    public void IonAlert_MdCheckboxIcon_UsesLeadingSquareAndCheckmark()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderAlert(Context, p => p.Add(nameof(IonAlert.Inputs),
+            (IReadOnlyList<IonAlertInput>)new List<IonAlertInput>
+            {
+                new() { Type = "checkbox", Label = "A", Value = "a", Checked = true },
+            }));
+
+        var icon = cut.FindByClass("alert-checkbox-icon").Single();
+        var iconStyle = cut.GetComputedStyle(icon)!;
+        iconStyle.InsetInlineStart.ShouldBe(Length.Px(26));
+        iconStyle.Width.ShouldBe(Length.Px(16));
+        iconStyle.Height.ShouldBe(Length.Px(16));
+        iconStyle.BorderTopLeftRadius.ShouldBe(Length.Px(2));
+        iconStyle.BackgroundColor.ShouldBe(IonicTheme.CreateMd().Primary);
+
+        var inner = cut.FindByClass("alert-checkbox-inner").Single();
+        var innerStyle = cut.GetComputedStyle(inner)!;
+        innerStyle.Width.ShouldBe(Length.Px(6));
+        innerStyle.Height.ShouldBe(Length.Px(10));
+        innerStyle.BorderTopWidth.ShouldBe(Length.Px(0));
+        innerStyle.BorderLeftWidth.ShouldBe(Length.Px(0));
+        innerStyle.BorderRightWidth.ShouldBe(Length.Px(2));
+        innerStyle.BorderBottomWidth.ShouldBe(Length.Px(2));
+        innerStyle.Transform.ShouldNotBeNull();
+
+    }
+
+    [Fact]
+    public void IonAlert_IosCheckboxIcon_UsesCircleSpacingAndCheckmark()
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderAlert(Context, p => p.Add(nameof(IonAlert.Inputs),
+            (IReadOnlyList<IonAlertInput>)new List<IonAlertInput>
+            {
+                new() { Type = "checkbox", Label = "A", Value = "a", Checked = true },
+            }));
+
+        var icon = cut.FindByClass("alert-checkbox-icon").Single();
+        var iconStyle = cut.GetComputedStyle(icon)!;
+        iconStyle.Width.ShouldBe(Length.Px(22));
+        iconStyle.Height.ShouldBe(Length.Px(22));
+        iconStyle.BorderTopLeftRadius.ShouldBe(Length.Percent(50));
+        iconStyle.MarginTop.ShouldBe(Length.Px(10));
+        iconStyle.MarginRight.ShouldBe(Length.Px(6));
+        iconStyle.MarginBottom.ShouldBe(Length.Px(10));
+        iconStyle.MarginLeft.ShouldBe(Length.Px(16));
+        iconStyle.BackgroundColor.ShouldBe(IonicTheme.CreateIos().Primary);
+
+        var inner = cut.FindByClass("alert-checkbox-inner").Single();
+        var innerStyle = cut.GetComputedStyle(inner)!;
+        innerStyle.Width.ShouldBe(Length.Px(22f / 6f + 1f));
+        innerStyle.Height.ShouldBe(Length.Px(11));
+        innerStyle.BorderTopWidth.ShouldBe(Length.Px(0));
+        innerStyle.BorderLeftWidth.ShouldBe(Length.Px(0));
+        innerStyle.BorderRightWidth.ShouldBe(Length.Px(2));
+        innerStyle.BorderBottomWidth.ShouldBe(Length.Px(2));
+        innerStyle.Transform.ShouldNotBeNull();
+
+        var label = cut.FindByClass("alert-checkbox-label").Single();
+        var iconBox = cut.GetBoxModel(icon)!;
+        var labelBox = cut.GetBoxModel(label)!;
+        iconBox.BorderBox.X.ShouldBeLessThan(labelBox.BorderBox.X);
+    }
+
+    [Fact]
+    public void IonAlert_IosRadioRows_UseAlignedLabelAndTrailingIconColumns()
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderAlert(Context, p => p.Add(nameof(IonAlert.Inputs),
+            (IReadOnlyList<IonAlertInput>)new List<IonAlertInput>
+            {
+                new() { Type = "radio", Label = "Apple", Value = "apple", Checked = true },
+                new() { Type = "radio", Label = "Banana", Value = "banana" },
+                new() { Type = "radio", Label = "Orange", Value = "orange" },
+            }));
+
+        var labels = cut.FindByClass("alert-radio-label")
+            .Select(label => cut.GetBoxModel(label)!).ToList();
+        var icons = cut.FindByClass("alert-radio-icon")
+            .Select(icon => cut.GetBoxModel(icon)!).ToList();
+
+        labels.Select(box => box.BorderBox.X).Distinct().Count().ShouldBe(1);
+        labels.Select(box => box.BorderBox.Width).Distinct().Count().ShouldBe(1);
+        icons.Select(box => box.BorderBox.X).Distinct().Count().ShouldBe(1);
+        icons.Select(box => box.BorderBox.Right).Distinct().Count().ShouldBe(1);
+        labels[0].BorderBox.X.ShouldBeLessThan(icons[0].BorderBox.X);
+    }
+
+    [Fact]
+    public void IonAlert_IosCheckboxRows_UseAlignedIconAndLabelColumns()
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderAlert(Context, p => p.Add(nameof(IonAlert.Inputs),
+            (IReadOnlyList<IonAlertInput>)new List<IonAlertInput>
+            {
+                new() { Type = "checkbox", Label = "Apple", Value = "apple", Checked = true },
+                new() { Type = "checkbox", Label = "Banana", Value = "banana" },
+                new() { Type = "checkbox", Label = "Orange", Value = "orange" },
+            }));
+
+        var labels = cut.FindByClass("alert-checkbox-label")
+            .Select(label => cut.GetBoxModel(label)!).ToList();
+        var icons = cut.FindByClass("alert-checkbox-icon")
+            .Select(icon => cut.GetBoxModel(icon)!).ToList();
+
+        icons.Select(box => box.BorderBox.X).Distinct().Count().ShouldBe(1);
+        labels.Select(box => box.BorderBox.X).Distinct().Count().ShouldBe(1);
+        labels.Select(box => box.BorderBox.Width).Distinct().Count().ShouldBe(1);
+        icons[0].BorderBox.X.ShouldBeLessThan(labels[0].BorderBox.X);
+    }
+
+    [Fact]
     public void IonAlert_TextInputs_RenderInputGroup()
     {
         var cut = RenderAlert(Context, p => p.Add(nameof(IonAlert.Inputs),
@@ -439,6 +556,62 @@ public class IonAlertTests : IonicComponentTestBase
         var cut = RenderAlert(Context);
 
         cut.Root.Class.ShouldStartWith("ios ion-alert");
+    }
+
+    [Fact]
+    public void IonAlert_MdRadioIcon_UsesLeadingInset()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderAlert(Context, p => p.Add(nameof(IonAlert.Inputs),
+            (IReadOnlyList<IonAlertInput>)new List<IonAlertInput>
+            {
+                new() { Type = "radio", Label = "A", Value = "a" },
+            }));
+
+        var icon = cut.FindByClass("alert-radio-icon").Single();
+        var style = cut.GetComputedStyle(icon)!;
+        style.InsetInlineStart.ShouldBe(Length.Px(26));
+        style.Width.ShouldBe(Length.Px(20));
+        style.Height.ShouldBe(Length.Px(20));
+        style.BorderWidth.ShouldBe(Length.Px(2));
+        style.BorderStyle.ShouldBe(BorderStyle.Solid);
+    }
+
+    [Fact]
+    public void IonAlert_IosRadioIcon_UsesTrailingCheckmark()
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderAlert(Context, p => p.Add(nameof(IonAlert.Inputs),
+            (IReadOnlyList<IonAlertInput>)new List<IonAlertInput>
+            {
+                new() { Type = "radio", Label = "A", Value = "a", Checked = true },
+            }));
+
+        var icon = cut.FindByClass("alert-radio-icon").Single();
+        var iconStyle = cut.GetComputedStyle(icon)!;
+        iconStyle.Order.ShouldBe(1);
+        iconStyle.MinWidth.ShouldBe(Length.Px(30));
+        iconStyle.Width.ShouldBe(Length.Auto);
+        iconStyle.Height.ShouldBe(Length.Auto);
+        iconStyle.BorderWidth.ShouldBe(Length.Px(0));
+        iconStyle.BorderTopWidth.ShouldBe(Length.Px(0));
+
+        var inner = cut.FindByClass("alert-radio-inner").Single();
+        var innerStyle = cut.GetComputedStyle(inner)!;
+        innerStyle.Width.ShouldBe(Length.Px(6));
+        innerStyle.Height.ShouldBe(Length.Px(12));
+        innerStyle.BorderTopWidth.ShouldBe(Length.Px(0));
+        innerStyle.BorderLeftWidth.ShouldBe(Length.Px(0));
+        innerStyle.BorderRightWidth.ShouldBe(Length.Px(2));
+        innerStyle.BorderBottomWidth.ShouldBe(Length.Px(2));
+        innerStyle.Transform.ShouldNotBeNull();
+
+        var label = cut.FindByClass("alert-radio-label").Single();
+        var labelBox = cut.GetBoxModel(label)!;
+        var iconBox = cut.GetBoxModel(icon)!;
+        iconBox.BorderBox.X.ShouldBeGreaterThan(labelBox.BorderBox.X);
+        iconBox.BorderBox.Right.ShouldBeGreaterThan(labelBox.BorderBox.Right - 1f);
     }
 
     private static void Invoke(object component, string method, object arg)

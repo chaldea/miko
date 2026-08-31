@@ -1,3 +1,4 @@
+using Miko.Animation;
 using Miko.Common;
 using Miko.Styling;
 
@@ -215,6 +216,9 @@ internal static class AlertStyles
             [$".ion-alert.{mode} .alert-radio-label"] = new()
             {
                 FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = Length.Percent(0),
+                MinWidth = Length.Px(0),
                 PaddingTop = Length.Px(13),
                 PaddingBottom = Length.Px(13),
                 PaddingLeft = Length.Px(52),
@@ -225,6 +229,9 @@ internal static class AlertStyles
             [$".ion-alert.{mode} .alert-checkbox-label"] = new()
             {
                 FlexGrow = 1,
+                FlexShrink = 1,
+                FlexBasis = Length.Percent(0),
+                MinWidth = Length.Px(0),
                 PaddingTop = Length.Px(13),
                 PaddingBottom = Length.Px(13),
                 PaddingLeft = Length.Px(53),
@@ -244,6 +251,7 @@ internal static class AlertStyles
                 BorderStyle = BorderStyle.Solid,
                 BorderColor = t.AlertControlBorderColorOff,
                 BorderRadius = new BorderRadius(Length.Percent(50)),
+                InsetInlineStart = mode == "md" ? Length.Px(26) : null,
             },
             // Radio checked accent.
             [$".ion-alert.{mode} .alert-radio-button-checked .alert-radio-icon"] = new()
@@ -271,6 +279,7 @@ internal static class AlertStyles
                 BorderStyle = BorderStyle.Solid,
                 BorderColor = t.AlertControlBorderColorOff,
                 BorderRadius = new BorderRadius(Length.Px(2)),
+                InsetInlineStart = mode == "md" ? Length.Px(26) : null,
             },
             // Checkbox checked fill.
             [$".ion-alert.{mode} .alert-checkbox-button-checked .alert-checkbox-icon"] = new()
@@ -304,6 +313,106 @@ internal static class AlertStyles
             {
                 FlexGrow = 1,
                 BorderTop = new BorderSide(Length.Px(0.55f), BorderStyle.Solid, t.AlertListBorderColor),
+            };
+
+            // alert.ios.scss: radio labels occupy the leading side and the checkmark slot is on
+            // the trailing side. Unlike MD, iOS does not render a circular radio ring.
+            css[$".ion-alert.{mode} .alert-radio-button .alert-radio-label"] = new()
+            {
+                Order = 0,
+                PaddingTop = Length.Px(13),
+                PaddingRight = Length.Px(13),
+                PaddingBottom = Length.Px(13),
+                PaddingLeft = Length.Px(13),
+                Color = t.AlertTitleColor,
+            };
+            css[$".ion-alert.{mode} .alert-radio-button .alert-radio-icon"] = new()
+            {
+                Order = 1,
+                Width = Length.Auto,
+                Height = Length.Auto,
+                MinWidth = Length.Px(30),
+                BorderWidth = Length.Px(0),
+                BorderStyle = BorderStyle.None,
+                BorderRadius = new BorderRadius(Length.Px(0)),
+            };
+            css[$".ion-alert.{mode} .alert-radio-button.alert-radio-button-checked .alert-radio-inner"] = new()
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(-7),
+                Left = Length.Px(7),
+                Width = Length.Px(6),
+                Height = Length.Px(12),
+                BackgroundColor = Color.Transparent,
+                BorderWidth = Length.Px(2),
+                BorderTopWidth = Length.Px(0),
+                BorderLeftWidth = Length.Px(0),
+                BorderStyle = BorderStyle.Solid,
+                BorderColor = t.AlertControlAccent,
+                Transform = new Transform(new TransformFunction.Rotate(45f)),
+            };
+
+            // alert.ios.scss: checkboxes are 22px circles with native alert spacing, and the
+            // selected mark is drawn from a rotated border.
+            css[$".ion-alert.{mode} .alert-checkbox-button .alert-checkbox-label"] = new()
+            {
+                PaddingTop = Length.Px(13),
+                PaddingRight = Length.Px(13),
+                PaddingBottom = Length.Px(13),
+                PaddingLeft = Length.Px(13),
+                Color = t.AlertTitleColor,
+            };
+            css[$".ion-alert.{mode} .alert-checkbox-button .alert-checkbox-icon"] = new()
+            {
+                Position = Position.Relative,
+                Width = Length.Px(22),
+                Height = Length.Px(22),
+                MarginTop = Length.Px(10),
+                MarginRight = Length.Px(6),
+                MarginBottom = Length.Px(10),
+                MarginLeft = Length.Px(16),
+                BorderWidth = Length.Px(2),
+                BorderStyle = BorderStyle.Solid,
+                BorderColor = t.AlertControlBorderColorOff,
+                BorderRadius = new BorderRadius(Length.Percent(50)),
+                BackgroundColor = Color.White,
+            };
+            css[$".ion-alert.{mode} .alert-checkbox-button.alert-checkbox-button-checked .alert-checkbox-icon"] = new()
+            {
+                BorderColor = t.AlertControlAccent,
+                BackgroundColor = t.AlertControlAccent,
+            };
+            css[$".ion-alert.{mode} .alert-checkbox-button.alert-checkbox-button-checked .alert-checkbox-inner"] = new()
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(22f / 8f),
+                Left = Length.Px(22f / 3f),
+                Width = Length.Px(22f / 6f + 1f),
+                Height = Length.Px(22f * 0.5f),
+                Transform = new Transform(new TransformFunction.Rotate(45f)),
+                BorderWidth = Length.Px(2),
+                BorderTopWidth = Length.Px(0),
+                BorderLeftWidth = Length.Px(0),
+                BorderStyle = BorderStyle.Solid,
+                BorderColor = t.CheckboxCheckmarkColor,
+            };
+        }
+        else
+        {
+            // alert.md.scss: the checkbox is a 16px square positioned 26px from the inline start.
+            css[$".ion-alert.{mode} .alert-checkbox-button.alert-checkbox-button-checked .alert-checkbox-inner"] = new()
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(0),
+                Left = Length.Px(3),
+                Width = Length.Px(6),
+                Height = Length.Px(10),
+                Transform = new Transform(new TransformFunction.Rotate(45f)),
+                BorderWidth = Length.Px(2),
+                BorderTopWidth = Length.Px(0),
+                BorderLeftWidth = Length.Px(0),
+                BorderStyle = BorderStyle.Solid,
+                BorderColor = t.CheckboxCheckmarkColor,
             };
         }
 

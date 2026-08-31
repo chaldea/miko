@@ -124,6 +124,40 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
             ".toolbar-content must keep ordinary default-slot children in block flow");
     }
 
+    [Fact]
+    public void ToolbarContainer_UsesAutoHeightForWrappingContent()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.ViewportWidth = 180f;
+        Context.ViewportHeight = 400f;
+
+        var cut = Context.Render<IonToolbar>(p => p.AddChildContent(content =>
+        {
+            content.OpenComponent<IonBreadcrumbs>(0);
+            content.AddComponentParameter(1, nameof(IonBreadcrumbs.ChildContent), (RenderFragment)(crumbs =>
+            {
+                var labels = new[] { "Home", "Electronics", "Photography", "Cameras", "Film", "35 mm" };
+                for (var i = 0; i < labels.Length; i++)
+                {
+                    var label = labels[i];
+                    crumbs.OpenComponent<IonBreadcrumb>(i * 3);
+                    crumbs.AddComponentParameter(i * 3 + 1, nameof(IonBreadcrumb.ChildContent),
+                        (RenderFragment)(text => text.AddContent(0, label)));
+                    crumbs.CloseComponent();
+                }
+            }));
+            content.CloseComponent();
+        }));
+
+        var container = cut.FindByClass("toolbar-container").Single();
+        var containerStyle = cut.GetComputedStyle(container)!;
+        var containerBox = cut.GetBoxModel(container)!;
+
+        containerStyle.Height.ShouldBe(Length.Auto);
+        containerStyle.MinHeight.ShouldBe(Length.Px(IonicTheme.CreateMd().ToolbarMinHeight));
+        containerBox.BorderBox.Height.ShouldBeGreaterThan(IonicTheme.CreateMd().ToolbarMinHeight);
+    }
+
     [Theory]
     [InlineData(HostPlatform.Android)]
     [InlineData(HostPlatform.Ios)]

@@ -19,7 +19,7 @@ namespace Miko.iOS;
 /// 基于 Metal 的 SKMetalView；此处沿用 GL 以与桌面/Android 的 GL 后端保持一致，功能仍可用。
 /// </remarks>
 #pragma warning disable CA1422 // SKGLView 在 iOS 12+ 标记为过时（建议 Metal），此处有意沿用 GL 后端
-public class MikoGLView : SKGLView
+public class MikoGLView : SKGLView, IUIKeyInput
 {
     private readonly MikoAppContext _context;
     private readonly MikoInteractionController _controller;
@@ -27,11 +27,14 @@ public class MikoGLView : SKGLView
     private readonly Stopwatch _frameTimer = new();
     private float _lastFrameTime;
     private bool _initialized;
+    private readonly IosInputMethod _inputMethod;
 
     public MikoGLView(MikoAppContext appContext, CGRect frame) : base(frame)
     {
         _context = appContext;
         _controller = appContext.Controller;
+        _inputMethod = new IosInputMethod(this, _controller);
+        _controller.AttachInputMethod(_inputMethod);
         _scale = UIScreen.MainScreen.Scale;
         MultipleTouchEnabled = false;
         PaintSurface += OnPaintSurface;
@@ -130,6 +133,47 @@ public class MikoGLView : SKGLView
         x = (float)location.X;
         y = (float)location.Y;
         return true;
+    }
+
+    public override bool CanBecomeFirstResponder => true;
+
+    public bool HasText => !string.IsNullOrEmpty(_inputMethod.Text);
+
+    public void InsertText(string text) => _inputMethod.Commit(text);
+
+    public void DeleteBackward()
+        => _controller.OnKeyDown(MikoKey.Backspace, MikoKeyModifiers.None);
+
+    private sealed class IosInputMethod : InputMethodBase
+    {
+        private readonly MikoGLView _view;
+        private readonly MikoInteractionController _controller;
+        private InputMethodState? _state;
+
+        public IosInputMethod(MikoGLView view, MikoInteractionController controller)
+        {
+            _view = view;
+            _controller = controller;
+        }
+
+        public string Text => _state?.Text ?? string.Empty;
+
+        public override void SetState(InputMethodState? state)
+        {
+            _state = state;
+            UIApplication.SharedApplication.BeginInvokeOnMainThread(() =>
+            {
+                if (state == null)
+                    _view.ResignFirstResponder();
+                else
+                    _view.BecomeFirstResponder();
+            });
+        }
+
+        public void Commit(string text) => CommitText(text);
+        public void Begin() => StartComposition();
+        public void Update(string text) => UpdateComposition(text);
+        public void End(string? text = null) => EndComposition(text);
     }
 }
 #pragma warning restore CA1422

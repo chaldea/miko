@@ -85,6 +85,9 @@ public sealed class MikoInteractionController
     // execute". The desktop (Silk) host pumps input and render on one thread, so it never
     // hit this — but the lock is harmless there (uncontended, re-entrant).
     private readonly object _sync = new();
+    private IInputMethod? _inputMethod;
+    private InputMethodState? _publishedInputMethodState;
+    private string _compositionText = string.Empty;
 
     public MikoInteractionController(
         IOptions<MikoAppOptions> options,
@@ -93,7 +96,8 @@ public sealed class MikoInteractionController
         EventDispatcher eventDispatcher,
         MikoDispatcher dispatcher,
         HotReloadService hotReloadService,
-        ILogger<MikoInteractionController> logger)
+        ILogger<MikoInteractionController> logger,
+        IInputMethodService? inputMethod = null)
     {
         _options = options.Value;
         _serviceProvider = serviceProvider;
@@ -103,6 +107,8 @@ public sealed class MikoInteractionController
         _hotReloadService = hotReloadService;
         _logger = logger;
         _syncContext = new MikoSynchronizationContext(dispatcher);
+        if (inputMethod != null)
+            AttachInputMethod(inputMethod);
 
         // 注：视频后端、图片加载器、语法高亮器的注入已上移到 AddMikoEngine 的引擎工厂
         // （见 Hosting/EngineExtensions.cs）。此前放在这里，导致不经 App 宿主创建的引擎
@@ -142,6 +148,56 @@ public sealed class MikoInteractionController
 
     /// <summary>当前光标解析结果发生变化时触发，平台实现层据此应用原生光标。</summary>
     public event Action<Cursor>? CursorChanged;
+
+    /// <summary>Text currently being composed by the native IME (not yet committed).</summary>
+    public string CompositionText
+    {
+        get { lock (_sync) return _compositionText; }
+    }
+
+    /// <summary>
+    /// Connects a platform text endpoint. Hosts should call this once after creating their
+    /// native view; replacing an endpoint safely detaches the previous one.
+    /// </summary>
+    public void AttachInputMethod(IInputMethod? inputMethod)
+    {
+        lock (_sync)
+        {
+            DetachInputMethodCore();
+            _inputMethod = inputMethod;
+            _publishedInputMethodState = null;
+            if (_inputMethod != null)
+            {
+                _inputMethod.TextCommitted += OnInputMethodTextCommitted;
+                _inputMethod.CompositionStarted += OnInputMethodCompositionStarted;
+                _inputMethod.CompositionUpdated += OnInputMethodCompositionUpdated;
+                _inputMethod.CompositionEnded += OnInputMethodCompositionEnded;
+            }
+            PublishInputMethodState();
+        }
+    }
+
+    /// <summary>Currently attached native input endpoint, if the host provides one.</summary>
+    public IInputMethod? InputMethod => _inputMethod;
+
+    /// <summary>Compatibility alias for hosts that configure the endpoint after construction.</summary>
+    public void SetInputMethod(IInputMethod? inputMethod) => AttachInputMethod(inputMethod);
+
+    private void DetachInputMethodCore()
+    {
+        if (_inputMethod == null) return;
+        _inputMethod.SetState(null);
+        _inputMethod.TextCommitted -= OnInputMethodTextCommitted;
+        _inputMethod.CompositionStarted -= OnInputMethodCompositionStarted;
+        _inputMethod.CompositionUpdated -= OnInputMethodCompositionUpdated;
+        _inputMethod.CompositionEnded -= OnInputMethodCompositionEnded;
+        _inputMethod = null;
+    }
+
+    private void OnInputMethodTextCommitted(string text) => OnTextInput(text);
+    private void OnInputMethodCompositionStarted() => OnTextCompositionStart();
+    private void OnInputMethodCompositionUpdated(string text) => OnTextCompositionUpdate(text);
+    private void OnInputMethodCompositionEnded(string? text) => OnTextCompositionEnd(text);
 
     /// <summary>热重载/路由变更后是否需要重建 DOM 树。</summary>
     public bool NeedsRebuild => _needsRebuild;
@@ -271,6 +327,9 @@ public sealed class MikoInteractionController
 
             Update(deltaTime);
             render(canvas);
+            // Layout may have moved after a rebuild or scroll. Keep the native candidate
+            // window anchored to the current input rectangle instead of (0, 0).
+            PublishInputMethodState();
         }
     }
 
@@ -280,6 +339,7 @@ public sealed class MikoInteractionController
         lock (_sync)
         {
             _engine.SetViewportSize(width, height);
+            PublishInputMethodState();
         }
     }
 
@@ -608,8 +668,9 @@ public sealed class MikoInteractionController
         else if (target is TextAreaElement textAreaElement)
         {
             CloseAllSelects();
-            SetFocusCore(textAreaElement);
             textAreaElement.MoveCursorToEnd();
+            SetFocusCore(textAreaElement);
+            PublishInputMethodState();
         }
         else if (target is SelectElement selectElement2)
         {
@@ -632,8 +693,9 @@ public sealed class MikoInteractionController
             case InputType.Text:
             case InputType.Password:
             case InputType.Search:
-                SetFocusCore(inputElement);
                 inputElement.MoveCursorToEnd();
+                SetFocusCore(inputElement);
+                PublishInputMethodState();
                 break;
             case InputType.Checkbox:
                 inputElement.Checked = !inputElement.Checked;
@@ -783,6 +845,7 @@ public sealed class MikoInteractionController
 
         if (oldFocus != null)
         {
+            _compositionText = string.Empty;
             oldFocus.ClearState(ElementState.Focus);
             var blurArgs = new FocusEventArgs
             {
@@ -813,6 +876,8 @@ public sealed class MikoInteractionController
             };
             DispatchWithSyncContext(newFocus, EventTypes.Focus, focusArgs);
         }
+
+        PublishInputMethodState();
     }
 
     // ---------------------------------------------------------------------
@@ -928,11 +993,161 @@ public sealed class MikoInteractionController
 
             foreach (var character in text)
             {
-                if (char.IsControl(character)) continue;
+                // Native IMEs may commit a newline directly (not as a key event) for a
+                // multiline editor; preserve it while still filtering other controls.
+                if (char.IsControl(character) && !(character is '\r' or '\n' && editable.IsMultiline))
+                    continue;
                 editable.InsertText(character.ToString());
             }
             DispatchInputEvent(element, editable);
+            PublishInputMethodState();
         }
+    }
+
+    /// <summary>Begins a native IME composition without changing the committed value.</summary>
+    public void OnTextCompositionStart()
+    {
+        lock (_sync)
+        {
+            if (FocusedElement is not ITextEditable { IsEditable: true }) return;
+            _compositionText = string.Empty;
+            _engine.InvalidateElement((Element)FocusedElement!);
+        }
+    }
+
+    /// <summary>Updates the transient composition string supplied by a platform IME.</summary>
+    public void OnTextCompositionUpdate(string text)
+    {
+        lock (_sync)
+        {
+            if (FocusedElement is not ITextEditable { IsEditable: true }) return;
+            _compositionText = text ?? string.Empty;
+            _engine.InvalidateElement((Element)FocusedElement!);
+        }
+    }
+
+    /// <summary>Ends composition and optionally commits the final text.</summary>
+    public void OnTextCompositionEnd(string? committedText = null)
+    {
+        lock (_sync)
+        {
+            _compositionText = string.Empty;
+            if (!string.IsNullOrEmpty(committedText))
+                OnTextInput(committedText);
+            else
+                PublishInputMethodState();
+        }
+    }
+
+    /// <summary>Updates the insertion point reported by a native text connection.</summary>
+    public void SetTextSelection(int start, int end)
+    {
+        lock (_sync)
+        {
+            if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return;
+            var length = (editable.Value ?? string.Empty).Length;
+            editable.CursorPosition = Math.Clamp(Math.Min(start, end), 0, length);
+            _engine.InvalidateElement((Element)editable);
+            PublishInputMethodState();
+        }
+    }
+
+    private void PublishInputMethodState()
+    {
+        if (_inputMethod == null) return;
+        var focused = FocusedElement;
+        if (focused is not ITextEditable editable || !editable.IsEditable)
+        {
+            if (_publishedInputMethodState != null)
+            {
+                _publishedInputMethodState = null;
+                _inputMethod.SetState(null);
+            }
+            return;
+        }
+
+        var rect = GetInputMethodCursorRect(focused, editable);
+        var inputType = focused switch
+        {
+            TextAreaElement => InputMethodType.Multiline,
+            InputElement { Type: InputType.Password } => InputMethodType.Password,
+            InputElement { Type: InputType.Range } => InputMethodType.Number,
+            _ => InputMethodType.Text,
+        };
+        var state = new InputMethodState(
+            editable.Value ?? string.Empty,
+            Math.Clamp(editable.CursorPosition, 0, (editable.Value ?? string.Empty).Length),
+            editable.IsMultiline,
+            inputType,
+            rect);
+        if (Equals(_publishedInputMethodState, state)) return;
+        _publishedInputMethodState = state;
+        _inputMethod.SetState(state);
+    }
+
+    private RectF GetInputMethodCursorRect(Element element, ITextEditable editable)
+    {
+        var box = FindLayoutBoxForElement(element);
+        if (box == null) return GetRenderedBorderBox(element) ?? default;
+
+        var content = box.BoxModel.Content;
+        var style = box.ComputedStyle;
+        var ancestorScroll = GetAccumulatedScrollOffset(element);
+        if (element is InputElement input)
+        {
+            var text = input.Value ?? string.Empty;
+            var pos = Math.Clamp(input.CursorPosition, 0, text.Length);
+            var renderedText = input.Type == InputType.Password
+                ? new string('\u25cf', text.Length)
+                : text;
+            var caretWidth = Utils.TextMeasurer.MeasureTextWidth(
+                renderedText.Substring(0, pos), style.FontFamily, style.FontSize.Value, style.FontWeight);
+            var totalWidth = Utils.TextMeasurer.MeasureTextWidth(
+                renderedText, style.FontFamily, style.FontSize.Value, style.FontWeight);
+            var scroll = caretWidth > content.Width ? caretWidth - content.Width : 0;
+            var alignmentOffset = scroll > 0 ? 0 : style.TextAlign switch
+            {
+                TextAlign.Right => Math.Max(0, content.Width - totalWidth),
+                TextAlign.Center => Math.Max(0, (content.Width - totalWidth) / 2),
+                _ => 0,
+            };
+            return new RectF(
+                content.Left - ancestorScroll.x + alignmentOffset + caretWidth - scroll,
+                content.Top - ancestorScroll.y,
+                1,
+                content.Height);
+        }
+
+        if (element is TextAreaElement textArea)
+        {
+            var text = textArea.Value ?? string.Empty;
+            var pos = Math.Clamp(textArea.CursorPosition, 0, text.Length);
+            var before = Utils.TextWrapper.ProcessText(text.Substring(0, pos), WhiteSpace.PreWrap);
+            var lines = Utils.TextWrapper.WrapText(
+                before,
+                style.FontFamily,
+                style.FontSize.Value,
+                style.FontWeight,
+                content.Width,
+                WhiteSpace.PreWrap,
+                breakLongWords: true);
+            var lineIndex = lines.Count > 0 ? lines.Count - 1 : 0;
+            var currentLine = lines.Count > 0 ? lines[^1] : string.Empty;
+            var caretWidth = Utils.TextMeasurer.MeasureTextWidth(
+                currentLine, style.FontFamily, style.FontSize.Value, style.FontWeight);
+            var lineHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);
+            return new RectF(
+                content.Left - ancestorScroll.x + caretWidth,
+                content.Top - ancestorScroll.y + lineIndex * lineHeight,
+                1,
+                lineHeight);
+        }
+
+        return new RectF(
+            content.Left - ancestorScroll.x,
+            content.Top - ancestorScroll.y,
+            1,
+            content.Height);
     }
 
     private void DispatchInputEvent(Element element, ITextEditable editable)

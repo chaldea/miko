@@ -8,6 +8,7 @@ using Miko.Events;
 using Miko.Hosting;
 using Miko.Platform;
 using Miko.Rendering;
+using Miko.Windowing.Common;
 using Silk.NET.Core;
 using Silk.NET.Input;
 using Silk.NET.Maths;
@@ -26,8 +27,8 @@ namespace Miko.Simulator;
 ///   <item>右侧——模拟器设置面板，本身用**另一个 Miko 引擎**布局/渲染（满足"模拟器本身也使用 Miko 引擎"）。</item>
 /// </list>
 /// <para>
-/// 线程模型沿用单线程 <see cref="IView.Run"/>（输入与渲染同线程），因此应用 DOM 与面板 DOM
-/// 都只被这一个线程触碰，无需跨线程同步。
+/// 原生窗口事件在调用线程处理；专用渲染线程持有 GL 上下文并消费输入队列。
+/// 应用 DOM、面板 DOM 与 GPU 资源始终只由渲染线程访问。
 /// </para>
 /// </summary>
 public sealed class SimulatorHost
@@ -42,6 +43,7 @@ public sealed class SimulatorHost
     private readonly MikoInteractionController _appController;
     private readonly SimulatorOptions _options;
     private readonly ILogger _logger;
+    private readonly SilkInputMethod _inputMethod;
 
     // The app's mutable host-platform singleton (if registered). Updated as the user selects a
     // different device so platform-dependent UI (e.g. Ionic's md/ios mode) switches with it.
@@ -55,6 +57,7 @@ public sealed class SimulatorHost
     private IInputContext? _inputContext;
     private GL? _gl;
     private GRContext? _grContext;
+    private SilkWindowThreadRunner? _windowRunner;
 
     // 应用画面离屏 GPU 画布（按设备物理像素分辨率），跨帧保留。
     private SKSurface? _appSurface;
@@ -70,6 +73,10 @@ public sealed class SimulatorHost
 
     // 设备画面在窗口中的屏幕矩形（用于输入坐标映射），每帧合成时更新。
     private SKRect _deviceScreenRect;
+    private float _deviceScreenLeft;
+    private float _deviceScreenTop;
+    private float _deviceScreenRight;
+    private float _deviceScreenBottom;
 
     private readonly Stopwatch _frameTimer = new();
     private float _lastFrameTime;
@@ -83,7 +90,7 @@ public sealed class SimulatorHost
 
     // 按键重复（与 Miko.Windowing 同模型：按住可重复键时按节拍重放编辑动作）。
     // Silk 的 KeyDown 只在物理按下时触发一次，不带 OS 的自动重复，故宿主自行计时。
-    private Key? _heldKey;
+    private MikoKey? _heldKey;
     private bool _keyRepeatStarted;
     private readonly Stopwatch _keyHoldTimer = new();
     private const long KeyRepeatDelayMs = 500;
@@ -102,6 +109,7 @@ public sealed class SimulatorHost
     // 跨线程调用队列：MCP 等后台线程通过 InvokeOnRenderThread 投递操作，
     // 在渲染线程每帧开头排空执行，保证 DOM/GL 只被渲染线程触碰。
     private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _renderThreadQueue = new();
+    private readonly System.Collections.Concurrent.ConcurrentQueue<SilkInputMessage> _inputMessages = new();
 
     // 公共访问器，供SimulatorService使用。
     public DeviceProfile CurrentDevice => _device;
@@ -122,6 +130,12 @@ public sealed class SimulatorHost
     /// </summary>
     public void InvokeOnRenderThread(Action action)
     {
+        if (_windowRunner?.IsRenderThread == true)
+        {
+            action();
+            return;
+        }
+
         using var done = new ManualResetEventSlim(false);
         Exception? error = null;
         _renderThreadQueue.Enqueue(() =>
@@ -152,12 +166,48 @@ public sealed class SimulatorHost
         }
     }
 
+    private void DrainInputMessages()
+    {
+        while (_inputMessages.TryDequeue(out var message))
+        {
+            switch (message.Kind)
+            {
+                case SilkInputMessageKind.PointerDown:
+                    HandleMouseDown(message.X, message.Y, message.Button);
+                    break;
+                case SilkInputMessageKind.PointerUp:
+                    HandleMouseUp(message.X, message.Y, message.Button);
+                    break;
+                case SilkInputMessageKind.PointerMove:
+                    HandleMouseMove(message.X, message.Y);
+                    break;
+                case SilkInputMessageKind.Scroll:
+                    HandleMouseScroll(message.X, message.Y, message.DeltaX, message.DeltaY);
+                    break;
+                case SilkInputMessageKind.KeyDown:
+                    HandleKeyDown(message.Key, message.Modifiers);
+                    break;
+                case SilkInputMessageKind.KeyUp:
+                    HandleKeyUp(message.Key, message.Modifiers);
+                    break;
+                case SilkInputMessageKind.TextInput:
+                    _inputMethod.Commit(message.Text!);
+                    break;
+                case SilkInputMessageKind.Resize:
+                    ApplyResize(new Vector2D<int>((int)message.X, (int)message.Y));
+                    break;
+            }
+        }
+    }
+
     public SimulatorHost(MikoAppContext appContext, SimulatorOptions options, ILogger<SimulatorHost>? logger = null)
     {
         _appContext = appContext;
         _appController = appContext.Controller;
         _options = options;
         _logger = logger ?? NullLogger<SimulatorHost>.Instance;
+        _inputMethod = new SilkInputMethod();
+        _appController.AttachInputMethod(_inputMethod);
         _device = options.InitialDevice ?? options.Devices[0];
         _orientation = options.InitialOrientation;
 
@@ -181,6 +231,7 @@ public sealed class SimulatorHost
             Title = _options.Title ?? $"{_appContext.Options.Title} — Simulator",
             Size = new Vector2D<int>(_windowWidth, _windowHeight),
             API = GraphicsAPI.Default,
+            IsContextControlDisabled = true,
             // 手动交换缓冲：稳态空闲时（应用与面板均无视觉工作）整帧跳过绘制与交换，
             // 避免每秒 60 次全量重绘造成的 GC 压力（ISSUE-096）。
             ShouldSwapAutomatically = false,
@@ -188,12 +239,23 @@ public sealed class SimulatorHost
 
         _window = Window.Create(options);
         _window.Load += OnLoad;
-        _window.Render += OnRender;
         _window.Resize += OnResize;
-        _window.Closing += OnClose;
 
         _logger.LogInformation("Starting Miko simulator: {Title}", options.Title);
-        _window.Run();
+        _windowRunner = new SilkWindowThreadRunner(
+            _window,
+            InitGraphics,
+            RenderIteration,
+            ShutdownGraphics)
+        {
+            ThreadName = "miko-simulator-render",
+            BeforeEvents = _inputMethod.ApplyPendingState,
+            AfterEvents = _inputMethod.ApplyPendingState,
+        };
+        _windowRunner.Run();
+
+        _inputContext?.Dispose();
+        _window.Reset();
         _window.Dispose();
     }
 
@@ -218,12 +280,8 @@ public sealed class SimulatorHost
 
     private void OnLoad()
     {
-        _gl = _window!.CreateOpenGL();
-
-        var grInterface = GRGlInterface.Create(name =>
-            _window!.GLContext!.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
-        _grContext = GRContext.CreateGl(grInterface);
-        GpuResourceCache.Configure(_grContext);
+        _inputMethod.SetWindowHandle(_window!.Native?.Win32?.Hwnd ?? IntPtr.Zero);
+        _inputMethod.SetLogicalViewport(_windowWidth, _windowHeight);
 
         _inputContext = _window!.CreateInput();
         foreach (var mouse in _inputContext.Mice)
@@ -242,6 +300,17 @@ public sealed class SimulatorHost
         }
 
         CreateTouchCursor();
+    }
+
+    private void InitGraphics()
+    {
+        var window = _window!;
+        _gl = window.CreateOpenGL();
+
+        var grInterface = GRGlInterface.Create(name =>
+            window.GLContext!.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
+        _grContext = GRContext.CreateGl(grInterface);
+        GpuResourceCache.Configure(_grContext);
 
         // 应用引擎共享同一 GPU 上下文，供视频/图片等 GPU 资源使用。
         _appController.Engine.GraphicsContext = _grContext;
@@ -373,6 +442,12 @@ public sealed class SimulatorHost
 
     private void OnResize(Vector2D<int> size)
     {
+        _inputMethod.SetLogicalViewport(size.X, size.Y);
+        _inputMessages.Enqueue(SilkInputMessage.Resize(size.X, size.Y));
+    }
+
+    private void ApplyResize(Vector2D<int> size)
+    {
         _windowWidth = size.X;
         _windowHeight = size.Y;
 
@@ -387,14 +462,12 @@ public sealed class SimulatorHost
         _panelEngine.SetViewportSize(PanelWidth, _windowHeight);
     }
 
-    private void OnClose()
+    private void ShutdownGraphics()
     {
         _appController.Engine.DisposeVideoSessions();
         _appSurface?.Dispose();
         _appSurface = null;
         GpuResourceCache.PurgeAllResources(_grContext);
-        // 自定义光标通过 Image 属性设置，无需手动释放 ICursor 本身。
-        _inputContext?.Dispose();
         _grContext?.Dispose();
         _gl?.Dispose();
     }
@@ -403,10 +476,11 @@ public sealed class SimulatorHost
     // 渲染
     // ---------------------------------------------------------------------
 
-    private void OnRender(double _)
+    private bool RenderIteration()
     {
-        if (_grContext == null || _gl == null || _appSurface == null) return;
+        if (_grContext == null || _gl == null || _appSurface == null) return false;
 
+        DrainInputMessages();
         // 排空跨线程调用队列（MCP 等后台线程投递的 DOM 读写操作），在任何渲染前于本线程执行。
         DrainRenderThreadQueue();
 
@@ -422,14 +496,14 @@ public sealed class SimulatorHost
             && !_appController.HasPendingWork
             && !_panelEngine.HasPendingVisualWork)
         {
-            return;
+            return false;
         }
         _needsPresent = false;
 
         // 最小化时窗口为 0×0。用 0 尺寸创建 GRBackendRenderTarget / SKSurface 会返回 null，
         // 解引用 Canvas 将抛异常并污染 GRContext，导致恢复后再也无法渲染（ISSUE-067 现象）。
         // 直接跳过本帧——恢复时尺寸恢复正常，渲染随之恢复。
-        if (_windowWidth <= 0 || _windowHeight <= 0) return;
+        if (_windowWidth <= 0 || _windowHeight <= 0) return false;
 
         // 必须在任何离屏渲染之前捕获窗口默认帧缓冲绑定：一旦渲染应用到离屏 SKSurface，
         // Skia 会绑定离屏 FBO 并保持绑定。若此后再读取 FramebufferBinding，拿到的将是离屏 FBO，
@@ -460,6 +534,7 @@ public sealed class SimulatorHost
 
         canvas.Clear(new SKColor(24, 25, 28));
         CompositeDevice(canvas);
+        _inputMethod.SetCursorOffset(_deviceScreenRect.Left, _deviceScreenRect.Top);
         RenderPanel(canvas);
 
         canvas.Flush();
@@ -467,6 +542,7 @@ public sealed class SimulatorHost
 
         // 手动交换缓冲（ShouldSwapAutomatically = false，见 Run 中窗口选项）。
         _window!.GLContext?.SwapBuffers();
+        return true;
     }
 
     // 把应用渲染进离屏画布。RenderFrame 持有输入/渲染锁，保证输入引发的 DOM 变更不与渲染竞争。
@@ -497,6 +573,10 @@ public sealed class SimulatorHost
         float screenLeft = MathF.Max(DeviceMargin, (availW - logicalW) / 2f);
         float screenTop = MathF.Max(DeviceMargin, (_windowHeight - logicalH) / 2f);
         _deviceScreenRect = SKRect.Create(screenLeft, screenTop, logicalW, logicalH);
+        Volatile.Write(ref _deviceScreenLeft, _deviceScreenRect.Left);
+        Volatile.Write(ref _deviceScreenTop, _deviceScreenRect.Top);
+        Volatile.Write(ref _deviceScreenRight, _deviceScreenRect.Right);
+        Volatile.Write(ref _deviceScreenBottom, _deviceScreenRect.Bottom);
 
         // 边框（圆角外壳）。
         var bezelRect = SKRect.Inflate(_deviceScreenRect, BezelThickness, BezelThickness);
@@ -596,6 +676,12 @@ public sealed class SimulatorHost
     private bool InDevice(float x, float y) => _deviceScreenRect.Contains(x, y);
     private bool InPanel(float x) => x >= _windowWidth - PanelWidth;
 
+    private bool InDeviceOnWindowThread(float x, float y)
+        => x >= Volatile.Read(ref _deviceScreenLeft)
+            && x <= Volatile.Read(ref _deviceScreenRight)
+            && y >= Volatile.Read(ref _deviceScreenTop)
+            && y <= Volatile.Read(ref _deviceScreenBottom);
+
     // 窗口坐标 → 应用逻辑坐标（设备画面以逻辑尺寸合成，故仅需平移）。
     private (float x, float y) ToAppCoords(float x, float y)
         => (x - _deviceScreenRect.Left, y - _deviceScreenRect.Top);
@@ -607,10 +693,17 @@ public sealed class SimulatorHost
     private void OnMouseDown(IMouse mouse, SilkMouseButton button)
     {
         float x = mouse.Position.X, y = mouse.Position.Y;
-        var mikoButton = ToMikoButton(button);
+        _inputMessages.Enqueue(SilkInputMessage.Pointer(
+            SilkInputMessageKind.PointerDown,
+            x,
+            y,
+            SilkKeyMap.ToMikoButton(button)));
+    }
 
+    private void HandleMouseDown(float x, float y, Events.MouseButton button)
+    {
         // 面板在上层，优先判断。面板区域的输入归面板，不穿透到设备层。
-        if (InPanel(x) && button == SilkMouseButton.Left)
+        if (InPanel(x) && button == Events.MouseButton.Left)
         {
             HandlePanelMouseDown(x, y);
             return;
@@ -621,27 +714,34 @@ public sealed class SimulatorHost
         {
             var (ax, ay) = ToAppCoords(x, y);
             _appPointerActive = true;
-            _appController.OnPointerDown(ax, ay, mikoButton, PointerType.Touch);
+            _appController.OnPointerDown(ax, ay, button, PointerType.Touch);
         }
     }
 
     private void OnMouseUp(IMouse mouse, SilkMouseButton button)
     {
         float x = mouse.Position.X, y = mouse.Position.Y;
-        var mikoButton = ToMikoButton(button);
+        _inputMessages.Enqueue(SilkInputMessage.Pointer(
+            SilkInputMessageKind.PointerUp,
+            x,
+            y,
+            SilkKeyMap.ToMikoButton(button)));
+    }
 
+    private void HandleMouseUp(float x, float y, Events.MouseButton button)
+    {
         // 如果正在进行应用区拖拽（_appPointerActive），优先完成拖拽，
         // 即使鼠标已经移出设备区域（拖拽跟随）。
         if (_appPointerActive)
         {
             _appPointerActive = false;
             var (ax, ay) = ToAppCoords(x, y);
-            _appController.OnPointerUp(ax, ay, mikoButton, PointerType.Touch);
+            _appController.OnPointerUp(ax, ay, button, PointerType.Touch);
             return;
         }
 
         // 面板拖拽或点击。
-        if (button == SilkMouseButton.Left && (_panelDragging || InPanel(x)))
+        if (button == Events.MouseButton.Left && (_panelDragging || InPanel(x)))
         {
             HandlePanelMouseUp(x, y);
         }
@@ -650,11 +750,18 @@ public sealed class SimulatorHost
     private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 position)
     {
         float x = position.X, y = position.Y;
-        bool inPanel = InPanel(x);
-        bool inDevice = !inPanel && InDevice(x, y); // 只有不在面板时才判断设备区
+        bool inPanel = x >= Volatile.Read(ref _windowWidth) - PanelWidth;
+        bool inDevice = !inPanel && InDeviceOnWindowThread(x, y);
 
         // 鼠标进入/离开设备画面时切换光标：在设备区显示触屏圆圈，在面板或空白区恢复默认箭头。
         UpdateCursorForRegion(inDevice);
+        _inputMessages.Enqueue(SilkInputMessage.Pointer(SilkInputMessageKind.PointerMove, x, y));
+    }
+
+    private void HandleMouseMove(float x, float y)
+    {
+        bool inPanel = InPanel(x);
+        bool inDevice = !inPanel && InDevice(x, y);
 
         // 面板拖拽（滚动条）优先。
         if (_panelDragging)
@@ -704,7 +811,11 @@ public sealed class SimulatorHost
         float x = mouse.Position.X, y = mouse.Position.Y;
         float deltaY = scrollWheel.Y * -40f;
         float deltaX = scrollWheel.X * -40f;
+        _inputMessages.Enqueue(SilkInputMessage.Scroll(x, y, deltaX, deltaY));
+    }
 
+    private void HandleMouseScroll(float x, float y, float deltaX, float deltaY)
+    {
         // 面板在上层，滚动事件优先归面板。
         if (InPanel(x))
         {
@@ -721,19 +832,25 @@ public sealed class SimulatorHost
     private void OnKeyChar(IKeyboard keyboard, char character)
     {
         // 文本输入仅转发给应用（面板无文本输入控件）。
-        _appController.OnTextInput(character.ToString());
+        _inputMessages.Enqueue(SilkInputMessage.TextInput(character.ToString()));
     }
 
     private void OnKeyDown(IKeyboard keyboard, Key key, int scancode)
     {
-        var mikoKey = ToMikoKey(key);
+        var mikoKey = SilkKeyMap.ToMikoKey(key);
         if (mikoKey == MikoKey.Unknown) return;
-        _appController.OnKeyDown(mikoKey, GetModifiers(keyboard));
+        var modifiers = SilkKeyMap.GetModifiers(keyboard);
+        _inputMessages.Enqueue(SilkInputMessage.Keyboard(SilkInputMessageKind.KeyDown, mikoKey, modifiers));
+    }
+
+    private void HandleKeyDown(MikoKey mikoKey, MikoKeyModifiers modifiers)
+    {
+        _appController.OnKeyDown(mikoKey, modifiers);
 
         // 按住可重复键（退格/删除/方向键等）时开始计时，由 PumpKeyRepeat 按节拍重放。
         if (MikoInteractionController.IsRepeatableKey(mikoKey))
         {
-            _heldKey = key;
+            _heldKey = mikoKey;
             _keyRepeatStarted = false;
             _keyHoldTimer.Restart();
         }
@@ -741,26 +858,32 @@ public sealed class SimulatorHost
 
     private void OnKeyUp(IKeyboard keyboard, Key key, int scancode)
     {
-        if (_heldKey == key)
+        var mikoKey = SilkKeyMap.ToMikoKey(key);
+        if (mikoKey == MikoKey.Unknown) return;
+        var modifiers = SilkKeyMap.GetModifiers(keyboard);
+        _inputMessages.Enqueue(SilkInputMessage.Keyboard(SilkInputMessageKind.KeyUp, mikoKey, modifiers));
+    }
+
+    private void HandleKeyUp(MikoKey mikoKey, MikoKeyModifiers modifiers)
+    {
+        if (_heldKey == mikoKey)
         {
             _heldKey = null;
             _keyHoldTimer.Stop();
         }
 
-        var mikoKey = ToMikoKey(key);
-        if (mikoKey == MikoKey.Unknown) return;
-        _appController.OnKeyUp(mikoKey, GetModifiers(keyboard));
+        _appController.OnKeyUp(mikoKey, modifiers);
     }
 
     /// <summary>
     /// 每帧开头调用：按住可重复键超过首次延迟后，按固定间隔重放编辑动作。
-    /// 与输入/渲染同线程，故可直接调用控制器（无需消息队列）。
+    /// 在渲染线程调用，故可直接调用控制器。
     /// </summary>
     private void PumpKeyRepeat()
     {
         if (_heldKey == null) return;
 
-        var mikoKey = ToMikoKey(_heldKey.Value);
+        var mikoKey = _heldKey.Value;
         var elapsed = _keyHoldTimer.ElapsedMilliseconds;
 
         if (!_keyRepeatStarted)
@@ -837,52 +960,4 @@ public sealed class SimulatorHost
             _panelEngine.DragHorizontalThumb(hit.Box, px, hit.ThumbOffset);
     }
 
-    // ---------------------------------------------------------------------
-    // Silk → Miko 类型映射（与 Miko.Windowing.SilkKeyMap 等价，此处内联以免依赖桌面宿主包）
-    // ---------------------------------------------------------------------
-
-    private static Events.MouseButton ToMikoButton(SilkMouseButton button) => button switch
-    {
-        SilkMouseButton.Middle => Events.MouseButton.Middle,
-        SilkMouseButton.Right => Events.MouseButton.Right,
-        _ => Events.MouseButton.Left,
-    };
-
-    private static MikoKey ToMikoKey(Key key) => key switch
-    {
-        Key.Backspace => MikoKey.Backspace,
-        Key.Delete => MikoKey.Delete,
-        Key.Left => MikoKey.Left,
-        Key.Right => MikoKey.Right,
-        Key.Home => MikoKey.Home,
-        Key.End => MikoKey.End,
-        Key.Enter or Key.KeypadEnter => MikoKey.Enter,
-        Key.Tab => MikoKey.Tab,
-        Key.Escape => MikoKey.Escape,
-        Key.F1 => MikoKey.F1,
-        Key.F2 => MikoKey.F2,
-        Key.F3 => MikoKey.F3,
-        Key.F4 => MikoKey.F4,
-        Key.F5 => MikoKey.F5,
-        Key.F6 => MikoKey.F6,
-        Key.F7 => MikoKey.F7,
-        Key.F8 => MikoKey.F8,
-        Key.F9 => MikoKey.F9,
-        Key.F10 => MikoKey.F10,
-        Key.F11 => MikoKey.F11,
-        Key.F12 => MikoKey.F12,
-        _ => MikoKey.Unknown,
-    };
-
-    private static MikoKeyModifiers GetModifiers(IKeyboard keyboard)
-    {
-        var mods = MikoKeyModifiers.None;
-        if (keyboard.IsKeyPressed(Key.ControlLeft) || keyboard.IsKeyPressed(Key.ControlRight))
-            mods |= MikoKeyModifiers.Control;
-        if (keyboard.IsKeyPressed(Key.ShiftLeft) || keyboard.IsKeyPressed(Key.ShiftRight))
-            mods |= MikoKeyModifiers.Shift;
-        if (keyboard.IsKeyPressed(Key.AltLeft) || keyboard.IsKeyPressed(Key.AltRight))
-            mods |= MikoKeyModifiers.Alt;
-        return mods;
-    }
 }

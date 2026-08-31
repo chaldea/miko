@@ -65,7 +65,13 @@ internal static class SelectStyles
                 JustifyContent = JustifyContent.SpaceBetween,
                 Position = Position.Relative,
                 Width = Length.Percent(100),
+                Height = Length.Percent(100),
                 MinHeight = Length.Px(t.SelectMinHeight),
+                PaddingTop = Length.Px(t.SelectPaddingTop),
+                PaddingRight = Length.Px(t.SelectPaddingEnd),
+                PaddingBottom = Length.Px(t.SelectPaddingBottom),
+                PaddingLeft = Length.Px(t.SelectPaddingStart),
+                BoxSizing = BoxSizing.BorderBox,
                 Cursor = Cursor.Pointer,
             },
 
@@ -78,13 +84,12 @@ internal static class SelectStyles
                 FlexShrink = 1,
                 FlexBasis = Length.Auto,
                 Width = Length.Percent(100),
+                // Percentage heights need a definite containing block in the layout engine. The
+                // select row is min-height driven, so mirror that mode token here to make the
+                // icon's 100% height resolve to the actual control row.
+                Height = Length.Px(t.SelectMinHeight),
                 MinWidth = Length.Px(0),
                 MinHeight = Length.Px(t.SelectMinHeight),
-                PaddingTop = Length.Px(t.SelectPaddingTop),
-                PaddingRight = Length.Px(t.SelectPaddingEnd),
-                PaddingBottom = Length.Px(t.SelectPaddingBottom),
-                PaddingLeft = Length.Px(t.SelectPaddingStart),
-                BoxSizing = BoxSizing.BorderBox,
             },
 
             [$".ion-select.{mode} .label-text-wrapper"] = new()
@@ -93,7 +98,6 @@ internal static class SelectStyles
                 AlignItems = AlignItems.Center,
                 FlexShrink = 0,
                 MaxWidth = Length.Px(200),
-                Color = t.SelectLabelColor,
             },
 
             // select.scss: an empty label slot is hidden so it adds no margins.
@@ -164,7 +168,9 @@ internal static class SelectStyles
             [$".ion-select.{mode} .select-icon"] = new()
             {
                 Width = Length.Px(20),
-                Height = Length.Px(20),
+                // The host fills the select row so the icon's background glyph is centered
+                // within the same cross-axis as the wrapper (select.scss: height: 100%).
+                Height = Length.Percent(100),
                 MarginLeft = Length.Px(8),
                 FlexShrink = 0,
             },
@@ -220,23 +226,28 @@ internal static class SelectStyles
             {
                 FlexDirection = FlexDirection.Column,
                 AlignItems = AlignItems.FlexStart,
+                // Stacked/floating hosts use the 56px inherited row height; keeping it definite
+                // lets the absolutely positioned icon resolve its 100% height.
+                Height = Length.Px(56),
+                MinHeight = Length.Px(56),
             },
             [$".ion-select.{mode}.select-label-placement-floating .select-wrapper"] = new()
             {
                 FlexDirection = FlexDirection.Column,
                 AlignItems = AlignItems.FlexStart,
+                // Keep the containing block definite for the icon's 100% height.
+                Height = Length.Px(56),
+                MinHeight = Length.Px(56),
             },
             [$".ion-select.{mode}.select-label-placement-stacked .label-text-wrapper"] = new()
             {
                 MaxWidth = Length.Percent(100),
-                FontSize = Length.Px(12),
                 MarginBottom = Length.Px(2),
                 TransformOrigin = new TransformOrigin(Length.Percent(0), Length.Percent(0)),
             },
             [$".ion-select.{mode}.select-label-placement-floating .label-text-wrapper"] = new()
             {
                 MaxWidth = Length.Percent(100),
-                FontSize = Length.Px(12),
                 MarginBottom = Length.Px(2),
                 TransformOrigin = new TransformOrigin(Length.Percent(0), Length.Percent(0)),
                 Transform = new Transform(

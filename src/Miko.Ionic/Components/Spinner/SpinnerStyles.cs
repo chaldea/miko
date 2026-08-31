@@ -27,17 +27,8 @@ internal static class SpinnerStyles
                 Opacity = 0.6f,
             },
 
-            [$".ion-spinner.{mode}.spinner-lines-small"] = new()
-            {
-                Width = Length.Px(t.SpinnerSmallSize),
-                Height = Length.Px(t.SpinnerSmallSize),
-            },
-
-            [$".ion-spinner.{mode}.spinner-lines-sharp-small"] = new()
-            {
-                Width = Length.Px(t.SpinnerSmallSize),
-                Height = Length.Px(t.SpinnerSmallSize),
-            },
+            // Ionic's "small" presets shorten the line segments but keep the 28px host box.
+            // This is important when different spinner names are aligned in the same item.
 
             [$".ion-spinner.{mode} .spinner-line"] = new()
             {
@@ -55,7 +46,7 @@ internal static class SpinnerStyles
             [$".ion-spinner.{mode}.spinner-lines-small .spinner-line"] = new()
             {
                 Height = Length.Px(6),
-                TransformOrigin = new TransformOrigin(Length.Percent(50), Length.Px(8)),
+                TransformOrigin = new TransformOrigin(Length.Percent(50), Length.Px(12)),
             },
 
             [$".ion-spinner.{mode}.spinner-lines-sharp .spinner-line"] = new()
@@ -71,7 +62,7 @@ internal static class SpinnerStyles
                 Width = Length.Px(2),
                 Height = Length.Px(6),
                 BorderRadius = BorderRadius.None,
-                TransformOrigin = new TransformOrigin(Length.Percent(50), Length.Px(8)),
+                TransformOrigin = new TransformOrigin(Length.Percent(50), Length.Px(12)),
             },
 
             [$".ion-spinner.{mode} .spinner-circle"] = new()
@@ -123,18 +114,21 @@ internal static class SpinnerStyles
 
             [$".ion-spinner.{mode}.spinner-dots .spinner-circle"] = new()
             {
-                Position = Position.Relative,
-                Top = Length.Px(0),
-                Left = Length.Px(0),
-                Display = Display.InlineBlock,
+                Position = Position.Absolute,
+                Top = Length.Px(11),
                 Width = Length.Px(6),
                 Height = Length.Px(6),
-                MarginTop = Length.Px(11),
-                MarginRight = Length.Px(2),
+                MarginTop = Length.Px(0),
+                MarginRight = Length.Px(0),
                 MarginBottom = Length.Px(0),
-                MarginLeft = Length.Px(2),
+                MarginLeft = Length.Px(0),
                 Transform = Transform.None,
+                TransformOrigin = TransformOrigin.Center,
             },
+
+            [$".ion-spinner.{mode}.spinner-dots .spinner-circle-1"] = new() { Left = Length.Px(2) },
+            [$".ion-spinner.{mode}.spinner-dots .spinner-circle-2"] = new() { Left = Length.Px(11) },
+            [$".ion-spinner.{mode}.spinner-dots .spinner-circle-3"] = new() { Left = Length.Px(20) },
 
             [$".ion-spinner.{mode}.spinner-bubbles .spinner-circle"] = new()
             {
@@ -143,6 +137,13 @@ internal static class SpinnerStyles
                 MarginTop = Length.Px(-2.5f),
                 MarginLeft = Length.Px(-2.5f),
                 TransformOrigin = new TransformOrigin(Length.Percent(50), Length.Px(11)),
+            },
+
+            // Maps item.scss ::slotted([slot="start"]) for a spinner placed directly in
+            // IonItem.Start. Component-specific icon/avatar rules keep their own spacing.
+            [$".ion-item.{mode} .item-native > .ion-slot-start > .ion-spinner"] = new()
+            {
+                MarginInlineEnd = Length.Px(16),
             },
         };
 

@@ -2,14 +2,11 @@ using Miko.Common;
 using Miko.Platform;
 using Silk.NET.Input;
 
-namespace Miko.Windowing;
+namespace Miko.Windowing.Common;
 
-/// <summary>
-/// Silk.NET 与 Miko 平台无关类型之间的映射。
-/// </summary>
-internal static class SilkKeyMap
+/// <summary>Maps Silk.NET input types to platform-neutral Miko types.</summary>
+public static class SilkKeyMap
 {
-    /// <summary>将 Silk 的 <see cref="Key"/> 映射为平台无关的 <see cref="MikoKey"/>。</summary>
     public static MikoKey ToMikoKey(Key key) => key switch
     {
         Key.Backspace => MikoKey.Backspace,
@@ -42,20 +39,18 @@ internal static class SilkKeyMap
         _ => MikoKey.Unknown,
     };
 
-    /// <summary>从键盘当前状态读取修饰键。</summary>
     public static MikoKeyModifiers GetModifiers(IKeyboard keyboard)
     {
-        var mods = MikoKeyModifiers.None;
+        var modifiers = MikoKeyModifiers.None;
         if (keyboard.IsKeyPressed(Key.ControlLeft) || keyboard.IsKeyPressed(Key.ControlRight))
-            mods |= MikoKeyModifiers.Control;
+            modifiers |= MikoKeyModifiers.Control;
         if (keyboard.IsKeyPressed(Key.ShiftLeft) || keyboard.IsKeyPressed(Key.ShiftRight))
-            mods |= MikoKeyModifiers.Shift;
+            modifiers |= MikoKeyModifiers.Shift;
         if (keyboard.IsKeyPressed(Key.AltLeft) || keyboard.IsKeyPressed(Key.AltRight))
-            mods |= MikoKeyModifiers.Alt;
-        return mods;
+            modifiers |= MikoKeyModifiers.Alt;
+        return modifiers;
     }
 
-    /// <summary>将 Miko 的 <see cref="Cursor"/> 映射为 Silk 的 <see cref="StandardCursor"/>。</summary>
     public static StandardCursor ToStandardCursor(Cursor cursor) => cursor switch
     {
         Cursor.Pointer => StandardCursor.Hand,
@@ -67,7 +62,6 @@ internal static class SilkKeyMap
         _ => StandardCursor.Default,
     };
 
-    /// <summary>将 Silk 鼠标按钮映射为 Miko 的 <see cref="Events.MouseButton"/>。</summary>
     public static Events.MouseButton ToMikoButton(MouseButton button) => button switch
     {
         MouseButton.Middle => Events.MouseButton.Middle,

@@ -57,9 +57,9 @@ public static class ToolbarStyles
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.SpaceBetween,
                 Width = Length.Percent(100),
-                // Ionic uses --min-height: 56px; the flex layout honors explicit height, so set
-                // it directly to give the toolbar its fixed band height.
-                Height = Length.Px(t.ToolbarMinHeight),
+                // Ionic constrains the toolbar's minimum height, but leaves the block size
+                // automatic so wrapping/default-slot content (for example breadcrumbs) can grow
+                // the toolbar beyond the minimum.
                 MinHeight = Length.Px(t.ToolbarMinHeight),
                 // Keep the content above the absolutely-positioned toolbar background.
                 ZIndex = 1,

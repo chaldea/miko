@@ -4,14 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <IsPackable>true</IsPackable>
-    <PackageId>Miko.Simulator</PackageId>
+    <PackageId>Miko.Windowing.Common</PackageId>
     <Version>1.0.0</Version>
     <Authors>Miko</Authors>
-    <Description>Device simulator host for Miko. Renders a Miko app into an independent device-sized canvas with a side settings panel, itself built with the Miko engine.</Description>
-    <PackageTags>miko;simulator;device;mobile;skiasharp;ui</PackageTags>
+    <Description>Shared Silk.NET window lifecycle primitives for Miko desktop hosts.</Description>
+    <PackageTags>miko;windowing;silk.net</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -22,21 +21,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Miko\Miko.csproj" />
-    <ProjectReference Include="..\Miko.Windowing.Common\Miko.Windowing.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
-    <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />
-    <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
-    <PackageReference Include="SkiaSharp" Version="3.119.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Silk.NET.Windowing.Common" Version="2.22.0" />
   </ItemGroup>
 
 </Project>

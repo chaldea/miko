@@ -1028,6 +1028,43 @@ public class IonSelectTests : IonicComponentTestBase
         style.FlexBasis.ShouldBe(Length.Px(0));
     }
 
+    [Fact]
+    public void IonSelect_InnerWrapper_HasNoVerticalPadding()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderSelect(Context, p =>
+        {
+            p.Add(nameof(IonSelect.Label), "Status");
+            p.Add(nameof(IonSelect.LabelPlacement), "stacked");
+        });
+
+        var inner = cut.FindByClass("select-wrapper-inner").Single();
+        var style = cut.GetComputedStyle(inner)!;
+
+        style.PaddingTop.ShouldBe(Length.Px(0));
+        style.PaddingBottom.ShouldBe(Length.Px(0));
+    }
+
+    [Theory]
+    [InlineData("start")]
+    [InlineData("stacked")]
+    [InlineData("floating")]
+    public void IonSelect_Label_InheritsControlTypographyAndColor(string placement)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderSelect(Context, p =>
+        {
+            p.Add(nameof(IonSelect.Label), "Status");
+            p.Add(nameof(IonSelect.LabelPlacement), placement);
+        });
+
+        var label = cut.FindByClass("label-text-wrapper").Single();
+        var style = cut.GetComputedStyle(label)!;
+
+        style.FontSize.ShouldBe(Length.Px(16));
+        style.Color.ShouldBe(Color.FromHex("000000"));
+    }
+
     // ---- Layout ------------------------------------------------------------
 
     [Fact]
@@ -1056,5 +1093,49 @@ public class IonSelectTests : IonicComponentTestBase
 
         icon.BorderBox.X.ShouldBeGreaterThan(inner.Content.X + inner.Content.Width / 2f);
         icon.BorderBox.Right.ShouldBe(inner.Content.Right, 0.01f);
+    }
+
+    [Theory]
+    [InlineData(Miko.Platform.HostPlatform.Android, 48f)]
+    [InlineData(Miko.Platform.HostPlatform.Ios, 44f)]
+    public void IonSelect_IconFillsAndCentersTheSelectRow(Miko.Platform.HostPlatform platform, float rowHeight)
+    {
+        UsePlatform(platform);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderSelect(Context);
+        var wrapper = cut.GetBoxModel(cut.FindByClass("select-wrapper").Single())!;
+        var inner = cut.GetBoxModel(cut.FindByClass("select-wrapper-inner").Single())!;
+        var icon = cut.GetBoxModel(cut.FindByClass("select-icon").Single())!;
+
+        wrapper.BorderBox.Height.ShouldBe(rowHeight, 0.01f);
+        inner.BorderBox.Height.ShouldBe(wrapper.Content.Height, 0.01f);
+        icon.BorderBox.Height.ShouldBe(inner.Content.Height, 0.01f);
+        icon.BorderBox.Y.ShouldBe(wrapper.Content.Y, 0.01f);
+        (icon.BorderBox.Y + icon.BorderBox.Height / 2f)
+            .ShouldBe(wrapper.Content.Y + wrapper.Content.Height / 2f, 0.01f);
+    }
+
+    [Theory]
+    [InlineData(Miko.Platform.HostPlatform.Android, "stacked")]
+    [InlineData(Miko.Platform.HostPlatform.Android, "floating")]
+    [InlineData(Miko.Platform.HostPlatform.Ios, "stacked")]
+    [InlineData(Miko.Platform.HostPlatform.Ios, "floating")]
+    public void IonSelect_StackedOrFloatingIconFillsAndCentersTheSelectRow(
+        Miko.Platform.HostPlatform platform, string placement)
+    {
+        UsePlatform(platform);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderSelect(Context, p =>
+        {
+            p.Add(nameof(IonSelect.Label), "Status");
+            p.Add(nameof(IonSelect.LabelPlacement), placement);
+        });
+
+        var wrapper = cut.GetBoxModel(cut.FindByClass("select-wrapper").Single())!;
+        var icon = cut.GetBoxModel(cut.FindByClass("select-icon").Single())!;
+
+        icon.BorderBox.Height.ShouldBe(wrapper.Content.Height, 0.01f);
+        (icon.BorderBox.Y + icon.BorderBox.Height / 2f)
+            .ShouldBe(wrapper.Content.Y + wrapper.Content.Height / 2f, 0.01f);
     }
 }

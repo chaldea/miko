@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Miko.Animation;
 using Miko.Core;
@@ -31,6 +32,8 @@ public class MikoAppBuilder
         // device simulator can resolve and override it; component libraries derive UI choices
         // from it (e.g. Miko.Ionic's md/ios mode).
         builder.Services.AddSingleton<IPlatformInfo, PlatformInfo>();
+        // Hosts replace this inert endpoint with their native Android/iOS/desktop implementation.
+        builder.Services.TryAddSingleton<IInputMethodService, NullInputMethod>();
         builder.Services.AddSingleton<HotReloadService>();
         builder.Services.AddSingleton<MikoInteractionController>();
 
