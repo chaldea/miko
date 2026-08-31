@@ -84,6 +84,10 @@ internal static class GStreamerInterop
     [DllImport(Gst, ExactSpelling = true)]
     internal static extern void gst_buffer_unmap(IntPtr buffer, ref GstMapInfo info);
 
+    /// <summary>读取 GstBuffer 的 PTS（Presentation Time Stamp），单位纳秒。</summary>
+    [DllImport(Gst, ExactSpelling = true)]
+    internal static extern ulong gst_buffer_get_pts(IntPtr buffer);
+
     [DllImport(Gst, ExactSpelling = true)]
     internal static extern IntPtr gst_caps_get_structure(IntPtr caps, uint index);
 

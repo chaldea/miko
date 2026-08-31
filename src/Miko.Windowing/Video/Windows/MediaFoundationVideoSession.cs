@@ -420,7 +420,7 @@ internal sealed class MediaFoundationVideoSession : IVideoSession
         if (buffer.GetCurrentLength(out uint totalLength) < 0)
             return null;
 
-        if (!TryLockBuffer(buffer, width, out var scanline0, out int stride, out var unlock))
+        if (!TryLockBuffer(buffer, width, (int)totalLength, out var scanline0, out int stride, out var unlock))
             return null;
 
         try
@@ -462,7 +462,10 @@ internal sealed class MediaFoundationVideoSession : IVideoSession
         int width = _videoWidth;
         int height = _videoHeight;
 
-        if (!TryLockBuffer(buffer, width * 4, out var scanline0, out int stride, out var unlock))
+        if (buffer.GetCurrentLength(out uint totalLength) < 0)
+            return null;
+
+        if (!TryLockBuffer(buffer, width * 4, (int)totalLength, out var scanline0, out int stride, out var unlock))
             return null;
 
         try
@@ -485,26 +488,31 @@ internal sealed class MediaFoundationVideoSession : IVideoSession
     /// 不支持时退到一维 <c>Lock</c> 并假定紧凑排列。
     /// </summary>
     private static bool TryLockBuffer(
-        IMFMediaBuffer buffer, int contiguousStride,
+        IMFMediaBuffer buffer, int contiguousStride, int totalSize,
         out IntPtr scanline0, out int stride, out Action unlock)
     {
         if (buffer is IMF2DBuffer buffer2D && buffer2D.Lock2D(out scanline0, out stride) >= 0)
         {
-            // 某些解码器会返回负 pitch（自底向上排列）。本实现不支持翻转，取绝对值以避免越界，
-            // 画面上下颠倒的场景留待后续按 GRSurfaceOrigin 处理。
-            stride = Math.Abs(stride);
-
-            if (stride > 0)
+            if (stride == 0)
             {
-                unlock = () => buffer2D.Unlock2D();
-                return true;
+                // 锁已获得但 stride 不可用：必须在返回 false 前解锁，否则调用方跳过 finally，
+                // 该缓冲永远不归还解码器（解码很快因缺缓冲停摆）。
+                buffer2D.Unlock2D();
+                unlock = static () => { };
+                return false;
             }
 
-            // 锁已获得但 stride 不可用：必须在返回 false 前解锁，否则调用方跳过 finally，
-            // 该缓冲永远不归还解码器（解码很快因缺缓冲停摆）。
-            buffer2D.Unlock2D();
-            unlock = static () => { };
-            return false;
+            // 负 pitch 表示行地址反向递进（自底向上存储）。调整 scanline0 指向首行（逻辑顶部），
+            // 然后取绝对值，使后续 Marshal.Copy 按正向连续内存读取。
+            if (stride < 0)
+            {
+                int height = totalSize / -stride;  // totalSize 由调用方从 GetCurrentLength 获得
+                scanline0 += stride * (height - 1);  // 移到逻辑首行（物理末行）
+                stride = -stride;
+            }
+
+            unlock = () => buffer2D.Unlock2D();
+            return true;
         }
 
         if (buffer.Lock(out scanline0, out _, out _) >= 0)

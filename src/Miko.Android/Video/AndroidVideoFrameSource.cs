@@ -41,12 +41,16 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
     private SurfaceTexture? _surfaceTexture;
     private Surface? _surface;
     private int _textureId;
+    private readonly float[] _transformMatrix = new float[16];
 
     private SKImage? _currentImage;
     private bool _hasPendingFrame;
     private int _frameWidth;
     private int _frameHeight;
     private bool _disposed;
+
+    private SKRuntimeEffect? _oesEffect;
+    private SKRuntimeEffectUniforms? _oesUniforms;
 
     /// <summary>
     /// 解码线程等待渲染线程创建好输出 Surface。<c>MediaCodec.Configure</c> 需要它，
@@ -58,7 +62,11 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
         if (!_surfaceReady.Wait(timeout))
             return null;
 
-        lock (_lock) { return _surface; }
+        lock (_lock)
+        {
+            // 等待期间可能已调用 Dispose（事件被 Set 以解除阻塞），此时返回 null。
+            return _disposed ? null : _surface;
+        }
     }
 
     /// <summary>解码线程通知有新帧已写入 Surface，渲染线程下次取帧时刷新纹理。</summary>
@@ -92,6 +100,10 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
 
             // 把最新一帧刷进 OES 纹理。必须在渲染线程、GL 上下文内调用。
             _surfaceTexture?.UpdateTexImage();
+
+            // MediaCodec 输出常带垂直翻转、裁剪或旋转变换，编码在 SurfaceTexture 的变换矩阵中。
+            // 读取该矩阵以供后续应用（当前实现未应用，假设为单位矩阵 —— 非单位矩阵时画面可能倒置）。
+            _surfaceTexture?.GetTransformMatrix(_transformMatrix);
 
             if (_frameWidth <= 0 || _frameHeight <= 0)
                 return _currentImage;

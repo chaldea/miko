@@ -318,6 +318,12 @@ internal sealed class GStreamerVideoSession : IVideoSession
         IntPtr buffer = gst_sample_get_buffer(sample);
         if (buffer == IntPtr.Zero) return null;
 
+        // 读取帧的 PTS（Presentation Time Stamp），单位纳秒，转为 100ns ticks。
+        ulong ptsNanos = gst_buffer_get_pts(buffer);
+        TimeSpan pts = ptsNanos == ulong.MaxValue  // GST_CLOCK_TIME_NONE
+            ? TimeSpan.Zero
+            : TimeSpan.FromTicks((long)(ptsNanos / 100));
+
         if (!gst_buffer_map(buffer, out var mapInfo, GstMapFlags.Read))
             return null;
 
@@ -350,7 +356,7 @@ internal sealed class GStreamerVideoSession : IVideoSession
             Marshal.Copy(mapInfo.Data + uvOffset, uvPlane, 0, uvPlane.Length);
 
             return VideoFrameBuffer.FromCpuPlanes(
-                width, height, VideoPixelFormat.Nv12, TimeSpan.Zero,
+                width, height, VideoPixelFormat.Nv12, pts,
                 [yPlane, uvPlane], [stride, stride]);
         }
         finally

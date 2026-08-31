@@ -337,7 +337,10 @@ internal sealed class AndroidVideoSession : IVideoSession
     public void Dispose()
     {
         _stopRequested = true;
-        _decodeThread?.Join(1000);
+
+        // 解码线程可能在 WaitForSurface(5s) 阻塞。提前释放帧源会 Set() 事件并使其返回 null，
+        // 从而解除阻塞。之后再等待线程退出，确保不会访问已释放的资源。
         _frameSource.Dispose();
+        _decodeThread?.Join(6000);  // 略长于 WaitForSurface 超时，确保线程已退出
     }
 }
