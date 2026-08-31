@@ -79,18 +79,23 @@ continuations marshalled back to the render thread. See
 
 ## Media
 
-`Media/` loads **network** images and a video through Miko's unified resource manager.
-An ASP.NET Core API serves offline-generated product thumbnails (SkiaSharp) and a sample
-video (FFmpeg); the Miko client renders them with `<img>` (with a `res://` `placeholder`
-shown until each thumbnail loads) and `<video>` (FFmpeg backend).
+`Media/` loads **network and local** images and video through Miko's unified resource manager.
+The client shows two `<video>` elements side by side — one streamed over http, one from a local
+file — both decoded by the **system hardware decoder**. An ASP.NET Core API serves
+offline-generated product thumbnails (SkiaSharp), rendered with `<img>` and a `res://`
+`placeholder` shown until each thumbnail loads.
 
 ```bash
-# Two terminals — start the API first
+# The local video plays with no server at all
+dotnet run --project examples/Media/MikoApp.Media.Desktop
+
+# For the network video and thumbnails, start the API first (separate terminal)
 dotnet run --project examples/Media/MikoApp.Media.Api        # http://localhost:5050
-dotnet run --project examples/Media/MikoApp.Media.Desktop    # opens the window
 ```
 
-> This demo targets Windows (`win-x64`) and requires the FFmpeg backend.
+> The client carries **no FFmpeg binaries** — `UseSystemVideo()` dispatches to Media Foundation
+> (Windows), GStreamer (Linux) or AVFoundation (macOS). Only the API project references FFmpeg,
+> and only to pre-generate the sample clip offline.
 
 ---
 

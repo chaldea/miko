@@ -59,6 +59,10 @@ public class MikoGLView : SKGLView, IUIKeyInput
         float logicalWidth = e.BackendRenderTarget.Width / (float)_scale;
         float logicalHeight = e.BackendRenderTarget.Height / (float)_scale;
 
+        // 把 GPU 上下文交给引擎，供视频帧源零拷贝包装解码纹理（对齐桌面宿主）。
+        // 上下文在 surface 重建后可能变化，故每帧同步。
+        _controller.Engine.GraphicsContext = e.Surface.Context as GRContext;
+
         if (!_initialized)
         {
             _context.RegisterFonts();

@@ -5,9 +5,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- FFmpeg 软解需要 unsafe 与 Windows 运行时。 -->
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!--
+      不再固定 RuntimeIdentifier：系统原生视频后端使用各平台自带的解码栈，
+      不需要绑定 FFmpeg 的 win-x64 原生运行时，因此本示例可在三个桌面平台构建。
+    -->
   </PropertyGroup>
 
   <ItemGroup>

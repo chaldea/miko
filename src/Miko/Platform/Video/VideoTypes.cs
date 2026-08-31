@@ -1,7 +1,50 @@
 namespace Miko.Platform.Video;
 
 /// <summary>视频源描述。<paramref name="Uri"/> 为本地路径或 http(s) URL；MIME 可选，用于后端选择解码器。</summary>
-public sealed record VideoSourceDescriptor(string Uri, string? MimeType = null);
+public sealed record VideoSourceDescriptor(string Uri, string? MimeType = null)
+{
+    /// <summary>是否为网络源（http/https）。</summary>
+    public bool IsNetwork =>
+        Uri.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+        Uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 把源解析为后端可直接打开的形式：网络 URL 原样返回，本地相对路径解析为绝对路径。
+    ///
+    /// <para>
+    /// **为什么必须做这一步**：系统解码器（Media Foundation / GStreamer / AVFoundation）
+    /// 把相对路径解析到**进程当前工作目录**，而 Miko 的资源约定与
+    /// <c>ResourceManager.ResolveFilePath</c> 一致 —— 相对路径基于
+    /// <see cref="AppContext.BaseDirectory"/>。两者在「从 IDE 或其它目录启动」时并不相同，
+    /// 不归一化就会出现 <c>&lt;img&gt;</c> 能加载而同目录的 <c>&lt;video&gt;</c> 报找不到文件。
+    /// </para>
+    ///
+    /// <para>文件不存在时返回原串，让后端给出自己的错误信息（可能是它支持的自定义 scheme）。</para>
+    /// </summary>
+    public string ResolveForBackend()
+    {
+        if (IsNetwork) return Uri;
+
+        // 去掉 file:// 前缀（含三斜杠形式的盘符路径）。
+        string path = Uri;
+        if (path.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+        {
+            path = path["file://".Length..];
+            if (path.Length >= 3 && path[0] == '/' && path[2] == ':')
+                path = path[1..];
+        }
+
+        if (Path.IsPathRooted(path))
+            return path;
+
+        // 其它自定义 scheme（含 "://"）交给后端自行处理。
+        if (path.Contains("://", StringComparison.Ordinal))
+            return Uri;
+
+        string basePath = Path.Combine(AppContext.BaseDirectory, path);
+        return File.Exists(basePath) ? basePath : path;
+    }
+}
 
 /// <summary>会话创建选项，对应 <c>&lt;video&gt;</c> 的 autoplay / muted / loop 等属性。</summary>
 public sealed record VideoSessionOptions(

@@ -2,10 +2,27 @@
 @namespace MikoApp.Media.Pages
 @inject HttpClient Http
 
-<!-- 网络视频：经 FFmpeg 后端从 http 加载并解码合成。 -->
-<video class="hero"
-       src="http://localhost:5050/assets/sample.mp4"
-       autoplay loop muted />
+<!--
+    两路视频并列，都由系统原生硬件解码器解码（桌面 Media Foundation / GStreamer /
+    AVFoundation，移动端 MediaCodec / AVPlayer），不依赖 FFmpeg。
+-->
+<div class="video-row">
+    <div class="video-cell">
+        <div class="video-label">网络视频（http）</div>
+        <!-- 需先启动 MikoApp.Media.Api；经 http 边下边解。 -->
+        <video class="hero"
+               src="http://localhost:5050/assets/sample.mp4"
+               autoplay loop muted />
+    </div>
+
+    <div class="video-cell">
+        <div class="video-label">本地视频（文件）</div>
+        <!-- 裸路径 → MediaSourceScheme.File，随输出目录复制，无需 API 即可播放。 -->
+        <video class="hero"
+               src="Assets/miko-local.mp4"
+               autoplay loop muted />
+    </div>
+</div>
 
 @if (_isLoading)
 {

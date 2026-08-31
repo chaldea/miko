@@ -7,7 +7,7 @@ using Sdcb.FFmpeg.Raw;
 using Sdcb.FFmpeg.Swscales;
 using Sdcb.FFmpeg.Utils;
 
-namespace Miko.Windowing.Video;
+namespace Miko.Video.FFmpeg;
 
 /// <summary>
 /// FFmpeg 软解会话（Phase 1 基线）。在自有解码线程上解复用 + 软解视频轨，
@@ -99,7 +99,9 @@ internal sealed class FFmpegVideoSession : IVideoSession
 
         try
         {
-            fc = FormatContext.OpenInputUrl(_source.Uri);
+            // 相对路径按 Miko 约定归一化到 AppContext.BaseDirectory（而非进程 CWD），
+            // 与系统原生后端行为一致。
+            fc = FormatContext.OpenInputUrl(_source.ResolveForBackend());
             fc.LoadStreamInfo();
 
             MediaStream stream = fc.FindBestStream(AVMediaType.Video);

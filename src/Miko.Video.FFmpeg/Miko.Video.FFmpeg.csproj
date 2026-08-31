@@ -4,14 +4,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- 帧数据从 AVFrame 拷出时需要指针运算。 -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <IsPackable>true</IsPackable>
-    <PackageId>Miko.Windowing</PackageId>
+    <PackageId>Miko.Video.FFmpeg</PackageId>
     <Version>1.0.0</Version>
     <Authors>Miko</Authors>
-    <Description>Desktop (Windows/Linux/macOS) windowing and input host for Miko, built on Silk.NET.</Description>
-    <PackageTags>miko;windowing;desktop;silk.net;skiasharp;ui</PackageTags>
+    <Description>Optional FFmpeg video backend for Miko. Use when the system-native backend does not cover a required container or codec; adds ~80MB of native FFmpeg binaries.</Description>
+    <PackageTags>miko;video;ffmpeg;skiasharp</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -27,13 +28,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Miko\Miko.csproj" />
-    <ProjectReference Include="..\Miko.Windowing.Common\Miko.Windowing.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
-    <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />
-    <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
+    <!--
+      FFmpeg 托管绑定与 Windows x64 原生运行时。这两个包合计 >80MB 且不可裁剪，
+      正是把本后端从 Miko.Windowing 拆出来的原因：只有显式引用本包的应用才承担该体积。
+    -->
+    <PackageReference Include="Sdcb.FFmpeg" Version="7.0.0" />
+    <PackageReference Include="Sdcb.FFmpeg.runtime.windows-x64" Version="7.0.0" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
