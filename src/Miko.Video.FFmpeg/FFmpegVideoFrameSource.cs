@@ -1,7 +1,7 @@
 using Miko.Platform.Video;
 using SkiaSharp;
 
-namespace Miko.Windowing.Video;
+namespace Miko.Video.FFmpeg;
 
 /// <summary>
 /// 软解基线的帧源：持有最近一帧的 RGBA 像素缓冲，在渲染线程把它包装成 <see cref="SKImage"/>。

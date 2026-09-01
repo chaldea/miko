@@ -360,10 +360,38 @@ Built-in fallback chain: Arial → Segoe UI → Microsoft YaHei → SimSun → M
 Video is implemented via platform-injected `IVideoBackend`:
 - `VideoElement` in DOM triggers video session creation
 - Sessions are cached in `MikoEngine._videoSessions` and reused across rebuilds
-- Platform hosts register their backend in DI (desktop: `FFmpegVideoBackend`); it reaches the engine
-  by constructor injection. The core default is `NullVideoBackend`, which creates no sessions —
-  `<video>` then renders background/poster only.
+- Platform hosts register their backend in DI; it reaches the engine by constructor injection.
+  The core default is `NullVideoBackend`, which creates no sessions — `<video>` then renders
+  background/poster only.
 - Frame sources provide `IVideoFrameSource` for zero-copy GPU texture wrapping
+
+**Backends use the OS decoder, never a bundled one.** Each platform registers a system-native
+backend; none of them ship third-party native binaries:
+
+| Platform | Registration | Decoder |
+|---|---|---|
+| Windows | `UseSystemVideo()` | Media Foundation (D3D11VA) |
+| Linux | `UseSystemVideo()` | GStreamer (VAAPI) |
+| macOS | `UseSystemVideo()` | AVFoundation (VideoToolbox) |
+| Android | `UseAndroidVideo()` | MediaExtractor + MediaCodec |
+| iOS | `UseIosVideo()` | AVPlayer + AVPlayerItemVideoOutput |
+
+`Miko.Video.FFmpeg` is an **opt-in extension** (`UseFFmpegVideo()`) for formats the system
+decoder does not cover; it pulls in >80MB of native FFmpeg and must never be a platform default.
+
+Shared plumbing in `src/Miko/Platform/Video/`:
+- `VideoFrameBuffer` — one frame as either GPU texture handles (zero-copy) or CPU planes (fallback)
+- `VideoFrameSourceBase` — the wrap logic both paths share; backends only fill `VideoFrameBuffer`
+- `Nv12FrameComposer` — NV12→RGB via an `SKRuntimeEffect` (SkSL) shader. **Required** because
+  SkiaSharp 3.119.1 exports no `SKYUVAInfo` / multi-plane `SKImage.FromTextures`, so Skia cannot
+  convert YUV itself; Y is wrapped as `R8Unorm`, UV as `Rg88`, and the shader does the matrix.
+- `VideoSourceDescriptor.ResolveForBackend()` — normalizes relative paths against
+  `AppContext.BaseDirectory`. System decoders resolve them against the process CWD, which differs
+  when launched from an IDE; skipping this makes `<video>` fail where a sibling `<img>` loads.
+
+NV12 gotcha: hardware decoders align the **Y plane row count** up to a macroblock boundary
+(e.g. 180→192), so the UV plane does not start at `stride * height`. Deriving the offset from the
+buffer length is what keeps a green bar off the top of the picture (U=V=0 reads as pure green).
 
 ### Image Loading
 

@@ -100,6 +100,10 @@ public class MikoSurfaceView : SKGLSurfaceView
         float logicalWidth = e.BackendRenderTarget.Width / _density;
         float logicalHeight = e.BackendRenderTarget.Height / _density;
 
+        // 把 GPU 上下文交给引擎，供视频帧源零拷贝包装解码纹理（对齐桌面宿主）。
+        // SKGLSurfaceView 每帧提供 surface，其 Context 在上下文重建后可能变化，故每帧同步。
+        _controller.Engine.GraphicsContext = e.Surface.Context as GRContext;
+
         if (!_initialized)
         {
             _context.RegisterFonts();

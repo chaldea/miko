@@ -23,6 +23,12 @@
   <ItemGroup>
     <!-- 占位图作为嵌入资源，供 <img placeholder="res://Assets/spinner.png"> 通过资源管理器解析。 -->
     <EmbeddedResource Include="Assets\spinner.png" />
+    <!--
+      本地视频样例：复制到输出目录，供 <video src="Assets/miko-local.mp4"> 以裸路径加载
+      （相对路径基于 AppContext.BaseDirectory 解析）。不用嵌入资源，因为系统解码器
+      需要一个可寻址的文件/URL 而非字节流。
+    -->
+    <Content Include="Assets\miko-local.mp4" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">

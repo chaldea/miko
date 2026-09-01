@@ -2,14 +2,18 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Platform.Video;
 
-namespace Miko.Windowing.Video;
+namespace Miko.Video.FFmpeg;
 
 /// <summary>
-/// 桌面（当前仅 Windows）FFmpeg 视频后端。Phase 1 为软解基线（CPU 解码 + 纹理上传），
-/// 架构上为 Phase 2 的 D3D11VA 零拷贝硬解预留（见 ISSUE-058 §2.1）。
+/// FFmpeg 视频后端（CPU 软解）。作为**可选扩展**存在，用于系统原生硬解后端不覆盖的
+/// 容器/编码；各平台的默认后端是系统硬解（见 <c>SystemVideoBackend</c>）。
+/// <para>
+/// 取舍：软解意味着 CPU 解码 + 每帧纹理上传，功耗与占用都高于系统硬解；
+/// 换来的是不依赖系统解码器、跨平台行为完全一致。
+/// </para>
 /// <para>
 /// 原生 FFmpeg 二进制由 <c>Sdcb.FFmpeg.runtime.windows-x64</c> 提供并随输出复制，
-/// 因此无需用户单独安装 FFmpeg。
+/// 因此 Windows 上无需用户单独安装 FFmpeg；其它平台需系统自带 FFmpeg 共享库。
 /// </para>
 /// </summary>
 public sealed class FFmpegVideoBackend : IVideoBackend

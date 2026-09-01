@@ -164,29 +164,37 @@ walkthrough.
 
 ## Media
 
-`Media/` — Loads **network** images and a video through Miko's unified resource manager
-(ISSUE-062). Three projects modeled on the `Async/` layout:
+`Media/` — Loads **network** and **local** images and video through Miko's unified resource
+manager (ISSUE-062). Three projects modeled on the `Async/` layout:
 
 - `MikoApp.Media.Api` — ASP.NET Core minimal API that generates 24 products, thumbnails
-  (SkiaSharp) and a sample video (FFmpeg) **offline** and serves them over http.
-- `MikoApp.Media` — the shared Miko client UI.
-- `MikoApp.Media.Desktop` — the desktop head (registers the FFmpeg video backend).
+  (SkiaSharp) and a sample video (FFmpeg) **offline** and serves them over http. FFmpeg here is
+  a *server-side asset generator*; it is not part of the client.
+- `MikoApp.Media` — the shared Miko client UI. Ships a committed local clip at
+  `Assets/miko-local.mp4` (68 KB).
+- `MikoApp.Media.Desktop` — the desktop head (registers the system-native video backend).
 
-**Run** (two terminals — API first):
+**Run:**
 
 ```bash
+# The local video plays with no server at all:
+dotnet run --project examples/Media/MikoApp.Media.Desktop
+
+# For the network video and thumbnails, start the API first (separate terminal):
 dotnet run --project examples/Media/MikoApp.Media.Api        # http://localhost:5050
-dotnet run --project examples/Media/MikoApp.Media.Desktop    # opens the window
 ```
 
 **What it demonstrates:**
 
 - A unified `MediaSource` + resource manager resolving `file://` / `res://` / `http(s)://` / `data:`
 - `<img>` loading from the network asynchronously, with a `res://` `placeholder` shown until ready
-- `VideoElement` streaming a sample clip over http via the FFmpeg backend (`UseFFmpegVideo()`)
+- Two `<video>` elements side by side — one streaming over http, one from a local file —
+  both decoded by the **system hardware decoder** via `UseSystemVideo()`
 - A replaced-element image/video sized by its intrinsic dimensions inside the box model
 
-> Note: this demo targets Windows (`win-x64`) and requires the FFmpeg backend.
+> The client carries **no FFmpeg binaries**: video uses Media Foundation (Windows),
+> GStreamer (Linux) or AVFoundation (macOS). Only `MikoApp.Media.Api` references FFmpeg,
+> and only to pre-generate the sample clip.
 
 ---
 

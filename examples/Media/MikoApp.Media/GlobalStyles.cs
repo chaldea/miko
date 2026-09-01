@@ -32,16 +32,35 @@ internal static class GlobalStyles
                 Padding = new Padding(20),
             },
 
+            // 两路视频并排（网络 + 本地）。
+            [".video-row"] = new()
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Row,
+                MarginBottom = Length.Px(24),
+            },
+
+            [".video-cell"] = new()
+            {
+                MarginRight = Length.Px(20),
+            },
+
+            [".video-label"] = new()
+            {
+                Color = new Color(0xAD, 0xB5, 0xBD),
+                FontSize = Length.Px(13),
+                MarginBottom = Length.Px(6),
+            },
+
             // 视频英雄区：固定尺寸，圆角 + overflow:hidden 演示盒模型裁剪。
             [".hero"] = new()
             {
                 Display = Display.Block,
-                Width = Length.Px(480),
-                Height = Length.Px(270),
+                Width = Length.Px(400),
+                Height = Length.Px(225),
                 BorderRadius = Length.Px(12),
                 OverflowX = Overflow.Hidden,
                 OverflowY = Overflow.Hidden,
-                MarginBottom = Length.Px(24),
                 BackgroundColor = Color.Black,
             },
 
