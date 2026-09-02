@@ -170,7 +170,7 @@ Segment pattern: bind one field to both `IonSegment.Value` and `IonSegmentView.V
 | --- | --- | --- |
 | `<IonRefresher>` + `<IonRefresherContent>` | `PullMin` (`int`), `Disabled`, `State`, `OnRefresh` (`EventCallback`) | Pull-to-refresh at top of `IonContent`. Call `Complete()` when done. |
 | `<IonInfiniteScroll>` + `<IonInfiniteScrollContent>` | `Threshold` (`string`), `Position`, `Disabled`, `Loading`, `OnInfinite` | Load-more at bottom. Call `Complete()` when done. |
-| `<IonSlides>` + `<IonSlide>` | `Pager`, `Scrollbar` (`bool`), `ActiveIndex` (`int`) | Carousel (resting position is declarative). |
+| `<IonSlides>` + `<IonSlide>` | `Navigation`, `Pagination`, `Scrollbar`, `Autoplay`, `Loop` (`bool`), `AutoplayDelay`, `Speed`, `ActiveIndex` (`int`), `Effect` (`"slide"`/`"fade"`), `ActiveIndexChanged` | Swipeable carousel. Drag, arrows, bullets and autoplay all move it; bind `ActiveIndex` to control it. |
 
 ---
 

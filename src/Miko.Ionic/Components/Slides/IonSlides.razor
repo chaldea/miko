@@ -3,82 +3,773 @@
 @using Miko.Animation
 @using Miko.Common
 @using Miko.Core
-@* Mirrors Ionic's <ion-slides> (slides.tsx). Ionic delegates the actual sliding to the bundled
-   Swiper library; this port keeps the same DOM contract — a swiper-container host wrapping a
-   swiper-wrapper that holds the <ion-slide> children — and exposes the resting state declaratively:
-   the active slide (ActiveIndex) and the optional pager/scrollbar furniture. The track is a flex
-   row whose wrapper is translated so the active slide sits in the viewport; the host clips the
-   overflow so the off-screen slides stay hidden (matching .swiper-container overflow:hidden).
+@using Miko.Events
+@* Mirrors Ionic's <ion-slides> (slides.tsx). Ionic itself delegates the sliding to the bundled
+   Swiper library, so this port follows Swiper's DOM contract and behaviour rather than the thin
+   Ionic wrapper — a swiper-container host wrapping a swiper-wrapper track that holds the
+   <ion-slide> children, plus the optional navigation/pagination/scrollbar furniture:
 
-     <ion-slides class="md slides-md swiper-container">
-       <div class="swiper-wrapper">           <!-- flex row, translated to the active slide -->
-         <slot/>                               <!-- the <ion-slide> children -->
+     <ion-slides class="md slides-md swiper-container swiper-horizontal">
+       <div class="swiper-wrapper">            <!-- flex row, translated to the active slide -->
+         <slot/>                                <!-- the <ion-slide> children -->
        </div>
-       (pager)    <div class="swiper-pagination"/>
-       (scrollbar)<div class="swiper-scrollbar"/>
+       (Navigation)  <div class="swiper-button-prev"/> <div class="swiper-button-next"/>
+       (Pagination)  <div class="swiper-pagination swiper-pagination-bullets">
+                       <div class="swiper-pagination-bullet"/> ...
+                     </div>
+       (Scrollbar)   <div class="swiper-scrollbar"><div class="swiper-scrollbar-drag"/></div>
      </ion-slides>
 
-   The pager/scrollbar are rendered as in slides.tsx (gated on Pager / Scrollbar). The swiper's
-   gesture/transition lifecycle and the rich Swiper option set are out of scope for the renderer
-   (like IonButton.Href / IonItemSliding's drag) — ActiveIndex provides the declarative resting
-   position, stamped onto the wrapper's transform in Build() (the renderer maps a Style object, not
-   a string style attribute). *@
+   Ports Swiper's core drag machinery (see issues/ionic/swiper/src/core/events/*): the wrapper
+   follows the finger during a drag, resists past the edges, and on release snaps to a slide using
+   Swiper's own long-swipe (ratio >= 0.5) / short-swipe (flick under 300ms) rules. Only the
+   single-slide-per-view configuration is ported, which is what <ion-slides> is used for; the
+   multi-column (slidesPerView > 1), free-mode, zoom and 3D effects are out of scope. *@
 <div class="@ClassMapper.Class" style="@Style">
-    <div class="swiper-wrapper">
+    <div class="@WrapperClass" style="@WrapperStyle">
         @ChildContent
     </div>
-    @if (Pager)
+    @if (Navigation)
     {
-        <div class="swiper-pagination"></div>
+        <div class="@PrevButtonClass" @onclick="HandlePrevClickAsync">
+            <span class="swiper-navigation-icon">&#8249;</span>
+        </div>
+        <div class="@NextButtonClass" @onclick="HandleNextClickAsync">
+            <span class="swiper-navigation-icon">&#8250;</span>
+        </div>
+    }
+    @if (Pagination)
+    {
+        <div class="swiper-pagination swiper-pagination-bullets swiper-pagination-horizontal">
+            @for (var i = 0; i < SlideCount; i++)
+            {
+                var index = i;
+                <div class="@BulletClass(index)" @onclick="() => HandleBulletClickAsync(index)"></div>
+            }
+        </div>
     }
     @if (Scrollbar)
     {
-        <div class="swiper-scrollbar"></div>
+        <div class="swiper-scrollbar">
+            <div class="swiper-scrollbar-drag" style="@ScrollbarDragStyle"></div>
+        </div>
     }
 </div>
 
 @code {
-    /// <summary>If true, render the pagination bullets (Ionic <c>pager</c>).</summary>
-    [Parameter] public bool Pager { get; set; }
+    /// <summary>Swiper's <c>speed</c>: the slide transition duration in milliseconds.</summary>
+    public const int DefaultSpeed = 300;
 
-    /// <summary>If true, render the scrollbar (Ionic <c>scrollbar</c>).</summary>
+    /// <summary>Swiper's <c>autoplay.delay</c>: milliseconds a slide rests before advancing.</summary>
+    public const int DefaultAutoplayDelay = 3000;
+
+    /// <summary>Swiper's <c>longSwipesMs</c>: drags longer than this are judged by distance
+    /// (<see cref="LongSwipesRatio"/>) rather than treated as a flick.</summary>
+    private const long LongSwipesMs = 300;
+
+    /// <summary>Swiper's <c>longSwipesRatio</c>: fraction of a slide a long drag must cover to
+    /// advance rather than snap back.</summary>
+    private const float LongSwipesRatio = 0.5f;
+
+    /// <summary>Swiper's <c>resistanceRatio</c>: exponent applied to over-drag past the edges.</summary>
+    private const float ResistanceRatio = 0.85f;
+
+    /// <summary>Swiper's <c>threshold</c>: pixels of movement before a drag is recognized.</summary>
+    private const float Threshold = 5f;
+
+    /// <summary>Swiper's <c>touchAngle</c>: drags steeper than this are released to the scroller.</summary>
+    private const float TouchAngle = 45f;
+
+    /// <summary>If true, render the previous/next navigation arrows (Swiper's <c>navigation</c>).
+    /// <para>
+    /// Deliberately shadows <see cref="IonicComponentBase.Navigation"/> (the injected
+    /// <c>NavigationManager</c>): this component takes its name from Swiper's option, and it has no
+    /// default routing behaviour of its own, so the router is simply not reachable from here. Use
+    /// <c>((IonicComponentBase)this).Navigation</c> if that ever changes.
+    /// </para></summary>
+    [Parameter] public new bool Navigation { get; set; }
+
+    /// <summary>If true, render the pagination bullets (Swiper's <c>pagination</c>).</summary>
+    [Parameter] public bool Pagination { get; set; }
+
+    /// <summary>If true, render the scrollbar (Swiper's <c>scrollbar</c>).</summary>
     [Parameter] public bool Scrollbar { get; set; }
 
-    /// <summary>Index of the active slide shown in the viewport. Drives the wrapper translation that
-    /// the (otherwise gesture-driven) Swiper would apply. Defaults to 0 (the first slide). Mirrors
-    /// Swiper's <c>initialSlide</c> / <c>activeIndex</c>.</summary>
+    /// <summary>If true, advance automatically every <see cref="AutoplayDelay"/> milliseconds
+    /// (Swiper's <c>autoplay</c>). Inert when no <see cref="Miko.Platform.MikoDispatcher"/> is
+    /// available (a bare unit test), since there is no render loop to marshal the tick onto.</summary>
+    [Parameter] public bool Autoplay { get; set; }
+
+    /// <summary>Milliseconds between automatic advances (Swiper's <c>autoplay.delay</c>).</summary>
+    [Parameter] public int AutoplayDelay { get; set; } = DefaultAutoplayDelay;
+
+    /// <summary>If true, advancing past the last slide wraps to the first and vice versa
+    /// (Swiper's <c>loop</c>). The wrap itself is not animated — see <see cref="WrapperStyle"/>.</summary>
+    [Parameter] public bool Loop { get; set; }
+
+    /// <summary>The transition effect: <c>"slide"</c> (default, the track slides horizontally) or
+    /// <c>"fade"</c> (slides stack and cross-fade). Unknown values fall back to <c>"slide"</c>.</summary>
+    [Parameter] public string Effect { get; set; } = "slide";
+
+    /// <summary>Slide transition duration in milliseconds (Swiper's <c>speed</c>).</summary>
+    [Parameter] public int Speed { get; set; } = DefaultSpeed;
+
+    /// <summary>If false, the slides cannot be dragged (Swiper's <c>allowTouchMove</c>).</summary>
+    [Parameter] public bool AllowTouchMove { get; set; } = true;
+
+    /// <summary>Index of the active slide shown in the viewport. Mirrors Swiper's
+    /// <c>initialSlide</c> / <c>activeIndex</c>; supports two-way binding via
+    /// <see cref="ActiveIndexChanged"/>.</summary>
     [Parameter] public int ActiveIndex { get; set; }
+
+    /// <summary>Raised when the active slide changes, whether by drag, arrow, bullet or autoplay.</summary>
+    [Parameter] public EventCallback<int> ActiveIndexChanged { get; set; }
+
+    /// <summary>The number of <c>&lt;ion-slide&gt;</c> children currently in the track.</summary>
+    public int SlideCount => _slideCount;
+
+    /// <summary>True when the active slide is the first one (Swiper's <c>isBeginning</c>).</summary>
+    public bool IsBeginning => _activeIndex <= 0;
+
+    /// <summary>True when the active slide is the last one (Swiper's <c>isEnd</c>).</summary>
+    public bool IsEnd => _activeIndex >= _slideCount - 1;
+
+    private bool UseFade => string.Equals(Effect, "fade", StringComparison.OrdinalIgnoreCase);
+
+    // The resting index. Kept separate from the ActiveIndex parameter so a drag/arrow/autoplay can
+    // move the slides even when the host does not bind ActiveIndex back (uncontrolled usage).
+    private int _activeIndex;
+    private int? _lastActiveIndexParameter;
+    private int _slideCount;
+
+
+    // Drag state, mirroring Swiper's touchEventsData (onTouchStart/Move/End).
+    private bool _isTouched;
+    private bool _isMoved;
+    private bool _allowThresholdMove;
+    private bool? _isScrolling;
+    private float _startX;
+    private float _startY;
+    private float _startTranslate;
+    private float _currentTranslate;
+    private long _touchStartTime;
+    private float _slideSize;
+
+    // Cached DOM references so a drag can update the track without a full re-render.
+    private Element? _wrapperElement;
+    private Element? _hostElement;
+
+    private CancellationTokenSource? _autoplayCancellation;
+    [Inject] private Platform.MikoDispatcher? Dispatcher { get; set; }
+
+    /// <summary>
+    /// Drives the settle animation after a drag. Needed because the stylesheet's transform
+    /// transition cannot cover that case: the engine starts a transition by diffing the previous
+    /// frame's <em>computed</em> style, but a drag writes its offset straight onto the wrapper's
+    /// inline style and transforms are paint-only, so the drag never reaches the computed style and
+    /// the release has nothing to diff against — the track would jump to the resting position.
+    /// </summary>
+    [Inject] private AnimationManager? Animations { get; set; }
 
     protected override void OnParametersSet()
     {
-        var mode = Mode;
-        // class map from slides.tsx render(): [mode]: true, [slides-{mode}]: true, 'swiper-container': true.
-        ClassMapper
-            .Clear()
-            .Add(Class)
-            .Add(mode)
-            .Add($"slides-{mode}")
-            .Add("swiper-container");
+        // The ActiveIndex parameter wins whenever the host changes it; between host changes the
+        // component owns the index so uncontrolled drags stick (mirrors IonItemSliding.Open).
+        if (_lastActiveIndexParameter is null || _lastActiveIndexParameter != ActiveIndex)
+        {
+            _activeIndex = ActiveIndex;
+            _lastActiveIndexParameter = ActiveIndex;
+        }
+
+        // The slide count drives the bullets, the arrow disabled state and the drag guard, and it
+        // has to be known on *every* render path. It cannot be read off the built subtree in
+        // Build(): StateHasChanged rebuilds through BuildRenderTree alone and never calls the
+        // Build() override, so a rebuilt instance would be left with a count of 0 and would ignore
+        // the next drag. Counting from a throwaway render of ChildContent works everywhere.
+        _slideCount = CountSlides();
+        _activeIndex = ClampIndex(_activeIndex);
+
+        // Refresh the measured width here as well as in Build: StateHasChanged renders through
+        // BuildRenderTree alone and never calls the Build override, and RestingOffset needs the
+        // width to emit pixels rather than percent (see RestingOffset for why the unit matters).
+        var measured = _hostElement?.OffsetWidth ?? 0f;
+        if (measured > 0) _slideSize = measured;
+
+        UpdateClasses();
+        RestartAutoplay();
     }
 
     /// <summary>
-    /// After the subtree is built, stamp the active-slide offset onto the <c>swiper-wrapper</c>'s
-    /// transform. Each slide fills the viewport (100% wide), so the resting position for slide
-    /// <see cref="ActiveIndex"/> is <c>translateX(-index*100%)</c>. Stamped here (not as an inline
-    /// <c>style</c> attribute) because the renderer only carries a <see cref="Style"/> object
-    /// through — mirroring how <see cref="IonSearchbar"/> stamps DOM state after <see cref="Build"/>.
+    /// Counts the <c>&lt;ion-slide&gt;</c> children by rendering <see cref="ChildContent"/> into a
+    /// throwaway tree. <c>ChildContent</c> is a render fragment, so there is nothing to count until
+    /// it has been run.
+    /// </summary>
+    private int CountSlides()
+    {
+        if (ChildContent is null) return 0;
+
+        var probe = new RenderTreeBuilder();
+        probe.OpenElement(0, "div");
+        ChildContent(probe);
+        probe.CloseElement();
+        return probe.Build().Children.Count(c => c.HasClass("swiper-slide"));
+    }
+
+    private void UpdateClasses()
+    {
+        // class map from slides.tsx render() plus Swiper's container modifier classes
+        // (core/classes/addClasses.mjs): swiper-horizontal, and swiper-{effect} for non-slide
+        // effects. swiper-navigation-disabled hides the arrows (navigation.css).
+        ClassMapper
+            .Clear()
+            .Add(Class)
+            .Add(Mode)
+            .Add($"slides-{Mode}")
+            .Add("swiper-container")
+            .Add("swiper-horizontal")
+            .If(UseFade, "swiper-fade")
+            .If(!Navigation, "swiper-navigation-disabled");
+    }
+
+    // Swiper disables an arrow at the corresponding edge unless looping (navigation.mjs update()).
+    private string PrevButtonClass =>
+        "swiper-button-prev" + (!Loop && IsBeginning ? " swiper-button-disabled" : "");
+
+    private string NextButtonClass =>
+        "swiper-button-next" + (!Loop && IsEnd ? " swiper-button-disabled" : "");
+
+    private string BulletClass(int index) =>
+        "swiper-pagination-bullet" + (index == _activeIndex ? " swiper-pagination-bullet-active" : "");
+
+    // The scrollbar drag fills 1/n of the track and sits at the active slide's fraction.
+    private Style? ScrollbarDragStyle
+    {
+        get
+        {
+            if (_slideCount <= 0) return null;
+            var size = 100f / _slideCount;
+            return new Style
+            {
+                Width = Length.Percent(size),
+                MarginLeft = Length.Percent(size * _activeIndex),
+            };
+        }
+    }
+
+    /// <summary>
+    /// Caches the host and wrapper elements after the subtree is built, so a drag can offset the
+    /// track without going through a re-render.
     /// </summary>
     public override Element Build()
     {
+        // Adopt the width measured on the previous frame *before* building, so RestingOffset can
+        // speak pixels — the same unit a drag writes — from the second render onwards. It has to be
+        // read off the outgoing host: the element this Build produces has no layout box yet.
+        var measured = _hostElement?.OffsetWidth ?? 0f;
+        if (measured > 0) _slideSize = measured;
+
         var root = base.Build();
-        var index = ActiveIndex < 0 ? 0 : ActiveIndex;
-        if (index > 0 && root.FindByClass("swiper-wrapper").FirstOrDefault() is { } wrapper)
+        _hostElement = root;
+        _wrapperElement = root.FindByClass("swiper-wrapper").FirstOrDefault();
+
+        // Bound as plain Element handlers rather than Razor's @onpointer* directives. Those wrap
+        // the handler in an EventCallback, which re-renders the component after *every* pointer
+        // move — replacing the wrapper mid-drag, so the offset written by one move is discarded by
+        // the rebuild the same move triggered, and the track never actually moves. Element handlers
+        // do not re-render, which is what a drag wants: it mutates the wrapper's Style directly and
+        // only re-renders once, on release. (IonRefresher binds its gesture the same way.)
+        root.OnPointerDown = HandlePointerDown;
+        root.OnPointerMove = HandlePointerMove;
+        root.OnPointerUp = args => _ = HandlePointerUp(args);
+        root.OnPointerCancel = HandlePointerCancel;
+
+        if (UseFade) ApplyFadeOpacities();
+        return root;
+    }
+
+    protected override void OnDispose()
+    {
+        _autoplayCancellation?.Cancel();
+        _autoplayCancellation = null;
+    }
+
+    // ---------------------------------------------------------------- imperative API (slides.tsx)
+
+    /// <summary>Transition to the given slide index (Ionic's <c>slideTo</c>).</summary>
+    public Task SlideToAsync(int index) => SetActiveIndexAsync(ClampIndex(index));
+
+    /// <summary>Transition to the next slide, wrapping when <see cref="Loop"/> (Ionic's <c>slideNext</c>).</summary>
+    public Task SlideNextAsync()
+    {
+        if (_slideCount == 0) return Task.CompletedTask;
+        if (IsEnd && !Loop) return Task.CompletedTask;
+        return SetActiveIndexAsync(WrapIndex(_activeIndex + 1));
+    }
+
+    /// <summary>Transition to the previous slide, wrapping when <see cref="Loop"/> (Ionic's <c>slidePrev</c>).</summary>
+    public Task SlidePrevAsync()
+    {
+        if (_slideCount == 0) return Task.CompletedTask;
+        if (IsBeginning && !Loop) return Task.CompletedTask;
+        return SetActiveIndexAsync(WrapIndex(_activeIndex - 1));
+    }
+
+    /// <summary>Start automatic advancing (Ionic's <c>startAutoplay</c>).</summary>
+    public void StartAutoplay() => ScheduleAutoplay();
+
+    /// <summary>Stop automatic advancing (Ionic's <c>stopAutoplay</c>).</summary>
+    public void StopAutoplay()
+    {
+        _autoplayCancellation?.Cancel();
+        _autoplayCancellation = null;
+    }
+
+    private async Task SetActiveIndexAsync(int index)
+    {
+        if (index == _activeIndex) return;
+
+        _activeIndex = index;
+
+        // Stamp the new position immediately so it is correct even when nothing re-renders (an
+        // uncontrolled host with no ActiveIndexChanged binding); the subsequent re-render picks the
+        // same value up declaratively via WrapperStyle.
+        SnapBackToRestingPosition();
+
+        await ActiveIndexChanged.InvokeAsync(index);
+        StateHasChanged();
+
+        RestartAutoplay();
+    }
+
+    // ------------------------------------------------------------------------- navigation/pager
+
+    private Task HandlePrevClickAsync(MouseEventArgs _) => SlidePrevAsync();
+
+    private Task HandleNextClickAsync(MouseEventArgs _) => SlideNextAsync();
+
+    private Task HandleBulletClickAsync(int index) => SlideToAsync(index);
+
+    // ------------------------------------------------------------------------------- drag/swipe
+
+    private void HandlePointerDown(PointerEventArgs args)
+    {
+        if (!AllowTouchMove || _slideCount <= 1) return;
+        if (args.Button != MouseButton.Left || !args.IsButtonPressed) return;
+
+        _isTouched = true;
+        _isMoved = false;
+        _isScrolling = null;
+        _allowThresholdMove = false;
+        _startX = args.X;
+        _startY = args.Y;
+        _touchStartTime = Environment.TickCount64;
+
+        // A drag counts as interaction, so autoplay pauses until the gesture resolves
+        // (autoplay.mjs pauses on sliderFirstMove).
+        StopAutoplay();
+    }
+
+    private void HandlePointerMove(PointerEventArgs args)
+    {
+        if (!_isTouched || !args.IsButtonPressed) return;
+
+        var diffX = args.X - _startX;
+        var diffY = args.Y - _startY;
+
+        // Swiper ignores movement under the threshold entirely (onTouchMove.mjs).
+        if (MathF.Sqrt(diffX * diffX + diffY * diffY) < Threshold) return;
+
+        // Direction lock, decided once per gesture: a steep drag belongs to the scroller.
+        if (_isScrolling is null && (diffX * diffX + diffY * diffY) >= 25f)
         {
-            wrapper.Style = new Style
+            var angle = MathF.Atan2(MathF.Abs(diffY), MathF.Abs(diffX)) * 180f / MathF.PI;
+            _isScrolling = angle > TouchAngle;
+        }
+        if (_isScrolling == true)
+        {
+            _isTouched = false;
+            return;
+        }
+
+        // Claim the gesture so the engine does not also interpret it as a scroll.
+        args.PreventDefault();
+
+        if (!_isMoved)
+        {
+            _isMoved = true;
+            _slideSize = MeasureSlideSize(args);
+            _startTranslate = -_activeIndex * _slideSize;
+        }
+
+        // Crossing the threshold re-bases the origin so the track does not jump by `Threshold` px.
+        if (!_allowThresholdMove)
+        {
+            _allowThresholdMove = true;
+            _startX = args.X;
+            _startY = args.Y;
+            _currentTranslate = _startTranslate;
+            ApplyTranslate(args, _currentTranslate);
+            return;
+        }
+
+        var diff = args.X - _startX;
+        _currentTranslate = ApplyResistance(_startTranslate + diff, diff);
+        ApplyTranslate(args, _currentTranslate);
+    }
+
+    private async Task HandlePointerUp(PointerEventArgs args)
+    {
+        if (!_isTouched) return;
+        var moved = _isMoved;
+        _isTouched = false;
+        _isMoved = false;
+
+        if (!moved || _slideSize <= 0)
+        {
+            // Nothing moved (a tap, or a gesture released to the scroller) — restore and resume.
+            SnapBackToRestingPosition(args);
+            RestartAutoplay();
+            return;
+        }
+
+        var timeDiff = Environment.TickCount64 - _touchStartTime;
+        var target = ResolveReleaseIndex(timeDiff);
+        var releasedFrom = _currentTranslate / _slideSize * 100f;
+
+        if (target == _activeIndex)
+        {
+            // Snap back to where we started; no index change to report.
+            AnimateSettle(args, releasedFrom, -_activeIndex * 100f);
+            SnapBackToRestingPosition(args);
+            RestartAutoplay();
+            return;
+        }
+
+        AnimateSettle(args, releasedFrom, -target * 100f);
+        await SetActiveIndexAsync(target);
+    }
+
+    /// <summary>
+    /// Eases the track from where the finger let go to its resting position.
+    /// <para>
+    /// Driven explicitly rather than left to the stylesheet's transform transition, which cannot
+    /// fire here: the engine starts a transition by diffing the previous frame's <em>computed</em>
+    /// style, and a drag never gets into the computed style — it writes the wrapper's inline
+    /// transform directly, and transforms are paint-only (they are applied through
+    /// <c>AnimationManager.Overlay</c>, deliberately skipping layout). With nothing to diff, the
+    /// release would place the track at its destination in a single frame.
+    /// </para>
+    /// </summary>
+    private void AnimateSettle(PointerEventArgs args, float fromPercent, float toPercent)
+    {
+        if (UseFade || Animations is null) return;
+        if (MathF.Abs(fromPercent - toPercent) < 0.01f) return;
+
+        var wrapper = LiveWrapper(args);
+        if (wrapper is null) return;
+
+        var duration = Math.Max(Speed, 0) / 1000f;
+        if (duration <= 0f) return;
+
+        Animations.TrackTransformChange(
+            wrapper,
+            new Transform(new TransformFunction.TranslateX(Length.Percent(fromPercent))),
+            new Transform(new TransformFunction.TranslateX(Length.Percent(toPercent))),
+            new Transition(nameof(Style.Transform), duration, TimingFunction.EaseOut));
+    }
+
+    private void HandlePointerCancel(PointerEventArgs args)
+    {
+        if (!_isTouched) return;
+        _isTouched = false;
+        _isMoved = false;
+        SnapBackToRestingPosition(args);
+        RestartAutoplay();
+    }
+
+    /// <summary>
+    /// Decides which slide a released drag lands on, porting Swiper's onTouchEnd rules: a quick
+    /// flick (under <see cref="LongSwipesMs"/>) always advances one slide in the drag direction,
+    /// while a slower drag must cover <see cref="LongSwipesRatio"/> of a slide to advance.
+    /// </summary>
+    private int ResolveReleaseIndex(long timeDiff)
+    {
+        var dragged = _currentTranslate - _startTranslate;
+        if (dragged == 0) return _activeIndex;
+
+        // Dragging left (negative) moves towards the next slide.
+        var towardsNext = dragged < 0;
+        var ratio = MathF.Abs(dragged) / _slideSize;
+
+        var advances = timeDiff <= LongSwipesMs || ratio >= LongSwipesRatio;
+        if (!advances) return _activeIndex;
+
+        var target = towardsNext ? _activeIndex + 1 : _activeIndex - 1;
+        return Loop ? WrapIndex(target) : ClampIndex(target);
+    }
+
+    /// <summary>
+    /// Swiper's edge resistance (onTouchMove.mjs): dragging past the first/last slide moves the
+    /// track by <c>overshoot^0.85</c> instead of the full distance, so the edge feels elastic.
+    /// Looping has no edges, so it drags freely.
+    /// </summary>
+    private float ApplyResistance(float translate, float diff)
+    {
+        if (Loop) return translate;
+
+        var min = 0f;                                // first slide
+        var max = -(_slideCount - 1) * _slideSize;   // last slide (most negative)
+
+        if (diff > 0 && translate > min)
+        {
+            var overshoot = MathF.Max(translate - min, 0f);
+            return min + MathF.Pow(overshoot, ResistanceRatio);
+        }
+        if (diff < 0 && translate < max)
+        {
+            var overshoot = MathF.Max(max - translate, 0f);
+            return max - MathF.Pow(overshoot, ResistanceRatio);
+        }
+        return translate;
+    }
+
+    // ------------------------------------------------------------------------------- positioning
+
+    /// <summary>
+    /// The track's classes, carrying a marker for which slide it rests at. Mirrors how Swiper marks
+    /// track state in classes, and makes the resting index visible to tests and to CSS.
+    /// </summary>
+    private string WrapperClass => $"swiper-wrapper swiper-wrapper-at-{_activeIndex}";
+
+    /// <summary>
+    /// The track's resting offset, rendered declaratively so it survives a re-render. This has to
+    /// be part of the render tree rather than stamped after <see cref="Build"/>: an
+    /// <see cref="EventCallback"/> re-renders the receiver once the handler's task completes, which
+    /// rebuilds the subtree through <c>BuildRenderTree</c> alone and would discard any post-Build
+    /// mutation.
+    /// </summary>
+    private Style? WrapperStyle
+    {
+        get
+        {
+            // Under the fade effect the track never moves (effect-fade.mjs virtualTranslate).
+            if (UseFade) return null;
+
+            // Deliberately leaves Transitions unset so the stylesheet's transform transition
+            // applies. Clearing it here to make a loop wrap instant is what caused the "step after
+            // a wrap loses its animation" bug: the engine decides whether to animate from the
+            // transitions captured on the *previous* frame, so an empty list written here
+            // suppresses the step *after* this one, never this one.
+            return new Style
             {
-                Transform = new Transform(new TransformFunction.TranslateX(Length.Percent(-index * 100))),
+                Transform = new Transform(new TransformFunction.TranslateX(RestingOffset())),
             };
         }
-        return root;
+    }
+
+    /// <summary>
+    /// The track offset for the active slide, always in percent.
+    /// <para>
+    /// The unit has to be stable across frames, because the engine interpolates a transition
+    /// between the previous and next value without converting units
+    /// (<c>AnimationManager.LerpLength</c> keeps one side's unit and lerps the raw numbers).
+    /// Mixing px and percent makes it "interpolate" e.g. -360px → -100% as if it were -360 → -100,
+    /// which reads as the track jumping and then stalling — and the mix is easy to reintroduce,
+    /// since a re-render hands the work to a fresh component instance with no measured width.
+    /// Percent needs no measurement, so it is the one unit always available: each slide is 100% of
+    /// the viewport, so slide N rests at -N * 100%.
+    /// </para>
+    /// <para>
+    /// A drag is the one place pixels are unavoidable (it tracks raw pointer deltas). It ends by
+    /// converting back to percent here, and the release is a single interpolation from the drag's
+    /// pixel offset to this percent one — so <see cref="ApplyTranslate"/> converts its offset to
+    /// percent too, keeping both ends of that animation in the same unit.
+    /// </para>
+    /// </summary>
+    private Length RestingOffset() => Length.Percent(-_activeIndex * 100f);
+
+    /// <summary>
+    /// Writes an in-progress drag offset onto the track. The drag is computed in pixels (it tracks
+    /// raw pointer deltas) but written as percent, so it shares its unit with the resting offset —
+    /// see <see cref="RestingOffset"/> for why mixing units breaks the settle animation.
+    /// Runs on every pointer move, so it replaces <see cref="Element.Style"/> wholesale — the setter
+    /// compares by reference, and mutating the existing object in place would not be tracked (see
+    /// <c>Element.Style</c>). Transitions are cleared so the track follows the finger without lag.
+    /// </summary>
+    private void ApplyTranslate(PointerEventArgs args, float translateX)
+    {
+        if (UseFade || _slideSize <= 0) return;
+        var wrapper = LiveWrapper(args);
+        if (wrapper is null) return;
+
+        var percent = translateX / _slideSize * 100f;
+        wrapper.Style = new Style
+        {
+            Transform = new Transform(new TransformFunction.TranslateX(Length.Percent(percent))),
+            // An empty list overrides the stylesheet's transform transition for this frame.
+            Transitions = new List<Transition>(),
+        };
+    }
+
+    /// <summary>
+    /// The wrapper currently in the DOM, resolved from the element the event was dispatched on.
+    /// <para>
+    /// It cannot be taken from the cache: an <see cref="EventCallback"/> re-renders the receiver
+    /// after every handler, so the wrapper is replaced between two pointer moves of one drag.
+    /// Writing to the cached instance would silently paint a detached element and the track would
+    /// never move. The event target is live by construction — the engine re-anchors it across
+    /// re-renders before dispatching.
+    /// </para>
+    /// </summary>
+    private Element? LiveWrapper(PointerEventArgs args)
+    {
+        var host = HostFrom(args.CurrentTarget) ?? HostFrom(args.Target);
+        if (host is not null)
+        {
+            _hostElement = host;
+            _wrapperElement = host.FindByClass("swiper-wrapper").FirstOrDefault();
+        }
+        return _wrapperElement;
+    }
+
+    /// <summary>Walks up from an event target to the slides host.</summary>
+    private static Element? HostFrom(Element? element)
+    {
+        for (var current = element; current is not null; current = current.Parent)
+        {
+            if (current.HasClass("swiper-container")) return current;
+        }
+        return null;
+    }
+
+    /// <summary>Restores the track to the active slide's resting offset after an abandoned drag.</summary>
+    private void SnapBackToRestingPosition(PointerEventArgs? args = null)
+    {
+        if (UseFade)
+        {
+            ApplyFadeOpacities();
+            return;
+        }
+        // Same staleness hazard as ApplyTranslate — resolve from the live event target when one is
+        // available (see LiveWrapper).
+        var wrapper = args is null ? _wrapperElement : LiveWrapper(args);
+        if (wrapper is null) return;
+        wrapper.Style = WrapperStyle;
+    }
+
+    /// <summary>
+    /// Fade effect (effect-fade.mjs): the track never moves; every slide is stacked by the
+    /// stylesheet and only the active one is opaque. The slides are stamped directly since their
+    /// opacity is per-slide state rather than a track offset.
+    /// </summary>
+    private void ApplyFadeOpacities()
+    {
+        if (_wrapperElement is null) return;
+
+        // Clear any residual track offset left over from a previous non-fade render.
+        _wrapperElement.Style = null;
+
+        var slides = GetSlideElements();
+        for (var i = 0; i < slides.Count; i++)
+        {
+            var isActive = i == _activeIndex;
+            SetActiveSlideClass(slides[i], isActive);
+            slides[i].Style = new Style
+            {
+                Opacity = isActive ? 1f : 0f,
+            };
+        }
+    }
+
+    /// <summary>
+    /// Adds or removes Swiper's <c>swiper-slide-active</c> marker, which the stylesheet uses to
+    /// re-enable pointer input on the visible slide under the fade effect.
+    /// </summary>
+    private static void SetActiveSlideClass(Element slide, bool isActive)
+    {
+        const string ActiveClass = "swiper-slide-active";
+        var hasClass = slide.HasClass(ActiveClass);
+        if (isActive == hasClass) return;
+
+        var classes = (slide.Class ?? "")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(c => c != ActiveClass)
+            .ToList();
+        if (isActive) classes.Add(ActiveClass);
+        slide.Class = string.Join(" ", classes);
+    }
+
+    /// <summary>
+    /// The width one slide occupies, which is what converts a pixel drag into slide fractions.
+    /// <para>
+    /// Measured from the element the event was dispatched on rather than the cached host: a
+    /// re-render replaces the component's elements, so a cached reference can point at a detached
+    /// element whose layout box is gone and would measure 0. Falls back to the cached host, then to
+    /// the event's viewport width, so a gesture is never dropped for want of a measurement.
+    /// </para>
+    /// </summary>
+    private float MeasureSlideSize(PointerEventArgs args)
+    {
+        var width = HostFrom(args.CurrentTarget)?.OffsetWidth ?? 0f;
+        if (width <= 0) width = HostFrom(args.Target)?.OffsetWidth ?? 0f;
+        if (width <= 0) width = _hostElement?.OffsetWidth ?? 0f;
+        if (width <= 0) width = args.ViewportWidth;
+        return width;
+    }
+
+    // ----------------------------------------------------------------------------------- autoplay
+
+    private void RestartAutoplay()
+    {
+        StopAutoplay();
+        ScheduleAutoplay();
+    }
+
+    /// <summary>
+    /// Arms a one-shot timer that advances a slide and re-arms itself, mirroring Swiper's
+    /// autoplay loop (which also restarts the delay after each transition rather than running a
+    /// fixed interval). Inert without a dispatcher, since component state may only be touched on
+    /// the render thread.
+    /// </summary>
+    private void ScheduleAutoplay()
+    {
+        if (!Autoplay || AutoplayDelay <= 0 || _slideCount <= 1) return;
+
+        var dispatcher = Dispatcher;
+        if (dispatcher is null) return;
+
+        // Without looping, autoplay stops once the last slide is reached (stopOnLastSlide).
+        if (!Loop && IsEnd) return;
+
+        _autoplayCancellation = new CancellationTokenSource();
+        var token = _autoplayCancellation.Token;
+
+        _ = Task.Delay(AutoplayDelay, token).ContinueWith(_ =>
+        {
+            if (token.IsCancellationRequested) return;
+            dispatcher.Post(async () =>
+            {
+                if (token.IsCancellationRequested) return;
+                await SlideNextAsync();
+            });
+        }, TaskContinuationOptions.OnlyOnRanToCompletion);
+    }
+
+    // ------------------------------------------------------------------------------------ helpers
+
+    private List<Element> GetSlideElements() =>
+        _wrapperElement?.Children.Where(c => c.HasClass("swiper-slide")).ToList() ?? new List<Element>();
+
+
+    private int ClampIndex(int index)
+    {
+        if (_slideCount <= 0) return index < 0 ? 0 : index;
+        return Math.Clamp(index, 0, _slideCount - 1);
+    }
+
+    private int WrapIndex(int index)
+    {
+        if (_slideCount <= 0) return 0;
+        return ((index % _slideCount) + _slideCount) % _slideCount;
     }
 }
