@@ -1,35 +1,26 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RazorLangVersion>Latest</RazorLangVersion>
-    <StartupObject>IonicDemo.Program</StartupObject>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
+
+    <!--
+      Miko renders with SkiaSharp, not the browser, so the Razor SDK's web-asset
+      pipeline is not used. Turn it off to avoid pulling in static web asset
+      processing from transitive ASP.NET Core dependencies.
+    -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Assets\**\*" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
-    <ProjectReference Include="..\..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
-    <ProjectReference Include="..\..\..\src\Miko.McpServer\Miko.McpServer.csproj" />
-    <ProjectReference Include="..\..\..\src\Miko.Simulator\Miko.Simulator.csproj" />
-    <ProjectReference Include="..\..\..\src\Miko.Windowing\Miko.Windowing.csproj" />
     <ProjectReference Include="..\..\..\src\Miko\Miko.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Assets\" />
+    <ProjectReference Include="..\..\..\src\Miko.DevTools\Miko.DevTools.csproj"  />
+    <ProjectReference Include="..\..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
   </ItemGroup>
 
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
@@ -47,5 +38,4 @@
       <Analyzer Include="@(_RazorAnalyzer)" />
     </ItemGroup>
   </Target>
-
 </Project>
