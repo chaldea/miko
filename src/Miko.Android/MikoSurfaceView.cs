@@ -251,8 +251,12 @@ public class MikoSurfaceView : SKGLSurfaceView
         private readonly MikoSurfaceView _view;
         private readonly MikoInteractionController _controller;
         private InputMethodState? _state;
-        private bool _keyboardShown;
         private string _composingText = string.Empty;
+
+        // 上一次告知系统的编辑器"形态"与选区。形态变化必须 RestartInput（EditorInfo 需重建），
+        // 选区变化只需 UpdateSelection——后者不打断正在进行的组合会话。
+        private (bool multiline, InputMethodType type)? _editorShape;
+        private (int start, int end) _reportedSelection = (-1, -1);
 
         public AndroidInputMethod(MikoSurfaceView view, MikoInteractionController controller)
         {
@@ -260,16 +264,22 @@ public class MikoSurfaceView : SKGLSurfaceView
             _controller = controller;
         }
 
+        /// <summary>当前文本客户端快照，供 <see cref="Connection"/> 回读文档内容。</summary>
+        public InputMethodState? State => _state;
+
         public override void SetState(InputMethodState? state)
         {
             _state = state;
+
             _view.Post(() =>
             {
+                var manager = _view.Context?.GetSystemService(global::Android.Content.Context.InputMethodService)
+                    as InputMethodManager;
+
                 if (state == null)
                 {
-                    _keyboardShown = false;
-                    var manager = _view.Context?.GetSystemService(global::Android.Content.Context.InputMethodService)
-                        as InputMethodManager;
+                    _editorShape = null;
+                    _reportedSelection = (-1, -1);
                     if (_view.WindowToken != null)
                         manager?.HideSoftInputFromWindow(_view.WindowToken, HideSoftInputFlags.None);
                     _view.ClearFocus();
@@ -277,17 +287,42 @@ public class MikoSurfaceView : SKGLSurfaceView
                 }
 
                 _view.RequestFocus();
-                var inputManager = _view.Context?.GetSystemService(global::Android.Content.Context.InputMethodService)
+
+                // 编辑器形态变了（单行↔多行、文本↔密码↔数字）才重建 InputConnection。
+                // 无条件 RestartInput 会丢弃当前 InputConnection，把正在进行的拼音组合
+                // 连同候选框一起清掉——而 SetState 是每帧发布的，于是候选框刚出现就消失。
+                var shape = (state.IsMultiline, state.InputType);
+                if (_editorShape != shape)
+                {
+                    _editorShape = shape;
+                    _reportedSelection = (-1, -1);
+                    manager?.RestartInput(_view);
+                }
+
+                // 选区变化用轻量的 UpdateSelection 通知输入法，它据此维护自己的组合状态。
+                var selection = (state.SelectionStart, state.SelectionEnd);
+                if (_reportedSelection != selection)
+                {
+                    _reportedSelection = selection;
+                    manager?.UpdateSelection(_view, selection.Item1, selection.Item2, -1, -1);
+                }
+            });
+        }
+
+        /// <summary>
+        /// 显式弹出软键盘。不缓存"键盘是否已显示"——用户可以用输入法自带的隐藏键收起键盘，
+        /// 而系统不会回调通知我们，任何缓存都会与真实可见性脱节，导致再次点击输入框时
+        /// 我们误以为键盘还开着而不去唤起它。
+        /// </summary>
+        public override void ShowKeyboard()
+        {
+            _view.Post(() =>
+            {
+                if (_state == null) return;
+                _view.RequestFocus();
+                var manager = _view.Context?.GetSystemService(global::Android.Content.Context.InputMethodService)
                     as InputMethodManager;
-                if (!_keyboardShown)
-                {
-                    _keyboardShown = true;
-                    inputManager?.ShowSoftInput(_view, ShowFlags.Implicit);
-                }
-                else
-                {
-                    inputManager?.RestartInput(_view);
-                }
+                manager?.ShowSoftInput(_view, ShowFlags.Implicit);
             });
         }
 
@@ -297,26 +332,49 @@ public class MikoSurfaceView : SKGLSurfaceView
             if (info != null)
             {
                 var type = InputTypes.ClassText;
-                if (state?.IsMultiline == true) type |= InputTypes.TextFlagMultiLine;
-                if (state?.InputType == InputMethodType.Password)
-                    type |= InputTypes.TextVariationPassword;
-                else if (state?.InputType == InputMethodType.Number)
-                    type = InputTypes.ClassNumber;
+                if (state?.InputType == InputMethodType.Number)
+                {
+                    // 数字键盘：ClassNumber 是独立的类，不能与 ClassText 的 flag 混用。
+                    type = InputTypes.ClassNumber | InputTypes.NumberFlagSigned | InputTypes.NumberFlagDecimal;
+                }
+                else
+                {
+                    if (state?.IsMultiline == true) type |= InputTypes.TextFlagMultiLine;
+                    if (state?.InputType == InputMethodType.Password)
+                        type |= InputTypes.TextVariationPassword;
+                }
                 info.InputType = type;
                 info.ImeOptions = state?.IsMultiline == true
                     ? (ImeFlags)ImeAction.None
                     : (ImeFlags)ImeAction.Done;
+
+                // 让输入法一开始就知道光标落点。缺少这个，它会认为文档为空、光标在 0，
+                // 于是永远不会发出 DeleteSurroundingText（退格因此毫无反应）。
+                info.InitialSelStart = state?.SelectionStart ?? 0;
+                info.InitialSelEnd = state?.SelectionEnd ?? 0;
             }
             return new Connection(this);
         }
 
-        public void Commit(string text) => End(text);
-        public void Begin() => StartComposition();
+        public void Commit(string text)
+        {
+            End(text);
+            RequestFrame();
+        }
+
+        public void Begin()
+        {
+            StartComposition();
+            RequestFrame();
+        }
+
         public void Update(string text)
         {
             _composingText = text ?? string.Empty;
             UpdateComposition(_composingText);
+            RequestFrame();
         }
+
         public void End(string? text = null)
         {
             var committed = text ?? _composingText;
@@ -324,11 +382,77 @@ public class MikoSurfaceView : SKGLSurfaceView
             EndComposition(string.IsNullOrEmpty(committed) ? null : committed);
         }
 
+        /// <summary>
+        /// 视图工作在 <see cref="global::Android.Opengl.Rendermode.WhenDirty"/> 下，GL 线程只在被
+        /// 显式请求时才绘制一帧。触摸走 <see cref="OnTouchEvent"/>，那里已经请求了；但输入法的
+        /// 提交/组合/按键是通过 InputConnection 直接送到 UI 线程的，不经过触摸路径——不在此处
+        /// 请求，引擎虽已标脏却永远等不到那一帧，文字进了 DOM 却始终不显示。
+        /// </summary>
+        private void RequestFrame() => _view.RequestRender();
+
+        /// <summary>
+        /// 桥接 Android 输入法与 Miko 的文本客户端。
+        ///
+        /// <para>关键点：<see cref="BaseInputConnection"/> 默认从它<b>自己内部</b>那份 Editable
+        /// 读写文本，而 Miko 的文本存活在 DOM 元素里，两者毫无关联。若不重写下面这组回读方法，
+        /// 输入法看到的永远是一篇空文档，它据此认为"光标前没有字符"而不发退格、
+        /// 不给候选词上下文；若不重写 <see cref="SendKeyEvent"/>，数字键盘与硬件键盘的按键
+        /// 会被父类吞进那份无用的 Editable，永远到不了引擎。</para>
+        /// </summary>
         private sealed class Connection : BaseInputConnection
         {
             private readonly AndroidInputMethod _owner;
 
             public Connection(AndroidInputMethod owner) : base(owner._view, true) => _owner = owner;
+
+            private string Text => _owner.State?.Text ?? string.Empty;
+
+            private int Cursor
+            {
+                get
+                {
+                    var text = Text;
+                    return System.Math.Clamp(_owner.State?.CursorPosition ?? 0, 0, text.Length);
+                }
+            }
+
+            public override ICharSequence? GetTextBeforeCursorFormatted(int length, GetTextFlags flags)
+            {
+                if (length <= 0) return new Java.Lang.String(string.Empty);
+                var cursor = Cursor;
+                var start = System.Math.Max(0, cursor - length);
+                return new Java.Lang.String(Text.Substring(start, cursor - start));
+            }
+
+            public override ICharSequence? GetTextAfterCursorFormatted(int length, GetTextFlags flags)
+            {
+                if (length <= 0) return new Java.Lang.String(string.Empty);
+                var text = Text;
+                var cursor = Cursor;
+                var count = System.Math.Min(length, text.Length - cursor);
+                return new Java.Lang.String(text.Substring(cursor, count));
+            }
+
+            // 光标为折叠状态（Miko 目前不支持选区），没有被选中的文本。
+            public override ICharSequence? GetSelectedTextFormatted(GetTextFlags flags) => null;
+
+            public override ExtractedText? GetExtractedText(ExtractedTextRequest? request, GetTextFlags flags)
+            {
+                var text = Text;
+                var cursor = Cursor;
+                return new ExtractedText
+                {
+                    Text = new Java.Lang.String(text),
+                    StartOffset = 0,
+                    PartialStartOffset = -1,
+                    PartialEndOffset = -1,
+                    SelectionStart = cursor,
+                    SelectionEnd = cursor,
+                };
+            }
+
+            public override CapitalizationMode GetCursorCapsMode(CapitalizationMode reqModes)
+                => (CapitalizationMode)TextUtils.GetCapsMode(new Java.Lang.String(Text), Cursor, (CapitalizationMode)reqModes);
 
             public override bool CommitText(ICharSequence? text, int newCursorPosition)
             {
@@ -346,6 +470,7 @@ public class MikoSurfaceView : SKGLSurfaceView
             public override bool FinishComposingText()
             {
                 _owner.End();
+                _owner.RequestFrame();
                 return true;
             }
 
@@ -355,12 +480,52 @@ public class MikoSurfaceView : SKGLSurfaceView
                     _owner._controller.OnKeyDown(MikoKey.Backspace, MikoKeyModifiers.None);
                 for (var i = 0; i < afterLength; i++)
                     _owner._controller.OnKeyDown(MikoKey.Delete, MikoKeyModifiers.None);
+                _owner.RequestFrame();
+                return true;
+            }
+
+            /// <summary>
+            /// 软键盘的退格/回车/方向键，以及数字键盘的全部数字，走的都是 KeyEvent 而非
+            /// CommitText。必须自己翻译并转发给引擎——绝不能回落到 base，父类只会写进
+            /// 它内部那份与 DOM 无关的 Editable。
+            /// </summary>
+            public override bool SendKeyEvent(KeyEvent? e)
+            {
+                if (e == null || e.Action != KeyEventActions.Down) return true;
+
+                var key = e.KeyCode switch
+                {
+                    Keycode.Del => (MikoKey?)MikoKey.Backspace,
+                    Keycode.ForwardDel => MikoKey.Delete,
+                    Keycode.Enter or Keycode.NumpadEnter => MikoKey.Enter,
+                    Keycode.DpadLeft => MikoKey.Left,
+                    Keycode.DpadRight => MikoKey.Right,
+                    Keycode.MoveHome => MikoKey.Home,
+                    Keycode.MoveEnd => MikoKey.End,
+                    _ => null,
+                };
+
+                if (key.HasValue)
+                {
+                    _owner._controller.OnKeyDown(key.Value, MikoKeyModifiers.None);
+                }
+                else
+                {
+                    var unicode = e.UnicodeChar;
+                    if (unicode == 0) return true;
+                    var character = (char)unicode;
+                    if (char.IsControl(character)) return true;
+                    _owner._controller.OnTextInput(character.ToString());
+                }
+
+                _owner.RequestFrame();
                 return true;
             }
 
             public override bool SetSelection(int start, int end)
             {
                 _owner._controller.SetTextSelection(start, end);
+                _owner.RequestFrame();
                 return true;
             }
         }

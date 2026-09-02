@@ -122,6 +122,8 @@ public class RenderTreeBuilder
                     "password" => InputType.Password,
                     "range" => InputType.Range,
                     "search" => InputType.Search,
+                    // number/tel ask the platform for a numeric keypad; both edit as plain text.
+                    "number" or "tel" => InputType.Number,
                     _ => InputType.Text,
                 };
                 break;

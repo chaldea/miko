@@ -200,7 +200,8 @@ public enum InputType
     Checkbox,
     Radio,
     Range,
-    Search
+    Search,
+    Number
 }
 
 /// <summary>

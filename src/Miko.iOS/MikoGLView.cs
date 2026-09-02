@@ -174,6 +174,19 @@ public class MikoGLView : SKGLView, IUIKeyInput
             });
         }
 
+        /// <summary>
+        /// iOS 上"成为第一响应者"即等于唤起键盘。用户下拉收起键盘后会自动放弃第一响应者身份，
+        /// 因此这里无条件重新申请即可再次弹出。
+        /// </summary>
+        public override void ShowKeyboard()
+        {
+            UIApplication.SharedApplication.BeginInvokeOnMainThread(() =>
+            {
+                if (_state == null) return;
+                _view.BecomeFirstResponder();
+            });
+        }
+
         public void Commit(string text) => CommitText(text);
         public void Begin() => StartComposition();
         public void Update(string text) => UpdateComposition(text);

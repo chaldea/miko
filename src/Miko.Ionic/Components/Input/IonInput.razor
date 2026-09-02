@@ -269,12 +269,13 @@
         }
     }
 
-    // Map the Ionic type string to the nearest Miko InputType. email/tel/url/number/date have no
-    // native Miko equivalent, so they render as a plain text field.
+    // Map the Ionic type string to the nearest Miko InputType. number/tel request the platform's
+    // numeric keypad; email/url/date have no native Miko equivalent and render as a plain text field.
     private static InputType MapType(string? type) => type?.ToLowerInvariant() switch
     {
         "password" => InputType.Password,
         "search" => InputType.Search,
+        "number" or "tel" => InputType.Number,
         _ => InputType.Text,
     };
 
