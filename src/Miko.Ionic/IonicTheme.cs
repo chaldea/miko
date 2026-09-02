@@ -310,6 +310,9 @@ public class IonicTheme
     public Color SlidesScrollBarBackground { get; set; }
     /// <summary>Scroll bar drag handle background (rgba(text, .5)).</summary>
     public Color SlidesScrollBarBackgroundActive { get; set; }
+    /// <summary>Navigation arrow color (Swiper's --swiper-navigation-color, which defaults to
+    /// --swiper-theme-color; mapped to the Ionic primary).</summary>
+    public Color SlidesNavigationColor { get; set; }
 
     // Avatar (avatar.md.vars.scss / avatar.ios.vars.scss). A square host clipped into a circle;
     // md is 64px, ios is 48px. Border radius is 50% in both modes.
@@ -1072,6 +1075,7 @@ public class IonicTheme
         t.SlidesBulletBackgroundActive = t.Primary;
         t.SlidesScrollBarBackground = new Color(0, 0, 0, 26);     // rgba(text-color, .1)
         t.SlidesScrollBarBackgroundActive = new Color(0, 0, 0, 128); // rgba(text-color, .5)
+        t.SlidesNavigationColor = t.Primary;                      // --swiper-theme-color
 
         // Avatar (avatar.md.vars.scss): 64px square.
         t.AvatarSize = 64f;
@@ -1600,6 +1604,7 @@ public class IonicTheme
         t.SlidesBulletBackgroundActive = t.Primary;
         t.SlidesScrollBarBackground = new Color(0, 0, 0, 26);     // rgba(text-color, .1)
         t.SlidesScrollBarBackgroundActive = new Color(0, 0, 0, 128); // rgba(text-color, .5)
+        t.SlidesNavigationColor = t.Primary;                      // --swiper-theme-color
 
         // Avatar (avatar.ios.vars.scss): 48px square.
         t.AvatarSize = 48f;

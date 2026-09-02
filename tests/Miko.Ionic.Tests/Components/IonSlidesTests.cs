@@ -20,12 +20,16 @@ public class IonSlidesTests : IonicComponentTestBase
     [Fact]
     public void IonSlides_RendersHostWithSwiperContainerClasses_MdMode()
     {
-        // DOM/contract: host carries mode + slides-{mode} + swiper-container (slides.tsx).
+        // DOM/contract: host carries mode + slides-{mode} + the swiper container classes
+        // (slides.tsx render() + swiper's own container modifier classes).
         var cut = Context.Render<IonSlides>(p =>
             p.Add(nameof(IonSlides.ChildContent), ThreeSlides));
 
         cut.Root.TagName.ShouldBe("div");
-        cut.Root.Class.ShouldBe("md slides-md swiper-container");
+        cut.Root.ShouldHaveClass("md");
+        cut.Root.ShouldHaveClass("slides-md");
+        cut.Root.ShouldHaveClass("swiper-container");
+        cut.Root.ShouldHaveClass("swiper-horizontal");
     }
 
     [Fact]
@@ -36,7 +40,9 @@ public class IonSlidesTests : IonicComponentTestBase
         var cut = Context.Render<IonSlides>(p =>
             p.Add(nameof(IonSlides.ChildContent), ThreeSlides));
 
-        cut.Root.Class.ShouldBe("ios slides-ios swiper-container");
+        cut.Root.ShouldHaveClass("ios");
+        cut.Root.ShouldHaveClass("slides-ios");
+        cut.Root.ShouldHaveClass("swiper-container");
     }
 
     [Fact]
@@ -49,35 +55,106 @@ public class IonSlidesTests : IonicComponentTestBase
         cut.Root.Children.Count.ShouldBe(1);
         var wrapper = cut.Root.Children[0];
         wrapper.TagName.ShouldBe("div");
-        wrapper.Class.ShouldBe("swiper-wrapper");
+        wrapper.ShouldHaveClass("swiper-wrapper");
         wrapper.Children.Count.ShouldBe(3);
-        wrapper.Children[0].Class.ShouldBe("md swiper-slide swiper-zoom-container");
+        wrapper.Children[0].ShouldHaveClass("swiper-slide");
+        wrapper.Children[0].ShouldHaveClass("swiper-zoom-container");
     }
 
     [Fact]
-    public void IonSlides_OmitsPagerAndScrollbar_ByDefault()
+    public void IonSlides_OmitsFurniture_ByDefault()
     {
         var cut = Context.Render<IonSlides>(p =>
             p.Add(nameof(IonSlides.ChildContent), ThreeSlides));
 
-        // Only the wrapper — no pagination/scrollbar furniture.
+        // Only the wrapper — no navigation/pagination/scrollbar furniture.
         cut.Root.Children.Count.ShouldBe(1);
-        FindByClassInTree(cut.Root, "swiper-pagination").ShouldBeNull();
-        FindByClassInTree(cut.Root, "swiper-scrollbar").ShouldBeNull();
+        cut.FindByClass("swiper-pagination").ShouldBeEmpty();
+        cut.FindByClass("swiper-scrollbar").ShouldBeEmpty();
+        cut.FindByClass("swiper-button-next").ShouldBeEmpty();
+        // The host advertises that the arrows are off (navigation.css hides them by this class).
+        cut.Root.ShouldHaveClass("swiper-navigation-disabled");
     }
 
     [Fact]
-    public void IonSlides_RendersPager_WhenEnabled()
+    public void IonSlides_RendersPagination_WhenEnabled()
     {
         var cut = Context.Render<IonSlides>(p =>
         {
-            p.Add(nameof(IonSlides.Pager), true);
+            p.Add(nameof(IonSlides.Pagination), true);
             p.Add(nameof(IonSlides.ChildContent), ThreeSlides);
         });
 
-        var pager = FindByClassInTree(cut.Root, "swiper-pagination");
-        pager.ShouldNotBeNull();
+        var pager = cut.FindByClass("swiper-pagination").ShouldHaveSingleItem();
         pager.TagName.ShouldBe("div");
+        // One bullet per slide, the active one marked (pagination.mjs render/update).
+        var bullets = cut.FindByClass("swiper-pagination-bullet");
+        bullets.Count.ShouldBe(3);
+        bullets[0].ShouldHaveClass("swiper-pagination-bullet-active");
+        bullets[1].ShouldNotHaveClass("swiper-pagination-bullet-active");
+    }
+
+    [Fact]
+    public void IonSlides_RendersNavigationArrows_WhenEnabled()
+    {
+        var cut = Context.Render<IonSlides>(p =>
+        {
+            p.Add(nameof(IonSlides.Navigation), true);
+            p.Add(nameof(IonSlides.ChildContent), ThreeSlides);
+        });
+
+        cut.FindByClass("swiper-button-prev").ShouldHaveSingleItem();
+        cut.FindByClass("swiper-button-next").ShouldHaveSingleItem();
+        cut.Root.ShouldNotHaveClass("swiper-navigation-disabled");
+    }
+
+    [Fact]
+    public void IonSlides_DisablesPrevArrow_AtFirstSlide()
+    {
+        // navigation.mjs update(): the edge arrow is disabled unless looping.
+        var cut = Context.Render<IonSlides>(p =>
+        {
+            p.Add(nameof(IonSlides.Navigation), true);
+            p.Add(nameof(IonSlides.ChildContent), ThreeSlides);
+        });
+
+        cut.FindByClass("swiper-button-prev").ShouldHaveSingleItem()
+            .ShouldHaveClass("swiper-button-disabled");
+        cut.FindByClass("swiper-button-next").ShouldHaveSingleItem()
+            .ShouldNotHaveClass("swiper-button-disabled");
+    }
+
+    [Fact]
+    public void IonSlides_DisablesNextArrow_AtLastSlide()
+    {
+        var cut = Context.Render<IonSlides>(p =>
+        {
+            p.Add(nameof(IonSlides.Navigation), true);
+            p.Add(nameof(IonSlides.ActiveIndex), 2);
+            p.Add(nameof(IonSlides.ChildContent), ThreeSlides);
+        });
+
+        cut.FindByClass("swiper-button-next").ShouldHaveSingleItem()
+            .ShouldHaveClass("swiper-button-disabled");
+        cut.FindByClass("swiper-button-prev").ShouldHaveSingleItem()
+            .ShouldNotHaveClass("swiper-button-disabled");
+    }
+
+    [Fact]
+    public void IonSlides_NeverDisablesArrows_WhenLooping()
+    {
+        // navigation.mjs update() returns early when loop is on — both arrows stay live.
+        var cut = Context.Render<IonSlides>(p =>
+        {
+            p.Add(nameof(IonSlides.Navigation), true);
+            p.Add(nameof(IonSlides.Loop), true);
+            p.Add(nameof(IonSlides.ChildContent), ThreeSlides);
+        });
+
+        cut.FindByClass("swiper-button-prev").ShouldHaveSingleItem()
+            .ShouldNotHaveClass("swiper-button-disabled");
+        cut.FindByClass("swiper-button-next").ShouldHaveSingleItem()
+            .ShouldNotHaveClass("swiper-button-disabled");
     }
 
     [Fact]
@@ -89,42 +166,78 @@ public class IonSlidesTests : IonicComponentTestBase
             p.Add(nameof(IonSlides.ChildContent), ThreeSlides);
         });
 
-        var scrollbar = FindByClassInTree(cut.Root, "swiper-scrollbar");
-        scrollbar.ShouldNotBeNull();
+        var scrollbar = cut.FindByClass("swiper-scrollbar").ShouldHaveSingleItem();
         scrollbar.TagName.ShouldBe("div");
+        cut.FindByClass("swiper-scrollbar-drag").ShouldHaveSingleItem();
     }
 
     [Fact]
-    public void IonSlides_RendersPagerAndScrollbar_WhenBothEnabled()
+    public void IonSlides_RendersAllFurniture_WhenAllEnabled()
     {
         var cut = Context.Render<IonSlides>(p =>
         {
-            p.Add(nameof(IonSlides.Pager), true);
+            p.Add(nameof(IonSlides.Navigation), true);
+            p.Add(nameof(IonSlides.Pagination), true);
             p.Add(nameof(IonSlides.Scrollbar), true);
             p.Add(nameof(IonSlides.ChildContent), ThreeSlides);
         });
 
-        // wrapper + pagination + scrollbar
-        cut.Root.Children.Count.ShouldBe(3);
-        FindByClassInTree(cut.Root, "swiper-pagination").ShouldNotBeNull();
-        FindByClassInTree(cut.Root, "swiper-scrollbar").ShouldNotBeNull();
+        // wrapper + prev + next + pagination + scrollbar
+        cut.Root.Children.Count.ShouldBe(5);
+        cut.FindByClass("swiper-pagination").ShouldHaveSingleItem();
+        cut.FindByClass("swiper-scrollbar").ShouldHaveSingleItem();
+        cut.FindByClass("swiper-button-prev").ShouldHaveSingleItem();
+        cut.FindByClass("swiper-button-next").ShouldHaveSingleItem();
     }
 
     [Fact]
-    public void IonSlides_DoesNotStampTransform_OnFirstSlide()
+    public void IonSlides_DiscoversSlideCount_FromRenderedChildren()
     {
-        // State: ActiveIndex 0 (default) leaves the wrapper at its resting position (no transform).
+        // State: ChildContent is a render fragment, so the slide count is only knowable after the
+        // subtree is built. The bullets are the observable proof it was discovered.
+        var cut = Context.Render<IonSlides>(p =>
+        {
+            p.Add(nameof(IonSlides.Pagination), true);
+            p.Add(nameof(IonSlides.ChildContent), ThreeSlides);
+        });
+
+        cut.FindByClass("swiper-slide").Count.ShouldBe(3);
+        cut.FindByClass("swiper-pagination-bullet").Count.ShouldBe(3);
+    }
+
+    [Fact]
+    public void IonSlides_ClampsActiveIndex_BeyondLastSlide()
+    {
+        // An out-of-range index settles on the last slide rather than translating into blank space.
+        var cut = Context.Render<IonSlides>(p =>
+        {
+            p.Add(nameof(IonSlides.ActiveIndex), 99);
+            p.Add(nameof(IonSlides.Pagination), true);
+            p.Add(nameof(IonSlides.ChildContent), ThreeSlides);
+        });
+
+        var bullets = cut.FindByClass("swiper-pagination-bullet");
+        bullets[2].ShouldHaveClass("swiper-pagination-bullet-active");
+        TranslateX(cut.Root.Children[0]).ShouldNotBeNull().X.Value.ShouldBe(-200f);
+    }
+
+    [Fact]
+    public void IonSlides_DoesNotOffsetTrack_OnFirstSlide()
+    {
+        // State: ActiveIndex 0 (default) leaves the wrapper at its resting position.
         var cut = Context.Render<IonSlides>(p =>
             p.Add(nameof(IonSlides.ChildContent), ThreeSlides));
 
         var wrapper = cut.Root.Children[0];
-        wrapper.Style.ShouldBeNull();
+        TranslateX(wrapper).ShouldNotBeNull().X.Value.ShouldBe(0f);
     }
 
     [Fact]
-    public void IonSlides_StampsTransform_ForActiveIndex()
+    public void IonSlides_StampsPercentTransform_ForActiveIndex()
     {
-        // State: ActiveIndex 2 translates the wrapper by -200% so the third slide is in view.
+        // State: ActiveIndex 2 offsets the track by two viewport widths so slide 3 is in view.
+        // The resting offset is in percent because Build() runs before layout — a measured pixel
+        // width would still be 0 on the first pass.
         var cut = Context.Render<IonSlides>(p =>
         {
             p.Add(nameof(IonSlides.ActiveIndex), 2);
@@ -132,9 +245,7 @@ public class IonSlidesTests : IonicComponentTestBase
         });
 
         var wrapper = cut.Root.Children[0];
-        wrapper.Style.ShouldNotBeNull();
-        wrapper.Style!.Transform.ShouldNotBeNull();
-        var fn = wrapper.Style.Transform!.Value.Value.Functions[0].ShouldBeOfType<Miko.Animation.TransformFunction.TranslateX>();
+        var fn = TranslateX(wrapper).ShouldNotBeNull();
         fn.X.Value.ShouldBe(-200f);
         fn.X.Unit.ShouldBe(Miko.Common.LengthUnit.Percent);
     }
@@ -154,14 +265,28 @@ public class IonSlidesTests : IonicComponentTestBase
         style.Display.ShouldBe(Miko.Common.Display.Block);
     }
 
-    private static Core.Element? FindByClassInTree(Core.Element root, string cls)
+    [Fact]
+    public void IonSlides_LaysSlidesOutSideBySide_AcrossTheViewport()
     {
-        if (root.Class?.Split(' ').Contains(cls) == true) return root;
-        foreach (var child in root.Children)
-        {
-            var found = FindByClassInTree(child, cls);
-            if (found != null) return found;
-        }
-        return null;
+        // BoxModel: each slide fills the viewport and the track runs horizontally, which is what
+        // makes a -1 * width track offset land exactly on the next slide.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonSlides>(p =>
+            p.Add(nameof(IonSlides.ChildContent), ThreeSlides));
+
+        var slides = cut.FindByClass("swiper-slide");
+        slides.Count.ShouldBe(3);
+
+        var first = cut.GetBoxModel(slides[0]).ShouldNotBeNull();
+        var second = cut.GetBoxModel(slides[1]).ShouldNotBeNull();
+        first.BorderBox.Width.ShouldBe(cut.ViewportWidth);
+        second.BorderBox.X.ShouldBe(first.BorderBox.X + cut.ViewportWidth);
     }
+
+    /// <summary>Reads the horizontal offset the component stamped onto the track.</summary>
+    private static Miko.Animation.TransformFunction.TranslateX? TranslateX(Core.Element element) =>
+        element.Style?.Transform?.Value.Functions
+            .OfType<Miko.Animation.TransformFunction.TranslateX>()
+            .LastOrDefault();
 }

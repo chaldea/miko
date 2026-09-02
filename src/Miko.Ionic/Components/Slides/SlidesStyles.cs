@@ -77,6 +77,28 @@ internal static class SlidesStyles
                 BoxSizing = BoxSizing.BorderBox,
             },
 
+            // Fade effect (effect-fade.mjs / effect-fade.css). Swiper sets virtualTranslate, so the
+            // wrapper never moves; instead every slide is stacked at the same spot and cross-faded
+            // by IonSlides.ApplyFadeOpacities. Stacking is done here with absolute positioning
+            // rather than Swiper's per-slide translate — the geometry is identical for the single
+            // slide-per-view configuration this port supports, and it needs no per-slide offset
+            // measurement. Only the active slide takes pointer input.
+            [$".{mode}.swiper-fade .swiper-slide"] = new()
+            {
+                Position = Position.Absolute,
+                Left = Length.Px(0),
+                Top = Length.Px(0),
+                PointerEvents = PointerEvents.None,
+                Transitions = new List<Transition>
+                {
+                    new Transition(nameof(Style.Opacity), 0.3f, TimingFunction.EaseOut),
+                },
+            },
+            [$".{mode}.swiper-fade .swiper-slide-active"] = new()
+            {
+                PointerEvents = PointerEvents.Auto,
+            },
+
             // swiper-zoom-container (slides-vendor.scss): centers the (optional) zoomable content.
             // Kept for DOM/structure parity even though the port has no zoom gesture.
             [$".{mode}.swiper-slide.swiper-zoom-container"] = new()
@@ -102,20 +124,64 @@ internal static class SlidesStyles
             },
 
             // Pagination bullet (slides-vendor.scss + slides.scss): a small dot using the themed
-            // bullet background. Active bullet (below) is fully opaque on the active color.
+            // bullet background, 4px horizontal gap either side (pagination.css
+            // --swiper-pagination-bullet-horizontal-gap). Active bullet (below) is fully opaque
+            // on the active color.
             [$".{mode}.slides-{mode} .swiper-pagination-bullet"] = new()
             {
                 Display = Display.InlineBlock,
                 Width = Length.Px(8),
                 Height = Length.Px(8),
+                MarginLeft = Length.Px(4),
+                MarginRight = Length.Px(4),
                 BorderRadius = Radius(50),
                 BackgroundColor = t.SlidesBulletBackground,
                 Opacity = 0.2f,
+                Cursor = Cursor.Pointer,
             },
             [$".{mode}.slides-{mode} .swiper-pagination-bullet-active"] = new()
             {
                 Opacity = 1f,
                 BackgroundColor = t.SlidesBulletBackgroundActive,
+            },
+
+            // Navigation arrows (navigation.css). A 44x44 hit target vertically centered against
+            // the host, inset 4px from its edge. The arrow glyph itself is drawn as text rather
+            // than Swiper's inline SVG, since the port has no SVG-in-pseudo-element path.
+            [$".{mode}.slides-{mode} .swiper-button-prev"] = new()
+            {
+                ["..."] = NavigationButtonBase(t),
+                Left = Length.Px(4),
+            },
+            [$".{mode}.slides-{mode} .swiper-button-next"] = new()
+            {
+                ["..."] = NavigationButtonBase(t),
+                Right = Length.Px(4),
+            },
+            // Disabled at an edge: dimmed and non-interactive (navigation.css).
+            [$".{mode}.slides-{mode} .swiper-button-disabled"] = new()
+            {
+                Opacity = 0.35f,
+                Cursor = Cursor.Default,
+                PointerEvents = PointerEvents.None,
+            },
+            // The arrow glyph. Swiper injects an 11x20 SVG chevron; this port draws the matching
+            // single-character chevron, sized to fill the same optical space.
+            [$".{mode}.slides-{mode} .swiper-navigation-icon"] = new()
+            {
+                FontSize = Length.Px(28),
+                LineHeight = Length.Px(28),
+                PointerEvents = PointerEvents.None,
+            },
+
+            // `swiper-navigation-disabled` on the host hides the arrows entirely (navigation.css).
+            [$".{mode}.swiper-navigation-disabled .swiper-button-prev"] = new()
+            {
+                Display = Display.None,
+            },
+            [$".{mode}.swiper-navigation-disabled .swiper-button-next"] = new()
+            {
+                Display = Display.None,
             },
 
             // Scrollbar (slides-vendor.scss `.swiper-scrollbar` + slides.scss): rounded track pinned
@@ -143,6 +209,26 @@ internal static class SlidesStyles
 
         return css;
     }
+
+    /// <summary>
+    /// The geometry both navigation arrows share (navigation.css <c>.swiper-button-prev,
+    /// .swiper-button-next</c>): a 44x44 square vertically centered on the host, pulled up by half
+    /// its height, above the slides and tinted with the navigation color.
+    /// </summary>
+    private static CssObject NavigationButtonBase(IonicTheme t) => new()
+    {
+        Position = Position.Absolute,
+        Top = Length.Percent(50),
+        MarginTop = Length.Px(-22),
+        Width = Length.Px(44),
+        Height = Length.Px(44),
+        ZIndex = 10,
+        Display = Display.Flex,
+        AlignItems = AlignItems.Center,
+        JustifyContent = JustifyContent.Center,
+        Cursor = Cursor.Pointer,
+        Color = t.SlidesNavigationColor,
+    };
 
     private static BorderRadius Radius(float px) =>
         new BorderRadius(Length.Px(px), Length.Px(px), Length.Px(px), Length.Px(px));
