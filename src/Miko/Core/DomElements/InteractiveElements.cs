@@ -46,10 +46,10 @@ public class InputElement : Element, ITextEditable
     public InputType Type { get; set; } = InputType.Text;
 
     /// <summary>
-    /// input 在文本类类型（text / password / search）下接受键盘文本编辑；
+    /// input 在文本类类型（text / password / search / number）下接受键盘文本编辑；
     /// checkbox / radio / range 不是文本控件，不参与编辑。
     /// </summary>
-    public bool IsEditable => Type is InputType.Text or InputType.Password or InputType.Search;
+    public bool IsEditable => Type is InputType.Text or InputType.Password or InputType.Search or InputType.Number;
 
     /// <summary>
     /// input 始终为单行控件。

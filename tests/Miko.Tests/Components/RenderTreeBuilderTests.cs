@@ -1,3 +1,4 @@
+using Miko.Common;
 using Miko.Components;
 using Miko.Core.DomElements;
 using Shouldly;
@@ -6,6 +7,30 @@ namespace Miko.Tests.Components;
 
 public class RenderTreeBuilderTests
 {
+    /// <summary>
+    /// `type` 的字符串到 <see cref="InputType"/> 的映射在这里独立存在一份（另两份是
+    /// <see cref="InputElement.IsEditable"/> 与控制器的点击分支）。number/tel 曾漏在这里，
+    /// 于是 `<input type="number">` 悄悄退化成 Text，数字软键盘永远唤不起来。
+    /// </summary>
+    [Theory]
+    [InlineData("number", InputType.Number)]
+    [InlineData("tel", InputType.Number)]
+    [InlineData("password", InputType.Password)]
+    [InlineData("search", InputType.Search)]
+    [InlineData("checkbox", InputType.Checkbox)]
+    [InlineData("text", InputType.Text)]
+    [InlineData("date", InputType.Text)]
+    public void TypeAttribute_MapsToInputType(string attribute, InputType expected)
+    {
+        var builder = new RenderTreeBuilder();
+        builder.OpenElement(0, "input");
+        builder.AddAttribute(1, "type", attribute);
+        builder.CloseElement();
+
+        var input = builder.Build().ShouldBeOfType<InputElement>();
+        input.Type.ShouldBe(expected);
+    }
+
     [Fact]
     public void OpenCloseElement_BuildsSingleElement()
     {

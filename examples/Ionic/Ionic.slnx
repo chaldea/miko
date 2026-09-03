@@ -10,5 +10,9 @@
     <Project Path="../../src/Miko/Miko.csproj" />
   </Folder>
   <Project Path="IonicComponents/IonicComponents.csproj" />
+  <Project Path="IonicDemo.Android/IonicDemo.Android.csproj" />
+  <Project Path="IonicDemo.Desktop/IonicDemo.Desktop.csproj" />
+  <Project Path="IonicDemo.Simulator/IonicDemo.Simulator.csproj" />
+  <Project Path="IonicDemo.iOS/IonicDemo.iOS.csproj" />
   <Project Path="IonicDemo/IonicDemo.csproj" />
 </Solution>

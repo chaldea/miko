@@ -36,6 +36,16 @@ public interface IInputMethod
 
     /// <summary>Updates or clears the native text client and its screen position.</summary>
     void SetState(InputMethodState? state);
+
+    /// <summary>
+    /// Explicitly asks the platform to present its soft keyboard for the current client.
+    /// <para>This is an <b>action</b>, not state. <see cref="SetState"/> is published every frame and
+    /// deduplicated against the previous value, so it cannot express "show the keyboard again" when
+    /// nothing about the text client changed — which is exactly what happens when the user dismisses
+    /// the keyboard with the IME's own hide button and then taps the same field again: focus never
+    /// moved, so the state is identical. Hosts must honour this unconditionally.</para>
+    /// </summary>
+    void ShowKeyboard();
 }
 
 /// <summary>Descriptive alias for dependency-injection registrations.</summary>
@@ -52,6 +62,9 @@ public abstract class InputMethodBase : IInputMethodService
     public event Action<string?>? CompositionEnded;
 
     public abstract void SetState(InputMethodState? state);
+
+    /// <summary>Hosts without a dismissable soft keyboard need no action here.</summary>
+    public virtual void ShowKeyboard() { }
 
     protected void CommitText(string text)
     {
@@ -71,4 +84,5 @@ public sealed class NullInputMethod : IInputMethodService
     public event Action<string>? CompositionUpdated { add { } remove { } }
     public event Action<string?>? CompositionEnded { add { } remove { } }
     public void SetState(InputMethodState? state) { }
+    public void ShowKeyboard() { }
 }

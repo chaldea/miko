@@ -1,0 +1,25 @@
+using Miko.Simulator;
+using IonicDemo;
+
+namespace IonicDemo.Simulator;
+
+public static class Program
+{
+    [STAThread]
+    public static void Main(string[] args)
+    {
+        // Enable the MCP debug server. It starts a local HTTP endpoint
+        // (default http://localhost:5800) once the simulator window is up,
+        // exposing DOM/style/screenshot/device tools to MCP clients such as
+        // Claude Code. Only the simulator head references Miko.McpServer.
+        var context = App.CreateContext();
+
+        // Hot reload is wired up inside the shared app assembly, same as the desktop head.
+        App.InitializeHotReload(context);
+
+        // Run the app inside a device simulator window: the app renders into an
+        // independent device-sized canvas on the left, with a Miko-rendered
+        // settings panel (device / orientation / safe area) on the right.
+        context.RunSimulator();
+    }
+}

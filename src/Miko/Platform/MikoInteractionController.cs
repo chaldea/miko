@@ -180,6 +180,23 @@ public sealed class MikoInteractionController
     /// <summary>Currently attached native input endpoint, if the host provides one.</summary>
     public IInputMethod? InputMethod => _inputMethod;
 
+    /// <summary>
+    /// Asks the platform to present its soft keyboard for the focused editor.
+    /// <para>Callers use this for gestures that <i>mean</i> "give me the keyboard" — tapping an input.
+    /// It bypasses the state deduplication in <see cref="PublishInputMethodState"/>, because tapping
+    /// an already-focused field produces an identical state yet must still re-show a keyboard the
+    /// user dismissed via the IME's own hide button.</para>
+    /// </summary>
+    public void RequestInputMethodShow()
+    {
+        lock (_sync)
+        {
+            PublishInputMethodState();
+            if (FocusedElement is ITextEditable { IsEditable: true })
+                _inputMethod?.ShowKeyboard();
+        }
+    }
+
     /// <summary>Compatibility alias for hosts that configure the endpoint after construction.</summary>
     public void SetInputMethod(IInputMethod? inputMethod) => AttachInputMethod(inputMethod);
 
@@ -670,7 +687,7 @@ public sealed class MikoInteractionController
             CloseAllSelects();
             textAreaElement.MoveCursorToEnd();
             SetFocusCore(textAreaElement);
-            PublishInputMethodState();
+            RequestInputMethodShow();
         }
         else if (target is SelectElement selectElement2)
         {
@@ -689,13 +706,15 @@ public sealed class MikoInteractionController
 
         switch (inputElement.Type)
         {
-            // 文本类输入（含 search，Ionic 的 ion-searchbar 用的就是它）点击即聚焦并把光标移到末尾。
+            // 文本类输入（含 search，Ionic 的 ion-searchbar 用的就是它；含 number，走数字软键盘）
+            // 点击即聚焦并把光标移到末尾。此清单必须与 InputElement.IsEditable 保持同步。
             case InputType.Text:
             case InputType.Password:
             case InputType.Search:
+            case InputType.Number:
                 inputElement.MoveCursorToEnd();
                 SetFocusCore(inputElement);
-                PublishInputMethodState();
+                RequestInputMethodShow();
                 break;
             case InputType.Checkbox:
                 inputElement.Checked = !inputElement.Checked;
@@ -1071,7 +1090,7 @@ public sealed class MikoInteractionController
         {
             TextAreaElement => InputMethodType.Multiline,
             InputElement { Type: InputType.Password } => InputMethodType.Password,
-            InputElement { Type: InputType.Range } => InputMethodType.Number,
+            InputElement { Type: InputType.Number } => InputMethodType.Number,
             _ => InputMethodType.Text,
         };
         var state = new InputMethodState(

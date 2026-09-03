@@ -6,6 +6,10 @@
   </Folder>
   <Folder Name="/Ionic/">
     <Project Path="Ionic/IonicComponents/IonicComponents.csproj" />
+    <Project Path="Ionic/IonicDemo.Android/IonicDemo.Android.csproj" />
+    <Project Path="Ionic/IonicDemo.Desktop/IonicDemo.Desktop.csproj" />
+    <Project Path="Ionic/IonicDemo.Simulator/IonicDemo.Simulator.csproj" />
+    <Project Path="Ionic/IonicDemo.iOS/IonicDemo.iOS.csproj" />
     <Project Path="Ionic/IonicDemo/IonicDemo.csproj" />
   </Folder>
   <Folder Name="/Libs/">
