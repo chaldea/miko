@@ -22,7 +22,7 @@ namespace Miko.Android.Video;
 /// 解码线程只调用 <see cref="WaitForSurface"/> 与 <see cref="NotifyFrameAvailable"/>。
 /// </para>
 ///
-/// <para><b>未经真机运行验证</b>：本机无 Android 设备/模拟器，此实现仅通过编译验证。</para>
+/// <para>已在 Android API 36 x86_64 模拟器验证播放及暂停定位预览。</para>
 /// </summary>
 internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
 {
@@ -48,6 +48,8 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
     private int _frameWidth;
     private int _frameHeight;
     private bool _disposed;
+
+    internal event Action? FrameAvailable;
 
     private SKRuntimeEffect? _oesEffect;
     private SKRuntimeEffectUniforms? _oesUniforms;
@@ -111,7 +113,7 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
             // 纹理内容已更新，但纹理 id 不变。仍需重建 SKImage：Skia 会缓存图像内容，
             // 复用同一个 SKImage 会导致画面停在首帧。
             var glInfo = new GRGlTextureInfo(GlTextureExternalOes, (uint)_textureId, GlRgba8);
-            var backendTexture = new GRBackendTexture(_frameWidth, _frameHeight, mipmapped: false, glInfo);
+            using var backendTexture = new GRBackendTexture(_frameWidth, _frameHeight, mipmapped: false, glInfo);
 
             var image = SKImage.FromTexture(
                 grContext, backendTexture, GRSurfaceOrigin.TopLeft,
@@ -153,6 +155,7 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
         GLES20.GlTexParameteri(GLES11Ext.GlTextureExternalOes, GLES20.GlTextureWrapT, GLES20.GlClampToEdge);
 
         _surfaceTexture = new SurfaceTexture(_textureId);
+        _surfaceTexture.FrameAvailable += (_, _) => FrameAvailable?.Invoke();
         _surface = new Surface(_surfaceTexture);
 
         // 通知等待中的解码线程：Surface 已可用于 MediaCodec.Configure。
@@ -165,6 +168,7 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
         {
             if (_disposed) return;
             _disposed = true;
+            FrameAvailable = null;
 
             _currentImage?.Dispose();
             _currentImage = null;

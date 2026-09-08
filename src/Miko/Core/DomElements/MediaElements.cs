@@ -44,7 +44,28 @@ public class VideoElement : Element
     public override string TagName => "video";
 
     // ---- 声明式属性（HTML 风格）-------------------------------------------
-    public MediaSource Source { get; set; }
+    private MediaSource _source;
+    public MediaSource Source
+    {
+        get => _source;
+        set
+        {
+            if (_source.Equals(value)) return;
+            _source = value;
+            BumpMutationVersion();
+        }
+    }
+    private string? _mimeType;
+    public string? MimeType
+    {
+        get => _mimeType;
+        set
+        {
+            if (_mimeType == value) return;
+            _mimeType = value;
+            BumpMutationVersion();
+        }
+    }
     public bool AutoPlay { get; set; }
     public bool Loop { get; set; }
     public bool Muted { get; set; }
@@ -61,7 +82,27 @@ public class VideoElement : Element
     /// 由渲染引擎在首次见到该元素时通过 <see cref="IVideoBackend"/> 创建并赋值；
     /// 元素从树中移除时由引擎 <see cref="IVideoSession.Dispose"/>。
     /// </summary>
-    internal IVideoSession? Session { get; set; }
+    public IVideoSession? Session { get; internal set; }
+
+    /// <summary>Raised on the UI thread when the engine binds or releases a session.</summary>
+    public event Action<IVideoSession?>? SessionChanged;
+    /// <summary>Backend events marshalled to the engine's UI thread.</summary>
+    public event Action<VideoSessionEvent>? PlaybackEvent;
+    /// <summary>Refresh inexpensive playback snapshots before layout/render, on the UI thread.</summary>
+    public event Action? PlaybackUpdated;
+    internal string? SessionSource { get; set; }
+    internal string? SessionMimeType { get; set; }
+    internal Action<VideoSessionEvent>? SessionHandler { get; set; }
+    internal void NotifySessionChanged() => SessionChanged?.Invoke(Session);
+    internal void NotifyPlaybackEvent(VideoSessionEvent value) => PlaybackEvent?.Invoke(value);
+    internal void NotifyPlaybackUpdated() => PlaybackUpdated?.Invoke();
+
+    /// <summary>Request a fresh session after a load failure. The engine remains its owner.</summary>
+    public void Reload()
+    {
+        SessionSource = null;
+        BumpMutationVersion();
+    }
 
     /// <summary>占位图已解码的位图（首帧前绘制）。</summary>
     internal SKBitmap? PosterBitmap { get; set; }

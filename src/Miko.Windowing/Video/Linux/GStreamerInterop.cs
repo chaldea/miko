@@ -32,6 +32,52 @@ internal static class GStreamerInterop
     internal static extern IntPtr gst_parse_launch(
         [MarshalAs(UnmanagedType.LPUTF8Str)] string description, out IntPtr error);
 
+    [DllImport(Gst)]
+    internal static extern IntPtr gst_element_factory_make([MarshalAs(UnmanagedType.LPUTF8Str)] string factory, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+    [DllImport(Gst)]
+    internal static extern IntPtr gst_parse_bin_from_description([MarshalAs(UnmanagedType.LPUTF8Str)] string description, bool ghostUnlinkedPads, out IntPtr error);
+    [DllImport(Gst)]
+    internal static extern IntPtr gst_object_ref_sink(IntPtr obj);
+    [DllImport(Gst)]
+    internal static extern bool gst_element_seek(IntPtr element, double rate, GstFormat format, GstSeekFlags flags, int startType, long start, int stopType, long stop);
+    [DllImport(GstApp)]
+    internal static extern IntPtr gst_app_sink_try_pull_preroll(IntPtr sink, ulong timeout);
+    [DllImport(Gst)]
+    internal static extern IntPtr gst_element_get_bus(IntPtr element);
+    [DllImport(Gst)]
+    internal static extern IntPtr gst_bus_pop_filtered(IntPtr bus, uint types);
+    [DllImport(Gst)]
+    internal static extern void gst_message_parse_error(IntPtr message, out IntPtr error, out IntPtr debug);
+    [DllImport(Gst)]
+    internal static extern void gst_message_unref(IntPtr message);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct GValue { public nuint Type; public ulong Data0, Data1; }
+    [DllImport(GObject)] private static extern IntPtr g_value_init(ref GValue value, nuint type);
+    [DllImport(GObject)] private static extern void g_value_unset(ref GValue value);
+    [DllImport(GObject)] private static extern void g_value_set_double(ref GValue value, double number);
+    [DllImport(GObject)] private static extern void g_value_set_boolean(ref GValue value, bool boolean);
+    [DllImport(GObject)] private static extern void g_value_set_string(ref GValue value, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
+    [DllImport(GObject)] private static extern void g_value_set_object(ref GValue value, IntPtr obj);
+    [DllImport(GObject)] private static extern void g_object_set_property(IntPtr obj, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ref GValue value);
+    internal static void SetProperty(IntPtr obj, string name, object value)
+    {
+        GValue native = default;
+        try
+        {
+            switch (value)
+            {
+                case double number: g_value_init(ref native, 60); g_value_set_double(ref native, number); break;
+                case bool boolean: g_value_init(ref native, 20); g_value_set_boolean(ref native, boolean); break;
+                case string text: g_value_init(ref native, 64); g_value_set_string(ref native, text); break;
+                case IntPtr pointer: g_value_init(ref native, 80); g_value_set_object(ref native, pointer); break;
+                default: throw new ArgumentException("Unsupported GValue type.", nameof(value));
+            }
+            g_object_set_property(obj, name, ref native);
+        }
+        finally { if (native.Type != 0) g_value_unset(ref native); }
+    }
+
     [DllImport(Gst, ExactSpelling = true)]
     internal static extern IntPtr gst_bin_get_by_name(IntPtr bin, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
 
@@ -83,10 +129,6 @@ internal static class GStreamerInterop
 
     [DllImport(Gst, ExactSpelling = true)]
     internal static extern void gst_buffer_unmap(IntPtr buffer, ref GstMapInfo info);
-
-    /// <summary>读取 GstBuffer 的 PTS（Presentation Time Stamp），单位纳秒。</summary>
-    [DllImport(Gst, ExactSpelling = true)]
-    internal static extern ulong gst_buffer_get_pts(IntPtr buffer);
 
     [DllImport(Gst, ExactSpelling = true)]
     internal static extern IntPtr gst_caps_get_structure(IntPtr caps, uint index);
@@ -142,8 +184,8 @@ internal static class GStreamerInterop
     {
         None = 0,
         Flush = 1 << 0,
-        KeyUnit = 1 << 1,
-        Accurate = 1 << 2,
+        Accurate = 1 << 1,
+        KeyUnit = 1 << 2,
     }
 
     [Flags]
@@ -169,6 +211,10 @@ internal static class GStreamerInterop
         public IntPtr UserData1;
         public IntPtr UserData2;
         public IntPtr UserData3;
+        public IntPtr Reserved0;
+        public IntPtr Reserved1;
+        public IntPtr Reserved2;
+        public IntPtr Reserved3;
     }
 
     /// <summary>GStreamer 的时间单位是纳秒；<c>TimeSpan.Ticks</c> 是 100ns。</summary>

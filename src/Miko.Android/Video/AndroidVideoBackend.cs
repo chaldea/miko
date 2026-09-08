@@ -28,13 +28,13 @@ public sealed class AndroidVideoBackend : IVideoBackend
         Hdr: false,
         SupportedMimeTypes:
         [
-            "video/mp4", "video/webm", "video/3gpp", "video/x-matroska",
+            "video/mp4", "video/webm", "video/3gpp", "video/x-matroska", "application/vnd.apple.mpegurl", "application/x-mpegURL",
         ]);
 
     public IVideoSession CreateSession(VideoSourceDescriptor source, VideoSessionOptions options)
     {
         _logger.LogInformation("Creating Android MediaCodec video session for {Uri}", source.Uri);
-        var session = new AndroidVideoSession(source, options, _logger);
+        var session = new AndroidMediaPlayerSession(source, options);
         session.Start();
         return session;
     }

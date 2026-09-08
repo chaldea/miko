@@ -42,6 +42,7 @@ internal sealed class AVFoundationVideoSession : IVideoSession
 
     private volatile bool _playRequested;
     private volatile bool _loop;
+    private volatile bool _buffering;
     private volatile bool _muted;
     private volatile float _volume = 1.0f;
     private volatile float _playbackRate = 1.0f;
@@ -69,6 +70,7 @@ internal sealed class AVFoundationVideoSession : IVideoSession
     public TimeSpan Position => TimeSpan.FromTicks(Interlocked.Read(ref _positionTicks));
     public int VideoWidth => _videoWidth;
     public int VideoHeight => _videoHeight;
+    public bool IsBuffering => _state == VideoSessionState.Loading || _buffering;
 
     public event Action<VideoSessionEvent>? Event;
 
@@ -266,6 +268,12 @@ internal sealed class AVFoundationVideoSession : IVideoSession
         while (!_stopRequested)
         {
             HandlePendingSeek();
+            bool buffering = _playRequested && SendBool(_playerItem, GetSelector("isPlaybackBufferEmpty"));
+            if (_buffering != buffering)
+            {
+                _buffering = buffering;
+                Raise(new VideoSessionEvent.Buffering(buffering));
+            }
 
             if (!_playRequested)
             {

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <Description>Native player components for Miko.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Miko/Miko.csproj" />
+    <EmbeddedResource Include="../Miko.Ionic/Resources/svg/play.svg;../Miko.Ionic/Resources/svg/pause.svg;../Miko.Ionic/Resources/svg/volume-high.svg;../Miko.Ionic/Resources/svg/volume-mute.svg;../Miko.Ionic/Resources/svg/settings-outline.svg;../Miko.Ionic/Resources/svg/expand.svg;../Miko.Ionic/Resources/svg/contract.svg;../Miko.Ionic/Resources/svg/chatbox-outline.svg;../Miko.Ionic/Resources/svg/refresh.svg">
+      <Link>Player/Icons/%(Filename)%(Extension)</Link>
+      <LogicalName>Miko.Player.Icons.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

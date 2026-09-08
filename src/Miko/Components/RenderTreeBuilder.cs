@@ -276,6 +276,13 @@ public class RenderTreeBuilder
         }
     }
 
+    /// <summary>Attach a retained native element, for components with custom drawing or media state.</summary>
+    public void AddElement(int seq, Element element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        AttachToTree(element);
+    }
+
     public void AddContent(int seq, object? text)
     {
         if (text is null) return;
