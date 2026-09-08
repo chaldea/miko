@@ -1095,6 +1095,21 @@ public class RenderEngine
         {
             RenderVideoFrame(box, videoElement);
         }
+
+        if (element is CanvasElement { Paint: { } paint })
+        {
+            var content = box.BoxModel.Content;
+            int saveCount = _canvas!.Save();
+            try
+            {
+                _canvas.ClipRect(new SKRect(content.X, content.Y, content.Right, content.Bottom));
+                paint(_canvas, content);
+            }
+            finally
+            {
+                _canvas.RestoreToCount(saveCount);
+            }
+        }
     }
 
     /// <summary>

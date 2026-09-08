@@ -56,12 +56,13 @@ internal sealed class MediaFoundationVideoBackend : IVideoBackend
     public VideoBackendCapabilities Capabilities { get; } = new(
         HardwareDecode: true,
         Hdr: false,
-        SupportedMimeTypes: ["video/mp4", "video/quicktime", "video/x-ms-wmv", "video/3gpp", "video/x-m4v"]);
+        SupportedMimeTypes: ["video/mp4", "video/quicktime", "video/x-ms-wmv", "video/3gpp", "video/x-m4v",
+            "application/vnd.apple.mpegurl", "application/x-mpegURL"]);
 
     public IVideoSession CreateSession(VideoSourceDescriptor source, VideoSessionOptions options)
     {
         _logger.LogInformation("Creating Media Foundation video session for {Uri}", source.Uri);
-        var session = new MediaFoundationVideoSession(source, options, _logger);
+        var session = new MediaEngineVideoSession(source, options, _logger);
         session.Start();
         return session;
     }

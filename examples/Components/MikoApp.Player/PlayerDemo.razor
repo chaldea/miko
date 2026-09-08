@@ -1,0 +1,27 @@
+@namespace MikoApp.Player
+
+<div Style="@PageStyle">
+    <h2 Style="@HeadingStyle">MikoPlayer</h2>
+    <div Style="@SourceStyle">
+        <input @bind="_sourceInput" Style="@InputStyle" />
+        <button @onclick="OpenSource">Open</button>
+        <button @onclick="OpenLocal">Local</button>
+        <button @onclick="OpenHls">HLS</button>
+    </div>
+    <MikoPlayer Source="@_source" AutoPlay="true" Danmaku="@Comments" />
+</div>
+
+@code {
+    private string _source = "Assets/miko-local.mp4";
+    private string _sourceInput = "Assets/miko-local.mp4";
+    private void OpenSource() => _source = _sourceInput.Trim();
+    private void OpenLocal() { _sourceInput = "Assets/miko-local.mp4"; OpenSource(); }
+    private void OpenHls() { _sourceInput = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"; OpenSource(); }
+    private static readonly IReadOnlyList<DanmakuItem> Comments = Enumerable.Range(0, 120)
+        .Select(i => new DanmakuItem(TimeSpan.FromSeconds(i * .8), i % 3 == 0 ? "Miko native video" : "Skia danmaku " + i,
+            i % 7 == 0 ? DanmakuMode.Top : i % 11 == 0 ? DanmakuMode.Bottom : DanmakuMode.Scroll)).ToArray();
+    private static readonly Style PageStyle = new() { Display = Display.Flex, FlexDirection = FlexDirection.Column, Width = Length.Percent(100), Height = Length.Percent(100), BackgroundColor = Color.FromHex("#101214"), Color = Color.White, Padding = Length.Px(12), OverflowY = Overflow.Auto };
+    private static readonly Style HeadingStyle = new() { FontSize = Length.Px(22), Margin = Length.Px(8), FlexShrink = 0 };
+    private static readonly Style SourceStyle = new() { Display = Display.Flex, Gap = Length.Px(6), Height = Length.Px(48), AlignItems = AlignItems.Center, FlexShrink = 0 };
+    private static readonly Style InputStyle = new() { FlexGrow = 1, MinWidth = Length.Px(0), Height = Length.Px(36) };
+}

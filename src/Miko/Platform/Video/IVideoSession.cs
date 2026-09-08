@@ -29,6 +29,11 @@ public interface IVideoSession : IDisposable
     TimeSpan Duration { get; }
     TimeSpan Position { get; }
 
+    /// <summary>Known buffered ranges; empty when the backend cannot report them.</summary>
+    IReadOnlyList<VideoTimeRange> BufferedRanges => Array.Empty<VideoTimeRange>();
+    bool IsBuffering => State == VideoSessionState.Loading;
+    string? ErrorMessage => null;
+
     /// <summary>媒体内禀像素宽，用于 replaced 元素的内禀尺寸/纵横比。加载完成前为 0。</summary>
     int VideoWidth { get; }
 

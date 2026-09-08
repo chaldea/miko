@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Miko.Android/Miko.Android.csproj" />
     <Project Path="src/Miko.Bootstrap/Miko.Bootstrap.csproj" />
+    <Project Path="src/Miko.Components/Miko.Components.csproj" />
     <Project Path="src/Miko.DevTools/Miko.DevTools.csproj" />
     <Project Path="src/Miko.Ionic/Miko.Ionic.csproj" />
     <Project Path="src/Miko.iOS/Miko.iOS.csproj" />
@@ -16,6 +17,7 @@
     <Project Path="src/Miko/Miko.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Miko.Components.Tests/Miko.Components.Tests.csproj" />
     <Project Path="tests/Miko.Ionic.Tests/Miko.Ionic.Tests.csproj" />
     <Project Path="tests/Miko.McpServer.Tests/Miko.McpServer.Tests.csproj" />
     <Project Path="tests/Miko.Razor.Tests/Miko.Razor.Tests.csproj" />

@@ -3,6 +3,12 @@ namespace Miko.Platform.Video;
 /// <summary>视频源描述。<paramref name="Uri"/> 为本地路径或 http(s) URL；MIME 可选，用于后端选择解码器。</summary>
 public sealed record VideoSourceDescriptor(string Uri, string? MimeType = null)
 {
+    public bool IsHls =>
+        string.Equals(MimeType, "application/vnd.apple.mpegurl", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(MimeType, "application/x-mpegURL", StringComparison.OrdinalIgnoreCase) ||
+        (System.Uri.TryCreate(Uri, UriKind.Absolute, out var parsed)
+            ? parsed.AbsolutePath : Uri.Split('?', '#')[0]).EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>是否为网络源（http/https）。</summary>
     public bool IsNetwork =>
         Uri.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
@@ -79,6 +85,7 @@ public enum VideoSessionState
 /// <summary>会话事件。可能在后端解码线程触发，订阅方需注意线程边界。</summary>
 public abstract record VideoSessionEvent
 {
+    public sealed record Buffering(bool IsBuffering) : VideoSessionEvent;
     /// <summary>媒体已加载，已知内禀尺寸与时长。引擎据此写入元素内禀尺寸并触发重排。</summary>
     public sealed record Loaded(int Width, int Height, TimeSpan Duration) : VideoSessionEvent;
 
@@ -91,3 +98,5 @@ public abstract record VideoSessionEvent
     /// <summary>发生错误（打开失败 / 解码错误等）。</summary>
     public sealed record Error(string Message, Exception? Cause) : VideoSessionEvent;
 }
+
+public readonly record struct VideoTimeRange(TimeSpan Start, TimeSpan End);

@@ -8,8 +8,8 @@ using static Miko.Windowing.Video.Linux.GStreamerInterop;
 namespace Miko.Windowing.Video.Linux;
 
 /// <summary>
-/// GStreamer 播放会话。pipeline 为 <c>uridecodebin ! videoconvert ! appsink</c>：
-/// <c>uridecodebin</c> 自动挑选解复用器与解码器 —— 系统装有 VAAPI/V4L2 插件时
+/// GStreamer 播放会话。<c>playbin</c> 负责音频输出及 HLS，视频输出到 appsink。
+/// 系统自动挑选解复用器与解码器，装有 VAAPI/V4L2 插件时
 /// 自动走 GPU 硬解，否则退到软解，这是 GStreamer 的既有协商逻辑，无需我们判断。
 ///
 /// <para>
@@ -44,10 +44,14 @@ internal sealed class GStreamerVideoSession : IVideoSession
 
     private volatile bool _playRequested;
     private volatile bool _loop;
+    private volatile float _volume = 1, _rate = 1;
+    private volatile bool _muted, _buffering;
+    private float _appliedRate = 1, _appliedVolume = -1;
     private long _seekRequestTicks = -1;
     private readonly object _controlLock = new();
 
     private TimeSpan _duration;
+    private string? _error;
     private long _positionTicks;
     private int _videoWidth;
     private int _videoHeight;
@@ -59,6 +63,8 @@ internal sealed class GStreamerVideoSession : IVideoSession
         _logger = logger ?? NullLogger.Instance;
         _loop = options.Loop;
         _playRequested = options.AutoPlay;
+        _volume = options.InitialVolume;
+        _muted = options.Muted;
     }
 
     public IVideoFrameSource FrameSource => _frameSource;
@@ -67,6 +73,8 @@ internal sealed class GStreamerVideoSession : IVideoSession
     public TimeSpan Position => TimeSpan.FromTicks(Interlocked.Read(ref _positionTicks));
     public int VideoWidth => _videoWidth;
     public int VideoHeight => _videoHeight;
+    public bool IsBuffering => _state == VideoSessionState.Loading || _buffering;
+    public string? ErrorMessage => _error;
 
     public event Action<VideoSessionEvent>? Event;
 
@@ -106,10 +114,9 @@ internal sealed class GStreamerVideoSession : IVideoSession
 
     public void SetLoop(bool loop) => _loop = loop;
 
-    // 音频轨未接入 pipeline（只取视频），保持 no-op 与其它后端一致。
-    public void SetVolume(float volume) { }
-    public void SetMuted(bool muted) { }
-    public void SetPlaybackRate(float rate) { }
+    public void SetVolume(float volume) => _volume = Math.Clamp(volume, 0, 1);
+    public void SetMuted(bool muted) => _muted = muted;
+    public void SetPlaybackRate(float rate) => _rate = rate;
 
     // ---- pipeline ----------------------------------------------------------
 
@@ -139,7 +146,9 @@ internal sealed class GStreamerVideoSession : IVideoSession
         }
         catch (Exception ex)
         {
+            _error = ex.Message;
             _state = VideoSessionState.Error;
+            _buffering = false;
             _logger.LogError(ex, "GStreamer playback failed for {Uri}", _source.Uri);
             Raise(new VideoSessionEvent.Error(ex.Message, ex));
         }
@@ -155,21 +164,23 @@ internal sealed class GStreamerVideoSession : IVideoSession
     /// </summary>
     private void BuildPipeline()
     {
-        // uridecodebin 需要合法 URI：先按 Miko 约定归一化相对路径，再转成 file:// 形式。
+        // playbin 需要合法 URI：先按 Miko 约定归一化相对路径，再转成 file:// 形式。
         string uri = ToUri(_source.ResolveForBackend());
 
-        string description =
-            $"uridecodebin uri=\"{uri}\" ! videoconvert ! " +
-            "video/x-raw,format=NV12 ! appsink name=miko-sink max-buffers=2 drop=true sync=true";
-
-        _pipeline = gst_parse_launch(description, out var error);
+        _pipeline = gst_element_factory_make("playbin", "miko-player");
+        if (_pipeline == IntPtr.Zero) throw new InvalidOperationException("GStreamer playbin is unavailable.");
+        SetProperty(_pipeline, "uri", uri);
+        var videoSink = gst_parse_bin_from_description(
+            "videoconvert ! video/x-raw,format=NV12 ! appsink name=miko-sink max-buffers=2 drop=true sync=true", true, out var error);
         string? errorMessage = TakeErrorMessage(error);
-
-        if (_pipeline == IntPtr.Zero)
-            throw new InvalidOperationException(
-                $"gst_parse_launch failed: {errorMessage ?? "unknown error"}");
-
-        _appsink = gst_bin_get_by_name(_pipeline, "miko-sink");
+        if (videoSink == IntPtr.Zero) throw new InvalidOperationException(errorMessage ?? "Cannot create video sink.");
+        gst_object_ref_sink(videoSink);
+        try
+        {
+            _appsink = gst_bin_get_by_name(videoSink, "miko-sink");
+            SetProperty(_pipeline, "video-sink", videoSink);
+        }
+        finally { g_object_unref(videoSink); }
         if (_appsink == IntPtr.Zero)
             throw new InvalidOperationException("appsink 'miko-sink' not found in pipeline.");
 
@@ -196,84 +207,119 @@ internal sealed class GStreamerVideoSession : IVideoSession
     private void RunPullLoop()
     {
         bool loadedRaised = false;
+        bool needsPreroll = true;
         // 跟踪已下发给 pipeline 的状态，只在意图变化时调用 set_state（该调用不便每轮重复）。
         bool pipelinePlaying = _playRequested;
+        long lastFrame = Environment.TickCount64;
+        IntPtr bus = gst_element_get_bus(_pipeline);
 
-        while (!_stopRequested)
+        try
         {
-            HandlePendingSeek();
-
-            if (!_playRequested)
+            while (!_stopRequested)
             {
-                // 在本线程切换 pipeline 状态：_pipeline 的创建与释放都在这里，无竞态。
-                if (pipelinePlaying)
+                IntPtr message = gst_bus_pop_filtered(bus, 2); // GST_MESSAGE_ERROR
+                if (message != IntPtr.Zero)
                 {
-                    gst_element_set_state(_pipeline, GstState.Paused);
-                    pipelinePlaying = false;
+                    gst_message_parse_error(message, out var error, out var debug);
+                    string? text = TakeErrorMessage(error);
+                    if (debug != IntPtr.Zero) g_free(debug);
+                    gst_message_unref(message);
+                    throw new InvalidOperationException(text ?? "GStreamer playback failed.");
+                }
+                float volume = _muted ? 0 : _volume;
+                if (_appliedVolume != volume) { SetProperty(_pipeline, "volume", (double)volume); _appliedVolume = volume; }
+                if (_appliedRate != _rate)
+                {
+                    if (gst_element_seek(_pipeline, _rate, GstFormat.Time, GstSeekFlags.Flush | GstSeekFlags.KeyUnit, 1, ToGstTime(Position), 0, -1))
+                    {
+                        _appliedRate = _rate;
+                        needsPreroll = true;
+                    }
+                }
+                needsPreroll |= HandlePendingSeek();
+
+                if (!_playRequested)
+                {
+                    // 在本线程切换 pipeline 状态：_pipeline 的创建与释放都在这里，无竞态。
+                    if (pipelinePlaying)
+                    {
+                        gst_element_set_state(_pipeline, GstState.Paused);
+                        pipelinePlaying = false;
+                    }
+
+                    if (_state == VideoSessionState.Playing) _state = VideoSessionState.Paused;
+                    if (!needsPreroll) { Thread.Sleep(15); continue; }
                 }
 
-                if (_state == VideoSessionState.Playing) _state = VideoSessionState.Paused;
-                Thread.Sleep(15);
-                continue;
-            }
-
-            if (!pipelinePlaying)
-            {
-                gst_element_set_state(_pipeline, GstState.Playing);
-                pipelinePlaying = true;
-            }
-
-            if (_state == VideoSessionState.Paused) _state = VideoSessionState.Playing;
-
-            IntPtr sample = gst_app_sink_try_pull_sample(_appsink, PullTimeoutNanos);
-            if (sample == IntPtr.Zero)
-            {
-                if (gst_app_sink_is_eos(_appsink) && !HandleEndOfStream())
-                    return;
-                continue;
-            }
-
-            try
-            {
-                var frame = ReadSample(sample, out int width, out int height);
-                if (frame == null) continue;
-
-                // 首帧确定内禀尺寸后才能上报 Loaded（caps 在 preroll 后才完整）。
-                if (!loadedRaised)
+                if (!pipelinePlaying && _playRequested)
                 {
-                    loadedRaised = true;
-                    _videoWidth = width;
-                    _videoHeight = height;
-                    Raise(new VideoSessionEvent.Loaded(width, height, _duration));
+                    gst_element_set_state(_pipeline, GstState.Playing);
+                    pipelinePlaying = true;
                 }
 
-                _frameSource.PushFrame(frame);
+                if (_playRequested && _state == VideoSessionState.Paused) _state = VideoSessionState.Playing;
 
-                if (gst_element_query_position(_pipeline, GstFormat.Time, out long posNanos) && posNanos >= 0)
-                    Interlocked.Exchange(ref _positionTicks, FromGstTime(posNanos).Ticks);
+                IntPtr sample = _playRequested ? gst_app_sink_try_pull_sample(_appsink, PullTimeoutNanos)
+                    : gst_app_sink_try_pull_preroll(_appsink, PullTimeoutNanos);
+                if (sample == IntPtr.Zero)
+                {
+                    if (gst_app_sink_is_eos(_appsink) && !HandleEndOfStream())
+                        return;
+                    if (_playRequested && Environment.TickCount64 - lastFrame > 1000 && !_buffering)
+                    { _buffering = true; Raise(new VideoSessionEvent.Buffering(true)); }
+                    continue;
+                }
 
-                Raise(new VideoSessionEvent.FrameAvailable(frame.Pts));
-            }
-            finally
-            {
-                gst_sample_unref(sample);
+                try
+                {
+                    lastFrame = Environment.TickCount64;
+                    if (_buffering) { _buffering = false; Raise(new VideoSessionEvent.Buffering(false)); }
+                    ReadDuration();
+                    if (gst_element_query_position(_pipeline, GstFormat.Time, out long timestamp) && timestamp >= 0)
+                        Interlocked.Exchange(ref _positionTicks, FromGstTime(timestamp).Ticks);
+                    var frame = ReadSample(sample, Position, out int width, out int height);
+                    if (frame == null) continue;
+                    needsPreroll = false;
+
+                    // 首帧确定内禀尺寸后才能上报 Loaded（caps 在 preroll 后才完整）。
+                    if (!loadedRaised)
+                    {
+                        loadedRaised = true;
+                        _videoWidth = width;
+                        _videoHeight = height;
+                        Raise(new VideoSessionEvent.Loaded(width, height, _duration));
+                    }
+
+                    _frameSource.PushFrame(frame);
+
+                    if (gst_element_query_position(_pipeline, GstFormat.Time, out long posNanos) && posNanos >= 0)
+                        Interlocked.Exchange(ref _positionTicks, FromGstTime(posNanos).Ticks);
+
+                    Raise(new VideoSessionEvent.FrameAvailable(frame.Pts));
+                }
+                finally
+                {
+                    gst_sample_unref(sample);
+                }
             }
         }
+        finally { g_object_unref(bus); }
     }
 
-    private void HandlePendingSeek()
+    private bool HandlePendingSeek()
     {
         long seekTicks;
         lock (_controlLock) { seekTicks = _seekRequestTicks; _seekRequestTicks = -1; }
-        if (seekTicks < 0) return;
+        if (seekTicks < 0) return false;
 
-        gst_element_seek_simple(
-            _pipeline, GstFormat.Time,
+        if (!gst_element_seek(
+            _pipeline, _rate, GstFormat.Time,
             GstSeekFlags.Flush | GstSeekFlags.KeyUnit,
-            ToGstTime(TimeSpan.FromTicks(seekTicks)));
+            1, ToGstTime(TimeSpan.FromTicks(seekTicks)), 0, -1)) return false;
 
         Interlocked.Exchange(ref _positionTicks, seekTicks);
-        if (_state == VideoSessionState.Ended) _state = VideoSessionState.Playing;
+        if (_state == VideoSessionState.Ended) _state = _playRequested ? VideoSessionState.Playing : VideoSessionState.Paused;
+        return true;
     }
 
     /// <summary>返回 true 表示继续循环（已 loop 回起点），false 表示会话结束。</summary>
@@ -281,7 +327,7 @@ internal sealed class GStreamerVideoSession : IVideoSession
     {
         if (_loop)
         {
-            gst_element_seek_simple(_pipeline, GstFormat.Time, GstSeekFlags.Flush | GstSeekFlags.KeyUnit, 0);
+            gst_element_seek(_pipeline, _rate, GstFormat.Time, GstSeekFlags.Flush | GstSeekFlags.KeyUnit, 1, 0, 0, -1);
             return true;
         }
 
@@ -301,7 +347,7 @@ internal sealed class GStreamerVideoSession : IVideoSession
     /// 从 sample 拷出 NV12 两个平面。GStreamer 的 NV12 缓冲把 Y 与 UV 前后相接，
     /// stride 对齐到 4 字节边界（<c>GST_ROUND_UP_4</c>）。
     /// </summary>
-    private static VideoFrameBuffer? ReadSample(IntPtr sample, out int width, out int height)
+    private static VideoFrameBuffer? ReadSample(IntPtr sample, TimeSpan position, out int width, out int height)
     {
         width = 0;
         height = 0;
@@ -318,11 +364,8 @@ internal sealed class GStreamerVideoSession : IVideoSession
         IntPtr buffer = gst_sample_get_buffer(sample);
         if (buffer == IntPtr.Zero) return null;
 
-        // 读取帧的 PTS（Presentation Time Stamp），单位纳秒，转为 100ns ticks。
-        ulong ptsNanos = gst_buffer_get_pts(buffer);
-        TimeSpan pts = ptsNanos == ulong.MaxValue  // GST_CLOCK_TIME_NONE
-            ? TimeSpan.Zero
-            : TimeSpan.FromTicks((long)(ptsNanos / 100));
+        // GST_BUFFER_PTS is a C macro, not an exported function. Use the pipeline clock.
+        TimeSpan pts = position;
 
         if (!gst_buffer_map(buffer, out var mapInfo, GstMapFlags.Read))
             return null;

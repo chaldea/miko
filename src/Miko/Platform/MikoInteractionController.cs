@@ -396,8 +396,9 @@ public sealed class MikoInteractionController
             _longPressFired = false;
             CancelLongPress();
 
-            // Check scrollbar hit first
-            var scrollbarHit = pointerType == PointerType.Mouse ? _engine.HitTestScrollbar(x, y) : null;
+            // Select popups are painted above content, including range inputs and scrollbars.
+            var dropdownHit = HitTestSelectDropdown(x, y);
+            var scrollbarHit = dropdownHit == null && pointerType == PointerType.Mouse ? _engine.HitTestScrollbar(x, y) : null;
             if (scrollbarHit != null)
             {
                 _logger.LogTrace("Scrollbar hit: type={HitType}, element={Tag}#{Id}, thumbOffset={Offset}, pos=({X}, {Y})",
@@ -413,7 +414,7 @@ public sealed class MikoInteractionController
                 return;
             }
 
-            var target = _engine.HitTest(x, y);
+            var target = dropdownHit?.select ?? _engine.HitTest(x, y);
             if (target != null)
             {
                 _pointerDownTarget = target;

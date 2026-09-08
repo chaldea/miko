@@ -57,7 +57,7 @@ internal sealed class GStreamerVideoBackend : IVideoBackend
         // 这里按「系统具备硬解能力」上报，实际协商由 GStreamer 完成。
         HardwareDecode: true,
         Hdr: false,
-        SupportedMimeTypes: ["video/mp4", "video/webm", "video/x-matroska", "video/ogg", "video/quicktime"]);
+        SupportedMimeTypes: ["video/mp4", "video/webm", "video/x-matroska", "video/ogg", "video/quicktime", "application/vnd.apple.mpegurl", "application/x-mpegURL"]);
 
     public IVideoSession CreateSession(VideoSourceDescriptor source, VideoSessionOptions options)
     {

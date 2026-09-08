@@ -1375,10 +1375,10 @@ public class MikoEngine
             var removed = new List<VideoElement>();
             foreach (var (element, session) in _videoSessions)
             {
-                if (!present.Contains(element))
+                if (!present.Contains(element) || element.SessionSource != element.Source.ToUri() ||
+                    element.SessionMimeType != element.MimeType)
                 {
-                    session.Dispose();
-                    element.Session = null;
+                    ReleaseVideoSession(element, session);
                     removed.Add(element);
                 }
             }
@@ -1391,10 +1391,10 @@ public class MikoEngine
         {
             EnsurePosterDecoded(video);
 
-            if (video.Session != null) continue;
-            if (video.Source.IsEmpty) continue;
-
-            CreateVideoSession(video);
+            if (video.Session == null && !video.Source.IsEmpty &&
+                (video.SessionSource != video.Source.ToUri() || video.SessionMimeType != video.MimeType))
+                CreateVideoSession(video);
+            video.NotifyPlaybackUpdated();
         }
     }
 
@@ -1421,10 +1421,12 @@ public class MikoEngine
 
     private void CreateVideoSession(VideoElement video)
     {
+        video.SessionSource = video.Source.ToUri();
+        video.SessionMimeType = video.MimeType;
         try
         {
             var session = VideoBackend!.CreateSession(
-                new VideoSourceDescriptor(video.Source.ToUri()),
+                new VideoSourceDescriptor(video.Source.ToUri(), video.MimeType),
                 new VideoSessionOptions(
                     AutoPlay: video.AutoPlay,
                     Muted: video.Muted,
@@ -1434,14 +1436,49 @@ public class MikoEngine
             _videoSessions[video] = session;
 
             // 事件可能在解码线程触发，统一通过 PostInvalidate 把重绘转交主循环。
-            session.Event += evt => OnVideoSessionEvent(video, evt);
+            video.SessionHandler = evt =>
+            {
+                // Frame notifications need only a paint invalidation; do not enqueue one UI
+                // closure per decoded frame. Other events must never mutate DOM off-thread.
+                if (evt is VideoSessionEvent.FrameAvailable)
+                {
+                    if (ReferenceEquals(video.Session, session)) PostInvalidate(video);
+                    return;
+                }
+                _dispatcher.Post(() =>
+                {
+                    if (!ReferenceEquals(video.Session, session) || video.SessionSource != video.Source.ToUri() || video.SessionMimeType != video.MimeType) return;
+                    OnVideoSessionEvent(video, evt);
+                    video.NotifyPlaybackEvent(evt);
+                });
+            };
+            session.Event += video.SessionHandler;
+            // Backends may finish loading before their factory returns.
+            if (session.VideoWidth > 0 && session.VideoHeight > 0)
+                OnVideoSessionEvent(video, new VideoSessionEvent.Loaded(session.VideoWidth, session.VideoHeight, session.Duration));
+            video.NotifySessionChanged();
 
             _logger.LogDebug("Video session created for <video src=\"{Src}\">", video.Source.Raw);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create video session for <video src=\"{Src}\">", video.Source.Raw);
+            video.NotifyPlaybackEvent(new VideoSessionEvent.Error(ex.Message, ex));
         }
+    }
+
+    private static void ReleaseVideoSession(VideoElement video, IVideoSession session)
+    {
+        if (video.SessionHandler != null) session.Event -= video.SessionHandler;
+        video.Session = null;
+        video.SessionHandler = null;
+        video.SessionSource = null;
+        video.IntrinsicWidth = null;
+        video.IntrinsicHeight = null;
+        video.NotifySessionChanged();
+        session.Dispose();
+        video.PosterBitmap?.Dispose();
+        video.PosterBitmap = null;
     }
 
     private void OnVideoSessionEvent(VideoElement video, VideoSessionEvent evt)
@@ -1469,6 +1506,11 @@ public class MikoEngine
             case VideoSessionEvent.Error error:
                 _logger.LogError(error.Cause, "Video error on <video src=\"{Src}\">: {Message}",
                     video.Source.Raw, error.Message);
+                PostInvalidate(video);
+                break;
+
+            case VideoSessionEvent.Buffering:
+                PostInvalidate(video);
                 break;
         }
     }
@@ -1484,8 +1526,8 @@ public class MikoEngine
     /// <summary>释放所有视频会话。平台宿主关闭时调用。</summary>
     public void DisposeVideoSessions()
     {
-        foreach (var session in _videoSessions.Values)
-            session.Dispose();
+        foreach (var (video, session) in _videoSessions)
+            ReleaseVideoSession(video, session);
         _videoSessions.Clear();
     }
 
