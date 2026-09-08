@@ -64,6 +64,7 @@ public class LayoutEngine
     private Element? _cachedRoot;
     private List<StyleSheet>? _cachedStyleSheets;
     private int _cachedStyleSheetCount;
+    private long _cachedStyleSheetVersion;
     private float _cachedViewportWidth;
     private float _cachedViewportHeight;
     private SafeAreaInsets _cachedSafeArea;
@@ -96,6 +97,7 @@ public class LayoutEngine
             && ReferenceEquals(_cachedRoot, root)
             && ReferenceEquals(_cachedStyleSheets, styleSheets)
             && _cachedStyleSheetCount == styleSheets.Count
+            && _cachedStyleSheetVersion == GetStyleSheetVersion(styleSheets)
             && Math.Abs(_cachedViewportWidth - viewportWidth) < 0.01f
             && Math.Abs(_cachedViewportHeight - viewportHeight) < 0.01f
             && _cachedSafeArea == safeArea
@@ -164,6 +166,7 @@ public class LayoutEngine
         _cachedRoot = root;
         _cachedStyleSheets = styleSheets;
         _cachedStyleSheetCount = styleSheets.Count;
+        _cachedStyleSheetVersion = GetStyleSheetVersion(styleSheets);
         _cachedViewportWidth = viewportWidth;
         _cachedViewportHeight = viewportHeight;
         _cachedSafeArea = safeArea;
@@ -171,6 +174,14 @@ public class LayoutEngine
         _cachedResult = layoutRoot;
 
         return layoutRoot;
+    }
+
+    private static long GetStyleSheetVersion(List<StyleSheet> styleSheets)
+    {
+        var version = 17L;
+        for (var i = 0; i < styleSheets.Count; i++)
+            version = unchecked(version * 31 + styleSheets[i].Version);
+        return version;
     }
 
     private static void ApplyInitialScrollOffsets(LayoutBox box)

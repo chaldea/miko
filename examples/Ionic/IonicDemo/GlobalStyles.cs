@@ -10,6 +10,10 @@ internal class GlobalStyles
         var styleSheet = new StyleSheet();
         styleSheet.Add(new CssObject()
         {
+            [".demo-dark .component-content .background-content"] = new() { BackgroundColor = (Color)"#121212" },
+            [".demo-dark .component-content .ion-picker"] = new() { BackgroundColor = (Color)"#202124" },
+            [".demo-dark .component-detail .component-description"] = new() { Color = (Color)"#adb0b5" },
+            [".demo-dark .component-icons .ion-icon"] = new() { Color = (Color)"#f1f3f4" },
             [".component-content"] = new()
             {
                 [".background-content"] = new()

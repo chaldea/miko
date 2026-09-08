@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\**\*" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
   </ItemGroup>
 
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">

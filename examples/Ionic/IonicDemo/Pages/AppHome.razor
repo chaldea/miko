@@ -1,5 +1,6 @@
 @page "/"
-<IonPage>
+<ConfigProvider IonicTheme="@Theme.Current">
+<IonPage Class="@(Theme.IsDark ? "demo-dark" : null)">
     <IonHeader>
         <IonToolbar>
             <IonTitle>Ionic Framework</IonTitle>
@@ -11,7 +12,7 @@
             <IonItem>
                 <Start><IonIcon Icon="@Ionicons.Moon"></IonIcon></Start>
                 <ChildContent>
-                    <IonToggle>Dark Mode</IonToggle>
+                    <IonToggle @bind-Checked="Theme.IsDark">Dark Mode</IonToggle>
                 </ChildContent>
             </IonItem>
         </IonList>
@@ -31,7 +32,9 @@
         </IonList>
     </IonContent>
 </IonPage>
+</ConfigProvider>
 
 @code {
     [Inject] public ComponentService ComponentService { get; set; } = null!;
+    [Inject] public ThemeService Theme { get; set; } = null!;
 }

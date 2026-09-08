@@ -5,6 +5,7 @@ namespace Miko.Common;
 /// <summary>
 /// 颜色类
 /// </summary>
+[System.ComponentModel.TypeConverter(typeof(ColorConverter))]
 public struct Color
 {
     public byte R { get; set; }

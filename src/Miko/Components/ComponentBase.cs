@@ -267,7 +267,12 @@ public abstract class ComponentBase : IComponent
             DisposeSubtree(child);
     }
 
-    private Element BuildNew()
+    /// <summary>
+    /// Builds the replacement subtree used by <see cref="StateHasChanged"/> when the root
+    /// element remains attached. Derived components can augment the emitted root in the same way
+    /// as <see cref="Build"/>.
+    /// </summary>
+    protected virtual Element BuildNew()
     {
         using var cascadingScope = CascadingValueSource.RestoreIfEmpty(_cascadingSnapshot);
         SetCascadingParameters();

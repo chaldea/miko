@@ -1,0 +1,22 @@
+@namespace Miko.Ionic.Components
+@inherits ComponentBase
+
+<CascadingValue TValue="IonicTheme" Value="@_effectiveTheme">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>Partial theme values applied to this subtree.</summary>
+    [Parameter] public IonicTheme? IonicTheme { get; set; }
+
+    [CascadingParameter] private IonicTheme? ParentTheme { get; set; }
+
+    private IonicTheme _effectiveTheme = new();
+
+    protected override void OnParametersSet()
+    {
+        _effectiveTheme = new IonicTheme();
+        ParentTheme?.ApplySpecifiedValuesTo(_effectiveTheme);
+        IonicTheme?.ApplySpecifiedValuesTo(_effectiveTheme);
+    }
+}

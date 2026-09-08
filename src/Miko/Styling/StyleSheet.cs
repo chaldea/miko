@@ -20,8 +20,15 @@ public class StyleSheet
     /// </summary>
     public int Layer { get; set; }
 
-    // :hover 相关性分析缓存（见 HoverRelevance）。样式表在交给引擎后不可变
-    // （ISSUE-096 契约），此处的失效仅覆盖注册前的增量构建。
+    /// <summary>
+    /// Monotonically increasing revision for rules added after a stylesheet has been attached to
+    /// an engine. Component libraries use this to register styles on demand without leaving a
+    /// cached layout tree based on an earlier rule set in place.
+    /// </summary>
+    public long Version { get; private set; }
+
+    // :hover 相关性分析缓存（见 HoverRelevance）。通过 Add/AddRule 注册规则时失效，
+    // 包括组件在样式表已交给引擎后按需注册的情况。
     private List<Selector[]>? _hoverPatterns;
 
     // 规则索引缓存（见 RuleIndex，ISSUE-113）。与 _hoverPatterns 同样在增量构建时失效。
@@ -32,12 +39,21 @@ public class StyleSheet
     {
         InvalidateAnalyses();
         CssObjectResolver.Resolve(css, this);
+        Version++;
     }
 
     public void AddRule(Selector selector, Style style)
     {
         InvalidateAnalyses();
         Rules.Add(new StyleRule { Selector = selector, Style = style });
+        Version++;
+    }
+
+    public void AddPseudoElementRule(Selector selector, PseudoElementType type, Style style)
+    {
+        InvalidateAnalyses();
+        PseudoElementRules.Add(new PseudoElementRule { Selector = selector, Type = type, Style = style });
+        Version++;
     }
 
     private void InvalidateAnalyses()
@@ -160,7 +176,9 @@ public class StyleSheet
             };
             MediaRules.Add(mediaRule);
         }
+        Version++;
     }
+
 }
 
 /// <summary>
