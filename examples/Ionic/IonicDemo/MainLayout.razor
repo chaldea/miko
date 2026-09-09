@@ -1,9 +1,9 @@
 @inherits Miko.Components.LayoutComponentBase
 
-<IonApp>
+<IonApp Class="@(Theme.IsDark ? "demo-dark" : null)">
     @Body
 </IonApp>
 
 @code {
-    
+    [Inject] public ThemeService Theme { get; set; } = null!;
 }

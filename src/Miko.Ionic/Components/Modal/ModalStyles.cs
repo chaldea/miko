@@ -107,26 +107,6 @@ internal static class ModalStyles
                 Height = Length.Percent(100) - Length.SafeAreaInsetTop - Length.Px(10),
             },
 
-            // Ionic only rounds the exposed top corners of an iOS sheet.
-            [".ion-modal.ios.modal-sheet .modal-wrapper"] = new()
-            {
-                BorderRadius = new BorderRadius(
-                    Length.Px(10), Length.Px(10), Length.Px(0), Length.Px(0)),
-            },
-
-            [".ion-modal.ios.modal-sheet .modal-shadow"] = new()
-            {
-                BorderRadius = new BorderRadius(Length.Px(10)),
-            },
-
-            // Keep the existing iOS presenting/card affordance without changing the default
-            // fullscreen modal surface.
-            [".ion-modal.ios.modal-card .modal-wrapper"] = new()
-            {
-                BorderRadius = new BorderRadius(Length.Px(10)),
-                BoxShadow = iosCardShadow,
-            },
-
             [$".ion-modal.{mode} .modal-handle"] = new()
             {
                 Position = Position.Absolute,
@@ -146,6 +126,23 @@ internal static class ModalStyles
             },
         };
 
+        if (mode == "ios")
+        {
+            // Ionic only rounds the exposed top corners of an iOS sheet.
+            css[".ion-modal.ios.modal-sheet .modal-wrapper"] = new()
+            {
+                BorderRadius = new BorderRadius(Length.Px(10), Length.Px(10), Length.Px(0), Length.Px(0)),
+            };
+            css[".ion-modal.ios.modal-sheet .modal-shadow"] = new()
+            {
+                BorderRadius = new BorderRadius(Length.Px(10)),
+            };
+            css[".ion-modal.ios.modal-card .modal-wrapper"] = new()
+            {
+                BorderRadius = new BorderRadius(Length.Px(10)),
+                BoxShadow = iosCardShadow,
+            };
+        }
         return css;
     }
 }

@@ -1,0 +1,19 @@
+@namespace Miko.Ionic.Tests
+@using Miko.Components
+@using Miko.Ionic.Components
+@using Miko.Common
+@inherits ComponentBase
+
+<IonList Lines="full">
+    <ConfigProvider IonicTheme="@(new IonicTheme { Item = new ItemToken { BorderColor = Color.Red } })">
+        <IonItem>Item</IonItem>
+    </ConfigProvider>
+</IonList>
+<IonTabButton><IonIcon Icon="@Ionicons.Home" /></IonTabButton>
+<ConfigProvider IonicTheme="@(new IonicTheme { Content = new ContentToken { Background = Color.Red } })">
+    <IonContent Class="outer-content">
+        <ConfigProvider IonicTheme="@(new IonicTheme { Content = new ContentToken { Background = Color.Blue } })">
+            <IonContent Class="inner-content">Nested</IonContent>
+        </ConfigProvider>
+    </IonContent>
+</ConfigProvider>

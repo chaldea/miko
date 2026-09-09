@@ -34,6 +34,7 @@ public static class App
         builder.AddIonic();
         builder.AddStyleSheet(GlobalStyles.Create());
         builder.Services.AddScoped<ComponentService>();
+        builder.Services.AddSingleton<ThemeService>();
         builder.AddResourceAssembly(typeof(App).Assembly);
 
         // Routes and the default layout are wired up by Miko.Razor.Compiler.

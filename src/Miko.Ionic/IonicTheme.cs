@@ -21,820 +21,168 @@ public enum IonicMode
 /// framework source (<c>ionic.theme.default.scss</c> plus the per-mode
 /// <c>*.md.scss</c> / <c>*.ios.scss</c> variable files).
 /// </summary>
-public class IonicTheme
+public partial class IonicTheme
 {
     /// <summary>The design mode this theme was built for.</summary>
     public IonicMode Mode { get; set; } = IonicMode.Md;
 
-    // Brand colors (ionic.theme.default.scss) — shared across modes.
-    public Color Primary { get; set; }
-    public Color Secondary { get; set; }
-    public Color Tertiary { get; set; }
-    public Color Success { get; set; }
-    public Color Warning { get; set; }
-    public Color Danger { get; set; }
-    public Color Light { get; set; }
-    public Color Medium { get; set; }
-    public Color Dark { get; set; }
+    public AccordionToken Accordion { get; set; } = new();
+    public ActionSheetToken ActionSheet { get; set; } = new();
+    public AlertToken Alert { get; set; } = new();
+    public AvatarToken Avatar { get; set; } = new();
+    public BadgeToken Badge { get; set; } = new();
+    public BreadcrumbToken Breadcrumb { get; set; } = new();
+    public ButtonToken Button { get; set; } = new();
+    public CardToken Card { get; set; } = new();
+    public CheckboxToken Checkbox { get; set; } = new();
+    public ChipToken Chip { get; set; } = new();
+    public DatetimeToken Datetime { get; set; } = new();
+    public FabToken Fab { get; set; } = new();
+    public GridToken Grid { get; set; } = new();
+    public HeaderToken Header { get; set; } = new();
+    public InfiniteScrollToken InfiniteScroll { get; set; } = new();
+    public InputToken Input { get; set; } = new();
+    public ItemToken Item { get; set; } = new();
+    public LabelToken Label { get; set; } = new();
+    public ListToken List { get; set; } = new();
+    public MenuToken Menu { get; set; } = new();
+    public NoteToken Note { get; set; } = new();
+    public ProgressBarToken ProgressBar { get; set; } = new();
+    public PaletteToken Palette { get; set; } = new();
+    public RefresherToken Refresher { get; set; } = new();
+    public SearchbarToken Searchbar { get; set; } = new();
+    public SegmentToken Segment { get; set; } = new();
+    public SelectToken Select { get; set; } = new();
+    public SpinnerToken Spinner { get; set; } = new();
+    public ContentToken Content { get; set; } = new();
+    public SkeletonTextToken SkeletonText { get; set; } = new();
+    public SlidesToken Slides { get; set; } = new();
+    public TabToken Tab { get; set; } = new();
+    public ThumbnailToken Thumbnail { get; set; } = new();
+    public TitleToken Title { get; set; } = new();
+    public ToastToken Toast { get; set; } = new();
+    public ToggleToken Toggle { get; set; } = new();
+    public ToolbarToken Toolbar { get; set; } = new();
 
-    // Surface / text
-    public Color BackgroundColor { get; set; }
-    public Color TextColor { get; set; }
-
-    // Tab bar
-    public Color TabBarBackground { get; set; }
-    public Color TabBarBorderColor { get; set; }
-    public Color TabBarColor { get; set; }
-    public Color TabBarColorSelected { get; set; }
-    public float TabBarHeight { get; set; } = 56f;
-    public float TabBarBorderWidth { get; set; } = 1f;
-
-    // Tab button
-    public float TabButtonFontSize { get; set; } = 12f;
-    public float TabButtonIconSize { get; set; } = 22f;
-    public float TabButtonMaxWidth { get; set; } = 168f;
-    public float TabButtonPaddingX { get; set; } = 12f;
-
-    // Tab button badge (tab-button.md.vars.scss; iOS values come from tab-button.ios.scss)
-    public float TabButtonBadgeFontSize { get; set; } = 8f;
-    public float TabButtonBadgeMinWidth { get; set; } = 12f;
-    public float TabButtonBadgeBorderRadius { get; set; } = 8f;
-    public float TabButtonBadgePaddingTop { get; set; } = 3f;
-    public float TabButtonBadgePaddingEnd { get; set; } = 2f;
-    public float TabButtonBadgePaddingBottom { get; set; } = 2f;
-    public float TabButtonBadgePaddingStart { get; set; } = 2f;
-    public float TabButtonBadgeSizeEmpty { get; set; } = 8f;
-
-    // Toolbar
-    public Color ToolbarBackground { get; set; }
-    public Color ToolbarColor { get; set; }
-    public Color ToolbarBorderColor { get; set; }
-    public float ToolbarMinHeight { get; set; } = 56f;
-    public Length ToolbarPaddingTop { get; set; } = Length.Px(0);
-    public Length ToolbarPaddingBottom { get; set; } = Length.Px(0);
-    public Length ToolbarPaddingStart { get; set; } = Length.Px(0);
-    public Length ToolbarPaddingEnd { get; set; } = Length.Px(0);
-
-    // Buttons slotted into a toolbar (buttons.md.scss / buttons.ios.scss `::slotted(*) ion-button`).
-    // A toolbar button is denser than a standalone one: a shorter min-height, tighter padding, a
-    // squarer radius, and larger icons relative to the smaller label.
-    public Length ToolbarButtonMinHeight { get; set; } = Length.Px(32);
-    public Length ToolbarButtonPaddingTop { get; set; } = Length.Px(3);
-    public Length ToolbarButtonPaddingBottom { get; set; } = Length.Px(3);
-    public Length ToolbarButtonPaddingStart { get; set; } = Length.Px(8);
-    public Length ToolbarButtonPaddingEnd { get; set; } = Length.Px(8);
-    public float ToolbarButtonMarginX { get; set; } = 2f;
-    public float ToolbarButtonBorderRadius { get; set; } = 2f;
-    /// <summary>Font-size of a start/end icon inside a toolbar button, in em of the button font.</summary>
-    public float ToolbarButtonIconFontSize { get; set; } = 1.4f;
-    /// <summary>Font-size of an <c>icon-only</c> icon inside a toolbar button, in em of the button font.</summary>
-    public float ToolbarButtonIconOnlyFontSize { get; set; } = 1.8f;
-    /// <summary>MD gives a clear icon-only toolbar button a 3rem circular tap target; iOS does not.</summary>
-    public float ToolbarButtonIconOnlyClearSize { get; set; } = 48f;
-    public Length ToolbarButtonIconOnlyClearPadding { get; set; } = Length.Px(12);
-
-    // Title
-    public float TitleFontSize { get; set; } = 20f;
-    public FontWeight TitleFontWeight { get; set; } = FontWeight.Medium;
-    public float TitlePaddingX { get; set; } = 20f;
-    public TextAlign TitleTextAlign { get; set; } = TextAlign.Left;
-
-    // Header — MD uses a 3-layer elevation shadow; iOS uses a hairline bottom border.
-    public List<BoxShadow> HeaderBoxShadow { get; set; } = new();
-    public Color HeaderBorderColor { get; set; }
-    public float HeaderBorderWidth { get; set; }
-
-    // Content
-    public Color ContentBackground { get; set; }
-    public Color ContentColor { get; set; }
-
-    // App shell (sidemenu layout root)
-    public Color AppBackground { get; set; }
-
-    // Menu (side drawer) — MD lifts the drawer with an elevation shadow; iOS uses a
-    // hairline trailing border. The backdrop dims the page behind an open overlay menu.
-    public float MenuWidth { get; set; } = 304f;
-    public Color MenuBackground { get; set; }
-    public List<BoxShadow> MenuBoxShadow { get; set; } = new();
-    public Color MenuBorderColor { get; set; }
-    public float MenuBorderWidth { get; set; }
-    public Color BackdropColor { get; set; }
-    /// <summary>Drawer slide / backdrop fade duration in seconds (Ionic menu is ~280ms).</summary>
-    public float MenuAnimDuration { get; set; } = 0.28f;
-
-    // List / list header / item
-    public Color ListBackground { get; set; }
-    public Color ListHeaderColor { get; set; }
-    public float ListHeaderFontSize { get; set; } = 16f;
-    public float ItemMinHeight { get; set; } = 48f;
-    public Color ItemColor { get; set; }
-    public Color ItemBorderColor { get; set; }
-    public float ItemPaddingStart { get; set; } = 16f;
-    /// <summary>Trailing padding of the item's inner row (<c>--inner-padding-end</c> =
-    /// <c>$item-{md|ios}-padding-end</c>: 16px both modes). Note the native surface itself has
-    /// NO end padding (<c>--padding-end</c> defaults to 0) — the trailing inset lives on
-    /// <c>.item-inner</c>, so an inset divider reaches the item's right edge.</summary>
-    public float ItemPaddingEnd { get; set; } = 16f;
-    /// <summary>Top/bottom margin of an <c>ion-label</c> slotted into an <c>ion-item</c>
-    /// (item.md.vars.scss <c>$item-md-label-margin-top/bottom</c> and item.ios.scss
-    /// <c>::slotted(ion-label)</c>: 10px both modes). Gives the label its vertical rhythm
-    /// inside the row.</summary>
-    public float ItemLabelMarginVertical { get; set; } = 10f;
-    /// <summary>Trailing (end) margin of an <c>ion-label</c> slotted into an <c>ion-item</c>
-    /// (<c>$item-md-label-margin-end</c>: 0; item.ios.scss <c>::slotted(ion-label)</c>: 8px).</summary>
-    public float ItemLabelMarginEnd { get; set; } = 0f;
-    /// <summary>Top/bottom margin of an <c>ion-icon</c> slotted (start/end) into an
-    /// <c>ion-item</c> (<c>$item-md-icon-slot-margin-top/bottom</c>: 12px;
-    /// <c>$item-ios-icon-slot-margin-top/bottom</c>: 7px).</summary>
-    public float ItemIconSlotMarginVertical { get; set; } = 12f;
-    /// <summary>Trailing margin of a start-slotted <c>ion-icon</c> in an <c>ion-item</c>
-    /// (<c>$item-md-icon-start-slot-margin-end</c>: 32px; iOS inherits the generic start-slot
-    /// margin: 16px).</summary>
-    public float ItemIconStartSlotMarginEnd { get; set; } = 32f;
-    /// <summary>Leading margin of an end-slotted <c>ion-icon</c> in an <c>ion-item</c>
-    /// (<c>$item-md-icon-end-slot-margin-start</c>: 16px; iOS has none).</summary>
-    public float ItemIconEndSlotMarginStart { get; set; } = 16f;
-    /// <summary>Top/bottom margin of an <c>ion-avatar</c> slotted into an <c>ion-item</c>
-    /// (<c>$item-md-media-slot-margin-top/bottom</c>: 8px; iOS has none).</summary>
-    public float ItemAvatarSlotMarginVertical { get; set; } = 8f;
-    /// <summary>Trailing margin of a start-slotted <c>ion-avatar</c> in an <c>ion-item</c>
-    /// (<c>$item-md-media-start-slot-margin-end</c>: 16px; iOS has none).</summary>
-    public float ItemAvatarStartSlotMarginEnd { get; set; } = 16f;
-    /// <summary>Leading margin of an end-slotted <c>ion-avatar</c> in an <c>ion-item</c>
-    /// (<c>$item-md-media-end-slot-margin-start</c>: 16px; item.ios.scss: 8px —
-    /// <c>$item-ios-padding-end * 0.5</c>).</summary>
-    public float ItemAvatarEndSlotMarginStart { get; set; } = 16f;
-    /// <summary>Inset list margin on all sides (<c>$list-inset-{md|ios}-margin-*</c>: 16px both modes).</summary>
-    public float ListInsetMargin { get; set; } = 16f;
-    /// <summary>Inset list corner radius (<c>$list-inset-md-border-radius</c>: 2px; ios: 10px).</summary>
-    public float ListInsetBorderRadius { get; set; } = 2f;
-
-    // Item divider (item-divider.md.scss / .ios.scss) — a section header row sitting between
-    // item groups. MD uses a light gray fill with a bottom border and medium text; iOS uses a
-    // lighter fill (step-50) with a hairline border.
-    public Color ItemDividerBackground { get; set; }
-    public Color ItemDividerColor { get; set; }
-    public float ItemDividerMinHeight { get; set; } = 30f;
-
-    // Item option (item-option.scss) — a swipe-reveal action button. The label is white (it sits
-    // on a filled brand surface) and the default fill is the primary color.
-    public Color ItemOptionColor { get; set; }
-    public Color ItemOptionBackground { get; set; }
-
-    // Segment
-    public Color SegmentBackground { get; set; }
-    public float SegmentBorderRadius { get; set; }
-    public Color SegmentButtonColor { get; set; }
-    /// <summary>Text color of the checked button. MD turns the label the primary color; iOS keeps
-    /// the default dark text (the pill behind it provides the contrast).</summary>
-    public Color SegmentButtonCheckedColor { get; set; }
-    /// <summary>Color of the checked indicator. MD: the 2px primary underline bar. iOS: the light
-    /// elevated pill surface that slides behind the label.</summary>
-    public Color SegmentIndicatorColor { get; set; }
-    /// <summary>Indicator height. MD: 2px (a bottom underline bar). iOS: 100% (a full-height pill).</summary>
-    public Length SegmentIndicatorHeight { get; set; } = Length.Px(2);
-    /// <summary>Indicator corner radius. MD: 0 (square bar). iOS: 7px (rounded pill).</summary>
-    public float SegmentIndicatorBorderRadius { get; set; }
-    /// <summary>Indicator elevation. MD: none. iOS: a soft drop shadow under the pill.</summary>
-    public List<BoxShadow> SegmentIndicatorBoxShadow { get; set; } = new();
-    public float SegmentButtonFontSize { get; set; } = 14f;
-    public float SegmentButtonMinWidth { get; set; } = 90f;
-    public float SegmentButtonMinHeight { get; set; } = 48f;
-    public float SegmentButtonLineHeight { get; set; } = 40f;
-    public Length SegmentButtonLetterSpacing { get; set; } = Length.Em(0.06f);
-    public float SegmentButtonPaddingX { get; set; } = 16f;
-    public float SegmentButtonMarginY { get; set; }
-    /// <summary>Top/bottom padding of a segment button. 0 in Ionic (both md and ios):
-    /// <c>$segment-button-md-padding-top/-bottom</c> and the ios <c>--padding-top/-bottom</c>.
-    /// The button's height comes from <see cref="SegmentButtonMinHeight"/>, not vertical padding.</summary>
-    public float SegmentButtonPaddingY { get; set; } = 0f;
-
-    // Button (button.scss / button.md.scss / button.ios.scss)
-    /// <summary>Solid button fill — Ionic's default <c>--background</c> = <c>ion-color(primary, base)</c>.</summary>
-    public Color ButtonSolidBackground { get; set; }
-    /// <summary>Solid button label — <c>--color</c> = <c>ion-color(primary, contrast)</c> (white).</summary>
-    public Color ButtonSolidColor { get; set; }
-    /// <summary>Outline/clear button label and border — <c>--color</c> = <c>ion-color(primary, base)</c>.</summary>
-    public Color ButtonTextColor { get; set; }
-    /// <summary>Default corner radius (md 4px, ios 14px).</summary>
-    public float ButtonBorderRadius { get; set; } = 4f;
-    /// <summary>Round button radius — <c>$button-round-border-radius</c> (999px, both modes).</summary>
-    public float ButtonRoundBorderRadius { get; set; } = 999f;
-    /// <summary>Host min-height (md 36px, ios 3.1em).</summary>
-    public Length ButtonMinHeight { get; set; } = Length.Px(36);
-    public Length ButtonPaddingTop { get; set; } = Length.Px(8);
-    public Length ButtonPaddingBottom { get; set; } = Length.Px(8);
-    public Length ButtonPaddingStart { get; set; } = Length.Em(1.1f);
-    public Length ButtonPaddingEnd { get; set; } = Length.Em(1.1f);
-    public float ButtonFontSize { get; set; } = 14f;
-    public FontWeight ButtonFontWeight { get; set; } = FontWeight.Medium;
-    /// <summary>md uppercases the label; ios leaves it as-is.</summary>
-    public TextTransform ButtonTextTransform { get; set; } = TextTransform.None;
-    public Length ButtonLetterSpacing { get; set; } = Length.Px(0);
-    /// <summary>Strong (heavier weight) button — md bold, ios 600.</summary>
-    public FontWeight ButtonStrongFontWeight { get; set; } = FontWeight.Bold;
-    /// <summary>Solid button elevation — md a 3-layer shadow; ios none.</summary>
-    public List<BoxShadow> ButtonSolidBoxShadow { get; set; } = new();
-    /// <summary>Outline border width — md 2px, ios 1px.</summary>
-    public Length ButtonOutlineBorderWidth { get; set; } = Length.Px(1);
-    // Large size
-    public Length ButtonLargeMinHeight { get; set; } = Length.Em(2.8f);
-    public Length ButtonLargePaddingTop { get; set; } = Length.Px(14);
-    public Length ButtonLargePaddingBottom { get; set; } = Length.Px(14);
-    public Length ButtonLargePaddingX { get; set; } = Length.Em(1f);
-    public float ButtonLargeFontSize { get; set; } = 20f;
-    public float ButtonLargeBorderRadius { get; set; } = 4f;
-    // Small size
-    public Length ButtonSmallMinHeight { get; set; } = Length.Em(2.1f);
-    public Length ButtonSmallPaddingTop { get; set; } = Length.Px(4);
-    public Length ButtonSmallPaddingBottom { get; set; } = Length.Px(4);
-    public Length ButtonSmallPaddingX { get; set; } = Length.Em(0.9f);
-    public float ButtonSmallFontSize { get; set; } = 13f;
-    public float ButtonSmallBorderRadius { get; set; } = 4f;
-    /// <summary>Icon-only square side (the clamp midpoint of Ionic's min-width/min-height).</summary>
-    public float ButtonIconOnlyMinSize { get; set; } = 40f;
-    /// <summary>Icon box size for the <c>icon-only</c> slot at default size
-    /// (Ionic's <c>::slotted(ion-icon[slot="icon-only"])</c> font-size).</summary>
-    public float ButtonIconOnlyIconSize { get; set; } = 22.4f;
-    /// <summary>Icon-only square side for the small size variant.</summary>
-    public float ButtonSmallIconOnlyMinSize { get; set; } = 28f;
-    /// <summary>Icon box size for a small icon-only button.</summary>
-    public float ButtonSmallIconOnlyIconSize { get; set; } = 16f;
-    /// <summary>Icon-only square side for the large size variant.</summary>
-    public float ButtonLargeIconOnlyMinSize { get; set; } = 50f;
-    /// <summary>Icon box size for a large icon-only button.</summary>
-    public float ButtonLargeIconOnlyIconSize { get; set; } = 28f;
-
-    // Searchbar (searchbar.scss / searchbar.md.scss / searchbar.ios.scss + their *.vars.scss).
-    // The host is a full-width flex row wrapping an input container; the input is a rounded pill
-    // (md: flat 2px radius with an elevation shadow + left search icon; ios: 10px radius, translucent
-    // fill, centered search icon). A trailing clear button shows when there is a value; a cancel
-    // button (md icon / ios text) is off by default.
-    /// <summary>Host padding (md 8px all round; ios 12px all round).</summary>
-    public float SearchbarPaddingTop { get; set; } = 8f;
-    public float SearchbarPaddingEnd { get; set; } = 8f;
-    public float SearchbarPaddingBottom { get; set; } = 8f;
-    public float SearchbarPaddingStart { get; set; } = 8f;
-    /// <summary>Input background (md #fff solid; ios rgba(text,.07) translucent).</summary>
-    public Color SearchbarInputBackground { get; set; }
-    /// <summary>Input corner radius (md 2px; ios 10px).</summary>
-    public float SearchbarInputBorderRadius { get; set; } = 2f;
-    /// <summary>Input elevation shadow (md 3-layer; ios none).</summary>
-    public List<BoxShadow> SearchbarInputBoxShadow { get; set; } = new();
-    /// <summary>Input text color (md step-150; ios text-color).</summary>
-    public Color SearchbarInputTextColor { get; set; }
-    /// <summary>Input font size (md 16px; ios 17px).</summary>
-    public float SearchbarInputFontSize { get; set; } = 16f;
-    /// <summary>Input height (md auto) / line-height (md 30px). ios uses 100% height.</summary>
-    public Length SearchbarInputHeight { get; set; } = Length.Auto;
-    public Length SearchbarInputLineHeight { get; set; } = Length.Px(30);
-    /// <summary>iOS input min-height (36px); md has no min-height.</summary>
-    public float SearchbarInputMinHeight { get; set; }
-    /// <summary>Search icon color (step-400) and size (md 21px; ios 22px).</summary>
-    public Color SearchbarSearchIconColor { get; set; }
-    public float SearchbarSearchIconSize { get; set; } = 21f;
-    /// <summary>Clear icon color (md inherits; ios step-400) and size (md 22px; ios 18px).</summary>
-    public Color SearchbarClearIconColor { get; set; }
-    public float SearchbarClearIconSize { get; set; } = 22f;
-    /// <summary>Cancel button color (md step-100; ios primary), background, and font size.</summary>
-    public Color SearchbarCancelButtonColor { get; set; }
-    public Color SearchbarCancelButtonBackground { get; set; }
-    public float SearchbarCancelButtonFontSize { get; set; } = 17f;
-
-    // Slides (slides.md/ios.vars.scss). Pagination bullets, progress bar, and scroll bar colors.
-    /// <summary>Pagination bullet background (text-color step-800 ≈ #333).</summary>
-    public Color SlidesBulletBackground { get; set; }
-    /// <summary>Active pagination bullet background (primary).</summary>
-    public Color SlidesBulletBackgroundActive { get; set; }
-    /// <summary>Scroll bar track background (rgba(text, .1)).</summary>
-    public Color SlidesScrollBarBackground { get; set; }
-    /// <summary>Scroll bar drag handle background (rgba(text, .5)).</summary>
-    public Color SlidesScrollBarBackgroundActive { get; set; }
-    /// <summary>Navigation arrow color (Swiper's --swiper-navigation-color, which defaults to
-    /// --swiper-theme-color; mapped to the Ionic primary).</summary>
-    public Color SlidesNavigationColor { get; set; }
-
-    // Avatar (avatar.md.vars.scss / avatar.ios.vars.scss). A square host clipped into a circle;
-    // md is 64px, ios is 48px. Border radius is 50% in both modes.
-    /// <summary>Avatar host width/height (md 64px, ios 48px).</summary>
-    public float AvatarSize { get; set; } = 64f;
-
-    /// <summary>Avatar size when slotted inside ion-item (md 40px, ios 36px from item.md.vars.scss / item.ios.vars.scss).</summary>
-    public float ItemAvatarSize { get; set; } = 40f;
-
-    // Spinner / badge / chip / card / grid / refresher / infinite-scroll / select.
-    public Color SpinnerColor { get; set; }
-    public Color SpinnerTrackColor { get; set; }
-    public float SpinnerSize { get; set; } = 28f;
-    public float SpinnerSmallSize { get; set; } = 16f;
-
-    public Color BadgeBackground { get; set; }
-    public Color BadgeColor { get; set; }
-    public float BadgeBorderRadius { get; set; } = 4f;
-    public float BadgeFontSize { get; set; } = 13f;
-    public float BadgePaddingTop { get; set; } = 3f;
-    public float BadgePaddingEnd { get; set; } = 4f;
-    public float BadgePaddingBottom { get; set; } = 4f;
-    public float BadgePaddingStart { get; set; } = 4f;
-    public float BadgeMinWidth { get; set; } = 10f;
-
-    public Color ChipBackground { get; set; }
-    public Color ChipColor { get; set; }
-    public Color ChipBorderColor { get; set; }
-    public float ChipFontSize { get; set; } = 14f;
-
-    public Color CardBackground { get; set; }
-    public Color CardColor { get; set; }
-    public float CardMarginTop { get; set; } = 10f;
-    public float CardMarginEnd { get; set; } = 10f;
-    public float CardMarginBottom { get; set; } = 10f;
-    public float CardMarginStart { get; set; } = 10f;
-    public float CardBorderRadius { get; set; } = 4f;
-    public float CardFontSize { get; set; } = 14f;
-    public Length CardLineHeight { get; set; } = Length.Number(1.5f);
-    public List<BoxShadow> CardBoxShadow { get; set; } = new();
-    public float CardHeaderPaddingTop { get; set; } = 16f;
-    public float CardHeaderPaddingEnd { get; set; } = 16f;
-    public float CardHeaderPaddingBottom { get; set; } = 16f;
-    public float CardHeaderPaddingStart { get; set; } = 16f;
-    public float CardContentPaddingTop { get; set; } = 13f;
-    public float CardContentPaddingEnd { get; set; } = 16f;
-    public float CardContentPaddingBottom { get; set; } = 13f;
-    public float CardContentPaddingStart { get; set; } = 16f;
-    public float CardContentFontSize { get; set; } = 14f;
-    public Length CardContentLineHeight { get; set; } = Length.Number(1.5f);
-
-    public float GridPadding { get; set; } = 5f;
-    public float GridColumnPadding { get; set; } = 5f;
-    public float GridFixedWidth { get; set; } = 1140f;
-
-    public float InfiniteScrollContentMinHeight { get; set; } = 84f;
-    public float RefresherHeight { get; set; } = 60f;
-    public float RefresherIconFontSize { get; set; } = 30f;
-    public float RefresherTextFontSize { get; set; } = 16f;
-
-    public Color SelectTextColor { get; set; }
-    public Color SelectPlaceholderColor { get; set; }
-    public Color SelectLabelColor { get; set; }
-    public Color SelectBackground { get; set; }
-    public Color SelectBorderColor { get; set; }
-    public Color SelectHighlightColor { get; set; }
-    public Color SelectHelperColor { get; set; }
-    public Color SelectErrorColor { get; set; }
-    public float SelectFontSize { get; set; } = 16f;
-    public float SelectMinHeight { get; set; } = 48f;
-    public float SelectPaddingTop { get; set; } = 0f;
-    public float SelectPaddingEnd { get; set; } = 0f;
-    public float SelectPaddingBottom { get; set; } = 0f;
-    public float SelectPaddingStart { get; set; } = 0f;
-    public float SelectBorderRadius { get; set; } = 4f;
-    public float SelectRoundBorderRadius { get; set; } = 999f;
-
-    // Checkbox (checkbox.scss / checkbox.md.scss / checkbox.ios.scss + their *.vars.scss).
-    // The visual box (.checkbox-icon) is a bordered square that fills with the checked color and
-    // fades in the checkmark when checked/indeterminate. md is a small square (18px, ~2px radius);
-    // ios is a larger circle (22px, 50% radius).
-    /// <summary>Box side length (md 18px, ios 22px).</summary>
-    public float CheckboxSize { get; set; } = 18f;
-    /// <summary>Box border width (2px both modes).</summary>
-    public float CheckboxBorderWidth { get; set; } = 2f;
-    /// <summary>Box corner radius (md size*.125 ≈ 2.25px, ios 50% → half the size for a circle).</summary>
-    public Length CheckboxBorderRadius { get; set; } = Length.Px(2.25f);
-    /// <summary>Box border color when unchecked (md rgba(text,.60), ios rgba(text,.23)).</summary>
-    public Color CheckboxBorderColorOff { get; set; }
-    /// <summary>Box background when unchecked (item background — white).</summary>
-    public Color CheckboxBackgroundOff { get; set; }
-    /// <summary>Box background / border color when checked (primary).</summary>
-    public Color CheckboxBackgroundChecked { get; set; }
-    /// <summary>Checkmark tint when checked (primary contrast — white).</summary>
-    public Color CheckboxCheckmarkColor { get; set; }
-    /// <summary>Opacity of the whole disabled checkbox host (ios) / its label (md).</summary>
-    public float CheckboxDisabledOpacity { get; set; } = 0.38f;
-
-    // Fab (fab.scss / fab-button.scss / fab-button.md.scss / fab-button.ios.scss / fab-list.scss +
-    // their *.vars.scss). A floating action button: an absolutely-positioned container holding a
-    // round main button (56px) and optional fab-lists of mini buttons (40px). The main button fills
-    // with the primary color and carries an elevation shadow; list buttons use the light surface.
-    /// <summary>Main FAB button width/height (<c>$fab-size</c>, 56px both modes).</summary>
-    public float FabSize { get; set; } = 56f;
-    /// <summary>Mini FAB button width/height (<c>$fab-small-size</c>, 40px both modes).</summary>
-    public float FabSmallSize { get; set; } = 40f;
-    /// <summary>Margin of the FAB container from the viewport edge (<c>$fab-content-margin</c>, 10px).</summary>
-    public float FabContentMargin { get; set; } = 10f;
-    /// <summary>Margin between the main button and a fab-list (<c>$fab-list-margin</c>, 10px).</summary>
-    public float FabListMargin { get; set; } = 10f;
-    /// <summary>Margin applied to a mini FAB button (<c>$fab-button-small-margin</c>, 8px).</summary>
-    public float FabButtonSmallMargin { get; set; } = 8f;
-    /// <summary>Main button fill (<c>--background</c> = <c>ion-color(primary, base)</c>).</summary>
-    public Color FabBackground { get; set; }
-    /// <summary>Main button icon/text color (<c>--color</c> = <c>ion-color(primary, contrast)</c> — white).</summary>
-    public Color FabColor { get; set; }
-    /// <summary>Main button elevation (<c>--box-shadow</c>: md 3-layer; ios <c>0 4px 16px rgba(0,0,0,.12)</c>).</summary>
-    public List<BoxShadow> FabBoxShadow { get; set; } = new();
-    /// <summary>Slotted icon font size for the main button (md 24px, ios 28px).</summary>
-    public float FabIconFontSize { get; set; } = 24f;
-    /// <summary>Fill of a button inside a fab-list (<c>ion-color(light, base)</c>).</summary>
-    public Color FabListButtonBackground { get; set; }
-    /// <summary>Text/icon color of a button inside a fab-list (<c>ion-color(light, contrast)</c> — dark).</summary>
-    public Color FabListButtonColor { get; set; }
-    /// <summary>Slotted icon font size for a button inside a fab-list (18px both modes).</summary>
-    public float FabListButtonIconSize { get; set; } = 18f;
     /// <summary>
-    /// Duration (seconds) of the fab's reveal animations — the close-icon/inner swap on the main
-    /// button and the scale-in of the list buttons. Ionic declares
-    /// <c>transition: all ease-in-out 300ms; transition-property: transform, opacity</c> on
-    /// <c>.button-inner</c> and <c>.close-icon</c> (fab-button.scss), and the list buttons ride the
-    /// same curve.
+    /// Resolves this possibly partial theme against the platform mode's complete defaults.
+    /// A token supplied through <see cref="Components.ConfigProvider"/> may therefore override only
+    /// the properties it explicitly sets.
     /// </summary>
-    public float FabTransitionDuration { get; set; } = 0.30f;
-    /// <summary>
-    /// Strength of the hover wash composited over a fab button's fill
-    /// (<c>--background-hover-opacity</c>). md washes the fill with the label color at 8%; ios
-    /// swaps to a lighter tint outright, which this port approximates with a stronger white wash.
-    /// </summary>
-    public float FabHoverOpacity { get; set; } = 0.08f;
+    internal IonicTheme ResolveForMode(IonicMode mode)
+    {
+        var resolved = Create(mode);
+        ApplySpecifiedValuesTo(resolved);
+        resolved.Mode = mode;
+        return resolved;
+    }
 
-    // Input (input.scss / input.md.scss / input.ios.scss + their *.vars.scss). A full-width text
-    // field that lives inside an ion-item; the label sits beside/above the native input, an
-    // optional bottom row carries helper/error text and a character counter, and md draws a 2px
-    // focus highlight bar under the field. Tokens mirror the input's SCSS custom properties and the
-    // per-mode item border/font values.
-    /// <summary>Input font size (md 16px, ios 17px — SCSS uses <c>inherit</c>; we resolve to the item font).</summary>
-    public float InputFontSize { get; set; } = 16f;
-    /// <summary>Host min-height (44px both modes; grows to 56px for floating/stacked labels — handled in CSS).</summary>
-    public float InputMinHeight { get; set; } = 44f;
-    /// <summary>Input text color (<c>--color</c>, resolves to the item text color — black).</summary>
-    public Color InputTextColor { get; set; }
-    /// <summary>Placeholder text color (<c>--placeholder-color</c>).</summary>
-    public Color InputPlaceholderColor { get; set; }
-    /// <summary>Label text color (the neutral form-control label color).</summary>
-    public Color InputLabelColor { get; set; }
-    /// <summary>Field background (<c>--background</c>, transparent by default).</summary>
-    public Color InputBackground { get; set; }
-    /// <summary>Bottom border color below the field when helper/error/counter is shown
-    /// (<c>--border-color</c>: md <c>$item-md-border-color</c>, ios <c>$item-ios-border-color</c>).</summary>
-    public Color InputBorderColor { get; set; }
-    /// <summary>Focus highlight / caret color (<c>--highlight-color-focused</c> = primary).</summary>
-    public Color InputHighlightColor { get; set; }
-    /// <summary>Helper text color (neutral step-300).</summary>
-    public Color InputHelperColor { get; set; }
-    /// <summary>Error text color (<c>--highlight-color-invalid</c> = danger).</summary>
-    public Color InputErrorColor { get; set; }
-    /// <summary>Highlight bar height (<c>--highlight-height</c>: md 2px, ios 0px — ios has no bar).</summary>
-    public float InputHighlightHeight { get; set; } = 2f;
-    /// <summary>Field corner radius (<c>--border-radius</c>: used by fill/shape variants; round = 16px).</summary>
-    public float InputBorderRadius { get; set; } = 4f;
-    /// <summary>Field start padding (<c>--padding-start</c>, 0 by default; 16px for solid/outline fills).</summary>
-    public float InputPaddingStart { get; set; } = 0f;
-    /// <summary>Field end padding (<c>--padding-end</c>, 0 by default; 16px for solid/outline fills).</summary>
-    public float InputPaddingEnd { get; set; } = 0f;
-    /// <summary>Clear button icon color (text-color step-400).</summary>
-    public Color InputClearIconColor { get; set; }
-    /// <summary>Opacity of the whole disabled input host (md .38, ios .3).</summary>
-    public float InputDisabledOpacity { get; set; } = 0.38f;
+    internal void ApplySpecifiedValuesTo(IonicTheme target)
+    {
+        Accordion.CopySpecifiedValuesTo(target.Accordion);
+        ActionSheet.CopySpecifiedValuesTo(target.ActionSheet);
+        Alert.CopySpecifiedValuesTo(target.Alert);
+        Avatar.CopySpecifiedValuesTo(target.Avatar);
+        Badge.CopySpecifiedValuesTo(target.Badge);
+        Breadcrumb.CopySpecifiedValuesTo(target.Breadcrumb);
+        Button.CopySpecifiedValuesTo(target.Button);
+        Card.CopySpecifiedValuesTo(target.Card);
+        Checkbox.CopySpecifiedValuesTo(target.Checkbox);
+        Chip.CopySpecifiedValuesTo(target.Chip);
+        Datetime.CopySpecifiedValuesTo(target.Datetime);
+        Fab.CopySpecifiedValuesTo(target.Fab);
+        Grid.CopySpecifiedValuesTo(target.Grid);
+        Header.CopySpecifiedValuesTo(target.Header);
+        InfiniteScroll.CopySpecifiedValuesTo(target.InfiniteScroll);
+        Input.CopySpecifiedValuesTo(target.Input);
+        Item.CopySpecifiedValuesTo(target.Item);
+        Label.CopySpecifiedValuesTo(target.Label);
+        List.CopySpecifiedValuesTo(target.List);
+        Menu.CopySpecifiedValuesTo(target.Menu);
+        Note.CopySpecifiedValuesTo(target.Note);
+        ProgressBar.CopySpecifiedValuesTo(target.ProgressBar);
+        Palette.CopySpecifiedValuesTo(target.Palette);
+        Refresher.CopySpecifiedValuesTo(target.Refresher);
+        Searchbar.CopySpecifiedValuesTo(target.Searchbar);
+        Segment.CopySpecifiedValuesTo(target.Segment);
+        Select.CopySpecifiedValuesTo(target.Select);
+        Spinner.CopySpecifiedValuesTo(target.Spinner);
+        Content.CopySpecifiedValuesTo(target.Content);
+        SkeletonText.CopySpecifiedValuesTo(target.SkeletonText);
+        Slides.CopySpecifiedValuesTo(target.Slides);
+        Tab.CopySpecifiedValuesTo(target.Tab);
+        Thumbnail.CopySpecifiedValuesTo(target.Thumbnail);
+        Title.CopySpecifiedValuesTo(target.Title);
+        Toast.CopySpecifiedValuesTo(target.Toast);
+        Toggle.CopySpecifiedValuesTo(target.Toggle);
+        Toolbar.CopySpecifiedValuesTo(target.Toolbar);
+    }
 
-    // Breadcrumb (breadcrumb.scss / breadcrumb.md.scss / breadcrumb.ios.scss + their *.vars.scss).
-    // A flex row of crumbs, each a native anchor/span followed by a separator ("/" on md, a forward
-    // chevron on ios). The last crumb is active (no separator). Tokens mirror the per-mode SCSS vars.
-    /// <summary>Crumb text color (<c>--color</c>).</summary>
-    public Color BreadcrumbColor { get; set; }
-    /// <summary>Active crumb text color (<c>--color-active</c>).</summary>
-    public Color BreadcrumbColorActive { get; set; }
-    /// <summary>Crumb font size (<c>$breadcrumb-font-size</c>, 16px both modes).</summary>
-    public float BreadcrumbFontSize { get; set; } = 16f;
-    /// <summary>Active crumb font weight (md 500, ios 600).</summary>
-    public FontWeight BreadcrumbActiveFontWeight { get; set; } = FontWeight.Medium;
-    /// <summary>Native element top/bottom padding (md 6px, ios 5px).</summary>
-    public float BreadcrumbPaddingY { get; set; } = 6f;
-    /// <summary>Native element start/end padding (12px both modes).</summary>
-    public float BreadcrumbPaddingX { get; set; } = 12f;
-    /// <summary>Native element corner radius (md 0, ios 4px).</summary>
-    public float BreadcrumbBorderRadius { get; set; }
-    /// <summary>Separator glyph color (<c>#73849a</c> both modes).</summary>
-    public Color BreadcrumbSeparatorColor { get; set; }
-    /// <summary>Separator start/end margin (10px both modes; md also lifts it -1px, elided here).</summary>
-    public float BreadcrumbSeparatorMarginX { get; set; } = 10f;
-    /// <summary>Slotted icon color (<c>--icon-color</c>).</summary>
-    public Color BreadcrumbIconColor { get; set; }
-    /// <summary>Slotted icon color when the crumb is active.</summary>
-    public Color BreadcrumbIconColorActive { get; set; }
-    /// <summary>Slotted icon font size (18px both modes).</summary>
-    public float BreadcrumbIconFontSize { get; set; } = 18f;
-    /// <summary>Gap between a slotted start/end icon and the label (8px both modes).</summary>
-    public float BreadcrumbIconSlotMargin { get; set; } = 8f;
-    /// <summary>Collapsed-indicator background (md <c>#eef1f3</c>, ios <c>#e9edf3</c>).</summary>
-    public Color BreadcrumbIndicatorBackground { get; set; }
-    /// <summary>Collapsed-indicator icon/text color (<c>#73849a</c> both modes).</summary>
-    public Color BreadcrumbIndicatorColor { get; set; }
-    /// <summary>Collapsed-indicator width (32px both modes).</summary>
-    public float BreadcrumbIndicatorWidth { get; set; } = 32f;
-    /// <summary>Collapsed-indicator height (18px both modes).</summary>
-    public float BreadcrumbIndicatorHeight { get; set; } = 18f;
-    /// <summary>Collapsed-indicator start/end margin (14px both modes).</summary>
-    public float BreadcrumbIndicatorMarginX { get; set; } = 14f;
-    /// <summary>Collapsed-indicator corner radius (md 2px, ios 4px).</summary>
-    public float BreadcrumbIndicatorBorderRadius { get; set; } = 2f;
-    /// <summary>Collapsed-indicator ellipsis icon size (22px both modes).</summary>
-    public float BreadcrumbIndicatorIconSize { get; set; } = 22f;
-
-    // Accordion (accordion.scss / accordion-group.scss + their *.vars.scss). A vertical group of
-    // collapsible panels: each accordion has a header row (an ion-item) and a content region that
-    // shows/hides on the group's selected value. Tokens mirror the shared accordion SCSS vars.
-    /// <summary>Accordion panel background (<c>$accordion-background-color</c>, white).</summary>
-    public Color AccordionBackground { get; set; }
-    /// <summary>Opacity of a disabled accordion's header/content (<c>0.4</c>).</summary>
-    public float AccordionDisabledOpacity { get; set; } = 0.4f;
-    /// <summary>Inset-group margin and inset expanded-panel radius (16px / md 6px).</summary>
-    public float AccordionInsetMargin { get; set; } = 16f;
-    /// <summary>Inset expanded-panel corner radius (md 6px).</summary>
-    public float AccordionInsetBorderRadius { get; set; } = 6f;
-    /// <summary>Inset panel elevation shadow (md 3-layer; ios none).</summary>
-    public List<BoxShadow> AccordionInsetBoxShadow { get; set; } = new();
-
-    // ActionSheet (action-sheet.scss / .md.scss / .ios.scss + their *.vars.scss). A bottom-anchored
-    // overlay: a scrollable group of full-width buttons under an optional title, with cancel buttons
-    // pulled into a separate group. md fills to the bottom edge with a flat surface; ios floats a
-    // rounded group with side margins and a separate rounded cancel group.
-    /// <summary>Backdrop dim color (black) — opacity applied separately per mode.</summary>
-    public Color ActionSheetBackdropColor { get; set; } = Color.FromHex("000000");
-    /// <summary>Backdrop opacity (md 0.32, ios 0.4).</summary>
-    public float ActionSheetBackdropOpacity { get; set; } = 0.32f;
-    /// <summary>Group surface background (md white, ios <c>#f9f9f9</c>).</summary>
-    public Color ActionSheetBackground { get; set; }
-    /// <summary>Group corner radius (md 0, ios 13px).</summary>
-    public float ActionSheetBorderRadius { get; set; }
-    /// <summary>Max width of the sheet (500px both modes).</summary>
-    public float ActionSheetMaxWidth { get; set; } = 500f;
-    /// <summary>Container side padding (md 0, ios 8px) — the ios float inset.</summary>
-    public float ActionSheetContainerPaddingX { get; set; }
-    /// <summary>Group top margin (ios 10px; md 0).</summary>
-    public float ActionSheetGroupMarginTop { get; set; }
-    /// <summary>Group bottom margin (ios 10px; md 0).</summary>
-    public float ActionSheetGroupMarginBottom { get; set; }
-    /// <summary>Title text color (md <c>rgba(0,0,0,.54)</c>, ios <c>#999999</c> step-600).</summary>
-    public Color ActionSheetTitleColor { get; set; }
-    /// <summary>Title font size (md 16px, ios 13px).</summary>
-    public float ActionSheetTitleFontSize { get; set; } = 16f;
-    /// <summary>Title vertical/side padding (md 20/16, ios 14/10).</summary>
-    public float ActionSheetTitlePaddingY { get; set; } = 20f;
-    public float ActionSheetTitlePaddingX { get; set; } = 16f;
-    /// <summary>Sub-title font size (md 14px, ios 13px).</summary>
-    public float ActionSheetSubTitleFontSize { get; set; } = 14f;
-    /// <summary>Button label color (md step-150 <c>#262626</c>, ios primary).</summary>
-    public Color ActionSheetButtonColor { get; set; }
-    /// <summary>Button min-height (md 52px, ios 56px).</summary>
-    public float ActionSheetButtonHeight { get; set; } = 52f;
-    /// <summary>Button font size (md 16px, ios 20px).</summary>
-    public float ActionSheetButtonFontSize { get; set; } = 16f;
-    /// <summary>Button vertical/side padding (md 12/16, ios 14/14).</summary>
-    public float ActionSheetButtonPaddingY { get; set; } = 12f;
-    public float ActionSheetButtonPaddingX { get; set; } = 16f;
-    /// <summary>Button icon size (md 24px, ios 28px).</summary>
-    public float ActionSheetIconFontSize { get; set; } = 24f;
-    /// <summary>Button content alignment: md left (flex-start), ios center.</summary>
-    public JustifyContent ActionSheetButtonJustify { get; set; } = JustifyContent.FlexStart;
-    /// <summary>Text alignment of title/buttons: md start, ios center.</summary>
-    public TextAlign ActionSheetTextAlign { get; set; } = TextAlign.Left;
-    /// <summary>Destructive button label color (danger).</summary>
-    public Color ActionSheetDestructiveColor { get; set; }
-    /// <summary>Divider between ios buttons (a hairline; md has none).</summary>
-    public Color ActionSheetButtonBorderColor { get; set; }
-    /// <summary>Cancel button font weight (ios 600; md normal).</summary>
-    public FontWeight ActionSheetCancelFontWeight { get; set; } = FontWeight.Normal;
-    /// <summary>Enter (present) animation duration in seconds — 400ms in both modes
-    /// (<c>animations/{md|ios}.enter.ts</c> <c>.duration(400)</c>).</summary>
-    public float ActionSheetEnterDuration { get; set; } = 0.4f;
-    /// <summary>Leave (dismiss) animation duration in seconds — 450ms in both modes
-    /// (<c>animations/{md|ios}.leave.ts</c> <c>.duration(450)</c>).</summary>
-    public float ActionSheetLeaveDuration { get; set; } = 0.45f;
-
-    // Toast (toast.scss / .md.scss / .ios.scss + their *.vars.scss). A non-blocking notification card
-    // anchored to the top/middle/bottom of a pointer-transparent full-screen host.
-    /// <summary>Distance between the toast and the screen edge it is anchored to (md 8px, ios 10px).
-    /// In Ionic this is NOT a CSS offset: `.toast-top/.toast-bottom` really do sit at 0, and the gap
-    /// comes from the enter animation settling at <c>translateY(±offset ∓ safe-area)</c>
-    /// (<c>animations/utils.ts getAnimationPosition</c>). This port keeps that model — the offset is
-    /// the animation's resting transform, so the safe-area inset is added on top of it.</summary>
-    public float ToastEdgeOffset { get; set; } = 8f;
-    /// <summary>Enter (present) animation duration in seconds — 400ms in both modes
-    /// (<c>animations/{md|ios}.enter.ts</c> <c>.duration(400)</c>).</summary>
-    public float ToastEnterDuration { get; set; } = 0.4f;
-    /// <summary>Leave (dismiss) animation duration in seconds — 300ms in both modes
-    /// (<c>animations/{md|ios}.leave.ts</c> <c>.duration(300)</c>).</summary>
-    public float ToastLeaveDuration { get; set; } = 0.3f;
-
-    // Alert (alert.scss / .md.scss / .ios.scss + their *.vars.scss). A centered modal card: a head
-    // (title + sub-title), an optional message, an optional inputs group (text / radio / checkbox),
-    // and a button group (row; column when >2 buttons). md left-aligns the head and right-aligns
-    // uppercase buttons; ios centers everything with hairline-divided buttons.
-    /// <summary>Backdrop dim color (black) — opacity applied separately.</summary>
-    public Color AlertBackdropColor { get; set; } = Color.FromHex("000000");
-    /// <summary>Backdrop opacity (md 0.32, ios 0.4).</summary>
-    public float AlertBackdropOpacity { get; set; } = 0.32f;
-    /// <summary>Card background (md white, ios <c>#f9f9f9</c>).</summary>
-    public Color AlertBackground { get; set; }
-    /// <summary>Card min width (md 250px, ios 250px).</summary>
-    public float AlertMinWidth { get; set; } = 250f;
-    /// <summary>Card max width (md 280px, ios 270px).</summary>
-    public float AlertMaxWidth { get; set; } = 280f;
-    /// <summary>Card corner radius (md 4px, ios 13px).</summary>
-    public float AlertBorderRadius { get; set; } = 4f;
-    /// <summary>Card elevation shadow (md 3-layer; ios none).</summary>
-    public List<BoxShadow> AlertBoxShadow { get; set; } = new();
-    /// <summary>Head vertical/side padding (md 20/23, ios 12/16).</summary>
-    public float AlertHeadPaddingY { get; set; } = 20f;
-    public float AlertHeadPaddingX { get; set; } = 23f;
-    /// <summary>Head text alignment (md start, ios center).</summary>
-    public TextAlign AlertHeadTextAlign { get; set; } = TextAlign.Left;
-    /// <summary>Title color (text color) / font-size (md 20, ios 17) / weight (md 500, ios 600).</summary>
-    public Color AlertTitleColor { get; set; }
-    public float AlertTitleFontSize { get; set; } = 20f;
-    public FontWeight AlertTitleFontWeight { get; set; } = FontWeight.Medium;
-    /// <summary>Sub-title color / font-size (md 16, ios 14).</summary>
-    public Color AlertSubTitleColor { get; set; }
-    public float AlertSubTitleFontSize { get; set; } = 16f;
-    /// <summary>Message vertical/side padding (md 20/24, ios 0-21/16) and color / font-size.</summary>
-    public float AlertMessagePaddingY { get; set; } = 20f;
-    public float AlertMessagePaddingX { get; set; } = 24f;
-    public Color AlertMessageColor { get; set; }
-    public float AlertMessageFontSize { get; set; } = 16f;
-    /// <summary>Button group padding (md 8px; ios 0) and its content justification.</summary>
-    public float AlertButtonGroupPadding { get; set; } = 8f;
-    public JustifyContent AlertButtonGroupJustify { get; set; } = JustifyContent.FlexEnd;
-    /// <summary>
-    /// Button group wrapping ($alert-{mode}-button-group-flex-wrap): md <c>wrap-reverse</c> so a
-    /// button pushed onto a second line sits ABOVE the first (the primary action stays bottom-right);
-    /// ios <c>wrap</c>.
-    /// </summary>
-    public FlexWrap AlertButtonGroupFlexWrap { get; set; } = FlexWrap.WrapReverse;
-    /// <summary>Button label color (primary), background (transparent), font size / weight.</summary>
-    public Color AlertButtonColor { get; set; }
-    public float AlertButtonFontSize { get; set; } = 14f;
-    public FontWeight AlertButtonFontWeight { get; set; } = FontWeight.Medium;
-    /// <summary>Button corner radius (md 2px, ios 0) and text transform (md uppercase, ios none).</summary>
-    public float AlertButtonBorderRadius { get; set; } = 2f;
-    public TextTransform AlertButtonTextTransform { get; set; } = TextTransform.None;
-    /// <summary>Button padding (md 10px, ios 8px) and side margin (md 8px between buttons).</summary>
-    public float AlertButtonPadding { get; set; } = 10f;
-    public float AlertButtonMarginX { get; set; } = 8f;
-    /// <summary>Divider between ios buttons (hairline; md none) and radio/checkbox group borders.</summary>
-    public Color AlertListBorderColor { get; set; }
-    /// <summary>Radio/checkbox unchecked circle border color and checked accent (primary).</summary>
-    public Color AlertControlBorderColorOff { get; set; }
-    public Color AlertControlAccent { get; set; }
-    /// <summary>Tappable radio/checkbox row min-height (md 48, ios 44).</summary>
-    public float AlertTappableHeight { get; set; } = 48f;
-
-    // Datetime (datetime.scss / .md.scss / .ios.scss + their *.vars.scss). The default calendar
-    // (date) view: a header (title + selected date), a calendar (month/year toggle + weekday row +
-    // a 7-column month grid of round day buttons), and an optional footer. md fills the header with
-    // the primary color and marks the active day with a solid primary circle; ios keeps a light
-    // header and marks the active day with a translucent primary circle.
-    /// <summary>Component background surface (md <c>#ffffff</c>, ios light <c>#f4f5f8</c>).</summary>
-    public Color DatetimeBackground { get; set; }
-    /// <summary>Header background (md primary; ios matches the surface).</summary>
-    public Color DatetimeHeaderBackground { get; set; }
-    /// <summary>Header title/selected-date color (md white on primary; ios dark).</summary>
-    public Color DatetimeHeaderColor { get; set; }
-    /// <summary>Title font size (md 12px, ios 14px).</summary>
-    public float DatetimeTitleFontSize { get; set; } = 12f;
-    /// <summary>Selected-date font size (md 34px, ios 16px).</summary>
-    public float DatetimeSelectedDateFontSize { get; set; } = 34f;
-    /// <summary>Weekday-row text color (a neutral gray).</summary>
-    public Color DatetimeDayOfWeekColor { get; set; }
-    /// <summary>Weekday-row font size (md 14px, ios 12px).</summary>
-    public float DatetimeDayOfWeekFontSize { get; set; } = 14f;
-    /// <summary>Month/year toggle text color (a neutral dark gray).</summary>
-    public Color DatetimeMonthYearColor { get; set; }
-    /// <summary>Day cell text color (near-black).</summary>
-    public Color DatetimeDayColor { get; set; }
-    /// <summary>Day cell width/height (md 42px, ios 40px).</summary>
-    public float DatetimeDaySize { get; set; } = 42f;
-    /// <summary>Day cell font size (md 14px, ios 20px).</summary>
-    public float DatetimeDayFontSize { get; set; } = 14f;
-    /// <summary>Active day background (md solid primary; ios translucent primary).</summary>
-    public Color DatetimeDayActiveBackground { get; set; }
-    /// <summary>Active day text color (md white contrast; ios primary).</summary>
-    public Color DatetimeDayActiveColor { get; set; }
-    /// <summary>Today text/border accent (primary).</summary>
-    public Color DatetimeTodayColor { get; set; }
-
-    // Datetime button (datetime-button.scss / .md.scss / .ios.scss). A pill button pair (date/time)
-    // with an 8px-radius light-gray fill and dark text; the active button turns the primary color.
-    /// <summary>Button fill (<c>#edeef0</c> both modes).</summary>
-    public Color DatetimeButtonBackground { get; set; } = Color.FromHex("edeef0");
-    /// <summary>Button text color (near-black).</summary>
-    public Color DatetimeButtonColor { get; set; } = Color.FromHex("000000");
-    /// <summary>Active button text color (primary).</summary>
-    public Color DatetimeButtonActiveColor { get; set; }
-    /// <summary>Button corner radius (8px both modes).</summary>
-    public float DatetimeButtonBorderRadius { get; set; } = 8f;
-    /// <summary>Button vertical/side padding (md 6/12, ios 7/13).</summary>
-    public float DatetimeButtonPaddingY { get; set; } = 6f;
-    public float DatetimeButtonPaddingX { get; set; } = 12f;
-    /// <summary>Button font size (16px both modes).</summary>
-    public float DatetimeButtonFontSize { get; set; } = 16f;
-
-    // Label (label.scss / label.md.vars.scss / label.ios.vars.scss). The text content of a list row
-    // or form control. Both modes loosen line-height to 1.5 when the text wraps; iOS additionally
-    // drops the wrapped font to 14px and gives a stacked label a 4px bottom margin + 14px font,
-    // where md zeroes the margins and keeps the inherited size (hence the nullable font sizes).
-    /// <summary>Line height of a wrapping label (<c>$label-md/ios-text-wrap-line-height</c>: 1.5
-    /// both modes), in em.</summary>
-    public float LabelTextWrapLineHeight { get; set; } = 1.5f;
-    /// <summary>Font size of a wrapping label (<c>$label-ios-text-wrap-font-size</c>:
-    /// <c>dynamic-font(14px)</c>). Null on md, which keeps the inherited size.</summary>
-    public float? LabelTextWrapFontSize { get; set; }
-    /// <summary>Bottom margin of a <c>position="stacked"</c> label (label.ios.scss: 4px;
-    /// label.md.scss zeroes all four margins).</summary>
-    public float LabelStackedMarginBottom { get; set; }
-    /// <summary>Font size of a <c>position="stacked"</c> label (label.ios.scss
-    /// <c>dynamic-font(14px)</c>). Null on md, which keeps the inherited size.</summary>
-    public float? LabelStackedFontSize { get; set; }
-
-    // Note (note.scss / note.md.vars.scss / note.ios.vars.scss). An inline muted-gray label
-    // (e.g. metadata beside a list item). md uses text-color-step-400; ios uses the lighter
-    // text-color-step-650. Both resolve to a 14px font (md dynamic-font(14); ios 0.875*16).
-    /// <summary>Note text color (<c>--color</c>: md <c>$text-color-step-400</c> ≈ #666666,
-    /// ios <c>$text-color-step-650</c> ≈ #a6a6a6).</summary>
-    public Color NoteColor { get; set; } = Color.FromHex("666666");
-    /// <summary>Note font size (md 14px, ios 14px).</summary>
-    public float NoteFontSize { get; set; } = 14f;
-
-    // Thumbnail (thumbnail.scss). A fixed 48px square holding a slotted image that fills it and is
-    // cropped (object-fit: cover). No per-mode difference (there is no thumbnail.md/.ios).
-    /// <summary>Thumbnail width/height (<c>--size</c>, 48px both modes).</summary>
-    public float ThumbnailSize { get; set; } = 48f;
-
-    /// <summary>Thumbnail size when slotted inside an <c>ion-item</c> — the item overrides
-    /// <c>--size</c> (<c>$item-{md|ios}-thumbnail-size</c>: 56px both modes).</summary>
-    public float ItemThumbnailSize { get; set; } = 56f;
-
-    // Skeleton text (skeleton-text.scss / skeleton-text.vars.scss). A placeholder gray bar shown
-    // while content loads. Background is rgba(text-color, .065); the animated variant pulses toward
-    // a lighter rgba(text-color, .135). Miko has no keyframe shimmer here, so the animated state is
-    // modeled as the lighter static fill plus the `skeleton-text-animated` marker class.
-    /// <summary>Skeleton bar background (<c>rgba(text-color, .065)</c> ≈ 0.065*255 alpha over black).</summary>
-    public Color SkeletonTextBackground { get; set; } = new Color(0, 0, 0, 17);      // rgba(0,0,0,.065)
-    /// <summary>Skeleton bar background while animated (<c>rgba(text-color, .135)</c>).</summary>
-    public Color SkeletonTextBackgroundAnimated { get; set; } = new Color(0, 0, 0, 34); // rgba(0,0,0,.135)
-
-    // Toggle (toggle.scss / toggle.md.scss / toggle.ios.scss + their *.vars.scss). A track
-    // (.toggle-icon) holding a sliding knob (.toggle-inner). The knob sits absolutely at the start
-    // of a full-width .toggle-icon-wrapper; when checked, the wrapper translates right so the knob
-    // slides to the end, and the track fills with the checked color. md is a short 36x14 pill with a
-    // 20px round knob that overhangs the track; ios is a taller 51x31 pill with a 27px knob that fits
-    // inside a 2px inset. Disabled dims the whole host.
-    /// <summary>Track width (md 36px, ios 51px).</summary>
-    public float ToggleTrackWidth { get; set; } = 36f;
-    /// <summary>Track height (md 14px, ios 31px).</summary>
-    public float ToggleTrackHeight { get; set; } = 14f;
-    /// <summary>Track corner radius (md = track-height 14px; ios = height*.5 = 15.5px — a full pill).</summary>
-    public Length ToggleBorderRadius { get; set; } = Length.Px(14);
-    /// <summary>Track background when off (md rgba(text,.39), ios rgba(text,.088)).</summary>
-    public Color ToggleTrackBackgroundOff { get; set; }
-    /// <summary>Track background when on (md primary @ .5 alpha, ios solid primary).</summary>
-    public Color ToggleTrackBackgroundOn { get; set; }
-    /// <summary>Alpha applied to the checked track fill (<c>$toggle-md-track-background-color-alpha-on</c>
-    /// = .5 on md; ios paints a solid color, so 1). Used to tint the track for a named
-    /// <c>ion-color</c> the same way the mode's default checked track is tinted.</summary>
-    public float ToggleTrackCheckedAlpha { get; set; } = 0.5f;
-    /// <summary>Knob width (md 20px, ios 27px = height - border*2).</summary>
-    public float ToggleHandleWidth { get; set; } = 20f;
-    /// <summary>Knob height (md 20px, ios 27px).</summary>
-    public float ToggleHandleHeight { get; set; } = 20f;
-    /// <summary>Knob corner radius (md 50% → half the knob for a circle; ios = width*.5 = 25.5px pill).</summary>
-    public Length ToggleHandleBorderRadius { get; set; } = Length.Px(10);
-    /// <summary>Knob background (white both modes).</summary>
-    public Color ToggleHandleBackground { get; set; } = Color.White;
-    /// <summary>Knob background when checked (<c>--handle-background-checked</c>): solid primary on
-    /// md, white (unchanged) on ios.</summary>
-    public Color ToggleHandleBackgroundChecked { get; set; } = Color.White;
-    /// <summary>Knob elevation shadow (md a 3-layer Material shadow; ios a soft 2-layer shadow).</summary>
-    public List<BoxShadow> ToggleHandleBoxShadow { get; set; } = new();
-    /// <summary>Horizontal inset of the knob inside the track (md 0; ios = border-width 2px).</summary>
-    public float ToggleHandleSpacing { get; set; }
-    /// <summary>Distance the knob slides on check (track-width - handle-width: md 16px, ios 24px).</summary>
-    public float ToggleHandleTravel { get; set; } = 16f;
-    /// <summary>Knob slide transition duration in seconds (md 0.16s, ios 0.30s).</summary>
-    public float ToggleTransitionDuration { get; set; } = 0.16f;
-    /// <summary>Opacity of the whole disabled toggle host (md .38, ios .3).</summary>
-    public float ToggleDisabledOpacity { get; set; } = 0.38f;
-
-    // ProgressBar (progress-bar.scss / .md.scss / .ios.scss + their *.vars.scss). A thin full-width
-    // bar. The .progress-buffer-bar is the track (buffer width); the .progress fill scales with value.
-    // Indeterminate renders two sliding stripe bars. Track background is primary @ .3; the fill is
-    // solid primary. md 4px tall square corners; ios 4px tall fully-rounded pill.
-    /// <summary>Bar height (4px both modes).</summary>
-    public float ProgressBarHeight { get; set; } = 4f;
-    /// <summary>Container corner radius (md 0; ios 9999px → a full pill).</summary>
-    public float ProgressBarBorderRadius { get; set; }
-    /// <summary>Track / buffer-bar background (<c>--background</c> = primary @ .3 alpha).</summary>
-    public Color ProgressBarBackground { get; set; }
-    /// <summary>Progress fill background (<c>--progress-background</c> = solid primary).</summary>
-    public Color ProgressBarProgressBackground { get; set; }
-
-    // Brand palette shared by both modes (ionic.theme.default.scss).
+    /// <summary>Returns a deterministic fingerprint used to reuse an equivalent rule set.</summary>
+    internal string GetStyleKey(string component, IonicMode mode)
+    {
+        var builder = new System.Text.StringBuilder(component).Append('|').Append(mode);
+        IonicToken[] dependencies = component switch
+        {
+            "Accordion" => [Accordion, Item, Palette],
+            "ActionSheet" => [ActionSheet],
+            "Alert" => [Alert, Checkbox],
+            "Avatar" => [Avatar],
+            "BackButton" => [Palette],
+            "Badge" => [Badge, Palette],
+            "Breadcrumb" => [Breadcrumb, Palette],
+            "Button" => [Button, Palette, Toolbar],
+            "Card" => [Card, Palette],
+            "Checkbox" => [Checkbox, Item, Palette, Select],
+            "Chip" => [Chip, Palette],
+            "Content" => [Content, Palette],
+            "Datetime" => [Datetime, Palette],
+            "Fab" => [Fab, Palette],
+            "Footer" => [Header],
+            "Grid" => [Grid],
+            "Header" => [Header],
+            "Icon" => [Palette, Tab],
+            "InfiniteScroll" => [InfiniteScroll],
+            "Input" => [Input, Palette],
+            "InputOtp" => [Input, Item, Palette],
+            "Item" => [Item, List, Palette],
+            "Label" => [Label, Palette, Tab],
+            "List" => [Item, List, Palette],
+            "Loading" => [ActionSheet, Palette],
+            "Menu" => [Menu, Palette, Toolbar],
+            "Modal" => [Alert, Palette],
+            "Note" => [Note, Palette],
+            "Overlay" => [],
+            "Page" => [],
+            "Picker" => [Palette],
+            "Popover" => [Alert, Palette],
+            "ProgressBar" => [Palette, ProgressBar],
+            "Radio" => [Checkbox, Item, Palette, Select],
+            "Range" => [Item, Palette],
+            "Refresher" => [Refresher],
+            "Reorder" => [],
+            "Searchbar" => [Palette, Searchbar],
+            "Segment" => [Palette, Segment, Toolbar],
+            "Select" => [Palette, Select],
+            "SkeletonText" => [SkeletonText],
+            "Slides" => [Slides],
+            "Spinner" => [Palette, Spinner],
+            "Tab" => [Tab],
+            "Text" => [Palette],
+            "Textarea" => [Input, Palette],
+            "Thumbnail" => [Thumbnail],
+            "Title" => [Title, Toolbar],
+            "Toast" => [Palette, Toast],
+            "Toggle" => [Item, Palette, Select, Toggle],
+            "Toolbar" => [Toolbar],
+            _ => [],
+        };
+        foreach (var token in dependencies)
+            token.AppendFingerprint(builder);
+        var bytes = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(builder.ToString()));
+        return Convert.ToHexString(bytes.AsSpan(0, 8)).ToLowerInvariant();
+    }
     private static void ApplyBrandColors(IonicTheme t)
     {
         t.Primary = Color.FromHex("0054e9");

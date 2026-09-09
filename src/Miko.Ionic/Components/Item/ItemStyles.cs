@@ -11,8 +11,8 @@ namespace Miko.Ionic.Components;
 /// <c>item-divider.scss</c> / <c>.md.scss</c> / <c>.ios.scss</c>, <c>item-sliding.scss</c>,
 /// <c>item-options.scss</c>, <c>item-option.scss</c>.
 /// <para>
-/// The base <c>ion-item</c> / <c>ion-list</c> / <c>ion-list-header</c> rules live in
-/// <see cref="ListStyles"/>. Rules here are scoped by the active mode class (<c>md</c> /
+/// The base <c>ion-item</c> rules live in <see cref="BaseItemStyles"/>; list and list-header
+/// rules live in <see cref="ListStyles"/>. Rules here are scoped by the active mode class (<c>md</c> /
 /// <c>ios</c>); see <see cref="PageStyles"/> for the mode-scoping rationale.
 /// </para>
 /// </summary>

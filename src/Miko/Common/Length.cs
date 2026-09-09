@@ -10,6 +10,7 @@ namespace Miko.Common;
 /// 这样可以正确实现 em 相对“元素自身字体大小”解析的语义——
 /// 而不是在样式定义时用 RootFontSize 折算（那会让 1.5em 永远等于 1.5*16）。
 /// </summary>
+[System.ComponentModel.TypeConverter(typeof(LengthConverter))]
 public struct Length
 {
     /// <summary>根字体大小，用于解析 rem（以及缺少元素字体上下文时的 em 回退）。</summary>

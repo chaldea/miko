@@ -5,8 +5,8 @@ using Miko.Styling;
 namespace Miko.Ionic;
 
 /// <summary>
-/// Builds the Ionic component stylesheet by aggregating each component's generated styles.
-/// Mirrors <c>BootstrapStyleSheetFactory</c>.
+/// Generates Ionic utility/component styles. <see cref="IonicStyleRegistry"/> uses these on
+/// demand; the public aggregate factories remain available for standalone DOM/style consumers.
 /// <para>
 /// The stylesheet carries BOTH the <c>md</c> and <c>ios</c> mode rule sets, each scoped by the
 /// matching mode class that every component stamps onto its root element. This lets the active
@@ -26,6 +26,14 @@ public static class IonicStyleSheetFactory
     /// </summary>
     public const int CascadeLayer = -1;
 
+    /// <summary>Builds the Ionic utility stylesheet without any component rules.</summary>
+    public static StyleSheet CreateGlobal()
+    {
+        var sheet = new StyleSheet { Layer = CascadeLayer };
+        sheet.Add(GlobalStyle.GenStyle());
+        return sheet;
+    }
+
     /// <summary>
     /// Builds a stylesheet containing both Material Design and iOS rule sets, each from its own
     /// per-mode theme. Use this so the active mode can switch at runtime via the component mode
@@ -33,8 +41,7 @@ public static class IonicStyleSheetFactory
     /// </summary>
     public static StyleSheet CreateAllModes()
     {
-        var sheet = new StyleSheet { Layer = CascadeLayer };
-        sheet.Add(GlobalStyle.GenStyle());
+        var sheet = CreateGlobal();
         AddMode(sheet, "md", IonicTheme.CreateMd());
         AddMode(sheet, "ios", IonicTheme.CreateIos());
         return sheet;
@@ -48,8 +55,7 @@ public static class IonicStyleSheetFactory
     /// </summary>
     public static StyleSheet Create(IonicTheme theme)
     {
-        var sheet = new StyleSheet { Layer = CascadeLayer };
-        sheet.Add(GlobalStyle.GenStyle());
+        var sheet = CreateGlobal();
         if (theme.Mode == IonicMode.Ios)
         {
             AddMode(sheet, "md", IonicTheme.CreateMd());
@@ -74,6 +80,7 @@ public static class IonicStyleSheetFactory
         sheet.Add(LabelStyles.GenStyle(mode, t));
         sheet.Add(MenuStyles.GenStyle(mode, t));
         sheet.Add(ListStyles.GenStyle(mode, t));
+        sheet.Add(BaseItemStyles.GenStyle(mode, t));
         sheet.Add(ItemStyles.GenStyle(mode, t));
         sheet.Add(SegmentStyles.GenStyle(mode, t));
         sheet.Add(ToolbarStyles.GenStyle(mode, t));
@@ -117,4 +124,60 @@ public static class IonicStyleSheetFactory
         sheet.Add(LoadingStyles.GenStyle(mode, t));
         sheet.Add(ToastStyles.GenStyle(mode, t));
     }
+
+    internal static CssObject? CreateComponentStyle(string component, string mode, IonicTheme theme) => component switch
+    {
+        "Accordion" => AccordionStyles.GenStyle(mode, theme),
+        "ActionSheet" => ActionSheetStyles.GenStyle(mode, theme),
+        "Alert" => AlertStyles.GenStyle(mode, theme),
+        "Avatar" => AvatarStyles.GenStyle(mode, theme),
+        "BackButton" => BackButtonStyles.GenStyle(mode, theme),
+        "Badge" => BadgeStyles.GenStyle(mode, theme),
+        "Breadcrumb" => BreadcrumbStyles.GenStyle(mode, theme),
+        "Button" => ButtonStyles.GenStyle(mode, theme),
+        "Card" => CardStyles.GenStyle(mode, theme),
+        "Checkbox" => CheckboxStyles.GenStyle(mode, theme),
+        "Chip" => ChipStyles.GenStyle(mode, theme),
+        "Content" => ContentStyles.GenStyle(mode, theme),
+        "Datetime" => DatetimeStyles.GenStyle(mode, theme),
+        "Fab" => FabStyles.GenStyle(mode, theme),
+        "Footer" => FooterStyles.GenStyle(mode, theme),
+        "Grid" => GridStyles.GenStyle(mode, theme),
+        "Header" => HeaderStyles.GenStyle(mode, theme),
+        "Icon" => IconStyles.GenStyle(mode, theme),
+        "InfiniteScroll" => InfiniteScrollStyles.GenStyle(mode, theme),
+        "Input" => InputStyles.GenStyle(mode, theme),
+        "InputOtp" => InputOtpStyles.GenStyle(mode, theme),
+        "Item" => ItemStyles.GenStyle(mode, theme),
+        "Label" => LabelStyles.GenStyle(mode, theme),
+        "List" => ListStyles.GenStyle(mode, theme),
+        "Loading" => LoadingStyles.GenStyle(mode, theme),
+        "Menu" => MenuStyles.GenStyle(mode, theme),
+        "Modal" => ModalStyles.GenStyle(mode, theme),
+        "Note" => NoteStyles.GenStyle(mode, theme),
+        "Overlay" => OverlayStyles.GenStyle(mode),
+        "Page" => PageStyles.GenStyle(mode, theme),
+        "Picker" => PickerStyles.GenStyle(mode, theme),
+        "Popover" => PopoverStyles.GenStyle(mode, theme),
+        "ProgressBar" => ProgressBarStyles.GenStyle(mode, theme),
+        "Radio" => RadioStyles.GenStyle(mode, theme),
+        "Range" => RangeStyles.GenStyle(mode, theme),
+        "Refresher" => RefresherStyles.GenStyle(mode, theme),
+        "Reorder" => ReorderStyles.GenStyle(mode, theme),
+        "Searchbar" => SearchbarStyles.GenStyle(mode, theme),
+        "Segment" => SegmentStyles.GenStyle(mode, theme),
+        "Select" => SelectStyles.GenStyle(mode, theme),
+        "SkeletonText" => SkeletonTextStyles.GenStyle(mode, theme),
+        "Slides" => SlidesStyles.GenStyle(mode, theme),
+        "Spinner" => SpinnerStyles.GenStyle(mode, theme),
+        "Tab" => TabStyles.GenStyle(mode, theme),
+        "Text" => TextStyles.GenStyle(mode, theme),
+        "Textarea" => TextareaStyles.GenStyle(mode, theme),
+        "Thumbnail" => ThumbnailStyles.GenStyle(mode, theme),
+        "Title" => TitleStyles.GenStyle(mode, theme),
+        "Toast" => ToastStyles.GenStyle(mode, theme),
+        "Toggle" => ToggleStyles.GenStyle(mode, theme),
+        "Toolbar" => ToolbarStyles.GenStyle(mode, theme),
+        _ => null,
+    };
 }

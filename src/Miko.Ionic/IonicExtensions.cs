@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Miko.Hosting;
 using Miko.Ionic.Components;
 using Miko.Platform;
@@ -8,53 +9,50 @@ namespace Miko.Ionic;
 /// <summary>
 /// Configuration for the Ionic component library.
 /// </summary>
-public class IonicConfiguration
+public class IonicOptions
 {
     /// <summary>
-    /// Visual mode (Material Design or iOS). Supplied by the platform; defaults to
-    /// <see cref="IonicMode.Md"/>. Ignored when <see cref="Theme"/> is set explicitly.
+    /// iOS opt-in, retained for compatibility. Otherwise components follow the host platform.
+    /// Use <see cref="Platform"/> to force either design mode independently of the host.
     /// </summary>
     public IonicMode Mode { get; set; } = IonicMode.Md;
 
     /// <summary>
-    /// Optional explicit theme. When null, the default light themes for both modes are used.
+    /// The partial theme applied at application startup. Its explicitly set token values are
+    /// resolved against the active mode's defaults for every component.
     /// </summary>
-    public IonicTheme? Theme { get; set; }
+    public IonicTheme Theme { get; set; } = new();
 
     /// <summary>
-    /// Optional platform override. When null, the host platform registered in the container
-    /// (auto-detected from the OS, or set by the platform host / simulator) decides the mode.
-    /// Set this only to force a specific platform regardless of the host.
+    /// Optional Ionic platform override. When null, components follow the host platform unless
+    /// an iOS mode/theme was explicitly supplied. This does not replace the host's platform service.
     /// </summary>
     public HostPlatform? Platform { get; set; }
+}
+
+/// <summary>Compatibility name for the options passed to older <see cref="IonicExtensions.AddIonic"/> calls.</summary>
+[Obsolete("Use IonicOptions.")]
+public class IonicConfiguration : IonicOptions
+{
 }
 
 public static class IonicExtensions
 {
     /// <summary>
-    /// Registers the Ionic component library: applies the Ionic stylesheet (carrying both the
-    /// Material Design and iOS rule sets). The active mode follows the host
+    /// Registers the Ionic component library. Global utility rules are attached immediately;
+    /// individual component rule sets are registered when their first instance is built. The active mode follows the host
     /// <see cref="IPlatformInfo"/> (iOS → ios, otherwise → md) and can switch at runtime when the
     /// platform changes (e.g. the simulator swapping the selected device). Icons are bundled as
     /// embedded SVG resources and resolved on demand, so no font registration is required.
     /// </summary>
-    public static MikoAppBuilder AddIonic(this MikoAppBuilder builder, Action<IonicConfiguration>? configure = null)
+    public static MikoAppBuilder AddIonic(this MikoAppBuilder builder, Action<IonicOptions>? configure = null)
     {
-        var config = new IonicConfiguration();
-        configure?.Invoke(config);
+        builder.Services.AddOptions<IonicOptions>();
+        if (configure != null)
+            builder.Services.Configure(configure);
 
-        var styleSheet = config.Theme != null
-            ? IonicStyleSheetFactory.Create(config.Theme)
-            : IonicStyleSheetFactory.CreateAllModes();
-
-        // Override the host platform only when explicitly requested (an explicit Platform, or an
-        // iOS theme/mode). Otherwise leave the default auto-detected IPlatformInfo in place.
-        HostPlatform? forced = config.Platform;
-        if (forced == null && (config.Theme?.Mode ?? config.Mode) == IonicMode.Ios)
-            forced = HostPlatform.Ios;
-
-        if (forced is { } platform)
-            builder.Services.AddSingleton<IPlatformInfo>(new PlatformInfo(platform));
+        var styleRegistry = new IonicStyleRegistry();
+        builder.Services.AddSingleton(styleRegistry);
 
         builder.Services.AddSingleton<IonOverlayRegistry>();
         builder.Services.AddSingleton<IonOverlayManager>();
@@ -65,7 +63,7 @@ public static class IonicExtensions
         builder.Services.AddSingleton<IonPopoverController>();
         builder.Services.AddSingleton<IonToastController>();
 
-        builder.AddStyleSheet(styleSheet);
+        builder.AddStyleSheet(styleRegistry.StyleSheet);
         return builder;
     }
 }
