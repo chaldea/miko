@@ -211,6 +211,13 @@ public sealed class SimulatorHost
         _device = options.InitialDevice ?? options.Devices[0];
         _orientation = options.InitialOrientation;
 
+        // The simulator forwards its mouse drags as PointerType.Touch to stand in for a finger,
+        // so it needs the same inertial scrolling the Android/iOS hosts install — otherwise the
+        // one place a mobile gesture can be exercised on a desktop is the one place it has no
+        // fling. Only fill in the engine default; an explicitly registered IScrollBehavior wins.
+        if (_appController.ScrollBehavior is DefaultScrollBehavior)
+            _appController.SetScrollBehavior(CreateScrollBehaviorFor(_device.Platform));
+
         // The host platform is a mutable singleton; only present when registered (it is by
         // default — MikoAppBuilder.CreateDefault registers IPlatformInfo). Seed it from the
         // initial device BEFORE the app's first build so the starting mode matches the device.
@@ -646,10 +653,24 @@ public sealed class SimulatorHost
             _appController.RequestRebuild();
         }
 
+        // Scroll physics are part of what the simulated platform is meant to show, so follow the
+        // device the same way mode does. Only replace a behavior we installed ourselves.
+        if (platformChanged && _appController.ScrollBehavior is InertialScrollBehavior)
+            _appController.SetScrollBehavior(CreateScrollBehaviorFor(device.Platform));
+
         InitAppEngine();
         _panelNeedsRebuild = true;
         _logger.LogInformation("Simulated device changed to {Device}", device);
     }
+
+    /// <summary>
+    /// Mirrors the friction each platform host installs, so a fling in the simulator decelerates
+    /// like it will on the selected device (Android comes to rest sooner than UIScrollView).
+    /// </summary>
+    private static InertialScrollBehavior CreateScrollBehaviorFor(HostPlatform platform)
+        => platform == HostPlatform.Android
+            ? new InertialScrollBehavior(friction: 4.0f)
+            : new InertialScrollBehavior();
 
     private void SetOrientationInternal(Orientation orientation)
     {

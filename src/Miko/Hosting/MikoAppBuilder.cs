@@ -34,6 +34,7 @@ public class MikoAppBuilder
         builder.Services.AddSingleton<IPlatformInfo, PlatformInfo>();
         // Hosts replace this inert endpoint with their native Android/iOS/desktop implementation.
         builder.Services.TryAddSingleton<IInputMethodService, NullInputMethod>();
+        builder.Services.TryAddSingleton<IScrollBehavior, DefaultScrollBehavior>();
         builder.Services.AddSingleton<HotReloadService>();
         builder.Services.AddSingleton<MikoInteractionController>();
 
