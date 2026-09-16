@@ -42,6 +42,13 @@ public class MikoSurfaceView : SKGLSurfaceView
         _controller = appContext.Controller;
         _inputMethod = new AndroidInputMethod(this, _controller);
         _controller.AttachInputMethod(_inputMethod);
+        // Android scrolling is finger-driven, so it needs inertia the desktop wheel path does not.
+        // Only fill in the engine default — an app that registered its own IScrollBehavior wins.
+        // The friction is larger than the iOS default: Android's fling comes to rest noticeably
+        // sooner than UIScrollView's long glide. The value is a hand-tuned approximation of that
+        // feel, not a constant derived from Android's Scroller.
+        if (_controller.ScrollBehavior is DefaultScrollBehavior)
+            _controller.SetScrollBehavior(new InertialScrollBehavior(friction: 4.0f));
         _activity = context as global::Android.App.Activity;
         _density = context.Resources?.DisplayMetrics?.Density ?? 1f;
         Log.Info("MikoSurfaceView",

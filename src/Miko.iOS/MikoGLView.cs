@@ -35,6 +35,11 @@ public class MikoGLView : SKGLView, IUIKeyInput
         _controller = appContext.Controller;
         _inputMethod = new IosInputMethod(this, _controller);
         _controller.AttachInputMethod(_inputMethod);
+        // Touch scrolling needs inertia; the default friction already matches UIScrollView's
+        // normal deceleration rate. Only fill in the engine default so an app that registered
+        // its own IScrollBehavior wins.
+        if (_controller.ScrollBehavior is DefaultScrollBehavior)
+            _controller.SetScrollBehavior(new InertialScrollBehavior());
         _scale = UIScreen.MainScreen.Scale;
         MultipleTouchEnabled = false;
         PaintSurface += OnPaintSurface;

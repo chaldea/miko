@@ -34,6 +34,8 @@ public sealed class MikoInteractionController
     private readonly EventDispatcher _eventDispatcher;
     private readonly MikoSynchronizationContext _syncContext;
     private readonly MikoDispatcher _dispatcher;
+    private IScrollBehavior _scrollBehavior;
+    private IScrollGestureBehavior? _scrollGestureBehavior;
 
     private Router? _router;
     private NavigationManager? _navigationManager;
@@ -97,13 +99,16 @@ public sealed class MikoInteractionController
         MikoDispatcher dispatcher,
         HotReloadService hotReloadService,
         ILogger<MikoInteractionController> logger,
-        IInputMethodService? inputMethod = null)
+        IInputMethodService? inputMethod = null,
+        IScrollBehavior? scrollBehavior = null)
     {
         _options = options.Value;
         _serviceProvider = serviceProvider;
         _engine = engine;
         _eventDispatcher = eventDispatcher;
         _dispatcher = dispatcher;
+        _scrollBehavior = scrollBehavior ?? new DefaultScrollBehavior();
+        _scrollGestureBehavior = _scrollBehavior as IScrollGestureBehavior;
         _hotReloadService = hotReloadService;
         _logger = logger;
         _syncContext = new MikoSynchronizationContext(dispatcher);
@@ -145,6 +150,19 @@ public sealed class MikoInteractionController
 
     /// <summary>底层引擎，平台实现层用其进行渲染。</summary>
     public MikoEngine Engine => _engine;
+
+    /// <summary>Installs a host-specific scroll implementation.</summary>
+    public void SetScrollBehavior(IScrollBehavior? behavior)
+    {
+        lock (_sync)
+        {
+            _scrollGestureBehavior?.PointerCancel();
+            _scrollBehavior = behavior ?? new DefaultScrollBehavior();
+            _scrollGestureBehavior = _scrollBehavior as IScrollGestureBehavior;
+        }
+    }
+
+    public IScrollBehavior ScrollBehavior => _scrollBehavior;
 
     /// <summary>当前光标解析结果发生变化时触发，平台实现层据此应用原生光标。</summary>
     public event Action<Cursor>? CursorChanged;
@@ -231,7 +249,8 @@ public sealed class MikoInteractionController
         {
             lock (_sync)
             {
-                return _needsRebuild || _dispatcher.HasPendingActions || _engine.HasPendingVisualWork;
+                return _needsRebuild || _dispatcher.HasPendingActions || _engine.HasPendingVisualWork ||
+                    (_scrollGestureBehavior?.HasPendingWork ?? false);
             }
         }
     }
@@ -327,6 +346,7 @@ public sealed class MikoInteractionController
         var dt = deltaTime > MaxFrameDelta ? NominalFrameDelta : deltaTime;
         _engine.AnimationManager.Update(dt);
         _engine.AdvanceNavigationTransition(dt);
+        _scrollGestureBehavior?.Update(_engine, dt);
     }
 
     /// <summary>
@@ -395,6 +415,7 @@ public sealed class MikoInteractionController
             _pointerMoved = false;
             _longPressFired = false;
             CancelLongPress();
+            _scrollGestureBehavior?.PointerDown(x, y);
 
             // Select popups are painted above content, including range inputs and scrollbars.
             var dropdownHit = HitTestSelectDropdown(x, y);
@@ -445,6 +466,7 @@ public sealed class MikoInteractionController
         {
             if (_pointerDownTarget != null && pointerId != _activePointerId) return;
             CancelLongPress();
+            _scrollGestureBehavior?.PointerUp(x, y);
             if (_isDragging)
             {
                 _isDragging = false;
@@ -541,7 +563,8 @@ public sealed class MikoInteractionController
 
                 if (_activePointerType != PointerType.Mouse && _pointerMoved
                     && pointerArgs?.DefaultPrevented != true)
-                    _engine.ScrollBy(down.X, down.Y, previous.X - current.X, previous.Y - current.Y);
+                    _scrollBehavior.ScrollBy(_engine, down.X, down.Y,
+                        previous.X - current.X, previous.Y - current.Y);
 
                 _lastPointerPosition = current;
                 return;
@@ -563,7 +586,14 @@ public sealed class MikoInteractionController
     {
         lock (_sync)
         {
-            if (_pointerDownTarget == null || pointerId != _activePointerId) return;
+            if (pointerId != _activePointerId) return;
+            // The gesture behavior was told PointerDown unconditionally, so it must always hear
+            // the cancel — even on paths that took over the press and left _pointerDownTarget
+            // null (a scrollbar grab, or a press that hit nothing). Skipping it strands the
+            // behavior mid-drag, and it would then sample unrelated deltas as drag velocity.
+            _scrollGestureBehavior?.PointerCancel();
+
+            if (_pointerDownTarget == null) return;
             CancelLongPress();
             DispatchCapturedPointerEvent(EventTypes.PointerCancel, x, y, MouseButton.Left,
                 isButtonPressed: false);
@@ -629,7 +659,7 @@ public sealed class MikoInteractionController
         lock (_sync)
         {
             _logger.LogTrace("OnScroll: pos=({PosX}, {PosY}), delta=({DeltaX}, {DeltaY})", x, y, deltaX, deltaY);
-            _engine.ScrollBy(x, y, deltaX, deltaY);
+            _scrollBehavior.ScrollBy(_engine, x, y, deltaX, deltaY);
         }
     }
 
