@@ -13,6 +13,14 @@ namespace Miko.Ionic.Tests.Components;
 /// </summary>
 public class IonLoadingAutoDismissTests : IonicComponentTestBase
 {
+    /// <summary>
+    /// Budget for a 100 ms auto-dismiss timer to fire. Deliberately far larger than the timer:
+    /// these tests use real wall-clock timers, this assembly runs xUnit collections in parallel,
+    /// and CI runners are shared — a 500 ms budget failed intermittently under that load. The
+    /// wait polls, so a generous ceiling costs nothing on the passing path.
+    /// </summary>
+    private const int WaitTimeoutMs = 5000;
+
     [Fact]
     public void IonLoading_WithoutDuration_DoesNotAutoDismiss()
     {
@@ -135,7 +143,7 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         {
             dispatcher.Drain();
             return dismissed;
-        }, timeoutMs: 500, checkIntervalMs: 20);
+        }, timeoutMs: WaitTimeoutMs, checkIntervalMs: 20);
 
         // Assert: should have triggered dismiss callbacks
         isOpenChanged.ShouldBeTrue();
@@ -166,7 +174,7 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         {
             dispatcher.Drain();
             return dismissCount == 1;
-        }, timeoutMs: 500, checkIntervalMs: 20);
+        }, timeoutMs: WaitTimeoutMs, checkIntervalMs: 20);
         dismissCount.ShouldBe(1);
 
         // Re-render as closed
@@ -192,7 +200,7 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         {
             dispatcher.Drain();
             return dismissCount == 2;
-        }, timeoutMs: 500, checkIntervalMs: 20);
+        }, timeoutMs: WaitTimeoutMs, checkIntervalMs: 20);
 
         // Assert: should have dismissed twice total
         dismissCount.ShouldBe(2);
@@ -261,9 +269,13 @@ public class IonLoadingAutoDismissTests : IonicComponentTestBase
         // let's verify the behavior we CAN test: if the timer fires after IsOpen was already
         // set to false by the timer itself, we don't dismiss again.
 
-        // Wait for timer to fire
-        await Task.Delay(250);
-        dispatcher.Drain();
+        // Wait for the timer to fire. Polling rather than one fixed delay: a loaded runner can
+        // leave a 300 ms timer unfired after a flat 250 ms wait, and there is nothing to retry.
+        await WaitForConditionAsync(() =>
+        {
+            dispatcher.Drain();
+            return dismissCount == 1;
+        }, timeoutMs: WaitTimeoutMs, checkIntervalMs: 20);
 
         // Assert: auto-dismiss should have fired once
         dismissCount.ShouldBe(1);

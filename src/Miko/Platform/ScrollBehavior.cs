@@ -43,9 +43,13 @@ public sealed class DefaultScrollBehavior : IScrollBehavior
 /// release the user experiences as stationary.</item>
 /// </list>
 /// <para>
-/// Timing uses <see cref="Stopwatch"/> rather than <see cref="Environment.TickCount64"/>: the
-/// latter advances in ~16 ms steps on Windows, which is coarser than the sample interval being
-/// measured and collapses a whole batch onto one instant.
+/// Timing goes through <see cref="TimeProvider"/>, whose default resolves to
+/// <see cref="Stopwatch"/> rather than <see cref="Environment.TickCount64"/>: the latter advances
+/// in ~16 ms steps on Windows, which is coarser than the sample interval being measured and
+/// collapses a whole batch onto one instant. Tests substitute a fake provider — asserting on
+/// release velocity with real sleeps makes the outcome a function of scheduler accuracy, and a
+/// loaded machine that oversleeps past <see cref="VelocityHorizon"/> expires every sample, so the
+/// release reads as stationary.
 /// </para>
 /// </summary>
 public sealed class InertialScrollBehavior : IScrollGestureBehavior
@@ -79,6 +83,7 @@ public sealed class InertialScrollBehavior : IScrollGestureBehavior
     private int _sampleCount;
 
     private readonly float _friction;
+    private readonly TimeProvider _timeProvider;
     private float _x, _y, _velocityX, _velocityY;
     private bool _dragging, _inertia;
 
@@ -88,11 +93,17 @@ public sealed class InertialScrollBehavior : IScrollGestureBehavior
     /// <c>-ln(0.998) * 1000 ≈ 2.0</c>); hosts wanting a shorter, Android-style glide pass a
     /// larger value.
     /// </param>
-    public InertialScrollBehavior(float friction = 2.0f)
+    /// <param name="timeProvider">
+    /// Clock used to timestamp move samples; defaults to <see cref="TimeProvider.System"/>, whose
+    /// timestamps are <see cref="Stopwatch"/>-based. Supply a fake to drive velocity estimation
+    /// deterministically in tests.
+    /// </param>
+    public InertialScrollBehavior(float friction = 2.0f, TimeProvider? timeProvider = null)
     {
         if (friction <= 0f)
             throw new ArgumentOutOfRangeException(nameof(friction), friction, "Friction must be positive.");
         _friction = friction;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public bool HasPendingWork => _inertia;
@@ -156,7 +167,7 @@ public sealed class InertialScrollBehavior : IScrollGestureBehavior
 
     private void AddSample(float deltaX, float deltaY)
     {
-        _samples[_sampleHead] = new Sample(Stopwatch.GetTimestamp(), deltaX, deltaY);
+        _samples[_sampleHead] = new Sample(_timeProvider.GetTimestamp(), deltaX, deltaY);
         _sampleHead = (_sampleHead + 1) % SampleCapacity;
         if (_sampleCount < SampleCapacity) _sampleCount++;
     }
@@ -170,7 +181,8 @@ public sealed class InertialScrollBehavior : IScrollGestureBehavior
     {
         if (_sampleCount == 0) return (0f, 0f);
 
-        var now = Stopwatch.GetTimestamp();
+        var now = _timeProvider.GetTimestamp();
+        var frequency = (float)_timeProvider.TimestampFrequency;
         float sumX = 0, sumY = 0;
         long oldest = now;
         int included = 0;
@@ -179,7 +191,7 @@ public sealed class InertialScrollBehavior : IScrollGestureBehavior
         for (int i = 1; i <= _sampleCount; i++)
         {
             var sample = _samples[(_sampleHead - i + SampleCapacity) % SampleCapacity];
-            var age = (now - sample.Timestamp) / (float)Stopwatch.Frequency;
+            var age = (now - sample.Timestamp) / frequency;
             if (age > VelocityHorizon) break;
 
             sumX += sample.DeltaX;
@@ -190,7 +202,7 @@ public sealed class InertialScrollBehavior : IScrollGestureBehavior
 
         if (included == 0) return (0f, 0f);
 
-        var span = MathF.Max((now - oldest) / (float)Stopwatch.Frequency, MinVelocitySpan);
+        var span = MathF.Max((now - oldest) / frequency, MinVelocitySpan);
         return (
             Math.Clamp(sumX / span, -MaxVelocity, MaxVelocity),
             Math.Clamp(sumY / span, -MaxVelocity, MaxVelocity));
