@@ -26,7 +26,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 桌面 Native 实现是 internal（应用只该依赖 Miko.Native 的接口），
+         但它们在本机可真实运行，值得回归测试。 -->
+    <InternalsVisibleTo Include="Miko.Native.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Miko\Miko.csproj" />
+    <ProjectReference Include="..\Miko.Native\Miko.Native.csproj" />
     <ProjectReference Include="..\Miko.Windowing.Common\Miko.Windowing.Common.csproj" />
   </ItemGroup>
 

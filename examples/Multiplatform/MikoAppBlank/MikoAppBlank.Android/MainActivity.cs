@@ -1,6 +1,8 @@
 using Android.App;
+using Android.Content;
 using Android.OS;
 using Miko.Android;
+using Miko.Android.Native;
 
 namespace MikoAppBlank.Android;
 
@@ -13,6 +15,8 @@ namespace MikoAppBlank.Android;
     Theme = "@android:style/Theme.Material.Light.NoActionBar")]
 public class MainActivity : Activity
 {
+    private MikoSurfaceView? _view;
+
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
@@ -26,6 +30,22 @@ public class MainActivity : Activity
         }
 
         // Reuse the shared app configuration; Miko.Android drives rendering and touch input.
-        SetContentView(MikoAndroidApp.CreateView(this, () => MikoAppBlank.App.CreateContext()));
+        // UseAndroidNative() supplies the Android implementations of the Miko.Native capability
+        // interfaces; the view attaches this Activity to them as it is constructed.
+        _view = MikoAndroidApp.CreateView(
+            this,
+            () => MikoAppBlank.App.CreateContext(builder => builder.UseAndroidNative()));
+
+        SetContentView(_view);
+    }
+
+    // Capabilities that start a system Intent (camera, gallery, photo editing) get their result
+    // here, not as a return value. Without this forwarding they would wait forever.
+    protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
+    {
+        if (_view is not null && MikoAndroidApp.HandleActivityResult(_view, requestCode, resultCode, data))
+            return;
+
+        base.OnActivityResult(requestCode, resultCode, data);
     }
 }

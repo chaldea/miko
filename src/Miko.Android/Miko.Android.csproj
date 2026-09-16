@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Miko\Miko.csproj" />
+    <ProjectReference Include="..\Miko.Native\Miko.Native.csproj" />
   </ItemGroup>
 
   <ItemGroup>

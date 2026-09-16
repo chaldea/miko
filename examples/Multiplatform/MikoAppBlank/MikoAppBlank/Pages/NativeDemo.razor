@@ -1,0 +1,88 @@
+@page "/native"
+@namespace MikoAppBlank.Pages
+@using Miko.Native.Clipboard
+@using Miko.Native.Device
+@using Miko.Native.Network
+@using Miko.Native.Toast
+
+@* Exercises the Miko.Native capability interfaces end to end: inject an interface,
+   call it, render the result. Which implementation answers depends on the platform head
+   (UseDesktopNative / UseAndroidNative / UseIosNative / UseSimulatorNative); capabilities
+   with no implementation on this platform throw PlatformNotSupportedException, which is
+   shown here rather than hidden. *@
+
+<div class="home">
+    <h1 class="home-title">Native capabilities</h1>
+
+    <div class="counter">
+        <button class="counter-btn" @onclick="ReadDeviceAsync">Device info</button>
+    </div>
+    <div class="counter">
+        <button class="counter-btn" @onclick="ReadNetworkAsync">Network status</button>
+    </div>
+    <div class="counter">
+        <button class="counter-btn" @onclick="CopyAsync">Copy to clipboard</button>
+    </div>
+    <div class="counter">
+        <button class="counter-btn" @onclick="ToastAsync">Show toast</button>
+    </div>
+
+    <p class="home-subtitle">@_output</p>
+</div>
+
+@code {
+    [Inject] public IDeviceService DeviceService { get; set; } = default!;
+    [Inject] public INetworkService NetworkService { get; set; } = default!;
+    [Inject] public IClipboardService ClipboardService { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+
+    private string _output = "Pick a capability above.";
+
+    private Task ReadDeviceAsync() => RunAsync(async () =>
+    {
+        var info = await DeviceService.GetInfoAsync();
+        return $"{info.Name} · {info.Platform} {info.OsVersion} · virtual={info.IsVirtual}";
+    });
+
+    private Task ReadNetworkAsync() => RunAsync(async () =>
+    {
+        var status = await NetworkService.GetStatusAsync();
+        return $"connected={status.Connected} · {status.ConnectionType}";
+    });
+
+    private Task CopyAsync() => RunAsync(async () =>
+    {
+        var text = $"Hello from Miko at {DateTimeOffset.Now:HH:mm:ss}";
+        await ClipboardService.WriteAsync(new ClipboardWriteOptions { String = text });
+
+        var read = await ClipboardService.ReadAsync();
+        return $"clipboard now holds: {read.Value}";
+    });
+
+    private Task ToastAsync() => RunAsync(async () =>
+    {
+        await ToastService.ShowAsync(new ToastOptions { Text = "Hello from Miko" });
+        return "toast requested";
+    });
+
+    // A capability the current platform does not implement throws
+    // PlatformNotSupportedException by contract. Surface it instead of swallowing it —
+    // that is exactly the signal the app is meant to act on.
+    private async Task RunAsync(Func<Task<string>> action)
+    {
+        try
+        {
+            _output = await action();
+        }
+        catch (PlatformNotSupportedException ex)
+        {
+            _output = $"Not supported here: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            _output = $"Failed: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+}

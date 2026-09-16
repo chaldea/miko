@@ -1,5 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using Miko.DevTools;
 using Miko.Hosting;
+using Miko.Native;
 
 namespace MikoAppBlank;
 
@@ -28,6 +30,12 @@ public static class App
 
         builder.AddDevTools();
         builder.AddStyleSheet(GlobalStyles.Create());
+
+        // Register the native capability interfaces so pages can [Inject] them anywhere.
+        // This installs the Null* defaults; each platform head then replaces the ones it
+        // can really implement via UseDesktopNative() / UseAndroidNative() / UseIosNative()
+        // / UseSimulatorNative(). Registration order does not matter.
+        builder.Services.AddMikoNative();
 
         // Routes and the default layout are wired up by Miko.Razor.Compiler.
         builder.UseGeneratedRoutes();

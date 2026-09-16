@@ -19,6 +19,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\src\Miko\Miko.csproj" />
     <ProjectReference Include="..\..\..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
+    <!-- Native capability interfaces only. The platform implementations live in the
+         platform head projects (Miko.Windowing / Miko.Android / Miko.iOS / Miko.Simulator). -->
+    <ProjectReference Include="..\..\..\..\src\Miko.Native\Miko.Native.csproj" />
   </ItemGroup>
 
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
