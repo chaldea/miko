@@ -21,12 +21,12 @@ public class VideoElementTests
     public void RenderTreeBuilder_VideoTag_BuildsVideoElement()
     {
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "video");
-        builder.AddAttribute(1, "src", "movie.mp4");
-        builder.AddAttribute(2, "autoplay", "true");
-        builder.AddAttribute(3, "loop", "true");
-        builder.AddAttribute(4, "muted", "true");
-        builder.AddAttribute(5, "poster", "poster.png");
+        var __e1 = builder.OpenElement<VideoElement>();
+        __e1.Source = "movie.mp4";
+        __e1.AutoPlay = true;
+        __e1.Loop = true;
+        __e1.Muted = true;
+        __e1.Poster = "poster.png";
         builder.CloseElement();
 
         var root = builder.Build();
@@ -44,9 +44,9 @@ public class VideoElementTests
     public void RenderTreeBuilder_VideoBooleanFalse_IsFalse()
     {
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "video");
-        builder.AddAttribute(1, "src", "movie.mp4");
-        builder.AddAttribute(2, "autoplay", "false");
+        var __e2 = builder.OpenElement<VideoElement>();
+        __e2.Source = "movie.mp4";
+        __e2.AutoPlay = false;
         builder.CloseElement();
 
         var video = builder.Build().ShouldBeOfType<VideoElement>();

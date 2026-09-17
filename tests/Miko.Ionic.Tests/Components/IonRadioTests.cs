@@ -70,11 +70,11 @@ public class IonRadioTests : IonicComponentTestBase
         string? justify = null, string? labelPlacement = null, string label = "Radio in an Item")
         => ctx.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(b =>
         {
-            b.OpenComponent<IonRadio>(0);
-            b.AddAttribute(1, nameof(IonRadio.Value), "a");
-            b.AddAttribute(2, nameof(IonRadio.ChildContent), Label(label));
-            if (justify is not null) b.AddAttribute(3, nameof(IonRadio.Justify), justify);
-            if (labelPlacement is not null) b.AddAttribute(4, nameof(IonRadio.LabelPlacement), labelPlacement);
+            var __c1 = b.OpenComponent<IonRadio>();
+            __c1.Value = "a";
+            __c1.ChildContent = Label(label);
+            if (justify is not null) __c1.Justify = justify;
+            if (labelPlacement is not null) __c1.LabelPlacement = labelPlacement;
             b.CloseComponent();
         })));
 

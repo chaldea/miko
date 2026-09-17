@@ -33,9 +33,9 @@ public class IonSegmentButtonLabelStyleTests
             p.Add(nameof(IonSegmentButton.Value), "a");
             p.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonLabel>(0);
-                builder.AddComponentParameter(1, nameof(IonLabel.ChildContent),
-                    (RenderFragment)(l => l.AddContent(0, "All")));
+                var __c1 = builder.OpenComponent<IonLabel>();
+                __c1.ChildContent = 
+                    (RenderFragment)(l => l.AddContent("All"));
                 builder.CloseComponent();
             });
         });
@@ -69,7 +69,7 @@ public class IonSegmentButtonLabelStyleTests
         // the descendant rule must not leak out.
         using var ctx = ContextFor(HostPlatform.Android);
         var cut = ctx.Render<IonLabel>(p =>
-            p.AddChildContent(l => l.AddContent(0, "Plain")));
+            p.AddChildContent(l => l.AddContent("Plain")));
 
         var style = cut.GetComputedStyle(cut.Root)!;
         // The segment-button-scoped 22px line-height must not apply here.

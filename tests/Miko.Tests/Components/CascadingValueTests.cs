@@ -1,4 +1,5 @@
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Shouldly;
 
@@ -27,7 +28,7 @@ public class CascadingValueTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.AddContent(1, Msg ?? "<null>");
             builder.CloseElement();
         }
@@ -40,7 +41,7 @@ public class CascadingValueTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.AddContent(1, Value.ToString());
             builder.CloseElement();
         }
@@ -53,7 +54,7 @@ public class CascadingValueTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.AddContent(1, Greeter?.Hello() ?? "none");
             builder.CloseElement();
         }
@@ -69,7 +70,7 @@ public class CascadingValueTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.AddContent(1, Msg ?? "<null>");
             builder.CloseElement();
         }
@@ -81,8 +82,8 @@ public class CascadingValueTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.OpenComponent<StringConsumer>(1);
+            builder.OpenElement<DivElement>();
+            builder.OpenComponent<StringConsumer>();
             builder.CloseComponent();
             builder.CloseElement();
         }

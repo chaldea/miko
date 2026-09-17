@@ -29,10 +29,10 @@ public class EventCallbackAsyncTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "button");
-            builder.AddAttribute(1, "onclick",
+            var __e1 = builder.OpenElement<ButtonElement>();
+            __e1.OnClick = global::Miko.Components.RenderTreeBuilder.ToHandler(
                 EventCallback.Factory.Create<MouseEventArgs>(this, IncrementAsync));
-            builder.AddContent(2, $"Count: {Count}");
+            builder.AddContent($"Count: {Count}");
             builder.CloseElement();
         }
 
@@ -57,8 +57,13 @@ public class EventCallbackAsyncTests
         // Simulate click - handler returns Task but doesn't block
         element.OnClick!.Invoke(new MouseEventArgs { Target = element });
 
-        // Wait for the async operation to complete (polls instead of fixed delay)
-        await WaitForConditionAsync(() => component.AsyncCompleted);
+        // Wait for the re-render, not merely for the handler's flag. The handler sets
+        // AsyncCompleted as its last statement, but StateHasChanged only runs afterwards, in the
+        // task's continuation (see EventCallbackHelper.AwaitAndNotifyStateChanged). Polling the
+        // flag can therefore observe it while the re-render is still pending, and the assertion
+        // below would read the pre-render text. Poll the rendered output instead — it is what the
+        // test is actually about, and it implies the flag.
+        await WaitForConditionAsync(() => element.TextContent == "Count: 1");
 
         // Component should have re-rendered automatically
         component.Count.ShouldBe(1);
@@ -72,8 +77,8 @@ public class EventCallbackAsyncTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "button");
-            builder.AddAttribute(1, "onclick",
+            var __e2 = builder.OpenElement<ButtonElement>();
+            __e2.OnClick = global::Miko.Components.RenderTreeBuilder.ToHandler(
                 EventCallback.Factory.Create<MouseEventArgs>(this, ExecuteAsync));
             builder.AddContent(2, Executed ? "Done" : "Click");
             builder.CloseElement();
@@ -96,7 +101,9 @@ public class EventCallbackAsyncTests
 
         element.OnClick!.Invoke(new MouseEventArgs { Target = element });
 
-        await WaitForConditionAsync(() => component.Executed);
+        // See AsyncEventCallback_ShouldCallStateHasChangedAfterCompletion: wait on the rendered
+        // output, since Executed is set before the re-render continuation runs.
+        await WaitForConditionAsync(() => element.TextContent == "Done");
 
         component.Executed.ShouldBeTrue();
         element.TextContent.ShouldBe("Done");
@@ -124,8 +131,8 @@ public class EventCallbackAsyncTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "button");
-            builder.AddAttribute(1, "onclick",
+            var __e3 = builder.OpenElement<ButtonElement>();
+            __e3.OnClick = global::Miko.Components.RenderTreeBuilder.ToHandler(
                 EventCallback.Factory.Create<MouseEventArgs>(this, HandleClick));
             builder.CloseElement();
         }
@@ -145,8 +152,8 @@ public class EventCallbackAsyncTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddContent(1, $"Status: {_status}");
+            builder.OpenElement<DivElement>();
+            builder.AddContent($"Status: {_status}");
 
             Child = new ButtonChildComponent
             {
@@ -196,10 +203,10 @@ public class AutoUpdateCounterComponentPublic : ComponentBase
 
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {
-        builder.OpenElement(0, "button");
-        builder.AddAttribute(1, "onclick",
+        var __e5 = builder.OpenElement<ButtonElement>();
+        __e5.OnClick = global::Miko.Components.RenderTreeBuilder.ToHandler(
             EventCallback.Factory.Create<MouseEventArgs>(this, Increment));
-        builder.AddContent(2, $"Count: {_count}");
+        builder.AddContent($"Count: {_count}");
         builder.CloseElement();
     }
 

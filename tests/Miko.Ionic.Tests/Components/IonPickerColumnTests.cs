@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Ionic;
 using Miko.Ionic.Components;
@@ -62,14 +63,14 @@ public class IonPickerColumnTests : IonicComponentTestBase
             p.Add(nameof(IonPickerColumn.ChildContent), Options());
             p.Add(nameof(IonPickerColumn.SlotPrefix), (RenderFragment)(b =>
             {
-                b.OpenElement(0, "span");
-                b.AddAttribute(1, "class", "my-prefix");
+                var __e1 = b.OpenElement<SpanElement>();
+                __e1.Class = "my-prefix";
                 b.CloseElement();
             }));
             p.Add(nameof(IonPickerColumn.SlotSuffix), (RenderFragment)(b =>
             {
-                b.OpenElement(0, "span");
-                b.AddAttribute(1, "class", "my-suffix");
+                var __e2 = b.OpenElement<SpanElement>();
+                __e2.Class = "my-suffix";
                 b.CloseElement();
             }));
         });

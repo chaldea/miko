@@ -17,7 +17,7 @@ namespace Miko.Ionic.Tests.Components;
 /// </summary>
 public class IonButtonTests : IonicComponentTestBase
 {
-    private static readonly RenderFragment Label = builder => builder.AddContent(0, "Default");
+    private static readonly RenderFragment Label = builder => builder.AddContent("Default");
 
     private static ComponentUnderTest RenderButton(TestContext ctx,
         Action<ComponentParameterBuilder<IonButton>>? configure = null)
@@ -126,9 +126,9 @@ public class IonButtonTests : IonicComponentTestBase
         var cut = Context.Render<IonButton>(p =>
             p.AddChildContent(b =>
             {
-                b.OpenComponent<IonIcon>(0);
-                b.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
-                b.AddComponentParameter(2, nameof(IonIcon.Slot), "icon-only");
+                var __c1 = b.OpenComponent<IonIcon>();
+                __c1.Icon = "heart";
+                __c1.Slot = "icon-only";
                 b.CloseComponent();
             }));
 
@@ -149,8 +149,8 @@ public class IonButtonTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonButton>(p =>
         {
-            p.Add(nameof(IonButton.Start), (RenderFragment)(b => b.AddContent(0, "S")));
-            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent(0, "Label")));
+            p.Add(nameof(IonButton.Start), (RenderFragment)(b => b.AddContent("S")));
+            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent("Label")));
         });
 
         var inner = cut.Root.Children[0].Children[0];
@@ -165,8 +165,8 @@ public class IonButtonTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonButton>(p =>
         {
-            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent(0, "Label")));
-            p.Add(nameof(IonButton.End), (RenderFragment)(b => b.AddContent(0, "E")));
+            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent("Label")));
+            p.Add(nameof(IonButton.End), (RenderFragment)(b => b.AddContent("E")));
         });
 
         var inner = cut.Root.Children[0].Children[0];
@@ -181,8 +181,8 @@ public class IonButtonTests : IonicComponentTestBase
         var cut = Context.Render<IonButton>(p =>
             p.Add(nameof(IonButton.IconOnly), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonIcon>(0);
-                b.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
+                var __c2 = b.OpenComponent<IonIcon>();
+                __c2.Icon = "heart";
                 b.CloseComponent();
             })));
 
@@ -197,8 +197,8 @@ public class IonButtonTests : IonicComponentTestBase
         var cut = Context.Render<IonButton>(p =>
             p.Add(nameof(IonButton.IconOnly), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonIcon>(0);
-                b.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
+                var __c3 = b.OpenComponent<IonIcon>();
+                __c3.Icon = "heart";
                 b.CloseComponent();
             })));
 
@@ -212,10 +212,10 @@ public class IonButtonTests : IonicComponentTestBase
         {
             p.Add(nameof(IonButton.IconOnly), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonIcon>(0);
-                b.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
+                var __c4 = b.OpenComponent<IonIcon>();
+                __c4.Icon = "heart";
                 if (iconClass is not null)
-                    b.AddComponentParameter(2, nameof(IonIcon.Class), iconClass);
+                    __c4.Class = iconClass;
                 b.CloseComponent();
             }));
             configure?.Invoke(p);
@@ -369,12 +369,12 @@ public class IonButtonTests : IonicComponentTestBase
         {
             RenderFragment icon = b =>
             {
-                b.OpenComponent<IonIcon>(0);
-                b.AddComponentParameter(1, nameof(IonIcon.Icon), "star");
+                var __c5 = b.OpenComponent<IonIcon>();
+                __c5.Icon = "star";
                 b.CloseComponent();
             };
             p.Add(start ? nameof(IonButton.Start) : nameof(IonButton.End), icon);
-            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent(0, "Label")));
+            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent("Label")));
             if (size is not null) p.Add(nameof(IonButton.Size), size);
         });
 
@@ -499,8 +499,8 @@ public class IonButtonTests : IonicComponentTestBase
 
         var cut = Context.Render<IonButton>(p =>
         {
-            p.Add(nameof(IonButton.Start), (RenderFragment)(b => b.AddContent(0, "S")));
-            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent(0, "Label")));
+            p.Add(nameof(IonButton.Start), (RenderFragment)(b => b.AddContent("S")));
+            p.Add(nameof(IonButton.ChildContent), (RenderFragment)(b => b.AddContent("Label")));
         });
 
         var inner = cut.Root.Children[0].Children[0];

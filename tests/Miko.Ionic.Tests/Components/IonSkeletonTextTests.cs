@@ -112,7 +112,7 @@ public class IonSkeletonTextTests : IonicComponentTestBase
         var cut = Context.Render<IonThumbnail>(p =>
             p.Add(nameof(IonThumbnail.ChildContent), (Miko.Components.RenderFragment)(b =>
             {
-                b.OpenComponent<IonSkeletonText>(0);
+                b.OpenComponent<IonSkeletonText>();
                 b.CloseComponent();
             })));
 
@@ -126,7 +126,7 @@ public class IonSkeletonTextTests : IonicComponentTestBase
         var cut = Context.Render<IonAvatar>(p =>
             p.Add(nameof(IonAvatar.ChildContent), (Miko.Components.RenderFragment)(b =>
             {
-                b.OpenComponent<IonSkeletonText>(0);
+                b.OpenComponent<IonSkeletonText>();
                 b.CloseComponent();
             })));
 
@@ -150,7 +150,7 @@ public class IonSkeletonTextTests : IonicComponentTestBase
         var cut = Context.Render<IonThumbnail>(p =>
             p.Add(nameof(IonThumbnail.ChildContent), (Miko.Components.RenderFragment)(b =>
             {
-                b.OpenComponent<IonSkeletonText>(0);
+                b.OpenComponent<IonSkeletonText>();
                 b.CloseComponent();
             })));
 

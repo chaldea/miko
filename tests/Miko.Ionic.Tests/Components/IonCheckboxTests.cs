@@ -407,10 +407,10 @@ public class IonCheckboxTests : IonicComponentTestBase
         string? justify = null, string? labelPlacement = null, string label = "Packed in the Item")
         => ctx.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(b =>
         {
-            b.OpenComponent<IonCheckbox>(0);
-            b.AddAttribute(1, nameof(IonCheckbox.ChildContent), Label(label));
-            if (justify is not null) b.AddAttribute(2, nameof(IonCheckbox.Justify), justify);
-            if (labelPlacement is not null) b.AddAttribute(3, nameof(IonCheckbox.LabelPlacement), labelPlacement);
+            var __c1 = b.OpenComponent<IonCheckbox>();
+            __c1.ChildContent = Label(label);
+            if (justify is not null) __c1.Justify = justify;
+            if (labelPlacement is not null) __c1.LabelPlacement = labelPlacement;
             b.CloseComponent();
         })));
 

@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Hosting;
 using Miko.Layout;
@@ -41,14 +42,14 @@ public class ScrollPageRerenderTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "inner-scroll");
-            builder.AddAttribute(2, "style", new Style
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = "inner-scroll";
+            __e1.Style = new Style
             {
                 Width = Length.Px(ViewportW),
                 Height = Length.Px(ViewportH),
                 OverflowY = Overflow.Auto,
-            });
+            };
 
             for (var i = 0; i < Rows; i++)
             {
@@ -59,11 +60,11 @@ public class ScrollPageRerenderTests
             }
 
             // 列表末尾的哨兵，对应 ion-infinite-scroll。
-            builder.OpenElement(9000, "div");
-            builder.AddAttribute(9001, "class", "ion-infinite-scroll");
-            builder.AddAttribute(9002, "style", new Style { Height = Length.Px(84) });
-            builder.OpenElement(9003, "div");
-            builder.AddContent(9004, "Loading...");
+            var __e2 = builder.OpenElement<DivElement>();
+            __e2.Class = "ion-infinite-scroll";
+            __e2.Style = new Style { Height = Length.Px(84) };
+            builder.OpenElement<DivElement>();
+            builder.AddContent("Loading...");
             builder.CloseElement();
             builder.CloseElement();
 

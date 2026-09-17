@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Events;
 using Miko.Hosting;
@@ -145,15 +146,15 @@ public class PointerCaptureLeakTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "page");
-            builder.AddAttribute(2, "style", new Style
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = "page";
+            __e1.Style = new Style
             {
                 Width = Length.Px(Width),
                 Height = Length.Px(Height),
                 BackgroundColor = Color.FromRgb(240, 240, 240)
-            });
-            builder.AddAttribute(3, "onmousemove",
+            };
+            __e1.OnMouseMove = global::Miko.Components.RenderTreeBuilder.ToHandler(
                 EventCallback.Factory.Create<MouseEventArgs>(this, args =>
                 {
                     Moves++;
@@ -161,26 +162,26 @@ public class PointerCaptureLeakTests
                     StateHasChanged();
                 }));
 
-            builder.OpenElement(4, "div");
-            builder.AddAttribute(5, "class", "track");
-            builder.AddAttribute(6, "style", new Style
+            var __e2 = builder.OpenElement<DivElement>();
+            __e2.Class = "track";
+            __e2.Style = new Style
             {
                 Width = Length.Percent(100),
                 Height = Length.Px(4),
                 BackgroundColor = Color.FromRgb(180, 180, 180)
-            });
+            };
 
-            builder.OpenElement(7, "div");
-            builder.AddAttribute(8, "class", "knob");
-            builder.AddAttribute(9, "style", new Style
+            var __e3 = builder.OpenElement<DivElement>();
+            __e3.Class = "knob";
+            __e3.Style = new Style
             {
                 Position = Position.Relative,
                 Left = Length.Percent(_pct),
                 Width = Length.Px(12),
                 Height = Length.Px(12),
                 BackgroundColor = Color.FromRgb(40, 100, 200)
-            });
-            builder.AddContent(10, $"{(int)_pct}");
+            };
+            builder.AddContent($"{(int)_pct}");
             builder.CloseElement();
 
             builder.CloseElement();

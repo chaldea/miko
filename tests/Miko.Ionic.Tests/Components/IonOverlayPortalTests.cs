@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Events;
 using Miko.Hosting;
@@ -22,38 +23,38 @@ public sealed class IonOverlayPortalTests : IonicComponentTestBase
 
     private static RenderFragment ModalInsideOwner(bool open = true) => builder =>
     {
-        builder.OpenElement(0, "div");
-        builder.AddAttribute(1, "class", "overlay-owner");
-        builder.AddAttribute(2, "style", new Style
+        var __e1 = builder.OpenElement<DivElement>();
+        __e1.Class = "overlay-owner";
+        __e1.Style = new Style
         {
             Height = Length.Px(48),
             OverflowX = Overflow.Hidden,
             OverflowY = Overflow.Hidden,
-        });
-        builder.OpenComponent<IonModal>(3);
-        builder.AddComponentParameter(4, nameof(IonModal.IsOpen), open);
-        builder.AddComponentParameter(5, nameof(IonModal.ChildContent), (RenderFragment)(content =>
+        };
+        var __c5 = builder.OpenComponent<IonModal>();
+        __c5.IsOpen = open;
+        __c5.ChildContent = (RenderFragment)(content =>
         {
-            content.OpenElement(0, "div");
-            content.AddAttribute(1, "class", "portal-modal-content");
-            content.AddContent(2, "Modal content");
+            var __e2 = content.OpenElement<DivElement>();
+            __e2.Class = "portal-modal-content";
+            content.AddContent("Modal content");
             content.CloseElement();
-        }));
+        });
         builder.CloseComponent();
         builder.CloseElement();
     };
 
     private static readonly RenderFragment SelectOptions = builder =>
     {
-        builder.OpenComponent<IonSelectOption>(0);
-        builder.AddComponentParameter(1, nameof(IonSelectOption.Value), "a");
-        builder.AddComponentParameter(2, nameof(IonSelectOption.ChildContent),
-            (RenderFragment)(text => text.AddContent(0, "Alpha")));
+        var __c6 = builder.OpenComponent<IonSelectOption>();
+        __c6.Value = "a";
+        __c6.ChildContent = 
+            (RenderFragment)(text => text.AddContent("Alpha"));
         builder.CloseComponent();
-        builder.OpenComponent<IonSelectOption>(3);
-        builder.AddComponentParameter(4, nameof(IonSelectOption.Value), "b");
-        builder.AddComponentParameter(5, nameof(IonSelectOption.ChildContent),
-            (RenderFragment)(text => text.AddContent(0, "Beta")));
+        var __c7 = builder.OpenComponent<IonSelectOption>();
+        __c7.Value = "b";
+        __c7.ChildContent = 
+            (RenderFragment)(text => text.AddContent("Beta"));
         builder.CloseComponent();
     };
 
@@ -120,11 +121,11 @@ public sealed class IonOverlayPortalTests : IonicComponentTestBase
         string? changed = null;
         var cut = Context.Render<IonApp>(p => p.Add(nameof(IonApp.ChildContent), (RenderFragment)(builder =>
         {
-            builder.OpenComponent<IonSelect>(0);
-            builder.AddComponentParameter(1, nameof(IonSelect.Placeholder), "Pick one");
-            builder.AddComponentParameter(2, nameof(IonSelect.ValueChanged),
-                EventCallback.Factory.Create<string?>(this, value => changed = value));
-            builder.AddComponentParameter(3, nameof(IonSelect.ChildContent), SelectOptions);
+            var __c8 = builder.OpenComponent<IonSelect>();
+            __c8.Placeholder = "Pick one";
+            __c8.ValueChanged = 
+                EventCallback.Factory.Create<string?>(this, value => changed = value);
+            __c8.ChildContent = SelectOptions;
             builder.CloseComponent();
         })));
 
@@ -170,17 +171,17 @@ public sealed class IonOverlayPortalTests : IonicComponentTestBase
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
         var cut = Context.Render<IonApp>(p => p.Add(nameof(IonApp.ChildContent), (RenderFragment)(builder =>
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "page-target");
-            builder.AddAttribute(2, "style", new Style
+            var __e3 = builder.OpenElement<DivElement>();
+            __e3.Class = "page-target";
+            __e3.Style = new Style
             {
                 Width = Length.Percent(100),
                 Height = Length.Percent(100),
-            });
+            };
             builder.CloseElement();
-            builder.OpenComponent<IonToast>(3);
-            builder.AddComponentParameter(4, nameof(IonToast.IsOpen), true);
-            builder.AddComponentParameter(5, nameof(IonToast.Message), "Saved");
+            var __c9 = builder.OpenComponent<IonToast>();
+            __c9.IsOpen = true;
+            __c9.Message = "Saved";
             builder.CloseComponent();
         })));
 
@@ -204,12 +205,12 @@ public sealed class IonOverlayPortalTests : IonicComponentTestBase
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
         var cut = Context.Render<IonApp>(p => p.Add(nameof(IonApp.ChildContent), (RenderFragment)(builder =>
         {
-            builder.OpenComponent<IonModal>(0);
-            builder.AddComponentParameter(1, nameof(IonModal.IsOpen), true);
+            var __c10 = builder.OpenComponent<IonModal>();
+            __c10.IsOpen = true;
             builder.CloseComponent();
-            builder.OpenComponent<IonAlert>(2);
-            builder.AddComponentParameter(3, nameof(IonAlert.IsOpen), true);
-            builder.AddComponentParameter(4, nameof(IonAlert.Header), "Top alert");
+            var __c11 = builder.OpenComponent<IonAlert>();
+            __c11.IsOpen = true;
+            __c11.Header = "Top alert";
             builder.CloseComponent();
         })));
 
@@ -239,22 +240,22 @@ public sealed class IonOverlayPortalTests : IonicComponentTestBase
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonApp>(0);
-            builder.AddComponentParameter(1, nameof(IonApp.ChildContent), (RenderFragment)(content =>
+            var __c12 = builder.OpenComponent<IonApp>();
+            __c12.ChildContent = (RenderFragment)(content =>
             {
-                content.OpenElement(0, "button");
-                content.AddAttribute(1, "class", "hide-overlay");
-                content.AddAttribute(2, "onclick", EventCallback.Factory.Create<MouseEventArgs>(
+                var __e4 = content.OpenElement<ButtonElement>();
+                __e4.Class = "hide-overlay";
+                __e4.OnClick = global::Miko.Components.RenderTreeBuilder.ToHandler(EventCallback.Factory.Create<MouseEventArgs>(
                     this, _ => _show = false));
-                content.AddContent(3, "Hide");
+                content.AddContent("Hide");
                 content.CloseElement();
                 if (_show)
                 {
-                    content.OpenComponent<IonModal>(4);
-                    content.AddComponentParameter(5, nameof(IonModal.IsOpen), true);
+                    var __c13 = content.OpenComponent<IonModal>();
+                    __c13.IsOpen = true;
                     content.CloseComponent();
                 }
-            }));
+            });
             builder.CloseComponent();
         }
     }

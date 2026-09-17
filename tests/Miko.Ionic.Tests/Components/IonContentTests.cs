@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Ionic;
 using Miko.Ionic.Components;
 using Miko.Platform;
@@ -137,11 +138,11 @@ public class IonContentTests : IonicComponentTestBase
     {
         var cut = RenderContent(p => p.Add(nameof(IonContent.Fixed), (RenderFragment)(b =>
         {
-            b.OpenElement(0, "div");
-            b.AddAttribute(1, "class", "first");
+            var __e1 = b.OpenElement<DivElement>();
+            __e1.Class = "first";
             b.CloseElement();
-            b.OpenElement(2, "div");
-            b.AddAttribute(3, "class", "second");
+            var __e2 = b.OpenElement<DivElement>();
+            __e2.Class = "second";
             b.CloseElement();
         })));
 
@@ -232,15 +233,15 @@ public class IonContentTests : IonicComponentTestBase
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
         var cut = Context.Render<IonPage>(page => page.Add(nameof(IonPage.ChildContent), (RenderFragment)(pb =>
         {
-            pb.OpenComponent<IonContent>(0);
-            pb.AddComponentParameter(1, nameof(IonContent.ChildContent), Text("body"));
-            pb.AddComponentParameter(2, nameof(IonContent.Fixed), (RenderFragment)(b =>
+            var __c4 = pb.OpenComponent<IonContent>();
+            __c4.ChildContent = Text("body");
+            __c4.Fixed = (RenderFragment)(b =>
             {
-                b.OpenComponent<IonFab>(0);
-                b.AddComponentParameter(1, nameof(IonFab.Vertical), "bottom");
-                b.AddComponentParameter(2, nameof(IonFab.Horizontal), "end");
+                var __c5 = b.OpenComponent<IonFab>();
+                __c5.Vertical = "bottom";
+                __c5.Horizontal = "end";
                 b.CloseComponent();
-            }));
+            });
             pb.CloseComponent();
         })));
 
@@ -272,13 +273,13 @@ public class IonContentTests : IonicComponentTestBase
     // Mirrors Ionic's content/test/fixed/index.html: a bare div holding nested block content.
     private static RenderFragment FixedBox() => builder =>
     {
-        builder.OpenElement(0, "div");
-        builder.AddAttribute(1, "class", "fixed-box");
-        builder.OpenElement(2, "h1");
-        builder.AddContent(3, "Fixed content");
+        var __e3 = builder.OpenElement<DivElement>();
+        __e3.Class = "fixed-box";
+        builder.OpenElement<H1Element>();
+        builder.AddContent("Fixed content");
         builder.CloseElement();
-        builder.OpenElement(4, "p");
-        builder.AddContent(5, "Fixed paragraph");
+        builder.OpenElement<ParagraphElement>();
+        builder.AddContent("Fixed paragraph");
         builder.CloseElement();
         builder.CloseElement();
     };

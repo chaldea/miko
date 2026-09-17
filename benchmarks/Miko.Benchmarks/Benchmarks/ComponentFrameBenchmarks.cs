@@ -80,6 +80,38 @@ public class ComponentFrameBenchmarks
         _renderEngine.Render(layout);
     }
 
+    /// <summary>
+    /// The build stage on its own — no layout, no painting.
+    ///
+    /// <para>This is the stage ISSUE-136 actually optimizes (element construction, attribute
+    /// assignment, component parameter assignment, cascading-parameter resolution). In the
+    /// full-frame benchmarks above it is a minority of the total, so a large relative improvement
+    /// here shows up only faintly there; measuring it separately keeps the effect visible.</para>
+    /// </summary>
+    [Benchmark(Description = "Component Build only (no layout, no render)")]
+    public Element BuildOnly()
+    {
+        var page = new ComponentBenchmarkPage { ItemCount = ComponentCount };
+        return page.Build();
+    }
+
+    /// <summary>
+    /// The same tree built through the legacy "sequence + attribute name + object value" API,
+    /// for a direct comparison with <see cref="BuildOnly"/>.
+    ///
+    /// <para>Both paths remain in the product — the legacy one still backs
+    /// <c>AddMarkupContent</c>'s runtime HTML parsing — so this measures exactly what ISSUE-136
+    /// removed: the tag dictionary lookup, the ~70-branch attribute-name switch, and the
+    /// uncached <c>GetProperty</c> + <c>SetValue</c> per component parameter (with boxing for
+    /// value-typed ones).</para>
+    /// </summary>
+    [Benchmark(Description = "Component Build only, legacy name-based API")]
+    public Element BuildOnly_LegacyApi()
+    {
+        var page = new LegacyComponentBenchmarkPage { ItemCount = ComponentCount };
+        return page.Build();
+    }
+
     [Benchmark(Description = "Component StateHasChanged + layout + render")]
     public void StateChange_Relayout()
     {
@@ -109,13 +141,13 @@ public class ComponentFrameBenchmarks
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "component-page");
+            var page = builder.OpenElement<DivElement>();
+            page.Class = "component-page";
             for (int i = 0; i < ItemCount; i++)
             {
-                builder.OpenComponent<ComponentBenchmarkItem>(10 + i * 3);
-                builder.AddAttribute(11 + i * 3, nameof(ComponentBenchmarkItem.Index), i);
-                builder.AddAttribute(12 + i * 3, nameof(ComponentBenchmarkItem.State), _renderedState);
+                var item = builder.OpenComponent<ComponentBenchmarkItem>();
+                item.Index = i;
+                item.State = _renderedState;
                 builder.CloseComponent();
             }
             builder.CloseElement();
@@ -138,6 +170,43 @@ public class ComponentFrameBenchmarks
     }
 
     private sealed class ComponentBenchmarkItem : ComponentBase
+    {
+        public int Index { get; set; }
+        public int State { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var item = builder.OpenElement<DivElement>();
+            item.Class = "component-item";
+            builder.AddContent($"Component item {Index}, state {State}");
+            builder.CloseElement();
+        }
+    }
+
+    // ---- Legacy-API twins, identical output, name-based construction ----
+    // 与上面两个组件产出完全相同的树，只是走旧的「序号 + 属性名 + object 值」API。
+    // 这样 BuildOnly 与 BuildOnly_LegacyApi 的差值就是 ISSUE-136 去掉的那部分开销。
+
+    private sealed class LegacyComponentBenchmarkPage : ComponentBase
+    {
+        public int ItemCount { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "component-page");
+            for (int i = 0; i < ItemCount; i++)
+            {
+                builder.OpenComponent<LegacyComponentBenchmarkItem>(10 + i * 3);
+                builder.AddAttribute(11 + i * 3, nameof(LegacyComponentBenchmarkItem.Index), i);
+                builder.AddAttribute(12 + i * 3, nameof(LegacyComponentBenchmarkItem.State), 0);
+                builder.CloseComponent();
+            }
+            builder.CloseElement();
+        }
+    }
+
+    private sealed class LegacyComponentBenchmarkItem : ComponentBase
     {
         public int Index { get; set; }
         public int State { get; set; }

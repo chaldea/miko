@@ -10,7 +10,7 @@ namespace Miko.Ionic.Tests.Components;
 
 public class IonCardTests : IonicComponentTestBase
 {
-    private static readonly RenderFragment Body = builder => builder.AddContent(0, "Card body");
+    private static readonly RenderFragment Body = builder => builder.AddContent("Card body");
     private static RenderFragment Text(string value) => builder => builder.AddContent(0, value);
 
     [Fact]

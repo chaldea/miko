@@ -1,3 +1,4 @@
+using Miko.Core.DomElements;
 using Miko.Testing;
 using Miko.Ionic.Components;
 using Miko.Components;
@@ -10,7 +11,7 @@ public class IonItemSlidingTests : IonicComponentTestBase
 {
     private static readonly RenderFragment MinimalChild = builder =>
     {
-        builder.OpenElement(0, "span");
+        builder.OpenElement<SpanElement>();
         builder.CloseElement();
     };
 

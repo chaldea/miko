@@ -70,22 +70,22 @@ public class RouteView
         return component;
     }
 
+    /// <summary>
+    /// Populates the page component's <see cref="InjectAttribute"/> properties. The property set
+    /// is resolved once per component type by <see cref="ComponentParameterCache"/> rather than by
+    /// reflecting on every navigation (ISSUE-136). Unresolved services are tolerated, as before.
+    /// </summary>
     private static void InjectServices(
         ComponentBase component,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type componentType,
         IServiceProvider serviceProvider)
     {
-        var properties = componentType.GetProperties(
-            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-        foreach (var prop in properties)
+        var injected = ComponentParameterCache.GetInjectedProperties(componentType);
+        for (int i = 0; i < injected.Length; i++)
         {
-            if (prop.GetCustomAttributes(typeof(InjectAttribute), true).Length > 0 && prop.CanWrite)
-            {
-                var service = serviceProvider.GetService(prop.PropertyType);
-                if (service != null)
-                    prop.SetValue(component, service);
-            }
+            var service = serviceProvider.GetService(injected[i].Property.PropertyType);
+            if (service != null)
+                injected[i].SetValue(component, service);
         }
     }
 }

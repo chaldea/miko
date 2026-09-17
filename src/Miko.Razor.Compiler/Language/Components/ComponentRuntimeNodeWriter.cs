@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.AspNetCore.Razor.Language.CodeGeneration;
 using Microsoft.AspNetCore.Razor.Language.Extensions;
@@ -24,6 +25,39 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
     // <pre> 子树深度：pre 是预格式化元素，其内部的空白文本（换行、缩进）有语义，
     // 不能像普通标记那样跳过（见 WriteHtmlContent 与 ISSUE-098）。
     private int _preformattedDepth;
+
+    // 当前开启的元素（ISSUE-136）。属性节点在中间树里不知道自己属于哪个标签，
+    // 而强类型赋值既需要标签名（查属性槽位）也需要局部变量名（赋值目标），
+    // 故由 WriteMarkupElement 在渲染其属性期间下传。
+    private OpenElementInfo _currentElement;
+
+    // 局部变量序号：同一方法体内的元素（含嵌套与同级）必须各有唯一名字。
+    private int _elementVariableIndex;
+
+    // 当前开启的组件的局部变量名，null 表示没有（或类型推断分支走旧路径）。
+    private string? _currentComponent;
+
+    private int _componentVariableIndex;
+
+    /// <summary>
+    /// The element whose attributes are currently being emitted. <see cref="VariableName"/> is
+    /// null for a tag with no compile-time element type, which keeps the legacy emit.
+    /// </summary>
+    private readonly record struct OpenElementInfo(string? TagName, string? VariableName)
+    {
+        [MemberNotNullWhen(true, nameof(TagName), nameof(VariableName))]
+        public bool IsTyped => VariableName is not null && TagName is not null;
+    }
+
+    /// <summary>
+    /// Unique local name per element. The counter is per-writer (i.e. per generated document),
+    /// so names never collide across nested elements, sibling elements, or lambda scopes.
+    /// </summary>
+    private string NextElementVariableName() => $"__e{_elementVariableIndex++}";
+
+    /// <summary>Unique local name per component instance. See <see cref="NextElementVariableName"/>.</summary>
+    private string NextComponentVariableName() => $"__c{_componentVariableIndex++}";
+
 
     public ComponentRuntimeNodeWriter(RazorLanguageVersion version) : base(version)
     {
@@ -178,12 +212,41 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
             throw new ArgumentNullException(nameof(node));
         }
 
-        context.CodeWriter
-            .WriteStartMethodInvocation($"{BuilderVariableName}.{ComponentsApi.RenderTreeBuilder.OpenElement}")
-            .WriteIntegerLiteral(_sourceSequence++)
-            .WriteParameterSeparator()
-            .WriteStringLiteral(node.TagName)
-            .WriteEndMethodInvocation();
+        // 强类型发射（ISSUE-136）：标签名是源码里的字面量，元素类型因此在编译期已知。
+        // 已知标签走 OpenElement<TElement>() + 直接属性赋值；未知标签回落到旧的字符串路径，
+        // 行为与此前完全一致。
+        var elementTypeName = MikoElements.GetElementTypeName(node.TagName);
+        var openElement = default(OpenElementInfo);
+
+        if (elementTypeName is not null)
+        {
+            var elementVariable = NextElementVariableName();
+            // var __e0 = __builder.OpenElement<global::Miko.Core.DomElements.DivElement>();
+            context.CodeWriter.Write("var ");
+            context.CodeWriter.Write(elementVariable);
+            context.CodeWriter.Write(" = ");
+            context.CodeWriter.Write(BuilderVariableName);
+            context.CodeWriter.Write(".");
+            context.CodeWriter.Write(ComponentsApi.RenderTreeBuilder.OpenElement);
+            context.CodeWriter.Write("<");
+            context.CodeWriter.Write(elementTypeName);
+            context.CodeWriter.WriteLine(">();");
+            openElement = new OpenElementInfo(node.TagName, elementVariable);
+        }
+        else
+        {
+            context.CodeWriter
+                .WriteStartMethodInvocation($"{BuilderVariableName}.{ComponentsApi.RenderTreeBuilder.OpenElement}")
+                .WriteIntegerLiteral(_sourceSequence++)
+                .WriteParameterSeparator()
+                .WriteStringLiteral(node.TagName)
+                .WriteEndMethodInvocation();
+        }
+
+        // 属性发射期间，把「当前开启的元素」交给 WriteHtmlAttribute / WriteComponentAttribute
+        // ——它们通过节点树拿不到所属标签，只能由这里下传（见 _currentElement）。
+        var previousElement = _currentElement;
+        _currentElement = openElement;
 
         bool hasFormName = false;
 
@@ -228,6 +291,9 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
             ScopeStack.IncrementFormName();
         }
 
+        // 属性发射结束：本元素的属性都写完了，body 里的子元素各有自己的开启元素。
+        _currentElement = default;
+
         // <pre> 子树的空白内容需要保留（预格式化），在渲染 body 期间跟踪深度。
         bool isPre = string.Equals(node.TagName, "pre", StringComparison.OrdinalIgnoreCase);
         if (isPre)
@@ -249,6 +315,9 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
             {
                 _preformattedDepth--;
             }
+
+            // 恢复外层元素：嵌套元素闭合后，外层可能还有属性要写（罕见但合法）。
+            _currentElement = previousElement;
         }
 
         context.CodeWriter
@@ -409,6 +478,18 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
             // _builder.AddElementCapture(3, (__value) => _field = __value);
             // _builder.CloseComponent();
 
+            // 强类型发射（ISSUE-136）：把组件实例接到局部变量上，参数便可直接赋值，
+            // 不再经 AddComponentParameter 的 GetProperty + SetValue（无缓存且值类型装箱）。
+            // 显式写出类型参数的泛型组件（如 CascadingValue<T>）同样适用——类型实参就写在
+            // OpenComponent<...> 上，var 能完整推断。只有类型推断分支（TypeInferenceNode
+            // 非空，即本方法的 else 分支）不走这里。
+            var componentVariable = NextComponentVariableName();
+
+            // var __c0 = __builder.OpenComponent<global::Ns.TComponent>();
+            context.CodeWriter.Write("var ");
+            context.CodeWriter.Write(componentVariable);
+            context.CodeWriter.Write(" = ");
+
             // _builder.OpenComponent<TComponent>(42);
             context.CodeWriter.Write(BuilderVariableName);
             context.CodeWriter.Write(".");
@@ -434,16 +515,20 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
                 context.CodeWriter.Write(">");
             }
 
-            context.CodeWriter.Write(">(");
-            context.CodeWriter.WriteIntegerLiteral(_sourceSequence++);
-            context.CodeWriter.Write(");");
+            context.CodeWriter.Write(">();");
             context.CodeWriter.WriteLine();
 
             // We can skip type arguments during runtime codegen, they are handled in the
             // type/parameter declarations.
 
+            // 参数发射期间把开启的组件下传给 WriteComponentAttribute / WriteComponentChildContent。
+            var previousComponent = _currentComponent;
+            _currentComponent = componentVariable;
+
             bool hasRenderMode = false;
 
+            try
+            {
             // Preserve order of attributes and splats
             foreach (var child in node.Children)
             {
@@ -476,6 +561,11 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
             foreach (var capture in node.Captures)
             {
                 context.RenderNode(capture);
+            }
+            }
+            finally
+            {
+                _currentComponent = previousComponent;
             }
 
             if (hasRenderMode)
@@ -655,6 +745,13 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
             return;
         }
 
+        // 强类型发射（ISSUE-136）：元素上的事件属性写成 __e0.OnClick = ...，
+        // 组件参数写成 __c0.Size = ...，两者都绕开运行时的名字查找与反射。
+        if (TryWriteTypedElementEvent(context, node) || TryWriteTypedComponentParameter(context, node))
+        {
+            return;
+        }
+
         var addAttributeMethod = node.AddAttributeMethodName ?? GetAddComponentParameterMethodName(context);
 
         // _builder.AddComponentParameter(1, nameof(Component.Property), 42);
@@ -682,6 +779,84 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
 
         context.CodeWriter.Write(");");
         context.CodeWriter.WriteLine();
+    }
+
+    /// <summary>
+    /// Emits an element event handler as a direct assignment to its strongly-typed slot:
+    /// <c>__e0.OnClick = RenderTreeBuilder.ToHandler(EventCallback.Factory.Create&lt;T&gt;(this, ...));</c>
+    ///
+    /// <para>The helper returns <c>null</c> for a callback with no delegate, preserving the old
+    /// behaviour where such a callback left the slot untouched.</para>
+    /// </summary>
+    private bool TryWriteTypedElementEvent(CodeRenderingContext context, ComponentAttributeIntermediateNode node)
+    {
+        if (!_currentElement.IsTyped)
+        {
+            return false;
+        }
+
+        if (MikoElements.GetSlot(_currentElement.TagName, node.AttributeName) is not { } slot ||
+            slot.Kind != MikoElements.SlotKind.EventHandler)
+        {
+            return false;
+        }
+
+        var writer = context.CodeWriter;
+        writer.Write(_currentElement.VariableName);
+        writer.Write(".");
+        writer.Write(slot.PropertyName);
+        writer.Write(" = global::");
+        writer.Write(ComponentsApi.RenderTreeBuilder.FullTypeName);
+        writer.Write(".");
+        writer.Write(ComponentsApi.RenderTreeBuilder.ToHandler);
+        writer.Write("(");
+
+        WriteComponentAttributeInnards(context, node, canTypeCheck: true);
+
+        writer.Write(");");
+        writer.WriteLine();
+        return true;
+    }
+
+    /// <summary>
+    /// Emits a component parameter as a direct property assignment: <c>__c0.Size = "small";</c>
+    ///
+    /// <para>Replaces <c>AddComponentParameter</c>'s per-parameter
+    /// <c>GetType().GetProperty(name)</c> + <c>SetValue</c> (uncached, and boxing for value-typed
+    /// parameters). Requires a bound, strongly-typed attribute so the property name is known;
+    /// weakly-typed and unbound attributes keep the reflection path.</para>
+    /// </summary>
+    private bool TryWriteTypedComponentParameter(CodeRenderingContext context, ComponentAttributeIntermediateNode node)
+    {
+        if (_currentComponent is null)
+        {
+            return false;
+        }
+
+        // 属性名必须来自绑定描述符；弱类型属性（如 splat 合成、任意名字的 HTML 属性）
+        // 在编译期没有对应的 CLR 属性可写，仍交给反射路径。
+        if (node.BoundAttribute is null || node.BoundAttribute.IsWeaklyTyped)
+        {
+            return false;
+        }
+
+        var propertyName = node.BoundAttribute.PropertyName;
+        if (string.IsNullOrEmpty(propertyName))
+        {
+            return false;
+        }
+
+        var writer = context.CodeWriter;
+        writer.Write(_currentComponent);
+        writer.Write(".");
+        writer.Write(propertyName);
+        writer.Write(" = ");
+
+        WriteComponentAttributeInnards(context, node, canTypeCheck: true);
+
+        writer.Write(";");
+        writer.WriteLine();
+        return true;
     }
 
     private static void WriteDesignTimePropertyAccessor(CodeRenderingContext context, ComponentAttributeIntermediateNode attribute)
@@ -856,6 +1031,40 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
         if (node == null)
         {
             throw new ArgumentNullException(nameof(node));
+        }
+
+        // 强类型发射（ISSUE-136）：ChildContent 也是普通参数，直接赋值即可，
+        // 顺带省掉此前对 AddAttribute 路径的 (object) 装箱。
+        // 注意 ChildContent 的 lambda 里会渲染子元素/子组件，进而改写 _currentElement /
+        // _currentComponent；故先把赋值目标写出来，渲染完成后再恢复。
+        if (_currentComponent is not null)
+        {
+            var componentVariable = _currentComponent;
+            var writer = context.CodeWriter;
+            writer.Write(componentVariable);
+            writer.Write(".");
+            writer.Write(node.AttributeName);
+            writer.Write(" = (");
+            WriteGloballyQualifiedTypeName(context, node);
+            writer.Write(")(");
+
+            var previousElement = _currentElement;
+            var previousComponent = _currentComponent;
+            _currentElement = default;
+            _currentComponent = null;
+            try
+            {
+                WriteComponentChildContentInnards(context, node);
+            }
+            finally
+            {
+                _currentElement = previousElement;
+                _currentComponent = previousComponent;
+            }
+
+            writer.Write(");");
+            writer.WriteLine();
+            return;
         }
 
         // Writes something like:
@@ -1053,6 +1262,13 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
 
     private void WriteAttribute(CodeRenderingContext context, string key, ImmutableArray<IntermediateToken> value)
     {
+        // 强类型路径（ISSUE-136）：已知标签上的已知属性直接写到元素实例上，
+        // 不再经运行时的名字 switch。
+        if (TryWriteTypedElementAttribute(context, key, value))
+        {
+            return;
+        }
+
         BeginWriteAttribute(context, key);
 
         if (value.Length > 0)
@@ -1069,6 +1285,147 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
         }
 
         context.CodeWriter.WriteEndMethodInvocation();
+    }
+
+    /// <summary>
+    /// Emits an element attribute as a direct assignment on the open element's local, e.g.
+    /// <c>__e0.Class = "x";</c> or <c>__e0.OnClick = RenderTreeBuilder.ToHandler(...);</c>.
+    /// Returns false when there is no open typed element or the attribute has no known slot,
+    /// leaving the caller to use the legacy string-based path — which, as before, silently
+    /// ignores attributes the runtime never supported (<c>role</c>, <c>aria-*</c>, …).
+    /// </summary>
+    private bool TryWriteTypedElementAttribute(
+        CodeRenderingContext context, string key, ImmutableArray<IntermediateToken> value)
+    {
+        if (!_currentElement.IsTyped)
+        {
+            return false;
+        }
+
+        if (MikoElements.GetSlot(_currentElement.TagName, key) is not { } slot)
+        {
+            return false;
+        }
+
+        var writer = context.CodeWriter;
+
+        switch (slot.Kind)
+        {
+            case MikoElements.SlotKind.EventHandler:
+                // 元素上的 @onclick 被 ComponentEventHandlerLoweringPass 降级成
+                // HtmlAttributeIntermediateNode（父节点是 MarkupElementIntermediateNode），
+                // 其值已经是 EventCallback.Factory.Create<T>(this, handler)。
+                // 这里把它包进 ToHandler 并直接写到强类型槽位上。
+                //
+                // 无值（罕见的错误场景）时不发射：保持旧路径「没有委托就不装处理器」的语义。
+                if (value.Length == 0)
+                {
+                    return false;
+                }
+
+                writer.Write(_currentElement.VariableName);
+                writer.Write(".");
+                writer.Write(slot.PropertyName);
+                writer.Write(" = global::");
+                writer.Write(ComponentsApi.RenderTreeBuilder.FullTypeName);
+                writer.Write(".");
+                writer.Write(ComponentsApi.RenderTreeBuilder.ToHandler);
+                writer.Write("(");
+                WriteAttributeValue(context, value);
+                writer.WriteLine(");");
+                return true;
+
+            case MikoElements.SlotKind.Helper:
+                // RenderTreeBuilder.SetInputValue(__e0, value);
+                writer.Write(slot.Helper);
+                writer.Write("(");
+                writer.Write(_currentElement.VariableName);
+                writer.Write(", ");
+                WriteTypedAttributeValue(context, slot, value);
+                writer.WriteLine(");");
+                return true;
+
+            case MikoElements.SlotKind.Converted:
+                // __e0.Type = RenderTreeBuilder.ParseInputType(value);
+                writer.Write(_currentElement.VariableName);
+                writer.Write(".");
+                writer.Write(slot.PropertyName);
+                writer.Write(" = ");
+                // 字面量（type="checkbox"、autoplay="true"）在编译期即可折叠成枚举/布尔常量，
+                // 省掉运行时的 ToLowerInvariant + switch 与字符串比较。
+                if (TryGetLiteralAttributeValue(value) is { } literal &&
+                    MikoElements.TryFoldConvertedLiteral(slot, literal, out var folded))
+                {
+                    writer.Write(folded);
+                    writer.WriteLine(";");
+                    return true;
+                }
+
+                writer.Write(slot.Converter);
+                writer.Write("(");
+                WriteTypedAttributeValue(context, slot, value);
+                writer.WriteLine(");");
+                return true;
+
+            default:
+                // __e0.Class = value;
+                writer.Write(_currentElement.VariableName);
+                writer.Write(".");
+                writer.Write(slot.PropertyName);
+                writer.Write(" = ");
+                WriteTypedAttributeValue(context, slot, value);
+                writer.WriteLine(";");
+                return true;
+        }
+    }
+
+    /// <summary>
+    /// The attribute's value when it is a single HTML literal (<c>type="checkbox"</c>), else null.
+    /// A minimized attribute yields <c>"true"</c>, matching the runtime's HTML boolean rules.
+    /// </summary>
+    private static string? TryGetLiteralAttributeValue(ImmutableArray<IntermediateToken> value)
+    {
+        if (value.Length == 0)
+        {
+            return "true";
+        }
+
+        foreach (var token in value)
+        {
+            if (token is not HtmlIntermediateToken)
+            {
+                return null;
+            }
+        }
+
+        return value.Length == 1
+            ? value[0].Content
+            : string.Concat(value.Select(static t => t.Content));
+    }
+
+    /// <summary>
+    /// Writes the value expression for a typed slot. A minimized attribute
+    /// (<c>&lt;video autoplay&gt;</c>) has no value tokens and means "present", which the
+    /// runtime's HTML boolean rules represent as the string <c>"true"</c>.
+    /// </summary>
+    private void WriteTypedAttributeValue(
+        CodeRenderingContext context, in MikoElements.Slot slot, ImmutableArray<IntermediateToken> value)
+    {
+        if (value.Length > 0)
+        {
+            WriteAttributeValue(context, value);
+            return;
+        }
+
+        // 无值属性：布尔转换器接受字符串，其余（含 class="" 这类空串）写空字面量。
+        if (MikoElements.IsBooleanConverted(slot))
+        {
+            context.CodeWriter.WriteStringLiteral("true");
+        }
+        else
+        {
+            context.CodeWriter.WriteStringLiteral(string.Empty);
+        }
     }
 
     private void WriteAttribute(CodeRenderingContext context, IntermediateNode nameExpression, ImmutableArray<IntermediateToken> value)

@@ -134,8 +134,8 @@ public class IonIconStyleTests
         var cut = ctx.Render<IonTabButton>(p => p
             .AddChildContent(builder =>
             {
-                builder.OpenComponent<IonIcon>(0);
-                builder.AddComponentParameter(1, nameof(IonIcon.Icon), "triangle");
+                var __c1 = builder.OpenComponent<IonIcon>();
+                __c1.Icon = "triangle";
                 builder.CloseComponent();
             }));
 

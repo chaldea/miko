@@ -285,14 +285,14 @@ public class IonToggleTests : IonicComponentTestBase
         float? hostHeight = null)
         => ctx.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(b =>
         {
-            b.OpenComponent<IonToggle>(0);
-            b.AddAttribute(1, nameof(IonToggle.ChildContent), Label(label));
-            if (justify is not null) b.AddAttribute(2, nameof(IonToggle.Justify), justify);
-            if (labelPlacement is not null) b.AddAttribute(3, nameof(IonToggle.LabelPlacement), labelPlacement);
+            var __c1 = b.OpenComponent<IonToggle>();
+            __c1.ChildContent = Label(label);
+            if (justify is not null) __c1.Justify = justify;
+            if (labelPlacement is not null) __c1.LabelPlacement = labelPlacement;
             if (hostHeight is not null)
             {
-                b.AddAttribute(4, nameof(IonToggle.Style),
-                    new Miko.Styling.Style { Height = Length.Px(hostHeight.Value) });
+                __c1.Style = 
+                    new Miko.Styling.Style { Height = Length.Px(hostHeight.Value) };
             }
             b.CloseComponent();
         })));

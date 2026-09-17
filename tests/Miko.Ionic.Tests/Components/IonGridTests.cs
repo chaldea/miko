@@ -14,7 +14,7 @@ public class IonGridTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonGrid>(p => p.AddChildContent(builder =>
         {
-            builder.OpenComponent<IonRow>(0);
+            builder.OpenComponent<IonRow>();
             builder.CloseComponent();
         }));
 

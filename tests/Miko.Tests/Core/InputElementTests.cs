@@ -528,8 +528,8 @@ public class InputElementTests
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "input");
-            builder.AddAttribute(1, "type", "search");
+            var __e1 = builder.OpenElement<InputElement>();
+            __e1.Type = InputType.Search;
             builder.CloseElement();
         }
     }

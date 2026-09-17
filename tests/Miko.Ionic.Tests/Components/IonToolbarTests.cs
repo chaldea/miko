@@ -17,14 +17,14 @@ public class IonToolbarTests : IonicComponentTestBase
     // produces an identifiable .ion-buttons element in the rendered DOM.
     private static RenderFragment Buttons(string slot) => builder =>
     {
-        builder.OpenComponent<IonButtons>(0);
-        builder.AddComponentParameter(1, nameof(IonButtons.Slot), slot);
+        var __c1 = builder.OpenComponent<IonButtons>();
+        __c1.Slot = slot;
         builder.CloseComponent();
     };
 
     private static RenderFragment Title => builder =>
     {
-        builder.OpenComponent<IonTitle>(0);
+        builder.OpenComponent<IonTitle>();
         builder.CloseComponent();
     };
 

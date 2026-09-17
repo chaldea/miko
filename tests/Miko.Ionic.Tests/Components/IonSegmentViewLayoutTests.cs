@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Ionic;
 using Miko.Ionic.Components;
@@ -54,14 +55,14 @@ public class IonSegmentViewLayoutTests : IonicComponentTestBase
             parameters.Add(nameof(IonSegmentView.Value), "all");
             parameters.Add(nameof(IonSegmentView.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonSegmentContent>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentContent.Id), "all");
-                builder.AddComponentParameter(2, nameof(IonSegmentContent.ChildContent), (RenderFragment)(inner =>
+                var __c4 = builder.OpenComponent<IonSegmentContent>();
+                __c4.Id = "all";
+                __c4.ChildContent = (RenderFragment)(inner =>
                 {
-                    inner.OpenElement(0, "div");
-                    inner.AddAttribute(1, "class", "sized-child");
+                    var __e1 = inner.OpenElement<DivElement>();
+                    __e1.Class = "sized-child";
                     inner.CloseElement();
-                }));
+                });
                 builder.CloseComponent();
             }));
         });
@@ -111,25 +112,25 @@ public class IonSegmentViewLayoutTests : IonicComponentTestBase
             parameters.Add(nameof(IonSegmentView.ChildContent), (RenderFragment)(builder =>
             {
                 // active content sized 120px
-                builder.OpenComponent<IonSegmentContent>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentContent.Id), "all");
-                builder.AddComponentParameter(2, nameof(IonSegmentContent.ChildContent), (RenderFragment)(inner =>
+                var __c5 = builder.OpenComponent<IonSegmentContent>();
+                __c5.Id = "all";
+                __c5.ChildContent = (RenderFragment)(inner =>
                 {
-                    inner.OpenElement(0, "div");
-                    inner.AddAttribute(1, "class", "sized-child");
+                    var __e2 = inner.OpenElement<DivElement>();
+                    __e2.Class = "sized-child";
                     inner.CloseElement();
-                }));
+                });
                 builder.CloseComponent();
 
                 // hidden content sized 120px — should contribute 0 (display:none)
-                builder.OpenComponent<IonSegmentContent>(3);
-                builder.AddComponentParameter(4, nameof(IonSegmentContent.Id), "favorites");
-                builder.AddComponentParameter(5, nameof(IonSegmentContent.ChildContent), (RenderFragment)(inner =>
+                var __c6 = builder.OpenComponent<IonSegmentContent>();
+                __c6.Id = "favorites";
+                __c6.ChildContent = (RenderFragment)(inner =>
                 {
-                    inner.OpenElement(0, "div");
-                    inner.AddAttribute(1, "class", "sized-child");
+                    var __e3 = inner.OpenElement<DivElement>();
+                    __e3.Class = "sized-child";
                     inner.CloseElement();
-                }));
+                });
                 builder.CloseComponent();
             }));
         });

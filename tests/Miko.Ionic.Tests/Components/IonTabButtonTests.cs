@@ -21,17 +21,17 @@ public class IonTabButtonTests : IonicComponentTestBase
     // ion-tab.md example.
     private static RenderFragment IconLabelBadge(string badgeText) => builder =>
     {
-        builder.OpenComponent<IonIcon>(0);
-        builder.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
+        var __c1 = builder.OpenComponent<IonIcon>();
+        __c1.Icon = "heart";
         builder.CloseComponent();
 
-        builder.OpenComponent<IonLabel>(2);
-        builder.AddComponentParameter(3, nameof(IonLabel.ChildContent), Text("Favorites"));
+        var __c2 = builder.OpenComponent<IonLabel>();
+        __c2.ChildContent = Text("Favorites");
         builder.CloseComponent();
 
-        builder.OpenComponent<IonBadge>(4);
-        builder.AddComponentParameter(5, nameof(IonBadge.Color), "danger");
-        builder.AddComponentParameter(6, nameof(IonBadge.ChildContent), Text(badgeText));
+        var __c3 = builder.OpenComponent<IonBadge>();
+        __c3.Color = "danger";
+        __c3.ChildContent = Text(badgeText);
         builder.CloseComponent();
     };
 
@@ -217,10 +217,10 @@ public class IonTabButtonTests : IonicComponentTestBase
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
         p.Add(nameof(IonTabBar.ChildContent), (RenderFragment)(builder =>
         {
-            builder.OpenComponent<IonTabButton>(0);
-            builder.AddComponentParameter(1, nameof(IonTabButton.Tab), "tab1");
-            builder.AddComponentParameter(2, nameof(IonTabButton.ChildContent),
-                emptyBadge ? EmptyBadge() : IconLabelBadge("47"));
+            var __c4 = builder.OpenComponent<IonTabButton>();
+            __c4.Tab = "tab1";
+            __c4.ChildContent = 
+                emptyBadge ? EmptyBadge() : IconLabelBadge("47");
             builder.CloseComponent();
         }));
     });
@@ -228,16 +228,16 @@ public class IonTabButtonTests : IonicComponentTestBase
     // Icon + label + an empty badge (the notification-dot shape).
     private static RenderFragment EmptyBadge() => builder =>
     {
-        builder.OpenComponent<IonIcon>(0);
-        builder.AddComponentParameter(1, nameof(IonIcon.Icon), "heart");
+        var __c5 = builder.OpenComponent<IonIcon>();
+        __c5.Icon = "heart";
         builder.CloseComponent();
 
-        builder.OpenComponent<IonLabel>(2);
-        builder.AddComponentParameter(3, nameof(IonLabel.ChildContent), Text("Favorites"));
+        var __c6 = builder.OpenComponent<IonLabel>();
+        __c6.ChildContent = Text("Favorites");
         builder.CloseComponent();
 
-        builder.OpenComponent<IonBadge>(4);
-        builder.AddComponentParameter(5, nameof(IonBadge.Color), "danger");
+        var __c7 = builder.OpenComponent<IonBadge>();
+        __c7.Color = "danger";
         builder.CloseComponent();
     };
 }

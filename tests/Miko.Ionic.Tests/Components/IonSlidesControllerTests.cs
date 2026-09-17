@@ -468,27 +468,27 @@ public class IonSlidesControllerTests : IDisposable
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonSlides>(0);
-            builder.AddComponentParameter(1, nameof(IonSlides.ActiveIndex), ActiveIndex);
-            builder.AddComponentParameter(2, nameof(IonSlides.Navigation), Navigation);
-            builder.AddComponentParameter(3, nameof(IonSlides.Pagination), Pagination);
-            builder.AddComponentParameter(6, nameof(IonSlides.Loop), Loop);
-            builder.AddComponentParameter(4, nameof(IonSlides.ActiveIndexChanged),
+            var __c1 = builder.OpenComponent<IonSlides>();
+            __c1.ActiveIndex = ActiveIndex;
+            __c1.Navigation = Navigation;
+            __c1.Pagination = Pagination;
+            __c1.Loop = Loop;
+            __c1.ActiveIndexChanged = 
                 EventCallback.Factory.Create<int>(this, index =>
                 {
                     ActiveIndex = index;
                     Changes.Add(index);
-                }));
-            builder.AddComponentParameter(5, nameof(IonSlides.ChildContent), (RenderFragment)(b =>
+                });
+            __c1.ChildContent = (RenderFragment)(b =>
             {
                 for (var i = 0; i < SlideCount; i++)
                 {
                     b.OpenComponent<IonSlide>(i);
                     b.AddComponentParameter(i * 10 + 1, nameof(IonSlide.ChildContent),
-                        (RenderFragment)(sb => sb.AddContent(0, $"Slide {i}")));
+                        (RenderFragment)(sb => sb.AddContent($"Slide {i}")));
                     b.CloseComponent();
                 }
-            }));
+            });
             builder.CloseComponent();
         }
     }

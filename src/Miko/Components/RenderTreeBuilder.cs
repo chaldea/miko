@@ -66,6 +66,186 @@ public class RenderTreeBuilder
         _stack.Push(factory());
     }
 
+    // ---------------------------------------------------------------------
+    // 强类型构建 API（ISSUE-136）
+    //
+    // 旧 API 是 Blazor 形态的「序号 + 字符串名 + object? 值」，于是每个节点都要在运行时
+    // 重做一遍编译期已知的事：标签名查字典取工厂委托、属性名过约 70 分支的 switch +
+    // 类型测试链、组件参数走 GetProperty + SetValue 反射（无缓存，值类型还要装箱）。
+    //
+    // 新 API 把这些搬到编译期：Razor 编译器直接发射具体元素/组件类型与属性赋值，
+    // 构建路径只剩下 new T() 与字段写入——零反射、零装箱。旧重载保留为回退路径，
+    // 供 AddMarkupContent 的运行时 HTML 解析（标签与属性名只有运行时才知道）使用。
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Opens an element of a statically known type and returns the instance so the caller
+    /// (normally generated code) can assign its properties directly.
+    ///
+    /// <para>Must be paired with <see cref="CloseElement"/>, which performs the textarea
+    /// normalization and parent attachment that the string-based path also does.</para>
+    /// </summary>
+    public T OpenElement<T>() where T : Element, new()
+    {
+        var element = new T();
+        _stack.Push(element);
+        return element;
+    }
+
+    /// <summary>
+    /// Opens an element that has already been constructed (used when generated code needs to
+    /// pass constructor arguments, or when a caller reuses a retained element).
+    /// </summary>
+    public T OpenElement<T>(T element) where T : Element
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        _stack.Push(element);
+        return element;
+    }
+
+    /// <summary>
+    /// The element currently open, or <c>null</c> when none is. Generated code uses this to
+    /// reach the open element without keeping its own local when convenient.
+    /// </summary>
+    public Element? CurrentElement => _stack.Count > 0 ? _stack.Peek() : null;
+
+    /// <summary>
+    /// Sets an element's <c>value</c> the way an HTML <c>value</c> attribute behaves.
+    ///
+    /// <para>A <c>null</c> value means the Razor expression evaluated to null, i.e. no value is
+    /// being declared. An absent <c>value</c> attribute does not clear an input in the browser,
+    /// so the element's own text is left alone — otherwise an ancestor re-render would wipe what
+    /// the user typed (see <see cref="InputElement.DeclaredValue"/>, ISSUE-121).</para>
+    ///
+    /// <para>Range inputs carry their position in <see cref="InputElement.NumericValue"/>; the
+    /// two are kept in step so <c>&lt;input type="range" @bind="_v" /&gt;</c> reflects the bound
+    /// number.</para>
+    /// </summary>
+    public static void SetInputValue(InputElement input, string? value)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        if (value is null) return;
+        input.Value = value;
+        if (input.Type == InputType.Range &&
+            float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var numeric))
+        {
+            input.NumericValue = numeric;
+        }
+    }
+
+    /// <summary>See <see cref="SetInputValue"/> — same ISSUE-121 semantics for textarea.</summary>
+    public static void SetTextAreaValue(TextAreaElement textArea, string? value)
+    {
+        ArgumentNullException.ThrowIfNull(textArea);
+        if (value is not null) textArea.Value = value;
+    }
+
+    /// <summary>
+    /// Sets <see cref="TextAreaElement.Rows"/> from an HTML attribute string. A value that is not
+    /// an integer leaves the element's default in place, matching the legacy attribute switch.
+    /// </summary>
+    public static void SetTextAreaRows(TextAreaElement textArea, string? value)
+    {
+        ArgumentNullException.ThrowIfNull(textArea);
+        if (int.TryParse(value, out var rows)) textArea.Rows = rows;
+    }
+
+    /// <summary>See <see cref="SetTextAreaRows"/>.</summary>
+    public static void SetTextAreaCols(TextAreaElement textArea, string? value)
+    {
+        ArgumentNullException.ThrowIfNull(textArea);
+        if (int.TryParse(value, out var cols)) textArea.Cols = cols;
+    }
+
+    /// <summary>
+    /// Parses an HTML <c>input type</c> attribute. Kept here (rather than inlined by the
+    /// compiler) so a runtime-valued <c>type</c> expression resolves identically to a literal.
+    /// </summary>
+    public static InputType ParseInputType(string? value) => value?.ToLowerInvariant() switch
+    {
+        "checkbox" => InputType.Checkbox,
+        "radio" => InputType.Radio,
+        "password" => InputType.Password,
+        "range" => InputType.Range,
+        "search" => InputType.Search,
+        // number/tel ask the platform for a numeric keypad; both edit as plain text.
+        "number" or "tel" => InputType.Number,
+        _ => InputType.Text,
+    };
+
+    /// <summary>
+    /// HTML boolean attribute semantics, for generated code that has a runtime-valued
+    /// expression rather than a literal. See <see cref="ParseHtmlBool"/>.
+    /// </summary>
+    public static bool ParseBooleanAttribute(string? value) => ParseHtmlBool(value);
+
+    /// <summary>
+    /// Boolean overload. <c>@bind</c> on <c>&lt;input type="checkbox"&gt;</c> lowers to
+    /// <c>BindConverter.FormatValue(bool)</c>, which returns a <c>bool</c> rather than a string —
+    /// so the generated assignment must accept one directly (ISSUE-115).
+    /// </summary>
+    public static bool ParseBooleanAttribute(bool value) => value;
+
+    /// <summary>
+    /// Nullable boolean overload (<c>BindConverter.FormatValue(bool?)</c>). A null value means
+    /// the attribute is absent, which in HTML boolean terms is false.
+    /// </summary>
+    public static bool ParseBooleanAttribute(bool? value) => value ?? false;
+
+    /// <summary>
+    /// Assigns an inline style, accepting the <see cref="Styling.Style"/> objects Razor authors
+    /// normally pass (<c>style="@SomeStyle"</c>).
+    /// </summary>
+    public static void SetStyle(Element element, Styling.Style? style)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        element.Style = style;
+    }
+
+    /// <summary>
+    /// Overload for a <c>style</c> expression whose value is not a <see cref="Styling.Style"/>
+    /// (most often a CSS string). Miko has no CSS-string parser for inline styles, so such a
+    /// value is ignored — exactly as the legacy attribute switch did, where only a
+    /// <see cref="Styling.Style"/> matched and anything else fell through unhandled.
+    /// Kept as an overload rather than a compile error so existing components keep building.
+    /// </summary>
+    public static void SetStyle(Element element, object? value)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        if (value is Styling.Style style) element.Style = style;
+    }
+
+    /// <summary>
+    /// Binds an <see cref="EventCallback{T}"/> to a strongly-typed handler slot on an element.
+    /// The wrapper invokes the callback (fires InvokeAsync → user delegate → StateHasChanged on
+    /// the receiver component when the Task completes, marshaled back to the render thread).
+    ///
+    /// <para>Returns <c>null</c> for a callback with no delegate, so an absent handler leaves
+    /// the slot untouched rather than installing a wrapper that does nothing.</para>
+    /// </summary>
+    public static MikoEventHandler<T>? ToHandler<T>(EventCallback<T> callback)
+        where T : MikoEventArgs
+        => callback.HasDelegate ? arg => _ = callback.InvokeAsync(arg) : null;
+
+    /// <summary>
+    /// Appends literal or expression text to the open element. Strongly-typed counterpart of
+    /// <see cref="AddContent(int, object?)"/> that avoids boxing the value.
+    /// </summary>
+    public void AddContent(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        AppendText(WebUtility.HtmlDecode(text));
+    }
+
+    /// <summary>Renders a child-content fragment. See <see cref="AddContent(int, object?)"/>.</summary>
+    public void AddContent(RenderFragment? fragment)
+    {
+        // A RenderFragment may emit top-level elements (e.g. a transparent CascadingValue whose
+        // ChildContent is rendered with no open element on the stack), so invoke it regardless
+        // of stack depth.
+        fragment?.Invoke(this);
+    }
+
     public void CloseElement()
     {
         var element = _stack.Pop();
@@ -94,6 +274,21 @@ public class RenderTreeBuilder
         }
         textArea.Children.RemoveAll(c => c is TextNode);
     }
+
+    // ---------------------------------------------------------------------
+    // 名字驱动的回退路径
+    //
+    // 编译器现在为「标签与属性名在编译期已知」的绝大多数情况发射强类型调用（见上文
+    // ISSUE-136 一节）。下面这些重载留给名字只有运行时才知道的场合：
+    //
+    //   * AddMarkupContent —— 用正则解析 HTML 字符串，标签与属性都是运行时值；
+    //   * 元素上的槽位表未覆盖的属性（role、aria-* 等）—— 与此前一样被静默忽略；
+    //   * 表达式内容（AddContent(seq, object?)）—— 需要 object? 重载做 ToString；
+    //   * 泛型类型推断的组件 —— 属性名在发射点尚不可知。
+    //
+    // 因此它们**不是** [Obsolete]：生成代码仍在正常使用这条路径。修改上面的强类型表时，
+    // 必须与此处的 switch 保持一致——两者是同一份语义的两种表达。
+    // ---------------------------------------------------------------------
 
     public void AddAttribute(int seq, string name, string? value)
     {
@@ -294,15 +489,21 @@ public class RenderTreeBuilder
             fragment(this);
             return;
         }
-        if (_stack.Count == 0) return;
         var str = text.ToString();
         if (string.IsNullOrEmpty(str)) return;
-        var decoded = WebUtility.HtmlDecode(str);
+        AppendText(WebUtility.HtmlDecode(str));
+    }
+
+    /// <summary>
+    /// 文本以有序 TextNode 子节点形式追加，保留与已打开的子元素的交错顺序（见 ISSUE-086）。
+    /// Razor 会为每段内容（字面文本与表达式）发射一次 AddContent。相邻的纯文本片段合并到
+    /// 同一末尾 TextNode（如 "Clicked " + _count + " times" 拼接为一段），但被子元素分隔的
+    /// 文本会形成各自独立的 TextNode，从而正确表达 text1 &lt;span/&gt; text3。
+    /// </summary>
+    private void AppendText(string decoded)
+    {
+        if (_stack.Count == 0) return;
         var element = _stack.Peek();
-        // 文本以有序 TextNode 子节点形式追加，保留与已打开的子元素的交错顺序（见 ISSUE-086）。
-        // Razor 会为每段内容（字面文本与表达式）发射一次 AddContent。相邻的纯文本片段合并到
-        // 同一末尾 TextNode（如 "Clicked " + _count + " times" 拼接为一段），但被子元素分隔的
-        // 文本会形成各自独立的 TextNode，从而正确表达 text1 <span/> text3。
         if (element.Children.Count > 0 && element.Children[^1] is TextNode lastText)
         {
             lastText.Text += decoded;
@@ -322,6 +523,21 @@ public class RenderTreeBuilder
     public void OpenComponent<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] T>(int seq) where T : ComponentBase, new()
     {
         _componentStack.Push(new T());
+    }
+
+    /// <summary>
+    /// Opens a component of a statically known type and returns the instance so the caller
+    /// (normally generated code) can assign its <see cref="ParameterAttribute"/> properties
+    /// directly, instead of going through reflection by parameter name (ISSUE-136).
+    ///
+    /// <para>Must be paired with <see cref="CloseComponent"/>, which builds the component and
+    /// attaches its produced element.</para>
+    /// </summary>
+    public T OpenComponent<T>() where T : ComponentBase, new()
+    {
+        var component = new T();
+        _componentStack.Push(component);
+        return component;
     }
 
     /// <summary>Opens a component whose type is only known at runtime.</summary>

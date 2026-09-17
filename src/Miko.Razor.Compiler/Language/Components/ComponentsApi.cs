@@ -117,6 +117,12 @@ internal static class ComponentsApi
 
         public const string SetUpdatesAttributeName = nameof(SetUpdatesAttributeName);
 
+        /// <summary>
+        /// Wraps an <c>EventCallback&lt;T&gt;</c> into the element's strongly-typed handler slot
+        /// (ISSUE-136). Replaces the runtime name switch in <c>AddAttribute</c>.
+        /// </summary>
+        public const string ToHandler = nameof(ToHandler);
+
         public const string AddEventPreventDefaultAttribute = nameof(AddEventPreventDefaultAttribute);
 
         public const string AddEventStopPropagationAttribute = nameof(AddEventStopPropagationAttribute);

@@ -1,0 +1,14 @@
+@namespace Miko.Razor.Tests
+@using Miko.Components
+@* Child component for TypedEmitFixture: exercises typed component-parameter assignment
+   (string, int, and ChildContent) in the generated code. *@
+<div class="typed-child">
+    <span class="typed-child-label">@Label</span>
+    <span class="typed-child-count">@Count</span>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public int Count { get; set; }
+}

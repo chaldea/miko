@@ -352,35 +352,35 @@ public class IonFabLayoutTests : IDisposable
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonPage>(0);
-            builder.AddComponentParameter(1, nameof(IonPage.ChildContent), (RenderFragment)(page =>
+            var __c1 = builder.OpenComponent<IonPage>();
+            __c1.ChildContent = (RenderFragment)(page =>
             {
-                page.OpenComponent<IonHeader>(0);
-                page.AddComponentParameter(1, nameof(IonHeader.ChildContent), (RenderFragment)(h =>
+                var __c6 = page.OpenComponent<IonHeader>();
+                __c6.ChildContent = (RenderFragment)(h =>
                 {
-                    h.OpenComponent<IonToolbar>(0);
+                    h.OpenComponent<IonToolbar>();
                     h.CloseComponent();
-                }));
+                });
                 page.CloseComponent();
 
-                page.OpenComponent<IonContent>(10);
-                page.AddComponentParameter(11, nameof(IonContent.Fullscreen), true);
-                page.AddComponentParameter(12, nameof(IonContent.Fixed), (RenderFragment)(slot =>
+                var __c7 = page.OpenComponent<IonContent>();
+                __c7.Fullscreen = true;
+                __c7.Fixed = (RenderFragment)(slot =>
                 {
-                    slot.OpenComponent<IonFab>(0);
-                    slot.AddComponentParameter(1, nameof(IonFab.Horizontal), "end");
-                    slot.AddComponentParameter(2, nameof(IonFab.Vertical), "top");
-                    slot.AddComponentParameter(3, nameof(IonFab.Edge), true);
-                    slot.AddComponentParameter(4, nameof(IonFab.ChildContent), (RenderFragment)(fab =>
+                    var __c12 = slot.OpenComponent<IonFab>();
+                    __c12.Horizontal = "end";
+                    __c12.Vertical = "top";
+                    __c12.Edge = true;
+                    __c12.ChildContent = (RenderFragment)(fab =>
                     {
-                        fab.OpenComponent<IonFabButton>(0);
-                        fab.AddComponentParameter(1, nameof(IonFabButton.Color), "danger");
+                        var __c18 = fab.OpenComponent<IonFabButton>();
+                        __c18.Color = "danger";
                         fab.CloseComponent();
-                    }));
+                    });
                     slot.CloseComponent();
-                }));
+                });
                 page.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }
@@ -391,19 +391,19 @@ public class IonFabLayoutTests : IDisposable
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonPage>(0);
-            builder.AddComponentParameter(1, nameof(IonPage.ChildContent), (RenderFragment)(page =>
+            var __c2 = builder.OpenComponent<IonPage>();
+            __c2.ChildContent = (RenderFragment)(page =>
             {
-                page.OpenComponent<IonContent>(0);
-                page.AddComponentParameter(1, nameof(IonContent.Fixed), (RenderFragment)(slot =>
+                var __c8 = page.OpenComponent<IonContent>();
+                __c8.Fixed = (RenderFragment)(slot =>
                 {
                     AddOpenFab(slot, 0, "end", "bottom", "start");
                     AddOpenFab(slot, 100, "start", "bottom", "top");
                     AddOpenFab(slot, 200, "start", "top", "end");
                     AddOpenFab(slot, 300, "end", "top", "bottom");
-                }));
+                });
                 page.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
 
@@ -415,18 +415,18 @@ public class IonFabLayoutTests : IDisposable
             b.AddComponentParameter(seq + 3, nameof(IonFab.Activated), true);
             b.AddComponentParameter(seq + 4, nameof(IonFab.ChildContent), (RenderFragment)(fab =>
             {
-                fab.OpenComponent<IonFabButton>(0);
+                fab.OpenComponent<IonFabButton>();
                 fab.CloseComponent();
-                fab.OpenComponent<IonFabList>(10);
-                fab.AddComponentParameter(11, nameof(IonFabList.Side), side);
-                fab.AddComponentParameter(12, nameof(IonFabList.ChildContent), (RenderFragment)(l =>
+                var __c4 = fab.OpenComponent<IonFabList>();
+                __c4.Side = side;
+                __c4.ChildContent = (RenderFragment)(l =>
                 {
                     for (int i = 0; i < 3; i++)
                     {
                         l.OpenComponent<IonFabButton>(i * 2);
                         l.CloseComponent();
                     }
-                }));
+                });
                 fab.CloseComponent();
             }));
             b.CloseComponent();
@@ -437,57 +437,57 @@ public class IonFabLayoutTests : IDisposable
     {
         public static void Build(RenderTreeBuilder builder, bool edge, bool includeCentred)
         {
-            builder.OpenComponent<IonPage>(0);
-            builder.AddComponentParameter(1, nameof(IonPage.ChildContent), (RenderFragment)(page =>
+            var __c5 = builder.OpenComponent<IonPage>();
+            __c5.ChildContent = (RenderFragment)(page =>
             {
-                page.OpenComponent<IonContent>(0);
-                page.AddComponentParameter(1, nameof(IonContent.Fixed), (RenderFragment)(slot =>
+                var __c10 = page.OpenComponent<IonContent>();
+                __c10.Fixed = (RenderFragment)(slot =>
                 {
                     // end / top (+ edge), carrying a bottom fab-list.
-                    slot.OpenComponent<IonFab>(0);
-                    slot.AddComponentParameter(1, nameof(IonFab.Horizontal), "end");
-                    slot.AddComponentParameter(2, nameof(IonFab.Vertical), "top");
-                    slot.AddComponentParameter(3, nameof(IonFab.Edge), edge);
-                    slot.AddComponentParameter(4, nameof(IonFab.ChildContent), (RenderFragment)(fab =>
+                    var __c14 = slot.OpenComponent<IonFab>();
+                    __c14.Horizontal = "end";
+                    __c14.Vertical = "top";
+                    __c14.Edge = edge;
+                    __c14.ChildContent = (RenderFragment)(fab =>
                     {
-                        fab.OpenComponent<IonFabButton>(0);
+                        fab.OpenComponent<IonFabButton>();
                         fab.CloseComponent();
-                        fab.OpenComponent<IonFabList>(1);
-                        fab.AddComponentParameter(2, nameof(IonFabList.ChildContent), (RenderFragment)(l =>
+                        var __c21 = fab.OpenComponent<IonFabList>();
+                        __c21.ChildContent = (RenderFragment)(l =>
                         {
-                            l.OpenComponent<IonFabButton>(0);
+                            l.OpenComponent<IonFabButton>();
                             l.CloseComponent();
-                        }));
+                        });
                         fab.CloseComponent();
-                    }));
+                    });
                     slot.CloseComponent();
 
                     if (!includeCentred) return;
 
                     // end / center
-                    slot.OpenComponent<IonFab>(10);
-                    slot.AddComponentParameter(11, nameof(IonFab.Horizontal), "end");
-                    slot.AddComponentParameter(12, nameof(IonFab.Vertical), "center");
-                    slot.AddComponentParameter(13, nameof(IonFab.ChildContent), (RenderFragment)(fab =>
+                    var __c15 = slot.OpenComponent<IonFab>();
+                    __c15.Horizontal = "end";
+                    __c15.Vertical = "center";
+                    __c15.ChildContent = (RenderFragment)(fab =>
                     {
-                        fab.OpenComponent<IonFabButton>(0);
+                        fab.OpenComponent<IonFabButton>();
                         fab.CloseComponent();
-                    }));
+                    });
                     slot.CloseComponent();
 
                     // center / center
-                    slot.OpenComponent<IonFab>(20);
-                    slot.AddComponentParameter(21, nameof(IonFab.Horizontal), "center");
-                    slot.AddComponentParameter(22, nameof(IonFab.Vertical), "center");
-                    slot.AddComponentParameter(23, nameof(IonFab.ChildContent), (RenderFragment)(fab =>
+                    var __c16 = slot.OpenComponent<IonFab>();
+                    __c16.Horizontal = "center";
+                    __c16.Vertical = "center";
+                    __c16.ChildContent = (RenderFragment)(fab =>
                     {
-                        fab.OpenComponent<IonFabButton>(0);
+                        fab.OpenComponent<IonFabButton>();
                         fab.CloseComponent();
-                    }));
+                    });
                     slot.CloseComponent();
-                }));
+                });
                 page.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }

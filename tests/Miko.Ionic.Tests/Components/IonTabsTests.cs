@@ -31,19 +31,19 @@ public class IonTabsTests : IonicComponentTestBase
     private ComponentUnderTest RenderTabs(string? href, Action<ComponentParameterBuilder<IonTabs>>? configure = null)
         => Context.Render<IonTabs>(p =>
         {
-            p.Add(nameof(IonTabs.Content), (RenderFragment)(b => b.AddContent(0, "tab content")));
+            p.Add(nameof(IonTabs.Content), (RenderFragment)(b => b.AddContent("tab content")));
             p.Add(nameof(IonTabs.Bottom), (RenderFragment)(bar =>
             {
-                bar.OpenComponent<IonTabBar>(0);
-                bar.AddComponentParameter(1, nameof(IonTabBar.ChildContent), (RenderFragment)(bb =>
+                var __c1 = bar.OpenComponent<IonTabBar>();
+                __c1.ChildContent = (RenderFragment)(bb =>
                 {
-                    bb.OpenComponent<IonTabButton>(0);
-                    bb.AddComponentParameter(1, nameof(IonTabButton.Tab), "tab1");
+                    var __c5 = bb.OpenComponent<IonTabButton>();
+                    __c5.Tab = "tab1";
                     if (href is not null)
-                        bb.AddComponentParameter(2, nameof(IonTabButton.Href), href);
-                    bb.AddComponentParameter(3, nameof(IonTabButton.ChildContent), Text("Favorites"));
+                        __c5.Href = href;
+                    __c5.ChildContent = Text("Favorites");
                     bb.CloseComponent();
-                }));
+                });
                 bar.CloseComponent();
             }));
             configure?.Invoke(p);
@@ -109,15 +109,15 @@ public class IonTabsTests : IonicComponentTestBase
 
         var cut = Context.Render<IonTabs>(p =>
         {
-            p.Add(nameof(IonTabs.Content), (RenderFragment)(b => b.AddContent(0, "tab content")));
+            p.Add(nameof(IonTabs.Content), (RenderFragment)(b => b.AddContent("tab content")));
             p.Add(nameof(IonTabs.Bottom), (RenderFragment)(bar =>
             {
-                bar.OpenComponent<IonTabButton>(0);
-                bar.AddComponentParameter(1, nameof(IonTabButton.Tab), "tab1");
-                bar.AddComponentParameter(2, nameof(IonTabButton.Href), "/tab1");
-                bar.AddComponentParameter(3, nameof(IonTabButton.OnClick),
-                    EventCallback.Factory.Create(this, () => clicked = true));
-                bar.AddComponentParameter(4, nameof(IonTabButton.ChildContent), Text("Favorites"));
+                var __c2 = bar.OpenComponent<IonTabButton>();
+                __c2.Tab = "tab1";
+                __c2.Href = "/tab1";
+                __c2.OnClick = 
+                    EventCallback.Factory.Create(this, () => clicked = true);
+                __c2.ChildContent = Text("Favorites");
                 bar.CloseComponent();
             }));
         });
@@ -147,16 +147,16 @@ public class IonTabsTests : IonicComponentTestBase
         {
             p.Add(nameof(IonTabs.Top), (RenderFragment)(top =>
             {
-                top.OpenComponent<IonTabBar>(0);
-                top.AddComponentParameter(1, nameof(IonTabBar.Slot), "top");
+                var __c3 = top.OpenComponent<IonTabBar>();
+                __c3.Slot = "top";
                 top.CloseComponent();
             }));
             p.Add(nameof(IonTabs.Content), (RenderFragment)(content =>
-                content.AddContent(0, "content")));
+                content.AddContent("content")));
             p.Add(nameof(IonTabs.Bottom), (RenderFragment)(bottom =>
             {
-                bottom.OpenComponent<IonTabBar>(0);
-                bottom.AddComponentParameter(1, nameof(IonTabBar.Slot), "bottom");
+                var __c4 = bottom.OpenComponent<IonTabBar>();
+                __c4.Slot = "bottom";
                 bottom.CloseComponent();
             }));
         });

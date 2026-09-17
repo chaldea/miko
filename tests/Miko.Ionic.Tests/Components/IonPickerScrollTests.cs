@@ -43,15 +43,15 @@ public class IonPickerScrollTests : IDisposable
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonPicker>(0);
-            builder.AddComponentParameter(1, nameof(IonPicker.ChildContent), (RenderFragment)(picker =>
+            var __c1 = builder.OpenComponent<IonPicker>();
+            __c1.ChildContent = (RenderFragment)(picker =>
             {
-                picker.OpenComponent<IonPickerColumn>(0);
-                picker.AddComponentParameter(1, nameof(IonPickerColumn.ValueChanged), OnChange);
-                picker.AddComponentParameter(2, nameof(IonPickerColumn.Value), Value);
-                picker.AddComponentParameter(3, nameof(IonPickerColumn.ChildContent), Options());
+                var __c2 = picker.OpenComponent<IonPickerColumn>();
+                __c2.ValueChanged = OnChange;
+                __c2.Value = Value;
+                __c2.ChildContent = Options();
                 picker.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
 

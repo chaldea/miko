@@ -1,0 +1,59 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@using Miko.Components
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@*
+    ISSUE-136 smoke fixture: a realistic page built the way a real app is, so the typed-emit
+    path is exercised against a deep, mixed tree rather than one component at a time.
+
+    Covers, in one render: nested components with parameters, ChildContent slots, named slots
+    (Start/End), an event handler, a literal-typed <input>, a list with a loop, and plain markup
+    elements interleaved with components.
+*@
+<IonApp>
+    <IonPage>
+        <IonHeader>
+            <IonToolbar>
+                <IonTitle>Smoke</IonTitle>
+            </IonToolbar>
+        </IonHeader>
+        <IonContent>
+            <div class="smoke-body">
+                <IonList>
+                    @for (var i = 0; i < 3; i++)
+                    {
+                        var index = i;
+                        <IonItem>
+                            <IonLabel>Item @index</IonLabel>
+                            <IonBadge Color="primary">@index</IonBadge>
+                        </IonItem>
+                    }
+                </IonList>
+
+                <IonButton Color="primary" Size="small" OnClick="Bump">
+                    Tapped @_taps
+                </IonButton>
+
+                <input type="checkbox" class="smoke-check" />
+
+                <p class="smoke-note">plain markup between components</p>
+            </div>
+        </IonContent>
+    </IonPage>
+</IonApp>
+
+@code {
+    /// <summary>
+    /// Raised each time the button is tapped. The test supplies it as a parameter, so the
+    /// observation stays per-instance (no shared static state, safe under parallel runs).
+    /// </summary>
+    [Parameter] public Action? OnTapped { get; set; }
+
+    private int _taps;
+
+    private void Bump()
+    {
+        _taps++;
+        OnTapped?.Invoke();
+    }
+}

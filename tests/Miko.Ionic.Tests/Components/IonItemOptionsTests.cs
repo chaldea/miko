@@ -1,3 +1,4 @@
+using Miko.Core.DomElements;
 using Miko.Testing;
 using Miko.Ionic.Components;
 using Miko.Components;
@@ -9,7 +10,7 @@ public class IonItemOptionsTests : IonicComponentTestBase
 {
     private static readonly RenderFragment MinimalChild = builder =>
     {
-        builder.OpenElement(0, "span");
+        builder.OpenElement<SpanElement>();
         builder.CloseElement();
     };
 
@@ -47,7 +48,7 @@ public class IonItemOptionsTests : IonicComponentTestBase
             parameters.Add(nameof(IonItemOptions.Side), "start");
             parameters.Add(nameof(IonItemOptions.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonItemOption>(0);
+                builder.OpenComponent<IonItemOption>();
                 builder.CloseComponent();
             }));
         });

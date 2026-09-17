@@ -32,8 +32,8 @@ public class IonSegmentModeStyleTests
             parameters.Add(nameof(IonSegment.Value), "all");
             parameters.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonSegmentButton>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentButton.Value), "all");
+                var __c1 = builder.OpenComponent<IonSegmentButton>();
+                __c1.Value = "all";
                 builder.CloseComponent();
             });
         });
@@ -49,7 +49,7 @@ public class IonSegmentModeStyleTests
         context.Render<IonSegmentButton>(parameters =>
         {
             parameters.Add(nameof(IonSegmentButton.Value), "all");
-            parameters.AddChildContent(builder => builder.AddContent(0, "All"));
+            parameters.AddChildContent(builder => builder.AddContent("All"));
         });
 
     private static ComponentUnderTest RenderButtonWithIconAndLabel(TestContext context, string layout) =>
@@ -59,12 +59,12 @@ public class IonSegmentModeStyleTests
             parameters.Add(nameof(IonSegmentButton.Layout), layout);
             parameters.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonIcon>(0);
-                builder.AddComponentParameter(1, nameof(IonIcon.Icon), "star");
+                var __c2 = builder.OpenComponent<IonIcon>();
+                __c2.Icon = "star";
                 builder.CloseComponent();
-                builder.OpenComponent<IonLabel>(2);
-                builder.AddComponentParameter(3, nameof(IonLabel.ChildContent),
-                    (RenderFragment)(label => label.AddContent(0, "All")));
+                var __c3 = builder.OpenComponent<IonLabel>();
+                __c3.ChildContent = 
+                    (RenderFragment)(label => label.AddContent("All"));
                 builder.CloseComponent();
             });
         });
@@ -162,8 +162,8 @@ public class IonSegmentModeStyleTests
             parameters.Add(nameof(IonSegment.Color), "primary");
             parameters.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonSegmentButton>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentButton.Value), "all");
+                var __c4 = builder.OpenComponent<IonSegmentButton>();
+                __c4.Value = "all";
                 builder.CloseComponent();
             });
         });
@@ -192,8 +192,8 @@ public class IonSegmentModeStyleTests
             parameters.Add(nameof(IonSegment.Color), "primary");
             parameters.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonSegmentButton>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentButton.Value), "all");
+                var __c5 = builder.OpenComponent<IonSegmentButton>();
+                __c5.Value = "all";
                 builder.CloseComponent();
             });
         });

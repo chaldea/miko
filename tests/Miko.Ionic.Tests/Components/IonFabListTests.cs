@@ -17,7 +17,7 @@ public class IonFabListTests : IonicComponentTestBase
     // A fab-list containing one button.
     private static RenderFragment ListButton() => builder =>
     {
-        builder.OpenComponent<IonFabButton>(0);
+        builder.OpenComponent<IonFabButton>();
         builder.CloseComponent();
     };
 
@@ -37,16 +37,16 @@ public class IonFabListTests : IonicComponentTestBase
             p.Add(nameof(IonFab.ChildContent), (RenderFragment)(builder =>
             {
                 // A main button so the fab has a list (Build detects the list) and can toggle.
-                builder.OpenComponent<IonFabButton>(0);
+                builder.OpenComponent<IonFabButton>();
                 builder.CloseComponent();
 
-                builder.OpenComponent<IonFabList>(1);
-                builder.AddComponentParameter(2, nameof(IonFabList.ChildContent),
+                var __c3 = builder.OpenComponent<IonFabList>();
+                __c3.ChildContent = 
                     (RenderFragment)(lb =>
                     {
-                        lb.OpenComponent<IonFabButton>(0);
+                        lb.OpenComponent<IonFabButton>();
                         lb.CloseComponent();
-                    }));
+                    });
                 builder.CloseComponent();
             }));
         });

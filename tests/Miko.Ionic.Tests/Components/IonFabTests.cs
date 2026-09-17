@@ -17,7 +17,7 @@ public class IonFabTests : IonicComponentTestBase
     // A minimal main fab-button so the fab has renderable content (CascadingValue needs an element).
     private static RenderFragment MainButton() => builder =>
     {
-        builder.OpenComponent<IonFabButton>(0);
+        builder.OpenComponent<IonFabButton>();
         builder.CloseComponent();
     };
 
@@ -25,16 +25,16 @@ public class IonFabTests : IonicComponentTestBase
     // the activated cascade end-to-end.
     private static RenderFragment ButtonWithList() => builder =>
     {
-        builder.OpenComponent<IonFabButton>(0);
+        builder.OpenComponent<IonFabButton>();
         builder.CloseComponent();
 
-        builder.OpenComponent<IonFabList>(1);
-        builder.AddComponentParameter(2, nameof(IonFabList.Side), "bottom");
-        builder.AddComponentParameter(3, nameof(IonFabList.ChildContent), (RenderFragment)(lb =>
+        var __c3 = builder.OpenComponent<IonFabList>();
+        __c3.Side = "bottom";
+        __c3.ChildContent = (RenderFragment)(lb =>
         {
-            lb.OpenComponent<IonFabButton>(0);
+            lb.OpenComponent<IonFabButton>();
             lb.CloseComponent();
-        }));
+        });
         builder.CloseComponent();
     };
 

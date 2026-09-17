@@ -116,8 +116,8 @@ public class TextElementsTests
     {
         // HTML 中 textarea 的初始文本写在标签内容里，应回收进 Value 而非作为子节点参与布局。
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "textarea");
-        builder.AddContent(1, "hello");
+        builder.OpenElement<TextAreaElement>();
+        builder.AddContent("hello");
         builder.CloseElement();
 
         var textArea = builder.Build().ShouldBeOfType<TextAreaElement>();
@@ -129,9 +129,9 @@ public class TextElementsTests
     public void TextArea_ValueAttribute_TakesPrecedenceOverContent()
     {
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "textarea");
-        builder.AddAttribute(1, "value", "from-attr");
-        builder.AddContent(2, "from-content");
+        var __e1 = builder.OpenElement<TextAreaElement>();
+        global::Miko.Components.RenderTreeBuilder.SetTextAreaValue(__e1, "from-attr");
+        builder.AddContent("from-content");
         builder.CloseElement();
 
         var textArea = builder.Build().ShouldBeOfType<TextAreaElement>();
@@ -142,9 +142,9 @@ public class TextElementsTests
     public void TextArea_RowsAndColsAttributes_AreParsed()
     {
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "textarea");
-        builder.AddAttribute(1, "rows", "5");
-        builder.AddAttribute(2, "cols", "40");
+        var textAreaElement = builder.OpenElement<TextAreaElement>();
+        RenderTreeBuilder.SetTextAreaRows(textAreaElement, "5");
+        RenderTreeBuilder.SetTextAreaCols(textAreaElement, "40");
         builder.CloseElement();
 
         var textArea = builder.Build().ShouldBeOfType<TextAreaElement>();

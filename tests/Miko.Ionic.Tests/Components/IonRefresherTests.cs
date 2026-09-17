@@ -1,6 +1,7 @@
 using Miko.Common;
 using Miko.Animation;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Events;
 using Miko.Ionic.Components;
@@ -15,13 +16,13 @@ public class IonRefresherTests : IonicComponentTestBase
     private static RenderFragment Refresher(EventCallback onRefresh, bool disabled,
         int pullMin, int? pullMax) => builder =>
     {
-        builder.OpenComponent<IonRefresher>(0);
-        builder.AddComponentParameter(1, nameof(IonRefresher.OnRefresh), onRefresh);
-        builder.AddComponentParameter(2, nameof(IonRefresher.Disabled), disabled);
-        builder.AddComponentParameter(3, nameof(IonRefresher.PullMin), pullMin);
+        var __c2 = builder.OpenComponent<IonRefresher>();
+        __c2.OnRefresh = onRefresh;
+        __c2.Disabled = disabled;
+        __c2.PullMin = pullMin;
         if (pullMax is not null)
-            builder.AddComponentParameter(4, nameof(IonRefresher.PullMax), pullMax);
-        builder.OpenComponent<IonRefresherContent>(5);
+            __c2.PullMax = pullMax;
+        builder.OpenComponent<IonRefresherContent>();
         builder.CloseComponent();
         builder.CloseComponent();
     };
@@ -33,8 +34,8 @@ public class IonRefresherTests : IonicComponentTestBase
             parameters.Add(nameof(IonContent.Fixed), Refresher(onRefresh, disabled, pullMin, pullMax));
             parameters.AddChildContent(builder =>
             {
-                builder.OpenElement(0, "div");
-                builder.AddAttribute(1, "style", new Style { Height = Length.Px(1000) });
+                var __e1 = builder.OpenElement<DivElement>();
+                __e1.Style = new Style { Height = Length.Px(1000) };
                 builder.CloseElement();
             });
         });
@@ -111,8 +112,8 @@ public class IonRefresherTests : IonicComponentTestBase
             p.Add(nameof(IonRefresher.State), "pulling");
             p.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonRefresherContent>(0);
-                builder.AddComponentParameter(1, nameof(IonRefresherContent.PullingText), "Pull");
+                var __c4 = builder.OpenComponent<IonRefresherContent>();
+                __c4.PullingText = "Pull";
                 builder.CloseComponent();
             });
         });
@@ -133,8 +134,8 @@ public class IonRefresherTests : IonicComponentTestBase
             p.Add(nameof(IonRefresher.State), "refreshing");
             p.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonRefresherContent>(0);
-                builder.AddComponentParameter(1, nameof(IonRefresherContent.RefreshingText), "Refresh");
+                var __c5 = builder.OpenComponent<IonRefresherContent>();
+                __c5.RefreshingText = "Refresh";
                 builder.CloseComponent();
             });
         });

@@ -124,15 +124,15 @@ public class IonLabelTests : IonicComponentTestBase
         var cut = Context.Render<IonList>(parameters =>
             parameters.Add(nameof(IonList.ChildContent), (RenderFragment)(listBuilder =>
             {
-                listBuilder.OpenComponent<IonItem>(0);
-                listBuilder.AddAttribute(1, nameof(IonItem.Color), "primary");
-                listBuilder.AddAttribute(2, nameof(IonItem.ChildContent), (RenderFragment)(itemBuilder =>
+                var __c1 = listBuilder.OpenComponent<IonItem>();
+                __c1.Color = "primary";
+                __c1.ChildContent = (RenderFragment)(itemBuilder =>
                 {
-                    itemBuilder.OpenComponent<IonLabel>(0);
-                    itemBuilder.AddAttribute(1, nameof(IonLabel.ChildContent),
-                        (RenderFragment)(b => b.AddContent(0, "Colored Item")));
+                    var __c3 = itemBuilder.OpenComponent<IonLabel>();
+                    __c3.ChildContent = 
+                        (RenderFragment)(b => b.AddContent("Colored Item"));
                     itemBuilder.CloseComponent();
-                }));
+                });
                 listBuilder.CloseComponent();
             })));
 
@@ -152,16 +152,16 @@ public class IonLabelTests : IonicComponentTestBase
         var cut = Context.Render<IonList>(parameters =>
             parameters.Add(nameof(IonList.ChildContent), (RenderFragment)(listBuilder =>
             {
-                listBuilder.OpenComponent<IonItem>(0);
-                listBuilder.AddAttribute(1, nameof(IonItem.Color), "primary");
-                listBuilder.AddAttribute(2, nameof(IonItem.ChildContent), (RenderFragment)(itemBuilder =>
+                var __c2 = listBuilder.OpenComponent<IonItem>();
+                __c2.Color = "primary";
+                __c2.ChildContent = (RenderFragment)(itemBuilder =>
                 {
-                    itemBuilder.OpenComponent<IonLabel>(0);
-                    itemBuilder.AddAttribute(1, nameof(IonLabel.Color), "danger");
-                    itemBuilder.AddAttribute(2, nameof(IonLabel.ChildContent),
-                        (RenderFragment)(b => b.AddContent(0, "Colored Item")));
+                    var __c4 = itemBuilder.OpenComponent<IonLabel>();
+                    __c4.Color = "danger";
+                    __c4.ChildContent = 
+                        (RenderFragment)(b => b.AddContent("Colored Item"));
                     itemBuilder.CloseComponent();
-                }));
+                });
                 listBuilder.CloseComponent();
             })));
 
@@ -181,7 +181,7 @@ public class IonLabelTests : IonicComponentTestBase
         {
             parameters.Add(nameof(IonLabel.Position), "fixed");
             parameters.Add(nameof(IonLabel.ChildContent),
-                (RenderFragment)(b => b.AddContent(0, "A very long label that would otherwise stretch")));
+                (RenderFragment)(b => b.AddContent("A very long label that would otherwise stretch")));
         });
 
         var box = cut.GetBoxModel(cut.Root);
@@ -198,7 +198,7 @@ public class IonLabelTests : IonicComponentTestBase
         var cut = Context.Render<IonLabel>(parameters =>
         {
             parameters.Add(nameof(IonLabel.Class), "ion-text-wrap");
-            parameters.Add(nameof(IonLabel.ChildContent), (RenderFragment)(b => b.AddContent(0, "Wrapped")));
+            parameters.Add(nameof(IonLabel.ChildContent), (RenderFragment)(b => b.AddContent("Wrapped")));
         });
 
         var style = cut.GetComputedStyle(cut.Root);

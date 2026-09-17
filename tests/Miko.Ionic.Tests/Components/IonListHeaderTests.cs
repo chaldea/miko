@@ -9,7 +9,7 @@ namespace Miko.Ionic.Tests.Components;
 
 public class IonListHeaderTests : IonicComponentTestBase
 {
-    private static readonly RenderFragment Text = builder => builder.AddContent(0, "Header");
+    private static readonly RenderFragment Text = builder => builder.AddContent("Header");
 
     private ComponentUnderTest RenderHeader(
         Action<ComponentParameterBuilder<IonListHeader>>? configure = null,
@@ -87,12 +87,12 @@ public class IonListHeaderTests : IonicComponentTestBase
     {
         RenderFragment content = builder =>
         {
-            builder.OpenComponent<IonLabel>(0);
-            builder.AddComponentParameter(1, nameof(IonLabel.ChildContent), Text);
+            var __c1 = builder.OpenComponent<IonLabel>();
+            __c1.ChildContent = Text;
             builder.CloseComponent();
-            builder.OpenComponent<IonButton>(2);
-            builder.AddComponentParameter(3, nameof(IonButton.ChildContent),
-                (RenderFragment)(button => button.AddContent(0, "+")));
+            var __c2 = builder.OpenComponent<IonButton>();
+            __c2.ChildContent = 
+                (RenderFragment)(button => button.AddContent("+"));
             builder.CloseComponent();
         };
 

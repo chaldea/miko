@@ -42,8 +42,8 @@ public class IonSegmentContentTests : IonicComponentTestBase
             parameters.Add(nameof(IonSegmentView.Value), "all");
             parameters.Add(nameof(IonSegmentView.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonSegmentContent>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentContent.Id), "all");
+                var __c1 = builder.OpenComponent<IonSegmentContent>();
+                __c1.Id = "all";
                 builder.CloseComponent();
             }));
         });
@@ -64,8 +64,8 @@ public class IonSegmentContentTests : IonicComponentTestBase
             parameters.Add(nameof(IonSegmentView.Value), "all");
             parameters.Add(nameof(IonSegmentView.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonSegmentContent>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentContent.Id), "favorites");
+                var __c2 = builder.OpenComponent<IonSegmentContent>();
+                __c2.Id = "favorites";
                 builder.CloseComponent();
             }));
         });

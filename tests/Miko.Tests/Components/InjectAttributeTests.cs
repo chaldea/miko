@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Routing;
 using Shouldly;
@@ -33,7 +34,7 @@ public class InjectAttributeTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.AddContent(1, Counter == null ? "<no-inject>" : Counter.Next().ToString());
             builder.CloseElement();
         }
@@ -48,7 +49,7 @@ public class InjectAttributeTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.CloseElement();
         }
     }
@@ -64,7 +65,7 @@ public class InjectAttributeTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.CloseElement();
         }
     }
@@ -75,8 +76,8 @@ public class InjectAttributeTests
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.OpenComponent<InjectedChildComponent>(1);
+            builder.OpenElement<DivElement>();
+            builder.OpenComponent<InjectedChildComponent>();
             builder.CloseComponent();
             builder.CloseElement();
         }
@@ -87,8 +88,8 @@ public class InjectAttributeTests
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.OpenComponent<ParentRenderingInjectedChild>(1);
+            builder.OpenElement<DivElement>();
+            builder.OpenComponent<ParentRenderingInjectedChild>();
             builder.CloseComponent();
             builder.CloseElement();
         }
@@ -104,11 +105,11 @@ public class InjectAttributeTests
             // The injected child is the only child element; the tick counter is rendered into
             // an additional <span> sibling so we can distinguish it. (AddContent on the open
             // div would set its TextContent, not produce a child.)
-            builder.OpenElement(0, "div");
-            builder.OpenElement(1, "span");
-            builder.AddContent(2, $"tick:{_tick}");
+            builder.OpenElement<DivElement>();
+            builder.OpenElement<SpanElement>();
+            builder.AddContent($"tick:{_tick}");
             builder.CloseElement();
-            builder.OpenComponent<InjectedChildComponent>(3);
+            builder.OpenComponent<InjectedChildComponent>();
             builder.CloseComponent();
             builder.CloseElement();
         }
@@ -129,8 +130,8 @@ public class InjectAttributeTests
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.OpenComponent<InjectedChildComponent>(1);
+            builder.OpenElement<DivElement>();
+            builder.OpenComponent<InjectedChildComponent>();
             builder.CloseComponent();
             builder.CloseElement();
         }
@@ -350,7 +351,7 @@ public class InjectAttributeTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.CloseElement();
         }
     }

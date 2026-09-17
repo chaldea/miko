@@ -14,8 +14,8 @@ public class ComponentLifecycleAsyncTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddContent(1, $"Status: {Status}");
+            builder.OpenElement<DivElement>();
+            builder.AddContent($"Status: {Status}");
             builder.CloseElement();
         }
 
@@ -56,7 +56,7 @@ public class ComponentLifecycleAsyncTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.AddContent(1, $"Processed: {ProcessedInput ?? "None"}");
             builder.CloseElement();
         }
@@ -92,7 +92,7 @@ public class ComponentLifecycleAsyncTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.CloseElement();
         }
 
@@ -125,8 +125,8 @@ public class ComponentLifecycleAsyncTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddContent(1, $"Sync: {SyncCount}, Async: {AsyncCount}");
+            builder.OpenElement<DivElement>();
+            builder.AddContent($"Sync: {SyncCount}, Async: {AsyncCount}");
             builder.CloseElement();
         }
 

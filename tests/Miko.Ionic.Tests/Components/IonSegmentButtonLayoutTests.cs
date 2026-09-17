@@ -40,11 +40,11 @@ public class IonSegmentButtonLayoutTests : IonicComponentTestBase
             parameters.Add(nameof(IonSegmentButton.Value), "all");
             parameters.Add(nameof(IonSegmentButton.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonLabel>(0);
-                builder.AddComponentParameter(1, nameof(IonLabel.ChildContent), (RenderFragment)(inner =>
+                var __c1 = builder.OpenComponent<IonLabel>();
+                __c1.ChildContent = (RenderFragment)(inner =>
                 {
-                    inner.AddContent(0, "All");
-                }));
+                    inner.AddContent("All");
+                });
                 builder.CloseComponent();
             }));
         });

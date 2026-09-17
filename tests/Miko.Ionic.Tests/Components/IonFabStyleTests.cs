@@ -35,18 +35,18 @@ public class IonFabStyleTests : IonicComponentTestBase
             p.Add(nameof(IonFab.Activated), activated);
             p.Add(nameof(IonFab.ChildContent), (RenderFragment)(fab =>
             {
-                fab.OpenComponent<IonFabButton>(0);
+                var __c1 = fab.OpenComponent<IonFabButton>();
                 if (buttonSize != null)
-                    fab.AddComponentParameter(1, nameof(IonFabButton.Size), buttonSize);
+                    __c1.Size = buttonSize;
                 fab.CloseComponent();
 
-                fab.OpenComponent<IonFabList>(10);
-                fab.AddComponentParameter(11, nameof(IonFabList.Side), listSide);
-                fab.AddComponentParameter(12, nameof(IonFabList.ChildContent), (RenderFragment)(l =>
+                var __c2 = fab.OpenComponent<IonFabList>();
+                __c2.Side = listSide;
+                __c2.ChildContent = (RenderFragment)(l =>
                 {
-                    l.OpenComponent<IonFabButton>(0);
+                    l.OpenComponent<IonFabButton>();
                     l.CloseComponent();
-                }));
+                });
                 fab.CloseComponent();
             }));
         });
@@ -224,8 +224,8 @@ public class IonFabStyleTests : IonicComponentTestBase
         // both the colored base and the default (primary) hover.
         var cut = Context.Render<IonFab>(p => p.Add(nameof(IonFab.ChildContent), (RenderFragment)(fab =>
         {
-            fab.OpenComponent<IonFabButton>(0);
-            fab.AddComponentParameter(1, nameof(IonFabButton.Color), "danger");
+            var __c3 = fab.OpenComponent<IonFabButton>();
+            __c3.Color = "danger";
             fab.CloseComponent();
         })));
         var before = cut.GetComputedStyle(NativeOf(MainButton(cut)))!.BackgroundColor;
@@ -255,8 +255,8 @@ public class IonFabStyleTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonFab>(p => p.Add(nameof(IonFab.ChildContent), (RenderFragment)(fab =>
         {
-            fab.OpenComponent<IonFabButton>(0);
-            fab.AddComponentParameter(1, nameof(IonFabButton.Disabled), true);
+            var __c4 = fab.OpenComponent<IonFabButton>();
+            __c4.Disabled = true;
             fab.CloseComponent();
         })));
         var before = cut.GetComputedStyle(NativeOf(MainButton(cut)))!.BackgroundColor;

@@ -47,11 +47,11 @@ public class IonInfiniteScrollIntegrationTests : IDisposable
             // .ion-content only gets a height from the ion-page flex column (flex:1 against a
             // definite basis); rendering it bare leaves .inner-scroll (absolute, inset 0) at zero
             // height, so nothing would scroll. Mirror the real page structure.
-            builder.OpenComponent<IonPage>(0);
-            builder.AddComponentParameter(1, nameof(IonPage.ChildContent), (RenderFragment)(page =>
+            var __c1 = builder.OpenComponent<IonPage>();
+            __c1.ChildContent = (RenderFragment)(page =>
             {
-                page.OpenComponent<IonContent>(0);
-                page.AddComponentParameter(1, nameof(IonContent.ChildContent), (RenderFragment)(b =>
+                var __c2 = page.OpenComponent<IonContent>();
+                __c2.ChildContent = (RenderFragment)(b =>
                 {
                     for (var i = 0; i < Rows; i++)
                     {
@@ -61,19 +61,19 @@ public class IonInfiniteScrollIntegrationTests : IDisposable
                         b.CloseElement();
                     }
 
-                    b.OpenComponent<IonInfiniteScroll>(9000);
-                    b.AddComponentParameter(9001, nameof(IonInfiniteScroll.Threshold), Threshold);
-                    b.AddComponentParameter(9002, nameof(IonInfiniteScroll.OnInfinite), OnInfinite);
-                    b.AddComponentParameter(9003, nameof(IonInfiniteScroll.ChildContent), (RenderFragment)(c =>
+                    var __c3 = b.OpenComponent<IonInfiniteScroll>();
+                    __c3.Threshold = Threshold;
+                    __c3.OnInfinite = OnInfinite;
+                    __c3.ChildContent = (RenderFragment)(c =>
                     {
-                        c.OpenComponent<IonInfiniteScrollContent>(9100);
-                        c.AddComponentParameter(9101, nameof(IonInfiniteScrollContent.LoadingText), "Loading...");
+                        var __c4 = c.OpenComponent<IonInfiniteScrollContent>();
+                        __c4.LoadingText = "Loading...";
                         c.CloseComponent();
-                    }));
+                    });
                     b.CloseComponent();
-                }));
+                });
                 page.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }

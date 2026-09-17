@@ -1,0 +1,25 @@
+@namespace Miko.Razor.Tests
+@using Miko.Common
+@using Miko.Components
+@using Miko.Styling
+@* ISSUE-136 fixture: one element with literal and expression attributes, an event, a nested
+   element, and a component with parameters + ChildContent. Covers every shape the typed-emit
+   path handles, so RazorTypedEmitTests can assert on the generated code. *@
+<div class="typed-host" style="@_hostStyle">
+    <button class="typed-button" @onclick="Increment">
+        <span class="typed-label">@_count</span>
+    </button>
+    <input type="checkbox" class="typed-check" />
+    <TypedEmitChild Label="child" Count="7">
+        <span class="typed-slot">slot</span>
+    </TypedEmitChild>
+</div>
+
+@code {
+    private int _count;
+    private readonly Style _hostStyle = new() { Width = Length.Px(100) };
+
+    public int Count => _count;
+
+    private void Increment() => _count++;
+}

@@ -107,14 +107,14 @@ public class IonInputTests : IonicComponentTestBase
         {
             p.Add(nameof(IonInput.StartSlot), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "class", "start-slot");
+                var __e1 = builder.OpenElement<SpanElement>();
+                __e1.Class = "start-slot";
                 builder.CloseElement();
             }));
             p.Add(nameof(IonInput.EndSlot), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "class", "end-slot");
+                var __e2 = builder.OpenElement<SpanElement>();
+                __e2.Class = "end-slot";
                 builder.CloseElement();
             }));
         });
@@ -425,8 +425,8 @@ public class IonInputTests : IonicComponentTestBase
         {
             p.Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonInput>(0);
-                builder.AddAttribute(1, nameof(IonInput.Label), "Company name");
+                var __c3 = builder.OpenComponent<IonInput>();
+                __c3.Label = "Company name";
                 builder.CloseComponent();
             }));
         });
@@ -470,8 +470,8 @@ public class IonInputTests : IonicComponentTestBase
         {
             p.Add(nameof(IonItemDivider.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonInput>(0);
-                builder.AddAttribute(1, nameof(IonInput.Label), "Filter");
+                var __c4 = builder.OpenComponent<IonInput>();
+                __c4.Label = "Filter";
                 builder.CloseComponent();
             }));
         });

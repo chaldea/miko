@@ -47,8 +47,8 @@ public class IonSegmentButtonTests : IonicComponentTestBase
             parameters.Add(nameof(IonSegment.Value), "tab1");
             parameters.Add(nameof(IonSegment.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonSegmentButton>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentButton.Value), "tab1");
+                var __c1 = builder.OpenComponent<IonSegmentButton>();
+                __c1.Value = "tab1";
                 builder.CloseComponent();
             }));
         });
@@ -68,8 +68,8 @@ public class IonSegmentButtonTests : IonicComponentTestBase
             parameters.Add(nameof(IonSegment.Value), "tab1");
             parameters.Add(nameof(IonSegment.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonSegmentButton>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentButton.Value), "tab2");
+                var __c2 = builder.OpenComponent<IonSegmentButton>();
+                __c2.Value = "tab2";
                 builder.CloseComponent();
             }));
         });

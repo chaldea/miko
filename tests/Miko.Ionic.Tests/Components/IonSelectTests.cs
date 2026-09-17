@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Events;
 using Miko.Hosting;
@@ -26,14 +27,14 @@ public class IonSelectTests : IonicComponentTestBase
 
     private static RenderFragment Options => builder =>
     {
-        builder.OpenComponent<IonSelectOption>(0);
-        builder.AddComponentParameter(1, nameof(IonSelectOption.Value), "a");
-        builder.AddComponentParameter(2, nameof(IonSelectOption.ChildContent), Text("Alpha"));
+        var __c3 = builder.OpenComponent<IonSelectOption>();
+        __c3.Value = "a";
+        __c3.ChildContent = Text("Alpha");
         builder.CloseComponent();
 
-        builder.OpenComponent<IonSelectOption>(3);
-        builder.AddComponentParameter(4, nameof(IonSelectOption.Value), "b");
-        builder.AddComponentParameter(5, nameof(IonSelectOption.ChildContent), Text("Beta"));
+        var __c4 = builder.OpenComponent<IonSelectOption>();
+        __c4.Value = "b";
+        __c4.ChildContent = Text("Beta");
         builder.CloseComponent();
     };
 
@@ -49,11 +50,11 @@ public class IonSelectTests : IonicComponentTestBase
         string labelPlacement = "start", string? placeholder = "Pick one")
         => ctx.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
         {
-            builder.OpenComponent<IonSelect>(0);
-            builder.AddComponentParameter(1, nameof(IonSelect.Label), "Status");
-            builder.AddComponentParameter(2, nameof(IonSelect.LabelPlacement), labelPlacement);
-            builder.AddComponentParameter(3, nameof(IonSelect.Placeholder), placeholder);
-            builder.AddComponentParameter(4, nameof(IonSelect.ChildContent), Options);
+            var __c5 = builder.OpenComponent<IonSelect>();
+            __c5.Label = "Status";
+            __c5.LabelPlacement = labelPlacement;
+            __c5.Placeholder = placeholder;
+            __c5.ChildContent = Options;
             builder.CloseComponent();
         })));
 
@@ -268,14 +269,14 @@ public class IonSelectTests : IonicComponentTestBase
         {
             p.Add(nameof(IonSelect.StartSlot), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "class", "start-slot");
+                var __e1 = builder.OpenElement<SpanElement>();
+                __e1.Class = "start-slot";
                 builder.CloseElement();
             }));
             p.Add(nameof(IonSelect.EndSlot), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "class", "end-slot");
+                var __e2 = builder.OpenElement<SpanElement>();
+                __e2.Class = "end-slot";
                 builder.CloseElement();
             }));
         });
@@ -358,8 +359,8 @@ public class IonSelectTests : IonicComponentTestBase
             p.Add(nameof(IonSelect.Value), "Gamma");
             p.Add(nameof(IonSelect.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonSelectOption>(0);
-                builder.AddComponentParameter(1, nameof(IonSelectOption.ChildContent), Text("Gamma"));
+                var __c6 = builder.OpenComponent<IonSelectOption>();
+                __c6.ChildContent = Text("Gamma");
                 builder.CloseComponent();
             }));
         });
@@ -410,7 +411,7 @@ public class IonSelectTests : IonicComponentTestBase
             p.Add(nameof(IonSelect.LabelPlacement), "floating");
             p.Add(nameof(IonSelect.StartSlot), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "span");
+                builder.OpenElement<SpanElement>();
                 builder.CloseElement();
             }));
         });
@@ -634,14 +635,14 @@ public class IonSelectTests : IonicComponentTestBase
 
         var list = Context.Render<IonList>(p => p.Add(nameof(IonList.ChildContent), (RenderFragment)(builder =>
         {
-            builder.OpenComponent<IonItem>(0);
-            builder.AddComponentParameter(1, nameof(IonItem.ChildContent), (RenderFragment)(inner =>
+            var __c8 = builder.OpenComponent<IonItem>();
+            __c8.ChildContent = (RenderFragment)(inner =>
             {
-                inner.OpenComponent<IonSelect>(0);
-                inner.AddComponentParameter(1, nameof(IonSelect.Label), "Status");
-                inner.AddComponentParameter(2, nameof(IonSelect.ChildContent), Options);
+                var __c11 = inner.OpenComponent<IonSelect>();
+                __c11.Label = "Status";
+                __c11.ChildContent = Options;
                 inner.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         })));
 
@@ -702,12 +703,12 @@ public class IonSelectTests : IonicComponentTestBase
         string? changed = null;
         var cut = Context.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
         {
-            builder.OpenComponent<IonSelect>(0);
-            builder.AddComponentParameter(1, nameof(IonSelect.Label), "Status");
-            builder.AddComponentParameter(2, nameof(IonSelect.Placeholder), "Pick one");
-            builder.AddComponentParameter(3, nameof(IonSelect.ValueChanged),
-                EventCallback.Factory.Create<string?>(this, v => changed = v));
-            builder.AddComponentParameter(4, nameof(IonSelect.ChildContent), Options);
+            var __c9 = builder.OpenComponent<IonSelect>();
+            __c9.Label = "Status";
+            __c9.Placeholder = "Pick one";
+            __c9.ValueChanged = 
+                EventCallback.Factory.Create<string?>(this, v => changed = v);
+            __c9.ChildContent = Options;
             builder.CloseComponent();
         })));
 

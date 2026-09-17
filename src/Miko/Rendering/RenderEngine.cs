@@ -1,6 +1,7 @@
 using Miko.Animation;
 using Miko.Common;
 using Miko.Core.DomElements;
+using Miko.Diagnostics;
 using Miko.Layout;
 using Miko.Styling;
 using SkiaSharp;
@@ -79,10 +80,13 @@ public class RenderEngine
         _pendingFixed.Clear();
         _currentScrollOffsetX = 0;
         _currentScrollOffsetY = 0;
+        // 分段探针（ISSUE-136）：默认关闭，关闭时只是一次布尔判断。
+        var paintStart = FrameTimingDiagnostics.GetTimestamp();
         RenderBox(layoutRoot, null, isStackingRoot: true);
         FlushFixed();
         FlushDropdowns();
         OverlayCallback?.Invoke(_canvas!);
+        FrameTimingDiagnostics.RecordPaint(paintStart);
     }
 
     /// <summary>

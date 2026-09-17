@@ -100,9 +100,9 @@ public class PreCodeElementTests
     public void Code_LanguageAndHighlightAttributes_AreParsed()
     {
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "code");
-        builder.AddAttribute(1, "language", "csharp");
-        builder.AddAttribute(2, "highlight", "false");
+        var __e1 = builder.OpenElement<CodeElement>();
+        __e1.Language = "csharp";
+        __e1.Highlight = false;
         builder.CloseElement();
 
         var code = builder.Build().ShouldBeOfType<CodeElement>();
@@ -131,9 +131,9 @@ public class PreCodeElementTests
     {
         // HTML 布尔属性语义：无值属性出现即为真。
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "code");
-        builder.AddAttribute(1, "language", "json");
-        builder.AddAttribute(2, "highlight");
+        var __e2 = builder.OpenElement<CodeElement>();
+        __e2.Language = "json";
+        __e2.Highlight = true;
         builder.CloseElement();
 
         builder.Build().ShouldBeOfType<CodeElement>().IsHighlightActive.ShouldBeTrue();

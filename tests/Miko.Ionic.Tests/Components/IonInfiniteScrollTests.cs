@@ -299,8 +299,8 @@ public class IonInfiniteScrollTests : IonicComponentTestBase
             p.Add(nameof(IonInfiniteScroll.Loading), true);
             p.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonInfiniteScrollContent>(0);
-                builder.AddComponentParameter(1, nameof(IonInfiniteScrollContent.LoadingText), "Loading");
+                var __c1 = builder.OpenComponent<IonInfiniteScrollContent>();
+                __c1.LoadingText = "Loading";
                 builder.CloseComponent();
             });
         });

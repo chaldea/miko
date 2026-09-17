@@ -1,3 +1,4 @@
+using Miko.Core.DomElements;
 using Miko.Testing;
 using Miko.Ionic.Components;
 using Miko.Components;
@@ -9,7 +10,7 @@ public class IonItemGroupTests : IonicComponentTestBase
 {
     private static readonly RenderFragment MinimalChild = builder =>
     {
-        builder.OpenElement(0, "span");
+        builder.OpenElement<SpanElement>();
         builder.CloseElement();
     };
 
@@ -41,8 +42,8 @@ public class IonItemGroupTests : IonicComponentTestBase
         var cut = Context.Render<IonItemGroup>(parameters =>
             parameters.Add(nameof(IonItemGroup.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "div");
-                builder.AddContent(1, "Section A");
+                builder.OpenElement<DivElement>();
+                builder.AddContent("Section A");
                 builder.CloseElement();
             })));
 
