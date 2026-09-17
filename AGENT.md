@@ -38,6 +38,7 @@ Razor / C# 组件
 | `src/Miko.SourceGenerators` | `Style` 属性遍历、合并和 `ComputedStyle` 应用代码生成 |
 | `src/Miko.Windowing` | Silk.NET 桌面窗口、OpenGL 上下文和桌面输入 |
 | `src/Miko.Simulator` | 设备尺寸/DPI 模拟、离屏合成和设置面板 |
+| `src/Miko.Native` | 跨平台原生能力接口（17 组，对齐 Ionic Capacitor v8）；纯抽象、零平台依赖 |
 | `src/Miko.Android` / `src/Miko.iOS` | 移动平台宿主和原生能力适配 |
 | `src/Miko.Bootstrap` / `src/Miko.Ionic` | 组件库及其样式、平台 mode 和 overlay |
 | `src/Miko.DevTools` / `src/Miko.McpServer` | DOM/Layout 检查、日志面板和 MCP 调试接口 |
@@ -117,6 +118,31 @@ dotnet run --project examples/Ionic/IonicDemo
 - 图片通过 DI 管理的 `ResourceManager` 加载，支持 `file://`、`res://`、HTTP(S) 和 data URI。多平台嵌入资源先用 `AddResourceAssembly` 注册；相对文件路径基于 `AppContext.BaseDirectory` 解析。视频由平台在 DI 中注册 `IVideoBackend`，经构造器注入；核心层只有空实现 `NullVideoBackend`（不建会话，`<video>` 仅显示背景/poster），不能依赖 FFmpeg 或原生控件。
 - 视频后端一律用**系统解码器**，不得随包分发第三方原生库：桌面 `UseSystemVideo()`（Windows→Media Foundation、Linux→GStreamer、macOS→AVFoundation）、Android `UseAndroidVideo()`（MediaExtractor+MediaCodec）、iOS `UseIosVideo()`（AVPlayer）。`Miko.Video.FFmpeg` 是可选扩展（`UseFFmpegVideo()`），带 >80MB 原生库，只在系统解码器不覆盖时使用，绝不作为平台默认。
 - 各后端只负责填充 `VideoFrameBuffer`（GPU 纹理句柄＝零拷贝，或 CPU 平面＝回退），包装逻辑统一在 `VideoFrameSourceBase`。NV12→RGB 必须走 `Nv12FrameComposer` 的 SkSL shader：SkiaSharp 3.119.1 未导出 `SKYUVAInfo` / 多平面 `FromTextures`，Skia 自身无法转 YUV。本地相对路径务必经 `VideoSourceDescriptor.ResolveForBackend()` 归一化（系统解码器按进程 CWD 解析，与 Miko 的 BaseDirectory 约定不同）。硬解器会把 Y 平面行数向上对齐（如 180→192），UV 起始偏移须由缓冲总长反推，否则画面顶部出现绿边。
+
+### 原生能力（Miko.Native）
+
+- `AddMikoNative()` 用 **TryAdd** 注册全部 17 个 `Null*` 默认实现，平台包用 **Replace**
+  （`ReplaceNative<TService, TImpl>()`）覆盖。与 `IImageLoader`/`IVideoBackend` 同一套 ISSUE-129 契约：
+  无论平台注册在 `AddMikoNative()` 之前还是之后，真实实现都胜出。注入永远不失败。
+- **不支持就抛**：平台无该能力时抛 `PlatformNotSupportedException`（走
+  `NativeServiceBase.Unsupported()`），绝不静默返回空值或假数据——后者会让调用方以为拿到了真实结果。
+  事件订阅本身不抛（订阅一个永不触发的事件是无害的），只有方法调用失败。
+- **宿主延迟注入**：`App.CreateContext()` 在**平台宿主存在之前**就构建了 DI 容器
+  （`MainActivity.OnCreate` 拿到 `MikoAppContext` 之后才建视图），因此 Android/iOS 服务不可能在
+  构造时拿到 `Activity`/`UIViewController`。宿主自身构造时调 `INativeHostContext.Attach(this)`，
+  服务在**调用时**经 `RequireHost<T>()` 读取。取不到宿主是 `InvalidOperationException`（接线 bug），
+  与 `PlatformNotSupportedException`（能力缺失）语义必须区分开。
+- **订阅必须可解除**：服务只在有订阅者时注册系统回调，最后一个订阅者移除时注销
+  （见 `DesktopNetworkService`、`AndroidMotionService`、`IosKeyboardService`）；传感器/GPS 常开是明显的
+  耗电问题。watch 型 API 返回 id 供显式解除，`INativeListener.RemoveAsync()` 幂等。
+- 文件读写三端完全相同（都是 `System.IO`），差异只在**限定目录如何映射到实际路径**。共享逻辑集中在
+  `NativeFileOperations`，平台只提供一个路径解析委托，不要抄三遍。
+- 模拟器对移动端专有能力给**可辨识的仿真数据**（`miko-simulator://` 前缀、`IsVirtual = true`）并记日志，
+  目的是让调用链在桌面上跑通而不是一调用就撞 `PlatformNotSupportedException`；桌面上本就为真的能力
+  （文件、剪贴板、网络、浏览器）直接复用桌面实现。
+- Android 的相机/相册依赖宿主 Activity 把 `OnActivityResult` 转发给
+  `MikoAndroidApp.HandleActivityResult`，不转发则调用永远等待。权限、Manifest、`Info.plist`、
+  通知渠道与 FCM/APNS 配置属于**应用侧**平台配置职责，接口层只暴露权限状态和业务参数。
 
 ### 路由、滚动与平台
 

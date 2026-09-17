@@ -67,7 +67,8 @@ export default defineConfig({
           { text: 'Layout', link: '/guide/layout' },
           { text: 'Fonts & Text', link: '/guide/fonts' },
           { text: 'Events', link: '/guide/events' },
-          { text: 'Async & Lifecycle', link: '/guide/async' }
+          { text: 'Async & Lifecycle', link: '/guide/async' },
+          { text: 'Native Capabilities', link: '/guide/native' }
         ]
       },
       {

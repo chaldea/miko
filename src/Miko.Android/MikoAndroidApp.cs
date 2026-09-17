@@ -1,3 +1,4 @@
+using Android.App;
 using Android.Content;
 using Miko.Hosting;
 
@@ -19,5 +20,31 @@ public static class MikoAndroidApp
     public static MikoSurfaceView CreateView(Context context, MikoAppContext appContext)
     {
         return new MikoSurfaceView(context, appContext);
+    }
+
+    /// <summary>
+    /// 把 Activity 的 <c>OnActivityResult</c> 转发给 Miko 的 Native 能力层。
+    /// <para>
+    /// 使用 <c>ICameraService</c>（拍照、录像、相册选择、图片编辑）的应用**必须**在宿主 Activity 里
+    /// 调用本方法，否则这些能力发起系统 Intent 后永远等不到结果：
+    /// </para>
+    /// <code>
+    /// protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
+    /// {
+    ///     if (MikoAndroidApp.HandleActivityResult(_view, requestCode, resultCode, data)) return;
+    ///     base.OnActivityResult(requestCode, resultCode, data);
+    /// }
+    /// </code>
+    /// </summary>
+    /// <returns>该结果是否由 Miko 发起并已被消费；为 <c>false</c> 时应交还给基类处理。</returns>
+    public static bool HandleActivityResult(
+        MikoSurfaceView view,
+        int requestCode,
+        Result resultCode,
+        Intent? data)
+    {
+        ArgumentNullException.ThrowIfNull(view);
+
+        return view.NativeHost.ActivityResults.Deliver(requestCode, resultCode, data);
     }
 }

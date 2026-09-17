@@ -31,7 +31,7 @@ namespace Miko.Simulator;
 /// 应用 DOM、面板 DOM 与 GPU 资源始终只由渲染线程访问。
 /// </para>
 /// </summary>
-public sealed class SimulatorHost
+public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 {
     // 设备画面四周留白与面板宽度。
     private const int PanelWidth = 300;
@@ -224,6 +224,10 @@ public sealed class SimulatorHost
         _platformInfo = _appContext.Services.GetService<IPlatformInfo>() as PlatformInfo;
         if (_platformInfo != null)
             _platformInfo.Platform = _device.Platform;
+
+        // 把宿主交给 Native 能力层。模拟器的 Native 服务通过它读取**当前**设备预设
+        // （ISimulatedDeviceSource），因此用户在面板上换设备时 IDeviceService 的返回值随之变化。
+        _appContext.Services.GetService<Miko.Native.INativeHostContext>()?.Attach(this);
     }
 
     /// <summary>启动模拟器窗口并运行渲染循环（阻塞直到窗口关闭）。</summary>

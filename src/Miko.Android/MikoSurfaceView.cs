@@ -5,9 +5,12 @@ using Android.Util;
 using Android.Views;
 using Android.Views.InputMethods;
 using Java.Lang;
+using Microsoft.Extensions.DependencyInjection;
+using Miko.Android.Native;
 using Miko.Common;
 using Miko.Events;
 using Miko.Hosting;
+using Miko.Native;
 using Miko.Platform;
 using SkiaSharp;
 using SkiaSharp.Views.Android;
@@ -36,6 +39,13 @@ public class MikoSurfaceView : SKGLSurfaceView
     private readonly global::Android.App.Activity? _activity;
     private bool? _lastLightAppearance;
 
+    /// <summary>
+    /// 本视图提供给 Native 能力层的 Android 宿主。相机、相册等能力要
+    /// <c>startActivityForResult</c>，宿主 Activity 必须把 <c>OnActivityResult</c> 转发给
+    /// <see cref="AndroidNativeHost.ActivityResults"/>（见 <see cref="MikoAndroidApp.HandleActivityResult"/>）。
+    /// </summary>
+    public AndroidNativeHost NativeHost { get; }
+
     public MikoSurfaceView(Context context, MikoAppContext appContext) : base(context)
     {
         _context = appContext;
@@ -50,6 +60,19 @@ public class MikoSurfaceView : SKGLSurfaceView
         if (_controller.ScrollBehavior is DefaultScrollBehavior)
             _controller.SetScrollBehavior(new InertialScrollBehavior(friction: 4.0f));
         _activity = context as global::Android.App.Activity;
+
+        // 把 Android 宿主交给 Native 能力层。服务容器在 MikoAppBuilder.Build() 时就已构建，
+        // 那时 Activity 还不存在，因此 Native 服务只能在这里拿到宿主（延迟注入）。
+        NativeHost = new AndroidNativeHost(context, _activity);
+
+        var hostContext = appContext.Services.GetService<INativeHostContext>();
+
+        // 旋转会销毁并重建 Activity，于是这里换上新宿主。挂在旧 relay 上的 startActivityForResult
+        // 再也等不到结果（结果会送到新 Activity），必须作废掉，否则调用方永远挂起。
+        (hostContext?.Host as AndroidNativeHost)?.ActivityResults.CancelAll();
+
+        hostContext?.Attach(NativeHost);
+
         _density = context.Resources?.DisplayMetrics?.Density ?? 1f;
         Log.Info("MikoSurfaceView",
             $"Screen density: {_density}, Physical size: {context.Resources?.DisplayMetrics?.WidthPixels}×{context.Resources?.DisplayMetrics?.HeightPixels}");

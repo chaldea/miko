@@ -1,9 +1,11 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Common;
 using Miko.Hosting;
+using Miko.Native;
 using Miko.Platform;
 using Miko.Rendering;
 using Miko.Windowing.Common;
@@ -101,6 +103,10 @@ public sealed class SilkDesktopHost
         _window = Window.Create(options);
         _window.Load += OnLoad;
         _window.Resize += OnResize;
+
+        // 把窗口交给 Native 能力层。服务容器早在 MikoAppBuilder.Build() 时就构建好了，
+        // 那时窗口还不存在，因此桌面 Native 服务只能在这里拿到宿主（延迟注入）。
+        _context.Services.GetService<INativeHostContext>()?.Attach(_window);
 
         _logger.LogInformation("Starting Miko application: {Title}", _context.Options.Title);
 

@@ -81,6 +81,10 @@ Render Engine (Dirty regions + SkiaSharp painting)
 Platform Hosts (Desktop/Android/iOS)
 ```
 
+Alongside that pipeline, `Miko.Native` provides a parallel capability axis: the app injects
+capability interfaces (camera, clipboard, filesystem, …) and the same platform hosts supply the
+implementations.
+
 ### Solution Structure
 
 The repository uses a single solution file:
@@ -115,7 +119,11 @@ The repository uses a single solution file:
    - Ionic-style Razor component library with iOS/Android mode support
    - Platform-aware theming using `IonicPlatform` and mode system
 
-8. **Miko.Razor.Compiler** (`src/Miko.Razor.Compiler/`)
+8. **Miko.Native** (`src/Miko.Native/`)
+   - Cross-platform native capability interfaces (17 areas modelled on Ionic Capacitor v8)
+   - Pure abstractions with zero platform dependencies; implementations live in the platform packages
+
+9. **Miko.Razor.Compiler** (`src/Miko.Razor.Compiler/`)
    - Custom Razor source generator (targets net9.0)
    - Compiles `.razor` components into native Miko DOM elements
    - Consumed as analyzer DLLs by Razor projects
@@ -392,6 +400,49 @@ Shared plumbing in `src/Miko/Platform/Video/`:
 NV12 gotcha: hardware decoders align the **Y plane row count** up to a macroblock boundary
 (e.g. 180→192), so the UV plane does not start at `stride * height`. Deriving the offset from the
 buffer length is what keeps a green bar off the top of the picture (U=V=0 reads as pure green).
+
+### Native Capabilities
+
+`Miko.Native` defines 17 capability interfaces (app, browser, camera, clipboard, device,
+filesystem, geolocation, haptics, keyboard, local notifications, motion, network, push
+notifications, screen reader, splash screen, status bar, toast), modelled on Ionic Capacitor v8.
+Apps depend only on the interfaces; platform packages supply the implementations.
+
+Four rules govern the layer:
+
+1. **`Null*` defaults, registered with `TryAdd`.** `AddMikoNative()` registers a `Null*`
+   implementation for every interface, so `[Inject] ICameraService` always resolves. Platform
+   packages override with `Replace` (`ReplaceNative<TService, TImpl>()`), so the real
+   implementation wins regardless of registration order — same ISSUE-129 contract as
+   `IImageLoader` / `IVideoBackend`.
+
+2. **Unsupported means throw.** A capability the platform cannot provide throws
+   `PlatformNotSupportedException` (via `NativeServiceBase.Unsupported()`), never a silently
+   empty or fabricated result. Event subscription stays harmless — only method calls fail.
+
+3. **`INativeHostContext` carries the host, lazily.** `App.CreateContext()` builds the DI
+   container *before* any platform host exists — `MainActivity.OnCreate` creates the view only
+   after it has the `MikoAppContext`. So Android/iOS services cannot receive `Activity` /
+   `UIViewController` at construction. Hosts (`MikoSurfaceView`, `MikoViewController`,
+   `SilkDesktopHost`, `SimulatorHost`) call `Attach(this)` as they are built; services read the
+   host at call time via `RequireHost<T>()`. A missing host is an `InvalidOperationException`
+   (wiring bug), distinct from `PlatformNotSupportedException` (capability absent).
+
+4. **Subscriptions must be releasable.** Services register OS callbacks only while they have
+   subscribers and unregister on the last removal (see `DesktopNetworkService`,
+   `AndroidMotionService`, `IosKeyboardService`). Watch-style APIs return an id for explicit
+   teardown; `INativeListener.RemoveAsync()` is idempotent.
+
+Filesystem read/write is identical on all three platforms (`System.IO`); only the directory
+mapping differs. That logic lives once in `NativeFileOperations` — platforms supply a path
+resolver and nothing else. The simulator answers mobile-only capabilities with recognisable
+sample data (`miko-simulator://` URIs, `IsVirtual = true`) so a call chain can be exercised on
+the desktop, and reuses the real desktop implementations where they genuinely apply.
+
+Android camera/gallery calls need the host Activity to forward `OnActivityResult` to
+`MikoAndroidApp.HandleActivityResult`; without it those calls wait forever. Permissions,
+manifests, `Info.plist` entries, and FCM/APNS configuration are app-side responsibilities — the
+interfaces expose only permission state and business parameters.
 
 ### Image Loading
 

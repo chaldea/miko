@@ -109,20 +109,28 @@ public sealed class ScrollBehaviorTests
     /// <summary>
     /// 回归：松手速度必须按时间窗估计，不能取「最后一次 move / 距上次采样的间隔」。
     /// 宿主会成批投递移动事件（Android 合并排队的 MotionEvent，高刷屏一毫秒内多点），
-    /// 按间隔算出的速度反映的是宿主怎么分批，而不是手指多快——同一段拖拽分批越密，
-    /// 甩出越远。此处两种分批走过相同的位移与耗时，甩出距离应当接近。
+    /// 按间隔算出的速度反映的是宿主怎么分批，而不是手指多快。
+    /// <para>
+    /// 同一个物理手势——8ms 起手后 40ms 内移动 60px——按两种粒度投递：宿主合并成一次 60px，
+    /// 或拆成 6 次 10px。位移与耗时都相同，甩出距离就应当相同。按「末次增量 / 上次间隔」算
+    /// 会把粗粒度那次算成 6 倍速（60px 除以被地板的间隔，而不是除以真实跨度）。
+    /// </para>
+    /// <para>
+    /// 时间由假时钟推进，不能睡真觉：满负载的 CI 机器上 <c>Sleep</c> 会超睡，越过 100ms 速度
+    /// 时间窗后所有样本都已过期、松手被判为静止，甩出距离成了 0——正是 macOS runner 上的表现。
+    /// </para>
     /// </summary>
     [Fact]
     public void InertialBehavior_ReleaseVelocityIsIndependentOfHostBatching()
     {
-        // 同样 60px / 约 48ms：一次成批投递 vs 逐帧投递。
-        var batched = MeasureFling(samples: 6, sleepMsPerSample: 0, pxPerSample: 10f, totalSleepMs: 48);
-        var paced = MeasureFling(samples: 6, sleepMsPerSample: 8, pxPerSample: 10f, totalSleepMs: 0);
+        // (推进毫秒, 位移像素)：两者都在 t=8 起手、t=48 松手，共走 60px。
+        var coarse = MeasureFling([(8, 60f)], releaseAfterMs: 40);
+        var fine = MeasureFling([(8, 10f), (8, 10f), (8, 10f), (8, 10f), (8, 10f), (8, 10f)], releaseAfterMs: 0);
 
-        batched.ShouldBeGreaterThan(0f);
-        paced.ShouldBeGreaterThan(0f);
-        // 修复前成批那组会因间隔被地板为 1 个计时嘀嗒而快出十几倍。
-        batched.ShouldBeLessThan(paced * 3f);
+        coarse.ShouldBeGreaterThan(0f);
+        fine.ShouldBeGreaterThan(0f);
+        // 同一手势、同一速度，故甩出距离一致（浮点与逐帧积分留 2% 余量）。
+        coarse.ShouldBe(fine, tolerance: fine * 0.02f);
     }
 
     /// <summary>
@@ -133,11 +141,12 @@ public sealed class ScrollBehaviorTests
     public void InertialBehavior_DoesNotFlingAfterHoldingStill()
     {
         var engine = CreateEngine();
-        var behavior = new InertialScrollBehavior();
+        var clock = new FakeClock();
+        var behavior = new InertialScrollBehavior(timeProvider: clock);
 
         behavior.PointerDown(100, 100);
         behavior.ScrollBy(engine, 100, 100, 0, 30);
-        Thread.Sleep(250);          // 手指按住不动
+        clock.Advance(250);         // 手指按住不动
         behavior.PointerUp(100, 100);
 
         behavior.HasPendingWork.ShouldBeFalse();
@@ -304,21 +313,24 @@ public sealed class ScrollBehaviorTests
     }
 
     /// <summary>
-    /// 走一段拖拽并把惯性跑完，返回松手后额外滑动的距离。
-    /// <paramref name="totalSleepMs"/> 用于在成批投递后补足同样的耗时。
+    /// 按给定的 (推进毫秒, 位移像素) 序列走一段拖拽，把惯性跑完，返回松手后额外滑动的距离。
+    /// 时间由假时钟推进，每步先推进时间再投递位移。
+    /// <paramref name="releaseAfterMs"/> 是最后一次投递到松手之间的间隔，用于让粗细两种投递
+    /// 粒度落在同一个松手时刻。
     /// </summary>
-    private static float MeasureFling(int samples, int sleepMsPerSample, float pxPerSample, int totalSleepMs)
+    private static float MeasureFling((int advanceMs, float deltaY)[] moves, int releaseAfterMs)
     {
         var engine = CreateEngine(contentHeight: 200000);
-        var behavior = new InertialScrollBehavior();
+        var clock = new FakeClock();
+        var behavior = new InertialScrollBehavior(timeProvider: clock);
 
         behavior.PointerDown(100, 100);
-        for (int i = 0; i < samples; i++)
+        foreach (var (advanceMs, deltaY) in moves)
         {
-            if (sleepMsPerSample > 0) Thread.Sleep(sleepMsPerSample);
-            behavior.ScrollBy(engine, 100, 100, 0, pxPerSample);
+            clock.Advance(advanceMs);
+            behavior.ScrollBy(engine, 100, 100, 0, deltaY);
         }
-        if (totalSleepMs > 0) Thread.Sleep(totalSleepMs);
+        clock.Advance(releaseAfterMs);
         behavior.PointerUp(100, 100);
 
         var start = engine.GetCurrentLayout()!.ScrollTop;
@@ -380,5 +392,18 @@ public sealed class ScrollBehaviorTests
     private sealed class EmptyServiceProvider : IServiceProvider
     {
         public object? GetService(Type serviceType) => null;
+    }
+
+    /// <summary>
+    /// 只推进 <see cref="TimeProvider.GetTimestamp"/> 的手动时钟。速度估计断言必须用它而不是
+    /// <see cref="Thread.Sleep"/>：睡眠只保证「至少」这么久，CI 上超睡会把样本推出速度时间窗，
+    /// 让「甩出距离」这类断言随宿主负载红绿摇摆（1 嘀嗒 = 1μs，与真实频率无关）。
+    /// </summary>
+    private sealed class FakeClock : TimeProvider
+    {
+        private long _timestamp;
+        public override long TimestampFrequency => 1_000_000;
+        public override long GetTimestamp() => _timestamp;
+        public void Advance(int milliseconds) => _timestamp += milliseconds * 1_000L;
     }
 }

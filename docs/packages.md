@@ -10,6 +10,7 @@ tools and templates.
 | [`Miko.Bootstrap`](https://www.nuget.org/packages/Miko.Bootstrap) | Bootstrap-style Razor component library and styles. |
 | [`Miko.Ionic`](https://www.nuget.org/packages/Miko.Ionic) | Ionic-style Razor component library (tabs, side menu, icons). |
 | [`Miko.DevTools`](https://www.nuget.org/packages/Miko.DevTools) | Runtime debugging tools for the DOM and layout tree. |
+| [`Miko.Native`](https://www.nuget.org/packages/Miko.Native) | Native capability interfaces (camera, clipboard, filesystem, notifications, …). |
 | [`Miko.Razor.Compiler`](https://www.nuget.org/packages/Miko.Razor.Compiler) | Source generator that compiles `.razor` components and routes. |
 | [`Miko.Templates`](https://www.nuget.org/packages/Miko.Templates) | `dotnet new` templates for scaffolding Miko apps. |
 
