@@ -943,9 +943,15 @@ public class RenderEngine
                 break;
         }
 
-        var renderBitmap = (drawWidth != imgWidth || drawHeight != imgHeight)
-            ? bgImage.RenderAtSize((int)drawWidth, (int)drawHeight) ?? bitmap
-            : bitmap;
+        // 矢量背景（SVG）按<b>设备像素</b>尺寸栅格化（绘制尺寸 × 画布设备缩放），而不是按
+        // 逻辑尺寸。否则在高密度设备（Android/iOS 真机）与模拟器上会经历
+        // 「1× 栅格化 → 画布放大」的二次重采样，图标边缘明显发虚（ISSUE-137）。
+        // 绘制矩形仍用逻辑尺寸，画布变换负责把过采样位图 1:1 落到设备像素上。
+        // 位图源的 RenderAtSize 忽略尺寸直接返回原图（固定分辨率，放大无从改善）。
+        float rasterScale = QuantizeRasterScale(_painter!.DeviceScale);
+        var renderBitmap = bgImage.RenderAtSize(
+            (int)MathF.Ceiling(drawWidth * rasterScale),
+            (int)MathF.Ceiling(drawHeight * rasterScale)) ?? bitmap;
 
         // Template icons (Ionicons SVG masks) are tinted with the element's color — CSS fill: currentColor.
         Color? tint = bgImage.IsTemplate ? style.Color : (Color?)null;
@@ -971,6 +977,29 @@ public class RenderEngine
         _painter.Restore();
     }
 
+    /// <summary>
+    /// 把设备缩放量化到 0.5 的台阶（向上取整），作为矢量背景的栅格化倍率。
+    ///
+    /// <para>直接用连续的 <see cref="Painter.DeviceScale"/> 会让动画中的 CSS
+    /// <c>transform: scale()</c> 每帧都产生一个新的目标尺寸，从而每帧重新栅格化 SVG 并顶掉
+    /// <see cref="BackgroundImage"/> 的尺寸缓存——清晰度换来了每帧的栅格化开销。量化到台阶后，
+    /// 整段缩放动画只会命中少数几个尺寸，缓存得以复用。</para>
+    ///
+    /// <para>向上取整（而非四舍五入）保证栅格分辨率永不低于设备像素——宁可轻微过采样
+    /// （Skia 缩小采样，无损）也不欠采样（放大插值，即本 issue 的模糊）。</para>
+    ///
+    /// <para>上限 4 对应目前最高的屏幕密度档（xxxhdpi）。超过上限的只可能是元素自身被放大
+    /// 很多倍的场景，此时按上限栅格化，避免为一个瞬时的大倍率分配超大位图。</para>
+    /// </summary>
+    internal static float QuantizeRasterScale(float deviceScale)
+    {
+        const float step = 0.5f;
+        const float maxScale = 4f;
+
+        if (!float.IsFinite(deviceScale) || deviceScale <= 1f) return 1f;
+        return MathF.Min(MathF.Ceiling(deviceScale / step) * step, maxScale);
+    }
+
     private void TileImage(SKBitmap bitmap, RectF area, float startX, float startY, float tileW, float tileH, bool repeatX, bool repeatY, Color? tint = null)
     {
         float originX = startX;
@@ -991,7 +1020,8 @@ public class RenderEngine
         {
             for (float x = originX; x < endX; x += tileW)
             {
-                _painter!.DrawImage(bitmap, new RectF(x, y, tileW, tileH), tint);
+                // 平铺不吸附像素：逐块吸附原点却保持小数块尺寸会在块之间撕出亚像素白缝。
+                _painter!.DrawImage(bitmap, new RectF(x, y, tileW, tileH), tint, snapToPixels: false);
             }
         }
     }

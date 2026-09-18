@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <!-- 纯黑圆形在白背景上，边缘是唯一的梯度过渡带。
+       96×96 viewBox 便于在整数倍缩放下精确对齐像素。 -->
+  <circle cx="48" cy="48" r="40" fill="black"/>
+</svg>

@@ -1614,8 +1614,13 @@ public class MikoEngine
             if (bmp != null)
             {
                 img.Bitmap = bmp;
-                img.IntrinsicWidth = bmp.Width;
-                img.IntrinsicHeight = bmp.Height;
+                // 内禀尺寸默认取位图像素尺寸；矢量源（SVG）会被加载器过采样栅格化以在高密度屏上
+                // 保持清晰（ISSUE-137），其位图尺寸不再等于 CSS 内禀尺寸，故优先问加载器要
+                // viewBox 逻辑尺寸——否则一张 24×24 的 SVG 会按 528×528 参与布局。
+                var logical = (ImageLoader as Platform.Resources.IImageIntrinsicSizeProvider)
+                    ?.GetIntrinsicSize(img.Source);
+                img.IntrinsicWidth = logical?.Width ?? bmp.Width;
+                img.IntrinsicHeight = logical?.Height ?? bmp.Height;
                 // 内禀尺寸是布局输入（auto 尺寸的 img 按真实尺寸布局）：递增版本号触发重排。
                 _mutations.Bump();
             }
