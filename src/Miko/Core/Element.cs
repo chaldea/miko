@@ -443,6 +443,22 @@ public abstract class Element
     public abstract string TagName { get; }
 
     /// <summary>
+    /// 按名称取「HTML 属性」的值，供 CSS 属性选择器（<c>[type="checkbox"]</c>）匹配。
+    /// 名称比较不区分大小写。返回 <c>false</c> 表示该元素没有这个属性。
+    ///
+    /// <para>Miko 没有属性字典，HTML 属性就是元素的 CLR 属性，所以这里原本用
+    /// <c>GetType().GetProperty(name, IgnoreCase)</c> 反射。裁剪器看不见那次查找（IL2075），
+    /// AOT 下所有属性选择器会静默失配——规则看似存在却永不命中。改由
+    /// <c>Miko.SourceGenerators.ElementAttributeAccessorGenerator</c> 生成的
+    /// <see cref="ElementAttributeAccessor"/> 按具体类型分派，反射彻底消失（ISSUE-140）。</para>
+    ///
+    /// <para><c>virtual</c> 而非直接调用生成表：<c>Miko</c> 之外的程序集（组件库、应用）也能
+    /// 定义自己的 <see cref="Element"/> 子类，重写本方法即可让属性选择器认得它们的属性。</para>
+    /// </summary>
+    public virtual bool TryGetAttributeValue(string name, out object? value)
+        => ElementAttributeAccessor.TryGetValue(this, name, out value);
+
+    /// <summary>
     /// 添加子元素
     /// </summary>
     public void AddChild(Element child)

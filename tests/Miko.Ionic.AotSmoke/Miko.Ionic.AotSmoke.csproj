@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    ISSUE-140 的回归闸门。
+
+    组件参数（[Inject] / [CascadingParameter]）靠运行时反射发现，裁剪器看不见这层查找——
+    普通单元测试永远跑在<b>未裁剪</b>的程序集上，因此对这类 bug 完全无感：ISSUE-140 报告的
+    三个症状在 1900+ 条绿色用例下照样发生。只有把应用真正 AOT 发布、在<b>裁剪后</b>的运行时
+    里执行，断言才有意义。
+
+    所以这是一个独立的可执行冒烟测试，而不是 xUnit 项目（退出码 0 = 全部通过，
+    非 0 = 有断言失败，详情打印到 stdout）：
+
+      dotnet publish tests/Miko.Ionic.AotSmoke -c Release -r win-x64
+      ./tests/Miko.Ionic.AotSmoke/bin/Release/net10.0/win-x64/publish/Miko.Ionic.AotSmoke.exe
+
+    Windows 上需要 MSVC 原生链接器；若报 vswhere 找不到，把
+    "C:\Program Files (x86)\Microsoft Visual Studio\Installer" 加进 PATH 即可。
+
+    刻意不加入 miko.slnx，也不接入 CI：AOT 发布很慢、且要求 runner 具备目标平台的原生链接器
+    （Windows 要 MSVC），跨平台落地成本与不稳定性都不该压在常规 `dotnet build` / `dotnet test`
+    和 PR 流程上（与 Miko.Video.FFmpeg 同样的处理）。
+
+    因此这是一个<b>手动</b>闸门：改动组件参数发现、RenderTreeBuilder 的组件创建入口、
+    或任何 DynamicallyAccessedMembers 标注链之后，请在本机跑一遍上面的命令再提交。
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Miko.Ionic.AotSmoke</RootNamespace>
+    <RazorLangVersion>Latest</RazorLangVersion>
+    <PublishAot>true</PublishAot>
+    <!-- 逐调用点报告，便于定位是哪个入口漏了 DynamicallyAccessedMembers。 -->
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Miko\Miko.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
+    <!-- 仅用于构建顺序：保证下面 _OverrideRazorSourceGenerator 用到的分析器 DLL 已存在。 -->
+    <ProjectReference Include="..\..\src\Miko.Razor.Compiler\Miko.Razor.Compiler.csproj"
+      ReferenceOutputAssembly="false"
+      SkipGetTargetFrameworkProperties="true"
+      Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\**\*" />
+  </ItemGroup>
+
+  <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
+    <PropertyGroup>
+      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\src\Miko.Razor.Compiler\bin\$(Configuration)\$(TargetFramework)\</_CustomRazorGeneratorDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <Analyzer Remove="@(_RazorAnalyzer)" />
+      <_RazorAnalyzer Remove="@(_RazorAnalyzer)" />
+    </ItemGroup>
+    <ItemGroup>
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" />
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.AspNetCore.Razor.Utilities.Shared.dll" />
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.Extensions.ObjectPool.dll" />
+      <Analyzer Include="@(_RazorAnalyzer)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

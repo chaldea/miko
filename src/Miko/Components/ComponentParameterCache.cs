@@ -15,11 +15,15 @@ namespace Miko.Components;
 /// Attribute lookup is by far the expensive part — it materializes attribute instances — and the
 /// answer is a property of the type, not of the instance, so it is computed once per type.</para>
 ///
-/// <para>Property writes go through a compiled <see cref="Action{T1, T2}"/> rather than
+/// <para>Property writes go through a bound <see cref="Action{T1, T2}"/> rather than
 /// <see cref="PropertyInfo.SetValue"/>, removing the per-call member lookup and the argument-array
 /// allocation. The value stays typed as <see cref="object"/> because both sources (a DI container
 /// and the cascading-value stack) hand back <see cref="object"/> already — so this introduces no
 /// boxing that was not already there.</para>
+///
+/// <para>Callers must flow <see cref="ComponentTypeMembers.Parameters"/> onto the
+/// <see cref="Type"/> they pass in, or the trimmer removes the very properties this looks for
+/// (ISSUE-140).</para>
 /// </summary>
 internal static class ComponentParameterCache
 {
@@ -50,15 +54,15 @@ internal static class ComponentParameterCache
     private static Dictionary<Type, Descriptor> s_descriptors = new();
 
     internal static ParameterSetter[] GetCascadingParameters(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type type)
+        [DynamicallyAccessedMembers(ComponentTypeMembers.Parameters)] Type type)
         => GetDescriptor(type).Cascading;
 
     internal static ParameterSetter[] GetInjectedProperties(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type type)
+        [DynamicallyAccessedMembers(ComponentTypeMembers.Parameters)] Type type)
         => GetDescriptor(type).Injected;
 
     private static Descriptor GetDescriptor(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type type)
+        [DynamicallyAccessedMembers(ComponentTypeMembers.Parameters)] Type type)
     {
         // 读路径无锁：s_descriptors 只会被整体替换，不会就地修改。
         if (s_descriptors.TryGetValue(type, out var cached))
@@ -80,7 +84,7 @@ internal static class ComponentParameterCache
     [UnconditionalSuppressMessage("Trimming", "IL2070",
         Justification = "Cascading/inject properties are declared on the component type and preserved with it.")]
     private static Descriptor Build(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type type)
+        [DynamicallyAccessedMembers(ComponentTypeMembers.Parameters)] Type type)
     {
         List<ParameterSetter>? cascading = null;
         List<ParameterSetter>? injected = null;
@@ -113,6 +117,17 @@ internal static class ComponentParameterCache
     /// <see cref="PropertyInfo.SetValue"/> when a delegate cannot be created — e.g. an
     /// init-only or ref-returning property, where the fallback preserves the previous behaviour
     /// rather than failing the render.
+    ///
+    /// <para>The fast path binds the setter <b>directly</b> as <c>Action&lt;object, object?&gt;</c>.
+    /// That only type-checks when both the declaring type and the property type are reference
+    /// types, because the runtime allows delegate binding to widen a reference parameter to
+    /// <see cref="object"/> but never to box a value type for one — so value-typed properties take
+    /// the reflection path.</para>
+    ///
+    /// <para>Previously this went through <c>MakeGenericMethod</c> to build a typed
+    /// <c>Action&lt;TDeclaring, TValue&gt;</c>. That is unsupported under Native AOT (IL3050): it
+    /// threw for <em>every</em> property, and the <c>catch</c> silently swallowed it — so AOT paid
+    /// a thrown exception per property and then used the slow path anyway (ISSUE-140).</para>
     /// </summary>
     private static Action<object, object?> CreateSetter(PropertyInfo property)
     {
@@ -122,32 +137,21 @@ internal static class ComponentParameterCache
             return property.SetValue;
         }
 
+        // 值类型的声明类型/属性类型无法直接绑定到 object 形参（委托绑定只放宽引用类型，不装箱）。
+        if (property.DeclaringType.IsValueType || property.PropertyType.IsValueType)
+        {
+            return property.SetValue;
+        }
+
         try
         {
-            // (instance, value) => ((TDeclaring)instance).Prop = (TValue)value
-            var open = typeof(ComponentParameterCache)
-                .GetMethod(nameof(CreateTypedSetter), BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericMethod(property.DeclaringType, property.PropertyType);
-
-            return (Action<object, object?>)open.Invoke(null, [setMethod])!;
+            return setMethod.CreateDelegate<Action<object, object?>>();
         }
-        catch (Exception)
+        catch (ArgumentException)
         {
-            // 任何构造失败（受限类型、AOT 裁剪掉了泛型实例化等）都退回反射写入：
+            // 签名意外不兼容（如 ref 返回、受限类型）时退回反射写入：
             // 这只是性能优化，不能因此改变可用性。
             return property.SetValue;
         }
-    }
-
-    [UnconditionalSuppressMessage("AOT", "IL3050",
-        Justification = "Falls back to PropertyInfo.SetValue when the generic instantiation is unavailable.")]
-    [UnconditionalSuppressMessage("Trimming", "IL2060",
-        Justification = "Falls back to PropertyInfo.SetValue when the generic instantiation is unavailable.")]
-    private static Action<object, object?> CreateTypedSetter<TDeclaring, TValue>(MethodInfo setMethod)
-    {
-        var typed = (Action<TDeclaring, TValue>)Delegate.CreateDelegate(
-            typeof(Action<TDeclaring, TValue>), setMethod);
-
-        return (instance, value) => typed((TDeclaring)instance, (TValue)value!);
     }
 }

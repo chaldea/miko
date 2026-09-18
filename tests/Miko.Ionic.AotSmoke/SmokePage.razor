@@ -1,0 +1,29 @@
+@page "/"
+@namespace Miko.Ionic.AotSmoke
+@using Miko.Ionic
+@using Miko.Ionic.Components
+@*
+    ISSUE-140 的被测页面。刻意用真实的 Ionic 组件嵌套结构，而不是手搭简化树：
+    这几处正是 issue 报告的症状的最小复现。
+
+    外层的 IonApp 提供覆盖层宿主（顶层 pass），控制器创建的 modal 才有地方渲染。
+*@
+<IonApp>
+
+@* 症状 1：res:// 图标源要走 IonIcon 的 [Inject] IResourceAssemblyProvider。 *@
+<IonIcon Class="smoke-icon" Src="res://Miko.Ionic.AotSmoke.Assets.smoke-icon.svg" />
+
+@* 症状 2：Accordion 的展开态来自 group 级联下来的 IonAccordionGroupContext。 *@
+<IonAccordionGroup Value="first">
+    <IonAccordion Value="first">
+        <Header><IonLabel>Header</IonLabel></Header>
+        <Content><IonLabel>Content</IonLabel></Content>
+    </IonAccordion>
+</IonAccordionGroup>
+
+@* 症状 3：IonItem 向后代级联 IonItemContext，IonCheckbox 据此加 in-item 样式类。 *@
+<IonItem>
+    <IonCheckbox Class="smoke-checkbox">Checkbox</IonCheckbox>
+</IonItem>
+
+</IonApp>

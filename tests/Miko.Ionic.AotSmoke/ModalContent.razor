@@ -1,0 +1,17 @@
+@namespace Miko.Ionic.AotSmoke
+@using Miko.Ionic.Components
+@*
+    IonModalController.CreateAsync<TComponent> 动态呈现的内容组件。
+
+    这里同时覆盖动态路径上的两类成员：
+      - [Parameter] Text 由 ComponentParameters 按<b>名字</b>反射写入（AddComponentParameter）；
+      - [CascadingParameter] RenderContext 由 IonPortal 级联下来。
+    裁剪后若组件类型的属性没保住，两者都会静默保持默认值（ISSUE-140 代码审查 P1）。
+*@
+<div class="modal-content" data-text="@Text">
+    @Text
+</div>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+}

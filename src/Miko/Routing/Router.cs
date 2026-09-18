@@ -10,7 +10,7 @@ public class Router
 
     public IReadOnlyList<RouteData> Routes => _routes;
 
-    public void MapRoute<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] TComponent>(string template) where TComponent : class
+    public void MapRoute<[DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)] TComponent>(string template) where TComponent : class
     {
         _routes.Add(new RouteData
         {
@@ -19,7 +19,7 @@ public class Router
         });
     }
 
-    public void MapRoute(string template, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type componentType)
+    public void MapRoute(string template, [DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)] Type componentType)
     {
         _routes.Add(new RouteData
         {
@@ -48,7 +48,7 @@ public class Router
         }
     }
 
-    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
+    [return: DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)]
     public Type? Resolve(string path)
     {
         var route = _routes.FirstOrDefault(r =>

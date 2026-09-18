@@ -89,14 +89,14 @@ public class MikoAppBuilder
         return this;
     }
 
-    public MikoAppBuilder UseDefaultLayout<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] TLayout>() where TLayout : class
+    public MikoAppBuilder UseDefaultLayout<[DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)] TLayout>() where TLayout : class
     {
         Services.Configure<MikoAppOptions>(o => o.DefaultLayout = typeof(TLayout));
         return this;
     }
 
     public MikoAppBuilder UseDefaultLayout(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type layoutType)
+        [DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)] Type layoutType)
     {
         Services.Configure<MikoAppOptions>(o => o.DefaultLayout = layoutType);
         return this;

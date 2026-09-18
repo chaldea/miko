@@ -3,7 +3,6 @@
 
 using Miko.Common;
 using Miko.Styling;
-using System.Reflection;
 
 namespace Miko.Ionic.Styles
 {
@@ -17,36 +16,19 @@ namespace Miko.Ionic.Styles
         {
             var styles = new CssObject();
 
-            // Merge all style modules
-            MergeStyles(styles, NormalizeStyle.GenStyle());
-            MergeStyles(styles, StructureStyle.GenStyle());
-            MergeStyles(styles, TypographyStyle.GenStyle());
-            MergeStyles(styles, DisplayStyle.GenStyle());
-            MergeStyles(styles, FlexUtilsStyle.GenStyle());
-            MergeStyles(styles, TextStyle.GenStyle());
-            MergeStyles(styles, PaddingMarginStyle.GenStyle());
-            MergeStyles(styles, FloatStyle.GenStyle());
+            // Merge all style modules. MergeChildrenFrom replaces a reflective read of
+            // CssObject's internal Children dictionary — cross-assembly non-public reflection
+            // that silently yields nothing once trimmed, dropping every global style (ISSUE-140).
+            styles.MergeChildrenFrom(NormalizeStyle.GenStyle());
+            styles.MergeChildrenFrom(StructureStyle.GenStyle());
+            styles.MergeChildrenFrom(TypographyStyle.GenStyle());
+            styles.MergeChildrenFrom(DisplayStyle.GenStyle());
+            styles.MergeChildrenFrom(FlexUtilsStyle.GenStyle());
+            styles.MergeChildrenFrom(TextStyle.GenStyle());
+            styles.MergeChildrenFrom(PaddingMarginStyle.GenStyle());
+            styles.MergeChildrenFrom(FloatStyle.GenStyle());
 
             return styles;
-        }
-
-        private static void MergeStyles(CssObject target, CssObject source)
-        {
-            // Access the internal Children property via reflection
-            var childrenProperty = typeof(CssObject).GetProperty("Children",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            if (childrenProperty != null)
-            {
-                var sourceChildren = childrenProperty.GetValue(source) as IReadOnlyDictionary<string, CssObject>;
-                if (sourceChildren != null)
-                {
-                    foreach (var kvp in sourceChildren)
-                    {
-                        target[kvp.Key] = kvp.Value;
-                    }
-                }
-            }
         }
     }
 }

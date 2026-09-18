@@ -144,6 +144,53 @@ public class ComponentParameterCacheTests
     }
 
     // -----------------------------------------------------------------
+    // 继承而来的参数（ISSUE-140）
+    // -----------------------------------------------------------------
+
+    [Fact]
+    public void CascadingParameter_InheritedProtectedProperty_IsResolved()
+    {
+        // Ionic 的 IonicComponentBase 把 CascadingTheme 等注入点声明为 protected，由几十个
+        // 组件继承。裁剪器的 NonPublicProperties 只保留「该类型自己声明的」非公开属性，
+        // 不上溯基类——所以入口标注必须带 NonPublicPropertiesWithInherited，否则 AOT 下
+        // 这些继承来的槽位全被裁掉，级联上下文永远是 null（ISSUE-140 的三号症状）。
+        var host = new InheritedCascadingHost();
+        host.Build();
+
+        host.Child.ShouldNotBeNull();
+        host.Child!.ExposedFromBase.ShouldBe("inherited-ok");
+    }
+
+    [Fact]
+    public void Inject_InheritedProtectedProperty_IsResolved()
+    {
+        var services = new ServiceCollection()
+            .AddSingleton(new Greeter("from-base"))
+            .BuildServiceProvider();
+
+        using (ComponentServiceScope.Push(services))
+        {
+            var component = new DerivedInjectedComponent();
+            component.Build();
+
+            component.ExposedGreeter.ShouldNotBeNull();
+            component.ExposedGreeter!.Message.ShouldBe("from-base");
+        }
+    }
+
+    [Fact]
+    public void CascadingParameter_ValueTypeProperty_IsResolved()
+    {
+        // CreateSetter 的快路径只能绑定引用类型（委托绑定不会为 object 形参装箱），
+        // 值类型属性走 PropertyInfo.SetValue 兜底——这条路径同样必须写入成功。
+        var host = new ValueTypeCascadingHost();
+        host.Build();
+
+        host.Child.ShouldNotBeNull();
+        host.Child!.Count.ShouldBe(42);
+    }
+
+    // -----------------------------------------------------------------
     // Fixtures
     // -----------------------------------------------------------------
 
@@ -274,6 +321,75 @@ public class ComponentParameterCacheTests
     private sealed class InjectedComponent : ComponentBase
     {
         [Inject] public Greeter? Greeter { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement<SpanElement>();
+            builder.CloseElement();
+        }
+    }
+
+    // 模拟 Miko.Ionic.Components.IonicComponentBase：参数槽声明在基类上且非公开。
+    private abstract class ParameterizedBase : ComponentBase
+    {
+        [CascadingParameter] protected string? ThemeFromBase { get; set; }
+
+        [Inject] protected Greeter? GreeterFromBase { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement<SpanElement>();
+            builder.CloseElement();
+        }
+    }
+
+    private sealed class InheritedCascadingChild : ParameterizedBase
+    {
+        public string? ExposedFromBase => ThemeFromBase;
+    }
+
+    private sealed class DerivedInjectedComponent : ParameterizedBase
+    {
+        public Greeter? ExposedGreeter => GreeterFromBase;
+    }
+
+    private sealed class InheritedCascadingHost : ComponentBase
+    {
+        public InheritedCascadingChild? Child { get; private set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var cascade = builder.OpenComponent<CascadingValue<string>>();
+            cascade.Value = "inherited-ok";
+            cascade.ChildContent = inner =>
+            {
+                Child = inner.OpenComponent<InheritedCascadingChild>();
+                inner.CloseComponent();
+            };
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValueTypeCascadingHost : ComponentBase
+    {
+        public ValueTypeChild? Child { get; private set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var cascade = builder.OpenComponent<CascadingValue<int>>();
+            cascade.Value = 42;
+            cascade.ChildContent = inner =>
+            {
+                Child = inner.OpenComponent<ValueTypeChild>();
+                inner.CloseComponent();
+            };
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ValueTypeChild : ComponentBase
+    {
+        [CascadingParameter] public int Count { get; set; }
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {

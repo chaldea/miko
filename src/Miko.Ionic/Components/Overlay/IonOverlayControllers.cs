@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Miko.Components;
 using Miko.Events;
 
@@ -5,7 +6,27 @@ namespace Miko.Ionic.Components;
 
 public sealed class IonModalOptions
 {
+    /// <summary>
+    /// 以动态类型呈现的 modal 内容组件。它的构造函数、参数属性与注入/级联属性都要在裁剪后存活
+    /// ——<see cref="ComponentParameters"/> 是按<b>名字</b>反射写入的，裁剪器看不见那次查找
+    /// （ISSUE-140）。直接赋值本属性时请确保来源类型同样带有该标注；
+    /// 走 <see cref="IonModalController.CreateAsync{TComponent}"/> 则由泛型参数自动满足。
+    /// </summary>
+    [DynamicallyAccessedMembers(ModalComponentMembers)]
     public Type? Component { get; set; }
+
+    /// <summary>
+    /// <see cref="Component"/> 所需保留的成员。<c>PublicProperties</c> 覆盖
+    /// <c>RenderTreeBuilder.AddComponentParameter</c> 按名字写入的参数属性，
+    /// 其余与 <c>Miko.Components.ComponentTypeMembers.Activation</c> 一致（该常量是 internal，
+    /// 故在此复述而非引用）。
+    /// </summary>
+    internal const DynamicallyAccessedMemberTypes ModalComponentMembers =
+        DynamicallyAccessedMemberTypes.PublicConstructors
+        | DynamicallyAccessedMemberTypes.PublicProperties
+        | DynamicallyAccessedMemberTypes.NonPublicProperties
+        | DynamicallyAccessedMemberTypes.NonPublicPropertiesWithInherited;
+
     public IReadOnlyDictionary<string, object?> ComponentParameters { get; set; } =
         new Dictionary<string, object?>();
     public RenderFragment? Content { get; set; }
@@ -95,7 +116,15 @@ public sealed class IonModalController : IonOverlayControllerBase
             builder.CloseComponent();
         }));
 
-    public Task<IonOverlayReference> CreateAsync<TComponent>(
+    /// <summary>
+    /// 以强类型的内容组件创建 modal。<typeparamref name="TComponent"/> 的标注把「成员必须保留」
+    /// 的需求从这个调用点传到 <see cref="IonModalOptions.Component"/>，再传到
+    /// <c>RenderTreeBuilder.OpenComponent(int, Type)</c> 与按名字反射写参数的
+    /// <c>AddComponentParameter</c>——链条上任一环缺标注，裁剪后传入的参数就会静默保持默认值
+    /// （ISSUE-140）。
+    /// </summary>
+    public Task<IonOverlayReference> CreateAsync<
+        [DynamicallyAccessedMembers(IonModalOptions.ModalComponentMembers)] TComponent>(
         IReadOnlyDictionary<string, object?>? componentParameters = null,
         Action<IonModalOptions>? configure = null)
         where TComponent : ComponentBase, new()
