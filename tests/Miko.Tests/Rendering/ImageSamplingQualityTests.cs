@@ -57,11 +57,14 @@ public class ImageSamplingQualityTests
     // ---- 1. 轻度缩小不得走 mipmap 的二次重采样 -----------------------------
 
     [Theory]
-    // 缩放比 ≥ 1/2（cubic 区间）时，一次到位重采样应当不逊于直接按目标尺寸栅格化。
-    // 只在源分辨率 ≥ 目标的情形下比较：源比目标小时（放大）位图本身就没有那么多细节，
-    // 拿它跟"按目标尺寸新栅格化的矢量图"比不是采样器的锅，那个上限任何采样器都达不到。
-    [InlineData(96, 48)]   // 1/2，阈值边界（1:1 另见 DrawImage_UnitScale_*）
-    public void DrawImage_ModerateScale_ShouldResampleInOneStep(int srcSize, int dstSize)
+    // cubic 区间（比例 ≥ 1/2）内的若干比例。刻意<b>避开</b>正好 1/2、1/4 这类整数次幂：
+    // 那里目标尺寸恰好等于某一级 mip，mipmap 不做第二次重采样，两种采样器输出一致，
+    // 测不出 cubic 分支的存在（这正是本测试最初漏掉回归的原因）。
+    [InlineData(72, 48)]   // 1/1.50
+    [InlineData(64, 48)]   // 1/1.33
+    [InlineData(60, 48)]   // 1/1.25
+    [InlineData(96, 64)]   // 1/1.50
+    public void DrawImage_ModerateDownscale_ShouldBeSharperThanMipmap(int srcSize, int dstSize)
     {
         // 曾经一律用 SKMipmapMode.Linear —— 先把源图逐级减半到最近的 mip 层，再从该层线性
         // 插值到目标尺寸，又是一次二次重采样（方向与 ISSUE-137 相反，发生在缩小侧）。
@@ -70,10 +73,13 @@ public class ImageSamplingQualityTests
         var source = bg.RenderAtSize(srcSize, srcSize)!;
 
         using var actual = DrawOnce(source, new RectF(0, 0, dstSize, dstSize), dstSize);
-        // 参考：直接从矢量按目标尺寸栅格化（无中间位图）的边缘锐度。
-        using var reference = RasterizeDirect(bg, dstSize);
 
-        Grad(actual).ShouldBeGreaterThan(Grad(reference) * 0.9);
+        // 基准：显式走旧的 mipmap 路径画同一张图。实测 CatmullRom 在整个 cubic 区间
+        // 比 mipmap 锐 12–20%，取 5% 作为闸门以吸收不同比例间的波动。
+        using var mipmapBaseline = DrawWithSampling(
+            source, dstSize, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
+
+        Grad(actual).ShouldBeGreaterThan(Grad(mipmapBaseline) * 1.05);
     }
 
     [Fact]
@@ -156,23 +162,29 @@ public class ImageSamplingQualityTests
 
     // ---- 3. 采样相位：小数位置不得让整幅图变糊 -----------------------------
 
-    [Fact]
-    public void DrawImage_FractionalPosition_ShouldNotBlur()
+    [Theory]
+    // 必须用<b>会插值</b>的比例。1:1 走 Nearest（挑最近源像素，不插值），相位天生对它无影响，
+    // 拿它测吸附是空测试——本测试最初就漏在这里。96→24 走 mipmap 段，相位影响最大
+    // （关掉吸附时 0.5px 偏移让梯度掉 28%）；32→24 走 cubic 段。
+    [InlineData(96, 24)]
+    [InlineData(32, 24)]
+    public void DrawImage_FractionalPosition_ShouldNotBlur(int srcSize, int dstSize)
     {
         // 图标盒尺寸来自 font-size（.ion-icon 是 width: 1em），1.125rem = 18px 这类值经
         // flex 居中很容易落在 x.5 上，因此小数原点不是边缘情况。位图落在半像素位置时每个
         // 源像素都要在两个目标像素间插值，整幅图均匀变糊。
         var bg = LoadSvg(CircleSvg);
-        var source = bg.RenderAtSize(24, 24)!;
+        var source = bg.RenderAtSize(srcSize, srcSize)!;
 
         var measured = new List<double>();
         foreach (float offset in new[] { 0f, 0.25f, 0.5f, 0.75f })
         {
-            using var bmp = DrawOnce(source, new RectF(10 + offset, 10 + offset, 24, 24), 64);
+            using var bmp = DrawOnce(
+                source, new RectF(10 + offset, 10 + offset, dstSize, dstSize), 64);
             measured.Add(Grad(bmp));
         }
 
-        // 吸附后各相位的锐度应当一致（此前 0.5px 偏移会让梯度掉约 40%）。
+        // 吸附后各相位的锐度应当一致。
         double min = measured.Min(), max = measured.Max();
         max.ShouldBeGreaterThan(0);
         ((max - min) / max).ShouldBeLessThan(0.02);
@@ -183,8 +195,10 @@ public class ImageSamplingQualityTests
     {
         // 吸附必须在设备空间做：3× 画布上逻辑 1/6 px 恰好是 0.5 设备像素，
         // 按逻辑空间取整会把它当成"接近 0"而放过，模糊照旧。
+        // 源取 216 而非 72：24 逻辑像素在 3× 下是 72 设备像素，源用 72 会得到比例 1.0
+        // 走 Nearest（不插值，相位无影响），那样这个测试就测不到吸附了。
         var bg = LoadSvg(CircleSvg);
-        var source = bg.RenderAtSize(72, 72)!;
+        var source = bg.RenderAtSize(216, 216)!;
 
         var measured = new List<double>();
         foreach (float offset in new[] { 0f, 1f / 6f, 0.5f })
@@ -282,6 +296,20 @@ public class ImageSamplingQualityTests
         {
             canvas.Clear(SKColors.White);
             canvas.DrawBitmap(bg.RenderAtSize(size, size)!, 0, 0);
+        }
+        return bitmap;
+    }
+
+    /// <summary>用指定采样方式把源图画到 <paramref name="dstSize"/> 见方的画布上（对照基准用）。</summary>
+    private static SKBitmap DrawWithSampling(SKBitmap source, int dstSize, SKSamplingOptions sampling)
+    {
+        var bitmap = new SKBitmap(dstSize, dstSize);
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.White);
+            using var image = SKImage.FromBitmap(source);
+            using var paint = new SKPaint { IsAntialias = true };
+            canvas.DrawImage(image, new SKRect(0, 0, dstSize, dstSize), sampling, paint);
         }
         return bitmap;
     }
