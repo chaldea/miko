@@ -34,7 +34,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Miko\Miko.csproj" />
     <ProjectReference Include="..\Miko.Native\Miko.Native.csproj" />
-    <ProjectReference Include="..\Miko.Windowing.Common\Miko.Windowing.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,8 +43,8 @@
     <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />
     <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
   </ItemGroup>
 
 </Project>

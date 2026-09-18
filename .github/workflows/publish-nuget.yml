@@ -1,22 +1,29 @@
 name: Publish NuGet
 
-# Publishes NuGet packages when changes land on main (e.g. after a PR is merged).
-# Development versioning: 0.0.<run_number>.
+# Publishes NuGet packages when a release tag is pushed.
+#
+# The public API is stable enough that merging to main should no longer publish: packages
+# ship on demand by tagging a commit. Tag names are `v<semver>` (e.g. v1.2.0, v1.2.0-rc.1)
+# and the tag itself is the package version — the leading `v` is stripped below.
+#
+#   git tag v1.2.0 && git push origin v1.2.0
+#
+# workflow_dispatch allows a manual run with an explicit version (dry_run by default) for
+# rehearsing the pack step without pushing to the feed.
 
 on:
   push:
-    branches: [ main ]
-    # Documentation-only changes must not republish NuGet packages (which would bump
-    # the version for every doc edit). The VitePress site is built/deployed by docs.yml.
-    # Note: agent-first assets under /agent ARE shipped inside the template package, so a
-    # markdown edit there rides along with the next code change's publish rather than
-    # triggering its own version bump.
-    paths-ignore:
-      - 'docs/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/docs.yml'
-      - '**/*.md'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version to pack (e.g. 1.2.0-preview.1)'
+        required: true
+      dry_run:
+        description: 'Pack only; do not push to the NuGet feed'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -27,7 +34,6 @@ jobs:
     # macos-latest can build the desktop, Android and iOS packages in one job.
     runs-on: macos-latest
     env:
-      VERSION: 0.0.${{ github.run_number }}
       CONFIGURATION: Release
       ARTIFACTS: ${{ github.workspace }}/artifacts
     steps:
@@ -37,30 +43,35 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            9.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Install mobile workloads
         run: dotnet workload install android ios
 
-      - name: Pack library packages
+      - name: Resolve version
+        id: version
+        # Tag pushes derive the version from the tag (v1.2.0 -> 1.2.0); manual runs take it
+        # from the workflow input.
         run: |
-          for proj in \
-            src/Miko/Miko.csproj \
-            src/Miko.Bootstrap/Miko.Bootstrap.csproj \
-            src/Miko.Ionic/Miko.Ionic.csproj \
-            src/Miko.DevTools/Miko.DevTools.csproj \
-            src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj \
-            src/Miko.Windowing.Common/Miko.Windowing.Common.csproj \
-            src/Miko.Windowing/Miko.Windowing.csproj \
-            src/Miko.Simulator/Miko.Simulator.csproj \
-            src/Miko.McpServer/Miko.McpServer.csproj \
-            src/Miko.Android/Miko.Android.csproj \
-            src/Miko.iOS/Miko.iOS.csproj
-          do
-            dotnet pack "$proj" -c $CONFIGURATION -p:Version=$VERSION -o "$ARTIFACTS"
-          done
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.version }}"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          if [ -z "$version" ]; then
+            echo "::error::Could not resolve a package version."
+            exit 1
+          fi
+          echo "Publishing version $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Pack every packable project in the solution, so adding a new library to miko.slnx
+      # publishes it without editing this workflow. Projects that must not ship (test
+      # projects, the benchmark harness, Miko.SourceGenerators) set IsPackable=false;
+      # Miko.Video.FFmpeg is deliberately outside the solution because it bundles >80MB of
+      # native FFmpeg and is an experiment-only backend.
+      - name: Pack library packages
+        run: dotnet pack miko.slnx -c $CONFIGURATION -p:Version=${{ steps.version.outputs.version }} -o "$ARTIFACTS"
 
       - name: Pin template dependency versions to current build
         run: |
@@ -69,20 +80,27 @@ jobs:
           # invocation that is portable across BSD and GNU sed.
           find templates -name '*.csproj' -print0 | while IFS= read -r -d '' csproj; do
             tmp="$(mktemp)"
-            sed -E 's#(Include="Miko(\.[A-Za-z.]+)?" Version=")[^"]+(")#\1'"$VERSION"'\3#g' "$csproj" > "$tmp"
+            sed -E 's#(Include="Miko(\.[A-Za-z.]+)?" Version=")[^"]+(")#\1'"${{ steps.version.outputs.version }}"'\3#g' "$csproj" > "$tmp"
             mv "$tmp" "$csproj"
           done
           echo "----- template csproj Miko references after substitution -----"
           grep -REn 'PackageReference Include="Miko' templates/ || true
 
       - name: Pack template package
+        # templates/Miko.Templates.csproj is not part of miko.slnx (it is a content-only
+        # template package, not a library), so it is packed explicitly.
+        #
         # The agent-first assets (agent/.miko, agent/.claude, agent/.codex, agent/.cursor,
         # CLAUDE.md, AGENTS.md) live only under /agent. Miko.Templates.csproj injects them
         # into both template content roots at pack time, so no copy step is needed here —
         # the checkout already includes /agent.
-        run: dotnet pack templates/Miko.Templates.csproj -c $CONFIGURATION -p:Version=$VERSION -o "$ARTIFACTS"
+        run: dotnet pack templates/Miko.Templates.csproj -c $CONFIGURATION -p:Version=${{ steps.version.outputs.version }} -o "$ARTIFACTS"
+
+      - name: List packages
+        run: ls -l "$ARTIFACTS"
 
       - name: Push to NuGet feed
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         run: |
           dotnet nuget push "$ARTIFACTS/*.nupkg" \
             --source "${{ secrets.NUGET_SOURCE }}" \

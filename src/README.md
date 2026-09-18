@@ -14,7 +14,7 @@ dotnet new razorclasslib
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
     <PropertyGroup>
       <!--使用自定义程序集目录，注意本地运行时需要依据工程所在目录进行修改-->
-      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\src\Miko.Razor.Compiler\bin\Debug\net9.0\</_CustomRazorGeneratorDir>
+      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\src\Miko.Razor.Compiler\bin\Debug\$(TargetFramework)\</_CustomRazorGeneratorDir>
     </PropertyGroup>
     <ItemGroup>
       <!--清理SDK默认的Razor分析器-->

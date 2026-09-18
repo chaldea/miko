@@ -5,6 +5,10 @@
     <Nullable>enable</Nullable>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
+    <!-- Consumed only as an analyzer by Miko.csproj (the generated code is compiled into
+         Miko.dll), so this project must never become a package of its own — the publish
+         workflow packs every packable project in miko.slnx. -->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

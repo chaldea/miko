@@ -18,7 +18,7 @@ Razor / C# 组件
 
 基本技术约束：
 
-- 核心库目标框架为 `net10.0`，启用 nullable reference types；`Miko.Razor.Compiler` 为 `net9.0` 工具/分析器，`Miko.SourceGenerators` 为 `netstandard2.0` Roslyn 源生成器。
+- 核心库目标框架为 `net10.0`，启用 nullable reference types；`Miko.Razor.Compiler` 为 `net10.0` 工具/分析器，`Miko.SourceGenerators` 为 `netstandard2.0` Roslyn 源生成器。
 - UI 线程负责 DOM、样式、布局和绘制。后台任务只能通过 `MikoDispatcher`、`PostInvalidate` 等入口把工作投递回引擎。
 - `Style` 的 `null` 表示“未设置”，不能当作 CSS 默认值；`ComputedStyle` 才是布局和渲染使用的最终样式。
 - Skia 对象（`SKSurface`、`SKImage`、`SKBitmap`、`GRBackendRenderTarget` 等）有明确所有权，尤其是每帧创建的 GPU 对象必须在本帧释放。
@@ -116,7 +116,7 @@ dotnet run --project examples/Ionic/IonicDemo
 - 模拟器高 DPI 离屏 surface 使用 `SKSurfaceProperties`；缩放合成使用高质量采样（当前为 Mitchell cubic）。SVG 栅格化和位图绘制要启用抗锯齿/高质量采样。
 - 动画条目以逻辑元素身份迁移到 `SupersededBy` 新实例；迁移发生在过渡检测前，随后回收脱离 DOM 或已撤下声明的动画。组件回调触发 `StateHasChanged` 不应重置正在运行的动画。
 - 图片通过 DI 管理的 `ResourceManager` 加载，支持 `file://`、`res://`、HTTP(S) 和 data URI。多平台嵌入资源先用 `AddResourceAssembly` 注册；相对文件路径基于 `AppContext.BaseDirectory` 解析。视频由平台在 DI 中注册 `IVideoBackend`，经构造器注入；核心层只有空实现 `NullVideoBackend`（不建会话，`<video>` 仅显示背景/poster），不能依赖 FFmpeg 或原生控件。
-- 视频后端一律用**系统解码器**，不得随包分发第三方原生库：桌面 `UseSystemVideo()`（Windows→Media Foundation、Linux→GStreamer、macOS→AVFoundation）、Android `UseAndroidVideo()`（MediaExtractor+MediaCodec）、iOS `UseIosVideo()`（AVPlayer）。`Miko.Video.FFmpeg` 是可选扩展（`UseFFmpegVideo()`），带 >80MB 原生库，只在系统解码器不覆盖时使用，绝不作为平台默认。
+- 视频后端一律用**系统解码器**，不得随包分发第三方原生库：桌面 `UseSystemVideo()`（Windows→Media Foundation、Linux→GStreamer、macOS→AVFoundation）、Android `UseAndroidVideo()`（MediaExtractor+MediaCodec）、iOS `UseIosVideo()`（AVPlayer）。`Miko.Video.FFmpeg` 是可选扩展（`UseFFmpegVideo()`），带 >80MB 原生库，只在系统解码器不覆盖时使用，绝不作为平台默认；它**不在 `miko.slnx` 内**（仅供实验/测试），因此 CI 不构建、也不发包，需要时单独 `dotnet build src/Miko.Video.FFmpeg/Miko.Video.FFmpeg.csproj`。
 - 各后端只负责填充 `VideoFrameBuffer`（GPU 纹理句柄＝零拷贝，或 CPU 平面＝回退），包装逻辑统一在 `VideoFrameSourceBase`。NV12→RGB 必须走 `Nv12FrameComposer` 的 SkSL shader：SkiaSharp 3.119.1 未导出 `SKYUVAInfo` / 多平面 `FromTextures`，Skia 自身无法转 YUV。本地相对路径务必经 `VideoSourceDescriptor.ResolveForBackend()` 归一化（系统解码器按进程 CWD 解析，与 Miko 的 BaseDirectory 约定不同）。硬解器会把 Y 平面行数向上对齐（如 180→192），UV 起始偏移须由缓冲总长反推，否则画面顶部出现绿边。
 
 ### 原生能力（Miko.Native）

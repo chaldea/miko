@@ -12,8 +12,6 @@
     <Project Path="src/Miko.Simulator/Miko.Simulator.csproj" />
     <Project Path="src/Miko.SourceGenerators/Miko.SourceGenerators.csproj" />
     <Project Path="src/Miko.Testing/Miko.Testing.csproj" />
-    <Project Path="src/Miko.Video.FFmpeg/Miko.Video.FFmpeg.csproj" />
-    <Project Path="src/Miko.Windowing.Common/Miko.Windowing.Common.csproj" />
     <Project Path="src/Miko.Windowing/Miko.Windowing.csproj" />
     <Project Path="src/Miko/Miko.csproj" />
   </Folder>

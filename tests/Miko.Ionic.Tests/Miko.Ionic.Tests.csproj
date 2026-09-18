@@ -12,7 +12,7 @@
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="Shouldly" Version="4.3.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.1" />
@@ -39,7 +39,7 @@
 
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
     <PropertyGroup>
-      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\src\Miko.Razor.Compiler\bin\$(Configuration)\net9.0\</_CustomRazorGeneratorDir>
+      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\src\Miko.Razor.Compiler\bin\$(Configuration)\$(TargetFramework)\</_CustomRazorGeneratorDir>
     </PropertyGroup>
     <ItemGroup>
       <Analyzer Remove="@(_RazorAnalyzer)" />

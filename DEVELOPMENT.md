@@ -147,7 +147,7 @@ miko-v5/
 │   ├── IonicPlatform.cs               # 平台检测（iOS/Android）
 │   ├── IonicStyleSheetFactory.cs      # 模式化样式表（md/ios）
 │   └── Components/Core/               # ClassMapper, IonicComponentBase
-├── src/Miko.Razor.Compiler/           # 自定义 Razor 源生成器（net9.0）
+├── src/Miko.Razor.Compiler/           # 自定义 Razor 源生成器（net10.0）
 │   └── 编译 .razor 组件为原生 Miko DOM 元素
 ├── src/Miko.DevTools/                 # 运行时调试工具
 │   └── DOM 和布局树检查器
@@ -665,7 +665,7 @@ Razor 项目必须包含 `_OverrideRazorSourceGenerator` 目标以使用 Miko �
 ```xml
 <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
   <PropertyGroup>
-    <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\$(Configuration)\net9.0\</_CustomRazorGeneratorDir>
+    <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\$(Configuration)\net10.0\</_CustomRazorGeneratorDir>
   </PropertyGroup>
   <ItemGroup>
     <Analyzer Remove="@(_RazorAnalyzer)" />
@@ -1313,7 +1313,7 @@ public class App
 
 ### Razor 编译器
 
-- **目标框架**：`Miko.Razor.Compiler` 目标 net9.0，作为分析器 DLL 被 net10.0 项目消费
+- **目标框架**：`Miko.Razor.Compiler` 目标 net10.0，作为分析器 DLL 被 net10.0 项目消费
 - **热重载**：仅桌面平台支持，通过 `EnableHotReload()` 和 `InitializeHotReload()` 启用
 - **路由发现**：`UseGeneratedRoutes()` 自动扫描 `@page` 指令，无需手动注册路由
 - **编译输出**：生成的代码在 `obj/GeneratedFiles/` 目录，可查看调试
