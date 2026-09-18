@@ -334,6 +334,110 @@ internal static class DevToolsStyleSheet
             PaddingLeft = Length.Px(8)
         });
 
+        // Resources panel（ISSUE-139）
+        sheet.AddRule(new ClassSelector("resources-panel"), new Style
+        {
+            Display = Display.Flex,
+            FlexDirection = FlexDirection.Column,
+            Width = Length.Percent(100),
+            Height = Length.Percent(100)
+        });
+
+        sheet.AddRule(new ClassSelector("resources-output"), new Style
+        {
+            FlexGrow = 1,
+            MinHeight = Length.Px(0),
+            OverflowY = Overflow.Scroll,
+            PaddingTop = Length.Px(4),
+            PaddingBottom = Length.Px(8),
+            PaddingLeft = Length.Px(8),
+            PaddingRight = Length.Px(8)
+        });
+
+        sheet.AddRule(new ClassSelector("res-section-title"), new Style
+        {
+            Display = Display.Flex,
+            FlexDirection = FlexDirection.Row,
+            AlignItems = AlignItems.Center,
+            Gap = Length.Px(8),
+            Color = TextPrimary,
+            FontWeight = FontWeight.Bold,
+            PaddingTop = Length.Px(10),
+            PaddingBottom = Length.Px(4),
+            BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, BorderColor),
+            MarginBottom = Length.Px(2)
+        });
+
+        sheet.AddRule(new ClassSelector("res-section-summary"), new Style
+        {
+            Color = TextSecondary,
+            FontWeight = FontWeight.Normal,
+            FontSize = Length.Px(10)
+        });
+
+        sheet.AddRule(new ClassSelector("res-row"), new Style
+        {
+            Display = Display.Flex,
+            FlexDirection = FlexDirection.Row,
+            AlignItems = AlignItems.Center,
+            Gap = Length.Px(8),
+            PaddingTop = Length.Px(2),
+            PaddingBottom = Length.Px(2),
+            BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, new Color(50, 50, 50)),
+            FontSize = Length.Px(11)
+        });
+
+        sheet.AddRule(new ClassSelector("res-row-header"), new Style
+        {
+            Color = TextAttr,
+            FontSize = Length.Px(10),
+            BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, BorderColor)
+        });
+
+        sheet.AddRule(new ClassSelector("res-cell-primary"), new Style
+        {
+            FlexGrow = 1,
+            // 路径很长时不挤压右侧的固定列（尺寸/耗时）。
+            MinWidth = Length.Px(0),
+            OverflowX = Overflow.Hidden
+        });
+
+        sheet.AddRule(new ClassSelector("res-cell-path"), new Style
+        {
+            Color = TextString,
+            WhiteSpace = WhiteSpace.Nowrap,
+            TextOverflow = TextOverflow.Ellipsis,
+            OverflowX = Overflow.Hidden
+        });
+
+        sheet.AddRule(new ClassSelector("res-cell-sub"), new Style
+        {
+            Color = TextSecondary,
+            FontSize = Length.Px(10),
+            WhiteSpace = WhiteSpace.Nowrap,
+            TextOverflow = TextOverflow.Ellipsis,
+            OverflowX = Overflow.Hidden
+        });
+
+        sheet.AddRule(new ClassSelector("res-cell-assembly"), new Style
+        {
+            Color = TextTag,
+            Width = Length.Px(150),
+            FlexShrink = 0,
+            WhiteSpace = WhiteSpace.Nowrap,
+            TextOverflow = TextOverflow.Ellipsis,
+            OverflowX = Overflow.Hidden
+        });
+
+        sheet.AddRule(new ClassSelector("res-cell-size"), new Style
+        {
+            Color = TextValue,
+            Width = Length.Px(70),
+            FlexShrink = 0,
+            TextAlign = TextAlign.Right,
+            WhiteSpace = WhiteSpace.Nowrap
+        });
+
         return sheet;
     }
 }

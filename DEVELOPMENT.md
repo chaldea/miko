@@ -919,7 +919,7 @@ video.Seek(TimeSpan.FromSeconds(10));
 // 默认使用 ResourceManager（嵌入资源 + 文件路径）
 var image = new ImageElement
 {
-    Source = "avares://MyApp/Assets/logo.png",  // 嵌入资源
+    Source = "res://Assets/logo.png",           // 嵌入资源（路径不含程序集名）
     // 或
     Source = "/path/to/image.jpg",              // 文件路径
     // 或
@@ -927,7 +927,7 @@ var image = new ImageElement
 };
 
 // 占位符
-image.Placeholder = "avares://MyApp/Assets/placeholder.png";
+image.Placeholder = "res://Assets/placeholder.png";
 
 // 自定义加载器
 builder.Services.AddSingleton<IImageLoader, MyCustomImageLoader>();

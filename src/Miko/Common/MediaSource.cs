@@ -7,7 +7,10 @@ public enum MediaSourceScheme
     None,
     /// <summary>本地文件路径（<c>file://</c> 或裸路径）。</summary>
     File,
-    /// <summary>嵌入资源（<c>res://</c>）。</summary>
+    /// <summary>
+    /// 嵌入资源（<c>res://</c>）。路径与 <c>file://</c> 同构、<b>不含程序集名</b>
+    /// （<c>res://Assets/logo.svg</c>）；到清单资源名的换算由资源读取器完成。
+    /// </summary>
     Resource,
     /// <summary>HTTP 网络资源。</summary>
     Http,

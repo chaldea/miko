@@ -75,7 +75,7 @@ public static class App
 | `UseFonts(Action<FontBuilder>)` | Register custom fonts. |
 | `AddGlobalKeyHandler(Func<MikoKey, bool>)` | App-wide key shortcuts (return `true` to consume). |
 | `UseLogging(Action<ILoggingBuilder>)` | Configure logging. |
-| `AddDevTools()` | Runtime DOM/layout inspector (needs `Miko.DevTools`). |
+| `AddDevTools()` | Runtime DOM/layout, console and resource inspector (needs `Miko.DevTools`). |
 | `AddIonic()` | Register the Ionic component library (needs `Miko.Ionic`). |
 | `EnableHotReload()` | Turn on `.razor` hot reload. |
 | `Build()` | Build the platform-agnostic `MikoAppContext`. |

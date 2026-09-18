@@ -27,4 +27,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- DevTools 资源面板的测试素材：面板要把清单名反向映射成可书写的 res:// 路径。 -->
+    <EmbeddedResource Include="Assets\**\*" />
+  </ItemGroup>
+
 </Project>

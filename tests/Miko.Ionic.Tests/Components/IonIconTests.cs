@@ -11,10 +11,11 @@ namespace Miko.Ionic.Tests.Components;
 
 public class IonIconTests : IonicComponentTestBase
 {
-    // Embedded in this test assembly (Resources/*.svg → Miko.Ionic.Tests.Resources.*).
-    private const string TestIconRes = "res://Miko.Ionic.Tests.Resources.test-icon.svg";
-    private const string TestIcon2Res = "res://Miko.Ionic.Tests.Resources.test-icon-2.svg";
-    private const string MissingIconRes = "res://Miko.Ionic.Tests.Resources.missing-icon.svg";
+    // Embedded in this test assembly (Resources/*.svg). The res:// path carries no assembly
+    // name — EmbeddedResources maps it onto the manifest name (ISSUE-139).
+    private const string TestIconRes = "res://Resources/test-icon.svg";
+    private const string TestIcon2Res = "res://Resources/test-icon-2.svg";
+    private const string MissingIconRes = "res://Resources/missing-icon.svg";
 
     /// <summary>
     /// Registers a resource provider that searches this test assembly — the test stand-in for

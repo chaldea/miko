@@ -2,6 +2,7 @@ using Miko.Common;
 using Miko.Core;
 using Miko.DevTools.Logging;
 using Miko.Layout;
+using Miko.Platform.Resources;
 using Miko.Rendering;
 using SkiaSharp;
 
@@ -21,6 +22,19 @@ public class DevToolsBridge
     public RenderEngine? MainRenderEngine => MainEngine?.RenderEngine;
     public LogBuffer LogBuffer { get; }
     public bool IsOpen { get; internal set; }
+
+    /// <summary>
+    /// 应用注册的资源程序集提供器（<c>builder.AddResourceAssembly(...)</c>），
+    /// 供 Resources 面板枚举嵌入资源清单。未解析到时面板显示空列表。
+    /// </summary>
+    public IResourceAssemblyProvider? ResourceAssemblies { get; private set; }
+
+    /// <summary>
+    /// 主引擎的图片加载器可观测面。默认的 <see cref="ResourceManager"/> 实现了
+    /// <see cref="IResourceDiagnostics"/>；应用换用自定义加载器且未实现该接口时为 <c>null</c>，
+    /// 此时面板只显示嵌入资源清单（那部分来自程序集元数据，与加载器无关）。
+    /// </summary>
+    public IResourceDiagnostics? ResourceDiagnostics => MainEngine?.ImageLoader as IResourceDiagnostics;
 
     private volatile Element? _selectedElement;
     public Element? SelectedElement
@@ -47,9 +61,14 @@ public class DevToolsBridge
     /// 绑定主引擎。渲染引擎不再单独传入——从 <see cref="MikoEngine.RenderEngine"/> 取，
     /// 保证与主引擎实际使用的是同一个实例（ISSUE-129）。
     /// </summary>
-    public void Initialize(MikoEngine mainEngine)
+    /// <param name="mainEngine">被检查的引擎。</param>
+    /// <param name="resourceAssemblies">
+    /// 应用注册的资源程序集提供器（Resources 面板用）。可为空——此时嵌入资源列表为空。
+    /// </param>
+    public void Initialize(MikoEngine mainEngine, IResourceAssemblyProvider? resourceAssemblies = null)
     {
         MainEngine = mainEngine;
+        ResourceAssemblies = resourceAssemblies;
     }
 
     public void ToggleDevTools()

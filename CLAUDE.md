@@ -455,6 +455,22 @@ Images are loaded asynchronously via `IImageLoader`:
 - `ImageElement` tracks loading state and supports placeholder images
 - Loaded bitmaps are cached in element's `Bitmap` property
 
+`res://` paths are written like `file://` ones — **no assembly name**, `/` separators, relative
+to the project root: `res://Assets/logo.svg` for `Assets/logo.svg` embedded in any assembly
+registered with `AddResourceAssembly`. `EmbeddedResources` maps a path onto the actual .NET
+manifest resource name (`MyApp.Assets.logo.svg`) by normalizing separators to dots and matching
+on a dot boundary suffix, so renaming an assembly or moving a project never rewrites resource
+paths (ISSUE-139). The dot boundary matters: a bare suffix compare would let `res://avatar.svg`
+hit `MyApp.Assets.my-avatar.svg`. Old dotted paths that include the assembly name still resolve
+(they are an exact manifest match), so both spellings coexist.
+
+`ResourceManager` also implements `IResourceDiagnostics` — the DevTools **Resources** panel reads
+it to show what Miko downloaded (url, size, duration) and what sits in the decode cache. Its
+`Version` is a monotonic counter: the panel is rebuilt off that, not by polling snapshots, because
+the DevTools window skips frames when idle. A custom `IImageLoader` that does not implement the
+interface simply leaves those two sections explaining why they are empty; the embedded-resource
+list comes from assembly metadata and always works.
+
 ## Common Patterns
 
 ### Creating a Razor app

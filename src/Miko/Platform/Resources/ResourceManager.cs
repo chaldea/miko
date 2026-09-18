@@ -9,13 +9,14 @@ namespace Miko.Platform.Resources;
 /// 统一资源管理器：默认的 <see cref="IImageLoader"/> 实现，处理 file:// / res:// / http(s):// / data: 四类协议。
 /// <list type="bullet">
 ///   <item><c>file</c>：本地文件（含裸路径），<see cref="SKBitmap.Decode(string)"/> 或 SVG 渲染。</item>
-///   <item><c>res</c>：嵌入资源，按注册程序集顺序 <c>GetManifestResourceStream</c>。</item>
+///   <item><c>res</c>：嵌入资源，逻辑路径经 <see cref="EmbeddedResources"/> 换算为清单资源名后按注册程序集顺序查找。</item>
 ///   <item><c>http(s)</c>：经 <see cref="HttpClient"/> 拉取字节后解码。</item>
 ///   <item><c>data</c>：内联 base64 解码。</item>
 /// </list>
 /// 解码结果按 <see cref="MediaSource.Raw"/> 缓存，去重并发与重复请求（如缩略图网格共享 URL）。
+/// <para>同时实现 <see cref="IResourceDiagnostics"/>，把网络请求与缓存内容暴露给 DevTools 的资源面板。</para>
 /// </summary>
-public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider
+public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider, IResourceDiagnostics
 {
     /// <summary>
     /// SVG 栅格化的分辨率下限（长边像素）。
@@ -42,6 +43,25 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider
     private readonly ConcurrentDictionary<string, (int Width, int Height)> _logicalSizes = new();
 
     /// <summary>
+    /// 缓存键 → 该键的资源源（协议来自它）。<see cref="_cache"/> 只按 <see cref="MediaSource.Raw"/>
+    /// 索引任务，协议已被丢弃，而 <see cref="GetCachedResources"/> 要展示它。
+    /// </summary>
+    private readonly ConcurrentDictionary<string, MediaSource> _cachedSources = new();
+
+    /// <summary>
+    /// 本加载器发起过的网络请求记录（DevTools 资源面板）。有界：超出容量丢弃最旧的一条，
+    /// 长会话（如缩略图无限滚动）下不会无界增长。
+    /// </summary>
+    private readonly Queue<NetworkResourceInfo> _networkLog = new();
+    private readonly object _networkLogGate = new();
+
+    /// <summary>网络请求记录的保留条数上限。</summary>
+    private const int MaxNetworkLogEntries = 500;
+
+    /// <summary><see cref="Version"/> 的后备字段。</summary>
+    private long _diagnosticsVersion;
+
+    /// <summary>
     /// 创建 ResourceManager 实例（推荐通过 DI 容器注入）
     /// </summary>
     /// <param name="httpClient">用于网络源的 HttpClient；为空时新建一个默认实例。</param>
@@ -58,7 +78,29 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider
         if (source.IsEmpty)
             return Task.FromResult<SKBitmap?>(null);
 
-        return _cache.GetOrAdd(source.Raw, _ => LoadCoreAsync(source, ct));
+        // 记录源本身（协议在 _cache 的键里丢失了），供 DevTools 的缓存列表展示。
+        _cachedSources[source.Raw] = source;
+
+        bool added = false;
+        var task = _cache.GetOrAdd(source.Raw, _ =>
+        {
+            added = true;
+            return LoadCoreAsync(source, ct);
+        });
+
+        if (added)
+        {
+            // 新条目进缓存，以及它随后完成（Loading → Loaded/Failed）都是调试界面的可见变化。
+            Interlocked.Increment(ref _diagnosticsVersion);
+            task.ContinueWith(
+                static (_, state) => Interlocked.Increment(ref ((ResourceManager)state!)._diagnosticsVersion),
+                this,
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+
+        return task;
     }
 
     /// <inheritdoc />
@@ -125,26 +167,55 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider
         return null;
     }
 
-    private SKBitmap? DecodeResource(string resourceName, string cacheKey)
+    private SKBitmap? DecodeResource(string resourcePath, string cacheKey)
     {
-        foreach (var assembly in _assemblyProvider.GetResourceAssemblies())
-        {
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-            if (stream == null) continue;
-            return IsSvg(resourceName) ? RenderSvg(stream, cacheKey) : SKBitmap.Decode(stream);
-        }
-        return null;
+        // 逻辑路径（res://Assets/a.svg）→ 真实清单资源名，换算封装在 EmbeddedResources（ISSUE-139）。
+        var located = EmbeddedResources.Locate(_assemblyProvider, resourcePath);
+        if (located == null) return null;
+
+        var (assembly, manifestName) = located.Value;
+        using var stream = assembly.GetManifestResourceStream(manifestName);
+        if (stream == null) return null;
+
+        // 格式按解析出的清单名判定：逻辑路径与清单名的扩展名相同，但清单名是真正被打开的那个。
+        return IsSvg(manifestName) ? RenderSvg(stream, cacheKey) : SKBitmap.Decode(stream);
     }
 
     private async Task<SKBitmap?> DecodeHttpAsync(string url, string cacheKey, CancellationToken ct)
     {
-        var bytes = await _http.GetByteArrayAsync(url, ct).ConfigureAwait(false);
+        // 只计「取字节」的耗时，不含解码：面板展示的是网络开销，解码是 CPU 开销。
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        byte[] bytes;
+        try
+        {
+            bytes = await _http.GetByteArrayAsync(url, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            RecordNetworkLoad(url, 0, System.Diagnostics.Stopwatch.GetElapsedTime(started), ex.Message);
+            throw;
+        }
+
+        RecordNetworkLoad(url, bytes.Length, System.Diagnostics.Stopwatch.GetElapsedTime(started), null);
+
         if (IsSvg(url))
         {
             using var stream = new MemoryStream(bytes);
             return RenderSvg(stream, cacheKey);
         }
         return SKBitmap.Decode(bytes);
+    }
+
+    private void RecordNetworkLoad(string url, long byteCount, TimeSpan duration, string? error)
+    {
+        var entry = new NetworkResourceInfo(url, byteCount, duration, DateTime.Now, error);
+        lock (_networkLogGate)
+        {
+            _networkLog.Enqueue(entry);
+            while (_networkLog.Count > MaxNetworkLogEntries)
+                _networkLog.Dequeue();
+        }
+        Interlocked.Increment(ref _diagnosticsVersion);
     }
 
     private static SKBitmap? DecodeData(string dataUri)
@@ -205,4 +276,56 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider
 
     private static bool IsSvg(string nameOrUrl) =>
         nameOrUrl.EndsWith(".svg", StringComparison.OrdinalIgnoreCase);
+
+    // ---------------------------------------------------------------------
+    // IResourceDiagnostics（DevTools 资源面板）
+    // ---------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public long Version => Interlocked.Read(ref _diagnosticsVersion);
+
+    /// <inheritdoc />
+    public IReadOnlyList<NetworkResourceInfo> GetNetworkResources()
+    {
+        lock (_networkLogGate)
+        {
+            return _networkLog.ToArray();
+        }
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<CachedResourceInfo> GetCachedResources()
+    {
+        var result = new List<CachedResourceInfo>(_cache.Count);
+
+        foreach (var (key, task) in _cache)
+        {
+            var source = _cachedSources.TryGetValue(key, out var s) ? s : MediaSource.Parse(key);
+
+            // 不 await：面板是同步快照，在途的条目就报 Loading。
+            if (!task.IsCompleted)
+            {
+                result.Add(new CachedResourceInfo(key, source.Scheme, 0, 0, 0, CachedResourceState.Loading));
+                continue;
+            }
+
+            var bitmap = task.Status == TaskStatus.RanToCompletion ? task.Result : null;
+            if (bitmap == null)
+            {
+                result.Add(new CachedResourceInfo(key, source.Scheme, 0, 0, 0, CachedResourceState.Failed));
+                continue;
+            }
+
+            result.Add(new CachedResourceInfo(
+                key,
+                source.Scheme,
+                bitmap.Width,
+                bitmap.Height,
+                bitmap.ByteCount,
+                CachedResourceState.Loaded));
+        }
+
+        result.Sort(static (a, b) => string.CompareOrdinal(a.Source, b.Source));
+        return result;
+    }
 }

@@ -44,6 +44,7 @@ internal class DevToolsWindow
     private Element? _lastSelectedElement;
     private long _lastLogSequence = -1;
     private long _lastCollapseVersion = -1;
+    private long _lastResourceVersion = -1;
     private RectF _lastSelectedBorderBox;
     private LogLevel _consoleFilterLevel = LogLevel.Trace;
 
@@ -279,6 +280,18 @@ internal class DevToolsWindow
             }
         }
 
+        // 资源面板：内容随加载推进而变（下载完成、缓存填充），而这些变化都在本引擎的树之外，
+        // 空闲跳帧会让面板停在打开那一刻。加载器的单调版本号即指纹，无需每帧快照两份列表。
+        if (_activeTab == "resources")
+        {
+            long resourceVersion = _bridge.ResourceDiagnostics?.Version ?? 0;
+            if (resourceVersion != _lastResourceVersion)
+            {
+                _lastResourceVersion = resourceVersion;
+                shouldRebuild = true;
+            }
+        }
+
         return shouldRebuild;
     }
 
@@ -452,6 +465,7 @@ internal class DevToolsWindow
         // 保存当前滚动位置
         float domTreeScrollTop = 0;
         float stylePanelScrollTop = 0;
+        float resourcesScrollTop = 0;
         var currentLayout = _engine.GetCurrentLayout();
         if (currentLayout != null)
         {
@@ -460,6 +474,9 @@ internal class DevToolsWindow
 
             var stylePanelBox = FindLayoutBoxByClass(currentLayout, "style-panel");
             if (stylePanelBox != null) stylePanelScrollTop = stylePanelBox.ScrollTop;
+
+            var resourcesBox = FindLayoutBoxByClass(currentLayout, "resources-output");
+            if (resourcesBox != null) resourcesScrollTop = resourcesBox.ScrollTop;
         }
 
         _engine.Initialize(BuildUI(), _styleSheets, GetInitCanvas(), _width, _height);
@@ -473,6 +490,9 @@ internal class DevToolsWindow
 
             var newStylePanelBox = FindLayoutBoxByClass(newLayout, "style-panel");
             if (newStylePanelBox != null) newStylePanelBox.ScrollTop = stylePanelScrollTop;
+
+            var newResourcesBox = FindLayoutBoxByClass(newLayout, "resources-output");
+            if (newResourcesBox != null) newResourcesBox.ScrollTop = resourcesScrollTop;
         }
     }
 
@@ -491,48 +511,47 @@ internal class DevToolsWindow
             _consoleFilterLevel = level;
             _needsRebuild = true;
         });
+        var resourcesPanel = ResourcesPanel.Build(_bridge, _activeTab == "resources");
 
         content.AddChild(elementsPanel);
         content.AddChild(consolePanel);
+        content.AddChild(resourcesPanel);
 
         root.AddChild(content);
         return root;
     }
 
+    /// <summary>面板标签：内部键 → 显示名。顺序即工具栏顺序。</summary>
+    private static readonly (string Key, string Label)[] Tabs =
+    {
+        ("elements", "Elements"),
+        ("console", "Console"),
+        ("resources", "Resources"),
+    };
+
     private DivElement BuildToolbar()
     {
         var toolbar = new DivElement { Class = "devtools-toolbar" };
 
-        var elementsTabBtn = new DivElement
+        foreach (var (key, label) in Tabs)
         {
-            Class = _activeTab == "elements" ? "devtools-tab devtools-tab-active" : "devtools-tab",
-            TextContent = "Elements"
-        };
-        elementsTabBtn.OnClick = _ =>
-        {
-            if (_activeTab != "elements")
+            var tabKey = key;
+            var button = new DivElement
             {
-                _activeTab = "elements";
-                _needsRebuild = true;
-            }
-        };
-
-        var consoleTabBtn = new DivElement
-        {
-            Class = _activeTab == "console" ? "devtools-tab devtools-tab-active" : "devtools-tab",
-            TextContent = "Console"
-        };
-        consoleTabBtn.OnClick = _ =>
-        {
-            if (_activeTab != "console")
+                Class = _activeTab == tabKey ? "devtools-tab devtools-tab-active" : "devtools-tab",
+                TextContent = label
+            };
+            button.OnClick = _ =>
             {
-                _activeTab = "console";
-                _needsRebuild = true;
-            }
-        };
+                if (_activeTab != tabKey)
+                {
+                    _activeTab = tabKey;
+                    _needsRebuild = true;
+                }
+            };
+            toolbar.AddChild(button);
+        }
 
-        toolbar.AddChild(elementsTabBtn);
-        toolbar.AddChild(consoleTabBtn);
         return toolbar;
     }
 }
