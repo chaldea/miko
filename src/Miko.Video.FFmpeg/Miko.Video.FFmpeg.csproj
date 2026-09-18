@@ -38,8 +38,8 @@
     <PackageReference Include="Sdcb.FFmpeg" Version="7.0.0" />
     <PackageReference Include="Sdcb.FFmpeg.runtime.windows-x64" Version="7.0.0" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
   </ItemGroup>
 
 </Project>

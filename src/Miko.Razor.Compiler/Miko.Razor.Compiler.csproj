@@ -3,12 +3,16 @@
   <PropertyGroup>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
-    <TargetFrameworks>net9.0</TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
     <Description>Razor is a markup syntax for adding server-side logic to web pages. This package contains the Razor compiler.</Description>
     <ExcludeFromSourceOnlyBuild>false</ExcludeFromSourceOnlyBuild>
     <IsPackable>true</IsPackable>
     <IsShippingAssembly>true</IsShippingAssembly>
-    <IncludeSymbols>true</IncludeSymbols>
+    <!-- Tools-only package: IncludeBuildOutput is false and the PDB is packed explicitly
+         into tools/ below, so a symbol package would be empty. Leaving IncludeSymbols on
+         emitted a legacy *.symbols.nupkg that the publish workflow's *.nupkg glob picked
+         up and the feed rejects. -->
+    <IncludeSymbols>false</IncludeSymbols>
     <PackageId>Miko.Razor.Compiler</PackageId>
     <Version>1.0.0</Version>
     <Authors>Miko</Authors>
@@ -104,17 +108,17 @@
 
   <Target Name="_AddCompilerOutputToPackage" BeforeTargets="_GetPackageFiles" DependsOnTargets="Build">
     <PropertyGroup>
-      <_MikoRazorCompilerOutDir>$(MSBuildThisFileDirectory)bin\$(Configuration)\net9.0\</_MikoRazorCompilerOutDir>
+      <_MikoRazorCompilerOutDir>$(MSBuildThisFileDirectory)bin\$(Configuration)\$(TargetFramework)\</_MikoRazorCompilerOutDir>
     </PropertyGroup>
     <ItemGroup>
-      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" Pack="true" PackagePath="tools\net9.0\" />
-      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.pdb" Pack="true" PackagePath="tools\net9.0\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.pdb')" />
-      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.AspNetCore.Razor.Utilities.Shared.dll" Pack="true" PackagePath="tools\net9.0\" />
-      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.Extensions.ObjectPool.dll" Pack="true" PackagePath="tools\net9.0\" />
-      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.dll" Pack="true" PackagePath="tools\net9.0\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.dll')" />
-      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.CSharp.dll" Pack="true" PackagePath="tools\net9.0\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.CSharp.dll')" />
-      <None Include="$(_MikoRazorCompilerOutDir)RazorSourceGenerator.razorencconfig" Pack="true" PackagePath="tools\net9.0\" Condition="Exists('$(_MikoRazorCompilerOutDir)RazorSourceGenerator.razorencconfig')" />
-      <None Include="$(_MikoRazorCompilerOutDir)**\*.resources.dll" Pack="true" PackagePath="tools\net9.0\%(RecursiveDir)" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" Pack="true" PackagePath="tools\$(TargetFramework)\" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.pdb" Pack="true" PackagePath="tools\$(TargetFramework)\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.pdb')" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.AspNetCore.Razor.Utilities.Shared.dll" Pack="true" PackagePath="tools\$(TargetFramework)\" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.Extensions.ObjectPool.dll" Pack="true" PackagePath="tools\$(TargetFramework)\" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.dll" Pack="true" PackagePath="tools\$(TargetFramework)\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.dll')" />
+      <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.CSharp.dll" Pack="true" PackagePath="tools\$(TargetFramework)\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.CSharp.dll')" />
+      <None Include="$(_MikoRazorCompilerOutDir)RazorSourceGenerator.razorencconfig" Pack="true" PackagePath="tools\$(TargetFramework)\" Condition="Exists('$(_MikoRazorCompilerOutDir)RazorSourceGenerator.razorencconfig')" />
+      <None Include="$(_MikoRazorCompilerOutDir)**\*.resources.dll" Pack="true" PackagePath="tools\$(TargetFramework)\%(RecursiveDir)" />
     </ItemGroup>
   </Target>
 </Project>

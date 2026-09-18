@@ -17,7 +17,7 @@
   <!-- 配置自定义 Razor 编译器 -->
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
     <PropertyGroup>
-      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\src\Miko.Razor.Compiler\bin\$(Configuration)\net9.0\</_CustomRazorGeneratorDir>
+      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\src\Miko.Razor.Compiler\bin\$(Configuration)\$(TargetFramework)\</_CustomRazorGeneratorDir>
     </PropertyGroup>
     <ItemGroup>
       <Analyzer Remove="@(_RazorAnalyzer)" />

@@ -124,7 +124,7 @@ The repository uses a single solution file:
    - Pure abstractions with zero platform dependencies; implementations live in the platform packages
 
 9. **Miko.Razor.Compiler** (`src/Miko.Razor.Compiler/`)
-   - Custom Razor source generator (targets net9.0)
+   - Custom Razor source generator (targets net10.0)
    - Compiles `.razor` components into native Miko DOM elements
    - Consumed as analyzer DLLs by Razor projects
 
@@ -317,7 +317,7 @@ Razor projects using Miko's custom compiler must include the `_OverrideRazorSour
 ```xml
 <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
   <PropertyGroup>
-    <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\$(Configuration)\net9.0\</_CustomRazorGeneratorDir>
+    <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\$(Configuration)\net10.0\</_CustomRazorGeneratorDir>
   </PropertyGroup>
   <ItemGroup>
     <Analyzer Remove="@(_RazorAnalyzer)" />
@@ -386,6 +386,9 @@ backend; none of them ship third-party native binaries:
 
 `Miko.Video.FFmpeg` is an **opt-in extension** (`UseFFmpegVideo()`) for formats the system
 decoder does not cover; it pulls in >80MB of native FFmpeg and must never be a platform default.
+It is deliberately **excluded from `miko.slnx`** — experiment/test use only, so it is neither
+built by CI nor published as a package. Build it explicitly
+(`dotnet build src/Miko.Video.FFmpeg/Miko.Video.FFmpeg.csproj`) when working on it.
 
 Shared plumbing in `src/Miko/Platform/Video/`:
 - `VideoFrameBuffer` — one frame as either GPU texture handles (zero-copy) or CPU planes (fallback)
@@ -598,7 +601,7 @@ animationManager.PlayAnimation(element, animation);
 - Layout calculations use floats — be aware of floating-point precision
 - Style cascade: null means "not set", not a default value
 - `IsDirty` is automatically set on `AddChild`/`RemoveChild`/state changes
-- The Razor compiler targets net9.0 and is consumed only as analyzer DLLs
+- The Razor compiler targets net10.0 and is consumed only as analyzer DLLs
 - Safe area insets are opt-in via `env()` function, never applied as root viewport insets (see memory)
 - Documentation site under `docs/` (VitePress) contains the usage guide
 - `DEVELOPMENT.md` (in Chinese) has developer-oriented walkthrough
