@@ -166,6 +166,10 @@ public sealed class SilkDesktopHost
     private bool RenderIteration()
     {
         DrainMessages();
+        // 帧转储未完成前强制出帧：ISSUE-096 的空闲跳过会让画面稳定后不再调用 RenderFrame，
+        // 转储的帧计数就永远等不到（实测停在第 2 帧）。
+        if (_dumpPath != null && !_dumpDone)
+            _needsPresent = true;
         if (!_needsPresent && !_controller.HasPendingWork)
             return false;
 
@@ -233,7 +237,51 @@ public sealed class SilkDesktopHost
             c.Flush();
         });
         _grContext.Flush();
+
+        MaybeDumpFrame(surface);
     }
+
+    /// <summary>
+    /// 诊断用：把真实 GL 帧缓冲的内容转储为 PNG，由环境变量
+    /// <c>MIKO_DUMP_FRAME=&lt;路径&gt;</c> 门控（未设置时只是一次字段判断）。
+    ///
+    /// <para>存在的意义是排除外部截图工具的干扰：截图软件可能缩放、重编码或丢弃 alpha，
+    /// 拿它判断渲染质量会把工具的产物误认为引擎缺陷。这里抓的是 Skia 呈现到窗口的<b>同一张</b>
+    /// 表面，因此能直接回答"引擎/宿主到底输出了什么"。</para>
+    ///
+    /// <para>只转储一帧（首帧之后自行关闭）：渲染循环每秒数十帧，逐帧写盘会拖垮它。
+    /// 同时跳过前若干帧，等布局、字体与图片异步加载稳定后再抓。</para>
+    /// </summary>
+    private void MaybeDumpFrame(SKSurface surface)
+    {
+        if (_dumpPath == null || _dumpDone) return;
+
+        // 前几帧图片可能还没解码完成（异步加载），等画面稳定。
+        if (++_dumpFrameCounter < DumpAfterFrames) return;
+
+        _dumpDone = true;
+        try
+        {
+            using var image = surface.Snapshot();
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            if (data != null)
+            {
+                File.WriteAllBytes(_dumpPath, data.ToArray());
+                _logger.LogInformation("Dumped frame to {Path} ({Width}x{Height})",
+                    _dumpPath, _width, _height);
+            }
+        }
+        catch (Exception ex)
+        {
+            // 诊断功能失败不应影响渲染。
+            _logger.LogWarning(ex, "Failed to dump frame to {Path}", _dumpPath);
+        }
+    }
+
+    private readonly string? _dumpPath = Environment.GetEnvironmentVariable("MIKO_DUMP_FRAME");
+    private bool _dumpDone;
+    private int _dumpFrameCounter;
+    private const int DumpAfterFrames = 10;
 
     /// <summary>渲染线程：排空主线程投递的输入/缩放消息并转发给控制器。</summary>
     private void DrainMessages()

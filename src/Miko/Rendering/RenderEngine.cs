@@ -1020,7 +1020,8 @@ public class RenderEngine
         {
             for (float x = originX; x < endX; x += tileW)
             {
-                _painter!.DrawImage(bitmap, new RectF(x, y, tileW, tileH), tint);
+                // 平铺不吸附像素：逐块吸附原点却保持小数块尺寸会在块之间撕出亚像素白缝。
+                _painter!.DrawImage(bitmap, new RectF(x, y, tileW, tileH), tint, snapToPixels: false);
             }
         }
     }

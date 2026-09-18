@@ -871,9 +871,16 @@ public class Painter
     }
 
     /// <summary>
-    /// 绘制图片
+    /// 绘制图片。
     /// </summary>
-    public void DrawImage(SKBitmap bitmap, RectF rect, Color? tint = null)
+    /// <param name="snapToPixels">
+    /// 是否把绘制原点吸附到整数设备像素以避免半像素采样导致的整体模糊（见
+    /// <see cref="SnapToDevicePixels"/>）。单张图片（图标、<c>&lt;img&gt;</c>、头像）应当吸附。
+    /// <para><b>平铺的每一块必须传 false</b>：逐块吸附原点却保持小数块尺寸，会在相邻块之间
+    /// 撕出亚像素缝隙——实测 7.3px 的小 tile 上是一片肉眼可见的亮网格（缝隙像素 0 → 459）。
+    /// 平铺的相位由 <c>TileImage</c> 的连续步进决定，不能逐块改动。</para>
+    /// </param>
+    public void DrawImage(SKBitmap bitmap, RectF rect, Color? tint = null, bool snapToPixels = true)
     {
         if (bitmap == null) return;
 
@@ -890,8 +897,112 @@ public class Painter
             IsAntialias = true,
             ColorFilter = colorFilter
         };
-        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
-        _canvas.DrawImage(image, rect.ToSKRect(), sampling, paint);
+
+        var dst = snapToPixels ? SnapToDevicePixels(rect) : rect.ToSKRect();
+        var (ratioX, ratioY) = ScaleRatios(bitmap, dst);
+        _canvas.DrawImage(image, dst, SamplingFor(ratioX, ratioY), paint);
+    }
+
+    /// <summary>
+    /// 缩小超过该比例时改用 mipmap 抗走样。实测阈值（1px 条纹图案降采样的行方差）：
+    /// 缩小不超过 2 倍时 cubic 与 mipmap 抗走样等价，超过则 cubic 在非 2 的整数次幂比例上
+    /// 稳定出现摩尔纹。
+    /// </summary>
+    private const float MipmapDownscaleThreshold = 0.5f;
+
+    /// <summary>1:1 判定容差（亚像素级的浮点误差不应让图片脱离直通路径）。</summary>
+    private const float UnitScaleEpsilon = 0.002f;
+
+    /// <summary>
+    /// 按实际缩放比选择重采样方式。三段式，每一段的边界都有实测依据。
+    ///
+    /// <para><b>1:1</b>（<see cref="IsUnitScale"/>）用 <c>Nearest</c> 直通：此时正确行为是逐像素
+    /// 拷贝，任何滤波都是纯损失。ISSUE-137 之后背景 SVG 恰好按绘制的设备像素尺寸栅格化，
+    /// <b>1:1 是现在最常见的情形</b>，这一段的收益最大。注意不能用 Mitchell 兜住这段——它的
+    /// B 参数非零，无需重采样时也会滤波，实测 64→64 的边缘过渡像素从 190 涨到 347。</para>
+    ///
+    /// <para><b>其余放大与轻度缩小</b>（比例 ≥ <see cref="MipmapDownscaleThreshold"/>）用
+    /// CatmullRom cubic：B=0 意味着它在单位缩放附近不引入模糊，同时保留 cubic 的锐利边缘。
+    /// 此前一律用 <c>SKMipmapMode.Linear</c>，它会先把源图逐级减半到最近的 mip 层、再从该层
+    /// 线性插值到目标尺寸——又是一次二次重采样，方向与 ISSUE-137 相反（缩小侧）。</para>
+    ///
+    /// <para><b>大幅缩小</b>时必须保留 mipmap：cubic 的采样核只覆盖 4×4 源像素，落不到的高频
+    /// 内容会折叠成摩尔纹（1px 条纹缩到 1/10 时行方差 ~69，mipmap 为 0）。mipmap 的逐级减半
+    /// 恰好是在做面积平均，这正是它存在的意义。桌面上 512 的过采样头像画进 48 逻辑像素
+    /// （比例 0.094）走的就是这一段——它的模糊是抗走样的代价，不是缺陷。</para>
+    /// </summary>
+    internal static SKSamplingOptions SamplingFor(float ratioX, float ratioY)
+    {
+        if (IsUnitScale(ratioX, ratioY))
+            return new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.None);
+        // 抗走样按缩得更狠的那一轴决定：任一轴大幅缩小就会走样。
+        if (UsesMipmapForRatio(MathF.Min(ratioX, ratioY)))
+            return new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+        return new SKSamplingOptions(new SKCubicResampler(0f, 0.5f)); // CatmullRom
+    }
+
+    /// <summary>
+    /// 是否为 1:1 逐像素拷贝。<b>两轴都</b>必须是 1，否则图片被非等比拉伸，
+    /// 此时 <c>Nearest</c> 会出现块状锯齿——只取较小轴会把 64×64 画进 64×128 误判成 1:1。
+    /// </summary>
+    internal static bool IsUnitScale(float ratioX, float ratioY) =>
+        MathF.Abs(ratioX - 1f) <= UnitScaleEpsilon &&
+        MathF.Abs(ratioY - 1f) <= UnitScaleEpsilon;
+
+    /// <summary>
+    /// 给定缩放比是否走 mipmap（抗走样优先）而非 cubic（锐度优先）。
+    /// 暴露给测试直接锁定阈值契约，见 <see cref="SamplingFor"/> 的实测依据。
+    /// </summary>
+    internal static bool UsesMipmapForRatio(float downscaleRatio) =>
+        downscaleRatio < MipmapDownscaleThreshold;
+
+    /// <summary>
+    /// 目标矩形相对源位图的两轴缩放比，已计入画布的设备缩放：3× 画布上 512 的位图画进
+    /// 48 逻辑像素，实际只缩到 1/3.6 而非 1/10.7——采样器的选择必须按真实的设备像素比例来。
+    /// </summary>
+    private (float X, float Y) ScaleRatios(SKBitmap bitmap, SKRect deviceRect)
+    {
+        if (bitmap.Width <= 0 || bitmap.Height <= 0) return (1f, 1f);
+
+        float scale = DeviceScale;
+        float x = deviceRect.Width * scale / bitmap.Width;
+        float y = deviceRect.Height * scale / bitmap.Height;
+        return (Sane(x), Sane(y));
+
+        static float Sane(float v) => float.IsFinite(v) && v > 0 ? v : 1f;
+    }
+
+    /// <summary>
+    /// 把绘制矩形吸附到整数<b>设备</b>像素边界。
+    ///
+    /// <para>位图落在半像素位置时，每个源像素都要在两个目标像素之间插值，整幅图均匀变糊——
+    /// 实测同一图标偏移 0.5px，边缘梯度能量掉约 40%，过渡像素翻倍。图标盒尺寸来自
+    /// <c>font-size</c>（<c>.ion-icon</c> 是 <c>width: 1em</c>），<c>1.125rem = 18px</c> 这类值
+    /// 经 flex 居中很容易落在 x.5 上，因此这不是边缘情况。桌面宿主 1:1 渲染时全额暴露；
+    /// 高密度设备上被设备缩放稀释，但同样存在。</para>
+    ///
+    /// <para>在<b>设备</b>空间取整而非逻辑空间：3× 画布上逻辑 0.5px 恰好是 1.5 设备像素，
+    /// 按逻辑取整反而会引入偏移。仅平移吸附、不改变尺寸，避免图片被拉伸变形。
+    /// 存在旋转/倾斜时（矩形边不再与像素网格平行）跳过吸附——此时"整数像素"无意义。</para>
+    /// </summary>
+    private SKRect SnapToDevicePixels(RectF rect)
+    {
+        var r = rect.ToSKRect();
+        var m = _canvas.TotalMatrix;
+
+        // 有旋转/倾斜分量时不吸附。
+        if (MathF.Abs(m.SkewX) > 1e-4f || MathF.Abs(m.SkewY) > 1e-4f) return r;
+
+        float scaleX = m.ScaleX, scaleY = m.ScaleY;
+        if (!float.IsFinite(scaleX) || !float.IsFinite(scaleY) || scaleX == 0 || scaleY == 0) return r;
+
+        // 逻辑坐标 → 设备坐标 → 取整 → 回到逻辑坐标，尺寸保持不变。
+        float deviceLeft = r.Left * scaleX + m.TransX;
+        float deviceTop = r.Top * scaleY + m.TransY;
+        float dx = (MathF.Round(deviceLeft) - deviceLeft) / scaleX;
+        float dy = (MathF.Round(deviceTop) - deviceTop) / scaleY;
+
+        return new SKRect(r.Left + dx, r.Top + dy, r.Right + dx, r.Bottom + dy);
     }
 
     /// <summary>
