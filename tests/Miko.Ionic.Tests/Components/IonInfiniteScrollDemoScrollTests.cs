@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Hosting;
 using Miko.Ionic.Components;
@@ -44,51 +45,51 @@ public class IonInfiniteScrollDemoScrollTests : IDisposable
 
         protected override void BuildRenderTree(RenderTreeBuilder b)
         {
-            b.OpenComponent<IonPage>(0);
-            b.AddComponentParameter(1, nameof(IonPage.ChildContent), (RenderFragment)(page =>
+            var __c1 = b.OpenComponent<IonPage>();
+            __c1.ChildContent = (RenderFragment)(page =>
             {
-                page.OpenComponent<IonContent>(10);
-                page.AddComponentParameter(11, nameof(IonContent.Fullscreen), true);
-                page.AddComponentParameter(12, nameof(IonContent.ChildContent), (RenderFragment)(c =>
+                var __c3 = page.OpenComponent<IonContent>();
+                __c3.Fullscreen = true;
+                __c3.ChildContent = (RenderFragment)(c =>
                 {
-                    c.OpenComponent<IonList>(20);
-                    c.AddComponentParameter(21, nameof(IonList.ChildContent), (RenderFragment)(l =>
+                    var __c5 = c.OpenComponent<IonList>();
+                    __c5.ChildContent = (RenderFragment)(l =>
                     {
                         for (var i = 0; i < Rows; i++)
                         {
                             l.OpenComponent<IonItem>(1000 + i * 10);
                             l.AddComponentParameter(1001 + i * 10, nameof(IonItem.ChildContent), (RenderFragment)(item =>
                             {
-                                item.OpenComponent<IonLabel>(1);
-                                item.AddComponentParameter(2, nameof(IonLabel.ChildContent), (RenderFragment)(lab =>
+                                var __c7 = item.OpenComponent<IonLabel>();
+                                __c7.ChildContent = (RenderFragment)(lab =>
                                 {
-                                    lab.OpenElement(1, "h2");
-                                    lab.AddContent(2, "Name");
+                                    lab.OpenElement<H2Element>();
+                                    lab.AddContent("Name");
                                     lab.CloseElement();
-                                    lab.OpenElement(3, "p");
-                                    lab.AddContent(4, "Created");
+                                    lab.OpenElement<ParagraphElement>();
+                                    lab.AddContent("Created");
                                     lab.CloseElement();
-                                }));
+                                });
                                 item.CloseComponent();
                             }));
                             l.CloseComponent();
                         }
-                    }));
+                    });
                     c.CloseComponent();
 
-                    c.OpenComponent<IonInfiniteScroll>(9000);
-                    c.AddComponentParameter(9001, nameof(IonInfiniteScroll.Threshold), "100px");
-                    c.AddComponentParameter(9002, nameof(IonInfiniteScroll.ChildContent), (RenderFragment)(s =>
+                    var __c6 = c.OpenComponent<IonInfiniteScroll>();
+                    __c6.Threshold = "100px";
+                    __c6.ChildContent = (RenderFragment)(s =>
                     {
-                        s.OpenComponent<IonInfiniteScrollContent>(1);
-                        s.AddComponentParameter(2, nameof(IonInfiniteScrollContent.LoadingSpinner), "bubbles");
-                        s.AddComponentParameter(3, nameof(IonInfiniteScrollContent.LoadingText), "Loading more data...");
+                        var __c8 = s.OpenComponent<IonInfiniteScrollContent>();
+                        __c8.LoadingSpinner = "bubbles";
+                        __c8.LoadingText = "Loading more data...";
                         s.CloseComponent();
-                    }));
+                    });
                     c.CloseComponent();
-                }));
+                });
                 page.CloseComponent();
-            }));
+            });
             b.CloseComponent();
         }
     }
@@ -172,18 +173,18 @@ public class IonInfiniteScrollDemoScrollTests : IDisposable
     {
         protected override void BuildRenderTree(RenderTreeBuilder b)
         {
-            b.OpenComponent<IonPage>(0);
-            b.AddComponentParameter(1, nameof(IonPage.ChildContent), (RenderFragment)(page =>
+            var __c2 = b.OpenComponent<IonPage>();
+            __c2.ChildContent = (RenderFragment)(page =>
             {
-                page.OpenComponent<IonContent>(10);
-                page.AddComponentParameter(11, nameof(IonContent.ChildContent), (RenderFragment)(c =>
+                var __c4 = page.OpenComponent<IonContent>();
+                __c4.ChildContent = (RenderFragment)(c =>
                 {
-                    c.OpenElement(20, "p");
-                    c.AddContent(21, "A completely different page.");
+                    c.OpenElement<ParagraphElement>();
+                    c.AddContent("A completely different page.");
                     c.CloseElement();
-                }));
+                });
                 page.CloseComponent();
-            }));
+            });
             b.CloseComponent();
         }
     }

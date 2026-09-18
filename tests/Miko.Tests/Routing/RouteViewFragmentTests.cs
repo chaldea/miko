@@ -19,11 +19,11 @@ public class RouteViewFragmentTests
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddContent(1, "1");
+            builder.OpenElement<DivElement>();
+            builder.AddContent("1");
             builder.CloseElement();
-            builder.OpenElement(2, "div");
-            builder.AddContent(3, "2");
+            builder.OpenElement<DivElement>();
+            builder.AddContent("2");
             builder.CloseElement();
         }
     }
@@ -33,8 +33,8 @@ public class RouteViewFragmentTests
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "page");
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = "page";
             builder.CloseElement();
         }
     }
@@ -44,8 +44,8 @@ public class RouteViewFragmentTests
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "root");
+            var __e2 = builder.OpenElement<DivElement>();
+            __e2.Class = "root";
             Body?.Invoke(builder);
             builder.CloseElement();
         }

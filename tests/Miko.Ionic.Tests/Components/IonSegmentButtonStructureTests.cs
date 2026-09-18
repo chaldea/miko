@@ -34,9 +34,9 @@ public class IonSegmentButtonStructureTests
             p.Add(nameof(IonSegmentButton.Value), "a");
             p.AddChildContent(b =>
             {
-                b.OpenComponent<IonLabel>(0);
-                b.AddComponentParameter(1, nameof(IonLabel.ChildContent),
-                    (RenderFragment)(l => l.AddContent(0, "All")));
+                var __c1 = b.OpenComponent<IonLabel>();
+                __c1.ChildContent = 
+                    (RenderFragment)(l => l.AddContent("All"));
                 b.CloseComponent();
             });
         });

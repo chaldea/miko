@@ -1,3 +1,4 @@
+using Miko.Core.DomElements;
 using Miko.Testing;
 using Miko.Ionic.Components;
 using Miko.Components;
@@ -9,8 +10,8 @@ public class IonSlideTests : IonicComponentTestBase
 {
     private static readonly RenderFragment TextChild = builder =>
     {
-        builder.OpenElement(0, "span");
-        builder.AddContent(1, "Slide 1");
+        builder.OpenElement<SpanElement>();
+        builder.AddContent("Slide 1");
         builder.CloseElement();
     };
 

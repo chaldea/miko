@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Hosting;
 using Miko.Ionic;
@@ -209,19 +210,19 @@ public class IonSegmentScrollableTests : IDisposable
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "debug-root");
-            builder.AddAttribute(2, "style", new Style
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = "debug-root";
+            __e1.Style = new Style
             {
                 Width = Length.Percent(100),
                 Height = Length.Px(60),
                 Padding = new Padding(Length.Px(20), Length.Px(20)),
-            });
-            builder.OpenComponent<IonSegment>(3);
-            builder.AddComponentParameter(4, nameof(IonSegment.Value), "call");
-            builder.AddComponentParameter(5, nameof(IonSegment.Color), "success");
-            builder.AddComponentParameter(6, nameof(IonSegment.Scrollable), true);
-            builder.AddComponentParameter(7, nameof(IonSegment.ChildContent), (RenderFragment)(content =>
+            };
+            var __c2 = builder.OpenComponent<IonSegment>();
+            __c2.Value = "call";
+            __c2.Color = "success";
+            __c2.Scrollable = true;
+            __c2.ChildContent = (RenderFragment)(content =>
             {
                 var sequence = 0;
                 foreach (var value in Values)
@@ -232,13 +233,13 @@ public class IonSegmentScrollableTests : IDisposable
                     content.AddComponentParameter(sequence++, nameof(IonSegmentButton.ChildContent),
                         (RenderFragment)(icon =>
                         {
-                            icon.OpenComponent<IonIcon>(0);
-                            icon.AddComponentParameter(1, nameof(IonIcon.Icon), Ionicons.Call);
+                            var __c3 = icon.OpenComponent<IonIcon>();
+                            __c3.Icon = Ionicons.Call;
                             icon.CloseComponent();
                         }));
                     content.CloseComponent();
                 }
-            }));
+            });
             builder.CloseComponent();
             builder.CloseElement();
         }

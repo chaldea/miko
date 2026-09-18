@@ -41,32 +41,32 @@ public class IonHeaderTests : IonicComponentTestBase
 
         var cut = Context.Render<IonPage>(page => page.AddChildContent(pageBuilder =>
         {
-            pageBuilder.OpenComponent<IonTabs>(0);
-            pageBuilder.AddComponentParameter(1, nameof(IonTabs.Content), (RenderFragment)(tabsContent =>
+            var __c1 = pageBuilder.OpenComponent<IonTabs>();
+            __c1.Content = (RenderFragment)(tabsContent =>
             {
-                tabsContent.OpenComponent<IonHeader>(0);
-                tabsContent.AddComponentParameter(1, nameof(IonHeader.ChildContent), (RenderFragment)(header =>
+                var __c2 = tabsContent.OpenComponent<IonHeader>();
+                __c2.ChildContent = (RenderFragment)(header =>
                 {
-                    header.OpenComponent<IonToolbar>(0);
-                    header.AddComponentParameter(1, nameof(IonToolbar.ChildContent), (RenderFragment)(toolbar =>
+                    var __c3 = header.OpenComponent<IonToolbar>();
+                    __c3.ChildContent = (RenderFragment)(toolbar =>
                     {
-                        toolbar.OpenComponent<IonTitle>(0);
-                        toolbar.AddComponentParameter(1, nameof(IonTitle.ChildContent),
-                            (RenderFragment)(title => title.AddContent(0, "Music")));
+                        var __c4 = toolbar.OpenComponent<IonTitle>();
+                        __c4.ChildContent = 
+                            (RenderFragment)(title => title.AddContent("Music"));
                         toolbar.CloseComponent();
-                    }));
+                    });
                     header.CloseComponent();
-                }));
+                });
                 tabsContent.CloseComponent();
 
-                tabsContent.OpenComponent<IonContent>(2);
+                tabsContent.OpenComponent<IonContent>();
                 tabsContent.CloseComponent();
-            }));
-            pageBuilder.AddComponentParameter(2, nameof(IonTabs.Bottom), (RenderFragment)(tabsBar =>
+            });
+            __c1.Bottom = (RenderFragment)(tabsBar =>
             {
-                tabsBar.OpenComponent<IonTabBar>(0);
+                tabsBar.OpenComponent<IonTabBar>();
                 tabsBar.CloseComponent();
-            }));
+            });
             pageBuilder.CloseComponent();
         }));
 

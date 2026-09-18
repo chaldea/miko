@@ -21,9 +21,9 @@ public class ImageElementTests
     public void RenderTreeBuilder_ImgTag_BuildsImageElement()
     {
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "img");
-        builder.AddAttribute(1, "src", "https://x/a.png");
-        builder.AddAttribute(2, "placeholder", "res://Assets/spinner.png");
+        var __e1 = builder.OpenElement<ImageElement>();
+        __e1.Source = "https://x/a.png";
+        __e1.Placeholder = "res://Assets/spinner.png";
         builder.CloseElement();
 
         var root = builder.Build();

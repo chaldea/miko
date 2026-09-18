@@ -1,3 +1,4 @@
+using Miko.Core.DomElements;
 using Miko.Testing;
 using Miko.Ionic.Components;
 using Miko.Components;
@@ -10,7 +11,7 @@ public class IonAvatarTests : IonicComponentTestBase
 {
     private static readonly RenderFragment MinimalChild = builder =>
     {
-        builder.OpenElement(0, "span");
+        builder.OpenElement<SpanElement>();
         builder.CloseElement();
     };
 
@@ -47,8 +48,8 @@ public class IonAvatarTests : IonicComponentTestBase
         var cut = Context.Render<IonAvatar>(parameters =>
             parameters.Add(nameof(IonAvatar.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "img");
-                builder.AddAttribute(1, "src", "https://example.com/avatar.svg");
+                var __e1 = builder.OpenElement<ImageElement>();
+                __e1.Source = "https://example.com/avatar.svg";
                 builder.CloseElement();
             })));
 
@@ -148,7 +149,7 @@ public class IonAvatarTests : IonicComponentTestBase
         var cut = Context.Render<IonAvatar>(parameters =>
             parameters.Add(nameof(IonAvatar.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "img");
+                builder.OpenElement<ImageElement>();
                 builder.CloseElement();
             })));
 
@@ -174,7 +175,7 @@ public class IonAvatarTests : IonicComponentTestBase
         var cut = Context.Render<IonAvatar>(parameters =>
             parameters.Add(nameof(IonAvatar.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "img");
+                builder.OpenElement<ImageElement>();
                 builder.CloseElement();
             })));
 
@@ -224,17 +225,17 @@ public class IonAvatarTests : IonicComponentTestBase
         var cut = Context.Render<IonItem>(parameters => parameters
             .Add(nameof(IonItem.Start), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonAvatar>(0);
-                builder.AddAttribute(1, nameof(IonAvatar.ChildContent), MinimalChild);
+                var __c5 = builder.OpenComponent<IonAvatar>();
+                __c5.ChildContent = MinimalChild;
                 builder.CloseComponent();
             }))
             .Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonLabel>(0);
-                builder.AddAttribute(1, nameof(IonLabel.ChildContent), (RenderFragment)(b =>
+                var __c6 = builder.OpenComponent<IonLabel>();
+                __c6.ChildContent = (RenderFragment)(b =>
                 {
-                    b.AddContent(0, "Item Avatar");
-                }));
+                    b.AddContent("Item Avatar");
+                });
                 builder.CloseComponent();
             })));
 
@@ -258,17 +259,17 @@ public class IonAvatarTests : IonicComponentTestBase
         var cut = Context.Render<IonItem>(parameters => parameters
             .Add(nameof(IonItem.Start), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonAvatar>(0);
-                builder.AddAttribute(1, nameof(IonAvatar.ChildContent), MinimalChild);
+                var __c7 = builder.OpenComponent<IonAvatar>();
+                __c7.ChildContent = MinimalChild;
                 builder.CloseComponent();
             }))
             .Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonLabel>(0);
-                builder.AddAttribute(1, nameof(IonLabel.ChildContent), (RenderFragment)(b =>
+                var __c8 = builder.OpenComponent<IonLabel>();
+                __c8.ChildContent = (RenderFragment)(b =>
                 {
-                    b.AddContent(0, "Item Avatar");
-                }));
+                    b.AddContent("Item Avatar");
+                });
                 builder.CloseComponent();
             })));
 
@@ -291,17 +292,17 @@ public class IonAvatarTests : IonicComponentTestBase
         var cut = Context.Render<IonItem>(parameters => parameters
             .Add(nameof(IonItem.Start), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonAvatar>(0);
-                builder.AddAttribute(1, nameof(IonAvatar.ChildContent), MinimalChild);
+                var __c9 = builder.OpenComponent<IonAvatar>();
+                __c9.ChildContent = MinimalChild;
                 builder.CloseComponent();
             }))
             .Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonLabel>(0);
-                builder.AddAttribute(1, nameof(IonLabel.ChildContent), (RenderFragment)(b =>
+                var __c10 = builder.OpenComponent<IonLabel>();
+                __c10.ChildContent = (RenderFragment)(b =>
                 {
-                    b.AddContent(0, "Item Avatar");
-                }));
+                    b.AddContent("Item Avatar");
+                });
                 builder.CloseComponent();
             })));
 

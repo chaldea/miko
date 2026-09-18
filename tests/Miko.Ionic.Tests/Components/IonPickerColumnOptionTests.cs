@@ -24,7 +24,7 @@ public class IonPickerColumnOptionTests : IonicComponentTestBase
         var cut = Context.Render<IonPickerColumnOption>(p =>
         {
             p.Add(nameof(IonPickerColumnOption.Value), "javascript");
-            p.Add(nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(b => b.AddContent(0, "Javascript")));
+            p.Add(nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(b => b.AddContent("Javascript")));
         });
 
         // The host is the clickable native <button>.
@@ -42,13 +42,13 @@ public class IonPickerColumnOptionTests : IonicComponentTestBase
             p.Add(nameof(IonPickerColumn.Value), "javascript");
             p.Add(nameof(IonPickerColumn.ChildContent), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonPickerColumnOption>(0);
-                b.AddComponentParameter(1, nameof(IonPickerColumnOption.Value), "javascript");
-                b.AddComponentParameter(2, nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(bb => bb.AddContent(0, "Javascript")));
+                var __c1 = b.OpenComponent<IonPickerColumnOption>();
+                __c1.Value = "javascript";
+                __c1.ChildContent = (RenderFragment)(bb => bb.AddContent("Javascript"));
                 b.CloseComponent();
-                b.OpenComponent<IonPickerColumnOption>(3);
-                b.AddComponentParameter(4, nameof(IonPickerColumnOption.Value), "typescript");
-                b.AddComponentParameter(5, nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(bb => bb.AddContent(0, "Typescript")));
+                var __c2 = b.OpenComponent<IonPickerColumnOption>();
+                __c2.Value = "typescript";
+                __c2.ChildContent = (RenderFragment)(bb => bb.AddContent("Typescript"));
                 b.CloseComponent();
             }));
         });
@@ -70,9 +70,9 @@ public class IonPickerColumnOptionTests : IonicComponentTestBase
                 EventCallback.Factory.Create<string>(this, v => changed = v));
             p.Add(nameof(IonPickerColumn.ChildContent), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonPickerColumnOption>(0);
-                b.AddComponentParameter(1, nameof(IonPickerColumnOption.Value), "typescript");
-                b.AddComponentParameter(2, nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(bb => bb.AddContent(0, "Typescript")));
+                var __c3 = b.OpenComponent<IonPickerColumnOption>();
+                __c3.Value = "typescript";
+                __c3.ChildContent = (RenderFragment)(bb => bb.AddContent("Typescript"));
                 b.CloseComponent();
             }));
         });
@@ -93,10 +93,10 @@ public class IonPickerColumnOptionTests : IonicComponentTestBase
                 EventCallback.Factory.Create<string>(this, v => changed = v));
             p.Add(nameof(IonPickerColumn.ChildContent), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonPickerColumnOption>(0);
-                b.AddComponentParameter(1, nameof(IonPickerColumnOption.Value), "typescript");
-                b.AddComponentParameter(2, nameof(IonPickerColumnOption.Disabled), true);
-                b.AddComponentParameter(3, nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(bb => bb.AddContent(0, "Typescript")));
+                var __c4 = b.OpenComponent<IonPickerColumnOption>();
+                __c4.Value = "typescript";
+                __c4.Disabled = true;
+                __c4.ChildContent = (RenderFragment)(bb => bb.AddContent("Typescript"));
                 b.CloseComponent();
             }));
         });
@@ -119,9 +119,9 @@ public class IonPickerColumnOptionTests : IonicComponentTestBase
                 EventCallback.Factory.Create<string>(this, v => changed = v));
             p.Add(nameof(IonPickerColumn.ChildContent), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonPickerColumnOption>(0);
-                b.AddComponentParameter(1, nameof(IonPickerColumnOption.Value), "typescript");
-                b.AddComponentParameter(2, nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(bb => bb.AddContent(0, "Typescript")));
+                var __c5 = b.OpenComponent<IonPickerColumnOption>();
+                __c5.Value = "typescript";
+                __c5.ChildContent = (RenderFragment)(bb => bb.AddContent("Typescript"));
                 b.CloseComponent();
             }));
         });
@@ -142,7 +142,7 @@ public class IonPickerColumnOptionTests : IonicComponentTestBase
         var cut = Context.Render<IonPickerColumnOption>(p =>
         {
             p.Add(nameof(IonPickerColumnOption.Value), "javascript");
-            p.Add(nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(b => b.AddContent(0, "Javascript")));
+            p.Add(nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(b => b.AddContent("Javascript")));
         });
 
         cut.Root.Class.ShouldStartWith("ios ion-picker-column-option");
@@ -160,13 +160,13 @@ public class IonPickerColumnOptionTests : IonicComponentTestBase
             p.Add(nameof(IonPickerColumn.Value), "javascript");
             p.Add(nameof(IonPickerColumn.ChildContent), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonPickerColumnOption>(0);
-                b.AddComponentParameter(1, nameof(IonPickerColumnOption.Value), "javascript");
-                b.AddComponentParameter(2, nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(bb => bb.AddContent(0, "Javascript")));
+                var __c6 = b.OpenComponent<IonPickerColumnOption>();
+                __c6.Value = "javascript";
+                __c6.ChildContent = (RenderFragment)(bb => bb.AddContent("Javascript"));
                 b.CloseComponent();
-                b.OpenComponent<IonPickerColumnOption>(3);
-                b.AddComponentParameter(4, nameof(IonPickerColumnOption.Value), "typescript");
-                b.AddComponentParameter(5, nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(bb => bb.AddContent(0, "Typescript")));
+                var __c7 = b.OpenComponent<IonPickerColumnOption>();
+                __c7.Value = "typescript";
+                __c7.ChildContent = (RenderFragment)(bb => bb.AddContent("Typescript"));
                 b.CloseComponent();
             }));
         });

@@ -81,17 +81,17 @@ public sealed class IonModalController : IonOverlayControllerBase
     public Task<IonOverlayReference> CreateAsync(IonModalOptions options)
         => Task.FromResult(CreateReference("modal", overlay => builder =>
         {
-            builder.OpenComponent<IonModal>(0);
-            builder.AddComponentParameter(1, nameof(IonModal.IsOpen), overlay.IsOpen);
-            builder.AddComponentParameter(2, nameof(IonModal.BackdropDismiss), options.BackdropDismiss);
-            builder.AddComponentParameter(3, nameof(IonModal.ShowBackdrop), options.ShowBackdrop);
-            builder.AddComponentParameter(4, nameof(IonModal.Class), options.CssClass);
-            builder.AddComponentParameter(5, nameof(IonModal.Presenting), options.Presenting);
-            builder.AddComponentParameter(6, nameof(IonModal.Breakpoints), options.Breakpoints);
-            builder.AddComponentParameter(7, nameof(IonModal.InitialBreakpoint), options.InitialBreakpoint);
-            builder.AddComponentParameter(8, nameof(IonModal.Handle), options.Handle);
-            builder.AddComponentParameter(9, nameof(IonModal.OnDidDismiss), DismissCallback(overlay));
-            builder.AddComponentParameter(10, nameof(IonModal.ChildContent), BuildModalContent(options));
+            var __c1 = builder.OpenComponent<IonModal>();
+            __c1.IsOpen = overlay.IsOpen;
+            __c1.BackdropDismiss = options.BackdropDismiss;
+            __c1.ShowBackdrop = options.ShowBackdrop;
+            __c1.Class = options.CssClass;
+            __c1.Presenting = options.Presenting;
+            __c1.Breakpoints = options.Breakpoints;
+            __c1.InitialBreakpoint = options.InitialBreakpoint;
+            __c1.Handle = options.Handle;
+            __c1.OnDidDismiss = DismissCallback(overlay);
+            __c1.ChildContent = BuildModalContent(options);
             builder.CloseComponent();
         }));
 
@@ -136,18 +136,18 @@ public sealed class IonAlertController : IonOverlayControllerBase
     public Task<IonOverlayReference> CreateAsync(IonAlertOptions options)
         => Task.FromResult(CreateReference("alert", overlay => builder =>
         {
-            builder.OpenComponent<IonAlert>(0);
-            builder.AddComponentParameter(1, nameof(IonAlert.IsOpen), overlay.IsOpen);
-            builder.AddComponentParameter(2, nameof(IonAlert.Header), options.Header);
-            builder.AddComponentParameter(3, nameof(IonAlert.SubHeader), options.SubHeader);
-            builder.AddComponentParameter(4, nameof(IonAlert.Message), options.Message);
-            builder.AddComponentParameter(5, nameof(IonAlert.Buttons), options.Buttons);
-            builder.AddComponentParameter(6, nameof(IonAlert.Inputs), options.Inputs);
-            builder.AddComponentParameter(7, nameof(IonAlert.BackdropDismiss), options.BackdropDismiss);
-            builder.AddComponentParameter(8, nameof(IonAlert.Class), options.CssClass);
-            builder.AddComponentParameter(9, nameof(IonAlert.OnDidDismiss),
+            var __c2 = builder.OpenComponent<IonAlert>();
+            __c2.IsOpen = overlay.IsOpen;
+            __c2.Header = options.Header;
+            __c2.SubHeader = options.SubHeader;
+            __c2.Message = options.Message;
+            __c2.Buttons = options.Buttons;
+            __c2.Inputs = options.Inputs;
+            __c2.BackdropDismiss = options.BackdropDismiss;
+            __c2.Class = options.CssClass;
+            __c2.OnDidDismiss = 
                 EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this,
-                    args => CompleteDismissAsync(overlay, args)));
+                    args => CompleteDismissAsync(overlay, args));
             builder.CloseComponent();
         }));
 }
@@ -159,16 +159,16 @@ public sealed class IonActionSheetController : IonOverlayControllerBase
     public Task<IonOverlayReference> CreateAsync(IonActionSheetOptions options)
         => Task.FromResult(CreateReference("action-sheet", overlay => builder =>
         {
-            builder.OpenComponent<IonActionSheet>(0);
-            builder.AddComponentParameter(1, nameof(IonActionSheet.IsOpen), overlay.IsOpen);
-            builder.AddComponentParameter(2, nameof(IonActionSheet.Header), options.Header);
-            builder.AddComponentParameter(3, nameof(IonActionSheet.SubHeader), options.SubHeader);
-            builder.AddComponentParameter(4, nameof(IonActionSheet.Buttons), options.Buttons);
-            builder.AddComponentParameter(5, nameof(IonActionSheet.BackdropDismiss), options.BackdropDismiss);
-            builder.AddComponentParameter(6, nameof(IonActionSheet.Class), options.CssClass);
-            builder.AddComponentParameter(7, nameof(IonActionSheet.OnDidDismiss),
+            var __c3 = builder.OpenComponent<IonActionSheet>();
+            __c3.IsOpen = overlay.IsOpen;
+            __c3.Header = options.Header;
+            __c3.SubHeader = options.SubHeader;
+            __c3.Buttons = options.Buttons;
+            __c3.BackdropDismiss = options.BackdropDismiss;
+            __c3.Class = options.CssClass;
+            __c3.OnDidDismiss = 
                 EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this,
-                    args => CompleteDismissAsync(overlay, args)));
+                    args => CompleteDismissAsync(overlay, args));
             builder.CloseComponent();
         }));
 }
@@ -180,17 +180,17 @@ public sealed class IonLoadingController : IonOverlayControllerBase
     public Task<IonOverlayReference> CreateAsync(IonLoadingOptions options)
         => Task.FromResult(CreateReference("loading", overlay => builder =>
         {
-            builder.OpenComponent<IonLoading>(0);
-            builder.AddComponentParameter(1, nameof(IonLoading.IsOpen), overlay.IsOpen);
-            builder.AddComponentParameter(2, nameof(IonLoading.Message), options.Message);
-            builder.AddComponentParameter(3, nameof(IonLoading.Spinner), options.Spinner);
-            builder.AddComponentParameter(4, nameof(IonLoading.Duration), options.Duration);
-            builder.AddComponentParameter(5, nameof(IonLoading.BackdropDismiss), options.BackdropDismiss);
-            builder.AddComponentParameter(6, nameof(IonLoading.ShowBackdrop), options.ShowBackdrop);
-            builder.AddComponentParameter(7, nameof(IonLoading.Class), options.CssClass);
-            builder.AddComponentParameter(8, nameof(IonLoading.OnDidDismiss),
+            var __c4 = builder.OpenComponent<IonLoading>();
+            __c4.IsOpen = overlay.IsOpen;
+            __c4.Message = options.Message;
+            __c4.Spinner = options.Spinner;
+            __c4.Duration = options.Duration;
+            __c4.BackdropDismiss = options.BackdropDismiss;
+            __c4.ShowBackdrop = options.ShowBackdrop;
+            __c4.Class = options.CssClass;
+            __c4.OnDidDismiss = 
                 EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this,
-                    args => CompleteDismissAsync(overlay, args)));
+                    args => CompleteDismissAsync(overlay, args));
             builder.CloseComponent();
         }));
 }
@@ -202,20 +202,20 @@ public sealed class IonPopoverController : IonOverlayControllerBase
     public Task<IonOverlayReference> CreateAsync(IonPopoverOptions options)
         => Task.FromResult(CreateReference("popover", overlay => builder =>
         {
-            builder.OpenComponent<IonPopover>(0);
-            builder.AddComponentParameter(1, nameof(IonPopover.IsOpen), overlay.IsOpen);
-            builder.AddComponentParameter(2, nameof(IonPopover.Event), options.Event);
-            builder.AddComponentParameter(3, nameof(IonPopover.BackdropDismiss), options.BackdropDismiss);
-            builder.AddComponentParameter(4, nameof(IonPopover.ShowBackdrop), options.ShowBackdrop);
-            builder.AddComponentParameter(5, nameof(IonPopover.Side), options.Side);
-            builder.AddComponentParameter(6, nameof(IonPopover.Alignment), options.Alignment);
-            builder.AddComponentParameter(7, nameof(IonPopover.Arrow), options.Arrow);
-            builder.AddComponentParameter(8, nameof(IonPopover.Translucent), options.Translucent);
-            builder.AddComponentParameter(9, nameof(IonPopover.Class), options.CssClass);
-            builder.AddComponentParameter(10, nameof(IonPopover.ChildContent), options.Content);
-            builder.AddComponentParameter(11, nameof(IonPopover.OnDidDismiss),
+            var __c5 = builder.OpenComponent<IonPopover>();
+            __c5.IsOpen = overlay.IsOpen;
+            __c5.Event = options.Event;
+            __c5.BackdropDismiss = options.BackdropDismiss;
+            __c5.ShowBackdrop = options.ShowBackdrop;
+            __c5.Side = options.Side;
+            __c5.Alignment = options.Alignment;
+            __c5.Arrow = options.Arrow;
+            __c5.Translucent = options.Translucent;
+            __c5.Class = options.CssClass;
+            __c5.ChildContent = options.Content;
+            __c5.OnDidDismiss = 
                 EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this,
-                    args => CompleteDismissAsync(overlay, args)));
+                    args => CompleteDismissAsync(overlay, args));
             builder.CloseComponent();
         }));
 }
@@ -227,19 +227,19 @@ public sealed class IonToastController : IonOverlayControllerBase
     public Task<IonOverlayReference> CreateAsync(IonToastOptions options)
         => Task.FromResult(CreateReference("toast", overlay => builder =>
         {
-            builder.OpenComponent<IonToast>(0);
-            builder.AddComponentParameter(1, nameof(IonToast.IsOpen), overlay.IsOpen);
-            builder.AddComponentParameter(2, nameof(IonToast.Header), options.Header);
-            builder.AddComponentParameter(3, nameof(IonToast.Message), options.Message);
-            builder.AddComponentParameter(4, nameof(IonToast.Position), options.Position);
-            builder.AddComponentParameter(5, nameof(IonToast.Icon), options.Icon);
-            builder.AddComponentParameter(6, nameof(IonToast.Color), options.Color);
-            builder.AddComponentParameter(7, nameof(IonToast.Buttons), options.Buttons);
-            builder.AddComponentParameter(8, nameof(IonToast.Duration), options.Duration);
-            builder.AddComponentParameter(9, nameof(IonToast.Class), options.CssClass);
-            builder.AddComponentParameter(10, nameof(IonToast.OnDidDismiss),
+            var __c6 = builder.OpenComponent<IonToast>();
+            __c6.IsOpen = overlay.IsOpen;
+            __c6.Header = options.Header;
+            __c6.Message = options.Message;
+            __c6.Position = options.Position;
+            __c6.Icon = options.Icon;
+            __c6.Color = options.Color;
+            __c6.Buttons = options.Buttons;
+            __c6.Duration = options.Duration;
+            __c6.Class = options.CssClass;
+            __c6.OnDidDismiss = 
                 EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this,
-                    args => CompleteDismissAsync(overlay, args)));
+                    args => CompleteDismissAsync(overlay, args));
             builder.CloseComponent();
         }));
 }

@@ -59,47 +59,47 @@ public class IonSearchbarEventTests : IDisposable
 
         protected override void BuildRenderTree(Miko.Components.RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonApp>(0);
-            builder.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b =>
+            var __c2 = builder.OpenComponent<IonApp>();
+            __c2.ChildContent = (Miko.Components.RenderFragment)(b =>
             {
-                b.OpenComponent<IonPage>(0);
-                b.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b2 =>
+                var __c3 = b.OpenComponent<IonPage>();
+                __c3.ChildContent = (Miko.Components.RenderFragment)(b2 =>
                 {
-                    b2.OpenComponent<IonContent>(0);
-                    b2.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(BuildSearchbar));
+                    var __c1 = b2.OpenComponent<IonContent>();
+                    __c1.ChildContent = (Miko.Components.RenderFragment)(BuildSearchbar);
                     b2.CloseComponent();
-                }));
+                });
                 b.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
 
         private void BuildSearchbar(Miko.Components.RenderTreeBuilder b)
         {
-            b.OpenComponent<IonSearchbar>(0);
+            var __c4 = b.OpenComponent<IonSearchbar>();
             if (BindValue)
             {
-                b.AddAttribute(1, nameof(IonSearchbar.Value), Bound);
-                b.AddAttribute(2, nameof(IonSearchbar.ValueChanged),
-                    Miko.Components.EventCallback.Factory.Create<string?>(this, v => Bound = v));
+                __c4.Value = Bound;
+                __c4.ValueChanged = 
+                    Miko.Components.EventCallback.Factory.Create<string?>(this, v => Bound = v);
             }
             if (ShowClearButton is not null)
-                b.AddAttribute(3, nameof(IonSearchbar.ShowClearButton), ShowClearButton);
+                __c4.ShowClearButton = ShowClearButton;
             if (ShowCancelButton is not null)
-                b.AddAttribute(4, nameof(IonSearchbar.ShowCancelButton), ShowCancelButton);
+                __c4.ShowCancelButton = ShowCancelButton;
 
-            b.AddAttribute(5, nameof(IonSearchbar.OnInput),
-                Miko.Components.EventCallback.Factory.Create<string?>(this, v => InputEvents.Add(v)));
-            b.AddAttribute(6, nameof(IonSearchbar.OnChange),
-                Miko.Components.EventCallback.Factory.Create<string?>(this, v => ChangeEvents.Add(v)));
-            b.AddAttribute(7, nameof(IonSearchbar.OnClear),
-                Miko.Components.EventCallback.Factory.Create(this, () => ClearCount++));
-            b.AddAttribute(8, nameof(IonSearchbar.OnCancel),
-                Miko.Components.EventCallback.Factory.Create(this, () => CancelCount++));
-            b.AddAttribute(9, nameof(IonSearchbar.OnFocus),
-                Miko.Components.EventCallback.Factory.Create(this, () => FocusCount++));
-            b.AddAttribute(10, nameof(IonSearchbar.OnBlur),
-                Miko.Components.EventCallback.Factory.Create(this, () => BlurCount++));
+            __c4.OnInput = 
+                Miko.Components.EventCallback.Factory.Create<string?>(this, v => InputEvents.Add(v));
+            __c4.OnChange = 
+                Miko.Components.EventCallback.Factory.Create<string?>(this, v => ChangeEvents.Add(v));
+            __c4.OnClear = 
+                Miko.Components.EventCallback.Factory.Create(this, () => ClearCount++);
+            __c4.OnCancel = 
+                Miko.Components.EventCallback.Factory.Create(this, () => CancelCount++);
+            __c4.OnFocus = 
+                Miko.Components.EventCallback.Factory.Create(this, () => FocusCount++);
+            __c4.OnBlur = 
+                Miko.Components.EventCallback.Factory.Create(this, () => BlurCount++);
             b.CloseComponent();
         }
     }

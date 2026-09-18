@@ -12,14 +12,14 @@ public class IonItemTests : IonicComponentTestBase
 {
     private static readonly RenderFragment Label = builder =>
     {
-        builder.OpenComponent<IonLabel>(0);
-        builder.AddAttribute(1, nameof(IonLabel.ChildContent), (RenderFragment)(b => b.AddContent(0, "Basic Item")));
+        var __c1 = builder.OpenComponent<IonLabel>();
+        __c1.ChildContent = (RenderFragment)(b => b.AddContent("Basic Item"));
         builder.CloseComponent();
     };
 
     private static readonly RenderFragment Icon = builder =>
     {
-        builder.OpenComponent<IonIcon>(0);
+        builder.OpenComponent<IonIcon>();
         builder.CloseComponent();
     };
 
@@ -37,7 +37,7 @@ public class IonItemTests : IonicComponentTestBase
             builder.AddComponentParameter(seq++, nameof(IonButton.Start), start);
         }
         builder.AddComponentParameter(seq++, nameof(IonButton.ChildContent),
-            (RenderFragment)(b => b.AddContent(0, "OK")));
+            (RenderFragment)(b => b.AddContent("OK")));
         builder.CloseComponent();
     };
 
@@ -252,8 +252,8 @@ public class IonItemTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonItem>(parameters =>
         {
-            parameters.Add(nameof(IonItem.Start), (RenderFragment)(b => b.AddContent(0, "S")));
-            parameters.Add(nameof(IonItem.End), (RenderFragment)(b => b.AddContent(0, "E")));
+            parameters.Add(nameof(IonItem.Start), (RenderFragment)(b => b.AddContent("S")));
+            parameters.Add(nameof(IonItem.End), (RenderFragment)(b => b.AddContent("E")));
             parameters.Add(nameof(IonItem.ChildContent), Label);
         });
 
@@ -417,7 +417,7 @@ public class IonItemTests : IonicComponentTestBase
         var cut = Context.Render<IonItem>(parameters =>
         {
             parameters.Add(nameof(IonItem.End), Label);
-            parameters.Add(nameof(IonItem.ChildContent), (RenderFragment)(b => b.AddContent(0, "Item")));
+            parameters.Add(nameof(IonItem.ChildContent), (RenderFragment)(b => b.AddContent("Item")));
         });
 
         // The flex rule mirrors :not([slot="end"]) — a label in the end slot is excluded.
@@ -471,7 +471,7 @@ public class IonItemTests : IonicComponentTestBase
         {
             parameters.Add(nameof(IonItem.Start), Label);
             parameters.Add(nameof(IonItem.End), Label);
-            parameters.Add(nameof(IonItem.ChildContent), (RenderFragment)(b => b.AddContent(0, "Item")));
+            parameters.Add(nameof(IonItem.ChildContent), (RenderFragment)(b => b.AddContent("Item")));
         });
 
         // ::slotted(ion-label) is not slot-scoped — labels in the named slots get the same
@@ -914,7 +914,7 @@ public class IonItemTests : IonicComponentTestBase
         {
             parameters.Add(nameof(IonItem.Start), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonAvatar>(0);
+                builder.OpenComponent<IonAvatar>();
                 builder.CloseComponent();
             }));
             parameters.Add(nameof(IonItem.ChildContent), Label);

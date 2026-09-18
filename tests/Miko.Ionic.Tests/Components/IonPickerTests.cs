@@ -18,15 +18,15 @@ public class IonPickerTests : IonicComponentTestBase
     // A single picker column with a couple of options.
     private static RenderFragment Column(string value) => builder =>
     {
-        builder.OpenComponent<IonPickerColumn>(0);
-        builder.AddComponentParameter(1, nameof(IonPickerColumn.Value), value);
-        builder.AddComponentParameter(2, nameof(IonPickerColumn.ChildContent), (RenderFragment)(b =>
+        var __c1 = builder.OpenComponent<IonPickerColumn>();
+        __c1.Value = value;
+        __c1.ChildContent = (RenderFragment)(b =>
         {
-            b.OpenComponent<IonPickerColumnOption>(0);
-            b.AddComponentParameter(1, nameof(IonPickerColumnOption.Value), value);
-            b.AddComponentParameter(2, nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(bb => bb.AddContent(0, value)));
+            var __c3 = b.OpenComponent<IonPickerColumnOption>();
+            __c3.Value = value;
+            __c3.ChildContent = (RenderFragment)(bb => bb.AddContent(0, value));
             b.CloseComponent();
-        }));
+        });
         builder.CloseComponent();
     };
 
@@ -41,9 +41,9 @@ public class IonPickerTests : IonicComponentTestBase
             builder.AddComponentParameter(seq++, nameof(IonPickerColumn.Value), captured);
             builder.AddComponentParameter(seq++, nameof(IonPickerColumn.ChildContent), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonPickerColumnOption>(0);
-                b.AddComponentParameter(1, nameof(IonPickerColumnOption.Value), captured);
-                b.AddComponentParameter(2, nameof(IonPickerColumnOption.ChildContent), (RenderFragment)(bb => bb.AddContent(0, captured)));
+                var __c2 = b.OpenComponent<IonPickerColumnOption>();
+                __c2.Value = captured;
+                __c2.ChildContent = (RenderFragment)(bb => bb.AddContent(0, captured));
                 b.CloseComponent();
             }));
             builder.CloseComponent();

@@ -46,22 +46,22 @@ public class IonInputCaretTests : IDisposable
     {
         protected override void BuildRenderTree(Miko.Components.RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonApp>(0);
-            builder.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b =>
+            var __c1 = builder.OpenComponent<IonApp>();
+            __c1.ChildContent = (Miko.Components.RenderFragment)(b =>
             {
-                b.OpenComponent<IonPage>(0);
-                b.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b2 =>
+                var __c2 = b.OpenComponent<IonPage>();
+                __c2.ChildContent = (Miko.Components.RenderFragment)(b2 =>
                 {
-                    b2.OpenComponent<IonContent>(0);
-                    b2.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b3 =>
+                    var __c3 = b2.OpenComponent<IonContent>();
+                    __c3.ChildContent = (Miko.Components.RenderFragment)(b3 =>
                     {
-                        b3.OpenComponent<IonInput>(0);
+                        b3.OpenComponent<IonInput>();
                         b3.CloseComponent();
-                    }));
+                    });
                     b2.CloseComponent();
-                }));
+                });
                 b.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }

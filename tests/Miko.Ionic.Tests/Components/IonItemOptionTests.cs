@@ -66,7 +66,7 @@ public class IonItemOptionTests : IonicComponentTestBase
         var cut = Context.Render<IonItemOption>(parameters =>
             parameters.Add(nameof(IonItemOption.ChildContent), (RenderFragment)(builder =>
             {
-                builder.AddContent(0, "Delete");
+                builder.AddContent("Delete");
             })));
 
         cut.GetTextContent().ShouldContain("Delete");

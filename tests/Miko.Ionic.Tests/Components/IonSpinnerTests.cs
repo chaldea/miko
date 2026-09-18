@@ -142,7 +142,7 @@ public class IonSpinnerTests : IonicComponentTestBase
 
         RenderFragment spinner = builder =>
         {
-            builder.OpenComponent<IonSpinner>(0);
+            builder.OpenComponent<IonSpinner>();
             builder.CloseComponent();
         };
         var cut = Context.Render<IonItem>(p => p.Add(nameof(IonItem.Start), spinner));

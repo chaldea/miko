@@ -42,22 +42,22 @@ public class IonSearchbarFocusTests : IDisposable
     {
         protected override void BuildRenderTree(Miko.Components.RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonApp>(0);
-            builder.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b =>
+            var __c1 = builder.OpenComponent<IonApp>();
+            __c1.ChildContent = (Miko.Components.RenderFragment)(b =>
             {
-                b.OpenComponent<IonPage>(0);
-                b.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b2 =>
+                var __c4 = b.OpenComponent<IonPage>();
+                __c4.ChildContent = (Miko.Components.RenderFragment)(b2 =>
                 {
-                    b2.OpenComponent<IonContent>(0);
-                    b2.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b3 =>
+                    var __c7 = b2.OpenComponent<IonContent>();
+                    __c7.ChildContent = (Miko.Components.RenderFragment)(b3 =>
                     {
-                        b3.OpenComponent<IonSearchbar>(0);
+                        b3.OpenComponent<IonSearchbar>();
                         b3.CloseComponent();
-                    }));
+                    });
                     b2.CloseComponent();
-                }));
+                });
                 b.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }
@@ -180,22 +180,22 @@ public class IonSearchbarFocusTests : IDisposable
 
         protected override void BuildRenderTree(Miko.Components.RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonApp>(0);
-            builder.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b =>
+            var __c2 = builder.OpenComponent<IonApp>();
+            __c2.ChildContent = (Miko.Components.RenderFragment)(b =>
             {
-                b.OpenComponent<IonPage>(0);
-                b.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b2 =>
+                var __c5 = b.OpenComponent<IonPage>();
+                __c5.ChildContent = (Miko.Components.RenderFragment)(b2 =>
                 {
-                    b2.OpenComponent<IonContent>(0);
-                    b2.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b3 =>
+                    var __c8 = b2.OpenComponent<IonContent>();
+                    __c8.ChildContent = (Miko.Components.RenderFragment)(b3 =>
                     {
-                        b3.OpenComponent<IonSearchbar>(0);
+                        b3.OpenComponent<IonSearchbar>();
                         b3.CloseComponent();
-                    }));
+                    });
                     b2.CloseComponent();
-                }));
+                });
                 b.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }
@@ -246,23 +246,23 @@ public class IonSearchbarFocusTests : IDisposable
     {
         protected override void BuildRenderTree(Miko.Components.RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonApp>(0);
-            builder.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b =>
+            var __c3 = builder.OpenComponent<IonApp>();
+            __c3.ChildContent = (Miko.Components.RenderFragment)(b =>
             {
-                b.OpenComponent<IonPage>(0);
-                b.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b2 =>
+                var __c6 = b.OpenComponent<IonPage>();
+                __c6.ChildContent = (Miko.Components.RenderFragment)(b2 =>
                 {
-                    b2.OpenComponent<IonContent>(0);
-                    b2.AddAttribute(1, "ChildContent", (Miko.Components.RenderFragment)(b3 =>
+                    var __c9 = b2.OpenComponent<IonContent>();
+                    __c9.ChildContent = (Miko.Components.RenderFragment)(b3 =>
                     {
-                        b3.OpenComponent<IonSearchbar>(0);
-                        b3.AddAttribute(1, nameof(IonSearchbar.Disabled), true);
+                        var __c12 = b3.OpenComponent<IonSearchbar>();
+                        __c12.Disabled = true;
                         b3.CloseComponent();
-                    }));
+                    });
                     b2.CloseComponent();
-                }));
+                });
                 b.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }

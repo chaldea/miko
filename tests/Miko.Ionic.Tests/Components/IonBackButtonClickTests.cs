@@ -106,30 +106,30 @@ public class IonBackButtonClickTests : IDisposable
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonPage>(0);
-            builder.AddComponentParameter(1, nameof(IonPage.ChildContent), (RenderFragment)(page =>
+            var __c1 = builder.OpenComponent<IonPage>();
+            __c1.ChildContent = (RenderFragment)(page =>
             {
-                page.OpenComponent<IonHeader>(0);
-                page.AddComponentParameter(1, nameof(IonHeader.ChildContent), (RenderFragment)(header =>
+                var __c2 = page.OpenComponent<IonHeader>();
+                __c2.ChildContent = (RenderFragment)(header =>
                 {
-                    header.OpenComponent<IonToolbar>(0);
-                    header.AddComponentParameter(1, nameof(IonToolbar.Start), (RenderFragment)(start =>
+                    var __c3 = header.OpenComponent<IonToolbar>();
+                    __c3.Start = (RenderFragment)(start =>
                     {
-                        start.OpenComponent<IonBackButton>(0);
-                        start.AddComponentParameter(1, nameof(IonBackButton.DefaultHref), "/");
+                        var __c4 = start.OpenComponent<IonBackButton>();
+                        __c4.DefaultHref = "/";
                         start.CloseComponent();
-                    }));
-                    header.AddComponentParameter(2, nameof(IonToolbar.ChildContent), (RenderFragment)(content =>
+                    });
+                    __c3.ChildContent = (RenderFragment)(content =>
                     {
-                        content.OpenComponent<IonTitle>(0);
-                        content.AddComponentParameter(1, nameof(IonTitle.ChildContent),
-                            (RenderFragment)(t => t.AddContent(0, "Detail")));
+                        var __c5 = content.OpenComponent<IonTitle>();
+                        __c5.ChildContent = 
+                            (RenderFragment)(t => t.AddContent("Detail"));
                         content.CloseComponent();
-                    }));
+                    });
                     header.CloseComponent();
-                }));
+                });
                 page.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }

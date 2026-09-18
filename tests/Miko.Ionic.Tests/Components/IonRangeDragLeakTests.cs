@@ -220,15 +220,15 @@ public class IonRangeDragLeakTests : IDisposable
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonRange>(0);
-            builder.AddComponentParameter(1, nameof(IonRange.Value), Value);
-            builder.AddComponentParameter(2, nameof(IonRange.Pin), true);
-            builder.AddComponentParameter(3, nameof(IonRange.ValueChanged),
+            var __c1 = builder.OpenComponent<IonRange>();
+            __c1.Value = Value;
+            __c1.Pin = true;
+            __c1.ValueChanged = 
                 EventCallback.Factory.Create<double>(this, value =>
                 {
                     Value = value;
                     Changes.Add(value);
-                }));
+                });
             builder.CloseComponent();
         }
     }

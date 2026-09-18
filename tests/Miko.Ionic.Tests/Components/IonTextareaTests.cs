@@ -114,14 +114,14 @@ public class IonTextareaTests : IonicComponentTestBase
         {
             p.Add(nameof(IonTextarea.StartSlot), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "class", "start-slot");
+                var __e1 = builder.OpenElement<SpanElement>();
+                __e1.Class = "start-slot";
                 builder.CloseElement();
             }));
             p.Add(nameof(IonTextarea.EndSlot), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "class", "end-slot");
+                var __e2 = builder.OpenElement<SpanElement>();
+                __e2.Class = "end-slot";
                 builder.CloseElement();
             }));
         });

@@ -28,9 +28,9 @@ public class IonToolbarSafeAreaTests : IonicComponentTestBase
     // ChildContent that emits two <IonToolbar/> components inside the header.
     private static readonly RenderFragment TwoToolbars = builder =>
     {
-        builder.OpenComponent<IonToolbar>(0);
+        builder.OpenComponent<IonToolbar>();
         builder.CloseComponent();
-        builder.OpenComponent<IonToolbar>(1);
+        builder.OpenComponent<IonToolbar>();
         builder.CloseComponent();
     };
 

@@ -1,3 +1,4 @@
+using Miko.Core.DomElements;
 using Miko.Testing;
 using Miko.Ionic.Components;
 using Miko.Components;
@@ -9,7 +10,7 @@ public class IonItemDividerTests : IonicComponentTestBase
 {
     private static readonly RenderFragment MinimalChild = builder =>
     {
-        builder.OpenElement(0, "span");
+        builder.OpenElement<SpanElement>();
         builder.CloseElement();
     };
 
@@ -19,9 +20,9 @@ public class IonItemDividerTests : IonicComponentTestBase
         var cut = Context.Render<IonItemDivider>(parameters =>
             parameters.Add(nameof(IonItemDivider.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonButton>(0);
-                builder.AddComponentParameter(1, nameof(IonButton.ChildContent),
-                    (RenderFragment)(b => b.AddContent(0, "OK")));
+                var __c2 = builder.OpenComponent<IonButton>();
+                __c2.ChildContent = 
+                    (RenderFragment)(b => b.AddContent("OK"));
                 builder.CloseComponent();
             })));
 
@@ -72,8 +73,8 @@ public class IonItemDividerTests : IonicComponentTestBase
         var cut = Context.Render<IonItemDivider>(parameters =>
             parameters.Add(nameof(IonItemDivider.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "div");
-                builder.AddContent(1, "Section A");
+                builder.OpenElement<DivElement>();
+                builder.AddContent("Section A");
                 builder.CloseElement();
             })));
 
@@ -121,8 +122,8 @@ public class IonItemDividerTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonItemDivider>(parameters =>
         {
-            parameters.Add(nameof(IonItemDivider.Start), (RenderFragment)(b => b.AddContent(0, "S")));
-            parameters.Add(nameof(IonItemDivider.End), (RenderFragment)(b => b.AddContent(0, "E")));
+            parameters.Add(nameof(IonItemDivider.Start), (RenderFragment)(b => b.AddContent("S")));
+            parameters.Add(nameof(IonItemDivider.End), (RenderFragment)(b => b.AddContent("E")));
             parameters.Add(nameof(IonItemDivider.ChildContent), MinimalChild);
         });
 

@@ -18,8 +18,8 @@ public class IonFabButtonTests : IonicComponentTestBase
 {
     private static readonly RenderFragment Icon = builder =>
     {
-        builder.OpenComponent<IonIcon>(0);
-        builder.AddComponentParameter(1, nameof(IonIcon.Icon), "add");
+        var __c1 = builder.OpenComponent<IonIcon>();
+        __c1.Icon = "add";
         builder.CloseComponent();
     };
 

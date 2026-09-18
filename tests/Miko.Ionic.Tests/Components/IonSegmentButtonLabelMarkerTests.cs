@@ -29,16 +29,16 @@ public class IonSegmentButtonLabelMarkerTests
 
     private static RenderFragment LabelChild(string text = "All") => builder =>
     {
-        builder.OpenComponent<IonLabel>(0);
-        builder.AddComponentParameter(1, nameof(IonLabel.ChildContent),
-            (RenderFragment)(l => l.AddContent(0, text)));
+        var __c1 = builder.OpenComponent<IonLabel>();
+        __c1.ChildContent = 
+            (RenderFragment)(l => l.AddContent(0, text));
         builder.CloseComponent();
     };
 
     private static RenderFragment IconChild(string icon = "star") => builder =>
     {
-        builder.OpenComponent<IonIcon>(0);
-        builder.AddComponentParameter(1, nameof(IonIcon.Icon), icon);
+        var __c2 = builder.OpenComponent<IonIcon>();
+        __c2.Icon = icon;
         builder.CloseComponent();
     };
 

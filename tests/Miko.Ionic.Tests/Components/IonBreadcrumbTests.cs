@@ -20,10 +20,10 @@ public class IonBreadcrumbTests : IonicComponentTestBase
     // A single crumb with the given href/label.
     private static RenderFragment Crumb(string label, string? href = null) => builder =>
     {
-        builder.OpenComponent<IonBreadcrumb>(0);
-        if (href is not null) builder.AddComponentParameter(1, nameof(IonBreadcrumb.Href), href);
-        builder.AddComponentParameter(2, nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b =>
-            b.AddContent(0, label)));
+        var __c1 = builder.OpenComponent<IonBreadcrumb>();
+        if (href is not null) __c1.Href = href;
+        __c1.ChildContent = (RenderFragment)(b =>
+            b.AddContent(0, label));
         builder.CloseComponent();
     };
 
@@ -66,7 +66,7 @@ public class IonBreadcrumbTests : IonicComponentTestBase
     public void IonBreadcrumb_RendersNativeAndSeparator()
     {
         var cut = Context.Render<IonBreadcrumb>(p =>
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home"))));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home"))));
 
         cut.Root.ShouldHaveClass("md ion-breadcrumb");
         // A standalone crumb (no container) keeps its native span and separator.
@@ -81,7 +81,7 @@ public class IonBreadcrumbTests : IonicComponentTestBase
         var cut = Context.Render<IonBreadcrumb>(p =>
         {
             p.Add(nameof(IonBreadcrumb.Href), "#home");
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home")));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home")));
         });
 
         var native = cut.FindByClass("breadcrumb-native").ShouldHaveSingleItem();
@@ -94,7 +94,7 @@ public class IonBreadcrumbTests : IonicComponentTestBase
     public void IonBreadcrumb_WithoutHref_RendersSpan()
     {
         var cut = Context.Render<IonBreadcrumb>(p =>
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home"))));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home"))));
 
         cut.FindByClass("breadcrumb-native").ShouldHaveSingleItem().TagName.ShouldBe("span");
         cut.Root.ShouldNotHaveClass("ion-activatable");
@@ -122,13 +122,13 @@ public class IonBreadcrumbTests : IonicComponentTestBase
         // When a crumb is explicitly active, the last one is NOT auto-activated.
         var cut = RenderBreadcrumbs(Context, builder =>
         {
-            builder.OpenComponent<IonBreadcrumb>(0);
-            builder.AddComponentParameter(1, nameof(IonBreadcrumb.Active), true);
-            builder.AddComponentParameter(2, nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home")));
+            var __c2 = builder.OpenComponent<IonBreadcrumb>();
+            __c2.Active = true;
+            __c2.ChildContent = (RenderFragment)(b => b.AddContent("Home"));
             builder.CloseComponent();
 
-            builder.OpenComponent<IonBreadcrumb>(3);
-            builder.AddComponentParameter(4, nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Away")));
+            var __c3 = builder.OpenComponent<IonBreadcrumb>();
+            __c3.ChildContent = (RenderFragment)(b => b.AddContent("Away"));
             builder.CloseComponent();
         });
 
@@ -143,7 +143,7 @@ public class IonBreadcrumbTests : IonicComponentTestBase
     public void IonBreadcrumb_Md_UsesSlashSeparator()
     {
         var cut = Context.Render<IonBreadcrumb>(p =>
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home"))));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home"))));
 
         var separator = cut.FindByClass("breadcrumb-separator").ShouldHaveSingleItem();
         // md separator is the "/" glyph, not an icon.
@@ -157,7 +157,7 @@ public class IonBreadcrumbTests : IonicComponentTestBase
         UsePlatform(HostPlatform.Ios);
 
         var cut = Context.Render<IonBreadcrumb>(p =>
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home"))));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home"))));
 
         var separator = cut.FindByClass("breadcrumb-separator").ShouldHaveSingleItem();
         // ios separator is a forward-chevron icon.
@@ -172,7 +172,7 @@ public class IonBreadcrumbTests : IonicComponentTestBase
         var cut = Context.Render<IonBreadcrumb>(p =>
         {
             p.Add(nameof(IonBreadcrumb.Disabled), true);
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home")));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home")));
         });
 
         cut.Root.ShouldHaveClass("breadcrumb-disabled");
@@ -184,7 +184,7 @@ public class IonBreadcrumbTests : IonicComponentTestBase
         var cut = Context.Render<IonBreadcrumb>(p =>
         {
             p.Add(nameof(IonBreadcrumb.Color), "primary");
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home")));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home")));
         });
 
         cut.Root.ShouldHaveClass("ion-color");
@@ -212,8 +212,8 @@ public class IonBreadcrumbTests : IonicComponentTestBase
     {
         var cut = Context.Render<IonBreadcrumb>(p =>
         {
-            p.Add(nameof(IonBreadcrumb.Separator), (RenderFragment)(b => b.AddContent(0, "›")));
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home")));
+            p.Add(nameof(IonBreadcrumb.Separator), (RenderFragment)(b => b.AddContent("›")));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home")));
         });
 
         cut.FindByClass("breadcrumb-separator").ShouldHaveSingleItem();
@@ -232,9 +232,9 @@ public class IonBreadcrumbTests : IonicComponentTestBase
                 var captured = i;
                 builder.OpenComponent<IonBreadcrumb>(i * 10);
                 builder.AddComponentParameter(i * 10 + 1, nameof(IonBreadcrumb.Separator),
-                    (RenderFragment)(b => b.AddContent(0, "›")));
+                    (RenderFragment)(b => b.AddContent("›")));
                 builder.AddComponentParameter(i * 10 + 2, nameof(IonBreadcrumb.ChildContent),
-                    (RenderFragment)(b => b.AddContent(0, $"Crumb{captured}")));
+                    (RenderFragment)(b => b.AddContent($"Crumb{captured}")));
                 builder.CloseComponent();
             }
         });
@@ -255,11 +255,11 @@ public class IonBreadcrumbTests : IonicComponentTestBase
         {
             p.Add(nameof(IonBreadcrumb.Start), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonIcon>(0);
-                b.AddComponentParameter(1, nameof(IonIcon.Icon), "home");
+                var __c4 = b.OpenComponent<IonIcon>();
+                __c4.Icon = "home";
                 b.CloseComponent();
             }));
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home")));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home")));
         });
 
         var icon = cut.FindByClass("ion-icon").ShouldHaveSingleItem();
@@ -284,7 +284,7 @@ public class IonBreadcrumbTests : IonicComponentTestBase
         {
             p.Add(nameof(IonBreadcrumb.Start), Icon(0, "home"));
             p.Add(nameof(IonBreadcrumb.End), Icon(2, "star"));
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home")));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home")));
         });
 
         // The slots render inside ion-slot-* marker spans (Ionic ::slotted([slot=…])).
@@ -489,7 +489,7 @@ public class IonBreadcrumbTests : IonicComponentTestBase
         var cut = Context.Render<IonBreadcrumb>(p =>
         {
             p.Add(nameof(IonBreadcrumb.Color), "danger");
-            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent(0, "Home")));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Home")));
         });
 
         var native = cut.FindByClass("breadcrumb-native").ShouldHaveSingleItem();

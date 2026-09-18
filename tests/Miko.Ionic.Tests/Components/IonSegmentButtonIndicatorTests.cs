@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Miko.Animation;
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Events;
 using Miko.Hosting;
@@ -41,15 +42,15 @@ public class IonSegmentButtonIndicatorTests
             p.Add(nameof(IonSegment.Value), segmentValue);
             p.Add(nameof(IonSegment.ChildContent), (RenderFragment)(b =>
             {
-                b.OpenComponent<IonSegmentButton>(0);
-                b.AddComponentParameter(1, nameof(IonSegmentButton.Value), buttonValue);
-                b.AddComponentParameter(2, nameof(IonSegmentButton.ChildContent), (RenderFragment)(inner =>
+                var __c1 = b.OpenComponent<IonSegmentButton>();
+                __c1.Value = buttonValue;
+                __c1.ChildContent = (RenderFragment)(inner =>
                 {
-                    inner.OpenComponent<IonLabel>(0);
-                    inner.AddComponentParameter(1, nameof(IonLabel.ChildContent),
-                        (RenderFragment)(l => l.AddContent(0, "All")));
+                    var __c9 = inner.OpenComponent<IonLabel>();
+                    __c9.ChildContent = 
+                        (RenderFragment)(l => l.AddContent("All"));
                     inner.CloseComponent();
-                }));
+                });
                 b.CloseComponent();
             }));
         });
@@ -203,11 +204,11 @@ public class IonSegmentButtonIndicatorTests
             p.Add(nameof(IonSegment.Value), "first");
             p.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonSegmentButton>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentButton.Value), "first");
+                var __c2 = builder.OpenComponent<IonSegmentButton>();
+                __c2.Value = "first";
                 builder.CloseComponent();
-                builder.OpenComponent<IonSegmentButton>(2);
-                builder.AddComponentParameter(3, nameof(IonSegmentButton.Value), "second");
+                var __c3 = builder.OpenComponent<IonSegmentButton>();
+                __c3.Value = "second";
                 builder.CloseComponent();
             });
         });
@@ -275,15 +276,15 @@ public class IonSegmentButtonIndicatorTests
             p.Add(nameof(IonSegment.Value), "all");
             p.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonSegmentButton>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentButton.Value), "all");
-                builder.AddComponentParameter(2, nameof(IonSegmentButton.ChildContent),
-                    (RenderFragment)(inner => inner.AddContent(0, "All")));
+                var __c4 = builder.OpenComponent<IonSegmentButton>();
+                __c4.Value = "all";
+                __c4.ChildContent = 
+                    (RenderFragment)(inner => inner.AddContent("All"));
                 builder.CloseComponent();
-                builder.OpenComponent<IonSegmentButton>(3);
-                builder.AddComponentParameter(4, nameof(IonSegmentButton.Value), "favorites");
-                builder.AddComponentParameter(5, nameof(IonSegmentButton.ChildContent),
-                    (RenderFragment)(inner => inner.AddContent(0, "Favorites")));
+                var __c5 = builder.OpenComponent<IonSegmentButton>();
+                __c5.Value = "favorites";
+                __c5.ChildContent = 
+                    (RenderFragment)(inner => inner.AddContent("Favorites"));
                 builder.CloseComponent();
             });
         });
@@ -343,24 +344,24 @@ public class IonSegmentButtonIndicatorTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.OpenComponent<IonSegment>(1);
-            builder.AddComponentParameter(2, nameof(IonSegment.Value), _value);
-            builder.AddComponentParameter(3, nameof(IonSegment.ValueChanged),
-                EventCallback.Factory.Create<string>(this, value => _value = value));
-            builder.AddComponentParameter(4, nameof(IonSegment.ChildContent), (RenderFragment)(content =>
+            builder.OpenElement<DivElement>();
+            var __c7 = builder.OpenComponent<IonSegment>();
+            __c7.Value = _value;
+            __c7.ValueChanged = 
+                EventCallback.Factory.Create<string>(this, value => _value = value);
+            __c7.ChildContent = (RenderFragment)(content =>
             {
-                content.OpenComponent<IonSegmentButton>(0);
-                content.AddComponentParameter(1, nameof(IonSegmentButton.Value), "all");
-                content.AddComponentParameter(2, nameof(IonSegmentButton.ChildContent),
-                    (RenderFragment)(text => text.AddContent(0, "All")));
+                var __c11 = content.OpenComponent<IonSegmentButton>();
+                __c11.Value = "all";
+                __c11.ChildContent = 
+                    (RenderFragment)(text => text.AddContent("All"));
                 content.CloseComponent();
-                content.OpenComponent<IonSegmentButton>(3);
-                content.AddComponentParameter(4, nameof(IonSegmentButton.Value), "favorites");
-                content.AddComponentParameter(5, nameof(IonSegmentButton.ChildContent),
-                    (RenderFragment)(text => text.AddContent(0, "Favorites")));
+                var __c12 = content.OpenComponent<IonSegmentButton>();
+                __c12.Value = "favorites";
+                __c12.ChildContent = 
+                    (RenderFragment)(text => text.AddContent("Favorites"));
                 content.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
             builder.CloseElement();
         }
@@ -391,19 +392,19 @@ public class IonSegmentButtonIndicatorTests
             p.Add(nameof(IonSegment.Value), "call");
             p.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonSegmentButton>(0);
-                builder.AddComponentParameter(1, nameof(IonSegmentButton.Value), "call");
-                builder.AddComponentParameter(2, nameof(IonSegmentButton.Layout), "icon-bottom");
-                builder.AddComponentParameter(3, nameof(IonSegmentButton.ChildContent), (RenderFragment)(content =>
+                var __c8 = builder.OpenComponent<IonSegmentButton>();
+                __c8.Value = "call";
+                __c8.Layout = "icon-bottom";
+                __c8.ChildContent = (RenderFragment)(content =>
                 {
-                    content.OpenComponent<IonIcon>(0);
-                    content.AddComponentParameter(1, nameof(IonIcon.Icon), "call");
+                    var __c13 = content.OpenComponent<IonIcon>();
+                    __c13.Icon = "call";
                     content.CloseComponent();
-                    content.OpenComponent<IonLabel>(2);
-                    content.AddComponentParameter(3, nameof(IonLabel.ChildContent),
-                        (RenderFragment)(label => label.AddContent(0, "Call")));
+                    var __c14 = content.OpenComponent<IonLabel>();
+                    __c14.ChildContent = 
+                        (RenderFragment)(label => label.AddContent("Call"));
                     content.CloseComponent();
-                }));
+                });
                 builder.CloseComponent();
             });
         });

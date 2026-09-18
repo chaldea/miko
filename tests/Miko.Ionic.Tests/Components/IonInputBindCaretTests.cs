@@ -53,51 +53,51 @@ public class IonInputBindCaretTests : IDisposable
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonApp>(0);
-            builder.AddAttribute(1, "ChildContent", (RenderFragment)(b =>
+            var __c3 = builder.OpenComponent<IonApp>();
+            __c3.ChildContent = (RenderFragment)(b =>
             {
-                b.OpenComponent<IonPage>(0);
-                b.AddAttribute(1, "ChildContent", (RenderFragment)(b2 =>
+                var __c4 = b.OpenComponent<IonPage>();
+                __c4.ChildContent = (RenderFragment)(b2 =>
                 {
-                    b2.OpenComponent<IonContent>(0);
-                    b2.AddAttribute(1, "ChildContent", (RenderFragment)(b3 =>
+                    var __c5 = b2.OpenComponent<IonContent>();
+                    __c5.ChildContent = (RenderFragment)(b3 =>
                     {
-                        b3.OpenComponent<IonList>(0);
-                        b3.AddAttribute(1, "ChildContent", (RenderFragment)(b4 =>
+                        var __c6 = b3.OpenComponent<IonList>();
+                        __c6.ChildContent = (RenderFragment)(b4 =>
                         {
                             // 第一项：带 @bind-Value（receiver = 页面）。
-                            b4.OpenComponent<IonItem>(0);
-                            b4.AddAttribute(1, "ChildContent", (RenderFragment)(b5 =>
+                            var __c7 = b4.OpenComponent<IonItem>();
+                            __c7.ChildContent = (RenderFragment)(b5 =>
                             {
-                                b5.OpenComponent<IonInput>(0);
-                                b5.AddAttribute(1, "Label", "First Name");
-                                b5.AddAttribute(2, "LabelPlacement", "stacked");
-                                b5.AddAttribute(3, "Class", "bound");
-                                b5.AddAttribute(4, "Value", FirstName);
-                                b5.AddAttribute(5, "ValueChanged",
-                                    EventCallback.Factory.Create<string?>(this, v => FirstName = v));
+                                var __c1 = b5.OpenComponent<IonInput>();
+                                __c1.Label = "First Name";
+                                __c1.LabelPlacement = "stacked";
+                                __c1.Class = "bound";
+                                __c1.Value = FirstName;
+                                __c1.ValueChanged = 
+                                    EventCallback.Factory.Create<string?>(this, v => FirstName = v);
                                 b5.CloseComponent();
-                            }));
+                            });
                             b4.CloseComponent();
 
                             // 第二项：无 bind（IonInput 自己持有值）。
-                            b4.OpenComponent<IonItem>(2);
-                            b4.AddAttribute(3, "ChildContent", (RenderFragment)(b5 =>
+                            var __c8 = b4.OpenComponent<IonItem>();
+                            __c8.ChildContent = (RenderFragment)(b5 =>
                             {
-                                b5.OpenComponent<IonInput>(0);
-                                b5.AddAttribute(1, "Label", "Last Name");
-                                b5.AddAttribute(2, "LabelPlacement", "stacked");
-                                b5.AddAttribute(3, "Class", "unbound");
+                                var __c2 = b5.OpenComponent<IonInput>();
+                                __c2.Label = "Last Name";
+                                __c2.LabelPlacement = "stacked";
+                                __c2.Class = "unbound";
                                 b5.CloseComponent();
-                            }));
+                            });
                             b4.CloseComponent();
-                        }));
+                        });
                         b3.CloseComponent();
-                    }));
+                    });
                     b2.CloseComponent();
-                }));
+                });
                 b.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }

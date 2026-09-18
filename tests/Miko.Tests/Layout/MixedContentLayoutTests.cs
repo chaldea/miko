@@ -35,12 +35,12 @@ public class MixedContentLayoutTests
     private Element BuildExample1()
     {
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "p");
-        builder.AddContent(1, "we can use ");
-        builder.OpenElement(2, "a");
-        builder.AddContent(3, "stopPropagation");
+        builder.OpenElement<ParagraphElement>();
+        builder.AddContent("we can use ");
+        builder.OpenElement<AnchorElement>();
+        builder.AddContent("stopPropagation");
         builder.CloseElement();
-        builder.AddContent(4, " to prevent bubbling.");
+        builder.AddContent(" to prevent bubbling.");
         builder.CloseElement();
         return builder.Build();
     }
@@ -77,12 +77,12 @@ public class MixedContentLayoutTests
     {
         // <div>test1 <span>test2</span> test3</div>
         var builder = new RenderTreeBuilder();
-        builder.OpenElement(0, "div");
-        builder.AddContent(1, "test1 ");
-        builder.OpenElement(2, "span");
-        builder.AddContent(3, "test2");
+        builder.OpenElement<DivElement>();
+        builder.AddContent("test1 ");
+        builder.OpenElement<SpanElement>();
+        builder.AddContent("test2");
         builder.CloseElement();
-        builder.AddContent(4, " test3");
+        builder.AddContent(" test3");
         builder.CloseElement();
         var div = builder.Build();
 

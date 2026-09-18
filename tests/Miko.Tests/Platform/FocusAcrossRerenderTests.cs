@@ -37,21 +37,21 @@ public class FocusAcrossRerenderTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "ion-input");
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = "ion-input";
 
-            builder.OpenElement(2, "label");
-            builder.AddAttribute(3, "class", "input-wrapper");
-            builder.AddAttribute(4, "onclick",
+            var __e2 = builder.OpenElement<LabelElement>();
+            __e2.Class = "input-wrapper";
+            __e2.OnClick = global::Miko.Components.RenderTreeBuilder.ToHandler(
                 EventCallback.Factory.Create<MouseEventArgs>(this, HandleLabelClick));
 
-            builder.OpenElement(5, "div");
-            builder.AddAttribute(6, "class", "native-wrapper");
+            var __e3 = builder.OpenElement<DivElement>();
+            __e3.Class = "native-wrapper";
 
-            builder.OpenElement(7, "input");
-            builder.AddAttribute(8, "class", "native-input");
-            builder.AddAttribute(9, "value", Value);
-            builder.AddAttribute(10, "oninput",
+            var __e4 = builder.OpenElement<InputElement>();
+            __e4.Class = "native-input";
+            global::Miko.Components.RenderTreeBuilder.SetInputValue(__e4, Value);
+            __e4.OnInput = global::Miko.Components.RenderTreeBuilder.ToHandler(
                 EventCallback.Factory.Create<InputEventArgs>(this, HandleInput));
             builder.CloseElement();
 

@@ -144,18 +144,18 @@ public class IonRangeInteractionTests : IDisposable
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonRange>(0);
-            builder.AddComponentParameter(1, nameof(IonRange.Value), Value);
-            builder.AddComponentParameter(2, nameof(IonRange.Min), Min);
-            builder.AddComponentParameter(3, nameof(IonRange.Max), Max);
-            builder.AddComponentParameter(4, nameof(IonRange.Step), Step);
-            builder.AddComponentParameter(5, nameof(IonRange.Disabled), Disabled);
-            builder.AddComponentParameter(6, nameof(IonRange.ValueChanged),
+            var __c1 = builder.OpenComponent<IonRange>();
+            __c1.Value = Value;
+            __c1.Min = Min;
+            __c1.Max = Max;
+            __c1.Step = Step;
+            __c1.Disabled = Disabled;
+            __c1.ValueChanged = 
                 EventCallback.Factory.Create<double>(this, value =>
                 {
                     Value = value;
                     Changes.Add(value);
-                }));
+                });
             builder.CloseComponent();
         }
     }

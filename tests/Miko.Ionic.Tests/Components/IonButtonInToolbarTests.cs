@@ -48,35 +48,35 @@ public class IonButtonInToolbarTests : IDisposable
     // <IonButton [Fill]>label</IonButton>
     private static RenderFragment TextButton(string? fill = null, string? color = null, string? shape = null) => b =>
     {
-        b.OpenComponent<IonButton>(0);
-        if (fill is not null) b.AddComponentParameter(1, nameof(IonButton.Fill), fill);
-        if (color is not null) b.AddComponentParameter(2, nameof(IonButton.Color), color);
-        if (shape is not null) b.AddComponentParameter(3, nameof(IonButton.Shape), shape);
-        b.AddComponentParameter(4, nameof(IonButton.ChildContent), (RenderFragment)(c => c.AddContent(0, "Edit")));
+        var __c1 = b.OpenComponent<IonButton>();
+        if (fill is not null) __c1.Fill = fill;
+        if (color is not null) __c1.Color = color;
+        if (shape is not null) __c1.Shape = shape;
+        __c1.ChildContent = (RenderFragment)(c => c.AddContent("Edit"));
         b.CloseComponent();
     };
 
     // <IonButton><IconOnly><IonIcon slot="icon-only" /></IconOnly></IonButton>
     private static RenderFragment IconOnlyButton(string? fill = null) => b =>
     {
-        b.OpenComponent<IonButton>(0);
-        if (fill is not null) b.AddComponentParameter(1, nameof(IonButton.Fill), fill);
-        b.AddComponentParameter(2, nameof(IonButton.IconOnly), (RenderFragment)(c =>
+        var __c2 = b.OpenComponent<IonButton>();
+        if (fill is not null) __c2.Fill = fill;
+        __c2.IconOnly = (RenderFragment)(c =>
         {
-            c.OpenComponent<IonIcon>(0);
-            c.AddComponentParameter(1, nameof(IonIcon.Slot), "icon-only");
-            c.AddComponentParameter(2, nameof(IonIcon.Icon), Ionicons.Search);
+            var __c8 = c.OpenComponent<IonIcon>();
+            __c8.Slot = "icon-only";
+            __c8.Icon = Ionicons.Search;
             c.CloseComponent();
-        }));
+        });
         b.CloseComponent();
     };
 
     // <IonButtons slot="…">{inner}</IonButtons>
     private static RenderFragment ButtonsGroup(RenderFragment inner, string slot = "start") => b =>
     {
-        b.OpenComponent<IonButtons>(0);
-        b.AddComponentParameter(1, nameof(IonButtons.Slot), slot);
-        b.AddComponentParameter(2, nameof(IonButtons.ChildContent), inner);
+        var __c3 = b.OpenComponent<IonButtons>();
+        __c3.Slot = slot;
+        __c3.ChildContent = inner;
         b.CloseComponent();
     };
 
@@ -118,7 +118,7 @@ public class IonButtonInToolbarTests : IDisposable
     [Fact]
     public void StandaloneButton_HasNeitherToolbarClass()
     {
-        var cut = _context.Render<IonButton>(p => p.AddChildContent(b => b.AddContent(0, "Edit")));
+        var cut = _context.Render<IonButton>(p => p.AddChildContent(b => b.AddContent("Edit")));
 
         var button = cut.Root;
         button.HasClass("in-toolbar").ShouldBeFalse();
@@ -150,7 +150,7 @@ public class IonButtonInToolbarTests : IDisposable
     [Fact]
     public void StandaloneButton_StillDefaultsToSolidFill()
     {
-        var cut = _context.Render<IonButton>(p => p.AddChildContent(b => b.AddContent(0, "Edit")));
+        var cut = _context.Render<IonButton>(p => p.AddChildContent(b => b.AddContent("Edit")));
 
         cut.Root.HasClass("button-solid").ShouldBeTrue();
     }
@@ -278,7 +278,7 @@ public class IonButtonInToolbarTests : IDisposable
     public void StandaloneButton_KeepsStandaloneMetrics()
     {
         var t = IonicTheme.CreateMd();
-        var cut = _context.Render<IonButton>(p => p.AddChildContent(b => b.AddContent(0, "Edit")));
+        var cut = _context.Render<IonButton>(p => p.AddChildContent(b => b.AddContent("Edit")));
 
         cut.GetComputedStyle(cut.Root)!.MinHeight.ShouldBe(t.ButtonMinHeight);
     }
@@ -342,16 +342,16 @@ public class IonButtonInToolbarTests : IDisposable
         var t = IonicTheme.CreateMd();
         var cut = RenderButtonInButtons(b =>
         {
-            b.OpenComponent<IonButton>(0);
-            b.AddComponentParameter(1, nameof(IonButton.Start), (RenderFragment)(c =>
+            var __c4 = b.OpenComponent<IonButton>();
+            __c4.Start = (RenderFragment)(c =>
             {
-                c.OpenComponent<IonIcon>(0);
-                c.AddComponentParameter(1, nameof(IonIcon.Slot), "start");
-                c.AddComponentParameter(2, nameof(IonIcon.Icon), Ionicons.Search);
+                var __c9 = c.OpenComponent<IonIcon>();
+                __c9.Slot = "start";
+                __c9.Icon = Ionicons.Search;
                 c.CloseComponent();
-            }));
-            b.AddComponentParameter(2, nameof(IonButton.ChildContent),
-                (RenderFragment)(c => c.AddContent(0, "Contact")));
+            });
+            __c4.ChildContent = 
+                (RenderFragment)(c => c.AddContent("Contact"));
             b.CloseComponent();
         });
 
@@ -372,11 +372,11 @@ public class IonButtonInToolbarTests : IDisposable
         var clicked = false;
         var cut = _context.Render<IonToolbar>(p => p.Add(nameof(IonToolbar.Start), ButtonsGroup(b =>
         {
-            b.OpenComponent<IonButton>(0);
-            b.AddComponentParameter(1, nameof(IonButton.OnClick),
-                EventCallback.Factory.Create(this, () => clicked = true));
-            b.AddComponentParameter(2, nameof(IonButton.ChildContent),
-                (RenderFragment)(c => c.AddContent(0, "Edit")));
+            var __c5 = b.OpenComponent<IonButton>();
+            __c5.OnClick = 
+                EventCallback.Factory.Create(this, () => clicked = true);
+            __c5.ChildContent = 
+                (RenderFragment)(c => c.AddContent("Edit"));
             b.CloseComponent();
         })));
 
@@ -400,11 +400,11 @@ public class IonButtonInToolbarTests : IDisposable
         var t = IonicTheme.CreateMd();
         var cut = _context.Render<IonToolbar>(p => p.Add(nameof(IonToolbar.Start), ButtonsGroup(b =>
         {
-            b.OpenComponent<IonButton>(0);
-            b.AddComponentParameter(1, nameof(IonButton.OnClick),
-                EventCallback.Factory.Create(this, () => { }));
-            b.AddComponentParameter(2, nameof(IonButton.ChildContent),
-                (RenderFragment)(c => c.AddContent(0, "Edit")));
+            var __c6 = b.OpenComponent<IonButton>();
+            __c6.OnClick = 
+                EventCallback.Factory.Create(this, () => { });
+            __c6.ChildContent = 
+                (RenderFragment)(c => c.AddContent("Edit"));
             b.CloseComponent();
         })));
 
@@ -428,12 +428,12 @@ public class IonButtonInToolbarTests : IDisposable
         {
             p.Add(nameof(IonButton.Start), (RenderFragment)(c =>
             {
-                c.OpenComponent<IonIcon>(0);
-                c.AddComponentParameter(1, nameof(IonIcon.Slot), "start");
-                c.AddComponentParameter(2, nameof(IonIcon.Icon), Ionicons.Search);
+                var __c7 = c.OpenComponent<IonIcon>();
+                __c7.Slot = "start";
+                __c7.Icon = Ionicons.Search;
                 c.CloseComponent();
             }));
-            p.AddChildContent(c => c.AddContent(0, "Contact"));
+            p.AddChildContent(c => c.AddContent("Contact"));
         });
 
         var t = IonicTheme.CreateMd();

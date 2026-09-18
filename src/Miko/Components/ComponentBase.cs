@@ -1,9 +1,8 @@
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Diagnostics;
 using Miko.Layout;
 using Miko.Routing;
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 
 namespace Miko.Components;
 
@@ -73,6 +72,21 @@ public abstract class ComponentBase : IComponent
 
     public virtual Element Build()
     {
+        // 分段探针（ISSUE-136）：默认关闭，关闭时只是一次布尔判断。
+        // 嵌套组件的 Build 在父构建内部发生，由探针自行去重，只计最外层。
+        var buildScope = FrameTimingDiagnostics.EnterBuild();
+        try
+        {
+            return BuildCore();
+        }
+        finally
+        {
+            FrameTimingDiagnostics.ExitBuild(buildScope);
+        }
+    }
+
+    private Element BuildCore()
+    {
         // Resolve [Inject] services from the ambient ComponentServiceScope (pushed by RouteView
         // for the top-level page, then re-pushed by every ancestor while its BuildRenderTree
         // runs — see the using-block below). This makes [Inject] available on any component
@@ -125,22 +139,18 @@ public abstract class ComponentBase : IComponent
     /// untouched (mirrors Blazor, which throws — but here unresolved injections are tolerated to
     /// preserve the existing <see cref="Routing.RouteView"/> behaviour). Read-only properties are
     /// skipped, matching Blazor.
+    ///
+    /// <para>The property set is resolved once per component type by
+    /// <see cref="ComponentParameterCache"/> rather than by reflecting on every call.</para>
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2075",
-        Justification = "Inject properties are declared on the component type and preserved with it.")]
     private static void InjectServices(ComponentBase component, IServiceProvider serviceProvider)
     {
-        var properties = component.GetType().GetProperties(
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-
-        foreach (var prop in properties)
+        var injected = ComponentParameterCache.GetInjectedProperties(component.GetType());
+        for (int i = 0; i < injected.Length; i++)
         {
-            if (!prop.CanWrite) continue;
-            if (prop.GetCustomAttribute<InjectAttribute>() == null) continue;
-
-            var service = serviceProvider.GetService(prop.PropertyType);
+            var service = serviceProvider.GetService(injected[i].Property.PropertyType);
             if (service != null)
-                prop.SetValue(component, service);
+                injected[i].SetValue(component, service);
         }
     }
 
@@ -274,6 +284,20 @@ public abstract class ComponentBase : IComponent
     /// </summary>
     protected virtual Element BuildNew()
     {
+        // 见 Build()：同款分段探针，StateHasChanged 走的是这条路径。
+        var buildScope = FrameTimingDiagnostics.EnterBuild();
+        try
+        {
+            return BuildNewCore();
+        }
+        finally
+        {
+            FrameTimingDiagnostics.ExitBuild(buildScope);
+        }
+    }
+
+    private Element BuildNewCore()
+    {
         using var cascadingScope = CascadingValueSource.RestoreIfEmpty(_cascadingSnapshot);
         SetCascadingParameters();
         var builder = new RenderTreeBuilder();
@@ -292,20 +316,19 @@ public abstract class ComponentBase : IComponent
     /// ambient <see cref="CascadingValueSource"/>. Mirrors how <c>[Inject]</c> is resolved by
     /// reflection in <see cref="RouteView"/>. Properties with no matching provider are left
     /// untouched (keep their default).
+    ///
+    /// <para>Runs on <em>every</em> render (both <see cref="Build"/> and <see cref="BuildNew"/>),
+    /// so the property set is resolved once per component type by
+    /// <see cref="ComponentParameterCache"/> instead of re-reflecting each time (ISSUE-136).</para>
     /// </summary>
-    [UnconditionalSuppressMessage("Trimming", "IL2075",
-        Justification = "Cascading parameter properties are declared on the component type and preserved with it.")]
     private void SetCascadingParameters()
     {
-        var properties = GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        foreach (var prop in properties)
+        var cascading = ComponentParameterCache.GetCascadingParameters(GetType());
+        for (int i = 0; i < cascading.Length; i++)
         {
-            if (!prop.CanWrite) continue;
-            var attr = prop.GetCustomAttribute<CascadingParameterAttribute>();
-            if (attr == null) continue;
-
-            if (CascadingValueSource.TryResolve(prop.PropertyType, attr.Name, out var value))
-                prop.SetValue(this, value);
+            ref readonly var setter = ref cascading[i];
+            if (CascadingValueSource.TryResolve(setter.Property.PropertyType, setter.Name, out var value))
+                setter.SetValue(this, value);
         }
     }
 

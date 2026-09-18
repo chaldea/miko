@@ -8,7 +8,7 @@ namespace Miko.Ionic.Tests.Components;
 
 public class IonChipTests : IonicComponentTestBase
 {
-    private static readonly RenderFragment Label = builder => builder.AddContent(0, "Active");
+    private static readonly RenderFragment Label = builder => builder.AddContent("Active");
 
     [Fact]
     public void IonChip_RendersDefaultDom()
@@ -155,10 +155,10 @@ public class IonChipTests : IonicComponentTestBase
 
         var cut = Context.Render<IonChip>(p => p.Add(nameof(IonChip.ChildContent), (RenderFragment)(builder =>
         {
-            builder.OpenComponent<IonIcon>(0);
+            builder.OpenComponent<IonIcon>();
             builder.CloseComponent();
-            builder.OpenComponent<IonLabel>(1);
-            builder.AddAttribute(2, nameof(IonLabel.ChildContent), (RenderFragment)(b => b.AddContent(0, "Active")));
+            var __c2 = builder.OpenComponent<IonLabel>();
+            __c2.ChildContent = (RenderFragment)(b => b.AddContent("Active"));
             builder.CloseComponent();
         })));
 
@@ -181,10 +181,10 @@ public class IonChipTests : IonicComponentTestBase
 
         var cut = Context.Render<IonChip>(p => p.Add(nameof(IonChip.ChildContent), (RenderFragment)(builder =>
         {
-            builder.OpenComponent<IonAvatar>(0);
+            builder.OpenComponent<IonAvatar>();
             builder.CloseComponent();
-            builder.OpenComponent<IonLabel>(1);
-            builder.AddAttribute(2, nameof(IonLabel.ChildContent), (RenderFragment)(b => b.AddContent(0, "Active")));
+            var __c4 = builder.OpenComponent<IonLabel>();
+            __c4.ChildContent = (RenderFragment)(b => b.AddContent("Active"));
             builder.CloseComponent();
         })));
 

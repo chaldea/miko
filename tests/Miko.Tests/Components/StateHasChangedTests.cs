@@ -16,10 +16,10 @@ public class StateHasChangedTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "button");
-            builder.AddAttribute(1, "onclick",
+            var __e1 = builder.OpenElement<ButtonElement>();
+            __e1.OnClick = global::Miko.Components.RenderTreeBuilder.ToHandler(
                 EventCallback.Factory.Create<MouseEventArgs>(this, Increment));
-            builder.AddContent(2, $"Count: {_count}");
+            builder.AddContent($"Count: {_count}");
             builder.CloseElement();
         }
 
@@ -45,8 +45,8 @@ public class StateHasChangedTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddContent(1, $"Count: {Count}");
+            builder.OpenElement<DivElement>();
+            builder.AddContent($"Count: {Count}");
             builder.CloseElement();
         }
 
@@ -110,8 +110,8 @@ public class StateHasChangedTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "onclick",
+            var __e3 = builder.OpenElement<DivElement>();
+            __e3.OnClick = global::Miko.Components.RenderTreeBuilder.ToHandler(
                 EventCallback.Factory.Create<MouseEventArgs>(this, () => OnClick?.Invoke()));
             builder.CloseElement();
         }
@@ -128,11 +128,11 @@ public class StateHasChangedTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.AddContent(1, _open ? "OPEN" : "CLOSED");
 
             Button = new ForwardingButtonComponent { OnClick = Open };
-            builder.OpenElement(2, "div");
+            builder.OpenElement<DivElement>();
             var childElement = Button.Build();
             builder.AttachElement(childElement);
             builder.CloseElement();
@@ -173,7 +173,7 @@ public class StateHasChangedTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
+            builder.OpenElement<DivElement>();
             builder.CloseElement();
         }
 
@@ -188,9 +188,9 @@ public class StateHasChangedTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddContent(1, $"tick:{_tick}");
-            builder.OpenComponent<DisposableChildComponent>(2);
+            builder.OpenElement<DivElement>();
+            builder.AddContent($"tick:{_tick}");
+            builder.OpenComponent<DisposableChildComponent>();
             builder.CloseComponent();
             builder.CloseElement();
         }
@@ -245,11 +245,11 @@ public class StateHasChangedTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddContent(1, $"a:{_count}");
+            builder.OpenElement<DivElement>();
+            builder.AddContent($"a:{_count}");
             builder.CloseElement();
-            builder.OpenElement(2, "div");
-            builder.AddContent(3, $"b:{_count}");
+            builder.OpenElement<DivElement>();
+            builder.AddContent($"b:{_count}");
             builder.CloseElement();
         }
 

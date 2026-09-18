@@ -21,7 +21,7 @@ public class IonReorderGroupTests : IonicComponentTestBase
 {
     private static RenderFragment Reorder() => builder =>
     {
-        builder.OpenComponent<IonReorder>(0);
+        builder.OpenComponent<IonReorder>();
         builder.CloseComponent();
     };
 

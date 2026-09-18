@@ -33,9 +33,9 @@ public class IonSegmentButtonPaddingTests
             p.Add(nameof(IonSegmentButton.Value), "a");
             p.AddChildContent(builder =>
             {
-                builder.OpenComponent<IonLabel>(0);
-                builder.AddComponentParameter(1, nameof(IonLabel.ChildContent),
-                    (RenderFragment)(l => l.AddContent(0, "All")));
+                var __c1 = builder.OpenComponent<IonLabel>();
+                __c1.ChildContent = 
+                    (RenderFragment)(l => l.AddContent("All"));
                 builder.CloseComponent();
             });
         });

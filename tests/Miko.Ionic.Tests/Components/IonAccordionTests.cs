@@ -20,10 +20,10 @@ public class IonAccordionTests : IonicComponentTestBase
     // A single accordion with a header label and content, bound to the given value.
     private static RenderFragment Accordion(string value, string label) => builder =>
     {
-        builder.OpenComponent<IonAccordion>(0);
-        builder.AddComponentParameter(1, nameof(IonAccordion.Value), value);
-        builder.AddComponentParameter(2, nameof(IonAccordion.Header), (RenderFragment)(b => b.AddContent(0, label)));
-        builder.AddComponentParameter(3, nameof(IonAccordion.Content), (RenderFragment)(b => b.AddContent(0, label + " body")));
+        var __c1 = builder.OpenComponent<IonAccordion>();
+        __c1.Value = value;
+        __c1.Header = (RenderFragment)(b => b.AddContent(0, label));
+        __c1.Content = (RenderFragment)(b => b.AddContent(0, label + " body"));
         builder.CloseComponent();
     };
 
@@ -428,24 +428,24 @@ public class IonAccordionTests : IonicComponentTestBase
     // divider / toggle-icon rules target).
     private static RenderFragment ItemAccordion(string value, string label, string? lines = null) => builder =>
     {
-        builder.OpenComponent<IonAccordion>(0);
-        builder.AddComponentParameter(1, nameof(IonAccordion.Value), value);
-        builder.AddComponentParameter(2, nameof(IonAccordion.Header), (RenderFragment)(hb =>
+        var __c2 = builder.OpenComponent<IonAccordion>();
+        __c2.Value = value;
+        __c2.Header = (RenderFragment)(hb =>
         {
-            hb.OpenComponent<IonItem>(0);
+            var __c3 = hb.OpenComponent<IonItem>();
             if (lines is not null)
             {
-                hb.AddComponentParameter(4, nameof(IonItem.Lines), lines);
+                __c3.Lines = lines;
             }
-            hb.AddComponentParameter(1, nameof(IonItem.ChildContent), (RenderFragment)(lb =>
+            __c3.ChildContent = (RenderFragment)(lb =>
             {
-                lb.OpenComponent<IonLabel>(0);
-                lb.AddComponentParameter(1, nameof(IonLabel.ChildContent), (RenderFragment)(tb => tb.AddContent(0, label)));
+                var __c4 = lb.OpenComponent<IonLabel>();
+                __c4.ChildContent = (RenderFragment)(tb => tb.AddContent(0, label));
                 lb.CloseComponent();
-            }));
+            });
             hb.CloseComponent();
-        }));
-        builder.AddComponentParameter(3, nameof(IonAccordion.Content), (RenderFragment)(b => b.AddContent(0, label + " body")));
+        });
+        __c2.Content = (RenderFragment)(b => b.AddContent(0, label + " body"));
         builder.CloseComponent();
     };
 

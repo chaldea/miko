@@ -17,7 +17,7 @@ namespace Miko.Ionic.Tests.Components;
 /// </summary>
 public class IonModalTests : IonicComponentTestBase
 {
-    private static readonly RenderFragment Body = builder => builder.AddContent(0, "Modal body");
+    private static readonly RenderFragment Body = builder => builder.AddContent("Modal body");
 
     private static ComponentUnderTest RenderModal(TestContext ctx,
         Action<ComponentParameterBuilder<IonModal>>? configure = null)

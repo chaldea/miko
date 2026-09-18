@@ -18,7 +18,7 @@ namespace Miko.Ionic.Tests.Components;
 /// </summary>
 public class IonPopoverTests : IonicComponentTestBase
 {
-    private static readonly RenderFragment Body = builder => builder.AddContent(0, "Popover body");
+    private static readonly RenderFragment Body = builder => builder.AddContent("Popover body");
 
     private static ComponentUnderTest RenderPopover(TestContext ctx,
         Action<ComponentParameterBuilder<IonPopover>>? configure = null)
@@ -226,14 +226,14 @@ public class IonPopoverTests : IonicComponentTestBase
             p.Add(nameof(IonPopover.IsOpen), true);
             p.Add(nameof(IonPopover.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonList>(0);
-                builder.AddAttribute(1, nameof(IonList.ChildContent), (RenderFragment)(list =>
+                var __c1 = builder.OpenComponent<IonList>();
+                __c1.ChildContent = (RenderFragment)(list =>
                 {
-                    list.OpenComponent<IonItem>(0);
-                    list.AddAttribute(1, nameof(IonItem.ChildContent),
-                        (RenderFragment)(item => item.AddContent(0, "Body")));
+                    var __c2 = list.OpenComponent<IonItem>();
+                    __c2.ChildContent = 
+                        (RenderFragment)(item => item.AddContent("Body"));
                     list.CloseComponent();
-                }));
+                });
                 builder.CloseComponent();
             }));
         });

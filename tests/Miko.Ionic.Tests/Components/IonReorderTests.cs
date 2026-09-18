@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Ionic.Components;
 using Miko.Platform;
 using Miko.Testing;
@@ -22,7 +23,7 @@ public class IonReorderTests : IonicComponentTestBase
     // A reorder handle (with no custom child, so the default icon is used).
     private static RenderFragment Reorder() => builder =>
     {
-        builder.OpenComponent<IonReorder>(0);
+        builder.OpenComponent<IonReorder>();
         builder.CloseComponent();
     };
 
@@ -70,8 +71,8 @@ public class IonReorderTests : IonicComponentTestBase
         var cut = Context.Render<IonReorder>(p =>
             p.Add(nameof(IonReorder.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "class", "custom-handle");
+                var __e1 = builder.OpenElement<SpanElement>();
+                __e1.Class = "custom-handle";
                 builder.CloseElement();
             })));
 

@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Ionic.Components;
 using Miko.Platform;
 using Miko.Testing;
@@ -22,11 +23,11 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
 
         var cut = Context.Render<IonToolbar>(p => p.AddChildContent(b =>
         {
-            b.OpenComponent<IonTitle>(0);
-            b.AddComponentParameter(1, nameof(IonTitle.ChildContent), (RenderFragment)(t => t.AddContent(0, "Page title")));
+            var __c1 = b.OpenComponent<IonTitle>();
+            __c1.ChildContent = (RenderFragment)(t => t.AddContent("Page title"));
             b.CloseComponent();
-            b.OpenComponent<IonProgressBar>(2);
-            b.AddComponentParameter(3, nameof(IonProgressBar.Value), 0.4);
+            var __c2 = b.OpenComponent<IonProgressBar>();
+            __c2.Value = 0.4;
             b.CloseComponent();
         }));
 
@@ -50,14 +51,14 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
 
         var cut = Context.Render<IonToolbar>(p => p.AddChildContent(b =>
         {
-            b.OpenComponent<IonTitle>(0);
-            b.AddComponentParameter(1, nameof(IonTitle.ChildContent), (RenderFragment)(t => t.AddContent(0, "Title 1")));
+            var __c3 = b.OpenComponent<IonTitle>();
+            __c3.ChildContent = (RenderFragment)(t => t.AddContent("Title 1"));
             b.CloseComponent();
-            b.OpenComponent<IonTitle>(2);
-            b.AddComponentParameter(3, nameof(IonTitle.ChildContent), (RenderFragment)(t => t.AddContent(0, "Title 2")));
+            var __c4 = b.OpenComponent<IonTitle>();
+            __c4.ChildContent = (RenderFragment)(t => t.AddContent("Title 2"));
             b.CloseComponent();
-            b.OpenComponent<IonProgressBar>(4);
-            b.AddComponentParameter(5, nameof(IonProgressBar.Value), 0.5);
+            var __c5 = b.OpenComponent<IonProgressBar>();
+            __c5.Value = 0.5;
             b.CloseComponent();
         }));
 
@@ -86,11 +87,11 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
 
         var cut = Context.Render<IonToolbar>(p => p.AddChildContent(b =>
         {
-            b.OpenComponent<IonTitle>(0);
-            b.AddComponentParameter(1, nameof(IonTitle.ChildContent), (RenderFragment)(t => t.AddContent(0, "Page title")));
+            var __c6 = b.OpenComponent<IonTitle>();
+            __c6.ChildContent = (RenderFragment)(t => t.AddContent("Page title"));
             b.CloseComponent();
-            b.OpenComponent<IonProgressBar>(2);
-            b.AddComponentParameter(3, nameof(IonProgressBar.Value), 0.3);
+            var __c7 = b.OpenComponent<IonProgressBar>();
+            __c7.Value = 0.3;
             b.CloseComponent();
         }));
 
@@ -112,8 +113,8 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
 
         var cut = Context.Render<IonToolbar>(p => p.AddChildContent(b =>
         {
-            b.OpenComponent<IonTitle>(0);
-            b.AddComponentParameter(1, nameof(IonTitle.ChildContent), (RenderFragment)(t => t.AddContent(0, "Title")));
+            var __c8 = b.OpenComponent<IonTitle>();
+            __c8.ChildContent = (RenderFragment)(t => t.AddContent("Title"));
             b.CloseComponent();
         }));
 
@@ -133,8 +134,8 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
 
         var cut = Context.Render<IonToolbar>(p => p.AddChildContent(content =>
         {
-            content.OpenComponent<IonBreadcrumbs>(0);
-            content.AddComponentParameter(1, nameof(IonBreadcrumbs.ChildContent), (RenderFragment)(crumbs =>
+            var __c9 = content.OpenComponent<IonBreadcrumbs>();
+            __c9.ChildContent = (RenderFragment)(crumbs =>
             {
                 var labels = new[] { "Home", "Electronics", "Photography", "Cameras", "Film", "35 mm" };
                 for (var i = 0; i < labels.Length; i++)
@@ -145,7 +146,7 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
                         (RenderFragment)(text => text.AddContent(0, label)));
                     crumbs.CloseComponent();
                 }
-            }));
+            });
             content.CloseComponent();
         }));
 
@@ -172,19 +173,19 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
         {
             p.Add(nameof(IonToolbar.Start), (RenderFragment)(start =>
             {
-                start.OpenComponent<IonBackButton>(0);
-                start.AddComponentParameter(1, nameof(IonBackButton.DefaultHref), "/");
+                var __c10 = start.OpenComponent<IonBackButton>();
+                __c10.DefaultHref = "/";
                 start.CloseComponent();
             }));
             p.AddChildContent(content =>
             {
-                content.OpenComponent<IonTitle>(0);
-                content.AddComponentParameter(1, nameof(IonTitle.ChildContent),
-                    (RenderFragment)(title => title.AddContent(0, "Progress")));
+                var __c11 = content.OpenComponent<IonTitle>();
+                __c11.ChildContent = 
+                    (RenderFragment)(title => title.AddContent("Progress"));
                 content.CloseComponent();
-                content.OpenComponent<IonProgressBar>(2);
-                content.AddComponentParameter(3, nameof(IonProgressBar.Type), "indeterminate");
-                content.AddComponentParameter(4, nameof(IonProgressBar.Color), "dark");
+                var __c12 = content.OpenComponent<IonProgressBar>();
+                __c12.Type = "indeterminate";
+                __c12.Color = "dark";
                 content.CloseComponent();
             });
         });
@@ -214,8 +215,8 @@ public class IonToolbarContentLayoutTests : IonicComponentTestBase
 
         var cut = Context.Render<IonToolbar>(p => p.AddChildContent(content =>
         {
-            content.OpenElement(0, "div");
-            content.OpenComponent<IonProgressBar>(1);
+            content.OpenElement<DivElement>();
+            content.OpenComponent<IonProgressBar>();
             content.CloseComponent();
             content.CloseElement();
         }));

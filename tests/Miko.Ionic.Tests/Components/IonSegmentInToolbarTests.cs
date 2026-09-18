@@ -32,21 +32,21 @@ public class IonSegmentInToolbarTests
     private static ComponentUnderTest RenderSegmentInToolbar(TestContext ctx) =>
         ctx.Render<IonToolbar>(p => p.Add(nameof(IonToolbar.ChildContent), (RenderFragment)(b =>
         {
-            b.OpenComponent<IonSegment>(0);
-            b.AddComponentParameter(1, nameof(IonSegment.Value), "all");
-            b.AddComponentParameter(2, nameof(IonSegment.ChildContent), (RenderFragment)(seg =>
+            var __c1 = b.OpenComponent<IonSegment>();
+            __c1.Value = "all";
+            __c1.ChildContent = (RenderFragment)(seg =>
             {
-                seg.OpenComponent<IonSegmentButton>(0);
-                seg.AddComponentParameter(1, nameof(IonSegmentButton.Value), "all");
-                seg.AddComponentParameter(2, nameof(IonSegmentButton.ChildContent),
-                    (RenderFragment)(label => label.AddContent(0, "All")));
+                var __c4 = seg.OpenComponent<IonSegmentButton>();
+                __c4.Value = "all";
+                __c4.ChildContent = 
+                    (RenderFragment)(label => label.AddContent("All"));
                 seg.CloseComponent();
-                seg.OpenComponent<IonSegmentButton>(3);
-                seg.AddComponentParameter(4, nameof(IonSegmentButton.Value), "favorites");
-                seg.AddComponentParameter(5, nameof(IonSegmentButton.ChildContent),
-                    (RenderFragment)(label => label.AddContent(0, "Favorites")));
+                var __c5 = seg.OpenComponent<IonSegmentButton>();
+                __c5.Value = "favorites";
+                __c5.ChildContent = 
+                    (RenderFragment)(label => label.AddContent("Favorites"));
                 seg.CloseComponent();
-            }));
+            });
             b.CloseComponent();
         })));
 
@@ -79,8 +79,8 @@ public class IonSegmentInToolbarTests
             p.Add(nameof(IonSegment.Value), "a");
             p.Add(nameof(IonSegment.ChildContent), (RenderFragment)(seg =>
             {
-                seg.OpenComponent<IonSegmentButton>(0);
-                seg.AddComponentParameter(1, nameof(IonSegmentButton.Value), "a");
+                var __c2 = seg.OpenComponent<IonSegmentButton>();
+                __c2.Value = "a";
                 seg.CloseComponent();
             }));
         });
@@ -137,10 +137,10 @@ public class IonSegmentInToolbarTests
             p.Add(nameof(IonSegment.Value), "all");
             p.Add(nameof(IonSegment.ChildContent), (RenderFragment)(seg =>
             {
-                seg.OpenComponent<IonSegmentButton>(0);
-                seg.AddComponentParameter(1, nameof(IonSegmentButton.Value), "all");
-                seg.AddComponentParameter(2, nameof(IonSegmentButton.ChildContent),
-                    (RenderFragment)(label => label.AddContent(0, "All")));
+                var __c3 = seg.OpenComponent<IonSegmentButton>();
+                __c3.Value = "all";
+                __c3.ChildContent = 
+                    (RenderFragment)(label => label.AddContent("All"));
                 seg.CloseComponent();
             }));
         });

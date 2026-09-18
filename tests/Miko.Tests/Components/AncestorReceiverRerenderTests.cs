@@ -30,12 +30,12 @@ public class AncestorReceiverRerenderTests
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
             SelfRenders++;
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "field");
-            builder.OpenElement(2, "input");
-            builder.AddAttribute(3, "class", "native");
-            builder.AddAttribute(4, "value", Value);
-            builder.AddAttribute(5, "oninput",
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = "field";
+            var __e2 = builder.OpenElement<InputElement>();
+            __e2.Class = "native";
+            global::Miko.Components.RenderTreeBuilder.SetInputValue(__e2, Value);
+            __e2.OnInput = global::Miko.Components.RenderTreeBuilder.ToHandler(
                 EventCallback.Factory.Create<InputEventArgs>(this, HandleInput));
             builder.CloseElement();
             builder.CloseElement();
@@ -55,12 +55,12 @@ public class AncestorReceiverRerenderTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "page");
-            builder.OpenComponent<FieldComponent>(2);
-            builder.AddAttribute(3, "Value", Bound);
-            builder.AddAttribute(4, "ValueChanged",
-                EventCallback.Factory.Create<string?>(this, v => Bound = v));
+            var __e3 = builder.OpenElement<DivElement>();
+            __e3.Class = "page";
+            var __c4 = builder.OpenComponent<FieldComponent>();
+            __c4.Value = Bound;
+            __c4.ValueChanged = 
+                EventCallback.Factory.Create<string?>(this, v => Bound = v);
             builder.CloseComponent();
             builder.CloseElement();
         }
@@ -98,17 +98,17 @@ public class AncestorReceiverRerenderTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "page");
+            var __e5 = builder.OpenElement<DivElement>();
+            __e5.Class = "page";
 
-            builder.OpenElement(2, "input");
-            builder.AddAttribute(3, "class", "bound");
-            builder.AddAttribute(4, "value", Bound);
+            var __e6 = builder.OpenElement<InputElement>();
+            __e6.Class = "bound";
+            global::Miko.Components.RenderTreeBuilder.SetInputValue(__e6, Bound);
             builder.CloseElement();
 
             // 无 value 属性声明。
-            builder.OpenElement(5, "input");
-            builder.AddAttribute(6, "class", "unbound");
+            var __e7 = builder.OpenElement<InputElement>();
+            __e7.Class = "unbound";
             builder.CloseElement();
 
             builder.CloseElement();

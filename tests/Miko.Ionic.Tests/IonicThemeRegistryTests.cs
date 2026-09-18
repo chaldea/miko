@@ -209,13 +209,13 @@ public class IonicThemeRegistryTests
         }
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<ConfigProvider>(0);
-            builder.AddComponentParameter(1, nameof(ConfigProvider.IonicTheme), _theme);
-            builder.AddComponentParameter(2, nameof(ConfigProvider.ChildContent), (RenderFragment)(child =>
+            var __c1 = builder.OpenComponent<ConfigProvider>();
+            __c1.IonicTheme = _theme;
+            __c1.ChildContent = (RenderFragment)(child =>
             {
-                child.OpenComponent<IonButton>(0);
+                child.OpenComponent<IonButton>();
                 child.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
     }
@@ -278,7 +278,7 @@ public class IonicThemeRegistryTests
 
         using var context = CreateContext(theme);
         var cut = context.Render<IonButton>(parameters => parameters.Add(nameof(IonButton.ChildContent),
-            (RenderFragment)(builder => builder.AddContent(0, "Themed"))));
+            (RenderFragment)(builder => builder.AddContent("Themed"))));
         var native = cut.Root.FindByClass("button-native").ShouldHaveSingleItem();
 
         cut.GetComputedStyle(native)!.BackgroundColor.ShouldBe(Color.FromHex("0e7490"));
@@ -321,20 +321,20 @@ public class IonicThemeRegistryTests
         {
             AddButton(builder, 0, "Default");
 
-            builder.OpenComponent<ConfigProvider>(10);
-            builder.AddComponentParameter(11, nameof(ConfigProvider.IonicTheme), OuterTheme);
-            builder.AddComponentParameter(12, nameof(ConfigProvider.ChildContent), (RenderFragment)(outer =>
+            var __c2 = builder.OpenComponent<ConfigProvider>();
+            __c2.IonicTheme = OuterTheme;
+            __c2.ChildContent = (RenderFragment)(outer =>
             {
                 AddButton(outer, 0, "Outer");
 
-                outer.OpenComponent<ConfigProvider>(10);
-                outer.AddComponentParameter(11, nameof(ConfigProvider.IonicTheme), InnerTheme);
-                outer.AddComponentParameter(12, nameof(ConfigProvider.ChildContent), (RenderFragment)(inner =>
+                var __c4 = outer.OpenComponent<ConfigProvider>();
+                __c4.IonicTheme = InnerTheme;
+                __c4.ChildContent = (RenderFragment)(inner =>
                 {
                     AddButton(inner, 0, "Inner");
-                }));
+                });
                 outer.CloseComponent();
-            }));
+            });
             builder.CloseComponent();
         }
 

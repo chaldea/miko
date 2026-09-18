@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Ionic.Components;
 using Shouldly;
@@ -61,7 +62,7 @@ public sealed class IonOverlayControllerTests : IonicComponentTestBase
         var cut = Context.Render<IonApp>();
         var reference = await controller.CreateAsync(new IonModalOptions
         {
-            Content = builder => builder.AddContent(0, "Body"),
+            Content = builder => builder.AddContent("Body"),
         });
         await reference.PresentAsync();
 
@@ -201,7 +202,7 @@ public sealed class IonOverlayControllerTests : IonicComponentTestBase
                 TargetWidth = 120,
                 TargetHeight = 48,
             },
-            Content = builder => builder.AddContent(0, "Body"),
+            Content = builder => builder.AddContent("Body"),
         });
 
         await reference.PresentAsync();
@@ -219,8 +220,8 @@ public sealed class IonOverlayControllerTests : IonicComponentTestBase
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "controller-modal-content");
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = "controller-modal-content";
             builder.AddContent(2, Text);
             builder.CloseElement();
         }

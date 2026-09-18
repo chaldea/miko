@@ -15,9 +15,9 @@ public class IonInputOtpTests : IonicComponentTestBase
 {
     private static readonly RenderFragment Description = builder =>
     {
-        builder.AddContent(0, "Didn't get a code? ");
-        builder.OpenElement(1, "a");
-        builder.AddContent(2, "Resend the code");
+        builder.AddContent("Didn't get a code? ");
+        builder.OpenElement<AnchorElement>();
+        builder.AddContent("Resend the code");
         builder.CloseElement();
     };
 
@@ -283,19 +283,19 @@ public class IonInputOtpInteractionTests : IDisposable
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<IonInputOtp>(0);
-            builder.AddComponentParameter(1, nameof(IonInputOtp.Value), Value);
-            builder.AddComponentParameter(2, nameof(IonInputOtp.Readonly), Readonly);
-            builder.AddComponentParameter(3, nameof(IonInputOtp.ValueChanged),
-                EventCallback.Factory.Create<string?>(this, value => Value = value));
-            builder.AddComponentParameter(4, nameof(IonInputOtp.OnInput),
-                EventCallback.Factory.Create<string?>(this, value => Inputs.Add(value)));
-            builder.AddComponentParameter(5, nameof(IonInputOtp.OnChange),
-                EventCallback.Factory.Create<string?>(this, value => Changes.Add(value)));
-            builder.AddComponentParameter(6, nameof(IonInputOtp.OnComplete),
-                EventCallback.Factory.Create<string>(this, value => Completions.Add(value)));
-            builder.AddComponentParameter(7, nameof(IonInputOtp.OnBlur),
-                EventCallback.Factory.Create(this, () => Blurs++));
+            var __c2 = builder.OpenComponent<IonInputOtp>();
+            __c2.Value = Value;
+            __c2.Readonly = Readonly;
+            __c2.ValueChanged = 
+                EventCallback.Factory.Create<string?>(this, value => Value = value);
+            __c2.OnInput = 
+                EventCallback.Factory.Create<string?>(this, value => Inputs.Add(value));
+            __c2.OnChange = 
+                EventCallback.Factory.Create<string?>(this, value => Changes.Add(value));
+            __c2.OnComplete = 
+                EventCallback.Factory.Create<string>(this, value => Completions.Add(value));
+            __c2.OnBlur = 
+                EventCallback.Factory.Create(this, () => Blurs++);
             builder.CloseComponent();
         }
     }

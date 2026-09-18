@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core.DomElements;
 using Miko.Core;
 using Miko.Ionic.Components;
 using Shouldly;
@@ -10,8 +11,8 @@ public class IonThumbnailTests : IonicComponentTestBase
 {
     private static readonly RenderFragment ImgChild = builder =>
     {
-        builder.OpenElement(0, "img");
-        builder.AddAttribute(1, "src", "https://example.com/photo.jpg");
+        var __e1 = builder.OpenElement<ImageElement>();
+        __e1.Source = "https://example.com/photo.jpg";
         builder.CloseElement();
     };
 
@@ -113,8 +114,8 @@ public class IonThumbnailTests : IonicComponentTestBase
 
         RenderFragment thumbnail = builder =>
         {
-            builder.OpenComponent<IonThumbnail>(0);
-            builder.AddAttribute(1, nameof(IonThumbnail.ChildContent), ImgChild);
+            var __c2 = builder.OpenComponent<IonThumbnail>();
+            __c2.ChildContent = ImgChild;
             builder.CloseComponent();
         };
 
@@ -122,8 +123,8 @@ public class IonThumbnailTests : IonicComponentTestBase
             .Add(inStartSlot ? nameof(IonItem.Start) : nameof(IonItem.End), thumbnail)
             .Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
             {
-                builder.OpenComponent<IonLabel>(0);
-                builder.AddAttribute(1, nameof(IonLabel.ChildContent), (RenderFragment)(b => b.AddContent(0, "Item")));
+                var __c3 = builder.OpenComponent<IonLabel>();
+                __c3.ChildContent = (RenderFragment)(b => b.AddContent("Item"));
                 builder.CloseComponent();
             })));
 

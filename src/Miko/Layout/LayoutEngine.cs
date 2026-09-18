@@ -118,6 +118,7 @@ public class LayoutEngine
         if (IsLayoutCurrent(root, styleSheets, viewportWidth, viewportHeight, safeArea))
             return _cachedResult!;
 
+        // 分段探针（ISSUE-136）：默认关闭，关闭时只是一次布尔判断。
         _safeArea = safeArea;
 
         // 视口为全屏：env(safe-area-inset-*) 由各内容元素按需折算成内边距，浮层不受影响。
@@ -125,7 +126,9 @@ public class LayoutEngine
         var viewport = new ViewportInfo(viewportWidth, viewportHeight);
         _viewport = viewport;
         _recyclableStyles.Clear();
+        var styleStart = FrameTimingDiagnostics.GetTimestamp();
         ComputeStyles(root, styleSheets, viewport);
+        FrameTimingDiagnostics.RecordStyle(styleStart);
 
         // 整棵树的新样式都已算完，上一帧那批实例再无引用者，归还给池（ISSUE-132）。
         //
@@ -138,6 +141,7 @@ public class LayoutEngine
         _recyclableStyles.Clear();
 
         // 2. 构建布局树：根据 display 属性过滤和组织
+        var layoutStart = FrameTimingDiagnostics.GetTimestamp();
         var layoutRoot = BuildLayoutTree(root, styleSheets);
 
         if (layoutRoot == null)
@@ -160,6 +164,9 @@ public class LayoutEngine
         var viewportBlock = new RectF(0f, 0f, viewportWidth, viewportHeight);
         ApplyPositioning(layoutRoot, viewportBlock, viewportBlock);
         ApplyInitialScrollOffsets(layoutRoot);
+
+        // 布局阶段计时到此为止（样式阶段已单独记账，不重复计入）。
+        FrameTimingDiagnostics.RecordLayout(layoutStart);
 
         // 记录缓存键。变更版本号在布局完成后读取：布局期间用户代码（事件回调等）
         // 造成的任何修改都会使版本号领先于缓存值，下一帧必然重排，不会复用到中间态。

@@ -11,13 +11,13 @@ public class IonButtonInListHeaderTests : IonicComponentTestBase
     {
         RenderFragment button = builder =>
         {
-            builder.OpenComponent<IonButton>(0);
+            var __c1 = builder.OpenComponent<IonButton>();
             if (fill is not null)
             {
-                builder.AddComponentParameter(1, nameof(IonButton.Fill), fill);
+                __c1.Fill = fill;
             }
-            builder.AddComponentParameter(2, nameof(IonButton.ChildContent),
-                (RenderFragment)(content => content.AddContent(0, "Edit")));
+            __c1.ChildContent = 
+                (RenderFragment)(content => content.AddContent("Edit"));
             builder.CloseComponent();
         };
 

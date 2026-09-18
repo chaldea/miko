@@ -26,7 +26,7 @@ public class IonListTests : IonicComponentTestBase
                 builder.AddComponentParameter(seq++, nameof(IonItem.Lines), lines);
             }
             builder.AddComponentParameter(seq++, nameof(IonItem.ChildContent),
-                (RenderFragment)(b => b.AddContent(0, "Item")));
+                (RenderFragment)(b => b.AddContent("Item")));
             builder.CloseComponent();
         }
     };
