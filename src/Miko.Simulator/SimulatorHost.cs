@@ -659,7 +659,7 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 
         // Scroll physics are part of what the simulated platform is meant to show, so follow the
         // device the same way mode does. Only replace a behavior we installed ourselves.
-        if (platformChanged && _appController.ScrollBehavior is InertialScrollBehavior)
+        if (platformChanged && _appController.ScrollBehavior is ElasticScrollBehavior { Inner: InertialScrollBehavior })
             _appController.SetScrollBehavior(CreateScrollBehaviorFor(device.Platform));
 
         InitAppEngine();
@@ -668,13 +668,14 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     }
 
     /// <summary>
-    /// Mirrors the friction each platform host installs, so a fling in the simulator decelerates
-    /// like it will on the selected device (Android comes to rest sooner than UIScrollView).
+    /// Mirrors what each platform host installs, so a fling in the simulator decelerates like it
+    /// will on the selected device (Android comes to rest sooner than UIScrollView) and a boundary
+    /// pull rubber-bands the same way (ISSUE-135).
     /// </summary>
-    private static InertialScrollBehavior CreateScrollBehaviorFor(HostPlatform platform)
-        => platform == HostPlatform.Android
+    private static ElasticScrollBehavior CreateScrollBehaviorFor(HostPlatform platform)
+        => new(platform == HostPlatform.Android
             ? new InertialScrollBehavior(friction: 4.0f)
-            : new InertialScrollBehavior();
+            : new InertialScrollBehavior());
 
     private void SetOrientationInternal(Orientation orientation)
     {

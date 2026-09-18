@@ -57,8 +57,10 @@ public class MikoSurfaceView : SKGLSurfaceView
         // The friction is larger than the iOS default: Android's fling comes to rest noticeably
         // sooner than UIScrollView's long glide. The value is a hand-tuned approximation of that
         // feel, not a constant derived from Android's Scroller.
+        // 惯性外再裹一层橡皮筋（ISSUE-135）：样式默认 overscroll-effect:none 时它是纯透传，
+        // 作者写一行 Elastic 即可在真机拿到边界拉伸回弹。
         if (_controller.ScrollBehavior is DefaultScrollBehavior)
-            _controller.SetScrollBehavior(new InertialScrollBehavior(friction: 4.0f));
+            _controller.SetScrollBehavior(new ElasticScrollBehavior(new InertialScrollBehavior(friction: 4.0f)));
         _activity = context as global::Android.App.Activity;
 
         // 把 Android 宿主交给 Native 能力层。服务容器在 MikoAppBuilder.Build() 时就已构建，

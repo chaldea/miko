@@ -38,8 +38,10 @@ public class MikoGLView : SKGLView, IUIKeyInput
         // Touch scrolling needs inertia; the default friction already matches UIScrollView's
         // normal deceleration rate. Only fill in the engine default so an app that registered
         // its own IScrollBehavior wins.
+        // 惯性外再裹一层橡皮筋（ISSUE-135）：样式默认 overscroll-effect:none 时它是纯透传，
+        // 作者写一行 Elastic 即可在真机拿到边界拉伸回弹。
         if (_controller.ScrollBehavior is DefaultScrollBehavior)
-            _controller.SetScrollBehavior(new InertialScrollBehavior());
+            _controller.SetScrollBehavior(new ElasticScrollBehavior(new InertialScrollBehavior()));
         _scale = UIScreen.MainScreen.Scale;
         MultipleTouchEnabled = false;
         PaintSurface += OnPaintSurface;

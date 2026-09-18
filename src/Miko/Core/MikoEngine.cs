@@ -912,15 +912,19 @@ public class MikoEngine
         // 反之，裁剪型盒子（overflow 非 visible，或已滚动）之外的一切都不可命中，可立即剪枝。
         // 缺了这条区分，比自身内容小的容器会吞掉子孙的点击：ion-fab 的 fit-content 宿主只有
         // 主按钮那么高，展开后的 ion-fab-list 整体落在宿主之外，列表按钮点不到（issues/ion-fab.md）。
-        bool clipsChildren = box.ScrollTop > 0 || box.ScrollLeft > 0
+        // 注意用 != 0 而非 > 0：边界拉伸（ISSUE-135）会让偏移为负（越过顶端/左端），
+        // 按 > 0 判定会在拉伸期间漏掉这一项。
+        bool clipsChildren = box.ScrollTop != 0f || box.ScrollLeft != 0f
             || box.ComputedStyle.OverflowY != Overflow.Visible
             || box.ComputedStyle.OverflowX != Overflow.Visible;
 
         if (!insideSelf && clipsChildren)
             return null;
 
-        float childScrollOffsetX = scrollOffsetX + box.ScrollLeft;
-        float childScrollOffsetY = scrollOffsetY + box.ScrollTop;
+        // 与 RenderEngine.RenderChildrenWithOverflow 的 Translate 同源：子级的屏幕位置等于
+        // 布局位置减去「滚动偏移 + 拉伸位移」。两处是孪生实现，改一处必须改另一处。
+        float childScrollOffsetX = scrollOffsetX + box.ScrollLeft + box.OverscrollX;
+        float childScrollOffsetY = scrollOffsetY + box.ScrollTop + box.OverscrollY;
 
         // HitTest must respect z-index order like rendering does. Collect positioned descendants with
         // z-index (穿透 non-stacking-context ancestors like CollectZOrderedDescendants does), test them
@@ -1920,18 +1924,44 @@ public class MikoEngine
     /// 处理滚动事件，更新滚动位置
     /// </summary>
     public bool ScrollBy(float x, float y, float deltaX, float deltaY)
+        => ScrollByDetailed(x, y, deltaX, deltaY).Scrolled;
+
+    /// <summary>
+    /// 最近一次滚动（无论经由 <see cref="ScrollBy"/> 还是 <see cref="ScrollByDetailed"/>）的详细结果。
+    ///
+    /// <para>供<b>装饰型</b> <see cref="Platform.IScrollBehavior"/> 观测被装饰者的滚动——
+    /// 被装饰的实现只会调 <see cref="ScrollBy"/> 并拿到 <c>bool</c>，装饰者无从得知它撞在哪个盒子上、
+    /// 剩了多少没走完。<see cref="Platform.ElasticScrollBehavior"/> 正是靠它把内层惯性撞墙时的
+    /// 余量转成回弹速度（ISSUE-135）。</para>
+    ///
+    /// <para>仅在滚动输入处理期间有意义（宿主的输入与帧推进都在同一把锁内串行，见
+    /// <see cref="Platform.MikoInteractionController"/>），读取方须在紧接着的调用后立即取用。</para>
+    /// </summary>
+    public ScrollResult LastScrollResult { get; private set; }
+
+    /// <summary>
+    /// 与 <see cref="ScrollBy"/> 同一动作，但额外报告<b>承载本次滚动的盒子</b>与<b>未被消费的余量</b>
+    /// （ISSUE-135）。
+    ///
+    /// <para>橡皮筋效果需要这两项：<see cref="Platform.IScrollBehavior"/> 的 <c>bool</c> 返回值只说明
+    /// 「有没有动」，既拿不到该把拉伸位移挂在哪个盒子上，也分不清「完全没动」与「只动了一部分」
+    /// ——后者正是手指推到边界那一刻的情形，余量就是要转成拉伸的那部分。</para>
+    /// </summary>
+    public ScrollResult ScrollByDetailed(float x, float y, float deltaX, float deltaY)
     {
+        LastScrollResult = ScrollResult.None;
+
         if (_currentLayout == null)
         {
             _logger.LogTrace("ScrollBy: no layout available");
-            return false;
+            return ScrollResult.None;
         }
 
         var targetElement = HitTest(x, y);
         if (targetElement == null)
         {
             _logger.LogTrace("ScrollBy: no element at ({X}, {Y})", x, y);
-            return false;
+            return ScrollResult.None;
         }
 
         _logger.LogTrace("ScrollBy: hit element <{Tag} id=\"{Id}\" class=\"{Class}\"> at ({X}, {Y}), delta=({DeltaX}, {DeltaY})",
@@ -1942,7 +1972,7 @@ public class MikoEngine
         {
             _logger.LogTrace("ScrollBy: no scrollable ancestor found for <{Tag} id=\"{Id}\" class=\"{Class}\">",
                 targetElement.TagName, targetElement.Id, targetElement.Class);
-            return false;
+            return ScrollResult.None;
         }
 
         _logger.LogTrace("ScrollBy: found scrollable <{Tag} id=\"{Id}\" class=\"{Class}\">, overflowY={OverflowY}, scrollableHeight={ScrollableH}, paddingBoxHeight={PaddingH}",
@@ -1972,8 +2002,19 @@ public class MikoEngine
             _logger.LogTrace("ScrollBy: horizontal scroll {Old} -> {New} (max={Max})", oldScrollLeft, scrollableBox.ScrollLeft, maxScrollLeft);
         }
 
-        bool scrolled = Math.Abs(scrollableBox.ScrollLeft - oldScrollLeft) > 0.01f ||
-                        Math.Abs(scrollableBox.ScrollTop - oldScrollTop) > 0.01f;
+        float consumedX = scrollableBox.ScrollLeft - oldScrollLeft;
+        float consumedY = scrollableBox.ScrollTop - oldScrollTop;
+
+        bool scrolled = Math.Abs(consumedX) > 0.01f || Math.Abs(consumedY) > 0.01f;
+
+        // 余量只在<b>本轴可滚动</b>时才有意义（ISSUE-135）。「在边界被挡住」才是越界，
+        // 「这条轴压根不滚」不是——后者的增量从来就没有被消费的可能。
+        //
+        // 不作此区分时，斜向拖拽会出事：容器经由纵轴被选中，而横向增量因 overflow-x:hidden
+        // 永远消费不了，于是整个横向分量都算作余量、变成拉伸。手指往右下滑，画面整体往右下跑，
+        // 左上角露出空白。斜向是真实手势的常态，所以这条路径几乎必然被踩到。
+        float remainingX = CanOverscrollAxis(scrollableBox, horizontal: true) ? deltaX - consumedX : 0f;
+        float remainingY = CanOverscrollAxis(scrollableBox, horizontal: false) ? deltaY - consumedY : 0f;
 
         if (scrolled)
         {
@@ -1985,7 +2026,19 @@ public class MikoEngine
             _logger.LogTrace("ScrollBy: no actual scroll change (already at boundary)");
         }
 
-        return scrolled;
+        LastScrollResult = new ScrollResult(scrollableBox, consumedX, consumedY, remainingX, remainingY);
+        return LastScrollResult;
+    }
+
+    /// <summary>
+    /// 该轴是否可能产生「越界余量」——即它是不是一条真正的滚动轴（<c>overflow</c> 为
+    /// <c>auto</c>/<c>scroll</c>）。不可滚动的轴上，增量没被消费不代表撞了边界，
+    /// 只代表这个方向本来就不动。
+    /// </summary>
+    private static bool CanOverscrollAxis(LayoutBox box, bool horizontal)
+    {
+        var overflow = horizontal ? box.ComputedStyle.OverflowX : box.ComputedStyle.OverflowY;
+        return overflow is Overflow.Auto or Overflow.Scroll;
     }
 
     private void DispatchScrollEvent(LayoutBox box, float oldScrollLeft, float oldScrollTop)
@@ -2041,27 +2094,39 @@ public class MikoEngine
     {
         if (_currentLayout == null) return null;
 
+        // 开启了弹性、但内容没有溢出的容器（ISSUE-135）。这类容器不能滚动，却仍要能被拉伸回弹
+        // ——iOS 上短内容页面照样有橡皮筋，Ionic 的 forceOverscroll 也是这个语义。
+        // 只作为**兜底**：真正可滚动的祖先永远优先，否则内层短列表会抢走本该滚动外层的手势。
+        LayoutBox? elasticFallback = null;
+
         var current = target;
         while (current != null)
         {
             var box = FindLayoutBoxForElement(_currentLayout, current);
             if (box != null)
             {
-                bool canScrollY = Math.Abs(deltaY) > 0.01f &&
-                    (box.ComputedStyle.OverflowY == Overflow.Auto || box.ComputedStyle.OverflowY == Overflow.Scroll) &&
+                bool overflowsY = box.ComputedStyle.OverflowY == Overflow.Auto || box.ComputedStyle.OverflowY == Overflow.Scroll;
+                bool overflowsX = box.ComputedStyle.OverflowX == Overflow.Auto || box.ComputedStyle.OverflowX == Overflow.Scroll;
+
+                bool canScrollY = Math.Abs(deltaY) > 0.01f && overflowsY &&
                     box.ScrollableContentHeight > box.BoxModel.PaddingBox.Height;
 
-                bool canScrollX = Math.Abs(deltaX) > 0.01f &&
-                    (box.ComputedStyle.OverflowX == Overflow.Auto || box.ComputedStyle.OverflowX == Overflow.Scroll) &&
+                bool canScrollX = Math.Abs(deltaX) > 0.01f && overflowsX &&
                     box.ScrollableContentWidth > box.BoxModel.PaddingBox.Width;
 
                 if (canScrollY || canScrollX)
                     return box;
+
+                if (elasticFallback == null && box.IsElastic &&
+                    ((Math.Abs(deltaY) > 0.01f && overflowsY) || (Math.Abs(deltaX) > 0.01f && overflowsX)))
+                {
+                    elasticFallback = box;
+                }
             }
             current = current.Parent;
         }
 
-        return null;
+        return elasticFallback;
     }
 
     /// <summary>
@@ -2142,8 +2207,10 @@ public class MikoEngine
             }
         }
 
-        float childScrollOffsetX = scrollOffsetX + box.ScrollLeft;
-        float childScrollOffsetY = scrollOffsetY + box.ScrollTop;
+        // 轨道/滑块自身画在滚动平移之外（见 RenderEngine.RenderScrollbars），故其几何不含拉伸量；
+        // 但下探子树时要与内容的实际绘制位置一致，因此这里计入拉伸（ISSUE-135）。
+        float childScrollOffsetX = scrollOffsetX + box.ScrollLeft + box.OverscrollX;
+        float childScrollOffsetY = scrollOffsetY + box.ScrollTop + box.OverscrollY;
 
         foreach (var child in box.Children)
         {

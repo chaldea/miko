@@ -5,3 +5,51 @@
 <p>
     The content component provides an easy to use content area with some useful methods to control the scrollable area. There should only be one content in a single view.
 </p>
+
+<h2>Elastic Overscroll</h2>
+<p>
+    Dragging past the top or bottom of a scroll container stretches the content and springs it back
+    on release. Set <code>ForceOverscroll</code> to enable it; it defaults to on in ios mode only,
+    matching Ionic's <code>forceOverscroll</code>. The bounce needs a touch gesture, so drag with
+    the mouse in the simulator (which forwards drags as touches) or use a device — a desktop wheel
+    does not trigger it.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(300)" Fit>
+    <IonContent ForceOverscroll="true">
+        <IonList>
+            <IonItem><IonLabel>Drag past the top edge…</IonLabel></IonItem>
+            <IonItem><IonLabel>Pokémon Yellow</IonLabel></IonItem>
+            <IonItem><IonLabel>Mega Man X</IonLabel></IonItem>
+            <IonItem><IonLabel>The Legend of Zelda</IonLabel></IonItem>
+            <IonItem><IonLabel>Pac-Man</IonLabel></IonItem>
+            <IonItem><IonLabel>Super Mario World</IonLabel></IonItem>
+            <IonItem><IonLabel>Street Fighter II</IonLabel></IonItem>
+            <IonItem><IonLabel>Chrono Trigger</IonLabel></IonItem>
+            <IonItem><IonLabel>Secret of Mana</IonLabel></IonItem>
+            <IonItem><IonLabel>Final Fantasy VI</IonLabel></IonItem>
+            <IonItem><IonLabel>…and past the bottom edge</IonLabel></IonItem>
+        </IonList>
+    </IonContent>
+</Playground>
+
+<h2>Without Overscroll</h2>
+<p>
+    The same list with <code>ForceOverscroll</code> off: scrolling stops dead at both boundaries.
+</p>
+
+<Playground Width="Percent(100)" Height="Px(300)" Fit>
+    <IonContent Color="light" ForceOverscroll="false">
+        <IonList>
+            <IonItem><IonLabel>Pokémon Yellow</IonLabel></IonItem>
+            <IonItem><IonLabel>Mega Man X</IonLabel></IonItem>
+            <IonItem><IonLabel>The Legend of Zelda</IonLabel></IonItem>
+            <IonItem><IonLabel>Pac-Man</IonLabel></IonItem>
+            <IonItem><IonLabel>Super Mario World</IonLabel></IonItem>
+            <IonItem><IonLabel>Street Fighter II</IonLabel></IonItem>
+            <IonItem><IonLabel>Chrono Trigger</IonLabel></IonItem>
+            <IonItem><IonLabel>Secret of Mana</IonLabel></IonItem>
+            <IonItem><IonLabel>Final Fantasy VI</IonLabel></IonItem>
+        </IonList>
+    </IonContent>
+</Playground>

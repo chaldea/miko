@@ -548,6 +548,12 @@ public partial class Style
     public StyleProperty<Overflow>? OverflowY { get; set; }
     public StyleProperty<ScrollbarWidth>? ScrollbarWidth { get; set; }
 
+    /// <summary>
+    /// 到达滚动边界后继续推动时的表现（ISSUE-135）。默认 <c>None</c>（硬停）；
+    /// <c>Elastic</c> 让内容随手指拉伸、松手回弹。需宿主装配 <c>ElasticScrollBehavior</c> 方能生效。
+    /// </summary>
+    public StyleProperty<OverscrollEffect>? OverscrollEffect { get; set; }
+
     // 动画与过渡
     public StyleProperty<Transform>? Transform { get; set; }
     public StyleProperty<TransformOrigin>? TransformOrigin { get; set; }

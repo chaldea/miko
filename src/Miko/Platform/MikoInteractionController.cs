@@ -1269,8 +1269,10 @@ public sealed class MikoInteractionController
             var box = FindLayoutBoxForElement(current);
             if (box != null)
             {
-                scrollX += box.ScrollLeft;
-                scrollY += box.ScrollTop;
+                // 计入边界拉伸（ISSUE-135）：拉伸期间元素的实际绘制位置也随之平移，
+                // 下拉菜单定位与 IME 光标矩形都必须跟着走，否则会脱离它们所属的控件。
+                scrollX += box.ScrollLeft + box.OverscrollX;
+                scrollY += box.ScrollTop + box.OverscrollY;
             }
             current = current.Parent;
         }
