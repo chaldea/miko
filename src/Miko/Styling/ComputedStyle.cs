@@ -507,6 +507,9 @@ public partial class ComputedStyle : Style
     public new Overflow OverflowY { get; set; } = Overflow.Visible;
     public new ScrollbarWidth ScrollbarWidth { get; set; } = Common.ScrollbarWidth.Auto;
 
+    // 边界越界表现（ISSUE-135）。初始值 None：不开启就完全保持既有的「硬停」语义。
+    public new OverscrollEffect OverscrollEffect { get; set; } = Common.OverscrollEffect.None;
+
     // vertical-align 默认 baseline（与 CSS 一致）。
     public new VerticalAlign VerticalAlign { get; set; } = Common.VerticalAlign.Baseline;
 

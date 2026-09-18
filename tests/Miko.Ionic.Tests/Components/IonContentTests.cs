@@ -365,6 +365,60 @@ public class IonContentTests : IonicComponentTestBase
         cut.Root.ShouldHaveClass("overscroll");
     }
 
+    /// <summary>
+    /// ISSUE-135：<c>overscroll</c> 标记必须真的解析出 <c>overscroll-effect: elastic</c>。
+    /// 在此之前它只是个空标记类，样式表里没有任何规则接住它——橡皮筋自然不会发生。
+    /// </summary>
+    [Fact]
+    public void IonContent_Style_IosMode_ScrollContainerIsElastic()
+    {
+        UsePlatform(HostPlatform.Ios);
+
+        var cut = RenderContent(withStyles: true);
+
+        var scroll = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
+        cut.GetComputedStyle(scroll)!.OverscrollEffect.ShouldBe(OverscrollEffect.Elastic);
+    }
+
+    /// <summary>md 模式默认不弹（与 Ionic 的 shouldForceOverscroll 一致）。</summary>
+    [Fact]
+    public void IonContent_Style_MdMode_ScrollContainerIsNotElastic()
+    {
+        var cut = RenderContent(withStyles: true);
+
+        var scroll = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
+        cut.GetComputedStyle(scroll)!.OverscrollEffect.ShouldBe(OverscrollEffect.None);
+    }
+
+    /// <summary>显式开启后，md 模式下也能拿到弹性——不必为了橡皮筋切到 ios 模式。</summary>
+    [Fact]
+    public void IonContent_Style_ExplicitForceOverscroll_MakesMdElastic()
+    {
+        var cut = RenderContent(p => p.Add(nameof(IonContent.ForceOverscroll), true), withStyles: true);
+
+        var scroll = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
+        cut.GetComputedStyle(scroll)!.OverscrollEffect.ShouldBe(OverscrollEffect.Elastic);
+    }
+
+    /// <summary>
+    /// 弹性落在<b>滚动容器</b>（.inner-scroll）上，而不是宿主。宿主刻意不设 overflow
+    /// （见 ContentStyles 的注释：那会裁掉 fixed 槽的内容），因此挂在宿主上的弹性永远不会触发。
+    /// </summary>
+    [Fact]
+    public void IonContent_Style_ElasticLandsOnTheScrollerNotTheHost()
+    {
+        UsePlatform(HostPlatform.Ios);
+
+        var cut = RenderContent(withStyles: true);
+
+        cut.GetComputedStyle(cut.Root)!.OverscrollEffect.ShouldBe(OverscrollEffect.None);
+        var scroll = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
+        var scrollStyle = cut.GetComputedStyle(scroll)!;
+        scrollStyle.OverscrollEffect.ShouldBe(OverscrollEffect.Elastic);
+        // 同一个盒子上必须同时是滚动容器，弹性才有意义。
+        scrollStyle.OverflowY.ShouldBe(Overflow.Auto);
+    }
+
     // ---- Class stamping ----------------------------------------------------
 
     [Fact]

@@ -699,10 +699,15 @@ public class RenderEngine
 
         var clipRect = new RectF(paddingBox.X, paddingBox.Y, clipWidth, clipHeight);
 
+        // 边界拉伸（ISSUE-135）与滚动偏移同向叠加：两者都是「内容相对裁剪窗口的位移」，
+        // 区别只在于拉伸不进布局。裁剪矩形不含拉伸量——橡皮筋拉的是内容，不是容器本身。
+        float contentOffsetX = box.ScrollLeft + box.OverscrollX;
+        float contentOffsetY = box.ScrollTop + box.OverscrollY;
+
         float prevScrollX = _currentScrollOffsetX;
         float prevScrollY = _currentScrollOffsetY;
-        _currentScrollOffsetX += box.ScrollLeft;
-        _currentScrollOffsetY += box.ScrollTop;
+        _currentScrollOffsetX += contentOffsetX;
+        _currentScrollOffsetY += contentOffsetY;
 
         // 带圆角的裁剪盒（overflow != visible + border-radius）需按圆角路径裁剪子元素，
         // 否则子内容会溢出圆角（如圆形 ion-avatar 内的方形子块）。
@@ -716,7 +721,7 @@ public class RenderEngine
             _painter.Save();
             _painter.ClipRect(clipRect);
         }
-        _painter.Translate(-box.ScrollLeft, -box.ScrollTop);
+        _painter.Translate(-contentOffsetX, -contentOffsetY);
 
         // 裁剪盒的后代不会被提取（CollectZOrderedDescendants 在会裁剪的祖先处停止下探），
         // 故这里一般 deferred 为空；仍传递以保持与非裁剪分支同一语义。

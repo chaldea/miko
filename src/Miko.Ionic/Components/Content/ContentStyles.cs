@@ -104,6 +104,21 @@ internal static class ContentStyles
                 OverflowX = Overflow.Auto,
             },
 
+            // .overscroll — the rubber-band boundary effect (ISSUE-135). Ionic's content.scss maps
+            // this marker to `-webkit-overflow-scrolling: touch`, i.e. it asks the platform for
+            // iOS-style bouncy scrolling; the engine equivalent is `overscroll-effect: elastic`.
+            // IonContent stamps the marker when ShouldForceOverscroll is true, which defaults to
+            // ios mode — so this rule is what makes an iOS-mode page bounce out of the box.
+            //
+            // The effect also needs an ElasticScrollBehavior installed on the host. The three
+            // mobile hosts (Android / iOS / Simulator) install it by default; a desktop host does
+            // not, and there the marker is inert — the same shape as Ionic, where the property is
+            // only honoured by WebKit.
+            [$".ion-content.{mode} .inner-scroll.overscroll"] = new()
+            {
+                OverscrollEffect = OverscrollEffect.Elastic,
+            },
+
             // Fixed slot content (content.scss `::slotted([slot="fixed"])`): taken out of the
             // scroll flow so it stays put while the content scrolls. The marker class is stamped
             // by IonContent.Build() onto the fixed elements THEMSELVES (Ionic's ::slotted targets

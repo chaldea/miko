@@ -28,6 +28,22 @@ public class LayoutBox
     public float ScrollTop { get; set; }
     public float ScrollLeft { get; set; }
 
+    // ---- 边界拉伸位移（ISSUE-135）----
+    // 橡皮筋效果的瞬时视觉偏移，正负表示越过哪一侧边界（负 = 越过顶端/左端）。
+    // 刻意与 ScrollTop/ScrollLeft 分开存放：它是 paint-only 的，不参与布局、不进滚动事件、
+    // 不被滚动状态恢复携带，因此也不必经过 ScrollBy/LayoutEngine/RestoreScrollState 那几处
+    // 「夹取到 [0, max]」的逻辑——那些夹取正是「硬停」语义本身，复用它们就没有拉伸可言。
+    // 消费者只有两个：绘制（RenderEngine.RenderChildrenWithOverflow 的 Translate）与
+    // 命中测试（MikoEngine.HitTestBox 的子级偏移），两处必须同步。
+    public float OverscrollX { get; set; }
+    public float OverscrollY { get; set; }
+
+    /// <summary>本容器是否开启了橡皮筋越界效果。</summary>
+    public bool IsElastic => ComputedStyle.OverscrollEffect == OverscrollEffect.Elastic;
+
+    /// <summary>当前是否处于拉伸状态（绘制与命中需要计入偏移）。</summary>
+    public bool HasOverscroll => OverscrollX != 0f || OverscrollY != 0f;
+
     // 内容实际尺寸（可能超出 Content 区域）
     public float ScrollableContentWidth { get; set; }
     public float ScrollableContentHeight { get; set; }

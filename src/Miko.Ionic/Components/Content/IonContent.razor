@@ -79,8 +79,13 @@
 
     /// <summary>
     /// If true, scrolling bounces past the bounds even when the content does not overflow
-    /// (Ionic <c>forceOverscroll</c>). When null, Ionic defaults it to true on iOS. Stamps the
-    /// <c>overscroll</c> marker class; Miko has no rubber-band scroll, so this is a marker.
+    /// (Ionic <c>forceOverscroll</c>). When null, Ionic defaults it to true on iOS.
+    /// <para>
+    /// Stamps the <c>overscroll</c> marker class, which <see cref="ContentStyles"/> maps to
+    /// <c>overscroll-effect: elastic</c> (ISSUE-135). The bounce additionally requires an
+    /// <c>ElasticScrollBehavior</c> on the platform host — the Android / iOS / Simulator hosts
+    /// install one by default, a plain desktop host does not.
+    /// </para>
     /// </summary>
     [Parameter] public bool? ForceOverscroll { get; set; }
 

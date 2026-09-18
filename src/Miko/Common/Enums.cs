@@ -226,6 +226,21 @@ public enum ScrollbarWidth
 }
 
 /// <summary>
+/// 滚动容器到达边界后，继续被推的增量如何呈现（ISSUE-135）。
+/// </summary>
+public enum OverscrollEffect
+{
+    /// <summary>越界增量被丢弃，画面在边界处硬停（CSS 初始值）。</summary>
+    None,
+
+    /// <summary>
+    /// 橡皮筋：越界增量按阻尼转为内容的临时位移，松手后以弹簧回弹归零。
+    /// 该位移只影响绘制与命中，不参与布局，也不改变 <c>scrollTop</c>/<c>scrollLeft</c>。
+    /// </summary>
+    Elastic
+}
+
+/// <summary>
 /// 文本装饰
 /// </summary>
 public enum TextDecoration
