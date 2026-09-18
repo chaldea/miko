@@ -1,5 +1,4 @@
 using Miko.Core;
-using System.Reflection;
 
 namespace Miko.Styling.Selectors;
 
@@ -42,14 +41,10 @@ public class AttributeSelector : Selector
 
     public override bool Matches(Element element)
     {
-        // 使用反射获取元素的属性值（Miko 元素将 HTML 属性作为 C# 属性暴露）
-        var propInfo = element.GetType().GetProperty(AttributeName,
-            BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-
-        if (propInfo == null)
+        // Miko 元素把 HTML 属性作为 C# 属性暴露；查表由源生成器产出，不用反射
+        // （反射版在 Native AOT 下被裁剪后恒失配，见 Element.TryGetAttributeValue，ISSUE-140）。
+        if (!element.TryGetAttributeValue(AttributeName, out var attrValue))
             return false; // 属性不存在
-
-        var attrValue = propInfo.GetValue(element);
 
         // [attr] — 仅检查属性存在（非 null）
         if (Operator == AttributeMatchOperator.Exists)

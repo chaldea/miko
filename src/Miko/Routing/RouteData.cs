@@ -6,6 +6,6 @@ public class RouteData
 {
     public required string Template { get; init; }
 
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
+    [DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)]
     public required Type ComponentType { get; init; }
 }

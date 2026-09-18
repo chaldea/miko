@@ -390,4 +390,49 @@ public class CssObjectTests
         var css = new CssObject { ["..."] = new() { Color = Color.Red } };
         Should.Throw<InvalidOperationException>(() => _ = css["..."]);
     }
+
+    // -----------------------------------------------------------------
+    // MergeChildrenFrom（ISSUE-140）
+    //
+    // 样式库要把若干片段合成一张总表。Children 是 internal，程序集外原本只能反射读取
+    // （Miko.Ionic.Styles.GlobalStyle 就是这么做的）——跨程序集的非公开反射，裁剪后会
+    // 静默返回 null 并悄悄丢掉整张全局样式表。
+    // -----------------------------------------------------------------
+
+    [Fact]
+    public void MergeChildrenFrom_CopiesNestedSelectors()
+    {
+        var target = new CssObject { [".a"] = new() { Color = Color.Red } };
+        var source = new CssObject { [".b"] = new() { Color = Color.Blue } };
+
+        target.MergeChildrenFrom(source);
+
+        target[".a"].Color.ShouldBe(Color.Red);
+        target[".b"].Color.ShouldBe(Color.Blue);
+    }
+
+    [Fact]
+    public void MergeChildrenFrom_LaterSourceWinsOnConflict()
+    {
+        // GlobalStyle 按顺序合并多个模块，后合并者应覆盖同名选择器。
+        var target = new CssObject { [".x"] = new() { Color = Color.Red } };
+        target.MergeChildrenFrom(new CssObject { [".x"] = new() { Color = Color.Blue } });
+
+        target[".x"].Color.ShouldBe(Color.Blue);
+    }
+
+    [Fact]
+    public void MergeChildrenFrom_MergedSheetResolvesThroughStyleResolver()
+    {
+        // 端到端：合并后的规则必须真的参与级联（GlobalStyle 的实际用法）。
+        var combined = new CssObject();
+        combined.MergeChildrenFrom(new CssObject { [".btn"] = new() { Display = Display.Block } });
+        combined.MergeChildrenFrom(new CssObject { [".btn"] = new() { Color = Color.Blue } });
+
+        var sheet = new StyleSheet();
+        sheet.Add(combined);
+
+        var element = new DivElement { Class = "btn" };
+        new StyleResolver().Resolve(element, [sheet]).Color.ShouldBe(Color.Blue);
+    }
 }

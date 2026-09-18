@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Diagnostics;
@@ -143,6 +144,11 @@ public abstract class ComponentBase : IComponent
     /// <para>The property set is resolved once per component type by
     /// <see cref="ComponentParameterCache"/> rather than by reflecting on every call.</para>
     /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "GetType() is statically unannotated, but a component can only ever be " +
+                        "instantiated through RenderTreeBuilder.OpenComponent<T>/Router.MapRoute<T>, " +
+                        "both of which declare ComponentTypeMembers.Activation — so the concrete " +
+                        "type's parameter properties are preserved (ISSUE-140).")]
     private static void InjectServices(ComponentBase component, IServiceProvider serviceProvider)
     {
         var injected = ComponentParameterCache.GetInjectedProperties(component.GetType());
@@ -321,6 +327,11 @@ public abstract class ComponentBase : IComponent
     /// so the property set is resolved once per component type by
     /// <see cref="ComponentParameterCache"/> instead of re-reflecting each time (ISSUE-136).</para>
     /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "GetType() is statically unannotated, but a component can only ever be " +
+                        "instantiated through RenderTreeBuilder.OpenComponent<T>/Router.MapRoute<T>, " +
+                        "both of which declare ComponentTypeMembers.Activation — so the concrete " +
+                        "type's parameter properties are preserved (ISSUE-140).")]
     private void SetCascadingParameters()
     {
         var cascading = ComponentParameterCache.GetCascadingParameters(GetType());

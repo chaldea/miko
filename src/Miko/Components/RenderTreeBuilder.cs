@@ -520,7 +520,7 @@ public class RenderTreeBuilder
         ParseMarkup(markup);
     }
 
-    public void OpenComponent<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] T>(int seq) where T : ComponentBase, new()
+    public void OpenComponent<[DynamicallyAccessedMembers(ComponentTypeMembers.Activation)] T>(int seq) where T : ComponentBase, new()
     {
         _componentStack.Push(new T());
     }
@@ -532,19 +532,34 @@ public class RenderTreeBuilder
     ///
     /// <para>Must be paired with <see cref="CloseComponent"/>, which builds the component and
     /// attaches its produced element.</para>
+    ///
+    /// <para>This is the overload the Razor compiler emits for <b>every nested component</b>, so it
+    /// is where the trimmer learns that component parameters must survive: without the annotation
+    /// ILC strips the <c>[Inject]</c>/<c>[CascadingParameter]</c> properties of every nested
+    /// component type and <see cref="ComponentParameterCache"/>'s <c>GetProperties</c> comes back
+    /// empty at run time — injections stay null and cascading contexts never arrive (ISSUE-140).</para>
     /// </summary>
-    public T OpenComponent<T>() where T : ComponentBase, new()
+    public T OpenComponent<[DynamicallyAccessedMembers(ComponentTypeMembers.Activation)] T>() where T : ComponentBase, new()
     {
         var component = new T();
         _componentStack.Push(component);
         return component;
     }
 
-    /// <summary>Opens a component whose type is only known at runtime.</summary>
-    [UnconditionalSuppressMessage("Trimming", "IL2072",
-        Justification = "Runtime component types supplied by the application must preserve their public constructors and properties.")]
+    /// <summary>
+    /// Opens a component whose type is only known at runtime.
+    ///
+    /// <para>The annotation is the caller's obligation: whoever supplies
+    /// <paramref name="componentType"/> must carry the same requirement all the way back to a
+    /// <c>typeof(T)</c> the trimmer can see (e.g.
+    /// <c>IonModalController.CreateAsync&lt;TComponent&gt;</c> →
+    /// <c>IonModalOptions.Component</c> → here). There is deliberately <b>no</b> suppression on
+    /// this method: an earlier one claimed the requirement was satisfied and thereby hid the
+    /// unannotated <c>IonModalOptions.Component</c> hand-off, which would have let AOT trim a
+    /// dynamically presented modal's parameters (ISSUE-140).</para>
+    /// </summary>
     public void OpenComponent(int seq,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] Type componentType)
+        [DynamicallyAccessedMembers(ComponentTypeMembers.Activation)] Type componentType)
     {
         if (!typeof(ComponentBase).IsAssignableFrom(componentType))
             throw new ArgumentException($"{componentType} is not a Miko component.", nameof(componentType));
@@ -554,7 +569,16 @@ public class RenderTreeBuilder
         _componentStack.Push(component);
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Component types are preserved via DynamicallyAccessedMembers on OpenComponent<T>")]
+    /// <summary>
+    /// Sets a component parameter by name, for the two cases the compiler cannot resolve
+    /// statically: a weakly-typed attribute, and a component opened through the runtime-typed
+    /// <see cref="OpenComponent(int, Type)"/>.
+    /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "The open component reached this builder through OpenComponent<T> or " +
+                        "OpenComponent(int, Type); both declare ComponentTypeMembers.Activation, " +
+                        "which includes PublicProperties — the exact binding this lookup uses. " +
+                        "GetType() on the stacked instance is merely statically unannotated (ISSUE-140).")]
     public void AddComponentParameter(int seq, string name, object? value)
     {
         if (_componentStack.Count == 0) return;

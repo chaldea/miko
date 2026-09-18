@@ -1,13 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <StartupObject>IonicDemo.Desktop.Program</StartupObject>
 	<ServerGarbageCollection>false</ServerGarbageCollection>
+	<PublishAot>true</PublishAot>
+	<!-- 逐调用点报告裁剪告警，而不是每个程序集折叠成一条。ISSUE-140 的根因正是
+	     ComponentBase 上两条具体的 IL2072，折叠后看不出是哪里丢了组件属性。 -->
+	<TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Silk.NET.Windowing.Glfw" />
+    <TrimmerRootAssembly Include="Silk.NET.Input.Glfw" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\IonicDemo\IonicDemo.csproj" />

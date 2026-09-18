@@ -17,7 +17,7 @@ public class MikoAppOptions
     public Assembly[]? RouteAssemblies { get; set; }
     public Action<Router>? RouteConfigurator { get; set; }
 
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
+    [DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)]
     public Type? DefaultLayout { get; set; }
 
     public List<FontRegistration> Fonts { get; set; } = new();

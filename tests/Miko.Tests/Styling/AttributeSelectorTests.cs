@@ -266,4 +266,54 @@ public class AttributeSelectorTests
 
         computed.PaddingTop.Value.ShouldBe(10);
     }
+
+    // -----------------------------------------------------------------
+    // 生成式属性访问（ISSUE-140）
+    //
+    // 属性查找从 GetType().GetProperty(name, IgnoreCase) 换成了源生成器产出的
+    // Element.TryGetAttributeValue —— 反射版在 Native AOT 下属性被裁剪后恒失配，
+    // 样式表里的规则看着还在却永远不命中。以下用例锁定换实现后的等价行为。
+    // -----------------------------------------------------------------
+
+    [Fact]
+    public void AttributeSelector_LowercaseCssName_ShouldMatchPascalCaseProperty()
+    {
+        // CSS 里写的是 [type=...]，CLR 属性叫 Type：名称匹配必须忽略大小写。
+        var input = new InputElement { Type = InputType.Checkbox };
+        var selector = new AttributeSelector("type", AttributeMatchOperator.Equals, "checkbox");
+
+        selector.Matches(input).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AttributeSelector_UnknownAttribute_ShouldNotMatch()
+    {
+        var input = new InputElement { Type = InputType.Text };
+        var selector = new AttributeSelector("nonexistent", AttributeMatchOperator.Exists);
+
+        selector.Matches(input).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AttributeSelector_ElementSpecificProperty_ShouldMatch()
+    {
+        // 逐类型分派：AnchorElement 有 Href，DivElement 没有。若生成的 switch 把基类模式
+        // 排在派生类型之前，派生类型的分支就永远走不到，这类断言会立刻变红。
+        var anchor = new AnchorElement { Href = "/accordion" };
+
+        new AttributeSelector("href", AttributeMatchOperator.Prefix, "/acc")
+            .Matches(anchor).ShouldBeTrue();
+        new AttributeSelector("href", AttributeMatchOperator.Exists)
+            .Matches(new DivElement()).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AttributeSelector_InheritedBaseProperty_ShouldMatch()
+    {
+        // 基类 Element 上声明的属性对每个具体元素类型都要可见。
+        var div = new DivElement { Id = "main" };
+        var selector = new AttributeSelector("id", AttributeMatchOperator.Equals, "main");
+
+        selector.Matches(div).ShouldBeTrue();
+    }
 }

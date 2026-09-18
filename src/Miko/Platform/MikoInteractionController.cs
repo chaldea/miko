@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -91,6 +92,11 @@ public sealed class MikoInteractionController
     private InputMethodState? _publishedInputMethodState;
     private string _compositionText = string.Empty;
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "Router.ScanAssemblies only runs when the app explicitly supplied " +
+                        "MikoAppOptions.RouteAssemblies. AOT/trimmed apps register routes with " +
+                        "builder.UseGeneratedRoutes(), whose generated MapRoute<T> calls are " +
+                        "trim-safe and leave RouteAssemblies null (ISSUE-140).")]
     public MikoInteractionController(
         IOptions<MikoAppOptions> options,
         IServiceProvider serviceProvider,
@@ -122,6 +128,8 @@ public sealed class MikoInteractionController
         if (_options.RouteAssemblies != null || _options.RouteConfigurator != null)
         {
             _router = new Router();
+            // 程序集扫描靠反射发现 [Route]，裁剪/AOT 下不可用。这是显式 opt-in 的 JIT-only 路径：
+            // AOT 应用请用 builder.UseGeneratedRoutes()（Razor 编译器生成 MapRoute<T>，裁剪安全）。
             if (_options.RouteAssemblies != null)
                 _router.ScanAssemblies(_options.RouteAssemblies);
             _options.RouteConfigurator?.Invoke(_router);

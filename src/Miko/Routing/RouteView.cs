@@ -10,7 +10,7 @@ public class RouteView
     private readonly Router _router;
     private readonly NavigationManager _navigationManager;
 
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
+    [DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)]
     private readonly Type? _defaultLayout;
 
     private readonly IServiceProvider _serviceProvider;
@@ -18,7 +18,7 @@ public class RouteView
     public RouteView(
         Router router,
         NavigationManager navigationManager,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type? defaultLayout,
+        [DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)] Type? defaultLayout,
         IServiceProvider serviceProvider)
     {
         _router = router;
@@ -62,7 +62,7 @@ public class RouteView
     }
 
     private ComponentBase CreateComponent(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type componentType)
+        [DynamicallyAccessedMembers(Components.ComponentTypeMembers.Activation)] Type componentType)
     {
         var component = (ComponentBase)ActivatorUtilities.CreateInstance(_serviceProvider, componentType);
         InjectServices(component, componentType, _serviceProvider);
@@ -77,7 +77,7 @@ public class RouteView
     /// </summary>
     private static void InjectServices(
         ComponentBase component,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type componentType,
+        [DynamicallyAccessedMembers(Components.ComponentTypeMembers.Parameters)] Type componentType,
         IServiceProvider serviceProvider)
     {
         var injected = ComponentParameterCache.GetInjectedProperties(componentType);

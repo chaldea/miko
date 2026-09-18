@@ -30,6 +30,23 @@ public class CssObject : Style
 
     internal IReadOnlyDictionary<string, CssObject> Children => _children;
 
+    /// <summary>
+    /// 把 <paramref name="source"/> 的嵌套子选择器逐条并入本对象，同名选择器以 source 为准。
+    /// 混入（<see cref="Spread"/>）不参与——它们属于 source 自身的规则，不是子选择器。
+    ///
+    /// <para>供样式库把若干片段合成一张总表用（见 <c>Miko.Ionic.Styles.GlobalStyle</c>）。
+    /// <see cref="Children"/> 是 <c>internal</c>，程序集外原本只能靠
+    /// <c>typeof(CssObject).GetProperty("Children", NonPublic | Instance)</c> 反射读取——
+    /// 那是跨程序集的非公开反射，裁剪后会静默返回 null 并悄悄丢掉整张样式表（ISSUE-140）。</para>
+    /// </summary>
+    public void MergeChildrenFrom(CssObject source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        foreach (var (selector, child) in source._children)
+            _children[selector] = child;
+    }
+
     /// <summary>通过 <see cref="Spread"/> 键合并进来的混入，按书写顺序排列。</summary>
     internal IReadOnlyList<CssObject> Mixins => (IReadOnlyList<CssObject>?)_mixins ?? Array.Empty<CssObject>();
 }
