@@ -19,6 +19,32 @@ public class Painter
     }
 
     /// <summary>
+    /// 当前画布把一个逻辑像素放大成多少个设备像素（取自当前变换矩阵）。
+    /// 桌面宿主为 1；Android/iOS 真机与模拟器按屏幕密度放大渲染，为 2~4。
+    ///
+    /// <para>矢量内容（路径、文本）无需关心该值——它们由 Skia 在设备像素上直接栅格化。
+    /// 但把矢量图（SVG）<b>先栅格化成位图再绘制</b>时必须按该系数放大目标位图尺寸，
+    /// 否则会经历「1× 栅格化 → 画布放大」的二次重采样：每个 1× 源像素的边缘被线性插值
+    /// 抹成该系数宽的渐变带，图标边缘明显发虚（ISSUE-137，原 ISSUE-111）。</para>
+    ///
+    /// <para>取两个轴向缩放的较大者，而非单取 <c>ScaleX</c>：CSS <c>transform</c> 会把旋转、
+    /// 倾斜、非等比缩放一并并入同一个矩阵，此时 <c>ScaleX</c> 已不是缩放系数
+    /// （旋转 90° 时它是 0，会把目标尺寸算成 0）。</para>
+    /// </summary>
+    public float DeviceScale
+    {
+        get
+        {
+            var m = _canvas.TotalMatrix;
+            // 矩阵线性部分两个列向量的长度 = 各轴向的实际放大倍数（含旋转/倾斜贡献）。
+            float xAxis = MathF.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY);
+            float yAxis = MathF.Sqrt(m.SkewX * m.SkewX + m.ScaleY * m.ScaleY);
+            float scale = MathF.Max(xAxis, yAxis);
+            return float.IsFinite(scale) && scale > 0 ? scale : 1f;
+        }
+    }
+
+    /// <summary>
     /// 绘制盒阴影（支持多层阴影）
     /// </summary>
     public void DrawBoxShadow(List<BoxShadow> shadows, RectF rect, float topLeftRadius = 0, float topRightRadius = 0, float bottomRightRadius = 0, float bottomLeftRadius = 0)

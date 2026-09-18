@@ -99,6 +99,78 @@ public class BackgroundImageTests
     }
 
     [Fact]
+    public void RenderAtSize_ShouldCacheBySize()
+    {
+        // ISSUE-137：按设备像素栅格化后尺寸更大，渲染循环每帧重栅格化的代价不可接受，
+        // 必须按尺寸缓存。
+        var bg = CreateSvgBackground();
+
+        var first = bg.RenderAtSize(48, 48);
+        var second = bg.RenderAtSize(48, 48);
+
+        first.ShouldNotBeNull();
+        second.ShouldBeSameAs(first);
+    }
+
+    [Fact]
+    public void RenderAtSize_ShouldKeepMultipleSizesCachedSimultaneously()
+    {
+        // 同一个 BackgroundImage 实例被跨元素共享（Miko.Ionic.IconResolver 按图标名缓存一份），
+        // 页面上同名图标可能有多种尺寸。单槽缓存会每帧互相顶掉，退化成没有缓存。
+        var bg = CreateSvgBackground();
+
+        var small = bg.RenderAtSize(16, 16);
+        var large = bg.RenderAtSize(48, 48);
+
+        // 交替请求两种尺寸后，两者都应仍在缓存中（同一实例）。
+        bg.RenderAtSize(16, 16).ShouldBeSameAs(small);
+        bg.RenderAtSize(48, 48).ShouldBeSameAs(large);
+    }
+
+    [Fact]
+    public void RenderAtSize_DifferentSize_ShouldRasterizeAtThatSize()
+    {
+        var bg = CreateSvgBackground();
+
+        var small = bg.RenderAtSize(16, 16);
+        var large = bg.RenderAtSize(48, 48);
+
+        small!.Width.ShouldBe(16);
+        large!.Width.ShouldBe(48);
+        large.ShouldNotBeSameAs(small);
+    }
+
+    [Fact]
+    public void RenderAtSize_BitmapSource_ShouldIgnoreSize()
+    {
+        // 位图源是固定分辨率，放大它只会插值，不会更清晰：直接返回原图。
+        var bitmap = CreateTestBitmap(10, 10);
+        var bg = BackgroundImage.FromBitmap(bitmap);
+
+        bg.RenderAtSize(30, 30).ShouldBe(bitmap);
+    }
+
+    [Fact]
+    public void RenderAtSize_ShouldNotGrowCacheWithoutBound()
+    {
+        // 缓存容量有限：请求足够多的不同尺寸后，最早的条目应被淘汰（否则缩放动画会无界增长）。
+        var bg = CreateSvgBackground();
+
+        var oldest = bg.RenderAtSize(10, 10);
+        for (int size = 11; size <= 30; size++)
+            bg.RenderAtSize(size, size);
+
+        bg.RenderAtSize(10, 10).ShouldNotBeSameAs(oldest);
+    }
+
+    private static BackgroundImage CreateSvgBackground()
+    {
+        var svgContent = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='red'/></svg>";
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(svgContent));
+        return BackgroundImage.FromSvgStream(stream);
+    }
+
+    [Fact]
     public void OriginalWidth_ShouldReturnBitmapDimensions()
     {
         var bitmap = CreateTestBitmap(24, 18);

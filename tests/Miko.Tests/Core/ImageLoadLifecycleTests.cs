@@ -95,6 +95,47 @@ public class ImageLoadLifecycleTests : IDisposable
     }
 
     [Fact]
+    public void LoadCompletion_VectorSource_UsesLoaderReportedIntrinsicSize()
+    {
+        // ISSUE-137：矢量源（SVG）被加载器过采样栅格化以在高密度屏上保持清晰，其位图尺寸
+        // 不再等于 CSS 内禀尺寸。引擎必须取加载器报告的 viewBox 逻辑尺寸，否则一张 24×24
+        // 的 SVG 会按过采样后的像素尺寸参与布局，整个页面被撑开。
+        var loader = new FakeImageLoader { IntrinsicSize = (24, 24) };
+        var engine = new MikoEngineBuilder().Build();
+        engine.ImageLoader = loader;
+        var img = new ImageElement { Source = "https://x/a.svg" };
+        var root = new DivElement { Children = { img } };
+
+        engine.Initialize(root, ImageSheet(), _canvas, 800, 600);
+
+        // 过采样：24×24 的 viewBox 栅格化成 528×528。
+        loader.Complete(new SKBitmap(528, 528));
+        engine.Render(_canvas);
+
+        img.IntrinsicWidth.ShouldBe(24);
+        img.IntrinsicHeight.ShouldBe(24);
+        FindBox(engine.GetCurrentLayout()!, img)!.BoxModel.Content.Width.ShouldBe(24);
+    }
+
+    [Fact]
+    public void LoadCompletion_LoaderWithoutIntrinsicSize_FallsBackToBitmapSize()
+    {
+        // 加载器报告 null（位图源，或未过采样的矢量源）时回退到位图像素尺寸。
+        var loader = new FakeImageLoader { IntrinsicSize = null };
+        var engine = new MikoEngineBuilder().Build();
+        engine.ImageLoader = loader;
+        var img = new ImageElement { Source = "https://x/a.png" };
+        var root = new DivElement { Children = { img } };
+
+        engine.Initialize(root, ImageSheet(), _canvas, 800, 600);
+        loader.Complete(new SKBitmap(64, 32));
+        engine.Render(_canvas);
+
+        img.IntrinsicWidth.ShouldBe(64);
+        img.IntrinsicHeight.ShouldBe(32);
+    }
+
+    [Fact]
     public void ImageRemovedFromTree_DropsTracking_AndAllowsReload()
     {
         var loader = new FakeImageLoader();
@@ -131,11 +172,14 @@ public class ImageLoadLifecycleTests : IDisposable
 
     // ---- fakes -------------------------------------------------------------
 
-    private sealed class FakeImageLoader : IImageLoader
+    private sealed class FakeImageLoader : IImageLoader, IImageIntrinsicSizeProvider
     {
         private TaskCompletionSource<SKBitmap?> _tcs = new();
         public int Calls { get; private set; }
         public MediaSource Last { get; private set; }
+
+        /// <summary>过采样矢量源报告的 viewBox 逻辑尺寸；null = 用位图像素尺寸（ISSUE-137）。</summary>
+        public (int Width, int Height)? IntrinsicSize { get; init; }
 
         public Task<SKBitmap?> LoadAsync(MediaSource source, CancellationToken ct = default)
         {
@@ -143,6 +187,8 @@ public class ImageLoadLifecycleTests : IDisposable
             Last = source;
             return _tcs.Task;
         }
+
+        public (int Width, int Height)? GetIntrinsicSize(MediaSource source) => IntrinsicSize;
 
         public void Complete(SKBitmap? bitmap) => _tcs.TrySetResult(bitmap);
 

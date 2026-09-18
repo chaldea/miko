@@ -11,6 +11,25 @@ public class BackgroundImage
     private float _viewBoxWidth;
     private float _viewBoxHeight;
 
+    /// <summary>
+    /// <see cref="RenderAtSize"/> 的栅格化缓存，按目标像素尺寸索引。没有它，渲染循环会
+    /// 每帧重新栅格化每一个 SVG 背景（ISSUE-137 按设备像素放大后尺寸更大、代价更高）。
+    ///
+    /// <para>必须允许多个尺寸并存：同一个 <see cref="BackgroundImage"/> 实例被跨元素共享
+    /// （<c>Miko.Ionic.IconResolver</c> 按图标名缓存一份，页面上同名图标可能有 16/24/32 多种
+    /// 尺寸，还会叠加不同的设备缩放）。单槽缓存在这种页面上会每帧互相顶掉，退化成没有缓存。</para>
+    /// </summary>
+    private readonly Dictionary<(int Width, int Height), SKBitmap> _rasterCache = new();
+
+    /// <summary>插入顺序，用于在缓存满时淘汰最早的条目。</summary>
+    private readonly List<(int Width, int Height)> _rasterCacheOrder = new();
+
+    /// <summary>
+    /// 缓存容量。同一图标同时出现的尺寸种类通常远小于该值（Ionic 的图标尺寸档位有限），
+    /// 取 8 既能覆盖常见页面，又把单张图的位图内存上限约束在可预期范围内。
+    /// </summary>
+    private const int RasterCacheCapacity = 8;
+
     public SKBitmap? Bitmap
     {
         get
@@ -107,11 +126,39 @@ public class BackgroundImage
         return image;
     }
 
+    /// <summary>
+    /// 取该图在给定<b>像素</b>尺寸下的位图。矢量源（SVG）按该尺寸栅格化并缓存；
+    /// 位图源是固定分辨率，忽略尺寸直接返回原图（放大它只会插值，不会更清晰）。
+    ///
+    /// <para>调用方传入的应当是<b>设备像素</b>尺寸（逻辑尺寸 × <c>Painter.DeviceScale</c>），
+    /// 见 ISSUE-137。</para>
+    /// </summary>
     public SKBitmap? RenderAtSize(int width, int height)
     {
-        if (_picture != null)
-            return RenderPictureToBitmap(width, height);
-        return _bitmap;
+        if (_picture == null)
+            return _bitmap;
+
+        if (width <= 0) width = 16;
+        if (height <= 0) height = 16;
+
+        var key = (width, height);
+        if (_rasterCache.TryGetValue(key, out var cached))
+            return cached;
+
+        var bitmap = RenderPictureToBitmap(width, height);
+
+        // 淘汰最早的条目并释放其位图：SKBitmap 是 native 内存，丢引用不等于释放。
+        if (_rasterCacheOrder.Count >= RasterCacheCapacity)
+        {
+            var oldest = _rasterCacheOrder[0];
+            _rasterCacheOrder.RemoveAt(0);
+            if (_rasterCache.Remove(oldest, out var evicted))
+                evicted.Dispose();
+        }
+
+        _rasterCache[key] = bitmap;
+        _rasterCacheOrder.Add(key);
+        return bitmap;
     }
 
     private void LoadSvg(Stream stream)
