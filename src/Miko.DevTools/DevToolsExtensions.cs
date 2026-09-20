@@ -35,7 +35,9 @@ public static class DevToolsExtensions
             o.PostInitHooks.Add(sp =>
             {
                 var engine = sp.GetRequiredService<Core.MikoEngine>();
-                bridge.Initialize(engine);
+                // 资源程序集提供器供 Resources 面板枚举嵌入资源。可选解析：
+                // 应用若自定义了 IImageLoader 而未调用 AddImageLoader，容器里就没有它。
+                bridge.Initialize(engine, sp.GetService<Platform.Resources.IResourceAssemblyProvider>());
             });
         });
 

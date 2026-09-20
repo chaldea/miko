@@ -89,6 +89,8 @@ Select example:
 
 `MediaSource` accepts schemes `file://`, `res://` (embedded resource), `http(s)://`, `data:`, or a bare path. `img.Source = "https://example.com/a.png"` just works.
 
+`res://` paths mirror `file://`: **no assembly name**, `/` separators, relative to the project root (`res://Assets/logo.png` for `Assets/logo.png` embedded in any registered assembly). The mapping onto .NET manifest resource names is internal, so renaming an assembly or moving a project never rewrites resource paths.
+
 ```razor
 <img src="res://Assets/logo.png" />
 <img src="https://example.com/hero.jpg" Placeholder="res://Assets/blur.png" />

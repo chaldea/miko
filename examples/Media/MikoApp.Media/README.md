@@ -76,7 +76,7 @@ HTTP 解复用器需 Range（206 Partial Content）才能 seek 到文件末尾�
 | 协议 | 含义 | 示例 |
 |------|------|------|
 | `file://` 或裸路径 | 本地文件 | `file://C:/a.png`、`movie.mp4` |
-| `res://` | 嵌入资源 | `res://Assets/spinner.png` |
+| `res://` | 嵌入资源（路径不含程序集名） | `res://Assets/spinner.png` |
 | `http(s)://` | 网络资源 | `http://localhost:5050/assets/thumb/1.png` |
 | `data:` | 内联 base64 | `data:image/png;base64,...` |
 

@@ -11,8 +11,9 @@ namespace Miko.Ionic;
 /// sources (<c>res://</c> / <c>file://</c> / bare paths) go through the registered
 /// <see cref="IResourceAssemblyProvider"/> assemblies and the file system — the same resolution
 /// paths <see cref="ResourceManager"/> uses for <c>&lt;img&gt;</c>, so assemblies registered via
-/// <c>builder.AddResourceAssembly(...)</c> are honored. Results are cached so the same SVG is
-/// only decoded once.
+/// <c>builder.AddResourceAssembly(...)</c> are honored, and <c>res://</c> paths are written
+/// assembly-agnostically (<c>res://Assets/a.svg</c>, see <see cref="EmbeddedResources"/>).
+/// Results are cached so the same SVG is only decoded once.
 /// </summary>
 public static class IconResolver
 {
@@ -94,20 +95,22 @@ public static class IconResolver
         }
     }
 
-    private static BackgroundImage? LoadFromAssemblies(string resourceName, IResourceAssemblyProvider? assemblyProvider)
+    private static BackgroundImage? LoadFromAssemblies(string resourcePath, IResourceAssemblyProvider? assemblyProvider)
     {
-        foreach (var assembly in assemblyProvider?.GetResourceAssemblies() ?? Enumerable.Empty<System.Reflection.Assembly>())
+        // 逻辑路径（res://Assets/a.svg）→ 真实清单资源名，与 ResourceManager 共用换算（ISSUE-139）。
+        var located = EmbeddedResources.Locate(assemblyProvider, resourcePath);
+        if (located == null) return null;
+
+        var (assembly, manifestName) = located.Value;
+        try
         {
-            try
-            {
-                return BackgroundImage.FromResource(assembly, resourceName);
-            }
-            catch (InvalidOperationException)
-            {
-                // Not in this assembly — try the next registered one.
-            }
+            return BackgroundImage.FromResource(assembly, manifestName);
         }
-        return null;
+        catch (InvalidOperationException)
+        {
+            // Locate 已确认该名存在，这里只是防御 FromResource 的契约。
+            return null;
+        }
     }
 
     private static BackgroundImage? LoadFromFile(string path)

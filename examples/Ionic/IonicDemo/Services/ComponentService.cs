@@ -8,7 +8,7 @@ namespace IonicDemo.Services
     {
         public List<ComponentItem> GetComponents()
         {
-            var icon = "res://IonicDemo.Assets.component-icon.svg";
+            var icon = "res://Assets/component-icon.svg";
 
             return new List<ComponentItem>()
             {

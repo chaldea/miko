@@ -34,4 +34,10 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- res:// 路径解析测试的素材。清单名为 Miko.Tests.TestAssets.Resources.*，
+         测试断言不含程序集名的逻辑路径（res://TestAssets/Resources/logo.svg）也能命中。 -->
+    <EmbeddedResource Include="TestAssets\Resources\**\*" />
+  </ItemGroup>
+
 </Project>
