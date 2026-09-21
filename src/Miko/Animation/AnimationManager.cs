@@ -63,8 +63,8 @@ public class AnimationManager
     private readonly List<ActiveTransition> _transitions = new();
     private readonly List<ActiveAnimation> _animations = new();
     private readonly Dictionary<string, KeyframeAnimation> _registeredAnimations = new();
-    private readonly Dictionary<Element, Dictionary<string, float>> _previousValues = new();
-    private readonly Dictionary<Element, Dictionary<string, Color>> _previousColors = new();
+    // 本帧内刚播完的过渡（元素 + 属性名），每次 Update 开头清空；用于抑制"刚结束就被重新触发"。
+    // 以 Element 为键的集合必须只存活一帧：跨帧留存等同于把元素钉在管理器上（ISSUE-141）。
     private readonly HashSet<(Element, string)> _recentlyCompleted = new();
     private ILogger _logger = NullLogger.Instance;
 

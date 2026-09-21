@@ -276,12 +276,7 @@ public abstract class ComponentBase : IComponent
     }
 
     // Walks a discarded element subtree and invokes each element's component dispose callback.
-    private static void DisposeSubtree(Element element)
-    {
-        element.DisposeCallback?.Invoke();
-        foreach (var child in element.Children.ToArray())
-            DisposeSubtree(child);
-    }
+    private static void DisposeSubtree(Element element) => element.DisposeComponentSubtree();
 
     /// <summary>
     /// Builds the replacement subtree used by <see cref="StateHasChanged"/> when the root

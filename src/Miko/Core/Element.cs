@@ -230,6 +230,27 @@ public abstract class Element
     internal Action? DisposeCallback { get; set; }
 
     /// <summary>
+    /// 自本元素起递归调用整棵子树的 <see cref="DisposeCallback"/>，用于树被整体丢弃时
+    /// 拆掉其中所有组件实例持有的订阅。
+    ///
+    /// <para>组件重渲染走 <c>ComponentBase.StateHasChanged</c>，它自己会拆掉被换下的子树；
+    /// 但<b>整棵根树</b>被丢弃的路径（路由导航与热重载，见
+    /// <c>MikoInteractionController.Rebuild</c>）曾无人拆解——旧树里每个组件的
+    /// <c>OnDispose</c> 都不执行，于是它们对应用级服务的订阅只增不减。一个订阅就让整棵
+    /// 旧树（DOM + 布局盒 + 计算样式）从 DI 单例可达，GC 无从回收：ISSUE-141 实测
+    /// <c>IonOverlayHost</c> → <c>IonOverlayRegistry.Changed</c> 每导航一次多一个订阅者，
+    /// 每轮五个路由约 6.4&#160;MB 计算样式在强制 gen2 回收后依然存活。</para>
+    /// </summary>
+    internal void DisposeComponentSubtree()
+    {
+        DisposeCallback?.Invoke();
+        // 回调可能改动 Children（组件在 OnDispose 里清理自己的子树），故先快照再遍历。
+        var children = Children.ToArray();
+        foreach (var child in children)
+            child.DisposeComponentSubtree();
+    }
+
+    /// <summary>
     /// 组件重渲染时接替本元素位置的新实例（由 <c>ComponentBase.TransferRuntimeState</c> 写入）。
     /// <para>组件的每次重渲染都产出<b>全新</b>的元素实例替换整棵子树，而交互状态（焦点、
     /// 文本光标位置）活在实例上，控制器也按引用缓存焦点/拖拽目标。该指针把旧实例转发到

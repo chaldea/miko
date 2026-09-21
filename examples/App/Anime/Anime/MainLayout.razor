@@ -1,0 +1,35 @@
+@inherits Miko.Components.LayoutComponentBase
+@namespace Anime
+
+<IonApp Class="anime-app">
+    <IonTabs>
+        <Content>@Body</Content>
+        <Bottom>
+            @if (IsTabPage)
+            {
+                <IonTabBar Slot="bottom">
+                    <IonTabButton Tab="home" Href="/home" Selected="@IsActive("/home", "/")">
+                        <IonIcon Icon="@Ionicons.PlayCircleOutline" />
+                        <IonLabel>首页</IonLabel>
+                    </IonTabButton>
+                    <IonTabButton Tab="vip" Href="/vip" Selected="@IsActive("/vip")">
+                        <IonIcon Icon="@Ionicons.GiftOutline" />
+                        <IonLabel>福利</IonLabel>
+                    </IonTabButton>
+                    <IonTabButton Tab="user" Href="/user" Selected="@IsActive("/user")">
+                        <IonIcon Icon="@Ionicons.PersonCircleOutline" />
+                        <IonLabel>我的</IonLabel>
+                    </IonTabButton>
+                </IonTabBar>
+            }
+        </Bottom>
+    </IonTabs>
+</IonApp>
+
+@code {
+    private string CurrentPath => NavigationManager?.CurrentPath ?? "/";
+    private bool IsTabPage => CurrentPath is "/" or "/home" or "/vip" or "/user";
+
+    private bool IsActive(params string[] paths) =>
+        paths.Any(p => string.Equals(p, CurrentPath, StringComparison.OrdinalIgnoreCase));
+}

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <StartupObject>Anime.Simulator.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Anime\Anime.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Miko.Simulator\Miko.Simulator.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Miko.McpServer\Miko.McpServer.csproj" />
+  </ItemGroup>
+
+</Project>

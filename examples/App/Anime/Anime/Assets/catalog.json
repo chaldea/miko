@@ -1,0 +1,286 @@
+{
+  "titles": [
+    {
+      "id": 1,
+      "title": "攻壳机动队 第二季",
+      "kind": "日漫",
+      "genre": "科幻 战斗",
+      "year": 2026,
+      "season": 4,
+      "weekday": 1,
+      "episodes": 26,
+      "rating": 9.7,
+      "description": "公安九课再次集结，在科技与人性交错的城市中追寻真相。",
+      "poster": "poster-1.jpg",
+      "updateTime": "19:30"
+    },
+    {
+      "id": 2,
+      "title": "亚人",
+      "kind": "日漫",
+      "genre": "悬疑 战斗",
+      "year": 2025,
+      "season": 1,
+      "weekday": 2,
+      "episodes": 13,
+      "rating": 9.1,
+      "description": "少年发现自己拥有不死之身，平静的生活从此改变。",
+      "poster": "poster-2.jpg",
+      "updateTime": "20:30"
+    },
+    {
+      "id": 3,
+      "title": "攻壳机动队：SAC_2045",
+      "kind": "日漫",
+      "genre": "科幻 战斗",
+      "year": 2026,
+      "season": 4,
+      "weekday": 3,
+      "episodes": 24,
+      "rating": 8.9,
+      "description": "未来世界中，草薙素子和伙伴们面对全新的挑战。",
+      "poster": "poster-3.jpg",
+      "updateTime": "21:30"
+    },
+    {
+      "id": 4,
+      "title": "天才王子的赤字国家再生术",
+      "kind": "日漫",
+      "genre": "奇幻 搞笑",
+      "year": 2024,
+      "season": 10,
+      "weekday": 4,
+      "episodes": 12,
+      "rating": 8.6,
+      "description": "一位想要轻松生活的王子，被卷入重振国家的计划。",
+      "poster": "poster-4.jpg",
+      "updateTime": "22:30"
+    },
+    {
+      "id": 5,
+      "title": "攻壳机动队 第一季",
+      "kind": "日漫",
+      "genre": "科幻 战斗",
+      "year": 2023,
+      "season": 1,
+      "weekday": 5,
+      "episodes": 26,
+      "rating": 9.8,
+      "description": "网络与现实的边界逐渐模糊，九课的故事由此开始。",
+      "poster": "poster-5.jpg",
+      "updateTime": "23:30"
+    },
+    {
+      "id": 6,
+      "title": "才女的侍从",
+      "kind": "日漫",
+      "genre": "校园 日常",
+      "year": 2026,
+      "season": 4,
+      "weekday": 6,
+      "episodes": 12,
+      "rating": 8.5,
+      "description": "少年与才女相遇，共同书写温暖而热闹的校园日常。",
+      "poster": "poster-6.jpg",
+      "updateTime": "18:30"
+    },
+    {
+      "id": 7,
+      "title": "七大罪：被诅咒的光之众人",
+      "kind": "剧场版",
+      "genre": "热血 奇幻",
+      "year": 2026,
+      "season": 4,
+      "weekday": 7,
+      "episodes": 1,
+      "rating": 9.2,
+      "description": "新的冒险拉开序幕，伙伴们再次为了守护世界而战。",
+      "poster": "poster-7.jpg",
+      "updateTime": "19:30"
+    },
+    {
+      "id": 8,
+      "title": "奇诺之旅：活着的目标",
+      "kind": "剧场版",
+      "genre": "冒险 治愈",
+      "year": 2025,
+      "season": 1,
+      "weekday": 1,
+      "episodes": 1,
+      "rating": 9.4,
+      "description": "旅人与摩托车穿行于不同的国度，寻找各自的答案。",
+      "poster": "poster-8.jpg",
+      "updateTime": "20:30"
+    },
+    {
+      "id": 9,
+      "title": "奇诺之旅：疾病之国",
+      "kind": "剧场版",
+      "genre": "奇幻 冒险",
+      "year": 2024,
+      "season": 10,
+      "weekday": 2,
+      "episodes": 1,
+      "rating": 9.0,
+      "description": "一个神秘国度的短暂旅程，留下关于生命的思考。",
+      "poster": "poster-9.jpg",
+      "updateTime": "21:30"
+    },
+    {
+      "id": 10,
+      "title": "阿松：希皮波族与闪耀的果实",
+      "kind": "剧场版",
+      "genre": "搞笑 日常",
+      "year": 2023,
+      "season": 10,
+      "weekday": 3,
+      "episodes": 1,
+      "rating": 8.8,
+      "description": "六胞胎兄弟踏上不可思议的冒险，笑声一路相伴。",
+      "poster": "poster-10.jpg",
+      "updateTime": "22:30"
+    },
+    {
+      "id": 11,
+      "title": "阿松：魂之章鱼烧派对",
+      "kind": "剧场版",
+      "genre": "搞笑 日常",
+      "year": 2026,
+      "season": 4,
+      "weekday": 4,
+      "episodes": 1,
+      "rating": 8.7,
+      "description": "一场平凡的聚会，变成了六兄弟难忘的夏日回忆。",
+      "poster": "poster-11.jpg",
+      "updateTime": "23:30"
+    },
+    {
+      "id": 12,
+      "title": "阿松 剧场版",
+      "kind": "剧场版",
+      "genre": "搞笑 校园",
+      "year": 2025,
+      "season": 1,
+      "weekday": 5,
+      "episodes": 1,
+      "rating": 9.0,
+      "description": "重返青春时光，与过去的自己再度相遇。",
+      "poster": "poster-12.jpg",
+      "updateTime": "18:30"
+    },
+    {
+      "id": 13,
+      "title": "小书痴的下克上：为了成为图书管理员",
+      "kind": "日漫",
+      "genre": "穿越 奇幻",
+      "year": 2026,
+      "season": 4,
+      "weekday": 6,
+      "episodes": 24,
+      "rating": 9.6,
+      "description": "「没有书，我就自己做！」热爱读书的梅茵来到陌生世界。从纸张到印刷，她与伙伴们一步步实现让每个人都能读书的梦想。",
+      "poster": "bookworm.jpg",
+      "updateTime": "19:30"
+    },
+    {
+      "id": 14,
+      "title": "白兔糖",
+      "kind": "日漫",
+      "genre": "治愈 日常",
+      "year": 2022,
+      "season": 10,
+      "weekday": 7,
+      "episodes": 11,
+      "rating": 9.5,
+      "description": "一个关于陪伴与成长的温暖故事，记录生活里细小的幸福。",
+      "poster": "rabbit.jpg",
+      "updateTime": "20:30"
+    }
+  ],
+  "profile": {
+    "nickname": "yoli",
+    "email": "yoli@example.com",
+    "avatar": "res://Assets/avatar.jpg",
+    "signedIn": true
+  },
+  "favorites": [
+    14,
+    1,
+    4,
+    7,
+    9,
+    12
+  ],
+  "history": [
+    {
+      "animeId": 13,
+      "episode": 18,
+      "watchedAt": "2026-09-20T10:00:00+08:00"
+    },
+    {
+      "animeId": 14,
+      "episode": 1,
+      "watchedAt": "2026-09-19T23:44:00+08:00"
+    },
+    {
+      "animeId": 1,
+      "episode": 3,
+      "watchedAt": "2026-09-19T23:23:00+08:00"
+    },
+    {
+      "animeId": 4,
+      "episode": 2,
+      "watchedAt": "2026-09-19T23:21:00+08:00"
+    }
+  ],
+  "comments": [
+    {
+      "author": "LanerAdmin",
+      "text": "请勿相信评论区任何广告内容，发现请立即举报。一起维护友善的追番环境。",
+      "avatar": "res://Assets/avatar.jpg",
+      "timeLabel": "置顶"
+    },
+    {
+      "author": "木崎江利花",
+      "text": "片头曲终于出现了，这一集也很好看。",
+      "avatar": "res://Assets/avatar.jpg",
+      "timeLabel": "7 小时前"
+    },
+    {
+      "author": "观角色、空白",
+      "text": "喜欢这种慢慢铺开的故事，期待下一集。",
+      "avatar": "res://Assets/avatar.jpg",
+      "timeLabel": "11 小时前"
+    }
+  ],
+  "rewards": [
+    {
+      "id": "week",
+      "title": "7天免广告特权",
+      "cost": 90,
+      "description": "授权单台设备免广告7天"
+    },
+    {
+      "id": "month",
+      "title": "30天免广告特权",
+      "cost": 360,
+      "description": "授权单台设备免广告30天"
+    },
+    {
+      "id": "forever",
+      "title": "永久免广告特权+称号",
+      "cost": 3000,
+      "description": "所有设备永久免广告"
+    },
+    {
+      "id": "figure",
+      "title": "精美手办（可自选）",
+      "cost": 6000,
+      "description": "本地演示兑换，不寄送实物"
+    }
+  ],
+  "featured": {
+    "animeId": 13,
+    "imageSource": "res://Assets/banner.jpg"
+  }
+}

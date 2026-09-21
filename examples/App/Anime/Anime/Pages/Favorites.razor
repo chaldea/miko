@@ -1,0 +1,45 @@
+@inject AnimeNavigator AnimeNavigation
+@page "/favorites"
+@namespace Anime.Pages
+@inject IUserLibrary Library
+
+<IonPage>
+    <PageHeader Title="我的收藏" BackHref="/user">
+        <Actions>
+            <IonButton Fill="clear" OnClick="@(() => _editing = !_editing)">@(_editing ? "完成" : "编辑")</IonButton>
+        </Actions>
+    </PageHeader>
+    <IonContent>
+        <IonList>
+            @foreach (var title in Library.Favorites)
+            {
+                <IonItem Button="@(!_editing)" OnClick="@(() => AnimeNavigation.Open(title.Id))" Lines="none" Class="library-item">
+                    <Start>
+                        <img class="library-image" src="@title.ThumbnailSource" />
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>
+                            <div class="row-title">@title.Title</div>
+                            <IonNote>@title.Status</IonNote>
+                            <div class="library-genre">@title.Genre</div>
+                        </IonLabel>
+                    </ChildContent>
+                    <End>
+                        @if (_editing)
+                        {
+                            <IonButton Size="small" Fill="clear" Color="danger" OnClick="@(() => Library.ToggleFavorite(title.Id))">移除</IonButton>
+                        }
+                    </End>
+                </IonItem>
+            }
+        </IonList>
+        @if (Library.Favorites.Count == 0)
+        {
+            <div class="empty-state">还没有收藏，在番剧详情中点击收藏即可添加。</div>
+        }
+    </IonContent>
+</IonPage>
+
+@code {
+    private bool _editing;
+}

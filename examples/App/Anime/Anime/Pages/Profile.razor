@@ -1,0 +1,78 @@
+@page "/profile"
+@namespace Anime.Pages
+@inject IUserLibrary Library
+
+<IonPage>
+    <PageHeader Title="个人中心" BackHref="/user" />
+    <IonContent Class="soft-content">
+        <div class="page-padding">
+            <IonList>
+                <IonItem>
+                    <ChildContent>
+                        <IonLabel>头像</IonLabel>
+                    </ChildContent>
+                    <End>
+                        <IonAvatar Class="search-avatar">
+                            <img src="@Library.Profile.Avatar" />
+                        </IonAvatar>
+                    </End>
+                </IonItem>
+                <IonItem>
+                    <IonInput Class="profile-nickname" Label="昵称" @bind-Value="_nickname" />
+                </IonItem>
+                <IonItem>
+                    <IonInput Class="profile-email" Label="邮箱" Type="email" @bind-Value="_email" />
+                </IonItem>
+                <IonItem>
+                    <ChildContent>
+                        <IonLabel>账号状态</IonLabel>
+                    </ChildContent>
+                    <End>
+                        <IonNote>@(Library.Profile.SignedIn ? "已登录" : "游客")</IonNote>
+                    </End>
+                </IonItem>
+            </IonList>
+            <IonButton Class="save-profile" Expand="block" OnClick="Save">保存信息</IonButton>
+            <Notice Message="@_notice" />
+        </div>
+    </IonContent>
+    <IonFooter>
+        <IonToolbar>
+            <IonButton Expand="block" Color="danger" OnClick="ToggleLogin">
+                @(Library.Profile.SignedIn ? "退出登录" : "登录演示账号")
+            </IonButton>
+        </IonToolbar>
+    </IonFooter>
+</IonPage>
+
+@code {
+    private string? _nickname;
+    private string? _email;
+    private string? _notice;
+
+    protected override void OnInitialized()
+    {
+        _nickname = Library.Profile.Nickname;
+        _email = Library.Profile.Email;
+    }
+
+    private void Save()
+    {
+        try
+        {
+            Library.UpdateProfile(_nickname ?? "", _email ?? "");
+            _notice = "个人信息已保存。";
+        }
+        catch (ArgumentException exception)
+        {
+            _notice = exception.Message;
+        }
+    }
+
+    private void ToggleLogin()
+    {
+        if (Library.Profile.SignedIn) Library.SignOut();
+        else Library.SignIn();
+        _notice = Library.Profile.SignedIn ? "已登录演示账号。" : "已退出登录。";
+    }
+}

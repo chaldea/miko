@@ -1,0 +1,12 @@
+@namespace Anime.Components
+
+@if (!string.IsNullOrEmpty(Message))
+{
+    <IonCard Class="notice-card">
+        <IonCardContent>@Message</IonCardContent>
+    </IonCard>
+}
+
+@code {
+    [Parameter] public string? Message { get; set; }
+}

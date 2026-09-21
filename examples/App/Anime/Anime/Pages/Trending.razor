@@ -1,0 +1,41 @@
+@inject AnimeNavigator AnimeNavigation
+@page "/trending"
+@namespace Anime.Pages
+@inject IAnimeCatalog Catalog
+
+<IonPage>
+    <PageHeader Title="排行榜" />
+    <IonSegment @bind-Value="_season">
+        <IonSegmentButton Value="4">
+            <IonLabel>四月新番</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton Value="1">
+            <IonLabel>一月新番</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton Value="10">
+            <IonLabel>十月新番</IonLabel>
+        </IonSegmentButton>
+    </IonSegment>
+    <IonContent>
+        <div class="page-padding">
+            @foreach (var title in Catalog.Trending(int.Parse(_season)))
+            {
+                <IonCard Class="ranking-card" Button="true" OnClick="@(() => AnimeNavigation.Open(title.Id))">
+                    <div class="ranking-row">
+                        <img class="ranking-image" src="@title.PosterSource" />
+                        <div class="ranking-copy">
+                            <div class="row-title">@title.Title</div>
+                            <IonNote>@title.Year · 评分 @title.Rating.ToString("0.0")</IonNote>
+                            <p class="description">@title.Description</p>
+                            <IonBadge Color="light">@title.Genre</IonBadge>
+                        </div>
+                    </div>
+                </IonCard>
+            }
+        </div>
+    </IonContent>
+</IonPage>
+
+@code {
+    private string _season = "4";
+}

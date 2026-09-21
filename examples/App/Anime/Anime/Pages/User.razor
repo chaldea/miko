@@ -1,0 +1,94 @@
+@inject AnimeNavigator AnimeNavigation
+@page "/user"
+@namespace Anime.Pages
+@inject IUserLibrary Library
+@inject IAnimeCatalog Catalog
+
+<IonPage>
+    <IonContent Class="soft-content">
+        <div class="page-padding user-page">
+            <IonItem Href="/profile" Lines="none" Detail="true" Class="profile-summary">
+                <Start>
+                    <IonAvatar>
+                        <img src="@Library.Profile.Avatar" />
+                    </IonAvatar>
+                </Start>
+                <ChildContent>
+                    <IonLabel>
+                        <div class="row-title">@(Library.Profile.SignedIn ? Library.Profile.Nickname : "游客")</div>
+                        <IonNote>@(Library.Profile.SignedIn ? "普通用户" : "点击登录本地演示账号")</IonNote>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+            <IonCard Class="support-card" Button="true" OnClick="@(() => NavigationManager?.NavigateTo("/vip"))">
+                <IonCardContent>支持我们，畅想无广告追番体验 ～</IonCardContent>
+            </IonCard>
+            <IonCard Class="flat-card">
+                <IonGrid>
+                    <IonRow>
+                        <IonCol Size="4">
+                            <IonButton Class="user-shortcut" Expand="block" Fill="clear" OnClick="@(() => NavigationManager?.NavigateTo("/favorites"))">
+                                <IonIcon Icon="@Ionicons.HeartOutline" />
+                                <IonLabel>我的收藏</IonLabel>
+                            </IonButton>
+                        </IonCol>
+                        <IonCol Size="4">
+                            <IonButton Class="user-shortcut" Expand="block" Fill="clear" OnClick="@(() => NavigationManager?.NavigateTo("/history"))">
+                                <IonIcon Icon="@Ionicons.TimeOutline" />
+                                <IonLabel>历史记录</IonLabel>
+                            </IonButton>
+                        </IonCol>
+                        <IonCol Size="4">
+                            <IonButton Class="user-shortcut" Expand="block" Fill="clear" OnClick="@(() => NavigationManager?.NavigateTo("/profile"))">
+                                <IonIcon Icon="@Ionicons.PersonOutline" />
+                                <IonLabel>个人信息</IonLabel>
+                            </IonButton>
+                        </IonCol>
+                    </IonRow>
+                </IonGrid>
+                @if (Library.History.FirstOrDefault() is { } recent && Catalog.Find(recent.AnimeId) is { } title)
+                {
+                    <IonItem Class="continue-watching" Button="true" OnClick="@(() => AnimeNavigation.Open(title.Id))" Lines="none" Detail="true">
+                        <ChildContent>
+                            <IonLabel>@title.Title</IonLabel>
+                        </ChildContent>
+                        <End>
+                            <IonNote>继续追番</IonNote>
+                        </End>
+                    </IonItem>
+                }
+            </IonCard>
+            <IonList Class="user-menu">
+                <IonItem Href="/trending" Detail="true">
+                    <Start>
+                        <IonIcon Icon="@Ionicons.BarChartOutline" />
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>发现热门番剧</IonLabel>
+                    </ChildContent>
+                </IonItem>
+                <IonItem Href="/timetable" Detail="true">
+                    <Start>
+                        <IonIcon Icon="@Ionicons.CalendarOutline" />
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>番剧排期表</IonLabel>
+                    </ChildContent>
+                </IonItem>
+                <IonItem Button="true" Detail="true" OnClick="@(() => _notice = "欢迎体验 Miko Anime。所有内容由本地模拟服务提供。")">
+                    <Start>
+                        <IonIcon Icon="@Ionicons.InformationCircleOutline" />
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>关于应用</IonLabel>
+                    </ChildContent>
+                </IonItem>
+            </IonList>
+            <Notice Message="@_notice" />
+        </div>
+    </IonContent>
+</IonPage>
+
+@code {
+    private string? _notice;
+}
