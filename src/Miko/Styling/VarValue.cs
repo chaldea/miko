@@ -7,22 +7,24 @@ namespace Miko.Styling;
 /// <summary>
 /// 自定义样式变量的具体值。用一个联合结构封装 <see cref="Color"/>、<see cref="Length"/>、
 /// <c>float</c>、<c>int</c>、任意（int 底层的）枚举以及 <c>string</c>，全程零装箱：
-/// 数值型分量共享一段显式布局的内存（<see cref="Blittable"/>），读写经 <see cref="Unsafe"/>
-/// 直接位重解释；<c>string</c> 为托管引用，单独存放（不能与非托管字段重叠）。
+/// <see cref="Color"/> / <c>float</c> / <c>int</c> / 枚举共享一段显式布局的内存
+/// （<see cref="Blittable"/>），读写经 <see cref="Unsafe"/> 直接位重解释；
+/// <see cref="Length"/> 与 <c>string</c> 含托管引用，单独存放（不能与非托管字段重叠）。
 /// </summary>
 public readonly struct VarValue
 {
     private enum Kind : byte { None, Color, Length, Float, Int, Enum, String }
 
     /// <summary>
-    /// 数值型分量的联合体：Length/Color/float/int/枚举 都是可 blittable 的值类型，
+    /// 数值型分量的联合体：Color/float/int/枚举 都是可 blittable 的值类型，
     /// 重叠在同一偏移上，互斥使用（由外层 <see cref="Kind"/> 判别）。
     /// 不含托管引用，故显式重叠安全。
+    /// <para><see cref="Length"/> 不在此列：它自 ISSUE-142 起持有一个混合分量的旁路引用，
+    /// 含托管引用的类型与非托管字段重叠会让 CLR 拒绝加载该类型，故单独存字段。</para>
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
     private struct Blittable
     {
-        [FieldOffset(0)] public Length Length;
         [FieldOffset(0)] public Color Color;
         [FieldOffset(0)] public float Float;
         [FieldOffset(0)] public int Int;   // 同时承载 int 与所有 int 底层的枚举
@@ -30,19 +32,22 @@ public readonly struct VarValue
 
     private readonly Kind _kind;
     private readonly Blittable _num;
+    private readonly Length _length;    // 含托管引用（旁路混合分量），不能并入 Blittable
     private readonly string? _str;      // 托管引用，单独存放
     private readonly Type? _enumType;   // 枚举 CLR 类型，用于精确类型校验（引用比较，不装箱）
 
-    private VarValue(Kind kind, Blittable num = default, string? str = null, Type? enumType = null)
+    private VarValue(Kind kind, Blittable num = default, Length length = default,
+                     string? str = null, Type? enumType = null)
     {
         _kind = kind;
         _num = num;
+        _length = length;
         _str = str;
         _enumType = enumType;
     }
 
     public VarValue(Color value) : this(Kind.Color, new Blittable { Color = value }) { }
-    public VarValue(Length value) : this(Kind.Length, new Blittable { Length = value }) { }
+    public VarValue(Length value) : this(Kind.Length, length: value) { }
     public VarValue(float value) : this(Kind.Float, new Blittable { Float = value }) { }
     public VarValue(int value) : this(Kind.Int, new Blittable { Int = value }) { }
     public VarValue(string value) : this(Kind.String, str: value) { }
@@ -73,7 +78,8 @@ public readonly struct VarValue
 
         if (typeof(T) == typeof(Length) && _kind == Kind.Length)
         {
-            value = Unsafe.As<Length, T>(ref blittable.Length);
+            var length = _length;
+            value = Unsafe.As<Length, T>(ref length);
             return true;
         }
         if (typeof(T) == typeof(Color) && _kind == Kind.Color)
@@ -121,7 +127,7 @@ public readonly struct VarValue
         return _kind switch
         {
             Kind.Color => blittable.Color.ToString(),
-            Kind.Length => blittable.Length.ToString(),
+            Kind.Length => _length.ToString(),
             Kind.Float => blittable.Float.ToString(),
             Kind.Int => blittable.Int.ToString(),
             Kind.Enum => _enumType != null ? Enum.GetName(_enumType, blittable.Int) ?? blittable.Int.ToString() : blittable.Int.ToString(),
