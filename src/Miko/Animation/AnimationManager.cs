@@ -70,6 +70,38 @@ public class AnimationManager
 
     public AnimatedStyleOverlay Overlay { get; } = new();
 
+    // 仅绘制属性的应用器（ISSUE-142 审查）。这些委托只用形参上的元素，与具体元素无关，
+    // 因此每个管理器实例各建一次、长期复用。
+    //
+    // **绝不能在 Track* 方法体内新建。** 那些方法开头都有一句
+    // `_transitions.RemoveAll(t => t.Element == element && ...)`，其谓词捕获了 element；
+    // C# 会把同一作用域内所有被捕获的变量塞进**同一个**闭包类实例，于是即便应用器 lambda
+    // 自己只写 `(e, v) => Overlay.SetOpacity(e, v)`、一个元素也没提，它的 Target 仍然握着
+    // 那个 element。应用器被存进 ActiveTransition 长期存活，就把元素连同其 Parent 链上的
+    // 整棵旧树一起钉住——而 PruneDetachedTargets 按 transition.Element 剪枝，那个字段已被
+    // MigrateSupersededTargets 前推到在场实例，于是条目看着"健康"、剪不掉，闭包里的旧树
+    // 却永远回不去。现场表现是来回点 IonSegmentButton 时 G2 每次点击稳定上涨且 force GC 无效。
+    private Action<Element, float>? _opacityApplier;
+    private readonly Dictionary<string, Action<Element, Color>> _paintColorAppliers = new();
+    private Action<Element, Transform>? _transformApplier;
+
+    // 这三个属性体内没有任何元素变量，故其 lambda 只捕获 this（用于访问 Overlay），
+    // 不会牵连任何元素。
+    private Action<Element, float> OpacityApplier
+        => _opacityApplier ??= (e, v) => Overlay.SetOpacity(e, v);
+
+    private Action<Element, Transform> TransformApplier
+        => _transformApplier ??= (e, t) => Overlay.SetTransform(e, t);
+
+    private Action<Element, Color> PaintColorApplier(string property)
+    {
+        if (_paintColorAppliers.TryGetValue(property, out var cached)) return cached;
+        // 只捕获 property（字符串）与 this，不捕获元素。
+        Action<Element, Color> applier = (e, c) => Overlay.SetColor(e, property, c);
+        _paintColorAppliers[property] = applier;
+        return applier;
+    }
+
     internal Action<Element>? PaintInvalidated { get; set; }
 
     public AnimationManager() { }
@@ -393,8 +425,10 @@ public class AnimationManager
 
         _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == property);
 
+        // 应用器取自缓存字段，不在本方法内新建 lambda：本作用域里的 element 已被上面的
+        // RemoveAll 谓词捕获，新建的 lambda 会共享同一个闭包实例而把该元素钉住（见字段注释）。
         var applier = IsPaintOnlyProperty(property)
-            ? (Action<Element, float>)((e, v) => Overlay.SetOpacity(e, v))
+            ? OpacityApplier
             : GetFloatApplier(property);
         var activeTransition = new ActiveTransition
         {
@@ -429,8 +463,9 @@ public class AnimationManager
 
         _transitions.RemoveAll(t => t.Element == element && t.Property.PropertyName == property);
 
+        // 同上：应用器按属性名缓存，绝不在捕获了 element 的作用域里新建。
         var applier = IsPaintOnlyProperty(property)
-            ? (Action<Element, Color>)((e, c) => Overlay.SetColor(e, property, c))
+            ? PaintColorApplier(property)
             : GetColorApplier(property);
         var activeTransition = new ActiveTransition
         {
@@ -477,7 +512,8 @@ public class AnimationManager
             TimingFunction = transition.TimingFunction,
             CubicBezier = transition.CubicBezier,
             ElapsedTime = 0,
-            ApplyTransform = (e, t) => Overlay.SetTransform(e, t)
+            // 同上：不在此处新建 lambda，否则它会与 RemoveAll 谓词共享闭包并钉住 element。
+            ApplyTransform = TransformApplier
         };
 
         _transitions.Add(activeTransition);

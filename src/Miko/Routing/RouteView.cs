@@ -51,7 +51,14 @@ public class RouteView
             // layout engine skips it (display:contents), so no wrapper element disturbs the layout.
             layout.BodyElement = content;
             layout.Body = builder => { builder.AttachElement(content); };
-            return layout.Build();
+            var rendered = layout.Build();
+            // 装配完就放开对页面内容的引用（BodyElement 与捕获了它的 Body 闭包）：内容此后由
+            // 已建成的元素树自己持有，页面重渲染走 StateHasChanged 就地替换，不会再回头
+            // 问布局要内容。留着则等于攥住第 0 代，其 SupersededBy 前向链会把之后每一代
+            // 连同各自的 ComputedStyle 全部钉在内存里（ISSUE-142 复审：反复点
+            // IonSegmentButton 每次泄漏约 730 KB，强制压缩回收也放不掉）。
+            layout.ReleaseBody();
+            return rendered;
         }
 
         // No layout: the page is the engine's root. A multi-root page is a transparent
