@@ -1,0 +1,22 @@
+@inject AnimeNavigator AnimeNavigation
+@namespace Anime.Components
+
+<IonGrid Class="poster-grid">
+    <IonRow>
+        @foreach (var title in Titles)
+        {
+            <IonCol Size="4">
+                <IonCard Class="poster-card" Button="true" OnClick="@(() => AnimeNavigation.Open(title.Id))">
+                    <img class="poster-image" src="@title.PosterSource" />
+                    <div class="poster-title">@title.Title</div>
+                    <IonNote Class="poster-note">@(ShowSchedule ? $"{title.UpdateTime} 更新" : title.Genre)</IonNote>
+                </IonCard>
+            </IonCol>
+        }
+    </IonRow>
+</IonGrid>
+
+@code {
+    [Parameter] public IReadOnlyList<AnimeTitle> Titles { get; set; } = [];
+    [Parameter] public bool ShowSchedule { get; set; }
+}

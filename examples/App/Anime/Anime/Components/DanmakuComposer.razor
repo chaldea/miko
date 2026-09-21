@@ -1,0 +1,85 @@
+@namespace Anime.Components
+@using Miko.Components.Player.Danmaku
+@using SkiaSharp
+@inject ICommunityService Community
+
+<div class="danmaku-composer">
+    <IonModal Class="@(_notice is null ? "danmaku-modal" : "danmaku-modal validation-visible")"
+              IsOpen="@IsOpen" IsOpenChanged="@IsOpenChanged">
+        <IonPage>
+            <IonHeader>
+                <IonToolbar>
+                    <ChildContent>
+                        <IonTitle>发送弹幕</IonTitle>
+                    </ChildContent>
+                    <End>
+                        <IonButton Fill="clear" OnClick="@(() => IsOpenChanged.InvokeAsync(false))">关闭</IonButton>
+                    </End>
+                </IonToolbar>
+            </IonHeader>
+            <IonContent>
+                <div class="page-padding">
+                    <IonItem Lines="none">
+                        <ChildContent>
+                            <IonInput Class="danmaku-input" Placeholder="说出这一刻的想法（最多60字）" @bind-Value="_text" />
+                        </ChildContent>
+                        <End>
+                            <IonButton Class="send-danmaku" Size="small" OnClick="Send">发送</IonButton>
+                        </End>
+                    </IonItem>
+                    <IonSegment @bind-Value="_mode">
+                        <IonSegmentButton Value="Scroll">
+                            <IonLabel>滚动弹幕</IonLabel>
+                        </IonSegmentButton>
+                        <IonSegmentButton Value="Top">
+                            <IonLabel>顶部弹幕</IonLabel>
+                        </IonSegmentButton>
+                    </IonSegment>
+                    <IonLabel Class="color-label">弹幕颜色</IonLabel>
+                    <div class="color-options">
+                        @foreach (var color in Colors)
+                        {
+                            <IonButton Class="danmaku-color" Size="small" Fill="clear" OnClick="@(() => _color = color)">
+                                <span class="color-swatch" style="@ColorStyle(color)">@(_color == color ? "✓" : "")</span>
+                            </IonButton>
+                        }
+                    </div>
+                    <Notice Message="@_notice" />
+                </div>
+            </IonContent>
+        </IonPage>
+    </IonModal>
+</div>
+
+@code {
+    [Parameter] public int AnimeId { get; set; }
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public Func<TimeSpan> Position { get; set; } = () => TimeSpan.Zero;
+    [Parameter] public EventCallback OnSent { get; set; }
+
+    private string? _text;
+    private string _mode = "Scroll";
+    private string _color = "#ffffff";
+    private string? _notice;
+    private static readonly string[] Colors = ["#ffffff", "#ff4545", "#ffe331", "#00b4e8", "#27bf4f", "#ed8d24", "#c852d0"];
+
+    private static Style ColorStyle(string color) => new()
+    {
+        BackgroundColor = Color.FromHex(color)
+    };
+
+    private async Task Send()
+    {
+        var item = new DanmakuItem(Position() + TimeSpan.FromMilliseconds(250), _text ?? "",
+            Enum.Parse<DanmakuMode>(_mode), SKColor.Parse(_color));
+        if (!Community.SendDanmaku(AnimeId, item))
+        {
+            _notice = "请输入1至60字的弹幕。";
+            return;
+        }
+        _text = "";
+        await OnSent.InvokeAsync();
+        await IsOpenChanged.InvokeAsync(false);
+    }
+}

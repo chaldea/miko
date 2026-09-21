@@ -1,0 +1,27 @@
+@page "/timetable"
+@namespace Anime.Pages
+@inject IAnimeCatalog Catalog
+
+<IonPage>
+    <PageHeader Title="排期表" />
+    <IonSegment Class="week-segment" @bind-Value="_day">
+        @for (var index = 0; index < Days.Length; index++)
+        {
+            var day = index + 1;
+            <IonSegmentButton Value="@day.ToString()">
+                <IonLabel>@Days[index]</IonLabel>
+            </IonSegmentButton>
+        }
+    </IonSegment>
+    <IonContent>
+        <div class="page-padding">
+            <IonNote>每周更新 · 时间为本地演示排期</IonNote>
+            <PosterGrid Titles="@Catalog.Scheduled(int.Parse(_day))" ShowSchedule="true" />
+        </div>
+    </IonContent>
+</IonPage>
+
+@code {
+    private string _day = "7";
+    private static readonly string[] Days = ["一", "二", "三", "四", "五", "六", "日"];
+}

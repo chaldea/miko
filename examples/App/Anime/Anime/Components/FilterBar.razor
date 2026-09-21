@@ -1,0 +1,17 @@
+@namespace Anime.Components
+
+<div class="filter-row">
+    @foreach (var option in Options)
+    {
+        <IonButton Class="filter-button" Fill="@(Value == option ? "solid" : "clear")"
+                   Size="small" OnClick="@(() => ValueChanged.InvokeAsync(option))">
+            @option
+        </IonButton>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<string> Options { get; set; } = [];
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+}

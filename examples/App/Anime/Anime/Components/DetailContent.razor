@@ -1,0 +1,195 @@
+@inject AnimeNavigator AnimeNavigation
+@inject Miko.Routing.NavigationManager Navigation
+@namespace Anime.Components
+@using Miko.Components.Player
+@using Miko.Components.Player.Danmaku
+@inject IAnimeCatalog Catalog
+@inject IUserLibrary Library
+@inject ICommunityService Community
+@inject IMediaAssets Media
+@inject Miko.Core.MikoEngine Engine
+@inject MikoPlayerOptions PlayerOptions
+
+<IonPage>
+    @if (_title is null)
+    {
+        <PageHeader Title="番剧详情" />
+        <IonContent>
+            <div class="empty-state">该番剧不存在，请返回首页。</div>
+        </IonContent>
+    }
+    else
+    {
+        <PageHeader Title="@_title.Title" />
+        <PlaybackSurface Player="@_player" />
+        <div class="detail-tabs">
+            <IonSegment Class="detail-segment" @bind-Value="_tab">
+                <IonSegmentButton Value="intro">
+                    <IonLabel>简介</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton Value="comments">
+                    <IonLabel>评论 @Community.Comments(Id).Count</IonLabel>
+                </IonSegmentButton>
+            </IonSegment>
+            <IonButton Class="open-danmaku" Fill="clear" Size="small" OnClick="OpenDanmaku">发弹幕</IonButton>
+        </div>
+        <IonContent>
+            <div class="page-padding">
+                @if (_tab == "intro")
+                {
+                    <div class="row-title">@_title.Title</div>
+                    <IonNote>@_title.Year · @_title.Genre · @_title.Status</IonNote>
+                    <p class="synopsis">@_title.Description</p>
+                    <div class="section-heading">
+                        <h2 class="section-title">选集</h2>
+                        <IonNote>当前第 @_episode 集</IonNote>
+                    </div>
+                    <div class="episode-list">
+                        @foreach (var episode in Enumerable.Range(1, _title.Episodes))
+                        {
+                            <IonButton Class="episode-button" Size="small" Fill="@(episode == _episode ? "outline" : "clear")"
+                                       OnClick="@(() => SelectEpisode(episode))">第 @episode 集</IonButton>
+                        }
+                    </div>
+                    <IonCard Class="support-card" Button="true" OnClick="@(() => Navigation.NavigateTo("/vip"))">
+                        <IonCardContent>解锁免广告特权　　前往福利中心 ›</IonCardContent>
+                    </IonCard>
+                    <h2 class="section-title">精彩推荐</h2>
+                    <PosterGrid Titles="@Catalog.Titles.Where(t => t.Id != Id).Take(6).ToArray()" />
+                }
+                else
+                {
+                    @foreach (var comment in Community.Comments(Id))
+                    {
+                        <div class="comment-row">
+                            <IonAvatar Class="comment-avatar">
+                                <img src="@comment.Avatar" />
+                            </IonAvatar>
+                            <div class="comment-copy">
+                                <div class="comment-author">@comment.Author</div>
+                                <IonNote>@comment.TimeLabel</IonNote>
+                                <p class="comment-text">@comment.Text</p>
+                            </div>
+                        </div>
+                    }
+                    <Notice Message="@_notice" />
+                }
+            </div>
+        </IonContent>
+        <IonFooter>
+            <IonToolbar>
+                @if (_tab == "comments")
+                {
+                    <div class="comment-form">
+                        <IonInput Class="comment-input" Placeholder="发表评论（最多300字）" @bind-Value="_comment" />
+                        <IonButton Class="send-comment" Fill="solid" Color="primary" Size="small" OnClick="SendComment">发送</IonButton>
+                    </div>
+                }
+                else
+                {
+                    <div class="detail-actions">
+                        <IonButton Class="favorite-toggle" Fill="clear" OnClick="@(() => Library.ToggleFavorite(Id))">
+                            <Start>
+                                <IonIcon Icon="@(Library.IsFavorite(Id) ? Ionicons.Heart : Ionicons.HeartOutline)" />
+                            </Start>
+                            <ChildContent>@(Library.IsFavorite(Id) ? "已收藏" : "收藏")</ChildContent>
+                        </IonButton>
+                        <IonButton Class="enter-fullscreen" Fill="clear" OnClick="ToggleFullscreen">全屏</IonButton>
+                    </div>
+                }
+            </IonToolbar>
+        </IonFooter>
+        <IonPortal Id="player-actions">
+            <div class="floating-player-actions">
+                <IonButton Class="fullscreen-danmaku" Fill="solid" Size="small" OnClick="OpenDanmaku">弹幕</IonButton>
+                @if (_player.IsFullscreen)
+                {
+                    <IonButton Class="exit-fullscreen" Fill="solid" Size="small" OnClick="ToggleFullscreen">退出全屏</IonButton>
+                }
+            </div>
+        </IonPortal>
+        <DanmakuComposer AnimeId="@Id" @bind-IsOpen="_composerOpen" Position="@CurrentPosition" OnSent="RefreshDanmaku" />
+    }
+</IonPage>
+
+@code {
+    private int Id => _title?.Id ?? 0;
+    private AnimeTitle? _title;
+    private MikoPlayer _player = null!;
+    private int _episode;
+    private string _tab = "intro";
+    private string? _comment;
+    private string? _notice;
+    private bool _composerOpen;
+
+    protected override void OnInitialized()
+    {
+        LoadTitle();
+        AnimeNavigation.SelectionChanged += OnSelectionChanged;
+    }
+
+    private void OnSelectionChanged()
+    {
+        LoadTitle();
+        StateHasChanged();
+    }
+
+    private void LoadTitle()
+    {
+        _player?.Dispose();
+        _title = Catalog.Find(AnimeNavigation.SelectedId ?? 0);
+        _tab = "intro";
+        _composerOpen = false;
+        _comment = "";
+        _notice = null;
+        if (_title is null)
+        {
+            return;
+        }
+        _episode = Library.History.FirstOrDefault(h => h.AnimeId == Id)?.Episode ?? 1;
+        _player = new MikoPlayer
+        {
+            Engine = Engine,
+            Options = PlayerOptions,
+            Source = Media.VideoPath,
+            AutoPlay = true,
+            Loop = true,
+            Muted = true,
+            Danmaku = Community.Danmaku(Id),
+            DanmakuSettings = new DanmakuSettings { FontSize = 18 },
+            Style = new Style { Height = Length.Px(230), FlexShrink = 0 }
+        };
+        Library.RecordWatch(Id, _episode);
+    }
+
+    private void SelectEpisode(int episode)
+    {
+        _episode = episode;
+        Library.RecordWatch(Id, episode);
+        _player.Seek(TimeSpan.Zero);
+        _player.Play();
+    }
+
+    private void SendComment()
+    {
+        if (Community.AddComment(Id, _comment ?? ""))
+        {
+            _comment = "";
+            _notice = "评论已发布。";
+        }
+        else
+        {
+            _notice = "请输入1至300字的评论。";
+        }
+    }
+
+    private void ToggleFullscreen() => _player.ToggleFullscreen();
+    private void OpenDanmaku() => _composerOpen = true;
+    private TimeSpan CurrentPosition() => _player.Controller.Position;
+    private void RefreshDanmaku() => _player.Danmaku = Community.Danmaku(Id);
+    protected override void OnDispose()
+    {
+        AnimeNavigation.SelectionChanged -= OnSelectionChanged;
+        _player?.Dispose();
+    }
+}

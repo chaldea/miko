@@ -195,6 +195,11 @@ public class MikoEngine
             MapElementIdentityRecursive(_root, root);
         }
 
+        // 旧根树到此彻底出局（有转场时它还要作为 leaving 层画一会儿，由转场收尾时拆解）：
+        // 逐个调用其中组件的清理回调，否则这些组件对应用级服务的订阅永不退订，一个订阅就
+        // 把整棵旧树钉在 DI 单例上（ISSUE-141）。
+        var discardedRoot = startTransition ? null : _root;
+
         _root = root;
         _styleSheets = styleSheets;
         _viewportWidth = viewportWidth;
@@ -277,6 +282,8 @@ public class MikoEngine
         // 本次返回导航的快照已回放完毕（可能因 transition 重新布局而回放了两次），消费掉它。
         ConsumeScrollSnapshot(transition);
 
+        // 最后再拆解旧树：上面的滚动恢复、样式捕获与会话同步都还要读它。
+        discardedRoot?.DisposeComponentSubtree();
     }
 
     private static void MapElementIdentityRecursive(Element oldElement, Element newElement)
@@ -366,6 +373,9 @@ public class MikoEngine
 
     private void ClearNavigationTransitionState()
     {
+        // leaving 层到此不再参与绘制，其组件实例也彻底出局——拆解订阅，否则整棵旧页面树
+        // 会被应用级服务的订阅钉住（ISSUE-141）。自然完成与被新导航打断都汇流到这里。
+        _navLeavingRoot?.DisposeComponentSubtree();
         _navLeavingRoot = null;
         _navLeavingLayout = null;
         _navContext = null;

@@ -1,0 +1,23 @@
+@namespace Anime.Components
+
+<IonHeader>
+    <IonToolbar>
+        <Start>
+            <IonButtons>
+                <IonBackButton DefaultHref="@BackHref" Text="" Color="primary" />
+            </IonButtons>
+        </Start>
+        <ChildContent>
+            <IonTitle>@Title</IonTitle>
+        </ChildContent>
+        <End>
+            @Actions
+        </End>
+    </IonToolbar>
+</IonHeader>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string BackHref { get; set; } = "/home";
+    [Parameter] public RenderFragment? Actions { get; set; }
+}

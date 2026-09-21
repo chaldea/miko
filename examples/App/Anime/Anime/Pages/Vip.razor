@@ -1,0 +1,99 @@
+@page "/vip"
+@namespace Anime.Pages
+@inject IRewardsService Rewards
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <IonTitle>福利中心</IonTitle>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent>
+        <div class="page-padding">
+            <div class="section-heading">
+                <IonLabel>我的金币</IonLabel>
+                <IonButton Size="small" Fill="clear" OnClick="ShowRules">活动规则</IonButton>
+            </div>
+            <IonCard Class="coins-card">
+                <IonCardContent>
+                    <div class="section-heading">
+                        <div class="coin-count">@Rewards.Coins</div>
+                        <IonButton Color="light" Shape="round" Size="small" OnClick="@(() => _showRecords = !_showRecords)">兑换记录</IonButton>
+                    </div>
+                    <p>金币可用于兑换免广告特权和精美礼品 ～</p>
+                </IonCardContent>
+            </IonCard>
+            <h2 class="section-title">任务列表</h2>
+            <IonCard Class="task-card">
+                <IonItem Lines="none">
+                    <Start>
+                        <IonIcon Icon="@Ionicons.PlayCircle" Color="primary" />
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>
+                            <div class="row-title">看广告领金币 (@Rewards.Claims/3)</div>
+                            <IonNote>每次完成模拟任务获得30金币</IonNote>
+                        </IonLabel>
+                    </ChildContent>
+                    <End>
+                        <IonButton Class="claim-coins" Size="small" Shape="round" OnClick="@(() => _notice = Rewards.ClaimCoins())">获取奖励</IonButton>
+                    </End>
+                </IonItem>
+            </IonCard>
+            <IonCard Class="task-card">
+                <IonItem Lines="none">
+                    <Start>
+                        <IonIcon Icon="@Ionicons.DownloadOutline" Color="primary" />
+                    </Start>
+                    <ChildContent>
+                        <IonLabel>
+                            <div class="row-title">领取下载次数</div>
+                            <IonNote>可用模拟额度：@Rewards.DownloadCredits 次</IonNote>
+                        </IonLabel>
+                    </ChildContent>
+                    <End>
+                        <IonButton Size="small" Shape="round" OnClick="@(() => _notice = Rewards.ClaimDownloadCredits())">获取奖励</IonButton>
+                    </End>
+                </IonItem>
+            </IonCard>
+            <Notice Message="@_notice" />
+            @if (_showRecords)
+            {
+                <h2 class="section-title">兑换记录</h2>
+                @if (Rewards.Redemptions.Count == 0)
+                {
+                    <IonNote>暂无兑换记录</IonNote>
+                }
+                @foreach (var record in Rewards.Redemptions)
+                {
+                    <IonItem>
+                        <IonLabel>@record.Title · @record.Cost 金币</IonLabel>
+                    </IonItem>
+                }
+            }
+            <h2 class="section-title">福利兑换</h2>
+            <IonGrid Class="reward-grid">
+                <IonRow>
+                    @foreach (var reward in Rewards.Rewards)
+                    {
+                        <IonCol Size="6">
+                            <IonCard Class="reward-card" Button="true" OnClick="@(() => _notice = Rewards.Redeem(reward.Id))">
+                                <IonCardContent>
+                                    <div class="row-title">@reward.Title</div>
+                                    <p>@reward.Cost 金币</p>
+                                    <IonNote>@reward.Description</IonNote>
+                                </IonCardContent>
+                            </IonCard>
+                        </IonCol>
+                    }
+                </IonRow>
+            </IonGrid>
+        </div>
+    </IonContent>
+</IonPage>
+
+@code {
+    private string? _notice;
+    private bool _showRecords;
+    private void ShowRules() => _notice = "每日可领取3次金币和1次下载额度。所有奖励仅用于本地演示，重启后重置。";
+}

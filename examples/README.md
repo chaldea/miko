@@ -13,6 +13,23 @@ the framework — from a static render-to-PNG console app to full cross-platform
 | [`Windows/`](#windows)              | The same starter templates as single Windows desktop projects.                 |
 | [`Async/`](#async)                  | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls.  |
 | [`Media/`](#media)                  | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
+| [`App/Anime/`](#anime)              | Multiplatform Ionic three-tab anime demo with interface-backed mock services.  |
+
+---
+
+## Anime
+
+`App/Anime/` follows the shared Razor + Desktop / Simulator / Android / iOS structure of
+`Multiplatform/MikoAppTabs`. Its standard Ionic tabs contain the home, rewards and user
+pages, with ranking, timetable, playback, comments, danmaku, favorites and history as
+additional scenes. Mock data is exposed through service interfaces; embedded images
+and a local sample video let the demo run offline.
+
+```bash
+dotnet run --project examples/App/Anime/Anime.Desktop
+```
+
+See [App/README.md](App/README.md) for platform commands, mock behavior and visual/interaction verification.
 
 ---
 
@@ -243,4 +260,3 @@ Add a reference to Miko (and `Miko.Windowing` for a windowed app):
   <ProjectReference Include="..\..\..\src\Miko.Windowing\Miko.Windowing.csproj" />
 </ItemGroup>
 ```
-

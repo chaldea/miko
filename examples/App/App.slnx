@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Anime/">
+    <Project Path="Anime/Anime/Anime.csproj" />
+    <Project Path="Anime/Anime.Desktop/Anime.Desktop.csproj" />
+    <Project Path="Anime/Anime.Simulator/Anime.Simulator.csproj" />
+    <Project Path="Anime/Anime.Android/Anime.Android.csproj" />
+    <Project Path="Anime/Anime.iOS/Anime.iOS.csproj" />
+    <Project Path="Anime/Anime.Verification/Anime.Verification.csproj" />
+  </Folder>
+</Solution>

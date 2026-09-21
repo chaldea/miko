@@ -1,0 +1,106 @@
+@inject AnimeNavigator AnimeNavigation
+@page "/"
+@page "/home"
+@namespace Anime.Pages
+@inject IAnimeCatalog Catalog
+@inject IUserLibrary Library
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar Class="home-toolbar">
+            <Start>
+                <IonButtons>
+                    <IonButton OnClick="@(() => NavigationManager?.NavigateTo("/user"))">
+                        <IconOnly>
+                            <IonAvatar Class="search-avatar">
+                                <img src="@Library.Profile.Avatar" />
+                            </IonAvatar>
+                        </IconOnly>
+                    </IonButton>
+                </IonButtons>
+            </Start>
+            <ChildContent>
+                <IonSearchbar Class="home-search" Placeholder="今天你想看些什么？" @bind-Value="_query" />
+            </ChildContent>
+            <End>
+                <IonButtons Slot="end">
+                    <IonButton OnClick="@(() => NavigationManager?.NavigateTo("/history"))">
+                        <IconOnly>
+                            <IonIcon Icon="@Ionicons.TimeOutline" />
+                        </IconOnly>
+                    </IonButton>
+                </IonButtons>
+            </End>
+        </IonToolbar>
+        <IonSegment Class="home-segment" @bind-Value="_category">
+            <IonSegmentButton Value="精选">
+                <IonLabel>精选</IonLabel>
+            </IonSegmentButton>
+            <IonSegmentButton Value="日漫">
+                <IonLabel>日漫</IonLabel>
+            </IonSegmentButton>
+            <IonSegmentButton Value="剧场版">
+                <IonLabel>剧场版</IonLabel>
+            </IonSegmentButton>
+        </IonSegment>
+    </IonHeader>
+    <IonContent>
+        <div class="page-padding">
+            @if (_category == "精选" && string.IsNullOrWhiteSpace(_query))
+            {
+                <IonCard Class="banner-card" Button="true" OnClick="@(() => AnimeNavigation.Open(Catalog.Featured.AnimeId))">
+                    <img class="banner-image" src="@Catalog.Featured.ImageSource" />
+                </IonCard>
+                <IonGrid Class="quick-links">
+                    <IonRow>
+                        <IonCol Size="6">
+                            <IonButton Expand="block" Fill="clear" OnClick="@(() => NavigationManager?.NavigateTo("/trending"))">
+                                <Start>
+                                    <IonIcon Icon="@Ionicons.BarChartOutline" />
+                                </Start>
+                                <ChildContent>热度排行榜</ChildContent>
+                            </IonButton>
+                        </IonCol>
+                        <IonCol Size="6">
+                            <IonButton Expand="block" Fill="clear" OnClick="@(() => NavigationManager?.NavigateTo("/timetable"))">
+                                <Start>
+                                    <IonIcon Icon="@Ionicons.CalendarOutline" />
+                                </Start>
+                                <ChildContent>番剧排期表</ChildContent>
+                            </IonButton>
+                        </IonCol>
+                    </IonRow>
+                </IonGrid>
+                <h2 class="section-title">热门新番</h2>
+                <PosterGrid Titles="@Catalog.Trending(4).Take(3).ToArray()" />
+                <h2 class="section-title">日漫</h2>
+                <PosterGrid Titles="@Catalog.Search("日漫", "全部", "全部", "", false)" />
+                <h2 class="section-title">剧场推荐</h2>
+                <PosterGrid Titles="@Catalog.Search("剧场版", "全部", "全部", "", false)" />
+            }
+            else
+            {
+                <FilterBar Options="@Genres" @bind-Value="_genre" />
+                <FilterBar Options="@Years" @bind-Value="_year" />
+                <FilterBar Options="@Sorts" @bind-Value="_sort" />
+                <PosterGrid Titles="@Results" />
+                @if (Results.Count == 0)
+                {
+                    <div class="empty-state">没有找到匹配的番剧，试试其他筛选条件。</div>
+                }
+            }
+        </div>
+    </IonContent>
+</IonPage>
+
+@code {
+    private string _category = "精选";
+    private string? _query;
+    private string _genre = "全部";
+    private string _year = "全部";
+    private string _sort = "按时间";
+    private static readonly string[] Genres = ["全部", "热血", "穿越", "奇幻", "战斗", "搞笑", "日常"];
+    private static readonly string[] Years = ["全部", "2026", "2025", "2024", "2023", "2022"];
+    private static readonly string[] Sorts = ["按时间", "按评分"];
+    private IReadOnlyList<AnimeTitle> Results => Catalog.Search(_category, _genre, _year, _query ?? "", _sort == "按评分");
+}

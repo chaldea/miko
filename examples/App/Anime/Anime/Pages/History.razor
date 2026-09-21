@@ -1,0 +1,49 @@
+@inject AnimeNavigator AnimeNavigation
+@page "/history"
+@namespace Anime.Pages
+@inject IUserLibrary Library
+@inject IAnimeCatalog Catalog
+
+<IonPage>
+    <PageHeader Title="历史记录" BackHref="/user">
+        <Actions>
+            <IonButton Fill="clear" OnClick="@(() => _editing = !_editing)">@(_editing ? "完成" : "编辑")</IonButton>
+        </Actions>
+    </PageHeader>
+    <IonContent>
+        <IonList>
+            @foreach (var entry in Library.History)
+            {
+                @if (Catalog.Find(entry.AnimeId) is { } title)
+                {
+                    <IonItem Button="@(!_editing)" OnClick="@(() => AnimeNavigation.Open(title.Id))" Lines="none" Class="library-item">
+                        <Start>
+                            <img class="library-image" src="@title.ThumbnailSource" />
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <div class="row-title">@title.Title</div>
+                                <IonNote>已看到第 @entry.Episode 集</IonNote>
+                                <div class="library-genre">@entry.WatchedAt.ToLocalTime().ToString("MM-dd HH:mm")</div>
+                            </IonLabel>
+                        </ChildContent>
+                        <End>
+                            @if (_editing)
+                            {
+                                <IonButton Size="small" Fill="clear" Color="danger" OnClick="@(() => Library.RemoveHistory(entry.AnimeId))">删除</IonButton>
+                            }
+                        </End>
+                    </IonItem>
+                }
+            }
+        </IonList>
+        @if (Library.History.Count == 0)
+        {
+            <div class="empty-state">暂无观看记录，去首页发现喜欢的番剧吧。</div>
+        }
+    </IonContent>
+</IonPage>
+
+@code {
+    private bool _editing;
+}
