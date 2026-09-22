@@ -45,6 +45,9 @@ public sealed class SilkDesktopHost
     private GL? _gl;
     private GRContext? _grContext;
 
+    // 窗口帧缓冲的包装表面（按尺寸/FBO 复用，见 WindowRenderTarget）。仅渲染线程触碰。
+    private WindowRenderTarget? _renderTarget;
+
     // 仅渲染线程读写（队列消费时更新），无需同步。
     private int _width;
     private int _height;
@@ -182,6 +185,9 @@ public sealed class SilkDesktopHost
     private void ShutdownGraphics()
     {
         _controller.Engine.DisposeVideoSessions();
+        // 表面引用 GRContext，必须先于它释放。
+        _renderTarget?.Dispose();
+        _renderTarget = null;
         GpuResourceCache.PurgeAllResources(_grContext);
         _grContext?.Dispose();
         _gl?.Dispose();
@@ -197,6 +203,7 @@ public sealed class SilkDesktopHost
 
         _grContext = GRContext.CreateGl(grInterface);
         GpuResourceCache.Configure(_grContext);
+        _renderTarget = new WindowRenderTarget(_grContext);
         _logger.LogInformation("OpenGL context initialized on render thread");
 
         // 把 GPU 上下文交给引擎，供视频帧源把解码 GPU 资源零拷贝包装为图像。
@@ -212,20 +219,20 @@ public sealed class SilkDesktopHost
 
     private void RenderFrame()
     {
-        if (_grContext == null || _gl == null) return;
+        if (_grContext == null || _gl == null || _renderTarget == null) return;
 
         float currentTime = (float)_frameTimer.Elapsed.TotalSeconds;
         float deltaTime = currentTime - _lastFrameTime;
         _lastFrameTime = currentTime;
 
+        // 窗口帧缓冲的包装表面按 (尺寸, FBO) 复用，不每帧重建：那两个 Skia 对象都是非托管的，
+        // 且包装出的渲染目标不是 budgeted 资源，其重建开销不计入 GPU 资源缓存账本，
+        // 只体现在进程私有内存里（ISSUE-143）。见 WindowRenderTarget。
         int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
-        var fbInfo = new GRGlFramebufferInfo((uint)fboId, 0x8058); // GL_RGBA8
-        // GRBackendRenderTarget 持有非托管 Skia 对象，必须随帧释放：它每帧新建，
-        // 漏掉 Dispose 会让原生内存随帧数线性增长（托管堆上看不到，只体现在进程内存）。
-        // ISSUE-113 把帧成本降低约 10 倍后出帧频率大幅上升，该泄漏随之放大到数百 MB。
-        using var target = new GRBackendRenderTarget(_width, _height, 0, 8, fbInfo);
+        var surface = _renderTarget.Acquire(_width, _height, (uint)fboId);
+        // 最小化时窗口为 0×0，Acquire 返回 null：跳过本帧，恢复后尺寸正常渲染随之恢复。
+        if (surface == null) return;
 
-        using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
         var canvas = surface.Canvas;
 
         // RenderFrame 内部仍走 _sync（对桌面已不竞争，因为输入也在本线程消费），
@@ -330,7 +337,38 @@ public sealed class SilkDesktopHost
         _gl?.Viewport(new Vector2D<int>(width, height));
         _controller.SetViewportSize(width, height);
         _logger.LogDebug("Viewport resized to {Width}x{Height}", width, height);
+        ReportResizeMemory(width, height);
     }
+
+    /// <summary>
+    /// 诊断用：由 <c>MIKO_RESIZE_LOG=&lt;路径&gt;</c> 门控，记录每次缩放后 Skia GPU 资源缓存
+    /// 与进程内存的对应关系（ISSUE-143）。未设置时只是一次字段判断。
+    ///
+    /// <para>存在的意义：进程私有内存是个汇总数字，单看它无法区分「Skia 按新尺寸缓存了资源」
+    /// 与「某处每帧泄漏」。把 Skia 自己报告的缓存字节数与同一时刻的私有内存并排记录，
+    /// 才能把增长归因到具体持有方。</para>
+    /// </summary>
+    private void ReportResizeMemory(int width, int height)
+    {
+        if (_resizeLogPath == null || _grContext == null) return;
+
+        var usage = GpuResourceCache.GetUsage(_grContext);
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        try
+        {
+            File.AppendAllText(_resizeLogPath,
+                $"{width}x{height},{usage.ResourceCount},{usage.ResourceBytes}," +
+                $"{process.PrivateMemorySize64},{GC.GetTotalMemory(false)}," +
+                $"{SKGraphics.GetResourceCacheTotalBytesUsed()},{SKGraphics.GetFontCacheUsed()}," +
+                $"{SKGraphics.GetFontCacheCountUsed()}\n");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to append resize diagnostics to {Path}", _resizeLogPath);
+        }
+    }
+
+    private readonly string? _resizeLogPath = Environment.GetEnvironmentVariable("MIKO_RESIZE_LOG");
 
     // ---------------------------------------------------------------------
     // 主线程：原生输入回调 → 入队

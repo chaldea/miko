@@ -57,6 +57,9 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     private IInputContext? _inputContext;
     private GL? _gl;
     private GRContext? _grContext;
+
+    // 窗口帧缓冲的包装表面（按尺寸/FBO 复用，见 WindowRenderTarget）。
+    private WindowRenderTarget? _windowTarget;
     private SilkWindowThreadRunner? _windowRunner;
 
     // 应用画面离屏 GPU 画布（按设备物理像素分辨率），跨帧保留。
@@ -322,6 +325,7 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
             window.GLContext!.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
         _grContext = GRContext.CreateGl(grInterface);
         GpuResourceCache.Configure(_grContext);
+        _windowTarget = new WindowRenderTarget(_grContext);
 
         // 应用引擎共享同一 GPU 上下文，供视频/图片等 GPU 资源使用。
         _appController.Engine.GraphicsContext = _grContext;
@@ -478,6 +482,9 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
         _appController.Engine.DisposeVideoSessions();
         _appSurface?.Dispose();
         _appSurface = null;
+        // 表面引用 GRContext，必须先于它释放。
+        _windowTarget?.Dispose();
+        _windowTarget = null;
         GpuResourceCache.PurgeAllResources(_grContext);
         _grContext?.Dispose();
         _gl?.Dispose();
@@ -537,10 +544,10 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 
         // 3. 合成到窗口默认帧缓冲。离屏渲染改动过 GL 状态，先让 GR 上下文重新同步。
         _grContext.ResetContext();
-        var fbInfo = new GRGlFramebufferInfo((uint)windowFbo, 0x8058); // GL_RGBA8
-        // 每帧新建的非托管 Skia 对象，必须随帧释放（否则原生内存随帧数线性增长，见 ISSUE-113）。
-        using var target = new GRBackendRenderTarget(_windowWidth, _windowHeight, 0, 8, fbInfo);
-        using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
+        // 包装表面按 (尺寸, FBO) 复用，不每帧重建（ISSUE-143）。这里 FBO 必须进缓存键：
+        // 本宿主先渲染到离屏表面再合成，窗口 FBO 句柄在一次运行中并非恒定。
+        var surface = _windowTarget!.Acquire(_windowWidth, _windowHeight, (uint)windowFbo);
+        if (surface == null) return false;
         var canvas = surface.Canvas;
 
         canvas.Clear(new SKColor(24, 25, 28));
