@@ -326,8 +326,12 @@ public sealed class MikoInteractionController
             // - 有转场效果时保留旧页面树作为 leaving 图层与新页面共同绘制（ISSUE-108）。
             // - 无转场效果时仍需传入：引擎据方向与路径维护按路径的滚动快照，
             //   使返回上一页时能恢复其滚动位置（ISSUE-118）。
+            // 另带上页面<b>身份</b>键（解析出的组件类型），使一个页面挂多个路由模板时
+            // （`@page "/"` + `@page "/home"`）滚动快照仍认得出它是同一页（ISSUE-144）。
             _engine.Initialize(root, _options.StyleSheets, canvas, width, height,
-                new NavigationTransitionInfo(navigation.Transition, navigation.Direction, navigation.FromPath, navigation.ToPath));
+                new NavigationTransitionInfo(
+                    navigation.Transition, navigation.Direction, navigation.FromPath, navigation.ToPath,
+                    ResolvePageKey(navigation.FromPath), ResolvePageKey(navigation.ToPath)));
         }
         else
         {
@@ -336,6 +340,19 @@ public sealed class MikoInteractionController
         }
         _logger.LogInformation("[HotReload] DOM rebuilt and initialized, next frame will render new content");
     }
+
+    /// <summary>
+    /// 把路由路径解析成页面的<b>身份</b>键（组件类型的全名），供引擎按页面而非按路径存取
+    /// 滚动快照（ISSUE-144）。
+    ///
+    /// <para>同一个页面组件常常挂在多个路由模板上——<c>@page "/"</c> 加 <c>@page "/home"</c>
+    /// 是 Razor 里的标准写法。按路径做键时，应用启动落在 <c>/</c>、而 Tab 按钮导航到
+    /// <c>/home</c>，同一个首页于是有两个键：离开时把快照存在 <c>/</c> 下，切回来查 <c>/home</c>
+    /// 什么也找不到，滚动条照旧被重置。用组件类型做键则两条路径归一。</para>
+    ///
+    /// <para>解析不出（路径未注册）时返回 null，引擎回落到用路径本身做键——与改动前的行为一致。</para>
+    /// </summary>
+    private string? ResolvePageKey(string path) => _router?.Resolve(path)?.FullName;
 
     /// <summary>
     /// 帧间隔上限（秒）。超过该间隔说明期间没有出帧——稳态空闲（ISSUE-096）下宿主跳帧休眠，
@@ -367,14 +384,26 @@ public sealed class MikoInteractionController
     {
         lock (_sync)
         {
-            if (_needsRebuild)
-                Rebuild(canvas, width, height);
+            // 逐帧分段探针（ISSUE-144）：默认关闭，关闭时只是一次布尔判断。
+            // 包住整帧而非只包 render：路由导航的 DOM 重建发生在 Rebuild 里，
+            // 而 Tab 切换恰恰是「重建占掉整帧」的那一类卡顿。
+            var frameScope = Diagnostics.FrameProfiler.BeginFrame();
+            bool rebuilt = _needsRebuild;
+            try
+            {
+                if (_needsRebuild)
+                    Rebuild(canvas, width, height);
 
-            Update(deltaTime);
-            render(canvas);
-            // Layout may have moved after a rebuild or scroll. Keep the native candidate
-            // window anchored to the current input rectangle instead of (0, 0).
-            PublishInputMethodState();
+                Update(deltaTime);
+                render(canvas);
+                // Layout may have moved after a rebuild or scroll. Keep the native candidate
+                // window anchored to the current input rectangle instead of (0, 0).
+                PublishInputMethodState();
+            }
+            finally
+            {
+                Diagnostics.FrameProfiler.EndFrame(frameScope, rebuilt);
+            }
         }
     }
 

@@ -36,6 +36,15 @@ internal static class FrameTimingDiagnostics
     [ThreadStatic] private static long t_layoutCount;
     [ThreadStatic] private static long t_paintCount;
 
+    // 绘制原语计数与耗时。整树绘制耗时由哪一类原语构成，只有分类计量才看得出来——
+    // 45ms 的一帧究竟是「画了 900 个盒子」还是「上传了 40 张图片纹理」，
+    // 单看 RecordPaint 的总数分辨不出（ISSUE-144）。
+    [ThreadStatic] private static long t_boxCount;
+    [ThreadStatic] private static long t_textCount;
+    [ThreadStatic] private static long t_textTicks;
+    [ThreadStatic] private static long t_imageCount;
+    [ThreadStatic] private static long t_imageTicks;
+
     // 构建嵌套深度。子组件的 Build() 由父组件的 CloseComponent 在父 Build() 内部调用，
     // 若逐层都记账，一棵 N 层的树会把同一段时间累计 N 次。只有最外层那次代表真实墙钟耗时。
     [ThreadStatic] private static int t_buildDepth;
@@ -60,6 +69,11 @@ internal static class FrameTimingDiagnostics
         t_buildCount = 0;
         t_layoutCount = 0;
         t_paintCount = 0;
+        t_boxCount = 0;
+        t_textCount = 0;
+        t_textTicks = 0;
+        t_imageCount = 0;
+        t_imageTicks = 0;
         t_buildDepth = 0;
         t_enabled = true;
     }
@@ -77,7 +91,12 @@ internal static class FrameTimingDiagnostics
             ToMicroseconds(t_firstFramePaintTicks),
             t_buildCount,
             t_layoutCount,
-            t_paintCount);
+            t_paintCount,
+            t_boxCount,
+            t_textCount,
+            ToMicroseconds(t_textTicks),
+            t_imageCount,
+            ToMicroseconds(t_imageTicks));
         t_enabled = false;
         return snapshot;
     }
@@ -156,6 +175,28 @@ internal static class FrameTimingDiagnostics
 
     private static double ToMicroseconds(long ticks)
         => ticks * 1_000_000.0 / Stopwatch.Frequency;
+
+    /// <summary>One painted box (background / border / shadow pass for a single layout box).</summary>
+    internal static void RecordBox()
+    {
+        if (t_enabled) t_boxCount++;
+    }
+
+    /// <summary>One text-drawing call, timed. Closes a scope opened with <see cref="GetTimestamp"/>.</summary>
+    internal static void RecordTextDraw(long startTimestamp)
+    {
+        if (!t_enabled || startTimestamp == 0L) return;
+        t_textTicks += Stopwatch.GetTimestamp() - startTimestamp;
+        t_textCount++;
+    }
+
+    /// <summary>One image-drawing call, timed. Closes a scope opened with <see cref="GetTimestamp"/>.</summary>
+    internal static void RecordImageDraw(long startTimestamp)
+    {
+        if (!t_enabled || startTimestamp == 0L) return;
+        t_imageTicks += Stopwatch.GetTimestamp() - startTimestamp;
+        t_imageCount++;
+    }
 }
 
 /// <summary>
@@ -173,7 +214,12 @@ internal readonly record struct FrameTimingSnapshot(
     double FirstFramePaintMicroseconds,
     long BuildCount,
     long LayoutCount,
-    long PaintCount)
+    long PaintCount,
+    long BoxCount,
+    long TextDrawCount,
+    double TextDrawMicroseconds,
+    long ImageDrawCount,
+    double ImageDrawMicroseconds)
 {
     /// <summary>Total measured pipeline time across every frame.</summary>
     public double TotalMicroseconds

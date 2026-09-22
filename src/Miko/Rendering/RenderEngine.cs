@@ -252,6 +252,10 @@ public class RenderEngine
         if (!isStackingRoot && EstablishesStackingContext(box)) isStackingRoot = true;
         if (isStackingRoot) inheritedDeferred = null;
 
+        // 分段探针（ISSUE-144）：本帧真正走完绘制的盒子数。计在提前返回之后，
+        // 因此它是「画了多少个盒子」而不是「布局树有多大」。
+        FrameTimingDiagnostics.RecordBox();
+
         float opacity = box.ComputedStyle.Opacity;
         bool hasOpacity = opacity < 1f;
         if (hasOpacity)
@@ -1160,6 +1164,22 @@ public class RenderEngine
     /// 其行盒（保持 ISSUE-070 行为）。坐标做像素对齐以保持抗锯齿清晰度（见 ISSUE-085 抗锯齿修复）。
     /// </summary>
     private void RenderTextNode(LayoutBox box)
+    {
+        if (_painter == null) return;
+
+        // 分段探针（ISSUE-144）：默认关闭，关闭时只是一次布尔判断。
+        var textStart = FrameTimingDiagnostics.GetTimestamp();
+        try
+        {
+            RenderTextNodeCore(box);
+        }
+        finally
+        {
+            FrameTimingDiagnostics.RecordTextDraw(textStart);
+        }
+    }
+
+    private void RenderTextNodeCore(LayoutBox box)
     {
         if (_painter == null) return;
 
