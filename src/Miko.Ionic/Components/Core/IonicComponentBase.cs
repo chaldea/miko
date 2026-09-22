@@ -93,11 +93,68 @@ public abstract class IonicComponentBase : ComponentBase
         return root;
     }
 
+    // Resolved themes, keyed by the three inputs that determine one: the app-level theme, the
+    // mode, and the ancestor ConfigProvider's partial theme (ISSUE-145).
+    //
+    // Resolving is expensive and was happening once per component per build: ResolveForMode
+    // constructs a complete mode theme from scratch (a few hundred token assignments, ~38 KB)
+    // and then copies every specified value over it. On a page with 63 Ionic components that was
+    // ~2.3 MB and ~1.0 ms per build — 84% of the build stage's allocation — to produce, almost
+    // always, a value identical to the one the previous component just computed. The build stage
+    // runs on every route navigation, which is exactly the frame users perceive as the page
+    // switch delay.
+    //
+    // The inputs are reference-compared rather than value-compared: themes are mutable, so two
+    // equal-looking instances may diverge later, and identity is what callers actually hold
+    // stable (AddIonic keeps one options theme; a ConfigProvider keeps one partial theme).
+    // A ConditionalWeakTable-like keying is unnecessary — the entry count is bounded by the
+    // number of distinct (theme, mode, cascading theme) triples an app uses, which is tiny.
+    private static readonly Dictionary<ThemeKey, IonicTheme> ResolvedThemes = new();
+    private static readonly object ResolvedThemesGate = new();
+
+    private readonly record struct ThemeKey(IonicTheme? Source, IonicMode Mode, IonicTheme? Cascading);
+
     private IonicTheme ResolveTheme(IonicMode mode)
     {
-        var resolved = (IonicOptions?.Value.Theme ?? new IonicTheme()).ResolveForMode(mode);
+        var source = IonicOptions?.Value.Theme;
+        var key = new ThemeKey(source, mode, CascadingTheme);
+
+        lock (ResolvedThemesGate)
+        {
+            if (ResolvedThemes.TryGetValue(key, out var cached))
+                return cached;
+        }
+
+        var resolved = (source ?? new IonicTheme()).ResolveForMode(mode);
         CascadingTheme?.ApplySpecifiedValuesTo(resolved);
+        // This instance is now shared by every component resolving the same key and is never
+        // written to again, so it may memoize its style keys.
+        resolved.MarkImmutable();
+
+        lock (ResolvedThemesGate)
+        {
+            // Another thread may have resolved the same key meanwhile; either instance is
+            // equally valid, so keep whichever landed first and let this one be collected.
+            if (ResolvedThemes.TryGetValue(key, out var raced))
+                return raced;
+            ResolvedThemes[key] = resolved;
+        }
+
         return resolved;
+    }
+
+    /// <summary>
+    /// Drops the resolved-theme cache. Only needed when a theme instance is mutated in place
+    /// after components have already resolved against it — the cache keys on instance identity,
+    /// so an in-place edit is otherwise invisible to it. Tests that mutate a shared theme between
+    /// renders call this; applications configure a theme once and never need it.
+    /// </summary>
+    public static void InvalidateResolvedThemes()
+    {
+        lock (ResolvedThemesGate)
+        {
+            ResolvedThemes.Clear();
+        }
     }
 
     /// <summary>

@@ -118,8 +118,45 @@ public partial class IonicTheme
         Toolbar.CopySpecifiedValuesTo(target.Toolbar);
     }
 
+    // Memoized style keys, per (component, mode) — but only for themes marked immutable
+    // (ISSUE-145).
+    //
+    // Computing one means fingerprinting every token the component depends on and hashing the
+    // result with SHA-256. That is reasonable once per component family, but it was running once
+    // per component *instance* per build, purely to look up an already-registered scope class.
+    //
+    // The memo is opt-in rather than automatic because a style key must keep tracking the
+    // theme's current values: callers are allowed to mutate a theme they hold and expect the
+    // next Register to produce a different key (see IonicThemeRegistryTests). Only themes
+    // produced by MarkImmutable — the resolved instances IonicComponentBase caches and hands to
+    // every component, which nothing in the style pipeline writes to — may memoize.
+    //
+    // Concurrent because IonicStyleRegistry.Register calls GetStyleKey outside its own lock, and
+    // several engines may build component trees on their own threads (ISSUE-129).
+    private System.Collections.Concurrent.ConcurrentDictionary<(string Component, IonicMode Mode), string>? _styleKeys;
+
+    /// <summary>
+    /// Marks this theme as never mutated again, letting it memoize its style keys. Called only
+    /// on the resolved instances <see cref="Components.IonicComponentBase"/> caches; mutating a
+    /// theme after this point makes its style keys stale.
+    /// </summary>
+    internal IonicTheme MarkImmutable()
+    {
+        _styleKeys ??= new System.Collections.Concurrent.ConcurrentDictionary<(string, IonicMode), string>();
+        return this;
+    }
+
     /// <summary>Returns a deterministic fingerprint used to reuse an equivalent rule set.</summary>
     internal string GetStyleKey(string component, IonicMode mode)
+    {
+        var memo = _styleKeys;
+        if (memo == null)
+            return ComputeStyleKey(component, mode);
+
+        return memo.GetOrAdd((component, mode), static (k, self) => self.ComputeStyleKey(k.Component, k.Mode), this);
+    }
+
+    private string ComputeStyleKey(string component, IonicMode mode)
     {
         var builder = new System.Text.StringBuilder(component).Append('|').Append(mode);
         IonicToken[] dependencies = component switch

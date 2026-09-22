@@ -284,6 +284,66 @@ public class IonicThemeRegistryTests
         cut.GetComputedStyle(native)!.BackgroundColor.ShouldBe(Color.FromHex("0e7490"));
     }
 
+    /// <summary>
+    /// Every component resolving the same (app theme, mode, cascading theme) must share one
+    /// resolved theme instance rather than build its own (ISSUE-145).
+    ///
+    /// <para>Resolving means constructing a complete mode theme from scratch and copying the
+    /// specified values over it — ~38 KB and ~15 µs each. Doing that per component instance made
+    /// it 84% of the build stage's allocation on a real page, and the build stage is what a route
+    /// navigation pays. Sharing is only sound because nothing writes to a resolved theme, so this
+    /// test also pins the reference-equality that the style-key memo depends on.</para>
+    /// </summary>
+    [Fact]
+    public void ResolvedThemes_AreSharedAcrossComponentsOfTheSameConfiguration()
+    {
+        IonicComponentBase.InvalidateResolvedThemes();
+        using var context = CreateContext();
+        var cut = context.Render<ThemeSharingFixture>();
+
+        var scopes = cut.Root.FindByClass("ion-button")
+            .Select(GetThemeScope)
+            .Distinct()
+            .ToArray();
+
+        // Identical configuration ⇒ identical resolved theme ⇒ one style key ⇒ one scope class.
+        scopes.ShouldHaveSingleItem();
+    }
+
+    /// <summary>
+    /// Mutating a theme a caller holds must still change the style key it produces. The memo
+    /// added in ISSUE-145 is opt-in for exactly this reason: it applies only to the resolved
+    /// instances the component base caches, never to a theme the application owns.
+    /// </summary>
+    [Fact]
+    public void MutatingACallerHeldTheme_StillChangesItsStyleKey()
+    {
+        var registry = new IonicStyleRegistry();
+        var theme = IonicTheme.CreateMd();
+
+        var first = registry.Register(typeof(IonButton), IonicMode.Md, theme);
+        first.ShouldNotBeNull();
+
+        theme.Button.SolidBackground = Color.FromHex("123456");
+
+        registry.Register(typeof(IonButton), IonicMode.Md, theme).ShouldNotBe(first);
+    }
+
+    /// <summary>Three sibling buttons under one configuration — see the sharing test above.</summary>
+    private sealed class ThemeSharingFixture : ComponentBase
+    {
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement<DivElement>();
+            for (var i = 0; i < 3; i++)
+            {
+                builder.OpenComponent<IonButton>();
+                builder.CloseComponent();
+            }
+            builder.CloseElement();
+        }
+    }
+
     private static TestContext CreateContext(IonicTheme? startupTheme = null)
     {
         var builder = MikoAppBuilder.CreateDefault().AddIonic(options => options.Theme = startupTheme ?? new IonicTheme());

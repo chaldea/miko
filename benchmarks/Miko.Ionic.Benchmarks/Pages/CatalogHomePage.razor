@@ -1,0 +1,106 @@
+@namespace Miko.Ionic.Benchmarks.Pages
+
+@*
+    ISSUE-145: a structural stand-in for examples/App/Anime's "/home" route — the page whose
+    real, on-device frame time (60-70 ms) the synthetic benchmarks could not reproduce.
+
+    It is deliberately modest in visible content (a banner, two quick links, three rows of three
+    poster cards) yet expands to roughly 240 DOM elements, because every Ionic control nests
+    several wrapper elements of its own. That ratio between "what the author wrote" and "what the
+    engine walks" is the property the hand-built benchmark trees were missing, and it is what
+    makes the style stage — not painting — the dominant cost.
+*@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar Class="home-toolbar">
+            <Start>
+                <IonButtons>
+                    <IonButton>
+                        <IconOnly>
+                            <IonAvatar Class="search-avatar" />
+                        </IconOnly>
+                    </IonButton>
+                </IonButtons>
+            </Start>
+            <ChildContent>
+                <IonSearchbar Class="home-search" Placeholder="Search the catalog" Value="@_query" />
+            </ChildContent>
+            <End>
+                <IonButtons Slot="end">
+                    <IonButton>
+                        <IconOnly>
+                            <IonIcon Icon="@Ionicons.TimeOutline" />
+                        </IconOnly>
+                    </IonButton>
+                </IonButtons>
+            </End>
+        </IonToolbar>
+        <IonSegment Class="home-segment" Value="@_category">
+            @foreach (var category in Categories)
+            {
+                <IonSegmentButton Value="@category">
+                    <IonLabel>@category</IonLabel>
+                </IonSegmentButton>
+            }
+        </IonSegment>
+    </IonHeader>
+    <IonContent>
+        <div class="page-padding">
+            <IonCard Class="banner-card" Button="true">
+                <div class="banner-image"></div>
+            </IonCard>
+            <IonGrid Class="quick-links">
+                <IonRow>
+                    <IonCol Size="6">
+                        <IonButton Expand="block" Fill="clear">
+                            <Start>
+                                <IonIcon Icon="@Ionicons.BarChartOutline" />
+                            </Start>
+                            <ChildContent>Trending</ChildContent>
+                        </IonButton>
+                    </IonCol>
+                    <IonCol Size="6">
+                        <IonButton Expand="block" Fill="clear">
+                            <Start>
+                                <IonIcon Icon="@Ionicons.CalendarOutline" />
+                            </Start>
+                            <ChildContent>Schedule</ChildContent>
+                        </IonButton>
+                    </IonCol>
+                </IonRow>
+            </IonGrid>
+            @for (var row = 0; row < SectionCount; row++)
+            {
+                <h2 class="section-title">Section @row</h2>
+                <IonGrid Class="poster-grid">
+                    <IonRow>
+                        @for (var card = 0; card < CardsPerSection; card++)
+                        {
+                            <IonCol Size="4">
+                                <IonCard Class="poster-card" Button="true">
+                                    <div class="poster-image"></div>
+                                    <div class="poster-title">Title @row @card</div>
+                                    <IonNote Class="poster-note">Genre @card</IonNote>
+                                </IonCard>
+                            </IonCol>
+                        }
+                    </IonRow>
+                </IonGrid>
+            }
+        </div>
+    </IonContent>
+</IonPage>
+
+@code {
+    private static readonly string[] Categories = ["Featured", "Series", "Movies"];
+
+    private readonly string _category = "Featured";
+    private readonly string _query = string.Empty;
+
+    /// <summary>Number of titled poster sections. The real "/home" renders three.</summary>
+    [Parameter] public int SectionCount { get; set; } = 3;
+
+    /// <summary>Poster cards per section. The real "/home" renders three per row.</summary>
+    [Parameter] public int CardsPerSection { get; set; } = 3;
+}

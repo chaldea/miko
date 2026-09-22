@@ -25,5 +25,6 @@
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/Miko.Benchmarks/Miko.Benchmarks.csproj" />
+    <Project Path="benchmarks/Miko.Ionic.Benchmarks/Miko.Ionic.Benchmarks.csproj" />
   </Folder>
 </Solution>
