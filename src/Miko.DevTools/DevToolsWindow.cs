@@ -29,6 +29,9 @@ internal class DevToolsWindow
     private IInputContext? _inputContext;
     private GL? _gl;
     private GRContext? _grContext;
+
+    // 窗口帧缓冲的包装表面（按尺寸/FBO 复用，见 WindowRenderTarget）。
+    private WindowRenderTarget? _windowTarget;
     private int _width;
     private int _height;
     private volatile bool _shouldClose;
@@ -124,6 +127,7 @@ internal class DevToolsWindow
 
         _grContext = GRContext.CreateGl(grInterface);
         GpuResourceCache.Configure(_grContext);
+        _windowTarget = new WindowRenderTarget(_grContext);
 
         _inputContext = _window!.CreateInput();
         foreach (var mouse in _inputContext.Mice)
@@ -213,12 +217,10 @@ internal class DevToolsWindow
 
         _pendingPresents--;
 
+        // 包装表面按 (尺寸, FBO) 复用，不每帧重建（ISSUE-143）。见 WindowRenderTarget。
         int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
-        var fbInfo = new GRGlFramebufferInfo((uint)fboId, 0x8058);
-        // 每帧新建的非托管 Skia 对象，必须随帧释放（否则原生内存随帧数线性增长，见 ISSUE-113）。
-        using var target = new GRBackendRenderTarget(_width, _height, 0, 8, fbInfo);
-
-        using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
+        var surface = _windowTarget?.Acquire(_width, _height, (uint)fboId);
+        if (surface == null) return;
         var canvas = surface.Canvas;
         canvas.Clear(new SKColor(36, 36, 36));
         _engine.Render(canvas);
@@ -419,6 +421,9 @@ internal class DevToolsWindow
         _inputContext?.Dispose();
         _initSurface?.Dispose();
         _initSurface = null;
+        // 表面引用 GRContext，必须先于它释放。
+        _windowTarget?.Dispose();
+        _windowTarget = null;
         GpuResourceCache.PurgeAllResources(_grContext);
         _grContext?.Dispose();
         _gl?.Dispose();
