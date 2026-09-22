@@ -231,9 +231,11 @@ public class MikoEngine
         _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
 
         // Restore scroll positions from old layout (ISSUE-092)
-        RestoreScrollState(oldLayout, _currentLayout, IsCrossPageNavigation(transition));
-        // 返回上一页时回放该页离开时的滚动快照（ISSUE-118）。放在 ISSUE-092 的恢复之后：
-        // 跨页面返回以快照为准，同树内重渲染没有快照条目、仍由上面那步处理，两者不冲突。
+        if (UsesStructuralScrollRestore(transition))
+            RestoreScrollState(oldLayout, _currentLayout, IsCrossPageNavigation(transition));
+        // 返回上一页时回放该页离开时的滚动快照（ISSUE-118）；Tab 切换回放该 Tab 的快照
+        // （ISSUE-144）。放在 ISSUE-092 的恢复之后：跨页面返回以快照为准，同树内重渲染
+        // 没有快照条目、仍由上面那步处理，两者不冲突。
         RestoreScrollSnapshot(transition, _currentLayout);
 
         if (oldStyles.Elements.Count > 0 || oldStyles.PseudoElements.Count > 0)
@@ -243,7 +245,8 @@ public class MikoEngine
             {
                 _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
                 // Restore scroll state again after re-layout
-                RestoreScrollState(oldLayout, _currentLayout, IsCrossPageNavigation(transition));
+                if (UsesStructuralScrollRestore(transition))
+                    RestoreScrollState(oldLayout, _currentLayout, IsCrossPageNavigation(transition));
                 RestoreScrollSnapshot(transition, _currentLayout);
             }
         }
@@ -1756,7 +1759,9 @@ public class MikoEngine
     /// <summary>
     /// 导航离开当前页时，为来源路径拍下滚动快照（ISSUE-118）。必须在旧布局树被替换之前调用。
     /// <para><see cref="NavigationDirection.Root"/> 会清空历史栈（见 <see cref="NavigationManager"/>），
-    /// 栈上所有页面都不再可返回，故连同来源页一起丢弃全部快照。</para>
+    /// 栈上所有页面都不再可返回，故连同来源页一起丢弃全部<b>历史栈</b>快照。但 Root 切换本身
+    /// （Tab 切换）不是「一去不回」：来源页的偏移另存进 Root 表，切回该 Tab 时回放
+    /// （ISSUE-144，对齐 Ionic 各 Tab 各自保留滚动位置的行为）。</para>
     /// </summary>
     private void CaptureScrollSnapshot(NavigationTransitionInfo? navigation, LayoutBox? oldLayout)
     {
@@ -1765,22 +1770,37 @@ public class MikoEngine
         if (navigation.Direction == NavigationDirection.Root)
         {
             _scrollSnapshots.Clear();
+            _scrollSnapshots.CaptureRoot(navigation.FromKey, oldLayout);
             return;
         }
 
-        _scrollSnapshots.Capture(navigation.FromPath, oldLayout);
+        _scrollSnapshots.Capture(navigation.FromKey, oldLayout);
     }
 
     /// <summary>
-    /// 返回（出栈）到某页时，把该页离开时的滚动快照回放到新布局树上（ISSUE-118）。
-    /// <para>只在 <see cref="NavigationDirection.Back"/> 回放：<see cref="NavigationDirection.Forward"/>
-    /// 压栈进入的是一次新的页面访问，按浏览器语义从顶部开始。</para>
+    /// 返回（出栈）到某页时，把该页离开时的滚动快照回放到新布局树上（ISSUE-118）；
+    /// Root 切换（Tab）则从 Root 表回放该 Tab 的偏移（ISSUE-144）。
+    /// <para><see cref="NavigationDirection.Forward"/> 不回放：压栈进入的是一次新的页面访问，
+    /// 按浏览器语义从顶部开始。</para>
     /// </summary>
     private void RestoreScrollSnapshot(NavigationTransitionInfo? navigation, LayoutBox? newLayout)
     {
-        if (navigation is not { Direction: NavigationDirection.Back }) return;
+        if (navigation == null) return;
 
-        int restored = _scrollSnapshots.Apply(navigation.ToPath, newLayout);
+        if (navigation.Direction == NavigationDirection.Root)
+        {
+            int restoredTab = _scrollSnapshots.ApplyRoot(navigation.ToKey, newLayout);
+            if (restoredTab > 0)
+            {
+                _logger.LogDebug("Restored tab scroll snapshot for {Path}: {Count} scrollable box(es)",
+                    navigation.ToPath, restoredTab);
+            }
+            return;
+        }
+
+        if (navigation.Direction != NavigationDirection.Back) return;
+
+        int restored = _scrollSnapshots.Apply(navigation.ToKey, newLayout);
         if (restored > 0)
         {
             _logger.LogDebug("Restored scroll snapshot for {Path}: {Count} scrollable box(es)",
@@ -1791,11 +1811,13 @@ public class MikoEngine
     /// <summary>
     /// 收尾一次返回导航：消费掉已回放的快照（该历史条目已出栈）。在同一次
     /// <see cref="Initialize"/> 内的多次回放（transition 触发重新布局）之后调用一次。
+    /// <para>只消费历史栈那张表。Root（Tab）表<b>不</b>消费——Tab 会被反复切回，
+    /// 消费掉就只有第一次切回生效（ISSUE-144）。</para>
     /// </summary>
     private void ConsumeScrollSnapshot(NavigationTransitionInfo? navigation)
     {
         if (navigation is not { Direction: NavigationDirection.Back }) return;
-        _scrollSnapshots.Forget(navigation.ToPath);
+        _scrollSnapshots.Forget(navigation.ToKey);
     }
 
     /// <summary>
@@ -1807,7 +1829,19 @@ public class MikoEngine
     /// 目标路径与来源路径不同，就意味着被路由的槽位里装的是另一批内容。</para>
     /// </summary>
     private static bool IsCrossPageNavigation(NavigationTransitionInfo? navigation)
-        => navigation != null && !string.Equals(navigation.FromPath, navigation.ToPath, StringComparison.Ordinal);
+        => navigation != null && !string.Equals(navigation.FromKey, navigation.ToKey, StringComparison.Ordinal);
+
+    /// <summary>
+    /// 本次重建是否该走 ISSUE-092 的<b>结构性</b>滚动恢复（在上一帧布局树与新布局树之间
+    /// 按标签与树形搬运偏移）。
+    ///
+    /// <para><see cref="NavigationDirection.Root"/> 除外（ISSUE-144）：Tab 切换的目标页
+    /// 由 Root 快照表<b>按路径</b>权威地给出偏移，结构判断在这里只会造成误判——各个 Tab
+    /// 页往往同构（都是 <c>.inner-scroll &gt; 若干等高行</c>），连跨页面用的<b>严格</b>等价
+    /// 都拦不住，于是上一个 Tab 的偏移被搬到一个从未滚动过的 Tab 上。有权威信号时不该再猜。</para>
+    /// </summary>
+    private static bool UsesStructuralScrollRestore(NavigationTransitionInfo? navigation)
+        => navigation is not { Direction: NavigationDirection.Root };
 
     private static void RestoreScrollState(LayoutBox? oldRoot, LayoutBox? newRoot, bool crossPageNavigation = false)
     {

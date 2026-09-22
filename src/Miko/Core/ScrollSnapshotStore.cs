@@ -17,6 +17,13 @@ namespace Miko.Core;
 /// <para>快照只在<b>返回</b>方向回放：<see cref="NavigationDirection.Forward"/> 压栈进入的是
 /// 一次新的页面访问，按浏览器语义应从顶部开始；<see cref="NavigationDirection.Root"/>
 /// （如 Tab 切换）会清空历史栈，其上的快照随之全部作废。</para>
+///
+/// <para><b>两张表，两种生命周期</b>（ISSUE-144）：上面说的是<b>历史栈</b>那张表
+/// （<see cref="Capture"/> / <see cref="Apply"/> / <see cref="Forget"/> / <see cref="Clear"/>），
+/// 语义完全不变。Root 切换另有一张<b>常驻</b>表（<c>CaptureRoot</c> / <c>ApplyRoot</c>）：
+/// Tab 切换不是「离开就不再回来」，而是在几个根级页面之间来回切，每个 Tab 应各自记住自己的
+/// 滚动位置（对齐 Ionic 的 tab 行为）。它不随 Root 切换被清空，也不在回放后被消费——
+/// 否则第二次切回该 Tab 就又回到顶部了。</para>
 /// </summary>
 internal sealed class ScrollSnapshotStore
 {
@@ -33,15 +40,44 @@ internal sealed class ScrollSnapshotStore
     // 键为路由路径；值为该页面离开时所有非零偏移的可滚动盒子。
     private readonly Dictionary<string, List<Entry>> _snapshots = new();
 
+    // Root（Tab）切换专用的常驻表。与 _snapshots 分开，两者的失效时机截然不同。
+    private readonly Dictionary<string, List<Entry>> _rootSnapshots = new();
+
+    /// <summary>
+    /// Root 表的容量上限。Tab 数量在真实应用里是个位数，但路径字符串来自应用代码
+    /// （如带查询参数的根路径），仍需设上限避免无界增长；超限时整体清空，最坏情况是
+    /// 下一次切回从顶部开始。
+    /// </summary>
+    private const int MaxRootSnapshots = 32;
+
     /// <summary>当前保存了快照的路径数（测试与诊断用）。</summary>
     internal int Count => _snapshots.Count;
+
+    /// <summary>Root 表当前保存了快照的路径数（测试与诊断用）。</summary>
+    internal int RootCount => _rootSnapshots.Count;
 
     /// <summary>
     /// 为 <paramref name="path"/> 拍一张快照：收集 <paramref name="layout"/> 中所有存在非零滚动
     /// 偏移的盒子。整棵树都没有滚动过时不产生任何条目，并清除该路径的旧快照（页面已回到顶部，
     /// 旧快照不再代表它的状态）。
     /// </summary>
-    internal void Capture(string path, LayoutBox? layout)
+    internal void Capture(string path, LayoutBox? layout) => CaptureInto(_snapshots, path, layout);
+
+    /// <summary>
+    /// 为 <paramref name="path"/> 在 <b>Root 表</b>拍一张快照（离开某个 Tab 时调用）。
+    /// 与 <see cref="Capture"/> 同样的收集逻辑，只是写入另一张表。
+    /// </summary>
+    internal void CaptureRoot(string path, LayoutBox? layout)
+    {
+        // 先裁容量再写入，使刚拍的这张不会被自己的清空带走。
+        if (_rootSnapshots.Count >= MaxRootSnapshots && !_rootSnapshots.ContainsKey(path))
+        {
+            _rootSnapshots.Clear();
+        }
+        CaptureInto(_rootSnapshots, path, layout);
+    }
+
+    private static void CaptureInto(Dictionary<string, List<Entry>> target, string path, LayoutBox? layout)
     {
         if (layout == null) return;
 
@@ -50,11 +86,11 @@ internal sealed class ScrollSnapshotStore
 
         if (entries == null)
         {
-            _snapshots.Remove(path);
+            target.Remove(path);
             return;
         }
 
-        _snapshots[path] = entries;
+        target[path] = entries;
     }
 
     private static void CaptureRecursive(LayoutBox box, List<int> pathBuffer, ref List<Entry>? entries)
@@ -82,10 +118,18 @@ internal sealed class ScrollSnapshotStore
     /// 因此返回页比离开时更短（如图片尚未加载）也不会越界。</para>
     /// </summary>
     /// <returns>实际恢复的盒子数量。</returns>
-    internal int Apply(string path, LayoutBox? layout)
+    internal int Apply(string path, LayoutBox? layout) => ApplyFrom(_snapshots, path, layout);
+
+    /// <summary>
+    /// 把 <b>Root 表</b>里 <paramref name="path"/> 的快照回放到 <paramref name="layout"/> 上
+    /// （切回某个 Tab 时调用）。同样<b>不消费</b>——Tab 会被反复切回，消费掉就只有第一次生效。
+    /// </summary>
+    internal int ApplyRoot(string path, LayoutBox? layout) => ApplyFrom(_rootSnapshots, path, layout);
+
+    private static int ApplyFrom(Dictionary<string, List<Entry>> source, string path, LayoutBox? layout)
     {
         if (layout == null) return 0;
-        if (!_snapshots.TryGetValue(path, out var entries)) return 0;
+        if (!source.TryGetValue(path, out var entries)) return 0;
 
         int restored = 0;
         foreach (var entry in entries)
@@ -106,7 +150,11 @@ internal sealed class ScrollSnapshotStore
     /// </summary>
     internal void Forget(string path) => _snapshots.Remove(path);
 
-    /// <summary>丢弃全部快照（历史栈被清空时，如 <see cref="NavigationDirection.Root"/> 切换）。</summary>
+    /// <summary>
+    /// 丢弃<b>历史栈</b>全部快照（历史栈被清空时，如 <see cref="NavigationDirection.Root"/> 切换）。
+    /// <para>不触碰 Root 表——那张表记的正是「各个 Tab 各自的滚动位置」，Root 切换是它的
+    /// 使用场景而非失效条件（ISSUE-144）。</para>
+    /// </summary>
     internal void Clear() => _snapshots.Clear();
 
     /// <summary>沿索引路径下行定位盒子；越界或末端标签名不符时返回 null。</summary>

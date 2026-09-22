@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Miko.Common;
 using SkiaSharp;
 
@@ -8,6 +9,29 @@ namespace Miko.Fonts;
 /// </summary>
 public class FontFallbackResolver
 {
+    /// <summary>
+    /// 分段结果缓存键。分段是 (文本, 字体族链, 字重) 的纯函数——与
+    /// <see cref="Utils.TextMeasurer"/> 的 <c>MeasureKey</c> 同款内容寻址。
+    /// </summary>
+    private readonly record struct RunKey(string Text, string FontFamily, FontWeight Weight);
+
+    /// <summary>
+    /// 分段结果缓存。<see cref="ResolveTextRuns"/> 逐字符解析回退字体，绘制路径上
+    /// 每个文本节点每帧都要走一遍（ISSUE-144：Android 上 45 个文本节点占掉 28–41ms）。
+    /// 结果只取决于键里那三项，故可跨帧、跨元素、跨线程复用。
+    ///
+    /// <para>进程级静态，与 <see cref="FontManager.Instance"/> 的字形缓存及
+    /// <see cref="Utils.TextMeasurer"/> 的度量缓存同一模型：内容寻址使共享既正确又划算。
+    /// 字体注册/注销会改变分段结果，由 <see cref="Clear"/> 在
+    /// <see cref="FontManager"/> 失效字形缓存的同一处一并清空。</para>
+    /// </summary>
+    private static readonly ConcurrentDictionary<RunKey, IReadOnlyList<TextRun>> _runCache = new();
+
+    /// <summary>缓存容量上限，超限时整体清空（对齐 <see cref="Utils.TextMeasurer"/> 的做法）。</summary>
+    private const int MaxCacheEntries = 4096;
+
+    private static readonly IReadOnlyList<TextRun> EmptyRuns = Array.Empty<TextRun>();
+
     private readonly FontManager _fontManager;
 
     public FontFallbackResolver(FontManager fontManager)
@@ -16,15 +40,40 @@ public class FontFallbackResolver
     }
 
     /// <summary>
+    /// 丢弃分段缓存。字体注册表变化会改变回退解析结果，使已缓存的分段失效。
+    /// 由 <see cref="FontManager"/> 在清除字形/度量缓存的同一处调用。
+    /// </summary>
+    public static void ClearCache() => _runCache.Clear();
+
+    /// <summary>
     /// Segment text into runs, each with an appropriate font
     /// </summary>
-    public List<TextRun> ResolveTextRuns(string text, string fontFamily, FontWeight weight)
+    public IReadOnlyList<TextRun> ResolveTextRuns(string text, string fontFamily, FontWeight weight)
     {
         if (string.IsNullOrEmpty(text))
         {
-            return new List<TextRun>();
+            return EmptyRuns;
         }
 
+        var key = new RunKey(text, fontFamily, weight);
+        if (_runCache.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var runs = ResolveTextRunsUncached(text, fontFamily, weight);
+
+        if (_runCache.Count >= MaxCacheEntries)
+        {
+            _runCache.Clear();
+        }
+        _runCache[key] = runs;
+
+        return runs;
+    }
+
+    private IReadOnlyList<TextRun> ResolveTextRunsUncached(string text, string fontFamily, FontWeight weight)
+    {
         var fallbackChain = _fontManager.ParseFontFamilyChain(fontFamily);
         var runs = new List<TextRun>();
 

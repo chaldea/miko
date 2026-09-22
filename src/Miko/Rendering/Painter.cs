@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Miko.Common;
 using Miko.Fonts;
 using Miko.Highlight;
@@ -11,7 +12,39 @@ namespace Miko.Rendering;
 /// </summary>
 public class Painter
 {
+    /// <summary>绘制字体缓存键（见 <see cref="CreateHighQualityFont"/>）。</summary>
+    private readonly record struct FontKey(SKTypeface Typeface, float FontSize);
+
+    private static readonly ConcurrentDictionary<FontKey, SKFont> _fontCache = new();
+
+    /// <summary>绘制字体缓存容量上限。</summary>
+    private const int MaxFontCacheEntries = 256;
+
+    /// <summary>
+    /// 位图 → <see cref="SKImage"/> 的包装缓存（见 <see cref="ImageFor"/>）。键为弱引用，
+    /// 位图被上游丢弃后条目自动消失。
+    /// </summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<SKBitmap, SKImage> _imageCache = new();
+
+    /// <summary>
+    /// 丢弃绘制字体缓存。由 <see cref="FontManager"/> 在字体注册表变化时调用——缓存按
+    /// typeface 引用索引，注销/Dispose 会释放那些 typeface。
+    /// </summary>
+    public static void ClearFontCache() => _fontCache.Clear();
+
     private readonly SKCanvas _canvas;
+
+    /// <summary>
+    /// 文本绘制复用的 paint。<see cref="SKPaint"/> 是 native 对象，而文本绘制每次调用都要
+    /// 一个；每帧几十个文本节点下这笔开销可观（ISSUE-144）。paint 只承载颜色与抗锯齿，
+    /// 每次绘制前重设即可。
+    ///
+    /// <para>按 <see cref="Painter"/> 实例持有而非静态：Painter 每帧随
+    /// <c>RenderEngine.SetCanvas</c> 新建，生命周期与一帧绘制一致，因此这份 paint 天然
+    /// 不跨线程共享——与静态的字体/分段缓存（内容寻址、只读命中）不同，paint 是会被
+    /// 写入的可变状态。</para>
+    /// </summary>
+    private readonly SKPaint _textPaint = new() { IsAntialias = true };
 
     public Painter(SKCanvas canvas)
     {
@@ -489,11 +522,8 @@ public class Painter
 
         if (textRuns.Count == 0) return;
 
-        using var paint = new SKPaint
-        {
-            Color = color.ToSKColor(),
-            IsAntialias = true
-        };
+        var paint = _textPaint;
+        paint.Color = color.ToSKColor();
 
         // 计算总宽度用于对齐（含 letter-spacing）。
         float totalWidth = MeasureRunsWidth(textRuns, fontSize, paint, letterSpacing);
@@ -516,7 +546,7 @@ public class Painter
         };
 
         // 计算文本基线Y位置
-        using var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
+        var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
         float y;
         if (verticalAlign == VerticalAlign.Middle)
         {
@@ -534,7 +564,7 @@ public class Painter
         // 绘制每个文本段
         foreach (var run in textRuns)
         {
-            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            var font = CreateHighQualityFont(run.Typeface, fontSize);
             x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
         }
     }
@@ -547,7 +577,7 @@ public class Painter
         float total = 0;
         foreach (var run in runs)
         {
-            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            var font = CreateHighQualityFont(run.Typeface, fontSize);
             total += font.MeasureText(run.Text, paint);
             if (letterSpacing != 0) total += letterSpacing * run.Text.Length;
         }
@@ -585,7 +615,7 @@ public class Painter
         var fontManager = FontManager.Instance;
         var fallbackResolver = new FontFallbackResolver(fontManager);
 
-        using var baseFont = CreateHighQualityFont(fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight)[0].Typeface, fontSize);
+        var baseFont = CreateHighQualityFont(fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight)[0].Typeface, fontSize);
         float ellipsisWidth = baseFont.MeasureText(ellipsis, paint);
         float budget = rect.Width - ellipsisWidth;
 
@@ -609,7 +639,7 @@ public class Painter
         if (truncatedRuns.Count == 0) return;
 
         // 基线 Y（与 DrawText 一致）。
-        using var baselineFont = CreateHighQualityFont(truncatedRuns[0].Typeface, fontSize);
+        var baselineFont = CreateHighQualityFont(truncatedRuns[0].Typeface, fontSize);
         float y;
         if (verticalAlign == VerticalAlign.Middle)
         {
@@ -625,7 +655,7 @@ public class Painter
         float x = rect.Left;
         foreach (var run in truncatedRuns)
         {
-            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            var font = CreateHighQualityFont(run.Typeface, fontSize);
             x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
         }
     }
@@ -646,13 +676,10 @@ public class Painter
 
         if (textRuns.Count == 0) return;
 
-        using var paint = new SKPaint
-        {
-            Color = color.ToSKColor(),
-            IsAntialias = true
-        };
+        var paint = _textPaint;
+        paint.Color = color.ToSKColor();
 
-        using var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
+        var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
         float textHeight = baselineFont.Metrics.Descent - baselineFont.Metrics.Ascent;
         float centeredTop = rect.Top + (rect.Height - textHeight) / 2;
         float y = centeredTop - baselineFont.Metrics.Ascent;
@@ -660,7 +687,7 @@ public class Painter
         float x = rect.Left;
         foreach (var run in textRuns)
         {
-            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            var font = CreateHighQualityFont(run.Typeface, fontSize);
             x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
         }
     }
@@ -681,11 +708,8 @@ public class Painter
         if (lines.Count == 0) return;
 
         var fontManager = FontManager.Instance;
-        using var paint = new SKPaint
-        {
-            Color = color.ToSKColor(),
-            IsAntialias = true
-        };
+        var paint = _textPaint;
+        paint.Color = color.ToSKColor();
 
         // 计算总高度用于垂直对齐
         float totalHeight = lineHeight * lines.Count;
@@ -718,13 +742,13 @@ public class Painter
                 };
 
                 // 计算基线Y位置
-                using var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
+                var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
                 float y = currentY - baselineFont.Metrics.Ascent;
 
                 // 绘制当前行
                 foreach (var run in textRuns)
                 {
-                    using var font = CreateHighQualityFont(run.Typeface, fontSize);
+                    var font = CreateHighQualityFont(run.Typeface, fontSize);
                     x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
                 }
             }
@@ -761,7 +785,8 @@ public class Painter
         if (string.IsNullOrEmpty(text)) return;
 
         var fontManager = FontManager.Instance;
-        using var paint = new SKPaint { IsAntialias = true };
+        // 颜色由 DrawColoredSegment 逐段重设。
+        var paint = _textPaint;
 
         var lines = text.Split('\n');
         float currentY = rect.Top;
@@ -859,12 +884,12 @@ public class Painter
         if (runs.Count == 0) return x;
 
         paint.Color = color.ToSKColor();
-        using var baselineFont = CreateHighQualityFont(runs[0].Typeface, fontSize);
+        var baselineFont = CreateHighQualityFont(runs[0].Typeface, fontSize);
         float y = lineTop - baselineFont.Metrics.Ascent;
 
         foreach (var run in runs)
         {
-            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            var font = CreateHighQualityFont(run.Typeface, fontSize);
             x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
         }
         return x;
@@ -884,9 +909,13 @@ public class Painter
     {
         if (bitmap == null) return;
 
+        // 分段探针（ISSUE-144）：默认关闭，关闭时只是一次布尔判断。
+        var probe = Diagnostics.FrameTimingDiagnostics.GetTimestamp();
+
         // 启用抗锯齿和高质量采样，改善图像（特别是 SVG）的渲染质量
         // 将 SKBitmap 转换为 SKImage 以使用支持 SKSamplingOptions 的 API
-        using var image = SKImage.FromBitmap(bitmap);
+        var image = ImageFor(bitmap);
+        if (image == null) return;
         // 模板图标（如 Ionicons）用元素的 color 着色：以图像 alpha 作为遮罩，
         // 用 SrcIn 混合替换其 RGB，对应 CSS 的 fill: currentColor。
         using var colorFilter = tint is { } t
@@ -901,6 +930,47 @@ public class Painter
         var dst = snapToPixels ? SnapToDevicePixels(rect) : rect.ToSKRect();
         var (ratioX, ratioY) = ScaleRatios(bitmap, dst);
         _canvas.DrawImage(image, dst, SamplingFor(ratioX, ratioY), paint);
+        Diagnostics.FrameTimingDiagnostics.RecordImageDraw(probe);
+    }
+
+    /// <summary>
+    /// 取用 <paramref name="bitmap"/> 对应的 <see cref="SKImage"/> 包装，按位图实例缓存。
+    ///
+    /// <para><b>为什么要缓存</b>：<see cref="SKImage.FromBitmap"/> 会拷贝像素（GPU 上还要
+    /// 重新上传纹理），而它原本在<b>每帧每张图</b>上重做一遍——Anime 首页每帧 26 次，
+    /// 约 9–13ms（ISSUE-144）。位图本身已经被上游缓存了（<c>ResourceManager</c> 的解码缓存、
+    /// <c>BackgroundImage._rasterCache</c> 的栅格化缓存），只有这层包装每帧重建。</para>
+    ///
+    /// <para><b>为什么按实例身份、且用弱引用键</b>：<c>FromBitmap</c> 产出的是<b>快照</b>，
+    /// 位图内容此后变化不会反映。Miko 的两类持有者都是「只写一次」——
+    /// <c>ImageElement.Bitmap</c> 在加载完成后不原地改写（换图换的是新实例），
+    /// <c>BackgroundImage</c> 的栅格化位图按尺寸键各写一次——所以按实例身份缓存是安全的。
+    /// 键必须是弱引用：位图的生命周期由上游缓存决定，强引用会把已被丢弃的位图连同其
+    /// <see cref="SKImage"/> 一起钉在这里（ISSUE-141 同款的保留）。
+    /// <see cref="System.Runtime.CompilerServices.ConditionalWeakTable{TKey,TValue}"/> 在键被
+    /// 回收时自动移除条目，值随之失去引用。</para>
+    ///
+    /// <para>视频帧走 <see cref="DrawImage(SKImage, RectF, RectF?)"/> 重载，本就已是
+    /// <see cref="SKImage"/>（GPU 纹理零拷贝包装）且每帧都是新的一张，不经过这里。</para>
+    /// </summary>
+    private static SKImage? ImageFor(SKBitmap bitmap)
+    {
+        if (_imageCache.TryGetValue(bitmap, out var cached)) return cached;
+
+        var image = SKImage.FromBitmap(bitmap);
+        if (image == null) return null;
+
+        // Add 而非索引器赋值：两个线程同时未命中时后者会抛，此时用已在表中的那张即可
+        // （两张内容相同，多出来的一张交给 GC/终结器）。
+        try
+        {
+            _imageCache.Add(bitmap, image);
+        }
+        catch (ArgumentException)
+        {
+            return _imageCache.TryGetValue(bitmap, out var raced) ? raced : image;
+        }
+        return image;
     }
 
     /// <summary>
@@ -1576,17 +1646,15 @@ public class Painter
         float textWidth = 0;
         foreach (var run in textRuns)
         {
-            using var measurePaint = new SKPaint { IsAntialias = true };
-            using var font = CreateHighQualityFont(run.Typeface, fontSize);
-            textWidth += font.MeasureText(run.Text, measurePaint);
+            var font = CreateHighQualityFont(run.Typeface, fontSize);
+            textWidth += font.MeasureText(run.Text, _textPaint);
         }
 
         float prefixWidth = 0;
         foreach (var run in prefixRuns)
         {
-            using var measurePaint = new SKPaint { IsAntialias = true };
-            using var font = CreateHighQualityFont(run.Typeface, fontSize);
-            prefixWidth += font.MeasureText(run.Text, measurePaint);
+            var font = CreateHighQualityFont(run.Typeface, fontSize);
+            prefixWidth += font.MeasureText(run.Text, _textPaint);
         }
 
         float alignedTextStart = textAlign switch
@@ -1623,12 +1691,12 @@ public class Painter
 
         if (textRuns.Count == 0) return;
 
-        using var measurePaint = new SKPaint { IsAntialias = true };
+        var measurePaint = _textPaint;
 
         float totalWidth = 0;
         foreach (var run in textRuns)
         {
-            using var font = CreateHighQualityFont(run.Typeface, fontSize);
+            var font = CreateHighQualityFont(run.Typeface, fontSize);
             totalWidth += font.MeasureText(run.Text, measurePaint);
         }
 
@@ -1641,7 +1709,7 @@ public class Painter
         };
 
         // 基线 Y 计算需与 DrawText 保持一致，使装饰线随文本垂直对齐方式一同偏移。
-        using var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
+        var baselineFont = CreateHighQualityFont(textRuns[0].Typeface, fontSize);
         float baselineY;
         if (verticalAlign == VerticalAlign.Middle)
         {
@@ -1704,10 +1772,27 @@ public class Painter
     }
 
     /// <summary>
-    /// 创建高质量字体对象，启用子像素定位和抗锯齿边缘渲染
+    /// 取用高质量字体对象（子像素定位 + 子像素抗锯齿边缘）。
+    ///
+    /// <para><b>按 (typeface, fontSize) 缓存，调用方不得 Dispose。</b><see cref="SKFont"/> 是
+    /// native 对象，而这里原本是每个文本 run 新建一个：单次 <c>DrawText</c> 会先在
+    /// <see cref="MeasureRunsWidth"/> 里为每个 run 建一遍、再在绘制循环里建第二遍，
+    /// 共 2N+1 个。文本节点数一多（Anime 首页 45 个）就成了帧时间的主要来源
+    /// （ISSUE-144：Android 上 28–41ms/帧）。字体对象只由这三项决定，可跨帧复用。</para>
+    ///
+    /// <para>缓存命中不受画布状态影响：<see cref="SKFont"/> 不持有画布，缩放由画布矩阵负责。
+    /// 字体注册表变化时由 <see cref="ClearFontCache"/> 失效（<see cref="FontManager"/> 在清除
+    /// 字形/度量缓存的同一处调用）——缓存按 typeface 引用索引，而那些 typeface 会在
+    /// <c>FontManager.Dispose</c> 中被释放。</para>
     /// </summary>
     private static SKFont CreateHighQualityFont(SKTypeface typeface, float fontSize)
     {
+        var key = new FontKey(typeface, fontSize);
+        if (_fontCache.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
         var font = new SKFont(typeface, fontSize)
         {
             // 启用子像素定位，提高文本定位精度（特别是在缩放画布时）
@@ -1717,6 +1802,15 @@ public class Painter
             // 使用 Normal hinting 在保持清晰度的同时不牺牲字形形状
             Hinting = SKFontHinting.Normal
         };
+
+        // 容量上限：字号档位在真实应用里有限（Ionic 只有若干档），超限说明遇到了连续变化的
+        // 字号（缩放动画），此时整体清空好过无界增长。native 对象交给终结器回收——此处若
+        // 主动 Dispose，正在使用这些实例的绘制调用就会用到已释放对象。
+        if (_fontCache.Count >= MaxFontCacheEntries)
+        {
+            _fontCache.Clear();
+        }
+        _fontCache[key] = font;
         return font;
     }
 }

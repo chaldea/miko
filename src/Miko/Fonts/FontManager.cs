@@ -256,8 +256,10 @@ public class FontManager : IDisposable
     {
         _typefaceCache.Clear();
         _glyphCache.Clear();
-        // 字体变化使旧的文本测量结果失效
+        // 字体变化使旧的文本测量结果、分段结果与绘制字体对象一并失效
         TextMeasurer.ClearCache();
+        FontFallbackResolver.ClearCache();
+        Rendering.Painter.ClearFontCache();
     }
 
     /// <summary>
@@ -314,9 +316,12 @@ public class FontManager : IDisposable
             _typefaceCache.TryRemove(key, out _);
         }
 
-        // 字体注册/注销会改变回退链的解析结果，使旧的字形/测量缓存失效。
+        // 字体注册/注销会改变回退链的解析结果，使旧的字形/测量/分段缓存与按 typeface
+        // 索引的绘制字体对象一并失效。
         _glyphCache.Clear();
         TextMeasurer.ClearCache();
+        FontFallbackResolver.ClearCache();
+        Rendering.Painter.ClearFontCache();
     }
 
     private static FontFormat DetectFontFormat(byte[] data)
@@ -524,6 +529,10 @@ public class FontManager : IDisposable
             _typefaceCache.Clear();
             _glyphCache.Clear();
             TextMeasurer.ClearCache();
+            // 上面刚 Dispose 掉的 typeface 仍被分段缓存的 TextRun 与绘制字体缓存按引用
+            // 持有；不清空，后续绘制就会用到已释放的 native 对象。
+            FontFallbackResolver.ClearCache();
+            Rendering.Painter.ClearFontCache();
             _disposed = true;
         }
     }
