@@ -162,6 +162,18 @@ public class MikoEngine
     /// 为 null 表示非导航重建（如热重载），不触碰快照。</para>
     /// </summary>
     public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight, NavigationTransitionInfo? transition = null)
+        => Initialize(root, styleSheets, canvas, viewportWidth, viewportHeight, transition, paint: true);
+
+    /// <summary>
+    /// 同 <see cref="Initialize(Element, List{StyleSheet}, SKCanvas, float, float, NavigationTransitionInfo?)"/>，
+    /// 但可以不绘制（ISSUE-146）。
+    ///
+    /// <para><paramref name="paint"/> 为 false 供「同一帧内紧接着就会再调用 <see cref="Render"/>」
+    /// 的调用方使用——<c>MikoInteractionController.RenderFrame</c> 的路由重建正是如此：宿主的绘制
+    /// 回调先清屏、缩放、再 <see cref="Render"/>，这里画的那一遍会被整个清掉。布局已在此完成并
+    /// 进入缓存，随后的 <see cref="Render"/> 走快速路径直接绘制，重建帧从两遍整树绘制变成一遍。</para>
+    /// </summary>
+    internal void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight, NavigationTransitionInfo? transition, bool paint)
     {
         // Capture old layout for scroll position restoration (ISSUE-092)
         var oldLayout = _currentLayout;
@@ -228,6 +240,11 @@ public class MikoEngine
         // Capture old styles from transferred LayoutBoxes (before layout replaces them)
         var oldStyles = CaptureTransitionableStyles(root);
 
+        // 同步图片源必须早于布局（ISSUE-146）：已在解码缓存里的图片会在这里同步完成加载、
+        // 写入内禀尺寸。放在布局之后，那次写入就让刚算完的布局立刻过期，下一次绘制再整树
+        // 重排一遍——每次导航到带图的页面都要排两次。
+        SyncImageSources(root);
+
         _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
 
         // Restore scroll positions from old layout (ISSUE-092)
@@ -253,8 +270,6 @@ public class MikoEngine
 
         // 同步视频会话（创建新元素的会话、回收已移除元素的会话）。
         SyncVideoSessions(root);
-        // 同步图片源（为新 <img> 发起异步加载、解码占位图）。
-        SyncImageSources(root);
 
         if (startTransition)
         {
@@ -270,7 +285,7 @@ public class MikoEngine
             _logger.LogDebug("Navigation transition started: {From} -> {To} ({Direction}), effect={Effect}, duration={Duration}s",
                 transition.FromPath, transition.ToPath, transition.Direction,
                 _navTransition.GetType().Name, _navTransition.Duration);
-            RenderTransitionFrame();
+            if (paint) RenderTransitionFrame();
         }
         else
         {
@@ -279,7 +294,7 @@ public class MikoEngine
                 _logger.LogDebug("Navigation transition skipped (first navigation or non-positive duration): {From} -> {To} ({Direction})",
                     transition.FromPath, transition.ToPath, transition.Direction);
             }
-            _renderEngine.Render(_currentLayout);
+            if (paint) _renderEngine.Render(_currentLayout);
         }
 
         // 本次返回导航的快照已回放完毕（可能因 transition 重新布局而回放了两次），消费掉它。
@@ -523,6 +538,9 @@ public class MikoEngine
 
         var oldStyles = CaptureTransitionableStyles(_root);
         var oldLayout = _currentLayout;
+        // 同 Initialize：先同步图片源再布局，缓存命中的图片同步写入的内禀尺寸就能赶上本次布局，
+        // 而不是让它立刻过期、下一帧再排一遍（ISSUE-146）。
+        SyncImageSources(_root);
         _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
 
         bool transitionsTriggered = DetectAndTriggerTransitions(_root, oldStyles);
@@ -534,8 +552,6 @@ public class MikoEngine
 
         // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
         SyncVideoSessions(_root);
-        // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
-        SyncImageSources(_root);
         RestoreScrollState(oldLayout, _currentLayout);
         RenderCurrentFrame();
         _dirtyManager.Clear();
@@ -1507,7 +1523,8 @@ public class MikoEngine
                 video.IntrinsicWidth = loaded.Width;
                 video.IntrinsicHeight = loaded.Height;
                 // 内禀尺寸是布局输入：递增版本号使下一帧重排（区别于新帧到达的纯绘制失效）。
-                _mutations.Bump();
+                // 它不是任何选择器能读到的数据，只重排、不重算样式（ISSUE-146）。
+                _mutations.BumpContent();
                 PostInvalidate(video);
                 break;
 
@@ -1635,7 +1652,8 @@ public class MikoEngine
                 img.IntrinsicWidth = logical?.Width ?? bmp.Width;
                 img.IntrinsicHeight = logical?.Height ?? bmp.Height;
                 // 内禀尺寸是布局输入（auto 尺寸的 img 按真实尺寸布局）：递增版本号触发重排。
-                _mutations.Bump();
+                // 选择器读不到位图与内禀尺寸，故只重排、不重算样式（ISSUE-146）。
+                _mutations.BumpContent();
             }
             // 即使失败也投递失效：让占位图/背景在下一帧稳定呈现。
             PostInvalidate(img);

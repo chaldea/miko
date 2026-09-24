@@ -19,11 +19,15 @@ namespace Miko.Styling;
 /// </summary>
 internal sealed class RuleIndex
 {
-    /// <summary>索引中的一条规则：规则本身 + 它在样式表中的全局定义序号（级联排序键）。</summary>
+    /// <summary>
+    /// 索引中的一条规则：规则本身 + 它在样式表中的全局定义序号（级联排序键）
+    /// + 它要求祖先链上必须出现的键（供 <see cref="AncestorFilter"/> 快速否决，ISSUE-146）。
+    /// </summary>
     internal readonly struct Entry(StyleRule rule, int order)
     {
         public readonly StyleRule Rule = rule;
         public readonly int Order = order;
+        public readonly int[]? AncestorKeys = AncestorFilter.RequiredAncestorKeys(rule.Selector);
     }
 
     private readonly Dictionary<string, List<Entry>> _byClass = new(StringComparer.Ordinal);

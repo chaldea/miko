@@ -73,4 +73,12 @@ public class AttributeSelector : Selector
     }
 
     public override int Specificity => 10; // 属性选择器特异性为 10（与 class 相同）
+
+    // 生成的属性访问表排除了 Style（见 ElementAttributeAccessorGenerator），能读到文字的只有
+    // 文本节点的 Text 与自定义元素可能暴露的 TextContent；其余属性（class/id/value/…）
+    // 都按样式变更记账或本就不是文字（ISSUE-146）。
+    public override bool MayReadContentOrInlineStyle =>
+        AttributeName.Equals("text", StringComparison.OrdinalIgnoreCase)
+        || AttributeName.Equals("textcontent", StringComparison.OrdinalIgnoreCase)
+        || AttributeName.Equals("style", StringComparison.OrdinalIgnoreCase);
 }

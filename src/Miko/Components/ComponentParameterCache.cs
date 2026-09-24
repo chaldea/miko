@@ -15,11 +15,11 @@ namespace Miko.Components;
 /// Attribute lookup is by far the expensive part — it materializes attribute instances — and the
 /// answer is a property of the type, not of the instance, so it is computed once per type.</para>
 ///
-/// <para>Property writes go through a bound <see cref="Action{T1, T2}"/> rather than
-/// <see cref="PropertyInfo.SetValue"/>, removing the per-call member lookup and the argument-array
-/// allocation. The value stays typed as <see cref="object"/> because both sources (a DI container
-/// and the cascading-value stack) hand back <see cref="object"/> already — so this introduces no
-/// boxing that was not already there.</para>
+/// <para>Property writes go through a setter cached in the descriptor. It is
+/// <see cref="PropertyInfo.SetValue(object, object)"/>: a typed delegate would need
+/// <c>MakeGenericMethod</c>, which Native AOT does not support (see <c>CreateSetter</c>). The
+/// value stays typed as <see cref="object"/> because both sources (a DI container and the
+/// cascading-value stack) hand back <see cref="object"/> already.</para>
 ///
 /// <para>Callers must flow <see cref="ComponentTypeMembers.Parameters"/> onto the
 /// <see cref="Type"/> they pass in, or the trimmer removes the very properties this looks for
@@ -113,45 +113,22 @@ internal static class ComponentParameterCache
     }
 
     /// <summary>
-    /// Builds a setter delegate for a property. Falls back to
-    /// <see cref="PropertyInfo.SetValue"/> when a delegate cannot be created — e.g. an
-    /// init-only or ref-returning property, where the fallback preserves the previous behaviour
-    /// rather than failing the render.
+    /// Builds the setter for a property: <see cref="PropertyInfo.SetValue(object, object)"/>.
     ///
-    /// <para>The fast path binds the setter <b>directly</b> as <c>Action&lt;object, object?&gt;</c>.
-    /// That only type-checks when both the declaring type and the property type are reference
-    /// types, because the runtime allows delegate binding to widen a reference parameter to
-    /// <see cref="object"/> but never to box a value type for one — so value-typed properties take
-    /// the reflection path.</para>
+    /// <para>This used to try <c>setMethod.CreateDelegate&lt;Action&lt;object, object?&gt;&gt;()</c>
+    /// first and fall back on <see cref="ArgumentException"/>. That fast path could never succeed:
+    /// an open instance delegate binds the target as its first parameter, and delegate binding only
+    /// accepts a parameter the method can <em>receive</em> — <see cref="object"/> is not assignable
+    /// to the component type, so every property threw and landed on the fallback anyway. The cost
+    /// was one thrown exception per injected or cascading property of every component type, paid on
+    /// the frame that first builds it. On the Android Mono runtime, where a throw is far more
+    /// expensive than on CoreCLR, that is exactly the frame a user sees stutter: opening the Anime
+    /// detail page threw 49 of them inside a single navigation (ISSUE-146).</para>
     ///
-    /// <para>Previously this went through <c>MakeGenericMethod</c> to build a typed
-    /// <c>Action&lt;TDeclaring, TValue&gt;</c>. That is unsupported under Native AOT (IL3050): it
-    /// threw for <em>every</em> property, and the <c>catch</c> silently swallowed it — so AOT paid
-    /// a thrown exception per property and then used the slow path anyway (ISSUE-140).</para>
+    /// <para>A genuinely typed delegate needs <c>MakeGenericMethod</c>, which Native AOT does not
+    /// support (ISSUE-140). The reflection write is what actually ran all along, so this changes no
+    /// behaviour; the descriptor is still built once per type, keeping the attribute scan — the
+    /// expensive part — off the render path.</para>
     /// </summary>
-    private static Action<object, object?> CreateSetter(PropertyInfo property)
-    {
-        var setMethod = property.GetSetMethod(nonPublic: true);
-        if (setMethod == null || property.DeclaringType == null)
-        {
-            return property.SetValue;
-        }
-
-        // 值类型的声明类型/属性类型无法直接绑定到 object 形参（委托绑定只放宽引用类型，不装箱）。
-        if (property.DeclaringType.IsValueType || property.PropertyType.IsValueType)
-        {
-            return property.SetValue;
-        }
-
-        try
-        {
-            return setMethod.CreateDelegate<Action<object, object?>>();
-        }
-        catch (ArgumentException)
-        {
-            // 签名意外不兼容（如 ref 返回、受限类型）时退回反射写入：
-            // 这只是性能优化，不能因此改变可用性。
-            return property.SetValue;
-        }
-    }
+    private static Action<object, object?> CreateSetter(PropertyInfo property) => property.SetValue;
 }

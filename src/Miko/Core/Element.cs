@@ -28,6 +28,12 @@ public abstract class Element
     internal void BumpMutationVersion() => Owner?.Bump();
 
     /// <summary>
+    /// 递增所属引擎的变更版本号，并声明本次变更只影响布局、不影响任何计算样式
+    /// （见 <see cref="MutationTracker.BumpContent"/>，ISSUE-146）。
+    /// </summary>
+    internal void BumpContentVersion() => Owner?.BumpContent();
+
+    /// <summary>
     /// 把本子树的归属设为 <paramref name="tracker"/>（ISSUE-129）。
     ///
     /// <para>由引擎在 <c>Initialize</c> 与每帧渲染时对根元素调用。<b>必须</b>是引擎侧的树遍历
@@ -109,7 +115,8 @@ public abstract class Element
     public Style? Style
     {
         get => _style;
-        set { if (!ReferenceEquals(_style, value)) { _style = value; IsDirty = true; BumpMutationVersion(); } }
+        // 行内样式替换只影响本元素这棵子树的计算样式（选择器读不到它），按子树记账（ISSUE-146）。
+        set { if (!ReferenceEquals(_style, value)) { _style = value; IsDirty = true; Owner?.BumpInlineStyle(this); } }
     }
 
     // TextContent 的原始存储。仅由 TextNode（承载真实文本）与 TextContent facade 直接访问。
@@ -172,6 +179,17 @@ public abstract class Element
         }
         set
         {
+            // 就地更新（ISSUE-146）：元素恰好只有一个前置文本节点、新值非空时，直接改写它的文字。
+            // 结果与「删掉重建」在结构上完全相同（仍是位于首位的单个文本节点），但不构成结构变更
+            // ——文本节点的 Text setter 按「只影响布局」记账，布局引擎因此不必重跑整树级联。
+            // 播放器每秒刷新一次时间文字，走的正是这条路径。
+            if (!string.IsNullOrEmpty(value) && TryGetSoleLeadingTextNode(out var existing))
+            {
+                existing.Text = value;
+                IsDirty = true;
+                return;
+            }
+
             // 移除已有的文本节点。用不记账的原始写入，本 setter 末尾统一记账一次。
             Children.RemoveAllInternal(c => c is TextNode);
             if (!string.IsNullOrEmpty(value))
@@ -186,6 +204,20 @@ public abstract class Element
             IsDirty = true;
             BumpMutationVersion();
         }
+    }
+
+    /// <summary>本元素是否恰有一个文本子节点且它排在首位（<see cref="TextContent"/> setter 的就地更新条件）。</summary>
+    private bool TryGetSoleLeadingTextNode(out TextNode textNode)
+    {
+        textNode = null!;
+        var children = Children;
+        if (children.Count == 0 || children[0] is not TextNode first) return false;
+        for (int i = 1; i < children.Count; i++)
+        {
+            if (children[i] is TextNode) return false;
+        }
+        textNode = first;
+        return true;
     }
 
     internal Dictionary<PseudoElementType, Style>? PseudoElementStyles { get; set; }
@@ -605,26 +637,39 @@ public abstract class Element
         // 快速路径：整个 class 串就是该 token（最常见的单类名元素）。
         if (string.Equals(classList, token, StringComparison.Ordinal)) return true;
 
-        ReadOnlySpan<char> remaining = classList.AsSpan();
-        ReadOnlySpan<char> needle = token.AsSpan();
-
-        while (!remaining.IsEmpty)
+        // 先整串子串查找，命中后再核对两侧是否为分隔符（ISSUE-146）。
+        //
+        // 旧实现逐字符分词、对每个字符调 char.IsWhiteSpace。这里绝大多数调用都是「不含」
+        // （样式匹配的候选规则大多在第一个类名上失败），而 IndexOf 是向量化的整串比较，
+        // 失败时几乎不触碰逐字符逻辑。在 Android 的 Mono 代码生成下，旧的分词循环单独
+        // 占了样式阶段约 60% 的采样。语义与分词完全一致：token 前后必须是串首/串尾或空白。
+        int from = 0;
+        while (from <= classList.Length - token.Length)
         {
-            // 跳过前导空白。
-            int start = 0;
-            while (start < remaining.Length && char.IsWhiteSpace(remaining[start])) start++;
-            if (start >= remaining.Length) break;
-            remaining = remaining[start..];
+            int index = classList.IndexOf(token, from, StringComparison.Ordinal);
+            if (index < 0) return false;
 
-            // 取出一个 token。
-            int end = 0;
-            while (end < remaining.Length && !char.IsWhiteSpace(remaining[end])) end++;
+            int end = index + token.Length;
+            if ((index == 0 || char.IsWhiteSpace(classList[index - 1]))
+                && (end == classList.Length || char.IsWhiteSpace(classList[end])))
+            {
+                // 分词语义下，含空白的 token 永远不会等于任何一个 token；子串查找却可能跨词命中。
+                // 这种 token 只能来自错误的调用方，检查放在命中之后，不拖累常见路径。
+                return !ContainsWhiteSpace(token);
+            }
 
-            if (remaining[..end].SequenceEqual(needle)) return true;
-
-            remaining = remaining[end..];
+            from = index + 1;
         }
 
+        return false;
+    }
+
+    private static bool ContainsWhiteSpace(string value)
+    {
+        foreach (var c in value)
+        {
+            if (char.IsWhiteSpace(c)) return true;
+        }
         return false;
     }
 

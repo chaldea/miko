@@ -30,6 +30,7 @@ public class DescendantSelector : Selector
     }
 
     public override int Specificity => Ancestor.Specificity + Descendant.Specificity;
+    public override bool MayReadContentOrInlineStyle => Ancestor.MayReadContentOrInlineStyle || Descendant.MayReadContentOrInlineStyle;
 }
 
 /// <summary>
@@ -53,6 +54,7 @@ public class ChildSelector : Selector
     }
 
     public override int Specificity => Parent.Specificity + Child.Specificity;
+    public override bool MayReadContentOrInlineStyle => Parent.MayReadContentOrInlineStyle || Child.MayReadContentOrInlineStyle;
 }
 
 /// <summary>
@@ -80,6 +82,7 @@ public class AdjacentSiblingSelector : Selector
     }
 
     public override int Specificity => Previous.Specificity + Target.Specificity;
+    public override bool MayReadContentOrInlineStyle => Previous.MayReadContentOrInlineStyle || Target.MayReadContentOrInlineStyle;
 }
 
 /// <summary>
@@ -112,4 +115,5 @@ public class GeneralSiblingSelector : Selector
     }
 
     public override int Specificity => Previous.Specificity + Target.Specificity;
+    public override bool MayReadContentOrInlineStyle => Previous.MayReadContentOrInlineStyle || Target.MayReadContentOrInlineStyle;
 }

@@ -37,9 +37,16 @@ public sealed class TextNode : Element
         {
             if (RawTextContent != value)
             {
+                // 空与非空之间的切换会改变父元素的 :empty 匹配（EmptySelector 读取 RawTextContent），
+                // 必须按样式变更记账；非空文字之间的替换则只影响布局（ISSUE-146）。
+                // 另有两类选择器能读到文字——属性选择器 [text=…] 与 TypedStyleBuilder.Where 的
+                // 任意谓词。样式表里出现它们时，布局引擎不走「沿用样式」的快路径
+                // （见 Selector.MayReadContentOrInlineStyle），因此这里按内容变更记账仍然安全。
+                bool emptinessChanged = string.IsNullOrEmpty(RawTextContent) != string.IsNullOrEmpty(value);
                 RawTextContent = value;
                 IsDirty = true;
-                BumpMutationVersion();
+                if (emptinessChanged) BumpMutationVersion();
+                else BumpContentVersion();
             }
         }
     }

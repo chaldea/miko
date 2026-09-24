@@ -17,6 +17,7 @@ namespace Miko.Tests.Platform;
 /// 空闲期间宿主跳帧不渲染（ISSUE-096），恢复出帧的第一帧 deltaTime 包含整段空闲时长，
 /// 不钳制会让该帧刚启动的转场直接跳到完成态（示例中表现为转场"不生效"）。
 /// </summary>
+[Collection(Miko.Tests.FrameTimingCollection.Name)] // 其中一例用分段探针数绘制遍数，需串行
 public class NavigationTransitionControllerTests : IDisposable
 {
     private const float W = 200;
@@ -69,6 +70,36 @@ public class NavigationTransitionControllerTests : IDisposable
         _context.Controller.Rebuild(_canvas, W, H);
 
         _context.Engine.IsNavigationTransitionActive.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RenderFrame_WithRebuild_PaintsTheTreeOnceAndShowsTheNewPage()
+    {
+        // ISSUE-146：重建帧曾经画两遍——Initialize 画一遍，紧接着宿主回调先清屏再 Render 一遍。
+        // 第一遍会被整个清掉，只是白白多一次整树绘制。现在由宿主回调独自产出画面。
+        var nav = (NavigationManager)_context.Services.GetService(typeof(NavigationManager))!;
+        var frames = new List<Miko.Diagnostics.FrameProfile>();
+
+        nav.NavigateTo("/detail");
+        Miko.Diagnostics.FrameProfiler.Enable(frames.Add);
+        try
+        {
+            _context.Controller.RenderFrame(_canvas, W, H, 1f / 60f, c =>
+            {
+                c.Clear(SKColors.White);
+                _context.Engine.Render(c);
+            });
+        }
+        finally
+        {
+            Miko.Diagnostics.FrameProfiler.Disable();
+        }
+
+        frames.Count.ShouldBe(1);
+        frames[0].Rebuilt.ShouldBeTrue();
+        frames[0].PaintPasses.ShouldBe(1);
+        frames[0].LayoutPasses.ShouldBe(1);
+        _bitmap.GetPixel(100, 50).ShouldBe(SKColors.Lime);
     }
 
     [Fact]

@@ -20,6 +20,8 @@ public class ClassSelector : Selector
     }
 
     public override int Specificity => 10; // Class选择器特异性为10
+
+    public override bool MayReadContentOrInlineStyle => false;
 }
 
 /// <summary>
@@ -40,6 +42,8 @@ public class IdSelector : Selector
     }
 
     public override int Specificity => 100; // ID选择器特异性为100
+
+    public override bool MayReadContentOrInlineStyle => false;
 }
 
 /// <summary>
@@ -60,6 +64,8 @@ public class TagSelector : Selector
     }
 
     public override int Specificity => 1; // 标签选择器特异性为1
+
+    public override bool MayReadContentOrInlineStyle => false;
 }
 
 /// <summary>
@@ -69,4 +75,6 @@ public class UniversalSelector : Selector
 {
     public override bool Matches(Element element) => true;
     public override int Specificity => 0;
+
+    public override bool MayReadContentOrInlineStyle => false;
 }
