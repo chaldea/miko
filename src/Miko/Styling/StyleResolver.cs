@@ -39,7 +39,20 @@ public class StyleResolver
     /// 解析元素的最终样式
     /// </summary>
     public ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets, ViewportInfo? viewport = null)
+        => Resolve(element, styleSheets, viewport, ancestors: null);
+
+    /// <summary>
+    /// 解析元素的最终样式；<paramref name="ancestors"/> 为调用方随树递归维护的祖先过滤器
+    /// （ISSUE-146），用于在完整测试前否决必然失配的组合器规则。其栈顶不是本元素的父元素时
+    /// 不做任何否决（例如调用方没有按树序递归），结果与不传时完全一致。
+    /// </summary>
+    internal ComputedStyle Resolve(Element element, List<StyleSheet> styleSheets, ViewportInfo? viewport,
+        AncestorFilter? ancestors)
     {
+        // 过滤器只在它描述的恰好是本元素的祖先链时才可信。
+        if (ancestors != null && !ReferenceEquals(ancestors.Top, element.Parent))
+            ancestors = null;
+
         // 1. 收集所有匹配的规则（带有定义顺序索引）；优先复用池化列表（见字段注释）
         var matchedRules = Interlocked.Exchange(ref _pooledRules, null) ?? new();
         matchedRules.Clear();
@@ -63,6 +76,9 @@ public class StyleResolver
                 for (int i = 0; i < candidates.Count; i++)
                 {
                     var candidate = candidates[i];
+                    // 规则要求的祖先键缺席 → 必然失配，免去整条祖先链的逐级测试。
+                    if (ancestors != null && candidate.AncestorKeys is { } keys && !ancestors.MayContainAll(keys))
+                        continue;
                     if (candidate.Rule.Selector.Matches(element))
                     {
                         matchedRules.Add((candidate.Rule, sheet.Layer,

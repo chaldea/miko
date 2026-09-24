@@ -15,6 +15,8 @@ public abstract class PseudoElementSelector : Selector
     }
 
     public override int Specificity => 1; // 伪元素的特异性为 0,0,0,1
+
+    public override bool MayReadContentOrInlineStyle => false;
 }
 
 /// <summary>

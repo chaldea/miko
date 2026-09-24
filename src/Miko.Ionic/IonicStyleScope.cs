@@ -81,6 +81,12 @@ internal static class IonicStyleScope
     private sealed class HostBoundarySelector(string host, string scope) : Selector
     {
         public override int Specificity => 0;
+
+        // Reads only class names along the ancestor chain, never text or inline style. Left at the
+        // conservative default, the ~450 scoped rules of the Ionic sheet would switch off the
+        // engine's content-only and subtree-restyle paths for every Ionic app (ISSUE-146).
+        public override bool MayReadContentOrInlineStyle => false;
+
         public override bool Matches(Element element)
         {
             for (var current = element; current != null; current = current.Parent)

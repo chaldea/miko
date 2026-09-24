@@ -196,6 +196,57 @@ public class ElementTests
         element.HasClass("anything").ShouldBeFalse();
     }
 
+    // ISSUE-146：HasClass 改为「整串子串查找 + 两侧分隔符核对」。以下用例钉住它必须与
+    // 按空白分词的语义逐一等价——尤其是子串命中但不在词边界上的情形。
+    [Theory]
+    [InlineData("ion-item", "ion-item", true)]
+    [InlineData("ion-item-native", "ion-item", false)]
+    [InlineData("my-ion-item", "ion-item", false)]
+    [InlineData("ion-item-native ion-item", "ion-item", true)]
+    [InlineData("a ion-item-native b", "ion-item", false)]
+    [InlineData("ion-itemion-item ion-item", "ion-item", true)]
+    [InlineData("  ion-item  ", "ion-item", true)]
+    [InlineData("x\tion-item\ny", "ion-item", true)]
+    [InlineData("ion-item x", "ion-item", true)]
+    [InlineData("abc", "abcd", false)]
+    [InlineData("a b c", "b c", false)]
+    [InlineData("x a b", "a b", false)]
+    [InlineData("", "a", false)]
+    [InlineData("a", "", false)]
+    public void HasClass_MatchesWhitespaceTokenSemantics(string classList, string token, bool expected)
+    {
+        var element = new DivElement { Class = classList };
+
+        element.HasClass(token).ShouldBe(expected);
+        element.HasClass(token).ShouldBe(TokenizedContains(classList, token));
+    }
+
+    [Fact]
+    public void HasClass_WholeStringEqualityFastPath_IsPreserved()
+    {
+        // 整串相等的快速路径早于 ISSUE-146 就存在：class 串与 token 完全相同时恒为 true，
+        // 哪怕 token 自身含空白。这是唯一偏离分词语义的地方，改写时不得顺手改变它。
+        new DivElement { Class = "a b" }.HasClass("a b").ShouldBeTrue();
+    }
+
+    private static bool TokenizedContains(string classList, string token)
+    {
+        if (string.IsNullOrEmpty(token)) return false;
+        var tokens = new List<string>();
+        var current = new System.Text.StringBuilder();
+        foreach (var c in classList)
+        {
+            if (char.IsWhiteSpace(c))
+            {
+                if (current.Length > 0) tokens.Add(current.ToString());
+                current.Clear();
+            }
+            else current.Append(c);
+        }
+        if (current.Length > 0) tokens.Add(current.ToString());
+        return tokens.Contains(token);
+    }
+
     [Fact]
     public void TagName_ShouldReturnCorrectValue()
     {

@@ -35,6 +35,10 @@ public class StyleSheet
     private RuleIndex? _ruleIndex;
     private int _indexedRuleCount = -1;
 
+    // 「是否有选择器读取文字内容或行内样式」的分析缓存（ISSUE-146），按规则条数与版本号判定是否过期。
+    private bool _readsContent;
+    private (long version, int rules, int pseudo, int media) _readsContentKey = (-1, -1, -1, -1);
+
     public void Add(CssObject css)
     {
         InvalidateAnalyses();
@@ -86,6 +90,30 @@ public class StyleSheet
 
     /// <summary>样式表是否包含任何 :hover 规则（含媒体查询与伪元素规则内）。</summary>
     public bool UsesHoverPseudo => HoverPatterns.Count > 0;
+
+    /// <summary>
+    /// 本表是否可能有选择器读取元素的<b>文字内容或行内样式</b>（ISSUE-146，见
+    /// <see cref="Selector.MayReadContentOrInlineStyle"/>）。
+    /// <para>为 true 时，文字变化与行内样式替换都可能改变<b>任意</b>元素的级联结果，布局引擎就
+    /// 不能在这两类变更后沿用计算样式或只重算子树，一律退回整树重算。</para>
+    /// </summary>
+    internal bool MayReadContentOrInlineStyle
+    {
+        get
+        {
+            int mediaRuleCount = 0;
+            for (int i = 0; i < MediaRules.Count; i++) mediaRuleCount += MediaRules[i].Rules.Count;
+            var key = (Version, Rules.Count, PseudoElementRules.Count, mediaRuleCount);
+            if (_readsContentKey != key)
+            {
+                _readsContent = Rules.Any(r => r.Selector.MayReadContentOrInlineStyle)
+                    || PseudoElementRules.Any(r => r.Selector.MayReadContentOrInlineStyle)
+                    || MediaRules.Any(m => m.Rules.Any(r => r.Selector.MayReadContentOrInlineStyle));
+                _readsContentKey = key;
+            }
+            return _readsContent;
+        }
+    }
 
     /// <summary>
     /// 元素的 <see cref="ElementState.Hover"/> 状态是否可能影响本表任何规则的匹配。

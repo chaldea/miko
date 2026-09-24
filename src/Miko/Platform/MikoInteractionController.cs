@@ -308,7 +308,13 @@ public sealed class MikoInteractionController
     }
 
     /// <summary>当 <see cref="NeedsRebuild"/> 为真时重建 DOM 树。</summary>
-    public void Rebuild(SKCanvas canvas, float width, float height)
+    public void Rebuild(SKCanvas canvas, float width, float height) => Rebuild(canvas, width, height, paint: true);
+
+    /// <param name="paint">
+    /// 是否由引擎在重建后立即绘制一遍。<see cref="RenderFrame"/> 传 false：它紧接着就调用宿主的
+    /// 绘制回调，那一遍会先清屏再整树绘制，引擎在这里画的会被原样覆盖（ISSUE-146）。
+    /// </param>
+    private void Rebuild(SKCanvas canvas, float width, float height, bool paint)
     {
         _logger.LogInformation("[HotReload] Render loop detected _needsRebuild flag, rebuilding DOM tree");
         _needsRebuild = false;
@@ -331,12 +337,13 @@ public sealed class MikoInteractionController
             _engine.Initialize(root, _options.StyleSheets, canvas, width, height,
                 new NavigationTransitionInfo(
                     navigation.Transition, navigation.Direction, navigation.FromPath, navigation.ToPath,
-                    ResolvePageKey(navigation.FromPath), ResolvePageKey(navigation.ToPath)));
+                    ResolvePageKey(navigation.FromPath), ResolvePageKey(navigation.ToPath)),
+                paint);
         }
         else
         {
             // 热重载等非导航重建：不涉及历史栈，不触碰滚动快照。
-            _engine.Initialize(root, _options.StyleSheets, canvas, width, height);
+            _engine.Initialize(root, _options.StyleSheets, canvas, width, height, transition: null, paint);
         }
         _logger.LogInformation("[HotReload] DOM rebuilt and initialized, next frame will render new content");
     }
@@ -379,6 +386,8 @@ public sealed class MikoInteractionController
     /// <paramref name="render"/> 绘制。平台宿主应通过本方法渲染，而非直接调用
     /// <see cref="Rebuild"/>/<see cref="Update"/>/<c>Engine.Render</c>，以确保输入处理
     /// 引发的 DOM 变更不会与布局/渲染对 DOM 的遍历并发执行。
+    /// <para><paramref name="render"/> 必须整帧绘制（调用 <c>Engine.Render</c>）：重建帧里引擎
+    /// 不再自行预绘一遍，画面完全由它产出（ISSUE-146）。</para>
     /// </summary>
     public void RenderFrame(SKCanvas canvas, float width, float height, float deltaTime, Action<SKCanvas> render)
     {
@@ -392,7 +401,7 @@ public sealed class MikoInteractionController
             try
             {
                 if (_needsRebuild)
-                    Rebuild(canvas, width, height);
+                    Rebuild(canvas, width, height, paint: false);
 
                 Update(deltaTime);
                 render(canvas);

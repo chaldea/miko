@@ -181,13 +181,48 @@ public class ComponentParameterCacheTests
     [Fact]
     public void CascadingParameter_ValueTypeProperty_IsResolved()
     {
-        // CreateSetter 的快路径只能绑定引用类型（委托绑定不会为 object 形参装箱），
-        // 值类型属性走 PropertyInfo.SetValue 兜底——这条路径同样必须写入成功。
+        // 值类型属性的写入要装箱穿过 object 形参——这条路径同样必须写入成功。
         var host = new ValueTypeCascadingHost();
         host.Build();
 
         host.Child.ShouldNotBeNull();
         host.Child!.Count.ShouldBe(42);
+    }
+
+    [Fact]
+    public void BuildingDescriptors_ThrowsNoFirstChanceExceptions()
+    {
+        // ISSUE-146：CreateSetter 曾先试 CreateDelegate<Action<object, object?>>()、失败再回退。
+        // 开放实例委托的首参必须是方法能接收的类型，object 永远不是组件类型，于是每个
+        // [Inject]/[CascadingParameter] 属性都抛一次 ArgumentException 再被吞掉——结果照样正确，
+        // 行为测试因此永远是绿的。代价落在构建该组件类型的那一帧：Android 的 Mono 上抛异常
+        // 远比 CoreCLR 贵，详情页一次导航就抛了 49 次。只能按「有没有抛」来钉住它。
+        var services = new ServiceCollection()
+            .AddSingleton(new Greeter("quiet"))
+            .BuildServiceProvider();
+
+        int thrown = 0;
+        void OnFirstChance(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+        {
+            if (e.Exception is ArgumentException) Interlocked.Increment(ref thrown);
+        }
+
+        AppDomain.CurrentDomain.FirstChanceException += OnFirstChance;
+        try
+        {
+            using (ComponentServiceScope.Push(services))
+            {
+                // 每个用例类型各自的描述符只在首次构建时生成；换一个本测试独占的类型，
+                // 确保描述符确实是在观察窗口内构建的。
+                new FirstChanceProbeComponent().Build();
+            }
+        }
+        finally
+        {
+            AppDomain.CurrentDomain.FirstChanceException -= OnFirstChance;
+        }
+
+        thrown.ShouldBe(0);
     }
 
     // -----------------------------------------------------------------
@@ -325,6 +360,22 @@ public class ComponentParameterCacheTests
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
             builder.OpenElement<SpanElement>();
+            builder.CloseElement();
+        }
+    }
+
+    // BuildingDescriptors_ThrowsNoFirstChanceExceptions 独占的类型：描述符按类型只构建一次，
+    // 与别的用例共用类型会让它在观察窗口之外就已构建好，测试便什么也测不到。
+    private sealed class FirstChanceProbeComponent : ComponentBase
+    {
+        [Inject] public Greeter? Greeter { get; set; }
+        [Inject] private Greeter? PrivateGreeter { get; set; }
+        [CascadingParameter] public string? Cascaded { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement<SpanElement>();
+            builder.AddContent(PrivateGreeter?.Message);
             builder.CloseElement();
         }
     }

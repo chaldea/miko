@@ -53,4 +53,16 @@ public class CompoundSelector : Selector
             return sum;
         }
     }
+
+    public override bool MayReadContentOrInlineStyle
+    {
+        get
+        {
+            for (int i = 0; i < _selectors.Count; i++)
+            {
+                if (_selectors[i].MayReadContentOrInlineStyle) return true;
+            }
+            return false;
+        }
+    }
 }

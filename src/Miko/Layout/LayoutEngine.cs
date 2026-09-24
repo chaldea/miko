@@ -41,6 +41,7 @@ public class LayoutEngine
     }
 
     private readonly StyleResolver _styleResolver = new();
+    private readonly AncestorFilter _ancestorFilter = new();
     private readonly BlockLayout _blockLayout = new();
     private readonly InlineLayout _inlineLayout = new();
     private readonly FlexLayout _flexLayout = new();
@@ -71,6 +72,15 @@ public class LayoutEngine
     private long _cachedMutationVersion = -1;
     private LayoutBox? _cachedResult;
 
+    // 上一次完整样式阶段对应的样式版本号（ISSUE-146）。布局输入变了、但样式版本号与它相同
+    // （且样式表/视口/安全区/根都未变）时，本次变更只影响布局——文字内容或内禀尺寸——
+    // 整树级联结果必然与上次相同，直接沿用各元素已有的计算样式，只重跑布局。
+    private long _styledVersion = -1;
+
+    // 上一次样式阶段时各表的规则总条数。直接往 StyleSheet.Rules 里 Add 不会递增表的 Version，
+    // 却会改变级联结果（RuleIndex 也是按条数判定重建的），沿用样式前必须一并核对。
+    private int _styledRuleCount = -1;
+
     // 上一帧的计算样式，等本帧整棵树算完后统一归还给池（ISSUE-132）。
     // 见 ComputeStyles 中的说明：回收必须晚于整树解析，否则会回收掉正在被继承读取的实例。
     private readonly List<ComputedStyle> _recyclableStyles = new();
@@ -86,6 +96,8 @@ public class LayoutEngine
         _cachedStyleSheets = null;
         _cachedResult = null;
         _cachedMutationVersion = -1;
+        _styledVersion = -1;
+        _styledRuleCount = -1;
     }
 
     /// <summary>判断给定输入下缓存的布局结果是否仍然有效（无需重排）。</summary>
@@ -127,8 +139,20 @@ public class LayoutEngine
         _viewport = viewport;
         _recyclableStyles.Clear();
         var styleStart = FrameTimingDiagnostics.GetTimestamp();
-        ComputeStyles(root, styleSheets, viewport);
+        // 读样式版本号必须早于样式阶段：阶段期间若有并发的样式变更，记下的是旧值，
+        // 下一帧必然再算一次，而不会把中间态当成最新。行内样式的登记同理，每次样式阶段都取走。
+        var styleVersion = _mutations.StyleVersion;
+        var inlineStyleChanged = _mutations.TakeInlineStyleChanges();
+        _ancestorFilter.Clear();
+        if (!CanReuseStyles(root, styleSheets, viewportWidth, viewportHeight, safeArea, styleVersion)
+            || !TryReuseStyles(root, styleSheets, viewport, inlineStyleChanged))
+        {
+            _ancestorFilter.Clear();
+            ComputeStyles(root, styleSheets, viewport);
+        }
         FrameTimingDiagnostics.RecordStyle(styleStart);
+        _styledVersion = _cachingEnabled ? styleVersion : -1;
+        _styledRuleCount = CountRules(styleSheets);
 
         // 整棵树的新样式都已算完，上一帧那批实例再无引用者，归还给池（ISSUE-132）。
         //
@@ -189,6 +213,114 @@ public class LayoutEngine
         for (var i = 0; i < styleSheets.Count; i++)
             version = unchecked(version * 31 + styleSheets[i].Version);
         return version;
+    }
+
+    /// <summary>
+    /// 本次布局能否（至少部分地）沿用上一次样式阶段的结果（ISSUE-146）：除样式版本号外的全部
+    /// 样式输入（根、样式表及其版本与条数、视口、安全区）都与上次相同，且期间只发生过内容变更
+    /// 或行内样式替换。样式表里有读取文字或行内样式的选择器时一律不沿用——那时这两类变更
+    /// 本身就可能改变任意元素的级联结果。
+    /// </summary>
+    private bool CanReuseStyles(Element root, List<StyleSheet> styleSheets, float viewportWidth, float viewportHeight,
+        SafeAreaInsets safeArea, long styleVersion)
+    {
+        if (!(_cachingEnabled
+            && _styledVersion == styleVersion
+            && ReferenceEquals(_cachedRoot, root)
+            && ReferenceEquals(_cachedStyleSheets, styleSheets)
+            && _cachedStyleSheetCount == styleSheets.Count
+            && _cachedStyleSheetVersion == GetStyleSheetVersion(styleSheets)
+            && Math.Abs(_cachedViewportWidth - viewportWidth) < 0.01f
+            && Math.Abs(_cachedViewportHeight - viewportHeight) < 0.01f
+            && _cachedSafeArea == safeArea
+            && _styledRuleCount == CountRules(styleSheets)))
+            return false;
+
+        for (int i = 0; i < styleSheets.Count; i++)
+        {
+            if (styleSheets[i].MayReadContentOrInlineStyle) return false;
+        }
+        return true;
+    }
+
+    private static int CountRules(List<StyleSheet> styleSheets)
+    {
+        int count = 0;
+        for (int i = 0; i < styleSheets.Count; i++)
+        {
+            var sheet = styleSheets[i];
+            count += sheet.Rules.Count + sheet.PseudoElementRules.Count;
+            for (int j = 0; j < sheet.MediaRules.Count; j++)
+                count += sheet.MediaRules[j].Rules.Count;
+        }
+        return count;
+    }
+
+    /// <summary>
+    /// 沿用各元素已有的计算样式，只为它们换上新的布局盒（布局要往盒子里写几何与子盒，
+    /// 复用旧盒会把上一帧的子盒列表一并带进来）；<paramref name="inlineStyleChanged"/> 中的元素
+    /// 及其后代则重新级联——行内样式只经继承、em 与变量作用域影响这棵子树，选择器读不到它
+    /// （ISSUE-146）。产出的形状与 <see cref="ComputeStyles"/> 完全一致。
+    ///
+    /// <para>先整树核对、再动手：沿用部分只要有一个元素没有上一帧的计算样式（不该出现——结构
+    /// 变更走的是完整版本号——但缺了就无从沿用），就原样返回 false，交给完整的样式阶段，
+    /// 不留下半棵换过盒的树。</para>
+    /// </summary>
+    private bool TryReuseStyles(Element root, List<StyleSheet> styleSheets, ViewportInfo viewport,
+        List<Element>? inlineStyleChanged)
+    {
+        HashSet<Element>? restyle = inlineStyleChanged is { Count: > 0 }
+            ? new HashSet<Element>(inlineStyleChanged, ReferenceEqualityComparer.Instance)
+            : null;
+
+        if (!HasComputedStyles(root, restyle)) return false;
+        ReuseOrRestyle(root);
+        return true;
+
+        static bool HasComputedStyles(Element element, HashSet<Element>? restyle)
+        {
+            if (restyle != null && restyle.Contains(element)) return true;
+            if (element.LayoutBox?.ComputedStyle == null) return false;
+            foreach (var child in element.Children)
+            {
+                if (!HasComputedStyles(child, restyle)) return false;
+            }
+            return true;
+        }
+
+        void ReuseOrRestyle(Element element)
+        {
+            if (restyle != null && restyle.Contains(element))
+            {
+                // 祖先过滤器此刻恰好装着本元素的祖先链（沿用路径同样逐层入栈），
+                // 子树的重新级联与整树级联走的是同一段代码。
+                ComputeStyles(element, styleSheets, viewport);
+                return;
+            }
+
+            element.LayoutBox = new LayoutBox
+            {
+                Element = element,
+                ComputedStyle = element.LayoutBox!.ComputedStyle
+            };
+            if (restyle == null)
+            {
+                foreach (var child in element.Children)
+                    ReuseOrRestyle(child);
+                return;
+            }
+
+            _ancestorFilter.Push(element);
+            try
+            {
+                foreach (var child in element.Children)
+                    ReuseOrRestyle(child);
+            }
+            finally
+            {
+                _ancestorFilter.Pop();
+            }
+        }
     }
 
     private static void ApplyInitialScrollOffsets(LayoutBox box)
@@ -514,7 +646,7 @@ public class LayoutEngine
         if (element.LayoutBox?.ComputedStyle is { } stale)
             _recyclableStyles.Add(stale);
 
-        var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport);
+        var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport, _ancestorFilter);
 
         // 折算该元素声明的视窗单位（vw/vh）为像素。vw/vh 始终相对整个视口，与包含块无关，
         // 故在此（样式计算阶段、已知视口时）一次折算，之后布局对其无感（font-size 中的 vw/vh
@@ -534,10 +666,19 @@ public class LayoutEngine
         // 应用伪元素样式（::range-thumb, ::range-track, ::range-progress 等）
         ApplyPseudoElementStyles(element, styleSheets);
 
-        // 递归处理子元素，传递当前元素的自定义属性作用域
-        foreach (var child in element.Children)
+        // 递归处理子元素，传递当前元素的自定义属性作用域。
+        // 本元素入栈祖先过滤器，使子树里要求「某祖先带某类名」的规则能先被快速否决（ISSUE-146）。
+        _ancestorFilter.Push(element);
+        try
         {
-            ComputeStyles(child, styleSheets, viewport);
+            foreach (var child in element.Children)
+            {
+                ComputeStyles(child, styleSheets, viewport);
+            }
+        }
+        finally
+        {
+            _ancestorFilter.Pop();
         }
     }
 

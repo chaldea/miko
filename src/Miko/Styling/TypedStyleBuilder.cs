@@ -11,6 +11,8 @@ internal class LambdaSelector(Func<Element, bool> predicate, int specificity) : 
 {
     public override bool Matches(Element element) => predicate(element);
     public override int Specificity => specificity;
+
+    // 任意谓词可能读取任何东西（文字、行内样式……），保守保留基类默认的 true（ISSUE-146）。
 }
 
 public class TypedStyleBuilder<T> where T : Element

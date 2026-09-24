@@ -9,6 +9,9 @@ namespace Miko.Styling.Selectors;
 public abstract class PseudoClassSelector : Selector
 {
     public override int Specificity => 10; // 与类选择器相同（CSS规范）
+
+    // 内置伪类只读元素状态或树结构（:empty 只看空与非空，见 Selector 的说明）。
+    public override bool MayReadContentOrInlineStyle => false;
 }
 
 /// <summary>
@@ -153,6 +156,7 @@ public class NotSelector : PseudoClassSelector
 
     public override bool Matches(Element element) => !_inner.Matches(element);
     public override int Specificity => _inner.Specificity;
+    public override bool MayReadContentOrInlineStyle => _inner.MayReadContentOrInlineStyle;
 }
 
 /// <summary>
