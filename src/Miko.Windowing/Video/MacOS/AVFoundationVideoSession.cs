@@ -1,9 +1,9 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Platform.Video;
+using static Miko.Windowing.MacOS.ObjC;
 using static Miko.Windowing.Video.MacOS.AVFoundationInterop;
 
 namespace Miko.Windowing.Video.MacOS;
@@ -19,10 +19,11 @@ namespace Miko.Windowing.Video.MacOS;
 /// </para>
 ///
 /// <para>
-/// 输出格式请求 NV12（<c>420v</c>，VideoToolbox 原生），交由 SkSL shader 在 GPU 上转 RGB。
+/// 输出格式请求 Metal 兼容的 NV12（<c>420v</c>，VideoToolbox 原生）。像素缓冲原样交给
+/// <see cref="AVFoundationFrameSource"/>，由它在渲染线程零拷贝映射为 Metal 纹理、经 SkSL shader 转 RGB。
 /// </para>
 ///
-/// <para><b>未经真机运行验证</b>：本机为 Windows，此实现仅通过编译验证。</para>
+/// <para>已在 macOS 27（Apple M6）上验证播放、循环与退出释放（ISSUE-147）。</para>
 /// </summary>
 [SupportedOSPlatform("macos")]
 internal sealed class AVFoundationVideoSession : IVideoSession
@@ -182,32 +183,34 @@ internal sealed class AVFoundationVideoSession : IVideoSession
     }
 
     /// <summary>
-    /// 创建 <c>AVPlayerItemVideoOutput</c>，并通过像素属性字典请求 NV12。
-    /// 键取 CoreVideo 导出的 <c>kCVPixelBufferPixelFormatTypeKey</c>（真实 CFString，
-    /// 不是字面量），值为 NSNumber 包装的 FourCC。
+    /// 创建 <c>AVPlayerItemVideoOutput</c>，并通过像素属性字典请求 Metal 兼容的 NV12。
+    /// 键取 CoreVideo 导出的 <c>kCVPixelBufferPixelFormatTypeKey</c> /
+    /// <c>kCVPixelBufferMetalCompatibilityKey</c>（真实 CFString，不是字面量）。
     /// </summary>
     private static IntPtr CreateVideoOutput()
     {
         IntPtr outputClass = GetClass("AVPlayerItemVideoOutput");
-        IntPtr formatKey = GetPixelFormatTypeKey();
+        IntPtr numberClass = GetClass("NSNumber");
+        IntPtr setObjectForKey = GetSelector("setObject:forKey:");
 
-        // 拿不到键符号时退到无属性初始化：系统给默认格式（通常仍是 NV12），
-        // 帧读取端按 planeCount 自适应，因此不会因此失败。
-        if (formatKey == IntPtr.Zero)
+        // 拿不到键符号时就不设该项：系统给默认格式（通常仍是 NV12），帧源按 planeCount 自适应，
+        // 映射不了纹理时也会回退到 CPU 读取，因此不会因此失败。
+        IntPtr attributes = SendPtr(GetClass("NSMutableDictionary"), GetSelector("dictionary"));
+
+        IntPtr formatKey = GetPixelFormatTypeKey();
+        if (formatKey != IntPtr.Zero)
         {
-            return SendPtr(
-                SendPtr(outputClass, GetSelector("alloc")),
-                GetSelector("initWithPixelBufferAttributes:"),
-                IntPtr.Zero);
+            IntPtr formatNumber = SendPtr(
+                numberClass, GetSelector("numberWithUnsignedInt:"), (IntPtr)PixelFormatNv12VideoRange);
+            SendVoid(attributes, setObjectForKey, formatNumber, formatKey);
         }
 
-        IntPtr numberClass = GetClass("NSNumber");
-        IntPtr formatNumber = SendPtr(
-            numberClass, GetSelector("numberWithUnsignedInt:"), (IntPtr)PixelFormatNv12VideoRange);
-
-        IntPtr dictClass = GetClass("NSDictionary");
-        IntPtr attributes = SendPtr(
-            dictClass, GetSelector("dictionaryWithObject:forKey:"), formatNumber, formatKey);
+        IntPtr metalKey = GetMetalCompatibilityKey();
+        if (metalKey != IntPtr.Zero)
+        {
+            IntPtr yes = SendPtr(numberClass, GetSelector("numberWithBool:"), (IntPtr)1);
+            SendVoid(attributes, setObjectForKey, yes, metalKey);
+        }
 
         return SendPtr(
             SendPtr(outputClass, GetSelector("alloc")),
@@ -307,31 +310,7 @@ internal sealed class AVFoundationVideoSession : IVideoSession
                     _videoOutput, copyPixelBufferSelector, itemTime, IntPtr.Zero);
 
                 if (pixelBuffer != IntPtr.Zero)
-                {
-                    try
-                    {
-                        var frame = ReadPixelBuffer(pixelBuffer, TimeSpan.FromSeconds(itemTime.Seconds));
-                        if (frame != null)
-                        {
-                            if (!loadedRaised)
-                            {
-                                loadedRaised = true;
-                                _videoWidth = frame.Width;
-                                _videoHeight = frame.Height;
-                                Raise(new VideoSessionEvent.Loaded(frame.Width, frame.Height, _duration));
-                            }
-
-                            _frameSource.PushFrame(frame);
-                            Interlocked.Exchange(ref _positionTicks, frame.Pts.Ticks);
-                            Raise(new VideoSessionEvent.FrameAvailable(frame.Pts));
-                        }
-                    }
-                    finally
-                    {
-                        // copyPixelBuffer 返回 +1 引用，必须释放。
-                        CFRelease(pixelBuffer);
-                    }
-                }
+                    PushPixelBuffer(pixelBuffer, TimeSpan.FromSeconds(itemTime.Seconds), ref loadedRaised);
             }
 
             if (CheckEnded(itemTime))
@@ -378,65 +357,30 @@ internal sealed class AVFoundationVideoSession : IVideoSession
     }
 
     /// <summary>
-    /// 从 <c>CVPixelBuffer</c> 拷出像素。NV12 为双平面（Y + 交错 UV），
-    /// 各平面的 stride 由 <c>GetBytesPerRowOfPlane</c> 给出（通常有对齐填充）。
+    /// 把一帧交给帧源。<c>copyPixelBuffer</c> 返回的 +1 引用随之转交，由帧源在渲染线程映射或读取后释放；
+    /// 这里不再拷贝像素。
     /// </summary>
-    private static VideoFrameBuffer? ReadPixelBuffer(IntPtr pixelBuffer, TimeSpan pts)
+    private void PushPixelBuffer(IntPtr pixelBuffer, TimeSpan pts, ref bool loadedRaised)
     {
         int width = (int)CVPixelBufferGetWidth(pixelBuffer);
         int height = (int)CVPixelBufferGetHeight(pixelBuffer);
-        if (width <= 0 || height <= 0) return null;
-
-        // 只读锁定：flags = kCVPixelBufferLock_ReadOnly (1)。
-        const ulong readOnly = 1;
-        if (CVPixelBufferLockBaseAddress(pixelBuffer, readOnly) != 0)
-            return null;
-
-        try
+        if (width <= 0 || height <= 0)
         {
-            nuint planeCount = CVPixelBufferGetPlaneCount(pixelBuffer);
-
-            // 双平面 NV12。
-            if (planeCount >= 2)
-            {
-                var yPlane = CopyPlane(pixelBuffer, 0, out int yStride);
-                var uvPlane = CopyPlane(pixelBuffer, 1, out int uvStride);
-                if (yPlane == null || uvPlane == null) return null;
-
-                return VideoFrameBuffer.FromCpuPlanes(
-                    width, height, VideoPixelFormat.Nv12, pts,
-                    [yPlane, uvPlane], [yStride, uvStride]);
-            }
-
-            // 单平面：BGRA 回退（planeCount == 0 表示非平面格式）。
-            IntPtr baseAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0);
-            if (baseAddress == IntPtr.Zero) return null;
-
-            int stride = (int)CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
-            var pixels = new byte[stride * height];
-            Marshal.Copy(baseAddress, pixels, 0, pixels.Length);
-
-            return VideoFrameBuffer.FromCpuPlanes(
-                width, height, VideoPixelFormat.Bgra8888, pts, [pixels], [stride]);
+            CFRelease(pixelBuffer);
+            return;
         }
-        finally
+
+        if (!loadedRaised)
         {
-            CVPixelBufferUnlockBaseAddress(pixelBuffer, readOnly);
+            loadedRaised = true;
+            _videoWidth = width;
+            _videoHeight = height;
+            Raise(new VideoSessionEvent.Loaded(width, height, _duration));
         }
-    }
 
-    private static byte[]? CopyPlane(IntPtr pixelBuffer, nuint planeIndex, out int stride)
-    {
-        IntPtr baseAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, planeIndex);
-        stride = (int)CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, planeIndex);
-        int planeHeight = (int)CVPixelBufferGetHeightOfPlane(pixelBuffer, planeIndex);
-
-        if (baseAddress == IntPtr.Zero || stride <= 0 || planeHeight <= 0)
-            return null;
-
-        var plane = new byte[stride * planeHeight];
-        Marshal.Copy(baseAddress, plane, 0, plane.Length);
-        return plane;
+        _frameSource.PushPixelBuffer(pixelBuffer);
+        Interlocked.Exchange(ref _positionTicks, pts.Ticks);
+        Raise(new VideoSessionEvent.FrameAvailable(pts));
     }
 
     private void Teardown()

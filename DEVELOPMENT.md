@@ -128,7 +128,8 @@ miko-v5/
 │       ├── TextMeasurer.cs            # SkiaSharp 文本测量
 │       └── GeometryUtils.cs           # 几何计算
 ├── src/Miko.Windowing/                # 桌面实现（Silk.NET）
-│   ├── SilkDesktopHost.cs             # 桌面宿主（窗口/OpenGL/输入/渲染循环）
+│   ├── SilkDesktopHost.cs             # 桌面宿主（窗口/输入/渲染循环）
+│   ├── Common/SilkWindowGraphics.cs   # 呈现后端：Windows/Linux 为 OpenGL，macOS 为 Metal
 │   ├── SilkKeyMap.cs                  # Silk ↔ Miko 键码映射
 │   └── DesktopHostExtensions.cs       # RunDesktop() 扩展方法
 ├── src/Miko.Android/                  # Android 实现
@@ -252,7 +253,7 @@ dotnet clean
 - Microsoft.Extensions.* 9.0.0 — DI、日志、HTTP 客户端
 
 **平台实现：**
-- Silk.NET 2.22.0 — 桌面窗口和 OpenGL（Miko.Windowing、Miko.Simulator）
+- Silk.NET 2.22.0 — 桌面窗口；Windows/Linux 走 OpenGL，macOS 走 Metal（Miko.Windowing、Miko.Simulator）
 - Android/iOS SDK — 移动平台原生 API
 
 **测试：**

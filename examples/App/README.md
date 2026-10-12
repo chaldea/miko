@@ -106,3 +106,28 @@ SIMCTL_CHILD_MIKO_FRAME_PROBE=verbose SIMCTL_CHILD_MIKO_IOS_PROBE_SCENARIO=scrol
 2026-09-23 的 iPhone 17 / iOS 27 模拟器实测中，原 OpenGL 宿主的渲染器标识为 `Apple Software Renderer`。默认 Debug 首页持续重绘时，引擎内部平均约 1.1 ms，含 Skia flush 的 GL 绘制约 594 ms，出帧约 1.6 FPS；Release 仍约 1.6 FPS；仅关闭 4× MSAA 后约 6 FPS。原生采样定位到 `SKCanvas.Flush → OpenGLES → GLRendererFloat`，即模拟器的 OpenGL ES 没有硬件加速。
 
 同日迁移到 Metal（ISSUE-147）后复测，`[ios-renderer]` 为 `Apple iOS simulator GPU`、`1206x2622`，单采样。Debug 下 `scroll` 场景各阶段（持续重绘、拖动、惯性）均稳定在显示上限 60 FPS，帧间隔 p95 约 16.8 ms，`[ios-draw]` 平均 4–6 ms；首帧（初始化）约 170–230 ms。首次运行时第一次拖动出现过一帧约 280 ms，耗时在 Skia flush 而非引擎，是新绘制组合首次编译 Metal 管线；系统着色器缓存生效后再次运行不再出现（拖动阶段最大约 14 ms）。`video` 场景确认走零拷贝路径、画面色彩正确，播放期间 60 FPS、绘制平均约 5.8 ms；打开详情页那一帧约 510 ms，其中引擎重建约 200 ms。播放中约每秒一帧出现 70–80 ms 的样式重算（`[frame-probe]` 中 `style` 约 68 ms），属于引擎 CPU 开销，与 GPU 后端无关。以上为模拟器数据，不代表真机帧率。
+
+### 桌面帧延迟探针与 macOS 渲染路径
+
+Anime.Desktop 接入了桌面探针 `DesktopFrameProbe`，默认关闭，用于在同一场景下对比桌面呈现后端（ISSUE-147）。macOS 上默认走 Metal，设置 `MIKO_GRAPHICS_BACKEND=opengl` 可退回 OpenGL 做对照：
+
+```bash
+dotnet build examples/App/Anime/Anime.Desktop
+MIKO_DESKTOP_PROBE_SCENARIO=scroll dotnet run --no-build --project examples/App/Anime/Anime.Desktop
+MIKO_GRAPHICS_BACKEND=opengl MIKO_DESKTOP_PROBE_SCENARIO=video dotnet run --no-build --project examples/App/Anime/Anime.Desktop
+```
+
+`scroll` 场景约 37 秒：启动、持续重绘、8 次交替滚轮滚动、等待；`video` 场景约 15 秒：打开第一部番剧的详情页，测量静音循环播放。自动输入经 `MikoDispatcher` 投递到渲染线程，与真实窗口输入同一线程。`[desktop-summary]` 按阶段汇总帧数、帧间隔中位数对应的 FPS 与引擎帧耗时；`frame` 是引擎整帧（含宿主清屏与 Skia flush），帧间隔另含呈现与垂直同步等待。`MIKO_FRAME_PROBE=verbose` 逐帧输出。场景结束后探针关闭窗口、进程正常退出，因此每次运行也覆盖宿主的关闭与资源释放。
+
+2026-09-24 在 macOS 27 / Apple M6（1920×1080 60 Hz 外接屏，Debug）实测。迁移前桌面宿主经 GLFW 使用 OpenGL，渲染器为 `Apple M6`、版本 `4.1 Metal - 91.7`，即 Apple 在 Metal 之上实现的 OpenGL 转换层，有硬件加速，不存在 iOS 模拟器那样的软件渲染问题。同一探针下两种后端各运行 3–6 次：
+
+| 场景 | OpenGL | Metal |
+| --- | --- | --- |
+| 持续重绘 | 59.3–59.7 FPS，帧 2.1–3.2 ms | 59.3–59.8 FPS，帧 2.4–3.1 ms |
+| 滚轮滚动 | 59.3–59.9 FPS，帧 2.1–4.0 ms | 59.0–59.9 FPS，帧 3.1–3.9 ms |
+| 视频播放 | 62–124 FPS，逐帧 CPU 拷贝上传 | 59.8–59.9 FPS，帧 3.2–3.5 ms，零拷贝 |
+| 打开详情页的重建帧 | 81–113 ms | 87–97 ms |
+
+静态页面与滚动两者持平。差别在视频：OpenGL 的呈现在本机没有稳定地按垂直同步节流，多数运行以约两倍于屏幕刷新率出帧，一半的帧屏幕根本显示不出来（帧转储强制连续呈现时甚至达到约 1800 FPS）；Metal 由 `nextDrawable` 提供背压，每次都稳定在 60 FPS。重建帧主要是引擎自身的构建、样式与布局（约 45 + 10 + 13 ms），与后端无关。首次运行 Metal 时第一次滚动与打开详情页各有一帧较慢（约 80 ms、约 420 ms），是 Metal 管线首次编译，系统着色器缓存生效后不再出现，与 iOS 上的观察一致。连续呈现 70 秒与连续播放 75 秒，两种后端的常驻内存均保持平稳（Metal 254 MB、视频 275→277 MB）。Metal 与 OpenGL 的帧转储逐像素比较，最大通道差为 2/255。
+
+结论：macOS 同步迁移到 Metal，理由不在帧率，而在于：macOS 的 OpenGL 自 10.14 起已弃用、停在 4.1，且只是 Metal 上的转换层；视频可以像 iOS 一样经 `CVMetalTextureCache` 零拷贝，此前 macOS 一直逐帧 CPU 拷贝；Retina 屏按 backing scale 出图；模拟器在 macOS 上预览 iOS 界面时与真机走同一条 Skia Metal 渲染路径。Windows / Linux 仍为 OpenGL。本机只有 1× 外接屏，Retina 未经实机验证，仅以临时强制 backing scale = 2 验证过 2× 出图与缩放。

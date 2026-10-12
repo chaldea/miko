@@ -12,7 +12,6 @@ using Miko.Windowing.Common;
 using Silk.NET.Core;
 using Silk.NET.Input;
 using Silk.NET.Maths;
-using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using SkiaSharp;
 using SilkMouseButton = Silk.NET.Input.MouseButton;
@@ -27,8 +26,12 @@ namespace Miko.Simulator;
 ///   <item>右侧——模拟器设置面板，本身用**另一个 Miko 引擎**布局/渲染（满足"模拟器本身也使用 Miko 引擎"）。</item>
 /// </list>
 /// <para>
-/// 原生窗口事件在调用线程处理；专用渲染线程持有 GL 上下文并消费输入队列。
+/// 原生窗口事件在调用线程处理；专用渲染线程持有 GPU 上下文并消费输入队列。
 /// 应用 DOM、面板 DOM 与 GPU 资源始终只由渲染线程访问。
+/// </para>
+/// <para>
+/// 窗口呈现走 <see cref="SilkWindowGraphics"/>：macOS 上是 Metal，与被预览的 iOS 应用在真机上
+/// 使用同一条 Skia 渲染路径（ISSUE-147）；Windows/Linux 为 OpenGL。
 /// </para>
 /// </summary>
 public sealed class SimulatorHost : Native.ISimulatedDeviceSource
@@ -55,11 +58,8 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 
     private IWindow? _window;
     private IInputContext? _inputContext;
-    private GL? _gl;
+    private SilkWindowGraphics? _graphics;
     private GRContext? _grContext;
-
-    // 窗口帧缓冲的包装表面（按尺寸/FBO 复用，见 WindowRenderTarget）。
-    private WindowRenderTarget? _windowTarget;
     private SilkWindowThreadRunner? _windowRunner;
 
     // 应用画面离屏 GPU 画布（按设备物理像素分辨率），跨帧保留。
@@ -244,7 +244,8 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
         {
             Title = _options.Title ?? $"{_appContext.Options.Title} — Simulator",
             Size = new Vector2D<int>(_windowWidth, _windowHeight),
-            API = GraphicsAPI.Default,
+            // macOS 的 Metal 后端需要不带 GL 上下文的窗口。
+            API = SilkWindowGraphics.WindowApi,
             IsContextControlDisabled = true,
             // 手动交换缓冲：稳态空闲时（应用与面板均无视觉工作）整帧跳过绘制与交换，
             // 避免每秒 60 次全量重绘造成的 GC 压力（ISSUE-096）。
@@ -294,6 +295,8 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 
     private void OnLoad()
     {
+        // Metal 后端要在主线程把图层挂到窗口视图上，因此后端在这里创建。
+        _graphics = SilkWindowGraphics.Create(_window!);
         _inputMethod.SetWindowHandle(_window!.Native?.Win32?.Hwnd ?? IntPtr.Zero);
         _inputMethod.SetLogicalViewport(_windowWidth, _windowHeight);
 
@@ -318,14 +321,10 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 
     private void InitGraphics()
     {
-        var window = _window!;
-        _gl = window.CreateOpenGL();
-
-        var grInterface = GRGlInterface.Create(name =>
-            window.GLContext!.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
-        _grContext = GRContext.CreateGl(grInterface);
-        GpuResourceCache.Configure(_grContext);
-        _windowTarget = new WindowRenderTarget(_grContext);
+        var graphics = _graphics!;
+        graphics.Initialize();
+        _grContext = graphics.Context;
+        _logger.LogInformation("{Graphics} context initialized on render thread", graphics.Description);
 
         // 应用引擎共享同一 GPU 上下文，供视频/图片等 GPU 资源使用。
         _appController.Engine.GraphicsContext = _grContext;
@@ -473,21 +472,18 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
         // 用 0 尺寸创建渲染目标会失败，且会污染布局状态。恢复时会再次收到 Resize。
         if (size.X == 0 || size.Y == 0) return;
 
-        _gl?.Viewport(size);
+        _graphics?.Resize(size.X, size.Y);
         _panelEngine.SetViewportSize(PanelWidth, _windowHeight);
     }
 
     private void ShutdownGraphics()
     {
         _appController.Engine.DisposeVideoSessions();
+        // 表面引用 GRContext，必须先于它释放。
         _appSurface?.Dispose();
         _appSurface = null;
-        // 表面引用 GRContext，必须先于它释放。
-        _windowTarget?.Dispose();
-        _windowTarget = null;
-        GpuResourceCache.PurgeAllResources(_grContext);
-        _grContext?.Dispose();
-        _gl?.Dispose();
+        _graphics?.Dispose();
+        _grContext = null;
     }
 
     // ---------------------------------------------------------------------
@@ -496,7 +492,7 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 
     private bool RenderIteration()
     {
-        if (_grContext == null || _gl == null || _appSurface == null) return false;
+        if (_graphics == null || _grContext == null || _appSurface == null) return false;
 
         DrainInputMessages();
         // 排空跨线程调用队列（MCP 等后台线程投递的 DOM 读写操作），在任何渲染前于本线程执行。
@@ -523,10 +519,11 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
         // 直接跳过本帧——恢复时尺寸恢复正常，渲染随之恢复。
         if (_windowWidth <= 0 || _windowHeight <= 0) return false;
 
-        // 必须在任何离屏渲染之前捕获窗口默认帧缓冲绑定：一旦渲染应用到离屏 SKSurface，
-        // Skia 会绑定离屏 FBO 并保持绑定。若此后再读取 FramebufferBinding，拿到的将是离屏 FBO，
+        // 窗口表面必须在任何离屏渲染之前取得：OpenGL 后端在这里读取窗口默认帧缓冲绑定。
+        // 一旦渲染应用到离屏 SKSurface，Skia 会绑定离屏 FBO 并保持绑定，之后再读取拿到的将是离屏 FBO，
         // 合成内容就会画进用户看不到的离屏画布，窗口保持黑屏（ISSUE-067 现象）。
-        int windowFbo = _gl.GetInteger(GLEnum.FramebufferBinding);
+        var surface = _graphics.BeginFrame(_windowWidth, _windowHeight);
+        if (surface == null) return false;
 
         float currentTime = (float)_frameTimer.Elapsed.TotalSeconds;
         float deltaTime = currentTime - _lastFrameTime;
@@ -542,24 +539,23 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
             BuildPanel();
         }
 
-        // 3. 合成到窗口默认帧缓冲。离屏渲染改动过 GL 状态，先让 GR 上下文重新同步。
+        // 3. 合成到窗口表面。离屏渲染改动过 GL 状态，先让 GR 上下文重新同步（Metal 下为空操作）。
         _grContext.ResetContext();
-        // 包装表面按 (尺寸, FBO) 复用，不每帧重建（ISSUE-143）。这里 FBO 必须进缓存键：
-        // 本宿主先渲染到离屏表面再合成，窗口 FBO 句柄在一次运行中并非恒定。
-        var surface = _windowTarget!.Acquire(_windowWidth, _windowHeight, (uint)windowFbo);
-        if (surface == null) return false;
         var canvas = surface.Canvas;
 
         canvas.Clear(new SKColor(24, 25, 28));
+        // 合成与面板按窗口坐标绘制；Retina 屏上窗口表面是物理像素。
+        canvas.Save();
+        canvas.Scale(_graphics.Scale);
         CompositeDevice(canvas);
         _inputMethod.SetCursorOffset(_deviceScreenRect.Left, _deviceScreenRect.Top);
         RenderPanel(canvas);
+        canvas.Restore();
 
         canvas.Flush();
-        _grContext.Flush();
 
-        // 手动交换缓冲（ShouldSwapAutomatically = false，见 Run 中窗口选项）。
-        _window!.GLContext?.SwapBuffers();
+        // 手动呈现（ShouldSwapAutomatically = false，见 Run 中窗口选项）。
+        _graphics.Present();
         return true;
     }
 

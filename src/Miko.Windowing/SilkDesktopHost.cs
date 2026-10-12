@@ -11,7 +11,6 @@ using Miko.Rendering;
 using Miko.Windowing.Common;
 using Silk.NET.Input;
 using Silk.NET.Maths;
-using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using SkiaSharp;
 
@@ -21,8 +20,12 @@ namespace Miko.Windowing;
 /// 基于 Silk.NET 的桌面（Windows/Linux/macOS）宿主。
 /// <para>
 /// 线程模型：主线程只泵原生消息（<see cref="IView.DoEvents"/>），把输入/缩放事件**入队**；
-/// 一个专用**渲染线程**持有 GL 上下文，每帧排空队列、转发输入给
-/// <see cref="MikoInteractionController"/>，再渲染并交换缓冲。
+/// 一个专用**渲染线程**持有 GPU 上下文，每帧排空队列、转发输入给
+/// <see cref="MikoInteractionController"/>，再渲染并呈现。
+/// </para>
+/// <para>
+/// 呈现后端见 <see cref="SilkWindowGraphics"/>：Windows/Linux 为 OpenGL，macOS 为 Metal（ISSUE-147）。
+/// 窗口尺寸与输入坐标都是窗口坐标；Retina 屏上表面是物理像素，绘制前按后端的缩放系数缩放画布。
 /// </para>
 /// <para>
 /// 这样做的原因（见 ISSUE-059）：Windows 上拖动标题栏/缩放边框会进入模态 move/size 消息循环，
@@ -42,11 +45,12 @@ public sealed class SilkDesktopHost
 
     private IWindow? _window;
     private IInputContext? _inputContext;
-    private GL? _gl;
+    private SilkWindowGraphics? _graphics;
     private GRContext? _grContext;
 
-    // 窗口帧缓冲的包装表面（按尺寸/FBO 复用，见 WindowRenderTarget）。仅渲染线程触碰。
-    private WindowRenderTarget? _renderTarget;
+    // 本帧画布缩放系数（窗口坐标 → 表面像素），由渲染线程在帧开始时从后端读取。
+    private float _scale = 1f;
+    private readonly Action<SKCanvas> _paint;
 
     // 仅渲染线程读写（队列消费时更新），无需同步。
     private int _width;
@@ -89,6 +93,7 @@ public sealed class SilkDesktopHost
         _controller.AttachInputMethod(_inputMethod);
 
         _controller.CursorChanged += OnCursorChanged;
+        _paint = PaintFrame;
     }
 
     public void Run()
@@ -97,7 +102,8 @@ public sealed class SilkDesktopHost
         {
             Title = _context.Options.Title,
             Size = new Vector2D<int>(_context.Options.Width, _context.Options.Height),
-            API = GraphicsAPI.Default,
+            // macOS 的 Metal 后端需要不带 GL 上下文的窗口。
+            API = SilkWindowGraphics.WindowApi,
             // 我们自行管理 GL 上下文与缓冲交换（上下文要转移到渲染线程）。
             IsContextControlDisabled = true,
             ShouldSwapAutomatically = false,
@@ -138,11 +144,14 @@ public sealed class SilkDesktopHost
     }
 
     /// <summary>
-    /// 主线程：创建输入上下文并订阅原生输入。GL/引擎初始化不在这里——它们需要在
-    /// 持有 GL 上下文的渲染线程进行（见 <see cref="InitGraphics"/>）。
+    /// 主线程：创建呈现后端并订阅原生输入。GPU 上下文与引擎初始化不在这里——它们需要在
+    /// 渲染线程进行（见 <see cref="InitGraphics"/>）。
     /// </summary>
     private void OnLoad()
     {
+        // Metal 后端要在主线程把图层挂到窗口视图上，因此后端在这里创建。
+        _graphics = SilkWindowGraphics.Create(_window!);
+
         _inputMethod.SetWindowHandle(_window!.Native?.Win32?.Hwnd ?? IntPtr.Zero);
         _inputContext = _window!.CreateInput();
         foreach (var mouse in _inputContext.Mice)
@@ -176,35 +185,26 @@ public sealed class SilkDesktopHost
         if (!_needsPresent && !_controller.HasPendingWork)
             return false;
 
-        RenderFrame();
+        if (RenderFrame())
+            _graphics!.Present();
         _needsPresent = false;
-        _window!.GLContext?.SwapBuffers();
         return true;
     }
 
     private void ShutdownGraphics()
     {
+        // 视频帧源持有本上下文上的 GPU 图像，须先于上下文释放。
         _controller.Engine.DisposeVideoSessions();
-        // 表面引用 GRContext，必须先于它释放。
-        _renderTarget?.Dispose();
-        _renderTarget = null;
-        GpuResourceCache.PurgeAllResources(_grContext);
-        _grContext?.Dispose();
-        _gl?.Dispose();
+        _graphics?.Dispose();
+        _grContext = null;
     }
 
     private void InitGraphics()
     {
-        var window = _window!;
-        _gl = window.CreateOpenGL();
-
-        var grInterface = GRGlInterface.Create(name =>
-            window.GLContext!.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
-
-        _grContext = GRContext.CreateGl(grInterface);
-        GpuResourceCache.Configure(_grContext);
-        _renderTarget = new WindowRenderTarget(_grContext);
-        _logger.LogInformation("OpenGL context initialized on render thread");
+        var graphics = _graphics!;
+        graphics.Initialize();
+        _grContext = graphics.Context;
+        _logger.LogInformation("{Graphics} context initialized on render thread", graphics.Description);
 
         // 把 GPU 上下文交给引擎，供视频帧源把解码 GPU 资源零拷贝包装为图像。
         _controller.Engine.GraphicsContext = _grContext;
@@ -217,39 +217,44 @@ public sealed class SilkDesktopHost
         _frameTimer.Start();
     }
 
-    private void RenderFrame()
+    /// <summary>渲染一帧到窗口表面。返回 false 表示本帧没有表面可画（未初始化/最小化），无需呈现。</summary>
+    private bool RenderFrame()
     {
-        if (_grContext == null || _gl == null || _renderTarget == null) return;
+        if (_graphics == null || _grContext == null) return false;
 
         float currentTime = (float)_frameTimer.Elapsed.TotalSeconds;
         float deltaTime = currentTime - _lastFrameTime;
         _lastFrameTime = currentTime;
 
-        // 窗口帧缓冲的包装表面按 (尺寸, FBO) 复用，不每帧重建：那两个 Skia 对象都是非托管的，
-        // 且包装出的渲染目标不是 budgeted 资源，其重建开销不计入 GPU 资源缓存账本，
-        // 只体现在进程私有内存里（ISSUE-143）。见 WindowRenderTarget。
-        int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
-        var surface = _renderTarget.Acquire(_width, _height, (uint)fboId);
-        // 最小化时窗口为 0×0，Acquire 返回 null：跳过本帧，恢复后尺寸正常渲染随之恢复。
-        if (surface == null) return;
+        // OpenGL 后端的窗口表面按 (尺寸, FBO) 复用，不每帧重建（ISSUE-143，见 WindowRenderTarget）；
+        // Metal 后端每帧包装图层轮换出的可绘制纹理。
+        var surface = _graphics.BeginFrame(_width, _height);
+        // 最小化时窗口为 0×0，返回 null：跳过本帧，恢复后尺寸正常渲染随之恢复。
+        if (surface == null) return false;
 
-        var canvas = surface.Canvas;
+        _scale = _graphics.Scale;
 
         // RenderFrame 内部仍走 _sync（对桌面已不竞争，因为输入也在本线程消费），
         // 与移动端保持一致。
-        _controller.RenderFrame(canvas, _width, _height, deltaTime, c =>
-        {
-            c.Clear(SKColors.White);
-            _controller.Engine.Render(c);
-            c.Flush();
-        });
-        _grContext.Flush();
+        _controller.RenderFrame(surface.Canvas, _width, _height, deltaTime, _paint);
 
         MaybeDumpFrame(surface);
+        return true;
+    }
+
+    private void PaintFrame(SKCanvas canvas)
+    {
+        canvas.Clear(SKColors.White);
+        // 引擎按窗口坐标绘制；Retina 屏上表面是物理像素。
+        canvas.Save();
+        canvas.Scale(_scale);
+        _controller.Engine.Render(canvas);
+        canvas.Restore();
+        canvas.Flush();
     }
 
     /// <summary>
-    /// 诊断用：把真实 GL 帧缓冲的内容转储为 PNG，由环境变量
+    /// 诊断用：把真实窗口帧缓冲的内容转储为 PNG，由环境变量
     /// <c>MIKO_DUMP_FRAME=&lt;路径&gt;</c> 门控（未设置时只是一次字段判断）。
     ///
     /// <para>存在的意义是排除外部截图工具的干扰：截图软件可能缩放、重编码或丢弃 alpha，
@@ -275,7 +280,7 @@ public sealed class SilkDesktopHost
             {
                 File.WriteAllBytes(_dumpPath, data.ToArray());
                 _logger.LogInformation("Dumped frame to {Path} ({Width}x{Height})",
-                    _dumpPath, _width, _height);
+                    _dumpPath, image.Width, image.Height);
             }
         }
         catch (Exception ex)
@@ -334,7 +339,7 @@ public sealed class SilkDesktopHost
         _height = height;
         // 尺寸变化后帧缓冲内容失效，必须强制呈现一帧（ISSUE-096 空闲跳过逻辑的兜底）。
         _needsPresent = true;
-        _gl?.Viewport(new Vector2D<int>(width, height));
+        _graphics?.Resize(width, height);
         _controller.SetViewportSize(width, height);
         _logger.LogDebug("Viewport resized to {Width}x{Height}", width, height);
         ReportResizeMemory(width, height);

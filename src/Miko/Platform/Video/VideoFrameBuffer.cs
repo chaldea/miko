@@ -18,8 +18,8 @@ public enum VideoPixelFormat
     Nv12,
 
     /// <summary>
-    /// 平台外部纹理，像素格式由平台自身语义决定（Android 的 OES 外部纹理、
-    /// macOS 的 TEXTURE_RECTANGLE）。采样即得 RGB，无需自行转换。
+    /// 平台外部纹理，像素格式由平台自身语义决定（如 Android 的 OES 外部纹理）。
+    /// 采样即得 RGB，无需自行转换。
     /// </summary>
     ExternalTexture,
 }

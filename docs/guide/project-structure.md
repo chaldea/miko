@@ -82,7 +82,8 @@ The core `Miko` library contains only **platform abstractions**: normalized inpu
 cursor resolution, and event dispatch). Each platform implementation layer only owns the
 window / GL surface / native input and forwards normalized events to the controller:
 
-- **Miko.Windowing** — desktop (Windows / Linux / macOS), based on Silk.NET.
+- **Miko.Windowing** — desktop (Windows / Linux / macOS), based on Silk.NET. Renders through
+  OpenGL on Windows / Linux and Metal on macOS, the same Skia backend as iOS.
 - **Miko.Android** — `MikoSurfaceView` hosts rendering and maps touch to pointer events.
 - **Miko.iOS** — `MikoMetalView` hosts rendering on Metal and maps touch to pointer events.
 
