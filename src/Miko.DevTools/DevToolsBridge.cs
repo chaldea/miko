@@ -11,6 +11,10 @@ namespace Miko.DevTools;
 public class DevToolsBridge
 {
     private readonly DevToolsOptions _options;
+
+    // 打开/关闭来自多个线程：主窗口渲染线程（F12）、DevTools 渲染线程（Esc/F12）、
+    // 事件循环线程（窗口被关闭后的收尾，见 OnWindowClosed）。
+    private readonly object _windowGate = new();
     private DevToolsWindow? _devToolsWindow;
 
     public MikoEngine? MainEngine { get; private set; }
@@ -21,7 +25,7 @@ public class DevToolsBridge
     /// </summary>
     public RenderEngine? MainRenderEngine => MainEngine?.RenderEngine;
     public LogBuffer LogBuffer { get; }
-    public bool IsOpen { get; internal set; }
+    public bool IsOpen { get; private set; }
 
     /// <summary>
     /// 应用注册的资源程序集提供器（<c>builder.AddResourceAssembly(...)</c>），
@@ -79,21 +83,49 @@ public class DevToolsBridge
             OpenDevTools();
     }
 
+    /// <summary>
+    /// 打开 DevTools 窗口。窗口挂在桌面宿主的事件循环上创建（见 <see cref="Windowing.Common.SilkEventLoop"/>），
+    /// 没有正在运行的桌面宿主时（移动端宿主、单元测试）什么都不做，<see cref="IsOpen"/> 保持 <c>false</c>。
+    /// </summary>
     public void OpenDevTools()
     {
-        if (IsOpen || MainEngine == null) return;
-        IsOpen = true;
-        _devToolsWindow = new DevToolsWindow(this, _options);
-        _devToolsWindow.Open();
+        lock (_windowGate)
+        {
+            if (IsOpen || MainEngine == null) return;
+            var window = new DevToolsWindow(this, _options);
+            if (!window.Open()) return;
+            _devToolsWindow = window;
+            IsOpen = true;
+        }
     }
 
     public void CloseDevTools()
     {
-        if (!IsOpen) return;
-        IsOpen = false;
+        DevToolsWindow? window;
+        lock (_windowGate)
+        {
+            if (!IsOpen) return;
+            IsOpen = false;
+            window = _devToolsWindow;
+            _devToolsWindow = null;
+        }
         SelectedElement = null;
-        _devToolsWindow?.Close();
-        _devToolsWindow = null;
+        window?.Close();
+    }
+
+    /// <summary>
+    /// 事件循环线程：窗口已销毁（用户点了关闭按钮、<see cref="CloseDevTools"/>，或宿主退出）。
+    /// 只在它仍是当前窗口时复位状态——快速按两次 F12 时，旧窗口的收尾会晚于新窗口的打开。
+    /// </summary>
+    internal void OnWindowClosed(DevToolsWindow window)
+    {
+        lock (_windowGate)
+        {
+            if (!ReferenceEquals(_devToolsWindow, window)) return;
+            _devToolsWindow = null;
+            IsOpen = false;
+        }
+        SelectedElement = null;
     }
 
     internal void MarkDevToolsDirty()

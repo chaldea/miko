@@ -29,6 +29,8 @@
     <!-- 桌面 Native 实现是 internal（应用只该依赖 Miko.Native 的接口），
          但它们在本机可真实运行，值得回归测试。 -->
     <InternalsVisibleTo Include="Miko.Native.Tests" />
+    <!-- DevTools 的测试要充当事件循环，验证窗口挂接与关闭的状态机（ISSUE-148）。 -->
+    <InternalsVisibleTo Include="Miko.McpServer.Tests" />
   </ItemGroup>
 
   <ItemGroup>
