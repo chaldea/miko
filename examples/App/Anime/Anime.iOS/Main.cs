@@ -9,6 +9,7 @@ public static class Application
 {
     private static void Main(string[] args)
     {
+        FrameProbe.EnableIfRequested(IosFrameProbe.Log);
         UIApplication.Main(args, null, typeof(AppDelegate));
     }
 }

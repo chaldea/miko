@@ -1,69 +1,29 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using Miko.Windowing.MacOS;
 
 namespace Miko.Windowing.Video.MacOS;
 
 /// <summary>
-/// macOS 上访问 AVFoundation / CoreVideo 所需的 Objective-C runtime 与 C API 声明。
-/// 桌面项目是纯 net10.0（无 macOS 托管绑定），因此只能经 <c>objc_msgSend</c> 直接发消息。
+/// macOS 上访问 AVFoundation / CoreVideo 所需的 C API 与带 <see cref="CMTime"/> 的消息声明。
+/// 通用的 Objective-C runtime 声明在 <see cref="ObjC"/>，与 Metal 窗口后端共用。
 ///
 /// <para>
 /// 关键约束：<c>objc_msgSend</c> 的真实签名由被调方法决定，必须为每种返回类型/参数组合
 /// 声明独立的 <c>DllImport</c> 入口（用 <c>EntryPoint</c> 指到同一符号）。
-/// 把返回结构体的方法当返回指针的方法调用会破坏栈 —— 因此结构体返回值另用
-/// <c>objc_msgSend_stret</c> 家族，见 <see cref="CMTime"/> 相关声明。
+/// 把返回结构体的方法当返回指针的方法调用会破坏栈 —— 见 <see cref="CMTime"/> 相关声明。
 /// </para>
-///
-/// <para><b>未经真机运行验证</b>：本机为 Windows，此实现仅通过编译验证。</para>
 /// </summary>
 [SupportedOSPlatform("macos")]
 internal static class AVFoundationInterop
 {
     private const string Objc = "/usr/lib/libobjc.dylib";
     private const string CoreVideo = "/System/Library/Frameworks/CoreVideo.framework/CoreVideo";
-    private const string CoreMedia = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
-    private const string CoreFoundation = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
 
-    // ---- Objective-C runtime ----------------------------------------------
-
-    [DllImport(Objc, EntryPoint = "objc_getClass")]
-    internal static extern IntPtr GetClass([MarshalAs(UnmanagedType.LPStr)] string name);
-
-    [DllImport(Objc, EntryPoint = "sel_registerName")]
-    internal static extern IntPtr GetSelector([MarshalAs(UnmanagedType.LPStr)] string name);
-
-    /// <summary>发消息，返回指针（对象/句柄）。</summary>
-    [DllImport(Objc, EntryPoint = "objc_msgSend")]
-    internal static extern IntPtr SendPtr(IntPtr receiver, IntPtr selector);
+    // ---- 带 CMTime 的 Objective-C 消息 -------------------------------------
 
     [DllImport(Objc, EntryPoint = "objc_msgSend")]
-    internal static extern IntPtr SendPtr(IntPtr receiver, IntPtr selector, IntPtr arg1);
-
-    [DllImport(Objc, EntryPoint = "objc_msgSend")]
-    internal static extern IntPtr SendPtr(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
-
-    /// <summary>发消息，无返回值。</summary>
-    [DllImport(Objc, EntryPoint = "objc_msgSend")]
-    internal static extern void SendVoid(IntPtr receiver, IntPtr selector);
-
-    [DllImport(Objc, EntryPoint = "objc_msgSend")]
-    internal static extern void SendVoid(IntPtr receiver, IntPtr selector, IntPtr arg1);
-
-    [DllImport(Objc, EntryPoint = "objc_msgSend")]
-    internal static extern void SendVoid(IntPtr receiver, IntPtr selector, float arg1);
-
-    [DllImport(Objc, EntryPoint = "objc_msgSend")]
-    internal static extern void SendVoid(IntPtr receiver, IntPtr selector, bool arg1);
-
-    /// <summary>发消息，返回 <c>NSInteger</c>（状态枚举等）。</summary>
-    [DllImport(Objc, EntryPoint = "objc_msgSend")]
-    internal static extern nint SendNInt(IntPtr receiver, IntPtr selector);
-
-    /// <summary>发消息，返回 <c>BOOL</c>。</summary>
-    [DllImport(Objc, EntryPoint = "objc_msgSend")]
-    internal static extern bool SendBool(IntPtr receiver, IntPtr selector);
-
-    [DllImport(Objc, EntryPoint = "objc_msgSend")]
+    [return: MarshalAs(UnmanagedType.I1)]
     internal static extern bool SendBool(IntPtr receiver, IntPtr selector, CMTime arg1);
 
     /// <summary>
@@ -79,30 +39,6 @@ internal static class AVFoundationInterop
 
     [DllImport(Objc, EntryPoint = "objc_msgSend")]
     internal static extern void SendVoidWithCMTime(IntPtr receiver, IntPtr selector, CMTime arg1);
-
-    // ---- CoreFoundation / NSString ----------------------------------------
-
-    [DllImport(CoreFoundation, EntryPoint = "CFRelease")]
-    internal static extern void CFRelease(IntPtr obj);
-
-    [DllImport(CoreFoundation, EntryPoint = "CFRetain")]
-    internal static extern IntPtr CFRetain(IntPtr obj);
-
-    /// <summary>用 UTF-8 C 字符串构造 NSString（用于 URL 等参数）。</summary>
-    internal static IntPtr CreateNSString(string value)
-    {
-        IntPtr nsStringClass = GetClass("NSString");
-        IntPtr selector = GetSelector("stringWithUTF8String:");
-        IntPtr utf8 = Marshal.StringToHGlobalAnsi(value);
-        try
-        {
-            return SendPtr(nsStringClass, selector, utf8);
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(utf8);
-        }
-    }
 
     // ---- CoreVideo：CVPixelBuffer ------------------------------------------
 
@@ -121,6 +57,12 @@ internal static class AVFoundationInterop
     [DllImport(CoreVideo, EntryPoint = "CVPixelBufferGetPlaneCount")]
     internal static extern nuint CVPixelBufferGetPlaneCount(IntPtr pixelBuffer);
 
+    [DllImport(CoreVideo, EntryPoint = "CVPixelBufferGetBaseAddress")]
+    internal static extern IntPtr CVPixelBufferGetBaseAddress(IntPtr pixelBuffer);
+
+    [DllImport(CoreVideo, EntryPoint = "CVPixelBufferGetBytesPerRow")]
+    internal static extern nuint CVPixelBufferGetBytesPerRow(IntPtr pixelBuffer);
+
     [DllImport(CoreVideo, EntryPoint = "CVPixelBufferGetBaseAddressOfPlane")]
     internal static extern IntPtr CVPixelBufferGetBaseAddressOfPlane(IntPtr pixelBuffer, nuint planeIndex);
 
@@ -133,19 +75,48 @@ internal static class AVFoundationInterop
     [DllImport(CoreVideo, EntryPoint = "CVPixelBufferGetWidthOfPlane")]
     internal static extern nuint CVPixelBufferGetWidthOfPlane(IntPtr pixelBuffer, nuint planeIndex);
 
-    /// <summary>
-    /// 读取 CoreVideo 导出的 <c>kCVPixelBufferPixelFormatTypeKey</c>（一个 <c>CFStringRef</c> 全局变量）。
-    /// 该键的字符串内容不等于变量名，必须从符号读取真实指针，不能用字面量拼字符串。
-    /// </summary>
+    /// <summary>读取 CoreVideo 导出的 <c>kCVPixelBufferPixelFormatTypeKey</c>。</summary>
     internal static IntPtr GetPixelFormatTypeKey()
-    {
-        IntPtr handle = NativeLibrary.Load(CoreVideo);
-        if (!NativeLibrary.TryGetExport(handle, "kCVPixelBufferPixelFormatTypeKey", out IntPtr symbol))
-            return IntPtr.Zero;
+        => ObjC.ReadExportedConstant(CoreVideo, "kCVPixelBufferPixelFormatTypeKey");
 
-        // 符号本身是一个变量地址，其内容才是 CFStringRef。
-        return Marshal.ReadIntPtr(symbol);
-    }
+    /// <summary>
+    /// 读取 <c>kCVPixelBufferMetalCompatibilityKey</c>。请求 Metal 兼容的像素缓冲（IOSurface 支撑），
+    /// 零拷贝映射才能成功。
+    /// </summary>
+    internal static IntPtr GetMetalCompatibilityKey()
+        => ObjC.ReadExportedConstant(CoreVideo, "kCVPixelBufferMetalCompatibilityKey");
+
+    // ---- CoreVideo：CVMetalTextureCache（零拷贝） ---------------------------
+
+    [DllImport(CoreVideo, EntryPoint = "CVMetalTextureCacheCreate")]
+    internal static extern int CVMetalTextureCacheCreate(
+        IntPtr allocator, IntPtr cacheAttributes, IntPtr metalDevice, IntPtr textureAttributes, out IntPtr cacheOut);
+
+    /// <summary>
+    /// 把像素缓冲的一个平面映射为 Metal 纹理（IOSurface 直接包装，不拷贝像素）。
+    /// 输出的 <c>CVMetalTexture</c> 为 +1 引用，须 <c>CFRelease</c>。
+    /// </summary>
+    [DllImport(CoreVideo, EntryPoint = "CVMetalTextureCacheCreateTextureFromImage")]
+    internal static extern int CVMetalTextureCacheCreateTextureFromImage(
+        IntPtr allocator,
+        IntPtr textureCache,
+        IntPtr sourceImage,
+        IntPtr textureAttributes,
+        nuint pixelFormat,
+        nuint width,
+        nuint height,
+        nuint planeIndex,
+        out IntPtr textureOut);
+
+    /// <summary>取出 <c>CVMetalTexture</c> 包装的 <c>id&lt;MTLTexture&gt;</c>（不转移所有权）。</summary>
+    [DllImport(CoreVideo, EntryPoint = "CVMetalTextureGetTexture")]
+    internal static extern IntPtr CVMetalTextureGetTexture(IntPtr texture);
+
+    [DllImport(CoreVideo, EntryPoint = "CVMetalTextureCacheFlush")]
+    internal static extern void CVMetalTextureCacheFlush(IntPtr textureCache, ulong options);
+
+    /// <summary><c>kCVReturnSuccess</c>。</summary>
+    internal const int CVReturnSuccess = 0;
 
     // ---- CoreMedia：CMTime -------------------------------------------------
 

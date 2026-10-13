@@ -9,7 +9,7 @@
     <PackageId>Miko.iOS</PackageId>
     <Version>1.0.0</Version>
     <Authors>Miko</Authors>
-    <Description>iOS host (SkiaSharp GL view + touch input) for the Miko rendering engine.</Description>
+    <Description>iOS host (Metal view + touch input) for the Miko rendering engine.</Description>
     <PackageTags>miko;ios;skiasharp;ui</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
@@ -23,7 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SkiaSharp.Views" Version="3.119.1" />
+    <!-- The iOS build of SkiaSharp carries the Metal backend (GRContext.CreateMetal, GRMtlTextureInfo);
+         MikoMetalView drives it directly, so SkiaSharp.Views is not needed. -->
+    <PackageReference Include="SkiaSharp" Version="3.119.1" />
   </ItemGroup>
 
 </Project>

@@ -14,16 +14,16 @@ namespace Miko.iOS.Video;
 ///
 /// <para>
 /// 输出格式请求 NV12（<c>420v</c>，VideoToolbox 原生），由
-/// <see cref="IosVideoFrameSource"/> 经纹理缓存零拷贝映射为 GL 纹理，
+/// <see cref="IosVideoFrameSource"/> 经纹理缓存零拷贝映射为 Metal 纹理，
 /// 再用 SkSL shader 在 GPU 上转 RGB。
 /// </para>
 ///
 /// <para>
-/// 线程模型：取帧轮询在自有线程，但 <c>CVPixelBuffer</c> → GL 纹理的映射必须在
-/// 渲染线程（GL 上下文所属线程）完成，故由帧源在 <c>AcquireCurrentFrame</c> 中处理。
+/// 线程模型：取帧轮询在自有线程，但 <c>CVPixelBuffer</c> → Metal 纹理的映射与包装必须在
+/// 渲染线程（Skia <c>GRContext</c> 所属线程）完成，故由帧源在 <c>AcquireCurrentFrame</c> 中处理。
 /// </para>
 ///
-/// <para><b>未经真机运行验证</b>：本机无 iOS 设备/模拟器，此实现仅通过编译验证。</para>
+/// <para><b>未经真机运行验证</b>：已在 iOS 27 模拟器（Metal 宿主）中验证本地文件的零拷贝播放，尚未在真机上运行。</para>
 /// </summary>
 internal sealed class IosVideoSession : IVideoSession
 {
@@ -150,10 +150,12 @@ internal sealed class IosVideoSession : IVideoSession
         _playerItem = AVPlayerItem.FromUrl(url)
             ?? throw new InvalidOperationException($"AVPlayerItem creation failed for '{_source.Uri}'.");
 
-        // 请求 NV12（VideoToolbox 原生输出），避免系统插入多余的色彩转换。
+        // 请求 NV12（VideoToolbox 原生输出），避免系统插入多余的色彩转换；
+        // 并要求 Metal 兼容的（IOSurface 支撑）缓冲，帧源才能经 CVMetalTextureCache 零拷贝映射。
         var attributes = new CVPixelBufferAttributes
         {
             PixelFormatType = CVPixelFormatType.CV420YpCbCr8BiPlanarVideoRange,
+            MetalCompatibility = true,
         };
         _videoOutput = new AVPlayerItemVideoOutput(attributes);
         _playerItem.AddOutput(_videoOutput);

@@ -12,7 +12,7 @@ namespace Miko.iOS.Video;
 /// 与桌面 macOS 后端的区别：iOS 有完整托管绑定，可直接使用 <c>AVFoundation</c> 命名空间，
 /// 无需经 Objective-C runtime 手工发消息。
 /// </para>
-/// <para><b>未经真机运行验证</b>：本机为 Windows，无 iOS 设备/模拟器，此实现仅通过编译验证。</para>
+/// <para><b>未经真机运行验证</b>：已在 iOS 27 模拟器（Metal 宿主）中验证本地文件的零拷贝播放，尚未在真机上运行。</para>
 /// </summary>
 public sealed class IosVideoBackend : IVideoBackend
 {

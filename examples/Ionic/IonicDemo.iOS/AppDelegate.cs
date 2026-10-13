@@ -1,5 +1,4 @@
 using Foundation;
-using Miko.iOS;
 using UIKit;
 
 namespace IonicDemo.iOS;
@@ -7,16 +6,13 @@ namespace IonicDemo.iOS;
 [Register("AppDelegate")]
 public class AppDelegate : UIApplicationDelegate
 {
-    public override UIWindow? Window { get; set; }
-
     public override bool FinishedLaunching(UIApplication application, NSDictionary? launchOptions)
-    {
-        Window = new UIWindow(UIScreen.MainScreen.Bounds);
+        => true;
 
-        // Reuse the shared app configuration; Miko.iOS drives rendering and touch input.
-        Window.RootViewController = new MikoViewController(IonicDemo.App.CreateContext());
-        Window.MakeKeyAndVisible();
-
-        return true;
-    }
+    public override UISceneConfiguration GetConfiguration(
+        UIApplication application, UISceneSession connectingSceneSession, UISceneConnectionOptions options)
+        => new("Default Configuration", connectingSceneSession.Role)
+        {
+            DelegateType = typeof(SceneDelegate)
+        };
 }

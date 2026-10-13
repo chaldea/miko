@@ -10,13 +10,13 @@ using UIKit;
 namespace Miko.iOS;
 
 /// <summary>
-/// 承载 <see cref="MikoGLView"/> 的视图控制器。通过 <see cref="CADisplayLink"/> 按需调度渲染，
+/// 承载 <see cref="MikoMetalView"/> 的视图控制器。通过 <see cref="CADisplayLink"/> 按需调度渲染，
 /// 使动画与热重载得以推进，同时让静态页面在空闲时停止提交帧。
 /// </summary>
 public class MikoViewController : UIViewController
 {
     private readonly MikoAppContext _context;
-    private MikoGLView? _glView;
+    private MikoMetalView? _metalView;
     private CADisplayLink? _displayLink;
 
     // 状态栏状态。iOS 的状态栏由视图控制器**声明**而非直接设置：系统会回头询问
@@ -35,11 +35,11 @@ public class MikoViewController : UIViewController
     {
         base.ViewDidLoad();
 
-        _glView = new MikoGLView(_context, View!.Bounds)
+        _metalView = new MikoMetalView(_context, View!.Bounds)
         {
             AutoresizingMask = UIViewAutoresizing.FlexibleWidth | UIViewAutoresizing.FlexibleHeight
         };
-        View!.AddSubview(_glView);
+        View!.AddSubview(_metalView);
 
         // 把视图控制器交给 Native 能力层。服务容器在 MikoAppBuilder.Build() 时就已构建，
         // 那时控制器还不存在，因此 iOS Native 服务只能在这里拿到宿主（延迟注入）。
@@ -80,7 +80,7 @@ public class MikoViewController : UIViewController
     private void OnFrame()
     {
         if (_context.Controller.HasPendingWork)
-            _glView?.SetNeedsDisplay();
+            _metalView?.SetNeedsDisplay();
     }
 
     protected override void Dispose(bool disposing)

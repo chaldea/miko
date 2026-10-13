@@ -99,13 +99,16 @@ The repository uses a single solution file:
 
 2. **Miko.Windowing** (`src/Miko.Windowing/`)
    - Desktop implementation using Silk.NET (Windows/Linux/macOS)
-   - Provides window management, OpenGL context, and input handling
+   - Provides window management, GPU presentation, and input handling
+   - `SilkWindowGraphics` picks the presentation backend: OpenGL on Windows/Linux, Metal
+     (`CAMetalLayer` via Objective-C interop) on macOS — the same Skia Metal path as iOS
+     (ISSUE-147). `MIKO_GRAPHICS_BACKEND=opengl` forces OpenGL on macOS for comparison
 
 3. **Miko.Android** (`src/Miko.Android/`)
    - Android implementation with GLSurfaceView and touch input
 
 4. **Miko.iOS** (`src/Miko.iOS/`)
-   - iOS implementation with GLKView and touch input
+   - iOS implementation with a Metal `MTKView` (`MikoMetalView`) and touch input
 
 5. **Miko.Simulator** (`src/Miko.Simulator/`)
    - Device simulator host for previewing mobile apps on desktop
@@ -380,7 +383,7 @@ backend; none of them ship third-party native binaries:
 |---|---|---|
 | Windows | `UseSystemVideo()` | Media Foundation (D3D11VA) |
 | Linux | `UseSystemVideo()` | GStreamer (VAAPI) |
-| macOS | `UseSystemVideo()` | AVFoundation (VideoToolbox) |
+| macOS | `UseSystemVideo()` | AVFoundation (VideoToolbox), zero-copy via `CVMetalTextureCache` |
 | Android | `UseAndroidVideo()` | MediaExtractor + MediaCodec |
 | iOS | `UseIosVideo()` | AVPlayer + AVPlayerItemVideoOutput |
 

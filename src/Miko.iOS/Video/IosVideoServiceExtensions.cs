@@ -9,7 +9,7 @@ public static class IosVideoServiceExtensions
 {
     /// <summary>
     /// 注册 iOS 系统原生视频后端（<c>AVPlayer</c> + VideoToolbox 硬解，
-    /// <c>CVOpenGLESTextureCache</c> 零拷贝映射）。不引入任何第三方原生库。
+    /// <c>CVMetalTextureCache</c> 零拷贝映射）。不引入任何第三方原生库。
     /// </summary>
     public static MikoAppBuilder UseIosVideo(this MikoAppBuilder builder)
     {
