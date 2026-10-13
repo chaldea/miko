@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Miko.Common;
 using Miko.Core;
@@ -7,34 +8,49 @@ using Miko.DevTools.Styles;
 using Miko.Events;
 using Miko.Hosting;
 using Miko.Layout;
-using Miko.Rendering;
+using Miko.Platform;
+using Miko.Windowing.Common;
 using Silk.NET.Input;
 using Silk.NET.Maths;
-using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using SkiaSharp;
 using SilkMouseButton = Silk.NET.Input.MouseButton;
 
 namespace Miko.DevTools;
 
-internal class DevToolsWindow
+/// <summary>
+/// DevTools 独立窗口。线程模型与 <c>SilkDesktopHost</c> 相同：
+/// <list type="bullet">
+///   <item><b>事件循环线程</b>（即主线程）创建原生窗口、泵事件，把输入/缩放消息入队。
+///   窗口挂在宿主已在运行的 <see cref="SilkEventLoop"/> 上，而不是自起一个线程跑窗口循环——
+///   macOS 只允许主线程创建窗口与处理窗口事件，后台线程上的窗口会永远卡死（ISSUE-148）。</item>
+///   <item><b>DevTools 渲染线程</b>持有 GPU 上下文，每帧排空消息队列、维护镜像 DOM 并绘制。
+///   本窗口的引擎与 DOM 只被这一个线程触碰。</item>
+/// </list>
+/// 呈现走 <see cref="SilkWindowGraphics"/>：macOS 为 Metal，Windows/Linux 为 OpenGL，与主窗口一致。
+/// </summary>
+internal class DevToolsWindow : ISilkEventLoopWindow
 {
     private readonly DevToolsBridge _bridge;
     private readonly DevToolsOptions _options;
     private readonly MikoEngine _engine;
     private readonly EventDispatcher _eventDispatcher = new();
 
-    private Thread? _thread;
+    // 事件循环线程持有：原生窗口、输入与线程编排。
     private IWindow? _window;
     private IInputContext? _inputContext;
-    private GL? _gl;
-    private GRContext? _grContext;
+    private SilkWindowThreadRunner? _runner;
+    private volatile bool _closeRequested;
 
-    // 窗口帧缓冲的包装表面（按尺寸/FBO 复用，见 WindowRenderTarget）。
-    private WindowRenderTarget? _windowTarget;
+    // 事件循环线程 → 渲染线程的输入/缩放消息队列。
+    private readonly ConcurrentQueue<SilkInputMessage> _messages = new();
+
+    // 呈现后端：在事件循环线程的 Load 回调里创建（Metal 要在主线程挂图层），其余只由渲染线程使用。
+    private SilkWindowGraphics? _graphics;
+
+    // 以下仅渲染线程读写。
     private int _width;
     private int _height;
-    private volatile bool _shouldClose;
 
     private Element? _lastRoot;
     private volatile bool _needsRebuild;
@@ -79,55 +95,88 @@ internal class DevToolsWindow
         _height = options.Height;
     }
 
-    public void Open()
-    {
-        _shouldClose = false;
-        _thread = new Thread(RunWindow) { IsBackground = true, Name = "DevToolsWindow" };
-        _thread.Start();
-    }
+    /// <summary>
+    /// 请求打开窗口，可从任意线程调用：窗口由事件循环在它自己的线程上创建。
+    /// </summary>
+    /// <returns>没有正在运行的桌面事件循环（移动端宿主、单元测试）时为 <c>false</c>，窗口不会出现。</returns>
+    public bool Open() => SilkEventLoop.TryAttach(this);
 
+    /// <summary>请求关闭窗口，可从任意线程调用。实际关闭发生在事件循环线程上。</summary>
     public void Close()
     {
-        _shouldClose = true;
+        _closeRequested = true;
     }
 
-    private void RunWindow()
+    // ---------------------------------------------------------------------
+    // 事件循环线程（ISilkEventLoopWindow）
+    // ---------------------------------------------------------------------
+
+    void ISilkEventLoopWindow.Create()
     {
+        // 还没轮到创建就已被关闭（快速连按 F12）：不必开出一个立刻消失的窗口。
+        if (_closeRequested) return;
+
         var options = WindowOptions.Default with
         {
             Title = "Miko DevTools",
             Size = new Vector2D<int>(_width, _height),
-            API = GraphicsAPI.Default,
+            // macOS 的 Metal 后端需要不带 GL 上下文的窗口。
+            API = SilkWindowGraphics.WindowApi,
+            // GL 上下文由 runner 转交给渲染线程。
+            IsContextControlDisabled = true,
             // 自行管理缓冲交换：空闲跳帧时我们**什么都不画**，若仍让 Silk 自动交换，
             // 就会把未绘制的后备缓冲呈现出来，与绘制过的缓冲交替 → 画面闪烁。
-            // 只有真正画了一帧才交换（见 OnRender）。
+            // 只有真正画了一帧才呈现（见 RenderIteration）。
             ShouldSwapAutomatically = false,
         };
 
-        _window = Window.Create(options);
-        _window.Load += OnLoad;
-        _window.Update += OnUpdate;
-        _window.Render += OnRender;
-        _window.Resize += OnResize;
-        _window.Closing += OnClose;
-        _window.Run();
-        _window.Dispose();
+        var window = Window.Create(options);
+        _window = window;
+        window.Load += OnLoad;
+        window.Resize += OnResize;
+
+        var runner = new SilkWindowThreadRunner(window, InitGraphics, RenderIteration, ShutdownGraphics)
+        {
+            ThreadName = "miko-devtools-render",
+            // 无视觉工作时不产帧，按此间隔让出 CPU 后重新检查（见 ISSUE-117），
+            // 否则空转会持续占满一个核心（并连带影响同进程的主窗口）。
+            IdleDelayMilliseconds = Math.Max(1, 1000 / Math.Max(1, _options.TargetFramesPerSecond)),
+            // Silk 的 Close() 会在调用线程上同步触发 Closing，因此关闭请求只在事件循环线程上执行。
+            MainThreadIteration = () =>
+            {
+                if (_closeRequested) window.Close();
+            },
+        };
+        runner.Start();
+        _runner = runner;
     }
 
+    bool ISilkEventLoopWindow.PumpEvents() => _runner?.PumpEvents() ?? false;
+
+    void ISilkEventLoopWindow.Destroy()
+    {
+        try
+        {
+            // 等渲染线程释放完 GPU 资源再销毁窗口。
+            _runner?.Stop();
+        }
+        finally
+        {
+            _inputContext?.Dispose();
+            _inputContext = null;
+            // Reset 对从未初始化的窗口是空操作（Create 中途失败时）。
+            _window?.Reset();
+            _window?.Dispose();
+            _window = null;
+            _bridge.OnWindowClosed(this);
+        }
+    }
+
+    /// <summary>事件循环线程：创建呈现后端并订阅原生输入。GPU 上下文在渲染线程创建（见 <see cref="InitGraphics"/>）。</summary>
     private void OnLoad()
     {
-        _gl = _window!.CreateOpenGL();
-
-        var grInterface = GRGlInterface.Create(name =>
-        {
-            if (_window!.GLContext!.TryGetProcAddress(name, out var addr))
-                return addr;
-            return IntPtr.Zero;
-        });
-
-        _grContext = GRContext.CreateGl(grInterface);
-        GpuResourceCache.Configure(_grContext);
-        _windowTarget = new WindowRenderTarget(_grContext);
+        // Metal 后端要在主线程把图层挂到窗口视图上，因此后端在这里创建。
+        _graphics = SilkWindowGraphics.Create(_window!);
 
         _inputContext = _window!.CreateInput();
         foreach (var mouse in _inputContext.Mice)
@@ -142,8 +191,46 @@ internal class DevToolsWindow
         {
             keyboard.KeyDown += OnKeyDown;
         }
+    }
 
+    private void OnResize(Vector2D<int> size)
+        => _messages.Enqueue(SilkInputMessage.Resize(size.X, size.Y));
+
+    private void OnMouseDown(IMouse mouse, SilkMouseButton button)
+        => _messages.Enqueue(SilkInputMessage.Pointer(
+            SilkInputMessageKind.PointerDown, mouse.Position.X, mouse.Position.Y, SilkKeyMap.ToMikoButton(button)));
+
+    private void OnMouseUp(IMouse mouse, SilkMouseButton button)
+        => _messages.Enqueue(SilkInputMessage.Pointer(
+            SilkInputMessageKind.PointerUp, mouse.Position.X, mouse.Position.Y, SilkKeyMap.ToMikoButton(button)));
+
+    private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 position)
+        => _messages.Enqueue(SilkInputMessage.Pointer(SilkInputMessageKind.PointerMove, position.X, position.Y));
+
+    private void OnMouseScroll(IMouse mouse, ScrollWheel scrollWheel)
+        => _messages.Enqueue(SilkInputMessage.Scroll(
+            mouse.Position.X, mouse.Position.Y, scrollWheel.X * -40f, scrollWheel.Y * -40f));
+
+    private void OnKeyDown(IKeyboard keyboard, Key key, int scancode)
+        => _messages.Enqueue(SilkInputMessage.Keyboard(SilkInputMessageKind.KeyDown, SilkKeyMap.ToMikoKey(key)));
+
+    // ---------------------------------------------------------------------
+    // 渲染线程
+    // ---------------------------------------------------------------------
+
+    private void InitGraphics()
+    {
+        _graphics!.Initialize();
         _engine.Initialize(BuildUI(), _styleSheets, GetInitCanvas(), _width, _height);
+    }
+
+    private void ShutdownGraphics()
+    {
+        _initSurface?.Dispose();
+        _initSurface = null;
+        // 释放窗口表面与 GPU 上下文（先清空资源缓存）。
+        _graphics?.Dispose();
+        _graphics = null;
     }
 
     /// <summary>
@@ -162,17 +249,10 @@ internal class DevToolsWindow
         return _initSurface.Canvas;
     }
 
-    private void OnUpdate(double _)
-    {
-        if (_shouldClose)
-        {
-            _window?.Close();
-        }
-    }
-
     /// <summary>
-    /// 每帧入口。稳态下**既不重建 DOM 也不产帧**（见 ISSUE-117）。
-    /// <para>与 <c>SilkDesktopHost.RenderLoop</c> 的空闲跳帧同构，判据也已统一为
+    /// 每帧入口。稳态下**既不重建 DOM 也不产帧**（见 ISSUE-117），返回 <c>false</c>
+    /// 让 runner 按 <see cref="DevToolsOptions.TargetFramesPerSecond"/> 让出 CPU。
+    /// <para>与 <c>SilkDesktopHost.RenderIteration</c> 的空闲跳帧同构，判据也已统一为
     /// <see cref="MikoEngine.HasPendingVisualWork"/>：ISSUE-129 把变更版本号从进程级全局静态
     /// 改成了按引擎实例计数，主窗口的 DOM 变更不再击穿 DevTools 引擎的布局缓存，
     /// 因此这里不必再用变通的 <see cref="MikoEngine.HasPendingRenderWork"/>。</para>
@@ -180,9 +260,9 @@ internal class DevToolsWindow
     /// DevTools 的 DOM 是从**主窗口引擎**的状态投影出来的，那些变化发生在本引擎的树之外，
     /// 引擎自身无从察觉。</para>
     /// </summary>
-    private void OnRender(double _)
+    private bool RenderIteration()
     {
-        if (_grContext == null || _gl == null) return;
+        DrainMessages();
 
         bool shouldRebuild = ConsumeRebuildRequest();
         if (shouldRebuild)
@@ -205,30 +285,58 @@ internal class DevToolsWindow
         }
 
         // 空闲跳帧：内容未变且兜底帧已画满时，本帧什么都不做。
-        // 关键在于「不创建 GRBackendRenderTarget/SKSurface、不调用 Render、不交换缓冲」——
-        // 稳态下这条路径零分配，GC 锯齿由此消失。
-        if (_pendingPresents <= 0)
-        {
-            // Silk 的 Run() 循环会尽可能快地回调 OnRender，这里主动让出 CPU，
-            // 否则空转会持续占满一个核心（并连带影响同进程的主窗口）。
-            Thread.Sleep(Math.Max(1, 1000 / Math.Max(1, _options.TargetFramesPerSecond)));
-            return;
-        }
+        // 关键在于「不取窗口表面、不调用 Render、不呈现」——稳态下这条路径零分配，GC 锯齿由此消失。
+        if (_pendingPresents <= 0) return false;
 
         _pendingPresents--;
 
-        // 包装表面按 (尺寸, FBO) 复用，不每帧重建（ISSUE-143）。见 WindowRenderTarget。
-        int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
-        var surface = _windowTarget?.Acquire(_width, _height, (uint)fboId);
-        if (surface == null) return;
+        // OpenGL 后端的窗口表面按 (尺寸, FBO) 复用（ISSUE-143）；Metal 后端每帧包装可绘制纹理。
+        // 最小化时窗口为 0×0，返回 null：跳过本帧。
+        var surface = _graphics!.BeginFrame(_width, _height);
+        if (surface == null) return false;
+
         var canvas = surface.Canvas;
         canvas.Clear(new SKColor(36, 36, 36));
+        // 引擎按窗口坐标绘制；Retina 屏上表面是物理像素。
+        canvas.Save();
+        canvas.Scale(_graphics.Scale);
         _engine.Render(canvas);
+        canvas.Restore();
         canvas.Flush();
-        _grContext.Flush();
 
-        // 我们接管了缓冲交换（ShouldSwapAutomatically = false）：只有真正画了一帧才呈现。
-        _window?.GLContext?.SwapBuffers();
+        // 我们接管了呈现（ShouldSwapAutomatically = false）：只有真正画了一帧才呈现。
+        _graphics.Present();
+        return true;
+    }
+
+    /// <summary>渲染线程：排空事件循环线程投递的输入/缩放消息。</summary>
+    private void DrainMessages()
+    {
+        while (_messages.TryDequeue(out var msg))
+        {
+            switch (msg.Kind)
+            {
+                case SilkInputMessageKind.PointerDown:
+                    HandlePointerDown(msg.X, msg.Y, msg.Button);
+                    break;
+                case SilkInputMessageKind.PointerUp:
+                    HandlePointerUp(msg.X, msg.Y, msg.Button);
+                    break;
+                case SilkInputMessageKind.PointerMove:
+                    HandlePointerMove(msg.X, msg.Y);
+                    break;
+                case SilkInputMessageKind.Scroll:
+                    _engine.ScrollBy(msg.X, msg.Y, msg.DeltaX, msg.DeltaY);
+                    break;
+                case SilkInputMessageKind.KeyDown:
+                    if (msg.Key is MikoKey.Escape or MikoKey.F12)
+                        _bridge.CloseDevTools();
+                    break;
+                case SilkInputMessageKind.Resize:
+                    ApplyResize((int)msg.X, (int)msg.Y);
+                    break;
+            }
+        }
     }
 
     /// <summary>
@@ -328,21 +436,21 @@ internal class DevToolsWindow
         return null;
     }
 
-    private void OnResize(Vector2D<int> size)
+    private void ApplyResize(int width, int height)
     {
-        _width = size.X;
-        _height = size.Y;
-        _gl?.Viewport(size);
-        _engine.SetViewportSize(size.X, size.Y);
+        _width = width;
+        _height = height;
+        _graphics?.Resize(width, height);
+        _engine.SetViewportSize(width, height);
         // 尺寸变化后帧缓冲内容失效，必须强制连续呈现若干帧刷满缓冲链。
         _pendingPresents = SwapChainDepth;
     }
 
-    private void OnMouseDown(IMouse mouse, SilkMouseButton button)
+    private void HandlePointerDown(float x, float y, Events.MouseButton button)
     {
-        if (button != SilkMouseButton.Left) return;
+        if (button != Events.MouseButton.Left) return;
 
-        var scrollbarHit = _engine.HitTestScrollbar(mouse.Position.X, mouse.Position.Y);
+        var scrollbarHit = _engine.HitTestScrollbar(x, y);
         if (scrollbarHit != null)
         {
             _draggingScrollbar = scrollbarHit;
@@ -354,23 +462,23 @@ internal class DevToolsWindow
             }
         }
 
-        var target = _engine.HitTest(mouse.Position.X, mouse.Position.Y);
+        var target = _engine.HitTest(x, y);
         if (target == null) return;
 
         var args = new MouseEventArgs
         {
             Target = target,
-            X = mouse.Position.X,
-            Y = mouse.Position.Y,
+            X = x,
+            Y = y,
             Button = Events.MouseButton.Left,
             Bubbles = true
         };
         _eventDispatcher.Dispatch(target, EventTypes.Click, args);
     }
 
-    private void OnMouseUp(IMouse mouse, SilkMouseButton button)
+    private void HandlePointerUp(float x, float y, Events.MouseButton button)
     {
-        if (button != SilkMouseButton.Left) return;
+        if (button != Events.MouseButton.Left) return;
 
         if (_isDragging && _draggingScrollbar != null)
         {
@@ -380,7 +488,7 @@ internal class DevToolsWindow
             if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalTrack ||
                 hit.HitType == MikoEngine.ScrollbarHitType.HorizontalTrack)
             {
-                _engine.ScrollTrackClick(hit.Box, hit.HitType, mouse.Position.X, mouse.Position.Y);
+                _engine.ScrollTrackClick(hit.Box, hit.HitType, x, y);
             }
             return;
         }
@@ -388,45 +496,15 @@ internal class DevToolsWindow
         _isDragging = false;
     }
 
-    private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 position)
+    private void HandlePointerMove(float x, float y)
     {
         if (!_isDragging || _draggingScrollbar == null) return;
 
         var hit = _draggingScrollbar;
         if (hit.HitType == MikoEngine.ScrollbarHitType.VerticalThumb)
-            _engine.DragVerticalThumb(hit.Box, position.Y, hit.ThumbOffset);
+            _engine.DragVerticalThumb(hit.Box, y, hit.ThumbOffset);
         else if (hit.HitType == MikoEngine.ScrollbarHitType.HorizontalThumb)
-            _engine.DragHorizontalThumb(hit.Box, position.X, hit.ThumbOffset);
-    }
-
-    private void OnMouseScroll(IMouse mouse, ScrollWheel scrollWheel)
-    {
-        float deltaY = scrollWheel.Y * -40f;
-        float deltaX = scrollWheel.X * -40f;
-        _engine.ScrollBy(mouse.Position.X, mouse.Position.Y, deltaX, deltaY);
-    }
-
-    private void OnKeyDown(IKeyboard keyboard, Key key, int scancode)
-    {
-        if (key == Key.Escape || key == Key.F12)
-        {
-            _bridge.CloseDevTools();
-        }
-    }
-
-    private void OnClose()
-    {
-        _bridge.IsOpen = false;
-        _bridge.SelectedElement = null;
-        _inputContext?.Dispose();
-        _initSurface?.Dispose();
-        _initSurface = null;
-        // 表面引用 GRContext，必须先于它释放。
-        _windowTarget?.Dispose();
-        _windowTarget = null;
-        GpuResourceCache.PurgeAllResources(_grContext);
-        _grContext?.Dispose();
-        _gl?.Dispose();
+            _engine.DragHorizontalThumb(hit.Box, x, hit.ThumbOffset);
     }
 
     internal void MarkDirty()

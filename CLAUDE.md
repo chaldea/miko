@@ -103,6 +103,11 @@ The repository uses a single solution file:
    - `SilkWindowGraphics` picks the presentation backend: OpenGL on Windows/Linux, Metal
      (`CAMetalLayer` via Objective-C interop) on macOS — the same Skia Metal path as iOS
      (ISSUE-147). `MIKO_GRAPHICS_BACKEND=opengl` forces OpenGL on macOS for comparison
+   - `SilkWindowThreadRunner`: native events on the main thread, rendering on a dedicated thread. The
+     first `Run()` loop is also the process-wide `SilkEventLoop`. Windows opened later (DevTools)
+     implement `ISilkEventLoopWindow` and attach via `SilkEventLoop.TryAttach()` — AppKit only allows
+     the main thread to create windows and pump their events, so a window running its own loop on a
+     background thread hangs on macOS (ISSUE-148)
 
 3. **Miko.Android** (`src/Miko.Android/`)
    - Android implementation with GLSurfaceView and touch input

@@ -1324,10 +1324,13 @@ public class App
 - **UI 线程**：所有 DOM 操作和渲染必须在 UI 线程执行
 - **MikoDispatcher**：使用 `dispatcher.InvokeAsync()` 将操作调度到 UI 线程
 - **外部失效**：视频解码等后台线程通过 `MikoEngine._pendingInvalidations` 队列投递失效请求，主线程排空
+- **附加窗口**：macOS（AppKit）只允许主线程创建窗口、处理窗口事件。宿主运行后才打开的窗口（如 DevTools）
+  不能自起线程跑窗口循环，须实现 `ISilkEventLoopWindow` 并经 `SilkEventLoop.TryAttach()` 挂到宿主的事件循环上——
+  由主线程创建、泵事件、销毁，渲染仍在它自己的渲染线程（ISSUE-148）
 
 ### 调试技巧
 
-- **开发工具**：`builder.AddDevTools()` 启用运行时 DOM/布局树检查器
+- **开发工具**：`builder.AddDevTools()` 启用运行时 DOM/布局树检查器，桌面宿主与模拟器中按 F12 打开（Windows/Linux/macOS 均可用）
 - **日志记录**：使用 `builder.UseLogging(config => config.AddConsole())` 启用日志
 - **渲染调试**：检查 `LayoutBox` 的 `ContentBox`/`PaddingBox`/`BorderBox`/`MarginBox` 边界
 - **选择器调试**：使用 `CssSelectorParser.Parse()` 验证选择器字符串解析
