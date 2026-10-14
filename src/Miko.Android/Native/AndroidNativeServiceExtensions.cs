@@ -50,6 +50,9 @@ public static class AndroidNativeServiceExtensions
 
         services.AddMikoNative();
 
+        // 组件面向的屏幕方向/息屏实现（ISSUE-138）——供视频全屏锁定横屏、保持常亮等交互使用。
+        builder.UseOrientation(sp => new AndroidOrientationService(sp.GetRequiredService<INativeHostContext>()));
+
         services.ReplaceNative<IAppService, AndroidAppService>();
         services.ReplaceNative<IBrowserService, AndroidBrowserService>();
         services.ReplaceNative<ICameraService, AndroidCameraService>();

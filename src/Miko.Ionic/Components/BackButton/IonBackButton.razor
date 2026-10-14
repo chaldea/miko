@@ -1,5 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Platform
 @* Mirrors Ionic's <ion-back-button> structure:
    <ion-back-button>                    <!-- host with show-back-button / disabled classes -->
      <button class="button-native">     <!-- clickable surface with flex layout -->
@@ -51,6 +52,14 @@
     /// nav stack can go back, else a back-direction navigation to <see cref="DefaultHref"/>.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
+    /// <summary>
+    /// Whether the system back button (hardware back / back gesture / Escape) navigation-pops the
+    /// same way a tap on this button does. Defaults to <c>true</c>. Set to <c>false</c> when the
+    /// page wants hardware back to behave differently from tapping the on-screen button
+    /// (ISSUE-138).
+    /// </summary>
+    [Parameter] public bool RespondToHardwareBack { get; set; } = true;
+
     private string? _icon;
     private string? _text;
 
@@ -77,22 +86,40 @@
             .If(Disabled, "back-button-disabled")
             .If(hasIconOnly, "back-button-has-icon-only")
             .AddColor(Color);
+
+        // Only claim the system back button while the button itself is actually usable — a hidden
+        // (no DefaultHref) or disabled back button must not swallow the platform's back action.
+        // Navigation has the lowest priority, so any open overlay or menu answers back first.
+        RegisterBackHandler(RespondToHardwareBack && showButton && !Disabled ? HandleHardwareBack : null,
+            BackButtonPriority.Navigation);
     }
 
     private async Task HandleClick(MouseEventArgs _)
     {
         if (Disabled) return;
         await OnClick.InvokeAsync();
+        NavigateBack();
+    }
 
-        // Default behavior mirrors Ionic's back-button onClick: pop the nav stack when it can go
-        // back (with the mode's pop transition); otherwise fall back to DefaultHref with a
-        // back-direction navigation. Without a NavigationManager (bare tests) only OnClick fires.
-        if (Navigation is null) return;
+    private bool HandleHardwareBack() => !Disabled && RespondToHardwareBack && NavigateBack();
+
+    /// <summary>
+    /// The navigation shared by a tap and the system back button: pop the nav stack when it can
+    /// go back (with the mode's pop transition); otherwise fall back to <see cref="DefaultHref"/>
+    /// with a back-direction navigation. Returns whether it actually navigated — that is the
+    /// honest answer to "was the back action consumed": with no <see cref="Navigation"/> (bare
+    /// tests), or when <see cref="DefaultHref"/> is already the current page, nothing happens and
+    /// the platform default (exit) must run instead of a silently swallowed press.
+    /// </summary>
+    private bool NavigateBack()
+    {
+        if (Navigation is null) return false;
 
         var pop = IonicPageTransitions.Pop(Mode);
-        if (!Navigation.NavigateBack(pop) && DefaultHref is not null)
-        {
-            Navigation.NavigateTo(DefaultHref, NavigationDirection.Back, pop);
-        }
+        if (Navigation.NavigateBack(pop)) return true;
+        if (DefaultHref is null || DefaultHref == Navigation.CurrentPath) return false;
+
+        Navigation.NavigateTo(DefaultHref, NavigationDirection.Back, pop);
+        return true;
     }
 }

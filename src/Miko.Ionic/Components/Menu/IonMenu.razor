@@ -1,5 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Platform
 @* Mirrors Ionic's <ion-menu>: a single full-screen host containing the drawer (.menu-inner)
    and the backdrop as siblings. The host is always mounted (so the slide/fade animate in both
    directions — a transition needs a previous-frame layout box). When closed and settled the
@@ -34,6 +35,13 @@
     [Parameter] public EventCallback OnClose { get; set; }
 
     /// <summary>
+    /// Whether the system back button closes the open menu. Defaults to <c>true</c>; only takes
+    /// effect while <see cref="IsOpen"/> and when a host has subscribed to
+    /// <see cref="OnClose"/> — with nobody listening there is nothing to close (ISSUE-138).
+    /// </summary>
+    [Parameter] public bool BackButtonCloses { get; set; } = true;
+
+    /// <summary>
     /// The app's animation manager. Nested components don't get DI, so the host page injects
     /// it and passes it down; used to defer the backdrop's <c>display:none</c> until its
     /// fade-out finishes. If null, the backdrop simply unmounts on the same frame (no fade-out).
@@ -57,6 +65,12 @@
         }
 
         if (IsOpen) _backdropMounted = true;
+
+        // Claim the system back button only while the drawer is actually open and a host is
+        // listening — closing is the host's job (this is a controlled component), so without an
+        // OnClose subscriber there is nothing to consume and back should fall through.
+        RegisterBackHandler(IsOpen && BackButtonCloses && OnClose.HasDelegate ? HandleBack : null,
+            BackButtonPriority.Menu);
 
         var side = string.Equals(Side, "end", StringComparison.OrdinalIgnoreCase) ? "end" : "start";
 
@@ -87,11 +101,24 @@
             Animations.TransitionCompleted -= OnTransitionCompleted;
             _subscribed = false;
         }
+
+        // Releases the back-button slot registered in OnParametersSet (base.OnDispose does this,
+        // but this override would otherwise shadow it).
+        ClearBackHandler();
     }
 
     private async Task HandleBackdrop(MouseEventArgs _)
     {
         await OnClose.InvokeAsync();
+    }
+
+    private bool HandleBack()
+    {
+        // Same request as a backdrop tap: ask the host to close. The host owns IsOpen, so the
+        // slot is released when it re-renders the menu closed.
+        if (!IsOpen) return false;
+        _ = OnClose.InvokeAsync();
+        return true;
     }
 
     private void OnTransitionCompleted(Element element, string property)

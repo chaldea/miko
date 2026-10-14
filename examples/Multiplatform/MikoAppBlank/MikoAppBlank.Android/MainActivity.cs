@@ -48,4 +48,14 @@ public class MainActivity : Activity
 
         base.OnActivityResult(requestCode, resultCode, data);
     }
+
+    // Give an open overlay (menu / modal / action sheet) first refusal on the hardware back
+    // button (ISSUE-138). Without this the system default runs and the app exits with the
+    // modal still open.
+    public override void OnBackPressed()
+    {
+        if (_view is not null && _view.HandleBackPressed()) return;
+
+        base.OnBackPressed();
+    }
 }

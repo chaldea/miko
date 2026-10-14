@@ -39,6 +39,11 @@ public class MikoSurfaceView : SKGLSurfaceView
     private readonly global::Android.App.Activity? _activity;
     private bool? _lastLightAppearance;
 
+    // 预测性返回（API 33+）：组件的返回处理链，以及按需向系统注册的回调（见 HandleBackPressed）。
+    private readonly BackButtonRegistry? _backRegistry;
+    private BackInvokedCallback? _backCallback;
+    private bool _backCallbackRegistered;
+
     /// <summary>
     /// 本视图提供给 Native 能力层的 Android 宿主。相机、相册等能力要
     /// <c>startActivityForResult</c>，宿主 Activity 必须把 <c>OnActivityResult</c> 转发给
@@ -66,6 +71,8 @@ public class MikoSurfaceView : SKGLSurfaceView
         // 把 Android 宿主交给 Native 能力层。服务容器在 MikoAppBuilder.Build() 时就已构建，
         // 那时 Activity 还不存在，因此 Native 服务只能在这里拿到宿主（延迟注入）。
         NativeHost = new AndroidNativeHost(context, _activity);
+
+        _backRegistry = appContext.Services.GetService<IPlatformService>()?.Back;
 
         var hostContext = appContext.Services.GetService<INativeHostContext>();
 
@@ -271,6 +278,88 @@ public class MikoSurfaceView : SKGLSurfaceView
         RequestRender();
 
         return true;
+    }
+
+    /// <summary>
+    /// 系统返回键（ISSUE-138），返回是否被某个组件（覆盖层/菜单/返回按钮）消费。
+    /// <para>
+    /// Android 有两条返回路径，本视图都接：
+    /// </para>
+    /// <list type="bullet">
+    /// <item><b>预测性返回</b>（API 33+ 且应用启用了 <c>OnBackInvokedCallback</c>——targetSdk 36 的
+    /// 应用在 Android 16 上默认启用）：系统<b>不再</b>调用 <c>OnBackPressed</c>、也不派发
+    /// <c>KEYCODE_BACK</c>。视图自己向 <c>OnBackInvokedDispatcher</c> 注册回调，且只在确有组件
+    /// 注册了返回处理时才注册——否则系统的默认返回与"返回桌面"预测动画保持原样。</item>
+    /// <item><b>传统路径</b>（其余情况）：宿主 Activity 重写 <c>OnBackPressed</c> 并转发：
+    /// <code>
+    /// public override void OnBackPressed()
+    /// {
+    ///     if (_view.HandleBackPressed()) return;   // 某个组件消费了本次返回
+    ///     base.OnBackPressed();                    // 无人消费 → 交还系统
+    /// }
+    /// </code></item>
+    /// </list>
+    /// <para>系统只会走其中一条，因此两者不会重复分发。</para>
+    /// </summary>
+    public bool HandleBackPressed()
+    {
+        // 经控制器（持锁）分发：本回调在 UI 线程，组件在 GL 线程构建，处理者会改写组件状态。
+        var consumed = _controller.OnBackButton();
+        if (consumed) RequestRender();
+        return consumed;
+    }
+
+    protected override void OnAttachedToWindow()
+    {
+        base.OnAttachedToWindow();
+        if (_backRegistry is null || !OperatingSystem.IsAndroidVersionAtLeast(33)) return;
+        _backRegistry.Changed += OnBackHandlersChanged;
+        SyncBackCallback();
+    }
+
+    protected override void OnDetachedFromWindow()
+    {
+        if (_backRegistry is not null && OperatingSystem.IsAndroidVersionAtLeast(33))
+        {
+            _backRegistry.Changed -= OnBackHandlersChanged;
+            SyncBackCallback();
+        }
+        base.OnDetachedFromWindow();
+    }
+
+    // 处理者在 GL 线程上随组件构建注册/注销；系统回调的注册必须回到 UI 线程。
+    private void OnBackHandlersChanged() => _activity?.RunOnUiThread(SyncBackCallback);
+
+    /// <summary>让系统回调的注册状态与"是否有组件要处理返回"保持一致。只在 UI 线程调用。</summary>
+    private void SyncBackCallback()
+    {
+        if (_activity is null || _backRegistry is null || !OperatingSystem.IsAndroidVersionAtLeast(33)) return;
+
+        var wanted = IsAttachedToWindow && _backRegistry.Count > 0;
+        if (wanted == _backCallbackRegistered) return;
+
+        _backCallback ??= new BackInvokedCallback(this);
+        var dispatcher = _activity.OnBackInvokedDispatcher;
+        if (wanted)
+            dispatcher.RegisterOnBackInvokedCallback(global::Android.Window.IOnBackInvokedDispatcher.PriorityDefault, _backCallback);
+        else
+            dispatcher.UnregisterOnBackInvokedCallback(_backCallback);
+        _backCallbackRegistered = wanted;
+    }
+
+    /// <summary>预测性返回路径的系统回调。</summary>
+    private sealed class BackInvokedCallback(MikoSurfaceView view) : Java.Lang.Object, global::Android.Window.IOnBackInvokedCallback
+    {
+        public void OnBackInvoked()
+        {
+            if (view.HandleBackPressed()) return;
+
+            // 注册了处理者、但它们这次都放弃了（例如返回按钮的 DefaultHref 正是当前页）。
+            // 本回调已经截下了这次返回，系统不会再执行默认行为，只能显式执行它。
+#pragma warning disable CA1422 // OnBackPressed 在 API 33+ 标记过时；这里正是要它的默认实现
+            view._activity?.OnBackPressed();
+#pragma warning restore CA1422
+        }
     }
 
     public override bool OnCheckIsTextEditor() => true;

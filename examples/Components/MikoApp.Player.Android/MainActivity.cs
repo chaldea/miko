@@ -15,6 +15,8 @@ namespace MikoApp.Player.Android;
 public class MainActivity : Activity
 {
     private MikoPlayer? _player;
+    private MikoSurfaceView? _view;
+
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
@@ -44,7 +46,19 @@ public class MainActivity : Activity
             root.Children.Add(_player.Build());
             return root;
         });
-        SetContentView(MikoAndroidApp.CreateView(this, builder.Build));
+        _view = MikoAndroidApp.CreateView(this, builder.Build);
+        SetContentView(_view);
     }
+
+    // Give an open overlay (menu / modal / action sheet) first refusal on the hardware back
+    // button (ISSUE-138). Without this the system default runs and the app exits with the
+    // overlay still open.
+    public override void OnBackPressed()
+    {
+        if (_view is not null && _view.HandleBackPressed()) return;
+
+        base.OnBackPressed();
+    }
+
     protected override void OnDestroy() { _player?.Dispose(); base.OnDestroy(); }
 }

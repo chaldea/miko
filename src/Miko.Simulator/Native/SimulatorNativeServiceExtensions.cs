@@ -93,6 +93,11 @@ public static class SimulatorNativeServiceExtensions
             sp.GetRequiredService<INativeHostContext>(),
             sp.GetService<ILogger<SimulatorToastService>>()));
 
+        // 组件面向的方向/息屏实现（ISSUE-138）。没有单独的仿真实现是刻意的：模拟器（以及桌面）
+        // 没有可编程的屏幕方向，仿真"旋转"会给出一个真实设备上不存在的假信号。状态跟踪对调用链
+        // 可观察已经足够，且与桌面行为一致。
+        builder.UseOrientation(_ => new DesktopOrientationService());
+
         return builder;
     }
 }

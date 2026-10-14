@@ -1,5 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Platform
 @* Mirrors Ionic's <ion-action-sheet> (action-sheet.tsx render()):
    <ion-action-sheet class="{mode} overlay-hidden? action-sheet-translucent?">
      <ion-backdrop />                                   <!-- tappable dim layer -->
@@ -134,6 +135,11 @@
 
         if (IsOpen) _mounted = true;
 
+        // Claim the system back button while the sheet is open and the user is allowed to dismiss
+        // it — same gate as the backdrop tap, since both mean "the user asked to go back". The
+        // closed-by-back event is reported with role "back" so a host can tell the two apart.
+        RegisterBackHandler(IsOpen && BackdropDismiss ? HandleBack : null, BackButtonPriority.Overlay);
+
         // Closed AND settled → overlay-hidden (inert). While open or animating out the host stays
         // mounted/interactive; only `action-sheet-open` (which drives the slide/fade end state) is
         // tied strictly to IsOpen.
@@ -181,8 +187,17 @@
         await DismissAsync("backdrop", null);
     }
 
-    private async Task DismissAsync(string? role, object? data)
+    /// <summary>Dismisses the sheet and raises <see cref="OnDidDismiss"/> with
+    /// <paramref name="role"/>/<paramref name="data"/>. Public so a host can close the sheet
+    /// programmatically (Ionic's <c>dismiss()</c>), and so the system back-button handler can
+    /// route through one path.</summary>
+    public async Task DismissAsync(string? role = null, object? data = null)
     {
+        // Let go of the back button before the first await: the StateHasChanged below does not
+        // re-run OnParametersSet when the sheet is a detached root, so the registration would
+        // otherwise outlive the sheet and swallow the next back press (ISSUE-138).
+        ClearBackHandler();
+
         if (IsOpen)
         {
             IsOpen = false;
@@ -195,6 +210,14 @@
         await OnDidDismiss.InvokeAsync(new IonOverlayDismissEventArgs(role, data));
     }
 
+    private bool HandleBack()
+    {
+        // Re-check at dispatch time: the registration reflects the last render, not the present.
+        if (!IsOpen) return false;
+        _ = DismissAsync("back", null);
+        return true;
+    }
+
     protected override void OnDispose()
     {
         // Nested components are rebuilt each render; release the subscription so handlers from
@@ -204,6 +227,10 @@
             Animations.TransitionCompleted -= OnTransitionCompleted;
             _subscribed = false;
         }
+
+        // Release the back-button slot registered in OnParametersSet (this override shadows the
+        // base implementation, so it must clear it explicitly).
+        ClearBackHandler();
     }
 
     private void OnTransitionCompleted(Element element, string property)

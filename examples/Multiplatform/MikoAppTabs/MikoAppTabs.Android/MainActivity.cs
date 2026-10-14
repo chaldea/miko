@@ -13,6 +13,8 @@ namespace MikoAppTabs.Android;
     Theme = "@android:style/Theme.Material.Light.NoActionBar")]
 public class MainActivity : Activity
 {
+    private MikoSurfaceView? _view;
+
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
@@ -26,6 +28,17 @@ public class MainActivity : Activity
         }
 
         // Reuse the shared app configuration; Miko.Android drives rendering and touch input.
-        SetContentView(MikoAndroidApp.CreateView(this, () => MikoAppTabs.App.CreateContext()));
+        _view = MikoAndroidApp.CreateView(this, () => MikoAppTabs.App.CreateContext());
+        SetContentView(_view);
+    }
+
+    // Give an open overlay (menu / modal / action sheet) first refusal on the hardware back
+    // button (ISSUE-138). Without this the system default runs and the app exits with the
+    // overlay still open.
+    public override void OnBackPressed()
+    {
+        if (_view is not null && _view.HandleBackPressed()) return;
+
+        base.OnBackPressed();
     }
 }

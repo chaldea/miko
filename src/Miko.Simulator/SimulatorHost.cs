@@ -630,7 +630,8 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
             _safeAreaEnabled,
             onSelectDevice: d => SelectDeviceInternal(d),
             onSetOrientation: o => SetOrientationInternal(o),
-            onToggleSafeArea: ToggleSafeAreaInternal);
+            onToggleSafeArea: ToggleSafeAreaInternal,
+            onBack: () => DispatchBackInternal());
 
         var styleSheets = new List<Styling.StyleSheet> { SimulatorStyleSheet.Create() };
         using var tempSurface = SKSurface.Create(new SKImageInfo(Math.Max(1, PanelWidth), Math.Max(1, _windowHeight)));
@@ -645,6 +646,17 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     public void SelectDevice(DeviceProfile device) => SelectDeviceInternal(device);
     public void SetOrientation(Orientation orientation) => SetOrientationInternal(orientation);
     public void ToggleSafeArea(bool enabled) => ToggleSafeAreaInternal(enabled);
+
+    /// <summary>面板"Back"按钮触发的系统返回（ISSUE-138）。返回是否被某个覆盖层消费。</summary>
+    public bool DispatchBack() => DispatchBackInternal();
+
+    private bool DispatchBackInternal()
+    {
+        // 与真机宿主同一入口：经应用控制器（持锁）分发，而非直接调分发链。
+        var dispatched = _appController.OnBackButton();
+        _logger.LogInformation("Simulated back button dispatched (consumed: {Consumed})", dispatched);
+        return dispatched;
+    }
 
     private void SelectDeviceInternal(DeviceProfile device)
     {

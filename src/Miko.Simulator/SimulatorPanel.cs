@@ -20,6 +20,7 @@ internal static class SimulatorPanel
     /// <param name="onSelectDevice">选择设备回调。</param>
     /// <param name="onSetOrientation">设置朝向回调。</param>
     /// <param name="onToggleSafeArea">切换安全区回调。</param>
+    /// <param name="onBack">模拟系统返回键回调（ISSUE-138）。</param>
     public static Element Build(
         IReadOnlyList<DeviceProfile> devices,
         DeviceProfile current,
@@ -27,7 +28,8 @@ internal static class SimulatorPanel
         bool safeAreaEnabled,
         Action<DeviceProfile> onSelectDevice,
         Action<Orientation> onSetOrientation,
-        Action<bool> onToggleSafeArea)
+        Action<bool> onToggleSafeArea,
+        Action onBack)
     {
         var panel = new DivElement { Class = "sim-panel" };
 
@@ -37,10 +39,29 @@ internal static class SimulatorPanel
         body.AddChild(BuildDeviceSection(devices, current, onSelectDevice));
         body.AddChild(BuildOrientationSection(orientation, onSetOrientation));
         body.AddChild(BuildSafeAreaSection(safeAreaEnabled, onToggleSafeArea));
+        body.AddChild(BuildNavigationSection(onBack));
         body.AddChild(BuildInfoSection(current, orientation));
         panel.AddChild(body);
 
         return panel;
+    }
+
+    /// <summary>
+    /// 模拟设备上的系统返回键。<see cref="DeviceProfile"/> 的移动设备没有硬件返回键，
+    /// 桌面宿主也没有——面板上的这个按钮是**唯一**能在桌面上走通返回链的入口，
+    /// 与 Android 的硬件返回、iOS 的左缘手势走同一条 <c>BackButtonRegistry</c>（ISSUE-138）。
+    /// </summary>
+    private static Element BuildNavigationSection(Action onBack)
+    {
+        var section = new DivElement { Class = "sim-section" };
+        section.AddChild(new DivElement { Class = "sim-section-label", TextContent = "NAVIGATION" });
+
+        var row = new DivElement { Class = "sim-btn-row" };
+        var back = new DivElement { Class = "sim-btn", TextContent = "Back" };
+        back.OnClick = _ => onBack();
+        row.AddChild(back);
+        section.AddChild(row);
+        return section;
     }
 
     private static Element BuildHeader()

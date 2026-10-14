@@ -26,6 +26,11 @@ public class MikoViewController : UIViewController
     private bool _statusBarHidden;
     private UIStatusBarAnimation _statusBarAnimation = UIStatusBarAnimation.None;
 
+    // 允许的屏幕方向。iOS 同样由视图控制器**声明**：IosOrientationService 请求旋转时，
+    // 系统会回头询问本属性，若目标方向不在此集合内则请求被忽略（ISSUE-138）。
+    // 默认全放开，与 iOS 应用的常规行为一致；锁定期间由 SetSupportedOrientations 收窄。
+    private UIInterfaceOrientationMask _supportedOrientations = UIInterfaceOrientationMask.All;
+
     public MikoViewController(MikoAppContext context)
     {
         _context = context;
@@ -57,6 +62,22 @@ public class MikoViewController : UIViewController
 
     /// <inheritdoc />
     public override UIStatusBarAnimation PreferredStatusBarUpdateAnimation => _statusBarAnimation;
+
+    /// <inheritdoc />
+    public override UIInterfaceOrientationMask GetSupportedInterfaceOrientations() => _supportedOrientations;
+
+    /// <inheritdoc />
+    public override bool ShouldAutorotate() => true;
+
+    /// <summary>
+    /// 由 <c>IosOrientationService</c> 调用以收窄/放开允许的屏幕方向。必须在主线程调用。
+    /// 收窄后需 <c>SetNeedsUpdateOfSupportedInterfaceOrientations</c>，否则系统不会重新询问。
+    /// </summary>
+    internal void SetSupportedOrientations(UIInterfaceOrientationMask mask)
+    {
+        _supportedOrientations = mask;
+        SetNeedsUpdateOfSupportedInterfaceOrientations();
+    }
 
     /// <summary>由 <c>IStatusBarService</c> 调用以更改状态栏文字样式。必须在主线程调用。</summary>
     internal void SetStatusBarStyle(UIStatusBarStyle style)
