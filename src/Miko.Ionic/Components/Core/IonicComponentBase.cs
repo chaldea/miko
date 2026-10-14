@@ -28,11 +28,20 @@ public abstract class IonicComponentBase : ComponentBase
     [Inject] protected IPlatformInfo? PlatformInfo { get; set; }
 
     /// <summary>
-    /// The component-facing platform service, supplying the system back-button chain and
-    /// orientation control (ISSUE-138). Null when the component is built without an ambient
+    /// The component-facing platform service, supplying the system back-button chain, orientation
+    /// control (ISSUE-138) and haptics (ISSUE-149). Null when the component is built without an ambient
     /// service scope (e.g. a bare unit test); back handling is then simply not registered.
     /// </summary>
     [Inject] protected IPlatformService? PlatformService { get; set; }
+
+    private static readonly IHapticFeedback NoHaptics = new NullHapticFeedback();
+
+    /// <summary>
+    /// Haptic feedback for interaction cues such as picker ticks and reorder drags (ISSUE-149).
+    /// Never null: without a platform service (bare unit tests) or on a platform without haptics
+    /// (desktop) it is the inert implementation, so components call it unconditionally.
+    /// </summary>
+    protected IHapticFeedback Haptics => PlatformService?.Haptics ?? NoHaptics;
 
     /// <summary>
     /// The app's navigation manager, used by components with default navigation behavior

@@ -60,6 +60,13 @@ public sealed class PlatformInfo : IPlatformService
     /// </summary>
     public IOrientationService Orientation { get; init; } = new NullOrientationService();
 
+    /// <summary>
+    /// Haptic feedback (ISSUE-149). Defaults to the inert implementation so components can call it
+    /// unconditionally; <c>MikoAppBuilder.CreateDefault</c> initializes it from the registered
+    /// <see cref="IHapticFeedback"/> (replaced by the platform packages via <c>UseHaptics</c>).
+    /// </summary>
+    public IHapticFeedback Haptics { get; init; } = new NullHapticFeedback();
+
     public PlatformInfo() => Platform = Detect();
 
     public PlatformInfo(HostPlatform platform) => Platform = platform;
