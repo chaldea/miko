@@ -59,6 +59,16 @@ dotnet run --project examples/Multiplatform/MikoAppBlank/MikoAppBlank.Simulator/
 dotnet clean
 ```
 
+### Packing (local NuGet feed)
+```bash
+# Writes every package to <repo>/packages (Directory.Build.props sets PackageOutputPath; git-ignored)
+dotnet pack miko.slnx
+dotnet pack templates/Miko.Templates.csproj
+```
+The in-repo templates' `nuget.config` restores `Miko*` from `packages/`. Every local pack is version
+1.0.0 and NuGet caches by version, so after re-packing delete the stale copies
+(`rm -rf ~/.nuget/packages/miko*`) before restoring again. CI passes `-o`, which overrides the default.
+
 ## Architecture Overview
 
 Miko follows a layered architecture similar to browser rendering engines:
@@ -454,6 +464,30 @@ Android camera/gallery calls need the host Activity to forward `OnActivityResult
 `MikoAndroidApp.HandleActivityResult`; without it those calls wait forever. Permissions,
 manifests, `Info.plist` entries, and FCM/APNS configuration are app-side responsibilities — the
 interfaces expose only permission state and business parameters.
+
+### Component-facing platform services
+
+`IPlatformService : IPlatformInfo` (`src/Miko/Platform/`) is what *component libraries* use, as opposed
+to the app-facing `Miko.Native`: `Back` (system back-button chain, priority-ordered),
+`Orientation` (lock / keep-awake, reference counted) and `Haptics` (`IHapticFeedback`:
+`SelectionStart/Changed/End`, `Impact`, mirroring Ionic's haptic utilities). Every member is
+synchronous, safe to call while rendering, and silently inert where unsupported — components never
+null-check or catch. One `PlatformInfo` instance backs `PlatformInfo`, `IPlatformInfo` and
+`IPlatformService` (ISSUE-138, ISSUE-149).
+
+- The real orientation / haptics implementations are bound by the platform packages' `Use*Native()`
+  (through `MikoAppBuilder.UseOrientation` / `UseHaptics`). An app that does not call it keeps the
+  `Null*` defaults — picker ticks and fullscreen landscape then do nothing. The desktop keeps
+  `NullHapticFeedback` on purpose; the simulator logs and counts haptics (`SimulatorHapticFeedback`).
+- Android haptics use `View.PerformHapticFeedback` (no `VIBRATE` permission, honours the system
+  touch-feedback setting). On the emulator, `adb shell dumpsys vibrator_manager` lists each call
+  under "Recent vibrations" with the app package and constant.
+- An Android Activity whose app locks orientation must declare `ConfigurationChanges = Orientation |
+  ScreenSize | …`; otherwise rotation recreates the Activity and rebuilds the whole app.
+- Hosts report their size only through `MikoInteractionController.RenderFrame(canvas, width, height, …)`;
+  it updates the engine viewport, so rotation needs no separate resize call.
+- `IonPickerColumn` follows a touch drag freely and commits `ValueChanged` on release (as Ionic sets the
+  value once scrolling settles); wheel and fling input still snap per scroll event.
 
 ### Image Loading
 
