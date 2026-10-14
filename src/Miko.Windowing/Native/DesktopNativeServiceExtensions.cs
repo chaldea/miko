@@ -41,6 +41,10 @@ public static class DesktopNativeServiceExtensions
 
         services.AddMikoNative();
 
+        // 组件面向的屏幕方向/息屏实现（ISSUE-138）。桌面窗口没有可编程方向，实现的是状态跟踪
+        // 而非真实旋转；换个平台包即可换成真实实现。
+        builder.UseOrientation(_ => new DesktopOrientationService());
+
         services.ReplaceNative<IAppService, DesktopAppService>();
         services.ReplaceNative<IBrowserService, DesktopBrowserService>();
         services.ReplaceNative<IClipboardService, DesktopClipboardService>();

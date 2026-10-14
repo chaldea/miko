@@ -18,14 +18,26 @@ public abstract class IonicComponentTestBase : IDisposable
 
     protected TestContext Context { get; }
 
+    /// <summary>
+    /// The shared platform service backing <see cref="Context"/>. Tests use it to drive the system
+    /// back button (<c>Platform.Back.Dispatch()</c>) and to observe registrations (ISSUE-138).
+    /// One instance backs both <see cref="IPlatformInfo"/> and <see cref="IPlatformService"/>, as
+    /// in <c>MikoAppBuilder.CreateDefault</c>.
+    /// </summary>
+    protected PlatformInfo Platform => _platform;
+
     protected IonicComponentTestBase()
     {
         Context = new TestContext();
         Context.Services.AddSingleton<IPlatformInfo>(_platform);
+        Context.Services.AddSingleton<IPlatformService>(_platform);
     }
 
     /// <summary>Sets the host platform used for subsequent renders (md for all but iOS).</summary>
     protected void UsePlatform(HostPlatform platform) => _platform.Platform = platform;
+
+    /// <summary>Simulates a system back button press. Returns whether a component consumed it.</summary>
+    protected bool PressBack() => _platform.Back.Dispatch();
 
     public void Dispose()
     {

@@ -80,6 +80,8 @@ public class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         Delegate = this;
         MultipleTouchEnabled = false;
         _paint = PaintFrame;
+
+        AttachEdgeBackGesture();
     }
 
     /// <summary>
@@ -223,6 +225,29 @@ public class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         x = (float)location.X;
         y = (float)location.Y;
         return true;
+    }
+
+    /// <summary>
+    /// 左缘返回手势（ISSUE-138）。iOS 没有硬件返回键，系统惯例是从屏幕左缘向右滑。
+    /// <para>
+    /// 手势在抬手（<c>Ended</c>）时才分发一次返回，中途取消不算。识别成功后 UIKit 会取消视图上
+    /// 的触摸（<c>TouchesCancelled</c> → 指针取消），因此从左缘起手的拖动不会同时被页面当作滚动——
+    /// 无论这次返回最终有没有组件消费。iOS 没有可交还的"系统默认返回"，未消费时什么也不发生。
+    /// </para>
+    /// </summary>
+    private void AttachEdgeBackGesture()
+    {
+        var recognizer = new UIScreenEdgePanGestureRecognizer
+        {
+            Edges = UIRectEdge.Left,
+        };
+        recognizer.AddTarget(() =>
+        {
+            if (recognizer.State != UIGestureRecognizerState.Ended) return;
+            // 经控制器（持锁）分发：手势回调在主线程，与渲染互斥。
+            if (_controller.OnBackButton()) SetNeedsDisplay();
+        });
+        AddGestureRecognizer(recognizer);
     }
 
     public override bool CanBecomeFirstResponder => true;

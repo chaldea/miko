@@ -1,5 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Platform
 @* Mirrors Ionic's <ion-modal> overlay contract. The modal can be declared with IsOpen or created
    through IonModalController. A sheet modal is enabled when Breakpoints and InitialBreakpoint are
    supplied; its full-height wrapper is positioned so only the active fraction remains visible. *@
@@ -131,7 +132,28 @@
             .If(isSheet, "modal-sheet")
             .If(!IsOpen, "overlay-hidden");
 
+        UpdateBackHandler();
+
         _wasOpen = IsOpen;
+    }
+
+    /// <summary>
+    /// Registers this modal as the system back-button handler while it is open and dismissible by
+    /// the user. Called from <see cref="OnParametersSet"/> so the registration always reflects the
+    /// current open state; <see cref="BackdropDismiss"/> is the same gate the backdrop tap uses,
+    /// since both are "the user asked to go back" (ISSUE-138).
+    /// </summary>
+    private void UpdateBackHandler()
+    {
+        RegisterBackHandler(IsOpen && BackdropDismiss ? HandleBack : null, BackButtonPriority.Overlay);
+    }
+
+    private bool HandleBack()
+    {
+        // Re-check at dispatch time: the registration reflects the last render, not the present.
+        if (!IsOpen) return false;
+        _ = DismissAsync("back", null);
+        return true;
     }
 
     private async Task OnBackdropTapAsync(MouseEventArgs _)
@@ -210,6 +232,11 @@
     /// <see cref="OnDidDismiss"/>.</summary>
     public async Task DismissAsync(string? role = null, object? data = null)
     {
+        // Let go of the back button before the first await. Nothing below re-runs
+        // OnParametersSet unless the host re-renders on IsOpenChanged, so without this a modal
+        // closed by back would keep swallowing every later back press (ISSUE-138).
+        ClearBackHandler();
+
         var detail = new IonOverlayDismissEventArgs(role, data);
         await OnWillDismiss.InvokeAsync(detail);
         if (IsOpen)

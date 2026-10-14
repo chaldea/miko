@@ -28,13 +28,26 @@ public class MikoAppBuilder
 
         builder.Services.AddOptions<MikoAppOptions>();
         builder.Services.AddSingleton<NavigationManager>();
-        // Host platform info (auto-detected from the OS). Singleton so platform hosts / the
-        // device simulator can resolve and override it; component libraries derive UI choices
-        // from it (e.g. Miko.Ionic's md/ios mode).
-        builder.Services.AddSingleton<IPlatformInfo, PlatformInfo>();
+        // Host platform info + component-facing platform service (auto-detected from the OS).
+        // One shared instance backs both interfaces: platform hosts / the device simulator mutate
+        // the concrete PlatformInfo (they resolve it by concrete type), while component libraries
+        // read it through IPlatformInfo / IPlatformService — so a platform switch is seen by both
+        // (e.g. Miko.Ionic's md/ios mode, the back-button chain, ISSUE-138).
+        // The orientation implementation is bound here, at resolution, rather than after Build():
+        // harnesses and tests build the container directly, and a post-Build hook would leave
+        // them with the inert default while the app proper gets the real one.
+        builder.Services.AddSingleton(sp => new PlatformInfo
+        {
+            Orientation = sp.GetRequiredService<IOrientationService>(),
+        });
+        builder.Services.AddSingleton<IPlatformInfo>(sp => sp.GetRequiredService<PlatformInfo>());
+        builder.Services.AddSingleton<IPlatformService>(sp => sp.GetRequiredService<PlatformInfo>());
         // Hosts replace this inert endpoint with their native Android/iOS/desktop implementation.
         builder.Services.TryAddSingleton<IInputMethodService, NullInputMethod>();
         builder.Services.TryAddSingleton<IScrollBehavior, DefaultScrollBehavior>();
+        // Inert by default so components may call orientation/keep-awake unconditionally; the
+        // platform packages override it via UseOrientation (ISSUE-138).
+        builder.Services.TryAddSingleton<IOrientationService, NullOrientationService>();
         builder.Services.AddSingleton<HotReloadService>();
         builder.Services.AddSingleton<MikoInteractionController>();
 
@@ -119,6 +132,23 @@ public class MikoAppBuilder
     public MikoAppBuilder EnableHotReload()
     {
         Services.Configure<MikoAppOptions>(o => o.EnableHotReload = true);
+        return this;
+    }
+
+    /// <summary>
+    /// Supplies the platform's screen-orientation / keep-awake implementation (ISSUE-138).
+    /// Called by the platform packages (<c>UseDesktopNative()</c> / <c>UseAndroidNative()</c> /
+    /// <c>UseIosNative()</c> / <c>UseSimulatorNative()</c>) with their own implementation, so
+    /// components reach it through the shared <see cref="IPlatformService"/>.
+    /// <para>
+    /// Without this the inert <see cref="NullOrientationService"/> stays in place, which is the
+    /// right behavior for bare tests and hosts that never call it.
+    /// </para>
+    /// </summary>
+    public MikoAppBuilder UseOrientation(Func<IServiceProvider, IOrientationService> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        Services.AddSingleton(factory);
         return this;
     }
 

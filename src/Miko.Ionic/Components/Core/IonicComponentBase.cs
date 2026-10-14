@@ -28,6 +28,13 @@ public abstract class IonicComponentBase : ComponentBase
     [Inject] protected IPlatformInfo? PlatformInfo { get; set; }
 
     /// <summary>
+    /// The component-facing platform service, supplying the system back-button chain and
+    /// orientation control (ISSUE-138). Null when the component is built without an ambient
+    /// service scope (e.g. a bare unit test); back handling is then simply not registered.
+    /// </summary>
+    [Inject] protected IPlatformService? PlatformService { get; set; }
+
+    /// <summary>
     /// The app's navigation manager, used by components with default navigation behavior
     /// (e.g. <see cref="IonItem"/> with <c>Href</c>, <see cref="IonBackButton"/>'s nav-pop,
     /// <see cref="IonTabs"/> root switching). Null when no service scope is available
@@ -113,6 +120,63 @@ public abstract class IonicComponentBase : ComponentBase
     private static readonly object ResolvedThemesGate = new();
 
     private readonly record struct ThemeKey(IonicTheme? Source, IonicMode Mode, IonicTheme? Cascading);
+
+    // The component's slot in the shared back-button chain, if any. One slot per component (not a
+    // list): a component either responds to the back button or it does not. The registered thunk
+    // forwards to _backHandler, so a later render can swap the handler without giving up the slot.
+    private IDisposable? _backRegistration;
+    private Func<bool>? _backHandler;
+    private int _backPriority;
+
+    /// <summary>
+    /// Makes <paramref name="handler"/> this component's system back-button handler (ISSUE-138).
+    /// The handler returns <c>true</c> when it consumed the back action (e.g. it closed itself);
+    /// <c>false</c> passes it to the next handler — or to the platform default (exit the app).
+    ///
+    /// <para>
+    /// Call it from <see cref="ComponentBase.OnParametersSet"/> with the current state; passing
+    /// <c>null</c> releases the slot. Calling it again with a handler at the same priority only
+    /// swaps the handler and keeps the slot, so re-rendering does not move the component ahead
+    /// of handlers registered after it. The slot is released automatically on dispose.
+    /// </para>
+    /// </summary>
+    /// <param name="handler">The handler, or null to stop responding to back.</param>
+    /// <param name="priority">See <see cref="BackButtonPriority"/>: overlays outrank the menu,
+    /// which outranks page navigation.</param>
+    protected void RegisterBackHandler(Func<bool>? handler, int priority = BackButtonPriority.Navigation)
+    {
+        if (handler is null)
+        {
+            ClearBackHandler();
+            return;
+        }
+
+        _backHandler = handler;
+        if (_backRegistration is not null && _backPriority == priority)
+            return;
+
+        _backRegistration?.Dispose();
+        _backPriority = priority;
+        _backRegistration = PlatformService?.Back.Register(() => _backHandler?.Invoke() ?? false, priority);
+    }
+
+    /// <summary>
+    /// Releases the <see cref="RegisterBackHandler"/> slot immediately. Overlays call this as soon
+    /// as they start dismissing, before awaiting anything: the next back press must reach whatever
+    /// is beneath them, even if the host never re-renders them closed.
+    /// </summary>
+    protected void ClearBackHandler()
+    {
+        _backRegistration?.Dispose();
+        _backRegistration = null;
+        _backHandler = null;
+    }
+
+    protected override void OnDispose()
+    {
+        ClearBackHandler();
+        base.OnDispose();
+    }
 
     private IonicTheme ResolveTheme(IonicMode mode)
     {

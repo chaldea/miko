@@ -35,6 +35,8 @@ public sealed class MikoInteractionController
     private readonly EventDispatcher _eventDispatcher;
     private readonly MikoSynchronizationContext _syncContext;
     private readonly MikoDispatcher _dispatcher;
+    // Optional: absent in bare unit tests and hosts that build an engine without the app builder.
+    private readonly IPlatformService? _platformService;
     private IScrollBehavior _scrollBehavior;
     private IScrollGestureBehavior? _scrollGestureBehavior;
 
@@ -106,13 +108,15 @@ public sealed class MikoInteractionController
         HotReloadService hotReloadService,
         ILogger<MikoInteractionController> logger,
         IInputMethodService? inputMethod = null,
-        IScrollBehavior? scrollBehavior = null)
+        IScrollBehavior? scrollBehavior = null,
+        IPlatformService? platformService = null)
     {
         _options = options.Value;
         _serviceProvider = serviceProvider;
         _engine = engine;
         _eventDispatcher = eventDispatcher;
         _dispatcher = dispatcher;
+        _platformService = platformService;
         _scrollBehavior = scrollBehavior ?? new DefaultScrollBehavior();
         _scrollGestureBehavior = _scrollBehavior as IScrollGestureBehavior;
         _hotReloadService = hotReloadService;
@@ -980,11 +984,34 @@ public sealed class MikoInteractionController
     // 键盘 / 文本输入
     // ---------------------------------------------------------------------
 
+    /// <summary>
+    /// 系统返回键（ISSUE-138）：Android 硬件/手势返回、iOS 左缘返回手势、模拟器面板的返回按钮。
+    /// 返回是否被某个组件消费；未消费时宿主应交还平台默认行为（Android 上即退出/后台）。
+    /// <para>
+    /// 宿主必须经由本方法而不是直接调用 <see cref="BackButtonRegistry.Dispatch"/>：移动端的返回
+    /// 回调来自 UI 线程，而组件在渲染线程构建。处理者会改写组件状态，必须与渲染、触摸一样持有
+    /// 控制器锁，否则就会在渲染进行到一半时修改组件树。
+    /// </para>
+    /// </summary>
+    public bool OnBackButton()
+    {
+        lock (_sync)
+        {
+            return _platformService?.Back.Dispatch() ?? false;
+        }
+    }
+
     /// <summary>键按下。返回 true 表示该按键已被全局处理器消费。</summary>
     public bool OnKeyDown(MikoKey key, MikoKeyModifiers mods)
     {
         lock (_sync)
         {
+            // 返回键（桌面以 Escape 表达）先交给平台服务分发链。覆盖层（模态框/菜单/动作面板）
+            // 若能消费，键盘事件到此为止——否则同样监听 Escape 的组件（如 Player 的全屏切换）
+            // 会在关闭覆盖层的同时被触发，一次按键变成两个动作（ISSUE-138）。
+            if (key == MikoKey.Escape && OnBackButton())
+                return true;
+
             foreach (var handler in _options.GlobalKeyDownHandlers)
             {
                 if (handler(key)) return true;

@@ -32,13 +32,33 @@ public interface IPlatformInfo
 }
 
 /// <summary>
-/// Default mutable <see cref="IPlatformInfo"/>. <see cref="Platform"/> defaults to the detected OS
-/// and can be reassigned at runtime (the simulator does this on device change).
+/// Default mutable <see cref="IPlatformInfo"/> and <see cref="IPlatformService"/>.
+/// <see cref="Platform"/> defaults to the detected OS and can be reassigned at runtime (the
+/// simulator does this on device change).
+///
+/// <para>
+/// Because it serves both interfaces, the two DI registrations point at the same instance — so a
+/// component that injects <see cref="IPlatformService"/> and the simulator that rewrites
+/// <see cref="Platform"/> are always looking at the same object (ISSUE-138).
+/// </para>
 /// </summary>
-public sealed class PlatformInfo : IPlatformInfo
+public sealed class PlatformInfo : IPlatformService
 {
     /// <summary>The current host platform.</summary>
     public HostPlatform Platform { get; set; }
+
+    /// <summary>
+    /// The system back-button dispatch chain. Shared by every component in the process — a back
+    /// event can only mean one thing at a time, so this is deliberately not per-component.
+    /// </summary>
+    public BackButtonRegistry Back { get; } = new();
+
+    /// <summary>
+    /// Screen orientation / keep-awake. Defaults to the inert implementation so components can call
+    /// it unconditionally; <c>MikoAppBuilder.CreateDefault</c> initializes it from the registered
+    /// <see cref="IOrientationService"/> (replaced by the platform packages via <c>UseOrientation</c>).
+    /// </summary>
+    public IOrientationService Orientation { get; init; } = new NullOrientationService();
 
     public PlatformInfo() => Platform = Detect();
 
