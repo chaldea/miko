@@ -3,6 +3,7 @@
 
 using Foundation;
 using Miko.iOS;
+using Miko.iOS.Native;
 using Miko.iOS.Video;
 using UIKit;
 
@@ -21,7 +22,13 @@ public class SceneDelegate : UIWindowSceneDelegate
             return;
 
         // iOS 27 requires each window to belong to a scene.
-        var context = Anime.App.CreateContext(builder => builder.UseIosVideo());
+        // UseIosNative() supplies the component-facing platform services the player uses in
+        // fullscreen: landscape lock and keep-awake (ISSUE-149).
+        var context = Anime.App.CreateContext(builder =>
+        {
+            builder.UseIosVideo();
+            builder.UseIosNative();
+        });
         var controller = new MikoViewController(context);
         Window = new UIWindow(windowScene)
         {

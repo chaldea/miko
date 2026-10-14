@@ -136,7 +136,11 @@
 
     private void LoadTitle()
     {
-        _player?.Dispose();
+        if (_player is not null)
+        {
+            _player.FullscreenChanged -= StateHasChanged;
+            _player.Dispose();
+        }
         _title = Catalog.Find(AnimeNavigation.SelectedId ?? 0);
         _tab = "intro";
         _composerOpen = false;
@@ -159,6 +163,9 @@
             DanmakuSettings = new DanmakuSettings { FontSize = 18 },
             Style = new Style { Height = Length.Px(230), FlexShrink = 0 }
         };
+        // The system back button can leave fullscreen without going through this page
+        // (ISSUE-149); re-render so the floating exit button follows the player.
+        _player.FullscreenChanged += StateHasChanged;
         Library.RecordWatch(Id, _episode);
     }
 

@@ -4,6 +4,7 @@ using Miko.Components.Player.Danmaku;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
+using Miko.Platform;
 using Miko.Platform.Video;
 using Miko.Styling;
 using SkiaSharp;
@@ -27,9 +28,24 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     [Parameter] public DanmakuSettings DanmakuSettings { get; set; } = new();
     [Inject] public MikoEngine? Engine { get; set; }
     [Inject] public MikoPlayerOptions Options { get; set; } = new();
+
+    /// <summary>
+    /// Component-facing platform service: landscape lock, keep-awake and the system back button
+    /// while fullscreen (ISSUE-149). Null without a service scope; fullscreen then stays a pure
+    /// viewport layout, as before.
+    /// </summary>
+    [Inject] public IPlatformService? PlatformService { get; set; }
+
     public PlayerController Controller { get; } = new();
     public bool IsFullscreen { get; private set; }
     public bool IsSettingsOpen { get; private set; }
+
+    /// <summary>
+    /// Raised after <see cref="IsFullscreen"/> changes — including when the system back button exits
+    /// fullscreen, which the host did not initiate. Hosts that render UI off the fullscreen state
+    /// re-render from here.
+    /// </summary>
+    public event Action? FullscreenChanged;
 
     private readonly DivElement _root = new();
     private readonly DivElement _viewport = new();
@@ -55,6 +71,12 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     private long _lastTimeUpdate;
     private bool _lastMuted, _lastLoop;
     private float _lastVolume = float.NaN, _lastRate = float.NaN;
+
+    // The platform requests held while fullscreen (ISSUE-149): the service they were taken from and
+    // the back-button slot. Non-null exactly while held, so leaving fullscreen and Dispose release
+    // each request once.
+    private IPlatformService? _fullscreenPlatform;
+    private IDisposable? _fullscreenBack;
 
     protected override void OnInitialized()
     {
@@ -114,9 +136,44 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     public void ToggleFullscreen()
     {
         IsFullscreen = !IsFullscreen;
+        if (IsFullscreen) AcquireFullscreenPlatform();
+        else ReleaseFullscreenPlatform();
         ApplyRootStyle();
         ResizeViewport();
         Repaint();
+        FullscreenChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Fullscreen on a phone means landscape with the screen kept on, and the system back button
+    /// (Android back, iOS edge swipe, desktop Escape) leaving fullscreen before it leaves the page.
+    /// The back slot uses overlay priority so it outranks the page's back button.
+    /// </summary>
+    private void AcquireFullscreenPlatform()
+    {
+        if (_fullscreenPlatform is not null || PlatformService is not { } platform) return;
+
+        _fullscreenPlatform = platform;
+        platform.Orientation.Lock(ScreenOrientation.Landscape);
+        platform.Orientation.KeepAwake();
+        // Checked again when invoked: the slot may outlive the state that registered it.
+        _fullscreenBack = platform.Back.Register(() =>
+        {
+            if (_disposed || !IsFullscreen) return false;
+            ToggleFullscreen();
+            return true;
+        }, BackButtonPriority.Overlay);
+    }
+
+    private void ReleaseFullscreenPlatform()
+    {
+        if (_fullscreenPlatform is not { } platform) return;
+
+        _fullscreenPlatform = null;
+        _fullscreenBack?.Dispose();
+        _fullscreenBack = null;
+        platform.Orientation.Unlock();
+        platform.Orientation.AllowSleep();
     }
 
     public void ToggleSettings()
@@ -212,7 +269,9 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
                 case "ArrowRight": Seek(Controller.Position + TimeSpan.FromSeconds(5)); break;
                 case "m": case "M": Controller.SetMuted(!Controller.Muted); break;
                 case "f": case "F": ToggleFullscreen(); break;
-                case "Escape": if (IsFullscreen) ToggleFullscreen(); if (IsSettingsOpen) ToggleSettings(); break;
+                // With a platform service, Escape reaches the back-button chain first: it leaves
+                // fullscreen there and is swallowed. This branch only serves hosts without one.
+                case "Escape": if (IsFullscreen && _fullscreenPlatform is null) ToggleFullscreen(); if (IsSettingsOpen) ToggleSettings(); break;
                 default: return;
             }
             e.PreventDefault(); e.StopPropagation();
@@ -378,6 +437,8 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        // Leaving the page while fullscreen must not leave the screen locked landscape and awake.
+        ReleaseFullscreenPlatform();
         _video.SessionChanged -= Controller.Attach;
         _video.PlaybackEvent -= Controller.HandleEvent;
         _video.PlaybackUpdated -= Refresh;
