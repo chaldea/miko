@@ -1,5 +1,6 @@
 using Miko.McpServer;
 using Miko.Simulator;
+using Miko.Simulator.Native;
 using MikoMultiplatformApp;
 
 namespace MikoMultiplatformApp.Simulator;
@@ -13,7 +14,14 @@ public static class Program
         // (default http://localhost:5800) once the simulator window is up,
         // exposing DOM/style/screenshot/device tools to MCP clients such as
         // Claude Code. Only the simulator head references Miko.McpServer.
-        var context = App.CreateContext(builder => builder.AddMikoMcpServer());
+        //
+        // UseSimulatorNative() supplies simulated Miko.Native capabilities and platform services,
+        // logging calls such as component haptics so they can be observed on the desktop.
+        var context = App.CreateContext(builder =>
+        {
+            builder.AddMikoMcpServer();
+            builder.UseSimulatorNative();
+        });
 
         // Hot reload is wired up inside the shared app assembly, same as the desktop head.
         App.InitializeHotReload(context);

@@ -14,7 +14,7 @@ namespace Miko.Ionic.Tests;
 /// </summary>
 public abstract class IonicComponentTestBase : IDisposable
 {
-    private readonly PlatformInfo _platform = new(HostPlatform.Android);
+    private readonly PlatformInfo _platform;
 
     protected TestContext Context { get; }
 
@@ -26,8 +26,15 @@ public abstract class IonicComponentTestBase : IDisposable
     /// </summary>
     protected PlatformInfo Platform => _platform;
 
+    /// <summary>
+    /// The haptic feedback behind <see cref="Platform"/>: records every call so tests can assert
+    /// when components tick (ISSUE-149).
+    /// </summary>
+    protected RecordingHapticFeedback Haptics { get; } = new();
+
     protected IonicComponentTestBase()
     {
+        _platform = new PlatformInfo(HostPlatform.Android) { Haptics = Haptics };
         Context = new TestContext();
         Context.Services.AddSingleton<IPlatformInfo>(_platform);
         Context.Services.AddSingleton<IPlatformService>(_platform);

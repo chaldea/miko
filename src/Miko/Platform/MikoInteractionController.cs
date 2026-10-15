@@ -404,6 +404,12 @@ public sealed class MikoInteractionController
             bool rebuilt = _needsRebuild;
             try
             {
+                // The frame's size is the viewport's size. The mobile hosts report it only here,
+                // every frame — rotating the device (e.g. the player locking landscape, ISSUE-149)
+                // changes it with no separate resize call, and without this the layout kept the
+                // portrait width. A no-op when the size is unchanged.
+                _engine.SetViewportSize(width, height);
+
                 if (_needsRebuild)
                     Rebuild(canvas, width, height, paint: false);
 

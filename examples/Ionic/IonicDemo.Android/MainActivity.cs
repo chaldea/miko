@@ -1,6 +1,7 @@
 using Android.App;
 using Android.OS;
 using Miko.Android;
+using Miko.Android.Native;
 
 namespace IonicDemo.Android;
 
@@ -28,7 +29,9 @@ public class MainActivity : Activity
         }
 
         // Reuse the shared app configuration; Miko.Android drives rendering and touch input.
-        _view = MikoAndroidApp.CreateView(this, () => IonicDemo.App.CreateContext());
+        // UseAndroidNative() also supplies the component-facing platform services, e.g. the
+        // picker / reorder haptics (ISSUE-149); without it those stay silent.
+        _view = MikoAndroidApp.CreateView(this, () => IonicDemo.App.CreateContext(builder => builder.UseAndroidNative()));
         SetContentView(_view);
     }
 

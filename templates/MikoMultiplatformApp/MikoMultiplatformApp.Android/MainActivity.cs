@@ -1,6 +1,7 @@
 using Android.App;
 using Android.OS;
 using Miko.Android;
+using Miko.Android.Native;
 
 namespace MikoMultiplatformApp.Android;
 
@@ -28,7 +29,10 @@ public class MainActivity : Activity
         }
 
         // Reuse the shared app configuration; Miko.Android drives rendering and touch input.
-        _view = MikoAndroidApp.CreateView(this, () => MikoMultiplatformApp.App.CreateContext());
+        // UseAndroidNative() supplies the Miko.Native capabilities and the platform services
+        // components use, such as picker / reorder haptics.
+        _view = MikoAndroidApp.CreateView(this,
+            () => MikoMultiplatformApp.App.CreateContext(builder => builder.UseAndroidNative()));
         SetContentView(_view);
     }
 

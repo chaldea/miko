@@ -98,6 +98,10 @@ public static class SimulatorNativeServiceExtensions
         // 可观察已经足够，且与桌面行为一致。
         builder.UseOrientation(_ => new DesktopOrientationService());
 
+        // 组件面向的触觉反馈（ISSUE-149）。与方向不同，这里需要单独的仿真实现：桌面的空实现
+        // 什么都不留下，而模拟器要让"滚轮每跳一格触发一次"这类调用链在桌面上可观察。
+        builder.UseHaptics(sp => new SimulatorHapticFeedback(sp.GetService<ILogger<SimulatorHapticFeedback>>()));
+
         return builder;
     }
 }

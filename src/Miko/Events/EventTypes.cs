@@ -22,11 +22,4 @@ public static class EventTypes
     public const string Scroll = "scroll";
     public const string KeyDown = "keydown";
     public const string Input = "input";
-
-    /// <summary>
-    /// 系统返回键（ISSUE-138）。由 <see cref="Miko.Platform.BackButtonRegistry"/> 在返回被消费时
-    /// 派发到对应的元素上，供需要自行响应返回的应用监听。硬件来源因平台而异：Android 的硬件/
-    /// 手势返回、iOS 的左缘返回手势、桌面的 Escape。
-    /// </summary>
-    public const string BackButton = "backbutton";
 }

@@ -21,9 +21,14 @@
    the option under the center. Selection has two paths, mirroring Ionic's setValue + scrollCallback:
    - click (RequestSelect → SelectAsync): sets Value and centers the newly-selected option in the
      scrollable wheel (centerPickerItemInView).
-   - scroll (@onscroll on .picker-opts → HandleScroll): the wheel was scrolled (mouse wheel / drag),
+   - scroll (@onscroll on .picker-opts → HandleScroll): the wheel was scrolled (mouse wheel / fling),
      so the nearest enabled option is selected and snapped to the center.
-   Ionic's IntersectionObserver / keyboard / haptics logic is runtime DOM behavior with no Miko
+   - finger drag: while a touch pointer is down the wheel follows the finger. The centered option is
+     highlighted live but nothing snaps; on release the wheel snaps and ValueChanged fires once — as in
+     Ionic, which sets the value only once scrolling settles (ISSUE-149).
+   Haptics follow Ionic's scroll listener (ISSUE-149): the first scroll of a gesture starts a
+   selection, every change of the centered option ticks, and the selection ends 250ms after the last
+   scroll event. Ionic's IntersectionObserver / keyboard logic is runtime DOM behavior with no Miko
    equivalent and remains omitted. *@
 <div class="@ClassMapper.Class" style="@Style">
     @SlotPrefix
@@ -75,6 +80,26 @@
     // The .picker-opts scroll container, captured in Build() so SelectAsync can center it.
     private Element? _optsElement;
 
+    // Haptic selection session (ISSUE-149). Neither Miko nor the browser raises a scroll-end event,
+    // so — like Ionic — the session ends a fixed delay after the last scroll. The end timer runs on
+    // the thread pool, hence the lock; haptics are called under it so start/end never reorder.
+    private const int SelectionEndDelayMs = 250;
+    private readonly object _hapticGate = new();
+    private System.Threading.Timer? _selectionEndTimer;
+    private bool _hapticSelecting;
+
+    // Touch drag (ISSUE-149). Snapping on every scroll event undid each small finger step, so a slow
+    // drag could never leave the selected option; while the finger is down the snap and the binding
+    // wait for the release instead. Deferring ValueChanged also keeps a two-way-bound parent from
+    // recreating this column (and losing this state) on every tick of the drag.
+    private bool _fingerDown;
+    private string? _valueAtGestureStart;
+
+    // InitialScrollTop centers the selection when this instance first renders. Every scroll event
+    // re-renders the column, and re-applying it then would snap the wheel back under the finger; the
+    // engine carries the scroll offset across those re-renders on its own.
+    private bool _initialScrollApplied;
+
     protected override void OnParametersSet()
     {
         ClassMapper
@@ -100,14 +125,47 @@
     public override Element Build()
     {
         var root = base.Build();
+
+        // Raw handlers, not Razor callbacks: tracking the finger must not re-render the column.
+        root.OnPointerDown = OnWheelPointerDown;
+        root.OnPointerUp = args => _ = ReleaseWheelAsync();
+        root.OnPointerCancel = args => _ = ReleaseWheelAsync();
+
         _optsElement = root.FindByClass("picker-opts").FirstOrDefault();
-        if (_optsElement is not null)
+        if (_optsElement is not null && !_initialScrollApplied)
         {
             var selectedIndex = _context.Options.FindIndex(option => option.Value == Value && !option.Disabled);
             if (selectedIndex >= 0)
+            {
                 _optsElement.InitialScrollTop = ScrollTopForOption(selectedIndex);
+                _initialScrollApplied = true;
+            }
         }
         return root;
+    }
+
+    private void OnWheelPointerDown(PointerEventArgs args)
+    {
+        if (Disabled || args.PointerType == PointerType.Mouse) return;
+        _fingerDown = true;
+        _valueAtGestureStart = Value;
+    }
+
+    /// <summary>
+    /// The finger left the wheel: snap the centered option into place and report it, once, if the
+    /// drag changed it. A fling that follows is handled by <see cref="HandleScroll"/>'s snapping path.
+    /// </summary>
+    private async Task ReleaseWheelAsync()
+    {
+        if (!_fingerDown) return;
+        _fingerDown = false;
+
+        ScrollActiveIntoView();
+        if (Value is { } value && value != _valueAtGestureStart)
+        {
+            await ValueChanged.InvokeAsync(value);
+            StateHasChanged();
+        }
     }
 
     /// <summary>
@@ -119,6 +177,9 @@
     {
         if (Disabled || value == Value) return;
         Value = value;
+        // A tap moves the wheel by one selection: one tick, like Ionic's smooth scroll to the option.
+        ExtendHapticSelection();
+        Haptics.SelectionChanged();
         ScrollActiveIntoView();
         await ValueChanged.InvokeAsync(value);
         StateHasChanged();
@@ -141,17 +202,73 @@
         var option = FindNearestEnabledOption(options, centeredIndex, args.DeltaY);
         if (option is not { } selectedOption) return;
 
+        // From here on the wheel offset belongs to the user, not to the initial centering.
+        _initialScrollApplied = true;
+        ExtendHapticSelection();
+
         var value = selectedOption.Value;
         if (value == Value)
         {
-            ScrollActiveIntoView();
+            if (!_fingerDown) ScrollActiveIntoView();
             return;
         }
 
         Value = value;
+        // The wheel moved onto another option: this is the "click" of the gear. It precedes
+        // ValueChanged because the parent's re-render may dispose this instance (ending the session).
+        Haptics.SelectionChanged();
+
+        // Under the finger: the re-render this scroll callback triggers highlights the new option;
+        // the offset and the binding are settled on release.
+        if (_fingerDown) return;
+
         ScrollActiveIntoView();
         await ValueChanged.InvokeAsync(value);
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Starts the haptic selection session if none is running and (re)arms its end timer. Ionic
+    /// calls <c>hapticSelectionStart</c> on the first scroll callback of a gesture.
+    /// </summary>
+    private void ExtendHapticSelection()
+    {
+        lock (_hapticGate)
+        {
+            _selectionEndTimer ??= new System.Threading.Timer(_ => EndHapticSelection());
+            _selectionEndTimer.Change(SelectionEndDelayMs, Timeout.Infinite);
+            if (_hapticSelecting) return;
+            _hapticSelecting = true;
+            Haptics.SelectionStart();
+        }
+    }
+
+    private void EndHapticSelection()
+    {
+        lock (_hapticGate)
+        {
+            if (!_hapticSelecting) return;
+            _hapticSelecting = false;
+            Haptics.SelectionEnd();
+        }
+    }
+
+    /// <summary>
+    /// A parent re-render (e.g. two-way binding on every tick) recreates the column mid-gesture
+    /// (ISSUE-138 constraint 1), so the session is closed here and the next scroll opens a new one on
+    /// the replacement instance. Platform implementations tolerate that split.
+    /// </summary>
+    protected override void OnDispose()
+    {
+        System.Threading.Timer? timer;
+        lock (_hapticGate)
+        {
+            timer = _selectionEndTimer;
+            _selectionEndTimer = null;
+        }
+        timer?.Dispose();
+        EndHapticSelection();
+        base.OnDispose();
     }
 
     /// <summary>

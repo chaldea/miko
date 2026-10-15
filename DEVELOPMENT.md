@@ -243,6 +243,11 @@ dotnet run --project examples/Multiplatform/MikoAppTabs/MikoAppTabs.Simulator/Mi
 
 # 清理构建产物
 dotnet clean
+
+# 打包到本地 NuGet 源 <仓库>/packages（Directory.Build.props 设定，已加入 .gitignore）
+# 仓库内模板的 nuget.config 从这里还原 Miko* 包；重新打包后先删除 ~/.nuget/packages/miko* 旧缓存
+dotnet pack miko.slnx
+dotnet pack templates/Miko.Templates.csproj
 ```
 
 ## 核心依赖项
@@ -1311,6 +1316,11 @@ public class App
 - **视频播放**：需要平台注入 `IVideoBackend` 实现，否则 `<video>` 元素仅显示背景/poster
 - **字体回退**：不同平台的系统字体不同，使用 `FontFallbackResolver` 确保跨平台一致性
 - **输入法（IME）**：移动平台支持原生软键盘，桌面依赖操作系统 IME
+- **组件面向的平台服务**：`IPlatformService` 提供返回键链（`Back`）、屏幕方向/常亮（`Orientation`）与
+  触觉反馈（`Haptics`），全部同步、不支持时静默空操作。真实实现由平台头项目调用 `Use*Native()` 接入，
+  不调用时 `IonPicker` 的滚轮触感、`MikoPlayer` 全屏横屏都不会生效（ISSUE-138、ISSUE-149）
+- **屏幕旋转**：Android 上需要锁定方向的应用（如播放器全屏）要在 Activity 上声明
+  `ConfigurationChanges = Orientation | ScreenSize | …`，否则旋转会销毁重建 Activity、整个应用回到首页
 
 ### Razor 编译器
 

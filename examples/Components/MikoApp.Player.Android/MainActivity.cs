@@ -1,6 +1,8 @@
 using Android.App;
+using Android.Content.PM;
 using Android.OS;
 using Miko.Android;
+using Miko.Android.Native;
 using Miko.Android.Video;
 using Miko.Common;
 using Miko.Components.Player;
@@ -11,7 +13,11 @@ using Miko.Styling;
 
 namespace MikoApp.Player.Android;
 
-[Activity(Label = "MikoPlayer", MainLauncher = true, Theme = "@android:style/Theme.Material.Light.NoActionBar")]
+// ConfigurationChanges keeps the activity (and the player) alive across rotation: fullscreen locks
+// landscape (ISSUE-149), and a recreated activity would start over with a new, windowed player.
+[Activity(Label = "MikoPlayer", MainLauncher = true, Theme = "@android:style/Theme.Material.Light.NoActionBar",
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize
+        | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize)]
 public class MainActivity : Activity
 {
     private MikoPlayer? _player;
@@ -26,6 +32,8 @@ public class MainActivity : Activity
         var builder = MikoAppBuilder.CreateDefault();
         builder.Services.AddMikoPlayer();
         builder.UseAndroidVideo();
+        // Fullscreen locks landscape and keeps the screen on through the platform services (ISSUE-149).
+        builder.UseAndroidNative();
         builder.UseRootComponent(() =>
         {
             _player?.Dispose();

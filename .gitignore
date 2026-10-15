@@ -271,6 +271,10 @@ issues/**
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 
+## Local NuGet feed: `dotnet pack` writes here (see Directory.Build.props) and the in-repo
+## templates restore their Miko* packages from it (templates/*/nuget.config).
+/packages/
+
 ## Agent-first assets are authored once under /agent and injected into the template
 ## packages at pack time (see templates/Miko.Templates.csproj). Never commit copies of
 ## them under the template source dirs — the packer supplies them from /agent.

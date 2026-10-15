@@ -33,12 +33,13 @@ public class MikoAppBuilder
         // the concrete PlatformInfo (they resolve it by concrete type), while component libraries
         // read it through IPlatformInfo / IPlatformService — so a platform switch is seen by both
         // (e.g. Miko.Ionic's md/ios mode, the back-button chain, ISSUE-138).
-        // The orientation implementation is bound here, at resolution, rather than after Build():
-        // harnesses and tests build the container directly, and a post-Build hook would leave
-        // them with the inert default while the app proper gets the real one.
+        // The orientation and haptics implementations are bound here, at resolution, rather than
+        // after Build(): harnesses and tests build the container directly, and a post-Build hook
+        // would leave them with the inert default while the app proper gets the real one.
         builder.Services.AddSingleton(sp => new PlatformInfo
         {
             Orientation = sp.GetRequiredService<IOrientationService>(),
+            Haptics = sp.GetRequiredService<IHapticFeedback>(),
         });
         builder.Services.AddSingleton<IPlatformInfo>(sp => sp.GetRequiredService<PlatformInfo>());
         builder.Services.AddSingleton<IPlatformService>(sp => sp.GetRequiredService<PlatformInfo>());
@@ -48,6 +49,9 @@ public class MikoAppBuilder
         // Inert by default so components may call orientation/keep-awake unconditionally; the
         // platform packages override it via UseOrientation (ISSUE-138).
         builder.Services.TryAddSingleton<IOrientationService, NullOrientationService>();
+        // Same contract for haptic feedback; the platform packages override it via UseHaptics
+        // (ISSUE-149).
+        builder.Services.TryAddSingleton<IHapticFeedback, NullHapticFeedback>();
         builder.Services.AddSingleton<HotReloadService>();
         builder.Services.AddSingleton<MikoInteractionController>();
 
@@ -146,6 +150,23 @@ public class MikoAppBuilder
     /// </para>
     /// </summary>
     public MikoAppBuilder UseOrientation(Func<IServiceProvider, IOrientationService> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        Services.AddSingleton(factory);
+        return this;
+    }
+
+    /// <summary>
+    /// Supplies the platform's haptic feedback implementation (ISSUE-149). Called by the platform
+    /// packages (<c>UseAndroidNative()</c> / <c>UseIosNative()</c> / <c>UseSimulatorNative()</c>)
+    /// with their own implementation, so components (picker ticks, reorder drags) reach it through
+    /// the shared <see cref="IPlatformService"/>.
+    /// <para>
+    /// Without this the inert <see cref="NullHapticFeedback"/> stays in place — the right behavior
+    /// for the desktop, which has no haptic hardware, and for bare tests.
+    /// </para>
+    /// </summary>
+    public MikoAppBuilder UseHaptics(Func<IServiceProvider, IHapticFeedback> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
         Services.AddSingleton(factory);

@@ -52,6 +52,8 @@ public static class AndroidNativeServiceExtensions
 
         // 组件面向的屏幕方向/息屏实现（ISSUE-138）——供视频全屏锁定横屏、保持常亮等交互使用。
         builder.UseOrientation(sp => new AndroidOrientationService(sp.GetRequiredService<INativeHostContext>()));
+        // 组件面向的触觉反馈（ISSUE-149）——滚轮选择器转动、排序拖动时的"咔"一下。
+        builder.UseHaptics(sp => new AndroidHapticFeedback(sp.GetRequiredService<INativeHostContext>()));
 
         services.ReplaceNative<IAppService, AndroidAppService>();
         services.ReplaceNative<IBrowserService, AndroidBrowserService>();

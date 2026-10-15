@@ -1,0 +1,13 @@
+<Project>
+
+  <!--
+    Local NuGet feed. `dotnet pack` writes every package to <repo>/packages, which the in-repo
+    templates (templates/*/nuget.config) restore Miko* packages from, so the templates build
+    against the current sources instead of a machine-specific feed. The directory is git-ignored.
+    CI passes an explicit `-o`, which takes precedence over this default.
+  -->
+  <PropertyGroup>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)packages</PackageOutputPath>
+  </PropertyGroup>
+
+</Project>

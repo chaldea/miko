@@ -44,6 +44,7 @@ public static class DesktopNativeServiceExtensions
         // 组件面向的屏幕方向/息屏实现（ISSUE-138）。桌面窗口没有可编程方向，实现的是状态跟踪
         // 而非真实旋转；换个平台包即可换成真实实现。
         builder.UseOrientation(_ => new DesktopOrientationService());
+        // 触觉反馈（ISSUE-149）刻意不注册：桌面没有触觉硬件，保留核心的 NullHapticFeedback。
 
         services.ReplaceNative<IAppService, DesktopAppService>();
         services.ReplaceNative<IBrowserService, DesktopBrowserService>();

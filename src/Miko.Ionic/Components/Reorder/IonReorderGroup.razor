@@ -1,5 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Platform
 @* Mirrors Ionic's <ion-reorder-group>: the container that owns whether its nested reorder handles
    are enabled.
    <ion-reorder-group class="{mode} ion-reorder-group [reorder-list-active] [reorder-group-disabled]">
@@ -10,7 +11,9 @@
    enabled to allow reordering); this port keeps that default.
 
    The bubbling pointer handlers below track the selected logical child, apply transient shift classes,
-   and raise OnItemReorder on release. *@
+   and raise OnItemReorder on release. Haptics follow Ionic's reorder gesture (ISSUE-149): a light
+   impact when the handle is pressed, a selection tick whenever the target slot changes, and the
+   selection ends on release. *@
 <div class="@ClassMapper.Class" style="@Style">
     <CascadingValue TValue="IonReorderGroupContext" Value="_context">
         @ChildContent
@@ -42,6 +45,10 @@
     private Element[] _dragItems = Array.Empty<Element>();
     private Style?[] _originalItemStyles = Array.Empty<Style?>();
     private Element? _activeGroupElement;
+
+    // Whether the haptic selection opened at drag start is still open (ISSUE-149). Kept apart from
+    // _isDragging, which stays set until the async reorder callback returns.
+    private bool _hapticSelecting;
 
     protected override void OnParametersSet()
     {
@@ -107,6 +114,12 @@
         AddClass(groupElement, "reorder-list-active");
         AddClass(item, "reorder-selected");
         ApplyDragVisuals();
+
+        // Picking up the item is felt as a light tap; the selection then ticks once per slot.
+        Haptics.Impact(HapticImpactStyle.Light);
+        Haptics.SelectionStart();
+        _hapticSelecting = true;
+
         args.PreventDefault();
     }
 
@@ -118,7 +131,10 @@
         _dragOffsetY = args.Y - _startY;
         var next = CalculateTargetIndex(_dragOffsetY);
         if (next != _toIndex)
+        {
             _toIndex = next;
+            Haptics.SelectionChanged();
+        }
 
         ApplyDragVisuals();
 
@@ -139,6 +155,7 @@
         var from = _fromIndex;
         var to = _toIndex;
         var groupElement = _activeGroupElement;
+        EndHapticSelection();
         try
         {
             // Keep the item at its final pointer position while the owner applies the new order.
@@ -150,6 +167,20 @@
         {
             ClearDragState(groupElement);
         }
+    }
+
+    private void EndHapticSelection()
+    {
+        if (!_hapticSelecting) return;
+        _hapticSelecting = false;
+        Haptics.SelectionEnd();
+    }
+
+    // Leaving the page mid-drag must still close the selection opened on pointer down.
+    protected override void OnDispose()
+    {
+        EndHapticSelection();
+        base.OnDispose();
     }
 
     private int CalculateTargetIndex(float deltaY)

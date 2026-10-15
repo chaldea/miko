@@ -1,4 +1,5 @@
 using Miko.Simulator;
+using Miko.Simulator.Native;
 using IonicDemo;
 
 namespace IonicDemo.Simulator;
@@ -12,7 +13,11 @@ public static class Program
         // (default http://localhost:5800) once the simulator window is up,
         // exposing DOM/style/screenshot/device tools to MCP clients such as
         // Claude Code. Only the simulator head references Miko.McpServer.
-        var context = App.CreateContext();
+        //
+        // UseSimulatorNative() supplies the simulated platform services; the component haptics
+        // (picker ticks, reorder drags) are logged there so the call chain is observable on the
+        // desktop (ISSUE-149).
+        var context = App.CreateContext(builder => builder.UseSimulatorNative());
 
         // Hot reload is wired up inside the shared app assembly, same as the desktop head.
         App.InitializeHotReload(context);

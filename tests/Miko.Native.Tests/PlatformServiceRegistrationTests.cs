@@ -9,9 +9,9 @@ namespace Miko.Native.Tests;
 
 /// <summary>
 /// Wiring of the component-facing <see cref="IPlatformService"/> (ISSUE-138): one shared instance
-/// behind all three registrations, and the platform package's orientation implementation reaching
-/// components — whether the container comes from <c>MikoAppBuilder.Build()</c> or is built
-/// directly, as harnesses and these tests do.
+/// behind all three registrations, and the platform package's orientation and haptics
+/// (ISSUE-149) implementations reaching components — whether the container comes from
+/// <c>MikoAppBuilder.Build()</c> or is built directly, as harnesses and these tests do.
 /// </summary>
 public class PlatformServiceRegistrationTests
 {
@@ -63,6 +63,71 @@ public class PlatformServiceRegistrationTests
         var services = build(builder);
 
         services.GetRequiredService<IPlatformService>().Orientation.ShouldBeOfType<DesktopOrientationService>();
+    }
+
+    [Theory]
+    [MemberData(nameof(ProviderFactories))]
+    public void WithoutPlatformPackage_HapticsIsInert(string _, Func<MikoAppBuilder, IServiceProvider> build)
+    {
+        var services = build(MikoAppBuilder.CreateDefault());
+
+        services.GetRequiredService<IPlatformService>().Haptics.ShouldBeOfType<NullHapticFeedback>();
+    }
+
+    /// <summary>The desktop has no haptic hardware, so its package deliberately keeps the inert default.</summary>
+    [Theory]
+    [MemberData(nameof(ProviderFactories))]
+    public void UseDesktopNative_KeepsHapticsInert(string _, Func<MikoAppBuilder, IServiceProvider> build)
+    {
+        var builder = MikoAppBuilder.CreateDefault();
+        builder.UseDesktopNative();
+
+        var services = build(builder);
+
+        services.GetRequiredService<IPlatformService>().Haptics.ShouldBeOfType<NullHapticFeedback>();
+    }
+
+    [Theory]
+    [MemberData(nameof(ProviderFactories))]
+    public void UseSimulatorNative_BindsSimulatorHaptics(string _, Func<MikoAppBuilder, IServiceProvider> build)
+    {
+        var builder = MikoAppBuilder.CreateDefault();
+        builder.UseSimulatorNative();
+
+        var services = build(builder);
+
+        services.GetRequiredService<IPlatformService>().Haptics.ShouldBeOfType<SimulatorHapticFeedback>();
+    }
+
+    /// <summary>An app-supplied implementation registered after the platform package wins.</summary>
+    [Fact]
+    public void UseHaptics_LastRegistrationWins()
+    {
+        var builder = MikoAppBuilder.CreateDefault();
+        builder.UseSimulatorNative();
+        var custom = new NullHapticFeedback();
+        builder.UseHaptics(_ => custom);
+
+        var services = builder.Build().Services;
+
+        services.GetRequiredService<IPlatformService>().Haptics.ShouldBeSameAs(custom);
+    }
+
+    [Fact]
+    public void SimulatorHaptics_CountsEachCall()
+    {
+        var haptics = new SimulatorHapticFeedback();
+
+        haptics.SelectionStart();
+        haptics.SelectionChanged();
+        haptics.SelectionChanged();
+        haptics.SelectionEnd();
+        haptics.Impact(HapticImpactStyle.Light);
+
+        haptics.SelectionStartCount.ShouldBe(1);
+        haptics.SelectionChangedCount.ShouldBe(2);
+        haptics.SelectionEndCount.ShouldBe(1);
+        haptics.ImpactCount.ShouldBe(1);
     }
 
     /// <summary>Lock/KeepAwake are reference counted so nested callers do not cancel each other.</summary>
