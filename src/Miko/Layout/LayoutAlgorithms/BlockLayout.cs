@@ -46,6 +46,12 @@ public class BlockLayout
         var (intrinsicW, intrinsicH) = GetReplacedIntrinsicSize(box.Element);
         bool isReplaced = intrinsicW > 0 && intrinsicH > 0;
 
+        // 首选纵横比（aspect-ratio，ISSUE-150）。替换元素的自然纵横比不在此列，仍走下方 replaced 分支；
+        // 声明的 <ratio> 会在那里覆盖自然纵横比。
+        var aspectRatio = AspectRatioSizing.Resolve(box);
+        float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
+        float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
+
         // 2. 计算 width
         // 外部已定型宽度（flex 主轴解析，见 ISSUE-106）：直接使用，跳过自身 width 解析，
         // 避免百分比长度对"已解析尺寸"二次求值（width:50% 的 flex 项被算成 50%×50%）。
@@ -67,6 +73,31 @@ public class BlockLayout
         // .button-inner 高度塌缩为 0（ISSUE-109）。
         bool heightPercentAgainstIndefinite = style.Height.HasPercentComponent && !constraints.AvailableHeight.HasValue;
         bool heightIsAuto = style.Height.IsAuto || heightPercentAgainstIndefinite;
+
+        // 夹取到 min/max-height 后的内容高度（aspect-ratio 换算以夹取后的确定轴尺寸为输入）。
+        float ClampContentHeight(float h)
+        {
+            bool borderBox = style.BoxSizing == BoxSizing.BorderBox;
+            if (!style.MinHeight.IsAuto)
+            {
+                float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+                if (borderBox) min = Math.Max(0, min - verticalExtra);
+                h = Math.Max(h, min);
+            }
+            if (!style.MaxHeight.IsAuto)
+            {
+                float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+                if (borderBox) max = Math.Max(0, max - verticalExtra);
+                h = Math.Min(h, max);
+            }
+            return h;
+        }
+
+        // 高度已确定（外部定型或显式高度）而宽度 auto：宽度由首选纵横比从高度推导，
+        // 不再填满容器（ratio-dependent 轴为宽，CSS Box Sizing 4 §4.2）。
+        bool widthFromRatio = aspectRatio.HasValue && !widthIsForced && widthIsAuto && !isReplaced
+            && (heightIsForced || !heightIsAuto);
+
         float contentWidth;
         if (widthIsForced)
         {
@@ -85,7 +116,7 @@ public class BlockLayout
         {
             // width auto 的 replaced 元素：
             // - height 也 auto（含百分比针对不确定包含块退化）时用内禀宽；
-            // - height 指定时按纵横比反推宽（保持 video 不变形）。
+            // - height 指定时按纵横比反推宽（保持 video 不变形）；声明了 aspect-ratio 时用声明值。
             if (heightIsAuto)
             {
                 contentWidth = intrinsicW;
@@ -94,9 +125,27 @@ public class BlockLayout
             {
                 float h = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
                 if (style.BoxSizing == BoxSizing.BorderBox)
-                    h = Math.Max(0, h - box.BoxModel.Border.Vertical - box.BoxModel.Padding.Vertical);
-                contentWidth = h * intrinsicW / intrinsicH;
+                    h = Math.Max(0, h - verticalExtra);
+                contentWidth = aspectRatio.HasValue
+                    ? aspectRatio.WidthFromHeight(h, horizontalExtra, verticalExtra)
+                    : h * intrinsicW / intrinsicH;
             }
+        }
+        else if (widthFromRatio)
+        {
+            float h;
+            if (heightIsForced)
+            {
+                h = constraints.ResolvedContentHeight!.Value;
+            }
+            else
+            {
+                h = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
+                if (style.BoxSizing == BoxSizing.BorderBox)
+                    h = Math.Max(0, h - verticalExtra);
+                h = ClampContentHeight(h);
+            }
+            contentWidth = aspectRatio.WidthFromHeight(h, horizontalExtra, verticalExtra);
         }
         else if (constraints.IsInfiniteWidth || containerWidth <= 0 || style.Width.IsFitContent)
         {
@@ -121,7 +170,6 @@ public class BlockLayout
         // 退化处理一致）。
         bool isBorderBoxW = style.BoxSizing == BoxSizing.BorderBox;
         bool widthCbIndefinite = constraints.IsInfiniteWidth || containerWidth <= 0;
-        float horizontalExtra = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
         // 宽度由外部定型时，min/max-width 夹取已在 flex 主轴解析中完成，此处跳过
         // （否则百分比 min/max 会对已定型尺寸二次求值，见 ISSUE-106）。
         if (!widthIsForced && !style.MinWidth.IsAuto && !(style.MinWidth.HasPercentComponent && widthCbIndefinite))
@@ -143,9 +191,11 @@ public class BlockLayout
         //   2. width 为 auto，但被 max-width 夹取到比“填满容器”更窄（此时 contentWidth
         //      已在上面的 min/max 处理中定型，剩余空间应由 auto margin 吸收，实现居中）。
         //   3. width:fit-content —— 已收缩到内容宽度，剩余空间同样归 auto margin。
+        //   4. width 由 aspect-ratio 从确定高度推导（ISSUE-150）。
         // 注意：width auto 且未被 max-width 约束时会填满容器，剩余空间为 0，auto margin 无效果，
         // 因此下面的 remainingSpace 计算天然覆盖这种情况，无需额外分支。
-        bool hasDefiniteWidth = !style.Width.IsAuto || style.Width.IsFitContent || !style.MaxWidth.IsAuto;
+        bool hasDefiniteWidth = !style.Width.IsAuto || style.Width.IsFitContent || !style.MaxWidth.IsAuto
+            || widthFromRatio;
         if ((marginLeftAuto || marginRightAuto) && hasDefiniteWidth && containerWidth > 0)
         {
             float usedWidth = contentWidth + box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
@@ -193,6 +243,8 @@ public class BlockLayout
         // 子元素 height:100% 应同样退化为内容尺寸（与 FlexLayout 的 heightIsDefinite 一致，
         // 见 ISSUE-078）。
         float? childAvailableHeight = null;
+        // aspect-ratio 推导出的内容高度（夹取 min/max 后，未计内容下限）；null = 高度不由比值决定。
+        float? ratioHeight = null;
         if (heightIsForced)
         {
             childAvailableHeight = constraints.ResolvedContentHeight!.Value;
@@ -214,6 +266,14 @@ public class BlockLayout
                 - box.BoxModel.Border.Vertical
                 - box.BoxModel.Padding.Vertical;
             childAvailableHeight = Math.Max(0, h);
+        }
+        else if (aspectRatio.HasValue && !isReplaced)
+        {
+            // auto 高度由首选纵横比从（已定型的）宽度推导（ISSUE-150）。输入确定则结果确定，
+            // 故作为确定基准传给子元素解析百分比高度——`aspect-ratio` 盒子里的 height:100% 子元素
+            // 就此铺满，而不是像 min-height 撑出的高度那样退化为内容尺寸（ISSUE-078）。
+            ratioHeight = ClampContentHeight(aspectRatio.HeightFromWidth(contentWidth, horizontalExtra, verticalExtra));
+            childAvailableHeight = ratioHeight;
         }
 
         // 4. 布局子元素
@@ -308,7 +368,12 @@ public class BlockLayout
             // height auto 的 replaced 元素：按内禀纵横比从最终内容宽度反推高。
             // contentWidth 已应用 min/max-width 夹取，因此 max-width 约束会等比缩放
             // 高度（auto 宽未被夹取时 contentWidth==intrinsicW，结果即内禀高）。见 ISSUE-083。
-            contentHeight = contentWidth * intrinsicH / intrinsicW;
+            // 宽度已指定时，声明的 aspect-ratio 覆盖自然纵横比；两边都 auto 时仍按自然尺寸
+            // （CSS 2 §10.6.2：有自然高度的替换元素在宽高皆 auto 时取自然高度）。
+            bool widthGiven = widthIsForced || !widthIsAuto;
+            contentHeight = aspectRatio.HasValue && widthGiven
+                ? aspectRatio.HeightFromWidth(contentWidth, horizontalExtra, verticalExtra)
+                : contentWidth * intrinsicH / intrinsicW;
         }
         else if (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
                  (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
@@ -321,6 +386,14 @@ public class BlockLayout
                 - box.BoxModel.Border.Vertical
                 - box.BoxModel.Padding.Vertical;
             contentHeight = Math.Max(0, contentHeight);
+        }
+        else if (ratioHeight is float heightFromRatio)
+        {
+            // aspect-ratio 推导的高度（ISSUE-150）。非滚动容器以内容高度为下限：内容放不下时
+            // 盒子长高，而不是溢出（CSS Box Sizing 4 §4.3）；下方 max-height 仍会封顶。
+            contentHeight = heightFromRatio;
+            if (AspectRatioSizing.HasContentBasedMinimumHeight(box))
+                contentHeight = Math.Max(contentHeight, childrenTotalHeight);
         }
         else
         {
@@ -346,7 +419,6 @@ public class BlockLayout
         // border-box 下，min/max-height 约束的是 border-box 高度，需先扣除垂直 padding+border
         // 再与内容高度比较（与上面 Height 的 border-box 处理保持一致，参见 ISSUE-040 后续）。
         bool isBorderBoxH = style.BoxSizing == BoxSizing.BorderBox;
-        float verticalExtra = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
         // 高度由外部定型时，min/max-height 夹取已在 flex 主轴解析中完成，此处跳过（见 ISSUE-106）。
         if (!heightIsForced && !style.MinHeight.IsAuto)
         {

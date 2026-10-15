@@ -549,6 +549,10 @@ internal static class InlineFormattingContext
         var (iw, ih) = BlockLayout.GetReplacedIntrinsicSize(box.Element);
         if (iw > 0 && ih > 0) return false;
 
+        // 声明了 aspect-ratio 的替换元素即便尚未加载（无内禀尺寸）也按原子盒成盒，
+        // 由 InlineLayout 按比值预留版面——这正是 aspect-ratio 用来避免加载前后重排的用法（ISSUE-150）。
+        if (AspectRatioSizing.Resolve(box).HasValue) return false;
+
         // 文本表单控件（input / select / textarea）的内容不是常规行内流（见 BlockLayout），
         // 其盒尺寸由控件度量决定，按原子盒处理。
         if (BlockLayout.IsTextFormControl(box)) return false;

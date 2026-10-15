@@ -49,6 +49,46 @@ public class FlexLayout
         // 跳过自身 width 解析与该轴 min/max 夹取，避免百分比长度二次求值。
         bool widthIsForced = constraints.ResolvedContentWidth.HasValue;
 
+        // 首选纵横比（aspect-ratio，ISSUE-150）。高度已确定（外部定型或显式高度）而宽度 auto 时，
+        // 宽度由比值从高度推导，不再填满/收缩（与 BlockLayout 同一规则）。
+        var aspectRatio = AspectRatioSizing.Resolve(box);
+        float horizontalPadBorder = box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
+        float verticalPadBorder = box.BoxModel.Border.Vertical + box.BoxModel.Padding.Vertical;
+
+        // 夹取到 min/max-height 后的内容高度（aspect-ratio 换算以夹取后的确定轴尺寸为输入）。
+        float ClampContentHeight(float h)
+        {
+            bool borderBox = style.BoxSizing == BoxSizing.BorderBox;
+            if (!style.MinHeight.IsAuto)
+            {
+                float min = style.MinHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+                if (borderBox) min = Math.Max(0, min - verticalPadBorder);
+                h = Math.Max(h, min);
+            }
+            if (!style.MaxHeight.IsAuto)
+            {
+                float max = style.MaxHeight.ToPixels(constraints.AvailableHeight ?? 0, fs);
+                if (borderBox) max = Math.Max(0, max - verticalPadBorder);
+                h = Math.Min(h, max);
+            }
+            return h;
+        }
+
+        float? ratioDeterminingHeight = null;
+        if (aspectRatio.HasValue && !widthIsForced && widthIsAuto)
+        {
+            if (constraints.ResolvedContentHeight is float forcedHeight)
+            {
+                ratioDeterminingHeight = forcedHeight;
+            }
+            else if (!style.Height.IsAuto && !(style.Height.HasPercentComponent && !constraints.AvailableHeight.HasValue))
+            {
+                float h = style.Height.ToPixels(constraints.AvailableHeight ?? 0, fs);
+                if (style.BoxSizing == BoxSizing.BorderBox) h = Math.Max(0, h - verticalPadBorder);
+                ratioDeterminingHeight = ClampContentHeight(h);
+            }
+        }
+
         if (widthIsForced)
         {
             contentWidth = constraints.ResolvedContentWidth!.Value;
@@ -61,6 +101,10 @@ public class FlexLayout
                 contentWidth -= box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
                 contentWidth = Math.Max(0, contentWidth);
             }
+        }
+        else if (ratioDeterminingHeight is float determiningHeight)
+        {
+            contentWidth = aspectRatio.WidthFromHeight(determiningHeight, horizontalPadBorder, verticalPadBorder);
         }
         else if (constraints.IsInfiniteWidth || containerWidth <= 0
                  || (box.Type == LayoutType.InlineFlex && widthIsAuto))
@@ -99,6 +143,9 @@ public class FlexLayout
         bool heightIsAuto = style.Height.IsAuto || heightPercentAgainstIndefinite;
         // 外部已定型高度（作为列向 flex 项时主轴尺寸已解析，见 ISSUE-106）。
         bool heightIsForced = constraints.ResolvedContentHeight.HasValue;
+        // 填充指令下的 overflow 盒子以约束高度为自身高度（见 ISSUE-105）。
+        bool heightFillsAvailable = constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
+            (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden);
 
         if (heightIsForced)
         {
@@ -113,12 +160,11 @@ public class FlexLayout
                 contentHeight = Math.Max(0, contentHeight);
             }
         }
-        else if (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
-                 (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden))
+        else if (heightFillsAvailable)
         {
             // 仅当 AvailableHeight 是填充指令（stretch / 列向定型 / 根视口）时使用约束高度；
             // 块流中父级定高不填充 height:auto 的盒子（见 ISSUE-105）。
-            contentHeight = constraints.AvailableHeight.Value
+            contentHeight = constraints.AvailableHeight!.Value
                 - box.BoxModel.Margin.Vertical
                 - box.BoxModel.Border.Vertical
                 - box.BoxModel.Padding.Vertical;
@@ -135,9 +181,7 @@ public class FlexLayout
         // 视为确定；auto 高度（即便被 min-height 抬升）不算确定，子元素 height:100% 应退化为
         // 内容尺寸（见 ISSUE-078：min-height 撑出的高度不应让百分比子元素按该高度解析；
         // ISSUE-105：块流中父级定高仅是解析基准，不构成填充）。
-        bool heightIsDefinite = !heightIsAuto || heightIsForced
-            || (constraints.AvailableHeight.HasValue && constraints.FillAvailableHeight &&
-                (style.OverflowY == Overflow.Auto || style.OverflowY == Overflow.Scroll || style.OverflowY == Overflow.Hidden));
+        bool heightIsDefinite = !heightIsAuto || heightIsForced || heightFillsAvailable;
 
         // 宽度是否为"确定尺寸"（与 heightIsDefinite 对称）：显式宽度、或 auto 宽度针对确定
         // 包含块（contentWidth 取自容器）时为确定；auto 宽度针对不确定容器（即便被 min-width 抬升）
@@ -195,6 +239,21 @@ public class FlexLayout
             contentHeight = Math.Min(contentHeight, max);
         }
 
+        // 2e. aspect-ratio（ISSUE-150）：宽度确定而高度 auto 时，高度由（已夹取的）宽度推导。
+        // 输入确定则结果确定：作为子元素百分比高度与列向主轴（justify-content / grow / wrap）的
+        // 确定基准，这正是它与 min-height 撑出的高度（ISSUE-078，不算确定）的区别。
+        // 只有滚动容器能在布局子元素之前就定下比值高度：非滚动容器以内容尺寸为下限（§4.3），
+        // 若此处先把比值高度当作确定主轴，列向子元素会被 shrink 压进比值高度、不再撑大容器。
+        // 那种情形与宽度不确定（收缩包裹）的情形一样，推迟到第 5 步，比值胜出时再重排。
+        bool ratioAppliesToHeight = aspectRatio.HasValue && !heightIsForced && heightIsAuto && !heightFillsAvailable;
+        bool heightFromRatio = false;
+        if (ratioAppliesToHeight && !widthIsIndefinite && !AspectRatioSizing.HasContentBasedMinimumHeight(box))
+        {
+            contentHeight = ClampContentHeight(aspectRatio.HeightFromWidth(contentWidth, horizontalPadBorder, verticalPadBorder));
+            heightFromRatio = true;
+            heightIsDefinite = true;
+        }
+
         // 2d. 解析 flex 容器自身的水平 auto margin（相对其包含块居中）。
         // 这与 BlockLayout 的处理对称：当容器宽度确定且小于包含块时，auto margin 吸收剩余空间。
         // 此处 contentWidth 已在上面经 max-width 夹取定型，且尚未用于计算 contentX（见下方第 4 步），
@@ -202,7 +261,7 @@ public class FlexLayout
         // 注意区别：第 610 行附近的 auto margin 逻辑针对 flex 子项在主轴上的分布，与容器自身无关。
         bool marginLeftAuto = style.MarginLeft.IsAuto;
         bool marginRightAuto = style.MarginRight.IsAuto;
-        bool hasDefiniteWidth = !widthIsAuto || !style.MaxWidth.IsAuto;
+        bool hasDefiniteWidth = !widthIsAuto || !style.MaxWidth.IsAuto || ratioDeterminingHeight.HasValue;
         if ((marginLeftAuto || marginRightAuto) && hasDefiniteWidth
             && !widthIsIndefinite && containerWidth > 0)
         {
@@ -255,24 +314,29 @@ public class FlexLayout
         // 要求使用"静态位置"（static position）——即该元素如果是静态定位时应该在的位置。
         // 在 flex 容器中，这个静态位置应该考虑容器的 align-items 对齐（见 ISSUE-125）。
         // 因此，这里需要根据 align-items 计算出交叉轴的对齐偏移，并应用到初始位置上。
-        foreach (var child in box.Children)
+        void LayoutOutOfFlowChildren()
         {
-            if (BlockLayout.IsOutOfFlow(child))
+            foreach (var child in box.Children)
             {
-                float? childAvailableHeight = contentHeight > 0 ? contentHeight : null;
-                float? childWidthConstraint = child.ComputedStyle.Width.IsAuto
-                    ? null
-                    : contentWidth > 0 ? contentWidth : (float?)null;
-                var childConstraints = new LayoutConstraints(childWidthConstraint, childAvailableHeight);
-                LayoutDispatcher.Dispatch(child, childConstraints, contentX, contentY);
+                if (BlockLayout.IsOutOfFlow(child))
+                {
+                    float? childAvailableHeight = contentHeight > 0 ? contentHeight : null;
+                    float? childWidthConstraint = child.ComputedStyle.Width.IsAuto
+                        ? null
+                        : contentWidth > 0 ? contentWidth : (float?)null;
+                    var childConstraints = new LayoutConstraints(childWidthConstraint, childAvailableHeight);
+                    LayoutDispatcher.Dispatch(child, childConstraints, contentX, contentY);
 
-                // 应用 align-items 的交叉轴对齐（仅当交叉轴定位偏移为 auto 时生效，见 ISSUE-125）。
-                // 单行容器：使用容器的交叉尺寸（与 ISSUE-124 的修复一致）。
-                // 多行容器：absolute 元素不属于任何行，使用容器交叉尺寸（而非某行的交叉尺寸）。
-                ApplyOutOfFlowAlignment(child, contentX, contentY, contentWidth, contentHeight,
-                    style.AlignItems, isRow);
+                    // 应用 align-items 的交叉轴对齐（仅当交叉轴定位偏移为 auto 时生效，见 ISSUE-125）。
+                    // 单行容器：使用容器的交叉尺寸（与 ISSUE-124 的修复一致）。
+                    // 多行容器：absolute 元素不属于任何行，使用容器交叉尺寸（而非某行的交叉尺寸）。
+                    ApplyOutOfFlowAlignment(child, contentX, contentY, contentWidth, contentHeight,
+                        style.AlignItems, isRow);
+                }
             }
         }
+
+        LayoutOutOfFlowChildren();
 
         if (isRow)
         {
@@ -369,9 +433,10 @@ public class FlexLayout
         // 外部定型高度（列向 flex 项主轴尺寸）不被内容重算覆盖（见 ISSUE-106）。
         if (!heightIsForced && heightIsAuto)
         {
+            float contentBasedHeight;
             if (isRow)
             {
-                contentHeight = maxCrossSize;
+                contentBasedHeight = maxCrossSize;
             }
             else
             {
@@ -383,7 +448,46 @@ public class FlexLayout
                     totalChildHeight += child.BoxModel.MarginBox.Height;
                 }
 
-                contentHeight = totalChildHeight;
+                contentBasedHeight = totalChildHeight;
+            }
+
+            if (heightFromRatio)
+            {
+                // 2e 已按比值定型（滚动容器）：比值高度即最终高度，溢出的内容交给滚动/裁剪。
+            }
+            else if (ratioAppliesToHeight)
+            {
+                // aspect-ratio 推导的高度（ISSUE-150），在 2e 被推迟的两种情形：非滚动容器（以内容尺寸为
+                // 下限，CSS Box Sizing 4 §4.3），或宽度不确定（此时已收缩定型）。夹取 max-height 封顶。
+                float ratioHeight = ClampContentHeight(aspectRatio.HeightFromWidth(contentWidth, horizontalPadBorder, verticalPadBorder));
+                float usedHeight = AspectRatioSizing.HasContentBasedMinimumHeight(box)
+                    ? ClampContentHeight(Math.Max(ratioHeight, contentBasedHeight))
+                    : ratioHeight;
+                contentHeight = usedHeight;
+
+                // 子元素此前按不确定高度排布。最终高度不等于内容高度（通常是比值胜出、比内容高）时，
+                // 以该确定高度重排一次，让 grow / justify-content / stretch / 百分比高度相对它求值。
+                // 宽度此时已定型，最终高度不再依赖子元素尺寸，故重排一次即可。
+                if (Math.Abs(usedHeight - contentBasedHeight) > 0.01f)
+                {
+                    heightIsDefinite = true;
+                    LayoutOutOfFlowChildren();
+                    maxCrossSize = 0;
+                    if (isRow)
+                    {
+                        LayoutRowDirection(box, contentX, contentY, contentWidth, contentHeight,
+                            ref maxCrossSize, widthIsIndefinite: false, crossHeightIsDefinite: true);
+                    }
+                    else
+                    {
+                        LayoutColumnDirection(box, contentX, contentY, contentWidth, contentHeight,
+                            ref maxCrossSize, heightIsDefinite: true, crossWidthIsDefinite: true);
+                    }
+                }
+            }
+            else
+            {
+                contentHeight = contentBasedHeight;
             }
         }
 
@@ -477,7 +581,8 @@ public class FlexLayout
         // 无法换行，退化为单行——与列方向 !heightIsIndefinite 的守卫对称（见 LayoutColumnDirection）。
         // wrap-reverse 与 wrap 一样分行，仅交叉轴方向相反（在下方反转行序）。
         var lines = style.FlexWrap != FlexWrap.Nowrap && !widthIsIndefinite
-            ? PartitionIntoLines(allChildren, contentWidth, columnGap, true, widthIsIndefinite)
+            ? PartitionIntoLines(allChildren, contentWidth, columnGap, true, widthIsIndefinite,
+                crossHeightIsDefinite && contentHeight > 0 ? contentHeight : null)
             : new List<List<LayoutBox>> { allChildren };
 
         // row-reverse：主轴方向反转。分行仍按文档序（CSS 按 order-modified document order 分行），
@@ -714,7 +819,8 @@ public class FlexLayout
         // 如果不换行或高度未定，所有子元素在一列；否则按高度 + gap 分列。
         // wrap-reverse 与 wrap 一样分列，仅交叉轴方向相反（在下方反转列序）。
         var lines = (style.FlexWrap != FlexWrap.Nowrap && !heightIsIndefinite)
-            ? PartitionIntoLines(allChildren, contentHeight, rowGap, false, heightIsIndefinite)
+            ? PartitionIntoLines(allChildren, contentHeight, rowGap, false, heightIsIndefinite,
+                crossWidthIsDefinite && contentWidth > 0 ? contentWidth : null)
             : new List<List<LayoutBox>> { allChildren };
 
         // column-reverse：主轴方向反转（与 row-reverse 同理：分列按文档序，逐列反转项目
@@ -848,8 +954,10 @@ public class FlexLayout
     /// <summary>
     /// 将子元素按 FlexWrap 分行/列。主轴方向 isRow=true → 按宽度分行，false → 按高度分列。
     /// </summary>
+    /// <param name="containerCrossSize">容器的确定交叉内容尺寸（不确定时为 null），供 aspect-ratio 项目
+    /// 由显式交叉尺寸换算 basis。分行意味着多行容器，stretch 项的交叉尺寸此时不确定（ISSUE-150）。</param>
     private List<List<LayoutBox>> PartitionIntoLines(List<LayoutBox> children, float availableMainSize,
-        float gap, bool isRow, bool mainSizeIsIndefinite)
+        float gap, bool isRow, bool mainSizeIsIndefinite, float? containerCrossSize)
     {
         var lines = new List<List<LayoutBox>>();
         var currentLine = new List<LayoutBox>();
@@ -858,7 +966,8 @@ public class FlexLayout
         foreach (var child in children)
         {
             // 计算该子元素的主轴 flex-basis（初步尺寸，未经 grow/shrink）。
-            float childBasis = ComputeFlexBasis(child, availableMainSize, isRow, mainSizeIsIndefinite);
+            float childBasis = ComputeFlexBasis(child, availableMainSize, isRow, mainSizeIsIndefinite,
+                containerCrossSize, stretchIsDefinite: false, AlignItems.Normal, out _);
             // 分行依据假设主尺寸：flex-basis 经 min/max 主轴约束夹取（CSS Flexbox §9.7）。
             GetMainSizeClamp(child, isRow, availableMainSize, mainSizeIsIndefinite,
                 out float minMain, out float maxMain);
@@ -884,31 +993,53 @@ public class FlexLayout
         return lines;
     }
 
-    private float ComputeFlexBasis(LayoutBox child, float containerMainSize, bool isRow, bool mainSizeIsIndefinite)
-        => ComputeFlexBasis(child, containerMainSize, isRow, mainSizeIsIndefinite, out _);
-
     /// <summary>
     /// 计算子元素的 flex-basis（主轴方向初步尺寸），包含 margin/border/padding (outer size)。
     /// <paramref name="usedAutoSize"/> 表示是否使用了内容自然尺寸（无显式 width/height/flex-basis）。
     /// </summary>
-    private float ComputeFlexBasis(LayoutBox child, float containerMainSize, bool isRow, bool mainSizeIsIndefinite, out bool usedAutoSize)
+    /// <param name="containerCrossSize">容器（行）的确定交叉内容尺寸；不确定时为 null。
+    /// 用于 aspect-ratio 项目由交叉尺寸换算 flex base size（ISSUE-150）。</param>
+    /// <param name="stretchIsDefinite">stretch 项的交叉尺寸是否可视为确定：仅单行容器
+    /// （CSS Flexbox §9.8：单行容器交叉尺寸确定时，stretch 项的外交叉尺寸即容器内交叉尺寸）。</param>
+    /// <param name="containerAlign">容器的 align-items（判断项目是否 stretch）。</param>
+    private float ComputeFlexBasis(LayoutBox child, float containerMainSize, bool isRow, bool mainSizeIsIndefinite,
+        float? containerCrossSize, bool stretchIsDefinite, AlignItems containerAlign, out bool usedAutoSize)
     {
         var style = child.ComputedStyle;
         float fs = style.FontSize.Value;
 
         float basisContentSize;
         usedAutoSize = false;
+        // basis 由 aspect-ratio 换算而来：得到的是内容尺寸，且应作为定尺寸强制到第二遍布局。
+        bool basisFromRatio = false;
+
+        // 内容决定的 basis。CSS Flexbox §9.2 步骤 3B：有首选纵横比且交叉尺寸确定的项目，
+        // flex base size 由交叉尺寸经比值换算（ISSUE-150）——以不确定约束测量内容拿不到这一结果
+        // （比如 width:100% 在测量遍退化为 auto，量出 0 宽、0 高）。
+        // 否则测量内容自然尺寸：经 MeasureIntrinsic 取（本次布局内每盒只真正预排一次，
+        // 否则逐层 flex 的重复预排会指数级放大，见 ISSUE-132）。
+        float ContentBasis(out bool fromRatio, out bool measured)
+        {
+            if (TryComputeRatioBasis(child, isRow, containerMainSize, containerCrossSize, stretchIsDefinite,
+                    containerAlign, out float ratioBasis))
+            {
+                fromRatio = true;
+                measured = false;
+                return ratioBasis;
+            }
+
+            var (iw, ih) = LayoutDispatcher.MeasureIntrinsic(child);
+            fromRatio = false;
+            measured = true;
+            return isRow ? iw : ih;
+        }
 
         if (!style.FlexBasis.IsAuto)
         {
             // flex-basis 为百分比且容器主轴不确定时退化为 auto（见 ISSUE-077 Flex 循环依赖）。
             if (style.FlexBasis.HasPercentComponent && mainSizeIsIndefinite)
             {
-                // 退化为内容尺寸。经 MeasureIntrinsic 取（本次布局内每盒只真正预排一次，
-                // 否则逐层 flex 的重复预排会指数级放大，见 ISSUE-132）。
-                var (iw, ih) = LayoutDispatcher.MeasureIntrinsic(child);
-                basisContentSize = isRow ? iw : ih;
-                usedAutoSize = true;
+                basisContentSize = ContentBasis(out basisFromRatio, out usedAutoSize);
             }
             else
             {
@@ -925,20 +1056,17 @@ public class FlexLayout
             }
             else
             {
-                // 使用内容自然尺寸（同上，经缓存的内在尺寸测量，见 ISSUE-132）。
-                var (iw, ih) = LayoutDispatcher.MeasureIntrinsic(child);
-                basisContentSize = isRow ? iw : ih;
-                usedAutoSize = true;
+                basisContentSize = ContentBasis(out basisFromRatio, out usedAutoSize);
             }
         }
 
         // 转换为 outer size (margin box)。
         // basisContentSize 是否已含 padding/border：仅当尺寸来自显式长度（flex-basis 或
         // width/height）且 box-sizing 为 border-box 时成立；auto 内容测量（usedAutoSize）
-        // 得到的是 content 尺寸，无论 box-sizing 都必须补上 padding/border
+        // 与 aspect-ratio 换算得到的都是 content 尺寸，无论 box-sizing 都必须补上 padding/border
         // （见 ISSUE-099：border-box + auto 尺寸的 flex 项 wrap 分行时漏算 padding，
         //  导致每行多放项目并溢出容器）。
-        bool basisIncludesPaddingBorder = !usedAutoSize && style.BoxSizing == BoxSizing.BorderBox;
+        bool basisIncludesPaddingBorder = !usedAutoSize && !basisFromRatio && style.BoxSizing == BoxSizing.BorderBox;
 
         float outerExtra;
         if (isRow)
@@ -969,6 +1097,77 @@ public class FlexLayout
         }
 
         return basisContentSize + outerExtra;
+    }
+
+    /// <summary>
+    /// aspect-ratio 项目的 flex base size（内容尺寸，ISSUE-150）：项目有首选纵横比、主轴尺寸 auto，
+    /// 且交叉尺寸确定时，由交叉尺寸经比值换算主轴尺寸（CSS Flexbox §9.2 步骤 3B）。
+    /// <para>交叉尺寸确定的两种情形：显式交叉尺寸（百分比需容器交叉尺寸确定），或单行容器中的
+    /// stretch 项（交叉尺寸 auto、交叉轴无 auto margin，取容器交叉尺寸扣除自身 margin/border/padding）。
+    /// 交叉尺寸先按自身 min/max 夹取再换算。</para>
+    /// </summary>
+    private static bool TryComputeRatioBasis(LayoutBox child, bool isRow, float containerMainSize,
+        float? containerCrossSize, bool stretchIsDefinite, AlignItems containerAlign, out float basisContentSize)
+    {
+        basisContentSize = 0;
+        var aspectRatio = AspectRatioSizing.Resolve(child);
+        if (!aspectRatio.HasValue) return false;
+
+        var s = child.ComputedStyle;
+        float fs = s.FontSize.Value;
+        // 百分比 padding/border/margin 恒相对容器宽度解析：行方向即主轴尺寸，列方向即交叉尺寸。
+        float percentBase = isRow ? containerMainSize : containerCrossSize ?? 0;
+        float horizontalPadBorder = s.BorderLeftWidth.ToPixels(percentBase, fs) + s.BorderRightWidth.ToPixels(percentBase, fs)
+            + s.PaddingLeft.ToPixels(percentBase, fs) + s.PaddingRight.ToPixels(percentBase, fs);
+        float verticalPadBorder = s.BorderTopWidth.ToPixels(percentBase, fs) + s.BorderBottomWidth.ToPixels(percentBase, fs)
+            + s.PaddingTop.ToPixels(percentBase, fs) + s.PaddingBottom.ToPixels(percentBase, fs);
+        float crossPadBorder = isRow ? verticalPadBorder : horizontalPadBorder;
+        bool borderBox = s.BoxSizing == BoxSizing.BorderBox;
+
+        Length crossSize = isRow ? s.Height : s.Width;
+        float crossContent;
+        if (!crossSize.IsAuto && !(crossSize.HasPercentComponent && containerCrossSize is null))
+        {
+            crossContent = crossSize.ToPixels(containerCrossSize ?? 0, fs);
+            if (borderBox) crossContent = Math.Max(0, crossContent - crossPadBorder);
+        }
+        else if (crossSize.IsAuto && stretchIsDefinite && containerCrossSize is float lineCross
+                 && ResolveItemAlign(s.AlignSelf, containerAlign) == AlignItems.Stretch
+                 && child.Type != LayoutType.Text)
+        {
+            Length marginStart = isRow ? s.MarginTop : s.MarginLeft;
+            Length marginEnd = isRow ? s.MarginBottom : s.MarginRight;
+            // 交叉轴 auto margin 会吸收剩余空间，项目不被拉伸（CSS Flexbox §9.4 步骤 11）。
+            if (marginStart.IsAuto || marginEnd.IsAuto) return false;
+            crossContent = Math.Max(0, lineCross
+                - marginStart.ToPixels(percentBase, fs) - marginEnd.ToPixels(percentBase, fs)
+                - crossPadBorder);
+        }
+        else
+        {
+            return false;
+        }
+
+        // 交叉轴 min/max 夹取（百分比针对不确定交叉尺寸退化为无约束）。
+        Length minCross = isRow ? s.MinHeight : s.MinWidth;
+        Length maxCross = isRow ? s.MaxHeight : s.MaxWidth;
+        if (!minCross.IsAuto && !(minCross.HasPercentComponent && containerCrossSize is null))
+        {
+            float min = minCross.ToPixels(containerCrossSize ?? 0, fs);
+            if (borderBox) min = Math.Max(0, min - crossPadBorder);
+            crossContent = Math.Max(crossContent, min);
+        }
+        if (!maxCross.IsAuto && !(maxCross.HasPercentComponent && containerCrossSize is null))
+        {
+            float max = maxCross.ToPixels(containerCrossSize ?? 0, fs);
+            if (borderBox) max = Math.Max(0, max - crossPadBorder);
+            crossContent = Math.Min(crossContent, max);
+        }
+
+        basisContentSize = isRow
+            ? aspectRatio.WidthFromHeight(crossContent, horizontalPadBorder, verticalPadBorder)
+            : aspectRatio.HeightFromWidth(crossContent, horizontalPadBorder, verticalPadBorder);
+        return true;
     }
 
     /// <summary>
@@ -1075,10 +1274,16 @@ public class FlexLayout
         float totalFlexGrow = 0;
         float totalFlexShrinkWeighted = 0;
 
+        // aspect-ratio 项目由交叉尺寸换算 basis 时的交叉上下文（ISSUE-150）：确定的行交叉尺寸，
+        // 以及 stretch 项的交叉尺寸能否视为确定（仅单行容器，CSS Flexbox §9.8）。
+        float? definiteLineCross = crossSizeIsDefinite && lineCrossSize > 0 ? lineCrossSize : null;
+        bool stretchIsDefinite = box.ComputedStyle.FlexWrap == FlexWrap.Nowrap;
+
         foreach (var child in lineChildren)
         {
             var childStyle = child.ComputedStyle;
-            float flexBasis = ComputeFlexBasis(child, lineMainSize, isRow, mainSizeIsIndefinite, out bool usedAutoSize);
+            float flexBasis = ComputeFlexBasis(child, lineMainSize, isRow, mainSizeIsIndefinite,
+                definiteLineCross, stretchIsDefinite, alignItems, out bool usedAutoSize);
 
             // 假设主尺寸：flex-basis 先经 min/max 主轴约束夹取（CSS Flexbox §9.7 步骤 3，
             // 见 ISSUE-102），夹取后的值同时作为 grow/shrink 分配与剩余空间计算的基础。
@@ -1468,6 +1673,12 @@ public class FlexLayout
                 : new RectF(content.X, content.Y, target, content.Height);
             return;
         }
+
+        // 有首选纵横比（ISSUE-150）的项目：主轴尺寸已由 flex 算法定型（按内容自然尺寸时 mainResolvedSize
+        // 为 null）。不钉住它的话，子布局会把拉伸后的交叉尺寸当作确定轴、经比值重新推导主轴尺寸，
+        // 项目在行已排好之后变宽/变高、盖住兄弟。stretch 只改交叉尺寸（CSS Flexbox §9.4 步骤 11）。
+        if (mainResolvedSize is null && AspectRatioSizing.Resolve(child).HasValue)
+            mainResolvedSize = isRow ? content.Width : content.Height;
 
         var marginBox = bm.MarginBox;
         var constraints = isRow

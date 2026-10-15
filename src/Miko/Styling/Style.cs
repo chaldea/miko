@@ -54,6 +54,12 @@ public partial class Style
     public StyleProperty<Length>? MaxWidth { get; set; }
     public StyleProperty<Length>? MaxHeight { get; set; }
 
+    /// <summary>
+    /// 首选纵横比（CSS <c>aspect-ratio</c>，ISSUE-150）。width / height 至少一边为 auto 时，
+    /// 由另一边按比值推导；两边都已指定时不起作用。
+    /// </summary>
+    public StyleProperty<AspectRatio>? AspectRatio { get; set; }
+
     // 逻辑尺寸（inline-size / block-size 等，见 ISSUE-103）。horizontal-tb 下
     // inline 轴 = 水平（inline-size ↔ width），垂直书写模式下 inline 轴 = 垂直。
     // 与对应物理属性同时设置时逻辑属性优先（声明顺序决定生成代码的赋值顺序）。

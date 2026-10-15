@@ -39,3 +39,9 @@ HLS 播放列表、分段、直播刷新和音视频同步由平台媒体库负�
 - Android 暂停定位使用 SurfaceTexture 实际到帧通知更新预览，避免 `SeekComplete` 先到而停留在旧帧；模拟器已验证时间和目标帧一致。API 26 及以上使用最近帧定位。
 - Linux、macOS、iOS 仅完成编译验证，本机无对应运行环境。系统媒体功能依赖设备支持的编码格式；Linux 还需要 GStreamer HLS/音频插件。
 - 全屏为宿主视口全屏，不隐藏系统栏或切换操作系统窗口模式。Windows 当前通过 D3D11 staging 读回 BGRA 帧交给 Skia，尚非 GPU 零拷贝。构建仍有仓库已有的平台 API 警告；Android 所用 HarfBuzz 原生包仍报告 16 KB 页对齐警告。
+
+## 视口纵横比（ISSUE-150，2026-10-15）
+
+- 非全屏视口改用 `aspect-ratio: 16 / 9` 定高，由布局在同一遍内按宽度推导。此前首帧以 240px 占位，`PlaybackUpdated` 拿到上一帧的 `OffsetWidth` 后写回像素高度：打开页面要排两遍布局，每次改宽（旋转、窗口缩放）都要多排一遍且滞后一帧。
+- 实测（`MikoInteractionController.RenderFrame` + `FrameProfiler`，会话尚未报告尺寸，与系统解码器一致）：打开页面那一帧布局 2 遍 → 1 遍，与无播放器的纯 div 树相同；旋转 2 帧布局 → 1 帧。
+- 全屏仍为 `flex-grow: 1; height: 0`，铺满控制栏以外的高度。

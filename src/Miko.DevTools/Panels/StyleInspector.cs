@@ -120,6 +120,7 @@ internal static class StyleInspector
         Add("min-height", FormatLength(cs.MinHeight));
         Add("max-width", FormatLength(cs.MaxWidth));
         Add("max-height", FormatLength(cs.MaxHeight));
+        Add("aspect-ratio", cs.AspectRatio.ToString());
 
         // 定位偏移（inset）：static 定位下不生效，故仅在参与定位时显示，避免一列 auto 噪声。
         if (cs.Position != Common.Position.Static)
