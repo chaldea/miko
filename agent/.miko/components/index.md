@@ -168,7 +168,7 @@ Segment pattern: bind one field to both `IonSegment.Value` and `IonSegmentView.V
 
 | Component | Key params | Notes |
 | --- | --- | --- |
-| `<IonRefresher>` + `<IonRefresherContent>` | `PullMin` (`int`), `Disabled`, `State`, `OnRefresh` (`EventCallback`) | Pull-to-refresh at top of `IonContent`. Call `Complete()` when done. |
+| `<IonRefresher>` + `<IonRefresherContent>` | `PullMin` (`int`), `PullMax`, `Disabled`, `OnRefresh` (`EventCallback<IonRefresherCustomEvent>`) | Pull-to-refresh, placed in `IonContent`'s `<Fixed>` slot. The handler must `await e.Complete()` when done; until then the refresher stays in its refreshing state. |
 | `<IonInfiniteScroll>` + `<IonInfiniteScrollContent>` | `Threshold` (`string`), `Position`, `Disabled`, `Loading`, `OnInfinite` | Load-more at bottom. Call `Complete()` when done. |
 | `<IonSlides>` + `<IonSlide>` | `Navigation`, `Pagination`, `Scrollbar`, `Autoplay`, `Loop` (`bool`), `AutoplayDelay`, `Speed`, `ActiveIndex` (`int`), `Effect` (`"slide"`/`"fade"`), `ActiveIndexChanged` | Swipeable carousel. Drag, arrows, bullets and autoplay all move it; bind `ActiveIndex` to control it. |
 

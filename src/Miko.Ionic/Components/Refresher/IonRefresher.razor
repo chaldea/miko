@@ -1,41 +1,94 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
-<div class="@ClassMapper.Class" style="@Style">
-    @ChildContent
-</div>
+@* Mirrors Ionic's <ion-refresher> (refresher.tsx) in its legacy, non-native form: pulling down at
+   the top of the content moves .inner-scroll and .background-content with the finger and reveals the
+   refresher in the gap above them. Releasing past PullMin (or pulling past PullMax) parks the content
+   at PullMin, shows the refreshing spinner and raises OnRefresh; Complete() slides it back.
+
+   Two Miko-specific arrangements make that work:
+
+   - The refresher is not hit-testable (pointer-events: none), so IonContent owns the pointer
+     handlers and forwards them through IonRefresherContext.
+   - The pull / refresh state lives in a RefresherSession, not on this instance. Miko builds a new
+     instance of every component whenever an ancestor re-renders, and OnRefresh's receiver (the page)
+     re-renders the moment an async handler yields — so state kept on the instance was gone before the
+     handler could call Complete(): the content snapped back and the spinner never showed. The host is
+     a RefresherHostElement; ComponentBase pairs it with its predecessor on every re-render
+     (TransferRuntimeState), and its CopyInteractionStateFrom hands the session to the new instance. *@
+@RenderHost()
 
 @code {
-    /// <summary>Minimum pull distance before a refresh becomes ready.</summary>
+    // refresher.tsx: snapbackDuration / closeDuration ('280ms'), complete()'s close delay ('120ms'),
+    // and the timer in close() that returns the refresher to inactive (600ms).
+    private const float SnapbackDuration = 0.28f;
+    private const float CloseDuration = 0.28f;
+    private const float CompleteDelay = 0.12f;
+    private const int ResetDelayMs = 600;
+
+    // How far a press must travel before it is judged. Kept below MikoInteractionController's 8px
+    // scroll threshold, so a pull claims the press before any of it has been scrolled.
+    private const float GestureThreshold = 5f;
+
+    // gesture.ts createPanRecognizer: a 'y' pan stays within maxAngle (40°) of the vertical axis.
+    private static readonly float MaxPanCosine = MathF.Cos(40f * MathF.PI / 180f);
+
+    private static readonly string[] StateClasses =
+    {
+        "refresher-active", "refresher-pulling", "refresher-ready",
+        "refresher-refreshing", "refresher-cancelling", "refresher-completing",
+    };
+
+    /// <summary>Minimum pull distance; releasing beyond it starts a refresh.</summary>
     [Parameter] public int PullMin { get; set; } = 60;
 
-    /// <summary>Maximum pull distance before refresh starts automatically. Kept for API parity.</summary>
+    /// <summary>
+    /// Pull distance at which the refresh starts without waiting for the release. Defaults to
+    /// <c>PullMin + 60</c>, as in Ionic.
+    /// </summary>
     [Parameter] public int? PullMax { get; set; }
 
     /// <summary>When true, the refresher is hidden and non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Current refresher state. Supported values: inactive, pulling, ready, refreshing, cancelling, completing.</summary>
+    /// <summary>
+    /// Declarative refresher state: inactive, pulling, ready, refreshing, cancelling or completing.
+    /// Applied when the value changes; in between, the pull gesture drives the state, and a refresh
+    /// stays in progress across re-renders until <see cref="Complete"/> is called.
+    /// </summary>
     [Parameter] public string State { get; set; } = "inactive";
 
-    /// <summary>Raised when refresh starts. Call <see cref="Complete"/> when the async work is done.</summary>
-    [Parameter] public EventCallback OnRefresh { get; set; }
+    /// <summary>
+    /// Raised when a refresh starts. The refresher keeps showing its refreshing state until the
+    /// handler calls <see cref="IonRefresherCustomEvent.Complete"/> (Ionic's <c>ionRefresh</c> and
+    /// <c>complete()</c>).
+    /// </summary>
+    [Parameter] public EventCallback<IonRefresherCustomEvent> OnRefresh { get; set; }
 
-    private float _progress;
-    private string _state = "inactive";
-    private bool _tracking;
-    private bool _pullStarted;
-    private float _startX;
-    private float _startY;
+    /// <summary>
+    /// Drives the snap-back and close animations. The offsets are paint-only transforms, so the
+    /// engine has no computed-style change to start a transition from.
+    /// </summary>
+    [Inject] private AnimationManager? Animations { get; set; }
+
+    /// <summary>Brings the delayed return to inactive back onto the render thread.</summary>
+    [Inject] private Platform.MikoDispatcher? Dispatcher { get; set; }
+
+    private RefresherSession _session;
     private Element? _hostElement;
-    private Element? _scrollElement;
-    private Element? _backgroundElement;
-    private Style? _scrollStyle;
-    private Style? _backgroundStyle;
     private IonRefresherContext? _attachedContext;
+
+    public IonRefresher() => _session = new RefresherSession(this);
 
     protected override void OnParametersSet()
     {
-        _state = NormalizeState(State);
+        var declared = NormalizeState(State);
+        if (declared != _session.DeclaredState)
+        {
+            _session.DeclaredState = declared;
+            _session.State = declared;
+            _session.Progress = declared == "refreshing" ? 1f : 0f;
+        }
+
         _attachedContext = IonRefresherContext.Current;
         _attachedContext?.Attach(this);
         BuildClass();
@@ -43,209 +96,405 @@
 
     protected override void OnDispose() => _attachedContext?.Detach(this);
 
-    public override Element Build()
+    /// <summary>Starts a refresh as if the user had pulled past <see cref="PullMin"/> and let go.</summary>
+    public Task BeginRefresh()
     {
-        _hostElement = base.Build();
-        _hostElement.Class = ClassMapper.Class;
-        _hostElement.OnPointerDown = HandleContentPointerDown;
-        _hostElement.OnPointerMove = HandleContentPointerMove;
-        _hostElement.OnPointerUp = HandleContentPointerUp;
-        _hostElement.OnPointerCancel = HandleContentPointerCancel;
-        return _hostElement;
+        if (!ReferenceEquals(_session.Owner, this)) return _session.Owner.BeginRefresh();
+        if (Disabled || _session.State == "refreshing") return Task.CompletedTask;
+        return StartRefresh();
     }
 
-    /// <summary>Programmatically enters refreshing state and emits <see cref="OnRefresh"/>.</summary>
-    public async Task BeginRefresh()
-    {
-        if (Disabled || _state == "refreshing") return;
-        _state = "refreshing";
-        _progress = 1f;
-        BuildClass();
-        UpdateRenderedClass();
-        ApplyPullOffset(Math.Max(0, PullMin));
-        await OnRefresh.InvokeAsync();
-    }
-
-    /// <summary>Completes the refresh and returns the refresher to inactive state.</summary>
+    /// <summary>
+    /// Ends the refresh: the refresher shows its completing state while the content slides back to
+    /// the top, then returns to inactive (refresher.tsx <c>complete()</c>).
+    /// </summary>
     public Task Complete()
     {
-        _state = "inactive";
-        _progress = 0;
-        BuildClass();
-        UpdateRenderedClass();
-        RestorePullOffset();
+        if (!ReferenceEquals(_session.Owner, this)) return _session.Owner.Complete();
+        if (_session.State != "inactive") Close("completing", CompleteDelay);
         return Task.CompletedTask;
     }
 
-    /// <summary>Cancels a pull gesture and returns the refresher to inactive state.</summary>
+    /// <summary>Abandons the pull or refresh and slides the content back (refresher.tsx <c>cancel()</c>).</summary>
     public Task Cancel()
     {
-        _state = "inactive";
-        _progress = 0;
-        BuildClass();
-        UpdateRenderedClass();
-        RestorePullOffset();
+        if (!ReferenceEquals(_session.Owner, this)) return _session.Owner.Cancel();
+        if (_session.State != "inactive") Close("cancelling", 0f);
         return Task.CompletedTask;
     }
 
-    /// <summary>Returns the current pull progress.</summary>
-    public Task<float> GetProgress() => Task.FromResult(_progress);
+    /// <summary>
+    /// How far the user has pulled relative to <see cref="PullMin"/>: below 1 a release cancels,
+    /// 1 and above it refreshes.
+    /// </summary>
+    public Task<float> GetProgress() => Task.FromResult(_session.Progress);
+
+    private RenderFragment RenderHost() => builder =>
+    {
+        var host = builder.OpenElement<RefresherHostElement>();
+        host.Refresher = this;
+        host.Class = ClassMapper.Class;
+        RenderTreeBuilder.SetStyle(host, Style);
+        builder.AddContent(0, ChildContent);
+        builder.CloseElement();
+        _hostElement = host;
+    };
 
     private void BuildClass()
     {
+        var state = _session.State;
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
             .Add("ion-refresher")
             .Add($"refresher-{Mode}")
-            .If(!Disabled && _state != "inactive", "refresher-active")
+            .If(!Disabled && state != "inactive", "refresher-active")
             .If(Disabled, "refresher-disabled")
-            .If(_state != "inactive", $"refresher-{_state}");
+            .If(state != "inactive", $"refresher-{state}");
     }
 
-    private void UpdateRenderedClass()
-    {
-        if (_hostElement is not null)
-            _hostElement.Class = ClassMapper.Class;
-    }
+    // ------------------------------------------------------------------------------- gesture
 
     internal void HandleContentPointerDown(PointerEventArgs args)
     {
-        if (Disabled || _state is "refreshing" or "completing" || _tracking
-            || args.Button != MouseButton.Left || !args.IsButtonPressed)
+        if (!ReferenceEquals(_session.Owner, this))
+        {
+            _session.Owner.HandleContentPointerDown(args);
             return;
+        }
 
-        var scroll = FindAncestor(args.Target, "inner-scroll");
-        if (scroll is null || scroll.ScrollTop > 0.01f)
-            return;
+        var s = _session;
+        s.Pressed = s.Tracking = s.Claimed = false;
 
-        _tracking = true;
-        _pullStarted = false;
-        _startX = args.X;
-        _startY = args.Y;
-        _scrollElement = scroll;
-        _backgroundElement = FindAncestor(args.Target, "ion-content")?.FindByClass("background-content").FirstOrDefault();
-        _scrollStyle = scroll.Style;
-        _backgroundStyle = _backgroundElement?.Style;
+        // A close whose timer never ran — an idle host draws no frame to drain it — must not hold
+        // off this press.
+        if (s.State is "cancelling" or "completing" && Environment.TickCount64 >= s.ResetDue)
+            Reset(s.ResetVersion);
+
+        if (Disabled || args.Button != MouseButton.Left || !args.IsButtonPressed) return;
+
+        var scroll = ScrollElement();
+        if (scroll is null || !IsWithin(args.Target, scroll)) return;
+        s.Pressed = true;
+
+        // refresher.tsx canStart(): only from the very top, and not while a refresh is busy.
+        if (IsBusy || scroll.ScrollTop > 0.01f) return;
+
+        s.Tracking = true;
+        s.StartX = args.X;
+        s.StartY = args.Y;
     }
 
     internal void HandleContentPointerMove(PointerEventArgs args)
     {
-        if (!_tracking || !args.IsButtonPressed)
-            return;
-
-        var deltaX = args.X - _startX;
-        var deltaY = args.Y - _startY;
-        if (deltaY <= 0 || Math.Abs(deltaX) > Math.Abs(deltaY))
+        if (!ReferenceEquals(_session.Owner, this))
         {
-            if (!_pullStarted) ResetGesture();
+            _session.Owner.HandleContentPointerMove(args);
             return;
         }
 
-        if (!_pullStarted)
+        var s = _session;
+        if (!s.Pressed || !args.IsButtonPressed) return;
+
+        // While refreshing or closing, refresher.tsx holds the scroll element at overflow: hidden.
+        if (IsBusy)
         {
-            _pullStarted = true;
-            _state = "pulling";
-            _progress = 0;
-            BuildClass();
-            UpdateRenderedClass();
+            args.PreventDefault();
+            return;
         }
 
-        var pull = deltaY;
-        _progress = PullMin > 0 ? pull / PullMin : 1f;
-        ApplyPullOffset(Math.Min(pull, Math.Max(0, PullMin)));
+        if (!s.Tracking) return;
+
+        var deltaX = args.X - s.StartX;
+        var deltaY = args.Y - s.StartY;
+
+        if (!s.Claimed)
+        {
+            // Judge the press once it has travelled far enough to have a direction (gesture.ts
+            // PanRecognizer): a downward pan within 40° of vertical is a pull; anything else —
+            // scrolling the list, a horizontal swipe — is left alone for the rest of the press.
+            // Judging the very first move instead let a finger's first one-pixel wobble end the
+            // pull before it began.
+            var distance = MathF.Sqrt(deltaX * deltaX + deltaY * deltaY);
+            if (distance < GestureThreshold) return;
+            if (deltaY / distance < MaxPanCosine)
+            {
+                s.Tracking = false;
+                return;
+            }
+            s.Claimed = true;
+        }
+
+        // refresher.tsx onMove() from here on.
+        if (deltaY <= 0f)
+        {
+            // Back above where the press started: nothing is pulled and the move scrolls again.
+            s.Progress = 0f;
+            SetState("inactive");
+            if (s.Offset != 0f) ApplyOffset(0f);
+            return;
+        }
+
+        if (s.State == "inactive")
+        {
+            if (ScrollElement() is { } scroll && scroll.ScrollTop > 0.01f)
+            {
+                s.Progress = 0f;
+                return;
+            }
+            SetState("pulling");
+        }
+
         args.PreventDefault();
+        ApplyOffset(deltaY);
+        s.Progress = PullMin > 0 ? deltaY / PullMin : 1f;
 
-        var pullMax = PullMax ?? PullMin + 60;
-        if (pullMax > 0 && pull >= pullMax)
-            _ = BeginRefreshFromGesture();
-        else if (pull >= Math.Max(1, PullMin))
+        if (deltaY < PullMin)
         {
-            _state = "ready";
-            BuildClass();
-            UpdateRenderedClass();
+            SetState("pulling");
+            return;
+        }
+
+        if (deltaY > (PullMax ?? PullMin + 60))
+        {
+            _ = StartRefresh();
+            return;
+        }
+
+        SetState("ready");
+    }
+
+    internal void HandleContentPointerUp(PointerEventArgs args) => EndPress(args, cancelled: false);
+
+    internal void HandleContentPointerCancel(PointerEventArgs args) => EndPress(args, cancelled: true);
+
+    private void EndPress(PointerEventArgs args, bool cancelled)
+    {
+        if (!ReferenceEquals(_session.Owner, this))
+        {
+            _session.Owner.EndPress(args, cancelled);
+            return;
+        }
+
+        var s = _session;
+        var pulled = s.Tracking && s.Claimed;
+        s.Pressed = s.Tracking = s.Claimed = false;
+        if (!pulled) return;
+
+        // refresher.tsx onEnd(): let go past PullMin refreshes, short of it slides back. A
+        // cancelled press (the system took the touch away) never starts a refresh.
+        if (s.State == "ready" && !cancelled)
+            _ = StartRefresh();
+        else if (s.State is "pulling" or "ready")
+            Close("cancelling", 0f);
+    }
+
+    // ------------------------------------------------------------------------------- states
+
+    private bool IsBusy => _session.State is "refreshing" or "cancelling" or "completing";
+
+    private async Task StartRefresh()
+    {
+        var s = _session;
+        s.Tracking = s.Claimed = false;
+        s.ResetVersion++;
+        s.Progress = 1f;
+        SetState("refreshing");
+
+        // Park the content where the refresher fits above it while the app works.
+        ApplyOffset(Math.Max(0, PullMin), SnapbackDuration);
+
+        await OnRefresh.InvokeAsync(new IonRefresherCustomEvent(this));
+    }
+
+    /// <summary>refresher.tsx <c>close()</c>: show the closing state, slide back, settle later.</summary>
+    private void Close(string state, float delay)
+    {
+        var s = _session;
+        s.Tracking = s.Claimed = false;
+        SetState(state);
+        ApplyOffset(0f, CloseDuration, delay);
+
+        var version = ++s.ResetVersion;
+        s.ResetDue = Environment.TickCount64 + ResetDelayMs;
+
+        var dispatcher = Dispatcher;
+        if (dispatcher is null)
+        {
+            // Built outside an app (no render thread to post back to): settle right away.
+            Reset(version);
+            return;
+        }
+
+        _ = Task.Delay(ResetDelayMs).ContinueWith(
+            _ => dispatcher.Post(() => s.Owner.Reset(version)),
+            TaskContinuationOptions.OnlyOnRanToCompletion);
+    }
+
+    private void Reset(int version)
+    {
+        var s = _session;
+        if (s.ResetVersion != version || s.State is not ("cancelling" or "completing")) return;
+
+        s.Progress = 0f;
+        SetState("inactive");
+        ApplyOffset(0f);
+    }
+
+    private void SetState(string state)
+    {
+        if (_session.State == state) return;
+        _session.State = state;
+        SyncHostClass();
+    }
+
+    /// <summary>
+    /// Brings the rendered host's state classes in line with the session. Only the state tokens are
+    /// rewritten: the host also carries classes stamped on it after this component rendered it — the
+    /// <c>ion-theme-*</c> scope (IonicComponentBase) and <c>ion-slot-fixed</c> (IonContent) — and
+    /// every refresher rule matches through that scope class, so replacing the whole class with the
+    /// ClassMapper output switched the refresher's stylesheet off.
+    /// </summary>
+    private void SyncHostClass()
+    {
+        BuildClass();
+        var host = _hostElement;
+        if (host is null) return;
+
+        var tokens = new List<string>();
+        foreach (var token in (host.Class ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (Array.IndexOf(StateClasses, token) < 0) tokens.Add(token);
+        }
+
+        var state = _session.State;
+        if (!Disabled && state != "inactive") tokens.Add("refresher-active");
+        if (state != "inactive") tokens.Add($"refresher-{state}");
+
+        var cls = string.Join(' ', tokens);
+        if (cls != host.Class) host.Class = cls;
+    }
+
+    // ------------------------------------------------------------------------------- rendering
+
+    /// <summary>
+    /// Moves the content to <paramref name="offset"/> (refresher.tsx <c>setCss()</c>), animating
+    /// from where it is when a duration is given.
+    /// </summary>
+    private void ApplyOffset(float offset, float duration = 0f, float delay = 0f)
+    {
+        var s = _session;
+        var from = s.Offset;
+        s.Offset = offset;
+
+        var host = _hostElement;
+        if (host is null) return;
+
+        // refresher.tsx moves exactly these two layers of the content.
+        if (FindAncestor(host.Parent, "ion-content") is { } content)
+        {
+            foreach (var layer in content.Children)
+            {
+                if (layer.HasClass("inner-scroll") || layer.HasClass("background-content"))
+                    Translate(layer, from, offset, duration, delay, clearAtZero: true);
+            }
+        }
+
+        // Ionic paints the refresher underneath the content (z-index: -1), so the content's own
+        // background hides all of it but the strip the pull has uncovered. Miko's ion-content host
+        // paints a background of its own, which would hide such a refresher outright. Instead the
+        // refresher clips to its box (overflow: hidden) and its content rides down with the pull,
+        // so it shows only above the moved content and never over it.
+        var height = HostHeight(host);
+        var clear = s.State == "inactive";
+        foreach (var child in host.Children)
+        {
+            if (child is TextNode) continue;
+            Translate(child, Reveal(from, height), Reveal(offset, height), duration, delay, clearAtZero: false, clear);
         }
     }
 
-    internal void HandleContentPointerUp(PointerEventArgs args)
-    {
-        if (!_tracking) return;
-        var shouldRefresh = _pullStarted && args.Y - _startY >= Math.Max(1, PullMin)
-            && _state is "ready" or "pulling";
-        _tracking = false;
+    private static float Reveal(float offset, float height) => Math.Min(offset, height) - height;
 
-        if (shouldRefresh)
-            _ = BeginRefreshFromGesture();
+    /// <summary>
+    /// Writes a translateY onto <paramref name="element"/>'s inline style. The style is replaced
+    /// wholesale: the Style setter compares by reference, so an in-place edit would go unnoticed.
+    /// </summary>
+    private void Translate(Element element, float from, float to, float duration, float delay,
+        bool clearAtZero, bool clear = false)
+    {
+        var style = element.Style?.Clone() ?? new Style();
+        // No transform at rest: a transform makes the element a stacking context.
+        if (clear || (clearAtZero && to == 0f))
+            style.Transform = null;
         else
-            CancelGesture();
+            style.Transform = TranslateY(to);
+        element.Style = style;
+
+        if (duration > 0f && from != to)
+        {
+            Animations?.TrackTransformChange(element, TranslateY(from), TranslateY(to),
+                new Transition(nameof(Style.Transform), duration, TimingFunction.Ease, delay));
+        }
     }
 
-    internal void HandleContentPointerCancel(PointerEventArgs _)
+    private static Transform TranslateY(float y) => new(new TransformFunction.TranslateY(Length.Px(y)));
+
+    private float HostHeight(Element host)
     {
-        if (!_tracking) return;
-        _tracking = false;
-        CancelGesture();
+        // Laid out only while active, and a rebuilt host has no box until the next layout — so the
+        // last measured height carries over (and PullMin stands in before the first measurement).
+        var measured = host.OffsetHeight;
+        if (measured > 0f) _session.HostHeight = measured;
+        return _session.HostHeight > 0f ? _session.HostHeight : Math.Max(1, PullMin);
     }
 
-    private async Task BeginRefreshFromGesture()
+    private Element? ScrollElement()
     {
-        if (_state == "refreshing" || Disabled) return;
-        _tracking = false;
-        _state = "refreshing";
-        _progress = 1f;
-        BuildClass();
-        UpdateRenderedClass();
-        ApplyPullOffset(Math.Max(0, PullMin));
-        await OnRefresh.InvokeAsync();
+        if (FindAncestor(_hostElement?.Parent, "ion-content") is not { } content) return null;
+        foreach (var child in content.Children)
+        {
+            if (child.HasClass("inner-scroll")) return child;
+        }
+        return null;
     }
 
-    private void CancelGesture()
+    /// <summary>
+    /// Takes over from <paramref name="previous"/>, whose host was just replaced by this instance's
+    /// (or re-applies the session when this instance rebuilt its own host).
+    /// </summary>
+    private void TakeOver(IonRefresher previous)
     {
-        _state = "inactive";
-        _progress = 0;
-        BuildClass();
-        UpdateRenderedClass();
-        RestorePullOffset();
-        ResetGesture();
+        if (!ReferenceEquals(previous, this))
+        {
+            // A State parameter the parent has just changed wins; otherwise the pull or refresh in
+            // flight carries on in this instance.
+            if (previous._session.DeclaredState != _session.DeclaredState) return;
+            _session = previous._session;
+            _session.Owner = this;
+        }
+
+        // The host and the content's layers were all rebuilt without the session's state.
+        SyncHostClass();
+        if (_session.State != "inactive") ApplyOffset(_session.Offset);
     }
 
-    private void ResetGesture()
+    private static bool IsWithin(Element? element, Element ancestor)
     {
-        _tracking = false;
-        _pullStarted = false;
-        _scrollElement = null;
-        _backgroundElement = null;
-        _scrollStyle = null;
-        _backgroundStyle = null;
-    }
-
-    private void ApplyPullOffset(float offset)
-    {
-        if (_scrollElement is null) return;
-        _scrollElement.Style = WithTranslateY(_scrollStyle, offset);
-        if (_backgroundElement is not null)
-            _backgroundElement.Style = WithTranslateY(_backgroundStyle, offset);
-    }
-
-    private void RestorePullOffset()
-    {
-        if (_scrollElement is not null) _scrollElement.Style = _scrollStyle;
-        if (_backgroundElement is not null) _backgroundElement.Style = _backgroundStyle;
-        ResetGesture();
-    }
-
-    private static Style WithTranslateY(Style? original, float offset)
-    {
-        var style = original?.Clone() ?? new Style();
-        style.Transform = new Transform(new TransformFunction.TranslateY(Length.Px(offset)));
-        return style;
+        for (var current = element; current is not null; current = current.Parent)
+        {
+            if (ReferenceEquals(current, ancestor)) return true;
+        }
+        return false;
     }
 
     private static Element? FindAncestor(Element? element, string className)
     {
         for (var current = element; current is not null; current = current.Parent)
+        {
             if (current.HasClass(className)) return current;
+        }
         return null;
     }
 
@@ -258,4 +507,48 @@
         "completing" => "completing",
         _ => "inactive",
     };
+
+    /// <summary>
+    /// The pull / refresh state of one refresher, shared by the successive component instances that
+    /// render it. <see cref="Owner"/> is the newest; the older ones forward to it.
+    /// </summary>
+    private sealed class RefresherSession(IonRefresher owner)
+    {
+        public IonRefresher Owner = owner;
+        public string State = "inactive";
+        public string? DeclaredState;
+        public float Progress;
+
+        // The content's current translateY, and the refresher's laid-out height.
+        public float Offset;
+        public float HostHeight;
+
+        // Pressed: a press that began in the scroll area. Tracking: it began at the top and may
+        // still become a pull. Claimed: it has become one.
+        public bool Pressed;
+        public bool Tracking;
+        public bool Claimed;
+        public float StartX;
+        public float StartY;
+
+        // Guards the delayed return to inactive against a newer refresh or close.
+        public int ResetVersion;
+        public long ResetDue;
+    }
+
+    /// <summary>
+    /// The refresher's root element. On every re-render it is paired with the host it replaces, and
+    /// hands that host's session to the component instance that built it.
+    /// </summary>
+    private sealed class RefresherHostElement : DivElement
+    {
+        public IonRefresher? Refresher { get; set; }
+
+        protected override void CopyInteractionStateFrom(Element old)
+        {
+            base.CopyInteractionStateFrom(old);
+            if (old is RefresherHostElement { Refresher: { } previous } && Refresher is { } current)
+                current.TakeOver(previous);
+        }
+    }
 }
