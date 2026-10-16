@@ -566,7 +566,29 @@ public class MikoEngine
     }
 
     /// <summary>Marks an element for repaint without invalidating computed style or layout.</summary>
-    internal void InvalidatePaintOnly(Element element) => _dirtyManager.MarkDirty(element);
+    internal void InvalidatePaintOnly(Element element)
+    {
+        // display:none 子树里的元素什么也画不出，标脏只会凭空要来一帧——而那一帧又推进同一个动画、
+        // 再次标脏。隐藏的无限循环动画（ion-infinite-scroll-content 平时隐藏的加载指示器）就靠这个
+        // 回路让宿主永不空闲，绕过 HasPendingRenderWork 的可见性门禁。
+        if (!IsDisplayed(element)) return;
+        _dirtyManager.MarkDirty(element);
+    }
+
+    /// <summary>
+    /// 元素是否会被绘制：它自己和所有祖先的计算 display 都不是 none。
+    ///
+    /// <para>样式对整棵 DOM 计算（display:none 子树也有 <see cref="Element.LayoutBox"/> 承载计算样式），
+    /// 只是不进布局树，所以不能拿「有没有 LayoutBox」来判断。还没算过样式的新元素按可见处理。</para>
+    /// </summary>
+    private static bool IsDisplayed(Element element)
+    {
+        for (var current = element; current != null; current = current.Parent)
+        {
+            if (current.LayoutBox?.ComputedStyle?.Display == Display.None) return false;
+        }
+        return true;
+    }
 
     // 外部请求的「重绘一帧」标志。与脏区域不同：它不对应 DOM 里的任何矩形，
     // 只表示「本帧画出来的东西会和上一帧不同」。见 RequestRepaint。
@@ -649,7 +671,7 @@ public class MikoEngine
             if (_dispatcher.HasPendingActions) return true;             // 排队回调可能修改 DOM
             if (HasPendingInvalidations) return true;                   // 跨线程失效（视频帧、图片加载）
             if (_dirtyManager.HasDirtyRegions()) return true;           // 已标脏未绘制
-            if (_animationManager.HasActiveAnimations) return true;     // 动画/过渡逐帧推进
+            if (_animationManager.HasAnimationsToPresent(IsDisplayed)) return true; // 动画/过渡逐帧推进（不含隐藏的关键帧动画）
             if (_navContext != null) return true;                       // 页面转场逐帧推进（ISSUE-108）
             // 加载中/播放中的视频会持续投递新帧
             foreach (var session in _videoSessions.Values)
