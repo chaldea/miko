@@ -112,6 +112,28 @@ public class AnimationManager
 
     public bool HasActiveAnimations => _transitions.Count > 0 || _animations.Count > 0;
 
+    /// <summary>
+    /// 是否有<b>需要出帧</b>的动画：任一过渡，或元素经 <paramref name="isDisplayed"/> 判定为会被绘制的
+    /// 关键帧动画。
+    ///
+    /// <para>与 <see cref="HasActiveAnimations"/> 的区别只在 display:none 子树里的关键帧动画：它们画不出
+    /// 任何东西，却会让宿主每帧都渲染、永不空闲（ISSUE-096）——CSS 本就不在 display:none 的元素上运行
+    /// 动画。典型是 <c>ion-infinite-scroll-content</c> 里平时隐藏的加载指示器：它的无限循环动画让整页
+    /// 一直以 60fps 重绘。这类条目仍然保留，有其它原因出帧时照常推进，重新显示后接着播放。</para>
+    ///
+    /// <para>过渡不按可见性门禁：调用方可能在等 <see cref="TransitionCompleted"/>（淡出结束后再置
+    /// display:none），停推进就永远等不到。</para>
+    /// </summary>
+    internal bool HasAnimationsToPresent(Func<Element, bool> isDisplayed)
+    {
+        if (_transitions.Count > 0) return true;
+        foreach (var animation in _animations)
+        {
+            if (isDisplayed(animation.Element)) return true;
+        }
+        return false;
+    }
+
     public int ActiveTransitionCount => _transitions.Count;
 
     /// <summary>

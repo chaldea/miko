@@ -1,0 +1,72 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@using Miko.Components
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@*
+    The Infinite Scroll demo page (examples/Ionic/IonicDemo/Pages/InfiniteScrollPage.razor) rebuilt
+    with the same component nesting — IonApp (the demo's MainLayout) > IonPage > IonHeader + IonContent
+    > IonList > IonItem(avatar + label) + IonInfiniteScroll > IonInfiniteScrollContent — so the tests
+    run against the tree a real app produces. The load handler waits on InfiniteScrollProbe, letting a
+    test hold the infinite scroll in its loading state and finish it on demand, the way the demo's
+    delay does.
+*@
+<IonApp>
+    <IonPage>
+        <IonHeader>
+            <IonToolbar>
+                <Start>
+                    <IonBackButton DefaultHref="/"></IonBackButton>
+                </Start>
+                <ChildContent>
+                    <IonTitle>Infinite Scroll</IonTitle>
+                </ChildContent>
+            </IonToolbar>
+        </IonHeader>
+        <IonContent Fullscreen>
+            <IonList>
+                @foreach (var name in _items)
+                {
+                    <IonItem>
+                        <Start>
+                            <IonAvatar>
+                                <img src="res://Resources/test-icon.svg" />
+                            </IonAvatar>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h2>@name</h2>
+                                <p>Created November 28, 2012</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                }
+            </IonList>
+
+            <IonInfiniteScroll Threshold="100px" OnInfinite="@HandleInfinite">
+                <IonInfiniteScrollContent LoadingSpinner="bubbles" LoadingText="Loading more data...">
+                </IonInfiniteScrollContent>
+            </IonInfiniteScroll>
+        </IonContent>
+    </IonPage>
+</IonApp>
+
+@code {
+    [Inject] public InfiniteScrollProbe Probe { get; set; } = null!;
+
+    private List<string> _items = new();
+
+    protected override void OnInitialized()
+        => _items = Enumerable.Range(1, Probe.InitialRows).Select(i => $"User {i}").ToList();
+
+    private async Task HandleInfinite(IonInfiniteScrollCustomEvent e)
+    {
+        Probe.Loads++;
+        await Probe.WaitForRelease();
+
+        var start = _items.Count;
+        for (var i = 1; i <= Probe.BatchSize; i++) _items.Add($"User {start + i}");
+
+        StateHasChanged();
+        await e.Complete();
+    }
+}

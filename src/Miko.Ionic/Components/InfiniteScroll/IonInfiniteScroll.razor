@@ -6,12 +6,24 @@
    Ionic resolves the scroll element in connectedCallback (findClosestIonContent + getScrollElement)
    and registers a native scroll listener on it. Miko components cannot reach an ancestor at build
    time, so the engine instead delivers the scroll event *down* into the scroll container's subtree
-   (MikoEngine.ScrollBy → EventDispatcher.DispatchToDescendants). The host's @onscroll therefore
+   (MikoEngine.ScrollBy → EventDispatcher.DispatchToDescendants). The host's OnScroll therefore
    fires with the scroll container's geometry — carried on ScrollEventArgs as ScrollHeight /
-   ClientHeight — which is exactly what the threshold formula needs. *@
-<div class="@ClassMapper.Class" style="@Style" @onscroll="HandleScroll">
-    @ChildContent
-</div>
+   ClientHeight — which is exactly what the threshold formula needs.
+
+   Two Miko-specific arrangements keep scrolling cheap and the loading state intact:
+
+   - The scroll listener is a plain Element.OnScroll delegate, not @onscroll. An @onscroll
+     EventCallback re-renders this component after every call, i.e. on every scrolled frame. The
+     replaced host restyles and relays out the whole page, so a scroll frame cost as much as a full
+     page build and grew with every row loaded. Like Ionic's native listener, the delegate re-renders
+     nothing.
+   - The loading state lives in an InfiniteScrollSession, not on this instance. OnInfinite's receiver
+     (the page) re-renders the moment an async handler yields, which builds a new instance of this
+     component; state kept on the instance was gone at once, so every further scroll event fired
+     OnInfinite again and one threshold crossing loaded batch after batch. The host is an
+     InfiniteScrollHostElement; ComponentBase pairs it with its predecessor on every re-render
+     (TransferRuntimeState), and its CopyInteractionStateFrom hands the session to the new instance. *@
+@RenderHost()
 
 @code {
     /// <summary>
@@ -37,48 +49,40 @@
     /// </summary>
     [Parameter] public EventCallback<IonInfiniteScrollCustomEvent> OnInfinite { get; set; }
 
+    private const string LoadingClass = "infinite-scroll-loading";
+
     // Parsed threshold: exactly one of the two is non-zero (infinite-scroll.tsx thresholdChanged()).
     // _thrPc is a fraction of the viewport height; _thrPx is an absolute pixel distance.
     private float _thrPc;
     private float _thrPx;
 
-    private bool _isLoading;
+    private InfiniteScrollSession _session;
 
-    // didFire keeps ionInfinite from firing repeatedly while the user keeps scrolling inside the
-    // threshold band; it is only re-armed by Complete().
-    private bool _didFire;
-
-    // The host element, captured in Build(). Needed for the threshold formula, which subtracts this
+    // The host element this instance rendered. Needed for the threshold formula, which subtracts this
     // component's own height (Ionic's `this.el.offsetHeight`).
     private Element? _hostElement;
 
-    // Last measured host height, kept across the re-renders that momentarily clear the measured box.
-    private float _lastKnownHeight;
+    public IonInfiniteScroll() => _session = new InfiniteScrollSession(this);
 
     protected override void OnParametersSet()
     {
         ParseThreshold();
-
-        if (Disabled)
-        {
-            _isLoading = false;
-            _didFire = false;
-        }
-        else if (Loading)
-        {
-            _isLoading = true;
-        }
-
+        ApplyParameters();
         BuildClass();
     }
 
-    /// <summary>
-    /// Captures the host element so <see cref="HandleScroll"/> can read its laid-out height.
-    /// </summary>
-    public override Element Build()
+    /// <summary>Applies the parameters that drive the loading state to the session.</summary>
+    private void ApplyParameters()
     {
-        _hostElement = base.Build();
-        return _hostElement;
+        if (Disabled)
+        {
+            _session.IsLoading = false;
+            _session.DidFire = false;
+        }
+        else if (Loading)
+        {
+            _session.IsLoading = true;
+        }
     }
 
     /// <summary>
@@ -87,20 +91,40 @@
     /// </summary>
     public Task Complete()
     {
-        // infinite-scroll.tsx complete(): a no-op unless we are actually loading.
-        if (!_isLoading) return Task.CompletedTask;
+        if (!ReferenceEquals(_session.Owner, this)) return _session.Owner.Complete();
 
-        _isLoading = false;
-        _didFire = false;
-        BuildClass();
-        StateHasChanged();
+        // infinite-scroll.tsx complete(): a no-op unless we are actually loading.
+        if (!_session.IsLoading) return Task.CompletedTask;
+
+        _session.IsLoading = false;
+        _session.DidFire = false;
+        SyncHostClass();
         return Task.CompletedTask;
     }
 
-    private async Task HandleScroll(ScrollEventArgs args)
+    private RenderFragment RenderHost() => builder =>
     {
+        var host = builder.OpenElement<InfiniteScrollHostElement>();
+        host.InfiniteScroll = this;
+        host.Class = ClassMapper.Class;
+        RenderTreeBuilder.SetStyle(host, Style);
+        host.OnScroll = HandleScroll;
+        builder.AddContent(0, ChildContent);
+        builder.CloseElement();
+        _hostElement = host;
+    };
+
+    private void HandleScroll(ScrollEventArgs args)
+    {
+        if (!ReferenceEquals(_session.Owner, this))
+        {
+            _session.Owner.HandleScroll(args);
+            return;
+        }
+
         // canStart(): infinite-scroll.tsx
-        if (Disabled || _isLoading || _didFire) return;
+        var s = _session;
+        if (Disabled || s.IsLoading || s.DidFire) return;
 
         // Ionic's `infiniteHeight = this.el.offsetHeight`. CurrentTarget is the element the engine
         // is delivering to, i.e. the one in the live tree; _hostElement is the fallback for direct
@@ -108,12 +132,11 @@
         var host = args.CurrentTarget ?? _hostElement;
         var infiniteHeight = host?.OffsetHeight ?? 0f;
 
-        // A StateHasChanged rebuild hands the replacement element a layout box that carries the
-        // computed style but not the measured box, so OffsetHeight reads 0 until the next full
-        // layout pass. Our own loading-state re-render does exactly that, which would otherwise
-        // leave us permanently unable to fire again. Fall back to the last measured height.
-        if (infiniteHeight > 0f) _lastKnownHeight = infiniteHeight;
-        else infiniteHeight = _lastKnownHeight;
+        // A re-render hands the replacement host a layout box that carries the computed style but not
+        // the measured box, so OffsetHeight reads 0 until the next full layout pass. The page
+        // re-renders on every load, so fall back to the last measured height.
+        if (infiniteHeight > 0f) s.LastKnownHeight = infiniteHeight;
+        else infiniteHeight = s.LastKnownHeight;
 
         // "if there is no height of this element then do nothing" — also covers the never-laid-out
         // case, where every geometry read would be 0 and the formula would fire spuriously.
@@ -127,13 +150,12 @@
 
         if (distanceFromInfinite >= 0f) return;
 
-        _isLoading = true;
-        _didFire = true;
-        BuildClass();
+        s.IsLoading = true;
+        s.DidFire = true;
         // Show the loading state immediately — the handler's async work may take a while.
-        StateHasChanged();
+        SyncHostClass();
 
-        await OnInfinite.InvokeAsync(new IonInfiniteScrollCustomEvent(this));
+        _ = OnInfinite.InvokeAsync(new IonInfiniteScrollCustomEvent(this));
     }
 
     private bool IsTop => string.Equals(Position, "top", StringComparison.OrdinalIgnoreCase);
@@ -168,7 +190,82 @@
             .Add(Mode)
             .Add("ion-infinite-scroll")
             .If(!Disabled, "infinite-scroll-enabled")
-            .If(_isLoading, "infinite-scroll-loading")
+            .If(_session.IsLoading, LoadingClass)
             .If(IsTop, "infinite-scroll-top");
+    }
+
+    /// <summary>
+    /// Brings the rendered host's loading class in line with the session, without re-rendering. Only
+    /// that token is rewritten: the host also carries the <c>ion-theme-*</c> scope class stamped on it
+    /// after this component rendered it (IonicComponentBase), and every rule matches through it.
+    /// </summary>
+    private void SyncHostClass()
+    {
+        BuildClass();
+        var host = _hostElement;
+        if (host is null) return;
+
+        var tokens = new List<string>();
+        foreach (var token in (host.Class ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (token != LoadingClass) tokens.Add(token);
+        }
+        if (_session.IsLoading) tokens.Add(LoadingClass);
+
+        var cls = string.Join(' ', tokens);
+        if (cls != host.Class) host.Class = cls;
+    }
+
+    /// <summary>
+    /// Takes over from <paramref name="previous"/>, whose host was just replaced by this instance's
+    /// (or re-applies the session when this instance rebuilt its own host).
+    /// </summary>
+    private void TakeOver(IonInfiniteScroll previous)
+    {
+        if (!ReferenceEquals(previous, this))
+        {
+            // The load in flight carries on in this instance; the parameters the parent has just
+            // rendered still apply on top of it (Disabled ends it, Loading declares one).
+            _session = previous._session;
+            _session.Owner = this;
+            ApplyParameters();
+        }
+
+        // The host was rendered from this instance's own state, before it had the session.
+        SyncHostClass();
+    }
+
+    /// <summary>
+    /// The loading state of one infinite scroll, shared by the successive component instances that
+    /// render it. <see cref="Owner"/> is the newest; the older ones forward to it.
+    /// </summary>
+    private sealed class InfiniteScrollSession(IonInfiniteScroll owner)
+    {
+        public IonInfiniteScroll Owner = owner;
+        public bool IsLoading;
+
+        // didFire keeps ionInfinite from firing repeatedly while the user keeps scrolling inside the
+        // threshold band; it is only re-armed by Complete().
+        public bool DidFire;
+
+        // Last measured host height, kept across the re-renders that momentarily clear the measured
+        // box.
+        public float LastKnownHeight;
+    }
+
+    /// <summary>
+    /// The infinite scroll's root element. On every re-render it is paired with the host it replaces,
+    /// and hands that host's session to the component instance that built it.
+    /// </summary>
+    private sealed class InfiniteScrollHostElement : DivElement
+    {
+        public IonInfiniteScroll? InfiniteScroll { get; set; }
+
+        protected override void CopyInteractionStateFrom(Element old)
+        {
+            base.CopyInteractionStateFrom(old);
+            if (old is InfiniteScrollHostElement { InfiniteScroll: { } previous } && InfiniteScroll is { } current)
+                current.TakeOver(previous);
+        }
     }
 }
