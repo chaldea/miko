@@ -798,6 +798,17 @@ public class GridLayout
         bool stretchWidth = effectiveJustify == JustifyItems.Stretch && widthIsAuto && !isText;
         bool stretchHeight = effectiveAlign == AlignItems.Stretch && heightIsAuto && !isText;
 
+        // 有首选纵横比（aspect-ratio，ISSUE-150）的子项在 normal 对齐下不拉伸，而按块级盒的规则定尺寸
+        // （CSS Grid 2 §6.2）：宽度填满 area、高度由比值从宽度推导；高度已指定时宽度由比值推导。
+        // 显式 stretch 仍填满 area（可能扭曲比值，与规范一致）。
+        if (AspectRatioSizing.Resolve(child).HasValue)
+        {
+            bool alignIsNormal = childStyle.AlignSelf == AlignSelf.Auto && containerAlignItems == AlignItems.Normal;
+            bool justifyIsNormal = childStyle.JustifySelf == JustifySelf.Auto && containerJustifyItems == JustifyItems.Normal;
+            if (alignIsNormal) stretchHeight = false;
+            if (justifyIsNormal && !heightIsAuto) stretchWidth = false;
+        }
+
         // stretch 轴上的 auto margin 无剩余空间可分，归零（CSS：stretch 优先于 auto margin）。
         if (stretchWidth) { mlAuto = false; mrAuto = false; }
         if (stretchHeight) { mtAuto = false; mbAuto = false; }

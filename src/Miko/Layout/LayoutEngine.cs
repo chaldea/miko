@@ -470,6 +470,12 @@ public class LayoutEngine
         bool heightFromInsets = style.Height.IsAuto && !style.Height.IsFitContent
             && !style.Top.IsAuto && !style.Bottom.IsAuto;
 
+        // 有首选纵横比（aspect-ratio，ISSUE-150）且两轴都由偏移定型时，块轴是 ratio-dependent 轴：
+        // 高度由宽度经比值推导，不再被 top/bottom 拉伸（CSS Position 3 §4.1）。
+        // 只有一轴由偏移定型时，另一轴（auto 尺寸）由比值推导，由各布局算法自然处理。
+        if (widthFromInsets && heightFromInsets && LayoutAlgorithms.AspectRatioSizing.Resolve(box).HasValue)
+            heightFromInsets = false;
+
         if (!widthFromInsets && !heightFromInsets)
             return;
 

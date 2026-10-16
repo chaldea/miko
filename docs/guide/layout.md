@@ -28,6 +28,35 @@ Every laid-out element has four nested boxes, from inside out:
 `BoxSizing` controls whether `Width`/`Height` refer to the content box (`ContentBox`,
 default) or the border box (`BorderBox`).
 
+### Aspect ratio
+
+`AspectRatio` (CSS `aspect-ratio`) gives a box a preferred width-to-height ratio. When one of
+`Width` / `Height` is `auto`, layout derives it from the other — in the same pass, so a 16:9
+media frame follows its container's width without any code measuring it first:
+
+```csharp
+new Style
+{
+    Width = Length.Percent(100),
+    AspectRatio = new AspectRatio(16, 9)   // height = width × 9 / 16
+};
+```
+
+| Value | Meaning |
+| --- | --- |
+| `AspectRatio.Auto` | Default. Only images and videos keep their natural ratio. |
+| `new AspectRatio(16, 9)` / `new AspectRatio(0.5f)` | Width / height. Applies to the box chosen by `BoxSizing`. |
+| `AspectRatio.AutoOr(16, 9)` | Use an image's or video's natural ratio, else 16 / 9. Always applies to the content box. |
+
+- It has no effect when both `Width` and `Height` are set, or on plain inline boxes (`span`).
+- A ratio with a zero or infinite side behaves as `Auto`.
+- `Min*` / `Max*` sizes clamp both axes. A box that does not scroll grows taller to fit its
+  content instead of overflowing; set `Overflow` to keep the ratio exactly.
+- Flex and grid items derive their size from the ratio, and a ratio-derived height is a
+  definite size, so children's `Height = Length.Percent(100)` resolves against it.
+- On an `<img>` that has not loaded yet, it reserves the final space, so the page does not
+  shift when the image arrives.
+
 ## Two-phase layout
 
 Layout flows in two directions, like a browser:

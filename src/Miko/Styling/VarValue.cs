@@ -92,6 +92,14 @@ public readonly struct VarValue
             value = Unsafe.As<float, T>(ref blittable.Float);
             return true;
         }
+        // aspect-ratio 的单数值写法（CSS `--ratio: 1.5; aspect-ratio: var(--ratio)`，ISSUE-150）。
+        // 负数 / NaN 在 CSS 中非法，按未解析处理（保留初始值 auto）。
+        if (typeof(T) == typeof(AspectRatio) && _kind == Kind.Float && blittable.Float >= 0)
+        {
+            var ratio = new AspectRatio(blittable.Float);
+            value = Unsafe.As<AspectRatio, T>(ref ratio);
+            return true;
+        }
         if (typeof(T) == typeof(int) && _kind == Kind.Int)
         {
             value = Unsafe.As<int, T>(ref blittable.Int);

@@ -38,6 +38,9 @@ public partial class ComputedStyle : Style
     public new Length MaxInlineSize { get; set; } = Length.Auto;
     public new Length MaxBlockSize { get; set; } = Length.Auto;
 
+    // 首选纵横比（ISSUE-150）。比值本身是物理的「宽 / 高」，不随书写模式映射。
+    public new AspectRatio AspectRatio { get; set; } = Common.AspectRatio.Auto;
+
     public new Length Width
     {
         get => WritingMode == Common.WritingMode.HorizontalTb ? InlineSize : BlockSize;

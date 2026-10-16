@@ -66,6 +66,69 @@ public class PlayerIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void Should_Size_Viewport_To_16_By_9_On_The_First_Layout()
+    {
+        // The height used to be written back as pixels once a frame had measured the width, so the first
+        // layout used a 240px placeholder and the page laid out a second time (ISSUE-146 §5.3, ISSUE-150).
+        using var bitmap = new SKBitmap(640, 480);
+        using var canvas = new SKCanvas(bitmap);
+        var engine = new MikoEngineBuilder().Build();
+        engine.VideoBackend = new Backend();
+        using var player = new MikoPlayer { Engine = engine, Source = "movie.mp4" };
+        var root = new DivElement { Style = new Style { Display = Display.Block, Width = Length.Percent(100) } };
+        root.Children.Add(player.Build());
+
+        engine.Initialize(root, [], canvas, 640, 480);
+
+        root.FindByClass("miko-player-viewport").Single().OffsetHeight.ShouldBe(360, .5f);
+        engine.DisposeVideoSessions();
+    }
+
+    [Fact]
+    public void Should_Keep_Viewport_Style_Across_Frames()
+    {
+        // Each frame raises PlaybackUpdated; replacing the viewport's inline style there invalidated the
+        // layout that had just been computed.
+        var viewport = _root.FindByClass("miko-player-viewport").Single();
+        var style = viewport.Style;
+        _player.Play(); Render();
+        _engine.SetViewportSize(360, 740); Render();
+        viewport.Style.ShouldBeSameAs(style);
+    }
+
+    [Fact]
+    public void Should_Follow_Width_Changes_In_The_Same_Frame()
+    {
+        var viewport = _root.FindByClass("miko-player-viewport").Single();
+        _engine.SetViewportSize(480, 740);
+        _engine.Render(_canvas);
+        viewport.OffsetHeight.ShouldBe(270, .5f);
+    }
+
+    [Fact]
+    public void Should_Restore_16_By_9_After_Leaving_Fullscreen()
+    {
+        _engine.SetViewportSize(360, 740); Render();
+        var viewport = _root.FindByClass("miko-player-viewport").Single();
+        _player.ToggleFullscreen(); Render();
+        // Fullscreen: the viewport takes the height the 28px progress bar and 48px controls leave free.
+        viewport.OffsetHeight.ShouldBe(740 - 28 - 48, .5f);
+        _player.ToggleFullscreen(); Render();
+        viewport.OffsetHeight.ShouldBe(202.5f, .5f);
+    }
+
+    [Fact]
+    public void Should_Shrink_Viewport_In_A_Fixed_Height_Player()
+    {
+        // The Anime detail page fixes the player height; the viewport gives way to the controls.
+        _player.Style = new Style { Height = Length.Px(230), FlexShrink = 0 };
+        _player.Build();
+        _engine.SetViewportSize(360, 740); Render();
+        _root.FindByClass("miko-player").Single().OffsetHeight.ShouldBe(230, .5f);
+        _root.FindByClass("miko-player-viewport").Single().OffsetHeight.ShouldBe(230 - 28 - 48, .5f);
+    }
+
+    [Fact]
     public void Should_Fill_Viewport_Inside_A_Padded_Parent()
     {
         _root.Style = new Style { Display = Display.Block, Width = Length.Percent(100), Height = Length.Percent(100),

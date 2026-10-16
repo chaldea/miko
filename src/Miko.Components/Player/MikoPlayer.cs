@@ -66,7 +66,7 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     private MediaSource _lastSource;
     private string? _lastMime;
     private bool _built, _disposed, _dragging, _refreshing;
-    private float _scrub, _lastWidth;
+    private float _scrub;
     private VideoSessionState _lastState;
     private long _lastTimeUpdate;
     private bool _lastMuted, _lastLoop;
@@ -139,7 +139,7 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         if (IsFullscreen) AcquireFullscreenPlatform();
         else ReleaseFullscreenPlatform();
         ApplyRootStyle();
-        ResizeViewport();
+        ApplyViewportStyle();
         Repaint();
         FullscreenChanged?.Invoke();
     }
@@ -217,8 +217,7 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     private void BuildElements()
     {
         _viewport.Class = "miko-player-viewport";
-        _viewport.Style = new Style { Display = Display.Block, Position = Position.Relative,
-            Height = Length.Px(240), Width = Length.Percent(100), MinHeight = Length.Px(100), BackgroundColor = Color.Black, Overflow = Overflow.Hidden };
+        ApplyViewportStyle();
         _video.Style = Fill();
         _overlay.Style = Fill();
         _overlay.Paint = DrawOverlay;
@@ -345,27 +344,27 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     private void Refresh()
     {
         if (_disposed) return;
-        ResizeViewport();
         _refreshing = true;
         try { Controller.Refresh(); }
         finally { _refreshing = false; }
     }
-    private void ResizeViewport()
+
+    /// <summary>
+    /// Inline: 16:9 of the player width, resolved by layout through <c>aspect-ratio</c> (ISSUE-150).
+    /// The height used to be written back as pixels once a frame had measured the width, so opening a
+    /// page laid out twice and every resize lagged one frame behind. Fullscreen: fill the height the
+    /// controls leave free.
+    /// </summary>
+    private void ApplyViewportStyle()
     {
-        float width = _root.OffsetWidth;
-        if (width <= 0) return;
-        if (IsFullscreen)
+        var style = new Style
         {
-            if (_viewport.Style!.FlexGrow.ValueOrNull() != 1)
-            {
-                ChangeStyle(_viewport, s => { s.FlexGrow = 1; s.Height = Length.Px(0); });
-            }
-        }
-        else if (width != _lastWidth || _viewport.Style!.FlexGrow.ValueOrNull() == 1)
-        {
-            ChangeStyle(_viewport, s => { s.FlexGrow = 0; s.Height = Length.Px(width * 9 / 16); });
-        }
-        _lastWidth = width;
+            Display = Display.Block, Position = Position.Relative, Width = Length.Percent(100), MinHeight = Length.Px(100),
+            BackgroundColor = Color.Black, Overflow = Overflow.Hidden
+        };
+        if (IsFullscreen) { style.FlexGrow = 1; style.Height = Length.Px(0); }
+        else style.AspectRatio = new AspectRatio(16, 9);
+        _viewport.Style = style;
     }
     private void UpdateControls()
     {
