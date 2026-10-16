@@ -310,9 +310,11 @@ public abstract class Element
     /// <para>只搬迁「由交互产生、不由组件参数重新写入」的状态：交互状态标志位（焦点/悬停/
     /// 按下）。<see cref="ElementState.Disabled"/> 不在其中——它由组件按参数每次重新标注，
     /// 搬迁反而会让 <c>Disabled</c> 参数转为 false 后仍卡在禁用态。</para>
-    /// <para>子类可重写以追加自己的状态（如输入控件的光标位置）。</para>
+    /// <para>子类可重写以追加自己的状态（如输入控件的光标位置）。组件库同样可以：组件实例随
+    /// 父级重渲染整个重建，挂在实例字段上的交互状态（如 <c>IonRefresher</c> 的下拉/刷新中）会
+    /// 随之丢失；让组件根元素用自定义元素子类重写本方法，就能把状态交给接替它的新实例。</para>
     /// </summary>
-    internal virtual void CopyInteractionStateFrom(Element old)
+    protected internal virtual void CopyInteractionStateFrom(Element old)
     {
         // 静默置位：本元素尚未进入布局树，样式尚未解析，标脏无意义；随后的重排会照常
         // 按新状态级联（这条路径本身就发生在一次重渲染中间）。

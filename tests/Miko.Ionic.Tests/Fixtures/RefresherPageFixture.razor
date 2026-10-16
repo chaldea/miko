@@ -1,0 +1,60 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@using Miko.Components
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@*
+    The Refresher demo page (examples/Ionic/IonicDemo/Pages/RefresherPage.razor) rebuilt with the
+    same component nesting — IonApp > IonPage > IonHeader + IonContent(Fixed: IonRefresher) >
+    IonList > IonItem — so the pull-to-refresh tests run against the tree a real app produces.
+    The refresh handler waits on RefresherProbe, letting a test hold the refresher in its
+    refreshing state and finish it on demand, the way the demo's network delay does.
+*@
+<IonApp>
+    <IonPage>
+        <IonHeader>
+            <IonToolbar>
+                <Start>
+                    <IonBackButton DefaultHref="/"></IonBackButton>
+                </Start>
+                <ChildContent>
+                    <IonTitle>Refresher</IonTitle>
+                </ChildContent>
+            </IonToolbar>
+        </IonHeader>
+        <IonContent Fullscreen>
+            <Fixed>
+                <IonRefresher OnRefresh="@HandleRefresh">
+                    <IonRefresherContent></IonRefresherContent>
+                </IonRefresher>
+            </Fixed>
+            <ChildContent>
+                <IonList>
+                    @foreach (var item in _items)
+                    {
+                        <IonItem>
+                            <IonLabel>
+                                <h2>@item</h2>
+                                <p>Message body</p>
+                            </IonLabel>
+                        </IonItem>
+                    }
+                </IonList>
+            </ChildContent>
+        </IonContent>
+    </IonPage>
+</IonApp>
+
+@code {
+    [Inject] public RefresherProbe Probe { get; set; } = null!;
+
+    private readonly List<string> _items = new() { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+
+    private async Task HandleRefresh(IonRefresherCustomEvent e)
+    {
+        Probe.Refreshes++;
+        await Probe.WaitForRelease();
+
+        _items.Insert(0, $"New {Probe.Refreshes}");
+        await e.Complete();
+    }
+}

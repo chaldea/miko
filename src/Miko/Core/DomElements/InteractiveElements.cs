@@ -172,7 +172,7 @@ public class InputElement : Element, ITextEditable
     /// （<c>Value</c> 会，光标位置不会），丢掉它会让光标跳回行首（ISSUE-121）。
     /// 位置按新值长度夹取——重渲染可能同时改变了 <see cref="Value"/>。
     /// </summary>
-    internal override void CopyInteractionStateFrom(Element old)
+    protected internal override void CopyInteractionStateFrom(Element old)
     {
         base.CopyInteractionStateFrom(old);
         if (old is not InputElement oldInput) return;
@@ -307,7 +307,7 @@ public class TextAreaElement : Element, ITextEditable
     }
 
     /// <summary>见 <see cref="InputElement.CopyInteractionStateFrom"/>（同款文本与光标位置迁移）。</summary>
-    internal override void CopyInteractionStateFrom(Element old)
+    protected internal override void CopyInteractionStateFrom(Element old)
     {
         base.CopyInteractionStateFrom(old);
         if (old is not TextAreaElement oldTextArea) return;

@@ -1,9 +1,5 @@
 @page "/refresher"
 
-@* NOTE: the original demo puts the refresher in ion-content's "fixed" slot; Miko's IonRefresher
-   is a normal child of the content. Ionic's ev.target.complete() is replaced by resetting the
-   refresher State back to "inactive". *@
-
 <IonPage>
     <IonHeader>
         <IonToolbar>
@@ -17,7 +13,7 @@
     </IonHeader>
     <IonContent Fullscreen>
         <Fixed>
-            <IonRefresher State="@_refresherState" OnRefresh="@HandleRefresh">
+            <IonRefresher OnRefresh="@HandleRefresh">
                 <IonRefresherContent></IonRefresherContent>
             </IonRefresher>
         </Fixed>
@@ -45,7 +41,6 @@
 @code {
     private record Email(string Author, string Title, string Message, bool Unread);
 
-    private string _refresherState = "inactive";
     private readonly Random _random = new(7);
 
     private static readonly string[] Authors =
@@ -119,13 +114,15 @@
         return result;
     }
 
-    private async Task HandleRefresh()
+    private async Task HandleRefresh(IonRefresherCustomEvent e)
     {
+        // Stand-in for a network request.
         await Task.Delay(1000);
 
         _items.InsertRange(0, CreateItems(2, unread: true));
-        _refresherState = "inactive";
 
-        StateHasChanged();
+        // Ionic's event.target.complete(): slides the content back up. The page re-renders with the
+        // new rows once this handler returns.
+        await e.Complete();
     }
 }

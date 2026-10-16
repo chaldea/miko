@@ -13,7 +13,7 @@ namespace Miko.Ionic.Tests.Components;
 
 public class IonRefresherTests : IonicComponentTestBase
 {
-    private static RenderFragment Refresher(EventCallback onRefresh, bool disabled,
+    private static RenderFragment Refresher(EventCallback<IonRefresherCustomEvent> onRefresh, bool disabled,
         int pullMin, int? pullMax) => builder =>
     {
         var __c2 = builder.OpenComponent<IonRefresher>();
@@ -27,7 +27,7 @@ public class IonRefresherTests : IonicComponentTestBase
         builder.CloseComponent();
     };
 
-    private ComponentUnderTest RenderInContent(EventCallback onRefresh = default,
+    private ComponentUnderTest RenderInContent(EventCallback<IonRefresherCustomEvent> onRefresh = default,
         bool disabled = false, int pullMin = 60, int? pullMax = null)
         => Context.Render<IonContent>(parameters =>
         {
@@ -173,7 +173,7 @@ public class IonRefresherTests : IonicComponentTestBase
     public void ReleasingAtPullMin_BeginsRefreshOnceAndSnapsContentToThreshold()
     {
         var refreshes = 0;
-        var cut = RenderInContent(EventCallback.Factory.Create(this, () => refreshes++));
+        var cut = RenderInContent(EventCallback.Factory.Create<IonRefresherCustomEvent>(this, () => refreshes++));
         var inner = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
 
         Drag(inner, 20, 90);
@@ -187,7 +187,7 @@ public class IonRefresherTests : IonicComponentTestBase
     public void PullingPastPullMax_BeginsRefreshBeforeRelease()
     {
         var refreshes = 0;
-        var cut = RenderInContent(EventCallback.Factory.Create(this, () => refreshes++), pullMin: 50, pullMax: 80);
+        var cut = RenderInContent(EventCallback.Factory.Create<IonRefresherCustomEvent>(this, () => refreshes++), pullMin: 50, pullMax: 80);
         var inner = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
 
         Drag(inner, 20, 110, release: false);
@@ -227,6 +227,67 @@ public class IonRefresherTests : IonicComponentTestBase
             PointerArgs(cancelledInner, 10, 70, pressed: false));
         cancelled.FindByClass("ion-refresher").ShouldHaveSingleItem().ShouldNotHaveClass("refresher-active");
         TranslateY(cancelledInner).ShouldBe(0f);
+    }
+
+    [Fact]
+    public void Pull_FollowsTheFingerPastPullMin_AndIsReadyToRefresh()
+    {
+        // refresher.tsx setCss(deltaY): the content tracks the finger, it is not held at PullMin.
+        var cut = RenderInContent();
+        var inner = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
+
+        Drag(inner, 20, 100, release: false);
+
+        cut.FindByClass("ion-refresher").ShouldHaveSingleItem().ShouldHaveClass("refresher-ready");
+        TranslateY(inner).ShouldBe(80f);
+    }
+
+    [Fact]
+    public void PullingBackAboveTheStart_ReturnsToInactive_AndLetsTheMoveScroll()
+    {
+        var cut = RenderInContent();
+        var inner = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
+        var dispatcher = new EventDispatcher();
+        dispatcher.Dispatch(inner, EventTypes.PointerDown, PointerArgs(inner, 10, 50, pressed: true));
+        dispatcher.Dispatch(inner, EventTypes.PointerMove, PointerArgs(inner, 10, 90, pressed: true));
+
+        var back = PointerArgs(inner, 10, 45, pressed: true);
+        dispatcher.Dispatch(inner, EventTypes.PointerMove, back);
+
+        back.DefaultPrevented.ShouldBeFalse();
+        cut.FindByClass("ion-refresher").ShouldHaveSingleItem().ShouldNotHaveClass("refresher-active");
+        TranslateY(inner).ShouldBe(0f);
+    }
+
+    [Fact]
+    public void CompleteFromTheRefreshEvent_ReturnsTheRefresherToInactive()
+    {
+        IonRefresherCustomEvent? refresh = null;
+        var cut = RenderInContent(EventCallback.Factory.Create<IonRefresherCustomEvent>(this, e => refresh = e));
+        var inner = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
+
+        Drag(inner, 20, 90);
+        refresh.ShouldNotBeNull();
+
+        refresh.Complete();
+
+        cut.FindByClass("ion-refresher").ShouldHaveSingleItem().ShouldNotHaveClass("refresher-active");
+        TranslateY(inner).ShouldBe(0f);
+    }
+
+    [Fact]
+    public void StateChanges_KeepTheClassesOthersStampedOnTheHost()
+    {
+        // IonContent marks fixed-slot elements with ion-slot-fixed after the refresher has rendered
+        // (and IonicComponentBase adds the ion-theme-* scope); a state change must not wipe them.
+        var cut = RenderInContent();
+        var inner = cut.FindByClass("inner-scroll").ShouldHaveSingleItem();
+
+        Drag(inner, 20, 60, release: false);
+
+        var refresher = cut.FindByClass("ion-refresher").ShouldHaveSingleItem();
+        refresher.ShouldHaveClass("refresher-pulling");
+        refresher.ShouldHaveClass("ion-slot-fixed");
     }
 
     private static void Drag(Element target, float fromY, float toY, float toX = 10, bool release = true)
