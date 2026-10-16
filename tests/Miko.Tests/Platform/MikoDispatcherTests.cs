@@ -18,6 +18,26 @@ public class MikoDispatcherTests
     }
 
     [Fact]
+    public void Post_ShouldRaisePosted_OnceTheActionIsQueued()
+    {
+        // A render-on-demand host (Android) requests a frame from this event; the frame must find
+        // the action already queued, or it drains nothing and the host goes back to sleep.
+        var dispatcher = new MikoDispatcher();
+        var raised = 0;
+        var pendingWhenRaised = false;
+        dispatcher.Posted += () =>
+        {
+            raised++;
+            pendingWhenRaised = dispatcher.HasPendingActions;
+        };
+
+        dispatcher.Post(() => { });
+
+        raised.ShouldBe(1);
+        pendingWhenRaised.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Drain_ShouldExecuteAllQueuedActions()
     {
         var dispatcher = new MikoDispatcher();

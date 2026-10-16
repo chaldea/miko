@@ -44,6 +44,10 @@ public class MikoSurfaceView : SKGLSurfaceView
     private BackInvokedCallback? _backCallback;
     private bool _backCallbackRegistered;
 
+    // 渲染线程的动作队列。本视图按需出帧（WhenDirty），而队列只在帧里排空：空闲时投递进来的动作
+    // （异步加载的续延、计时器回调）若不主动要一帧，就会一直等到下一次触摸。
+    private readonly MikoDispatcher? _dispatcher;
+
     /// <summary>
     /// 本视图提供给 Native 能力层的 Android 宿主。相机、相册等能力要
     /// <c>startActivityForResult</c>，宿主 Activity 必须把 <c>OnActivityResult</c> 转发给
@@ -73,6 +77,7 @@ public class MikoSurfaceView : SKGLSurfaceView
         NativeHost = new AndroidNativeHost(context, _activity);
 
         _backRegistry = appContext.Services.GetService<IPlatformService>()?.Back;
+        _dispatcher = appContext.Services.GetService<MikoDispatcher>();
 
         var hostContext = appContext.Services.GetService<INativeHostContext>();
 
@@ -312,6 +317,8 @@ public class MikoSurfaceView : SKGLSurfaceView
     protected override void OnAttachedToWindow()
     {
         base.OnAttachedToWindow();
+        // RequestRender 可从任意线程调用，投递动作的正是各种后台线程。
+        if (_dispatcher is not null) _dispatcher.Posted += RequestRender;
         if (_backRegistry is null || !OperatingSystem.IsAndroidVersionAtLeast(33)) return;
         _backRegistry.Changed += OnBackHandlersChanged;
         SyncBackCallback();
@@ -319,6 +326,7 @@ public class MikoSurfaceView : SKGLSurfaceView
 
     protected override void OnDetachedFromWindow()
     {
+        if (_dispatcher is not null) _dispatcher.Posted -= RequestRender;
         if (_backRegistry is not null && OperatingSystem.IsAndroidVersionAtLeast(33))
         {
             _backRegistry.Changed -= OnBackHandlersChanged;
