@@ -1,0 +1,16 @@
+<IonToolbar>
+    <Start>
+        <IonBackButton DefaultHref="/" OnClick="SaveDraft" />
+    </Start>
+    <ChildContent>
+        <IonTitle>New message</IonTitle>
+    </ChildContent>
+</IonToolbar>
+
+@code {
+    private readonly List<string> _drafts = new();
+    private string _text = "Hello";
+
+    // Runs first; the back navigation follows once the handler (or its Task) completes.
+    private void SaveDraft() => _drafts.Add(_text);
+}

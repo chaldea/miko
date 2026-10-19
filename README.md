@@ -174,9 +174,12 @@ dotnet new miko-multiplatform --layout tabs --agent claude -o MyApp
 
 `--agent` accepts `claude`, `codex`, or `cursor` (default `none`). Each scaffolds two things:
 
-**1. Agent-optimized docs.** A Miko reference written for agents (`.miko/`) plus the matching
-assistant config (`.claude/` + `CLAUDE.md`, `.codex/` + `AGENTS.md`, or `.cursor/`), so the
-agent knows Miko's constraints — typed C# styles, the real element set — before it writes UI.
+**1. The Miko docs, for the agent.** `.miko/` holds the rules an agent must follow, an
+`llms.txt` index, and the complete Miko documentation of the version the app was created with —
+including a page per Ionic component with every parameter, event, slot, and theme token —
+plus the matching assistant config (`.claude/` + `CLAUDE.md`, `.codex/` + `AGENTS.md`, or
+`.cursor/`). The agent knows Miko's constraints — typed C# styles, the real element and
+attribute set, the exact component APIs — before it writes UI.
 
 **2. A live MCP debug server.** The simulator head exposes the running app over the
 [Model Context Protocol](https://modelcontextprotocol.io) so the agent can inspect and drive it

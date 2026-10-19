@@ -1,0 +1,19 @@
+@* Both texts render when both are set, so show one or the other. *@
+<IonInput Label="Email"
+          LabelPlacement="stacked"
+          Placeholder="email@domain.com"
+          Value="@_email"
+          OnInput="Validate"
+          HelperText="@(_error is null ? "Enter a valid email" : null)"
+          ErrorText="@_error" />
+
+@code {
+    private string? _email;
+    private string? _error;
+
+    private void Validate(string? value)
+    {
+        _email = value;
+        _error = string.IsNullOrEmpty(value) || value.Contains('@') ? null : "Invalid email";
+    }
+}

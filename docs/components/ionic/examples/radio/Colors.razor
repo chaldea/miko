@@ -1,0 +1,10 @@
+@* The color shows on the checked radio: tap the others to see theirs. *@
+<IonRadioGroup @bind-Value="_status">
+    <IonRadio Value="ok" Color="success">Healthy</IonRadio>
+    <IonRadio Value="warn" Color="warning">Degraded</IonRadio>
+    <IonRadio Value="down" Color="danger">Down</IonRadio>
+</IonRadioGroup>
+
+@code {
+    private string? _status = "ok";
+}

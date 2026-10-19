@@ -205,7 +205,8 @@
     /// <summary>Fill marker: solid or outline (outline only styled in md).</summary>
     [Parameter] public string? Fill { get; set; }
 
-    /// <summary>Shape marker. Use <c>"round"</c> for round corners.</summary>
+    /// <summary>Shape (Ionic <c>shape</c>): <c>"round"</c> gives the <c>solid</c> fill pill-shaped
+    /// corners. It does not change the corners of the md outline.</summary>
     [Parameter] public string? Shape { get; set; }
 
     /// <summary>Justify marker: start, end, or space-between. Ignored for floating/stacked labels,
@@ -215,8 +216,8 @@
     /// <summary>Toggle icon when closed. Defaults to chevron-expand on iOS and caret-down-sharp on md.</summary>
     [Parameter] public string? ToggleIcon { get; set; }
 
-    /// <summary>Toggle icon shown while the select is open. When set, stamps
-    /// <c>has-expanded-icon</c> (which disables the md icon rotation).</summary>
+    /// <summary>Toggle icon shown while the select is open (defaults to <see cref="ToggleIcon"/>).
+    /// When set, the host also gets the <c>has-expanded-icon</c> class.</summary>
     [Parameter] public string? ExpandedIcon { get; set; }
 
     /// <summary>Optional selected-text override, shown instead of the selected options' text.</summary>

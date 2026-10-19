@@ -1,0 +1,34 @@
+@* Swipe left reveals the end options, swipe right the start options. Keep Open and the side in
+   your own state: every re-render of this component re-creates the rows from their parameters. *@
+<IonList>
+    @foreach (var message in _messages)
+    {
+        <IonItemSliding @bind-Open="message.Open" OpenSide="@message.Side" OnSwipe="side => message.Side = side">
+            <IonItem>
+                <IonLabel>@message.Subject</IonLabel>
+            </IonItem>
+            <IonItemOptions Side="start">
+                <IonItemOption OnClick="() => message.Open = false">Unread</IonItemOption>
+            </IonItemOptions>
+            <IonItemOptions Side="end">
+                <IonItemOption Color="danger" OnClick="() => _messages.Remove(message)">Delete</IonItemOption>
+            </IonItemOptions>
+        </IonItemSliding>
+    }
+</IonList>
+
+@code {
+    private readonly List<Message> _messages =
+    [
+        new("Lunch on Friday?"),
+        new("Quarterly report"),
+        new("Your order has shipped"),
+    ];
+
+    private sealed class Message(string subject)
+    {
+        public string Subject { get; } = subject;
+        public bool Open { get; set; }
+        public string Side { get; set; } = "end";
+    }
+}

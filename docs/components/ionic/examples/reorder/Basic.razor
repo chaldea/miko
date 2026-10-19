@@ -1,0 +1,27 @@
+@* The group reports the move; the app applies it to its own list. *@
+<IonList>
+    <IonReorderGroup Disabled="false" OnItemReorder="Move">
+        @foreach (var task in _tasks)
+        {
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>@task</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonReorder />
+                </End>
+            </IonItem>
+        }
+    </IonReorderGroup>
+</IonList>
+
+@code {
+    private readonly List<string> _tasks = new() { "Buy milk", "Walk the dog", "Pay rent", "Call mom" };
+
+    private void Move((int From, int To) move)
+    {
+        var task = _tasks[move.From];
+        _tasks.RemoveAt(move.From);
+        _tasks.Insert(move.To, task);
+    }
+}

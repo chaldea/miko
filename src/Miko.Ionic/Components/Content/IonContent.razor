@@ -51,10 +51,10 @@
     [Parameter] public string? Color { get; set; }
 
     /// <summary>
-    /// When true the content scrolls behind the header and footer (Ionic's <c>fullscreen</c>).
-    /// Stamps <c>content-fullscreen</c>; the offset computation Ionic does at runtime
-    /// (<c>--offset-top</c> / <c>--offset-bottom</c>) has no equivalent here, so this remains a
-    /// marker class.
+    /// Ionic's <c>fullscreen</c> (content scrolls behind a translucent header and footer). Kept as
+    /// a marker for API parity: it stamps <c>content-fullscreen</c>, but the layout is unchanged —
+    /// Ionic's runtime offset computation (<c>--offset-top</c> / <c>--offset-bottom</c>) has no
+    /// equivalent here, so the content still sits between the header and the footer.
     /// </summary>
     [Parameter] public bool Fullscreen { get; set; }
 

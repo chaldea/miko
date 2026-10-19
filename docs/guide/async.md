@@ -120,6 +120,6 @@ the render thread for you.
 
 ## See it in action
 
-The [`examples/Async`](/examples#async) sample (`MikoApp.AsyncDemo`) demonstrates async
+The [`examples/Async`](../examples.md#async) sample (`MikoApp.AsyncDemo`) demonstrates async
 lifecycle loading, `EventCallback`, and real HTTP calls between a Miko client and an
 ASP.NET Core API.

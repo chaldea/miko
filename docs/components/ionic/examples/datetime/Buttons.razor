@@ -1,0 +1,18 @@
+@* The value changes as soon as a day is tapped; Done / Cancel only raise events. *@
+<IonDatetime @bind-Value="_draft"
+             ShowDefaultTitle="false"
+             ShowDefaultButtons="true"
+             DoneText="Save"
+             OnConfirm="Save"
+             OnCancel="Revert" />
+
+<p>Saved: @(_saved ?? "nothing yet")</p>
+
+@code {
+    private string? _saved;
+    private string? _draft;
+
+    private void Save(string? value) => _saved = value;
+
+    private void Revert() => _draft = _saved;
+}

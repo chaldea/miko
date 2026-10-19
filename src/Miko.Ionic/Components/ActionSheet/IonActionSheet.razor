@@ -86,7 +86,8 @@
     /// <summary>The optional sub-title shown under the header.</summary>
     [Parameter] public string? SubHeader { get; set; }
 
-    /// <summary>The buttons to show. Cancel-role buttons are pulled into a separate bottom group.</summary>
+    /// <summary>The buttons to show. The first cancel-role button is pulled into a separate bottom
+    /// group; further cancel-role buttons are not rendered.</summary>
     [Parameter] public IReadOnlyList<IonActionSheetButton> Buttons { get; set; } = Array.Empty<IonActionSheetButton>();
 
     /// <summary>Whether the sheet is presented. Bind two-way with <see cref="IsOpenChanged"/>.</summary>
@@ -95,7 +96,8 @@
     /// <summary>Raised with the new open state when the sheet opens/closes.</summary>
     [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
 
-    /// <summary>If true (default), tapping the backdrop dismisses the sheet.</summary>
+    /// <summary>If true (default), tapping the backdrop or pressing the system back button
+    /// dismisses the sheet.</summary>
     [Parameter] public bool BackdropDismiss { get; set; } = true;
 
     /// <summary>If true, the ios group uses a translucent (blurred) surface. Marker only in this port.</summary>
@@ -105,8 +107,8 @@
     /// the host drives <see cref="IsOpen"/> in this port.</summary>
     [Parameter] public string? Trigger { get; set; }
 
-    /// <summary>Raised when the sheet dismisses, with the tapped button's role and data (null role /
-    /// data on a backdrop dismiss).</summary>
+    /// <summary>Raised when the sheet dismisses, with the tapped button's role and data, or role
+    /// <c>"backdrop"</c> / <c>"back"</c> (null data) for a backdrop tap / system back press.</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
 
     /// <summary>

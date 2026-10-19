@@ -1,0 +1,14 @@
+<IonButton OnClick="@(() => _isOpen = true)">Show alert</IonButton>
+
+<IonAlert @bind-IsOpen="_isOpen"
+          Header="Update available"
+          SubHeader="Version 2.4"
+          Message="Restart the app to finish installing the update."
+          Buttons="@_buttons" />
+
+@code {
+    private bool _isOpen;
+
+    // FromText builds a plain button; the role is "cancel" only for the text "Cancel".
+    private readonly IReadOnlyList<IonAlertButton> _buttons = [IonAlertButton.FromText("OK")];
+}

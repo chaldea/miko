@@ -1,25 +1,35 @@
-# agent/ — Miko agent-first assets (single source of truth)
+# agent/ — Miko agent-first assets
 
-This directory is the **single authoritative source** for Miko's agent-facing assets. Nothing here is duplicated anywhere else in the repo:
+This directory holds only what is **specific to AI agents**. The reference content agents read
+is the developer documentation in [`docs/`](../docs/), shipped alongside — there is one copy of
+every page, maintained once.
 
-- `.miko/` — agent-optimized Miko reference docs (`llms.txt`, elements, components, styling, examples…).
-- `.claude/`, `.codex/`, `.cursor/` — per-assistant config skeletons. `.claude/` also carries a
-  `settings.local.json` (a Claude Code permissions preset that pre-approves the `miko` MCP server).
-- `.mcp.json` — MCP client config pointing Claude Code at the Miko MCP debug server
-  (`http://localhost:5800`, started by the simulator head via `AddMikoMcpServer()`). Claude-only.
-- `CLAUDE.md`, `AGENTS.md` — project-root entry files that point an agent at `.miko/`.
-- `README.md` — this file (documents the source; **not** shipped in any package).
+- `.miko/llms.txt` — the agent's entry point: an index (in the [llms.txt](https://llmstxt.org)
+  format) of the shipped docs, with the component list generated from `docs/components/ionic/`.
+- `.miko/rules.md` — the rules every assistant gets; inlined into each entry file below.
+- `CLAUDE.md`, `AGENTS.md`, `.claude/skills/miko/SKILL.md`, `.codex/config.md`,
+  `.cursor/rules/miko.mdc` — per-assistant entry files pointing at `.miko/llms.txt`.
+- `.claude/settings.local.json` — a Claude Code permissions preset that pre-approves the `miko`
+  MCP server; `.mcp.json` — points Claude Code at the Miko MCP debug server
+  (`http://localhost:5800`, started by the simulator head via `AddMikoMcpServer()`).
+- `README.md` — this file (documents the source; **not** shipped).
 
 ## How it ships
 
-These assets are **injected into the `dotnet new` template packages at pack time** by
-[`templates/Miko.Templates.csproj`](../templates/Miko.Templates.csproj), which copies
-everything under `agent/` (except this README) into both template content roots. There is
-no manual copy step, and the template source directories under `templates/` never contain a
-committed copy — a `.gitignore` rule guards against accidentally staging one.
+[`templates/Miko.Templates.csproj`](../templates/Miko.Templates.csproj) injects, at pack time,
+into both template content roots:
 
-When scaffolding, the `--agent` option selects which assets land in the generated app (via
-the `.template.config` modifiers in each template):
+| Source | Lands in the generated app at |
+| --- | --- |
+| `agent/**` (except this README) | the app root (`CLAUDE.md`, `.miko/llms.txt`, …) |
+| `docs/**/*.md` (except `index.md`, `ionic-theme.md`) | `.miko/docs/` |
+
+The mapping is mirrored by `tools/Miko.DocGen/AgentPackageLayout.cs`;
+`tests/Miko.Docs.Tests` packs the templates, scaffolds an app from the package, and checks that
+every file is there and every link in the shipped Markdown resolves inside the app.
+
+When scaffolding, `--agent` selects what lands in the app (via the `.template.config`
+modifiers):
 
 ```bash
 dotnet new miko-multiplatform --layout tabs --agent claude -o MyApp
@@ -27,15 +37,17 @@ dotnet new miko-razor --agent codex  -o MyApp
 dotnet new miko-razor --agent cursor -o MyApp
 ```
 
-`--agent` values: `none` (default — nothing scaffolded), `claude` (`.claude/` + `.mcp.json` +
-`CLAUDE.md`), `codex` (`.codex/` + `AGENTS.md`), `cursor` (`.cursor/`). Every non-`none` value
-also scaffolds `.miko/`. The `.mcp.json` / `.claude/settings.local.json` MCP wiring ships only
-with `--agent claude` on the multiplatform template (which has the simulator head that hosts the
-MCP server).
+`none` (default) adds nothing; `claude` adds `.claude/`, `.mcp.json`, `CLAUDE.md`; `codex` adds
+`.codex/`, `AGENTS.md`; `cursor` adds `.cursor/`. Every non-`none` value also adds `.miko/`
+(rules, index, and docs). The MCP wiring ships only with `--agent claude` on the multiplatform
+template (which has the simulator head that hosts the MCP server).
 
 ## Editing
 
-Just edit files here. The next `dotnet pack templates/Miko.Templates.csproj` (locally or in
-CI via `.github/workflows/publish-nuget.yml`) picks the changes up automatically — no other
-step is required. Keep `.miko/` examples using the neutral `MyApp` namespace so they read
-correctly regardless of the generated project's name.
+- Agent-specific guidance goes here; everything else belongs in `docs/` so developers and agents
+  read the same text.
+- Links in these files are written **as they resolve in the generated app**: from `CLAUDE.md`,
+  the shipped docs are at `.miko/docs/…`.
+- `<!-- miko:… -->` regions are generated: run `dotnet run --project tools/Miko.DocGen` (building
+  the solution does it too) — never edit between the markers by hand.
+- Keep examples in the neutral `MyApp` namespace so they read correctly in any generated app.

@@ -1,0 +1,14 @@
+@* Both texts render when both are set, so show one or the other. *@
+<IonCheckbox @bind-Checked="_accepted"
+             HelperText="@(Error is null ? "Required to create an account" : null)"
+             ErrorText="@Error">
+    I agree to the terms
+</IonCheckbox>
+<IonButton OnClick="() => _submitted = true">Create account</IonButton>
+
+@code {
+    private bool _accepted;
+    private bool _submitted;
+
+    private string? Error => _submitted && !_accepted ? "You must accept the terms" : null;
+}

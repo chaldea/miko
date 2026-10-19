@@ -1,0 +1,16 @@
+<IonButton OnClick="@(() => _isOpen = true)">Open sheet</IonButton>
+
+@* A sheet needs both Breakpoints and InitialBreakpoint. Dragging snaps to the nearest
+   breakpoint; with 0 in the list, dragging to the bottom dismisses (role "gesture"). *@
+<IonModal @bind-IsOpen="_isOpen"
+          Breakpoints="@_breakpoints"
+          InitialBreakpoint="0.5">
+    <IonContent Class="ion-padding">
+        <p>Drag the sheet up to expand it, or down to close it.</p>
+    </IonContent>
+</IonModal>
+
+@code {
+    private bool _isOpen;
+    private readonly double[] _breakpoints = [0, 0.25, 0.5, 1];
+}

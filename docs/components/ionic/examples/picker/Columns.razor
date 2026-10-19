@@ -1,0 +1,24 @@
+@* Each column has its own value. Values are strings, so format numbers yourself. *@
+<IonPicker>
+    <IonPickerColumn @bind-Value="_hour">
+        @for (var h = 0; h < 24; h++)
+        {
+            var value = h.ToString("00");
+            <IonPickerColumnOption Value="@value">@value</IonPickerColumnOption>
+        }
+    </IonPickerColumn>
+    <IonPickerColumn @bind-Value="_minute">
+        @foreach (var m in new[] { 0, 15, 30, 45 })
+        {
+            var value = m.ToString("00");
+            <IonPickerColumnOption Value="@value">@value</IonPickerColumnOption>
+        }
+    </IonPickerColumn>
+</IonPicker>
+
+<p>Time: @_hour:@_minute</p>
+
+@code {
+    private string? _hour = "09";
+    private string? _minute = "30";
+}

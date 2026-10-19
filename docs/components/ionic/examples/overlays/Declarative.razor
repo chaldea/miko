@@ -1,0 +1,23 @@
+<IonButton OnClick="@(() => _isOpen = true)">Delete draft</IonButton>
+
+@* @bind-IsOpen keeps _isOpen in sync when the alert closes itself (button, backdrop). *@
+<IonAlert @bind-IsOpen="_isOpen"
+          Header="Delete draft?"
+          Buttons="@_buttons"
+          OnDidDismiss="OnDismissed" />
+
+<p>Last result: @_result</p>
+
+@code {
+    private bool _isOpen;
+    private string? _result;
+
+    private readonly IReadOnlyList<IonAlertButton> _buttons =
+    [
+        new() { Text = "Cancel", Role = "cancel" },
+        new() { Text = "Delete", Role = "destructive" },
+    ];
+
+    private void OnDismissed(IonOverlayDismissEventArgs e)
+        => _result = e.IsCancel ? "kept" : "deleted";
+}

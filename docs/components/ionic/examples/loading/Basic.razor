@@ -1,0 +1,10 @@
+<IonButton OnClick="@(() => _isOpen = true)">Show loading</IonButton>
+
+@* Duration auto-dismisses after 3 s; @bind-IsOpen resets _isOpen when it does. *@
+<IonLoading @bind-IsOpen="_isOpen"
+            Message="Please wait…"
+            Duration="3000" />
+
+@code {
+    private bool _isOpen;
+}

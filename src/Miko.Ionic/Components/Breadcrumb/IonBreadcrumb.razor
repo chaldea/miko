@@ -65,7 +65,9 @@
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>URL the breadcrumb points to. When set the native element is a link (clickable).</summary>
+    /// <summary>URL the breadcrumb points to (Ionic <c>href</c>). When set the native element is an
+    /// anchor with the link styling (<c>ion-activatable</c>). The renderer does not navigate and the
+    /// breadcrumb raises no click event — handle taps on an element inside its content.</summary>
     [Parameter] public string? Href { get; set; }
 
     /// <summary>If true, the breadcrumb takes on the active look. The enclosing

@@ -1,0 +1,15 @@
+@* Six crumbs, MaxItems 4: the middle ones collapse behind "…". Tapping it expands them all. *@
+<IonBreadcrumbs MaxItems="@_maxItems" OnCollapsedClick="Expand">
+    <IonBreadcrumb Href="#">Home</IonBreadcrumb>
+    <IonBreadcrumb Href="#">Electronics</IonBreadcrumb>
+    <IonBreadcrumb Href="#">Photography</IonBreadcrumb>
+    <IonBreadcrumb Href="#">Cameras</IonBreadcrumb>
+    <IonBreadcrumb Href="#">Film</IonBreadcrumb>
+    <IonBreadcrumb>35 mm</IonBreadcrumb>
+</IonBreadcrumbs>
+
+@code {
+    private int? _maxItems = 4;
+
+    private void Expand(IonBreadcrumbCollapsedClickEventArgs args) => _maxItems = null;
+}

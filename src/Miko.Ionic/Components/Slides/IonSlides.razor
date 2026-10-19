@@ -81,12 +81,11 @@
     private const float TouchAngle = 45f;
 
     /// <summary>If true, render the previous/next navigation arrows (Swiper's <c>navigation</c>).
-    /// <para>
-    /// Deliberately shadows <see cref="IonicComponentBase.Navigation"/> (the injected
-    /// <c>NavigationManager</c>): this component takes its name from Swiper's option, and it has no
-    /// default routing behaviour of its own, so the router is simply not reachable from here. Use
-    /// <c>((IonicComponentBase)this).Navigation</c> if that ever changes.
-    /// </para></summary>
+    /// Unless <see cref="Loop"/> is set, the arrow at the first / last slide is disabled.</summary>
+    // Deliberately shadows IonicComponentBase.Navigation (the injected NavigationManager): this
+    // component takes its name from Swiper's option, and it has no default routing behaviour of its
+    // own, so the router is simply not reachable from here. Use
+    // ((IonicComponentBase)this).Navigation if that ever changes.
     [Parameter] public new bool Navigation { get; set; }
 
     /// <summary>If true, render the pagination bullets (Swiper's <c>pagination</c>).</summary>
@@ -104,14 +103,17 @@
     [Parameter] public int AutoplayDelay { get; set; } = DefaultAutoplayDelay;
 
     /// <summary>If true, advancing past the last slide wraps to the first and vice versa
-    /// (Swiper's <c>loop</c>). The wrap itself is not animated — see <see cref="WrapperStyle"/>.</summary>
+    /// (Swiper's <c>loop</c>), and the arrows are never disabled. The wrap animates back across the
+    /// intermediate slides; there is no seamless cloned track as in Swiper.</summary>
     [Parameter] public bool Loop { get; set; }
 
     /// <summary>The transition effect: <c>"slide"</c> (default, the track slides horizontally) or
     /// <c>"fade"</c> (slides stack and cross-fade). Unknown values fall back to <c>"slide"</c>.</summary>
     [Parameter] public string Effect { get; set; } = "slide";
 
-    /// <summary>Slide transition duration in milliseconds (Swiper's <c>speed</c>).</summary>
+    /// <summary>Duration in milliseconds of the settle animation after a drag is released (Swiper's
+    /// <c>speed</c>). Arrow, bullet, autoplay and <see cref="ActiveIndex"/> changes, and the fade
+    /// cross-fade, use the stylesheet's fixed 300 ms transition instead.</summary>
     [Parameter] public int Speed { get; set; } = DefaultSpeed;
 
     /// <summary>If false, the slides cannot be dragged (Swiper's <c>allowTouchMove</c>).</summary>
@@ -200,7 +202,7 @@
     }
 
     /// <summary>
-    /// Counts the <c>&lt;ion-slide&gt;</c> children by rendering <see cref="ChildContent"/> into a
+    /// Counts the <c>&lt;ion-slide&gt;</c> children by rendering <c>ChildContent</c> into a
     /// throwaway tree. <c>ChildContent</c> is a render fragment, so there is nothing to count until
     /// it has been run.
     /// </summary>

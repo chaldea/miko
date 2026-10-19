@@ -1,0 +1,21 @@
+<IonButton OnClick="Open">More</IonButton>
+
+@* Event anchors the popover to the tapped element; without it the popover is centered. *@
+<IonPopover @bind-IsOpen="_isOpen" Event="_event">
+    <IonList>
+        <IonItem Button="true" OnClick="@(() => _isOpen = false)">Rename</IonItem>
+        <IonItem Button="true" OnClick="@(() => _isOpen = false)">Duplicate</IonItem>
+        <IonItem Button="true" Lines="none" OnClick="@(() => _isOpen = false)">Move to trash</IonItem>
+    </IonList>
+</IonPopover>
+
+@code {
+    private bool _isOpen;
+    private Miko.Events.MouseEventArgs? _event;
+
+    private void Open(Miko.Events.MouseEventArgs e)
+    {
+        _event = e;
+        _isOpen = true;
+    }
+}

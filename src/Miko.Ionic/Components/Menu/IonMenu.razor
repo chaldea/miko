@@ -22,7 +22,8 @@
     /// <summary>Whether the drawer is open (slid on-screen, backdrop dimmed).</summary>
     [Parameter] public bool IsOpen { get; set; }
 
-    /// <summary>Edge the drawer is anchored to: <c>"start"</c> (default) or <c>"end"</c>.</summary>
+    /// <summary>Edge the drawer is anchored to: <c>"start"</c> (default, left) or <c>"end"</c>
+    /// (right).</summary>
     [Parameter] public string Side { get; set; } = "start";
 
     /// <summary>
@@ -31,7 +32,8 @@
     /// </summary>
     [Parameter] public string Type { get; set; } = "overlay";
 
-    /// <summary>Invoked when the backdrop is tapped, asking the host to close the menu.</summary>
+    /// <summary>Invoked when the backdrop is tapped, or the system back button is pressed while
+    /// the menu is open, asking the host to close the menu (set <see cref="IsOpen"/> to false).</summary>
     [Parameter] public EventCallback OnClose { get; set; }
 
     /// <summary>
@@ -42,9 +44,10 @@
     [Parameter] public bool BackButtonCloses { get; set; } = true;
 
     /// <summary>
-    /// The app's animation manager. Nested components don't get DI, so the host page injects
-    /// it and passes it down; used to defer the backdrop's <c>display:none</c> until its
-    /// fade-out finishes. If null, the backdrop simply unmounts on the same frame (no fade-out).
+    /// The app's <c>AnimationManager</c> (inject it in the page and pass it down). Lets this instance
+    /// keep the backdrop mounted until its fade-out finishes. A host re-render creates a new
+    /// instance, which starts with the backdrop unmounted, so closing the menu through a host
+    /// re-render currently drops the backdrop at once either way. The drawer slide does not use it.
     /// </summary>
     [Parameter] public AnimationManager? Animations { get; set; }
 

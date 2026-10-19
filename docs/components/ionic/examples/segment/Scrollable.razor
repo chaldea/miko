@@ -1,0 +1,15 @@
+<IonSegment Scrollable="true" @bind-Value="_category">
+    @foreach (var category in _categories)
+    {
+        <IonSegmentButton Value="@category">
+            <IonLabel>@category</IonLabel>
+        </IonSegmentButton>
+    }
+</IonSegment>
+
+@code {
+    private readonly string[] _categories =
+        { "Top", "World", "Business", "Technology", "Science", "Health", "Sports", "Travel" };
+
+    private string? _category = "Top";
+}

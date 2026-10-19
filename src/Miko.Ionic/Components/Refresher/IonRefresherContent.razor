@@ -34,7 +34,8 @@
     /// <summary>Text to show while pulling.</summary>
     [Parameter] public string? PullingText { get; set; }
 
-    /// <summary>Spinner name to show while refreshing.</summary>
+    /// <summary>Spinner name (an <see cref="IonSpinner"/> <c>Name</c>) to show while refreshing.
+    /// Defaults to <c>"circular"</c> (md) / <c>"lines"</c> (ios).</summary>
     [Parameter] public string? RefreshingSpinner { get; set; }
 
     /// <summary>Text to show while refreshing.</summary>

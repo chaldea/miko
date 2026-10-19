@@ -1,0 +1,16 @@
+@* A fixed label is a 100px column that does not shrink; the control beside it takes the rest. *@
+<IonList>
+    <IonItem>
+        <IonLabel Position="fixed">Name</IonLabel>
+        <IonInput Placeholder="Ada Lovelace" @bind-Value="_name" />
+    </IonItem>
+    <IonItem>
+        <IonLabel Position="fixed">Email</IonLabel>
+        <IonInput Placeholder="ada@example.com" @bind-Value="_email" />
+    </IonItem>
+</IonList>
+
+@code {
+    private string? _name;
+    private string? _email;
+}

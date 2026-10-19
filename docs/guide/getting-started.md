@@ -31,14 +31,24 @@ automatically.
 
 ## Choose a layout
 
-The template accepts a `--layout` option to scaffold a starting UI. The default is
-`blank`; `tabs` and `sidemenu` scaffold Ionic-based layouts (and add the `Miko.Ionic`
-package):
+The template accepts a `--layout` option to scaffold a starting UI. Every layout references
+the [Ionic components](../components/ionic/index.md) (`Miko.Ionic`):
 
 ```bash
 dotnet new miko-razor --layout blank     -o MyApp   # empty page (default)
 dotnet new miko-razor --layout tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
 dotnet new miko-razor --layout sidemenu  -o MyApp   # Ionic side-menu drawer over a page
+dotnet new miko-razor --layout list      -o MyApp   # Ionic list page
+dotnet new miko-razor --layout full      -o MyApp   # showcase with a demo page per Ionic component
+```
+
+## Working with an AI agent
+
+`--agent` adds an AI-agent setup next to the code: an index at `.miko/llms.txt`, this
+documentation under `.miko/docs/`, and the entry file of the chosen assistant.
+
+```bash
+dotnet new miko-razor --agent claude -o MyApp   # CLAUDE.md + .claude/  (claude | codex | cursor)
 ```
 
 ## Cross-platform apps
@@ -56,7 +66,7 @@ dotnet run --project MyApp.Desktop
 ```
 
 This produces a shared Razor UI project plus one thin host project per platform. See
-[Project Structure](/guide/project-structure) for the anatomy of a generated app.
+[Project Structure](./project-structure.md) for the anatomy of a generated app.
 
 ## Your first page
 
@@ -85,7 +95,7 @@ public static class App
     {
         var builder = MikoAppBuilder.CreateDefault();
 
-        builder.UseTitle("Miko Razor App");
+        builder.UseTitle("MyApp");
         builder.UseSize(1024, 768);
 
         builder.AddDevTools();
@@ -122,11 +132,11 @@ public static class Program
 }
 ```
 
-See [Razor Components](/guide/razor-components) for the full builder API and the rest of
+See [Razor Components](./razor-components.md) for the full builder API and the rest of
 the component model.
 
 ## Next steps
 
-- [Project Structure](/guide/project-structure) — how a Miko app is organized.
-- [Styling](/guide/styling) — the CSS-like styling model.
-- [Examples](/examples) — runnable sample apps in the repository.
+- [Project Structure](./project-structure.md) — how a Miko app is organized.
+- [Styling](./styling.md) — the CSS-like styling model.
+- [Examples](../examples.md) — runnable sample apps in the repository.

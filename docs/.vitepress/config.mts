@@ -1,4 +1,21 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitepress'
+
+// The Ionic component pages, read from disk so a new page shows up in the sidebar without
+// editing this file. Titles come from each page's first `# ` heading.
+const ionicDir = fileURLToPath(new URL('../components/ionic/', import.meta.url))
+const ionicGuides = ['index', 'theming', 'overlays']
+const ionicPage = (slug: string) => {
+  const heading = readFileSync(`${ionicDir}${slug}.md`, 'utf8').match(/^#\s+(.+)$/m)
+  return { text: heading ? heading[1].trim() : slug, link: `/components/ionic/${slug === 'index' ? '' : slug}` }
+}
+const ionicComponents = readdirSync(ionicDir)
+  .filter((file) => file.endsWith('.md'))
+  .map((file) => file.slice(0, -3))
+  .filter((slug) => !ionicGuides.includes(slug))
+  .map(ionicPage)
+  .sort((a, b) => a.text.localeCompare(b.text))
 
 // https://vitepress.dev/reference/site-config
 //
@@ -38,6 +55,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/introduction' },
       { text: 'Engine API', link: '/engine/overview' },
       { text: 'Examples', link: '/examples' },
+      { text: 'Components', link: '/components/ionic/' },
       { text: 'Packages', link: '/packages' },
       {
         text: 'Resources',
@@ -63,6 +81,7 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Razor Components', link: '/guide/razor-components' },
+          { text: 'Elements', link: '/guide/elements' },
           { text: 'Styling', link: '/guide/styling' },
           { text: 'Layout', link: '/guide/layout' },
           { text: 'Fonts & Text', link: '/guide/fonts' },
@@ -70,6 +89,19 @@ export default defineConfig({
           { text: 'Async & Lifecycle', link: '/guide/async' },
           { text: 'Native Capabilities', link: '/guide/native' }
         ]
+      },
+      {
+        text: 'Ionic Components',
+        collapsed: false,
+        items: [
+          { text: 'Overview', link: '/components/ionic/' },
+          ...ionicGuides.filter((slug) => slug !== 'index').map(ionicPage)
+        ]
+      },
+      {
+        text: 'Ionic Component Reference',
+        collapsed: true,
+        items: ionicComponents
       },
       {
         text: 'Rendering Engine',
@@ -85,7 +117,8 @@ export default defineConfig({
         items: [
           { text: 'Examples', link: '/examples' },
           { text: 'Packages', link: '/packages' },
-          { text: 'Components (preview)', link: '/components/' }
+          { text: 'Component Libraries', link: '/components/' },
+          { text: 'MCP Server', link: '/mcp-server' }
         ]
       }
     ],

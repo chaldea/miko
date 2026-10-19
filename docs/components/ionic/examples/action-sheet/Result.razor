@@ -1,0 +1,27 @@
+<IonButton OnClick="@(() => _isOpen = true)">Photo options</IonButton>
+<p>Chosen: @(_chosen ?? "nothing")</p>
+
+<IonActionSheet @bind-IsOpen="_isOpen"
+                Header="Photo"
+                SubHeader="IMG_0042.jpg"
+                Buttons="@_buttons"
+                OnDidDismiss="OnDismissed" />
+
+@code {
+    private bool _isOpen;
+    private string? _chosen;
+
+    private readonly IReadOnlyList<IonActionSheetButton> _buttons =
+    [
+        new() { Text = "Copy", Icon = Ionicons.Copy, Data = "copy" },
+        new() { Text = "Edit", Icon = Ionicons.Pencil, Data = "edit" },
+        new() { Text = "Archive", Icon = Ionicons.Archive, Data = "archive" },
+        new() { Text = "Delete", Icon = Ionicons.TrashOutline, Role = "destructive", Data = "delete" },
+        new() { Text = "Cancel", Icon = Ionicons.Close, Role = "cancel" },
+    ];
+
+    // Role is the tapped button's role ("cancel", "destructive", null), "backdrop" or "back";
+    // Data is the tapped button's Data (null for the backdrop and the back button).
+    private void OnDismissed(IonOverlayDismissEventArgs e)
+        => _chosen = e.IsCancel ? null : e.Data as string;
+}

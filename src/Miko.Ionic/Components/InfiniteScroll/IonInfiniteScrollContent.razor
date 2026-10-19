@@ -16,7 +16,8 @@
 </div>
 
 @code {
-    /// <summary>Spinner name to show while loading.</summary>
+    /// <summary>Spinner name (an <see cref="IonSpinner"/> <c>Name</c>) to show while loading. There is
+    /// no default: when null, no spinner is shown.</summary>
     [Parameter] public string? LoadingSpinner { get; set; }
 
     /// <summary>Optional text to display while loading.</summary>

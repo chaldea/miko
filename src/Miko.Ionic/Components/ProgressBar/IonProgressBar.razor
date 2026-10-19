@@ -46,17 +46,21 @@
     /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the fill / track color.</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>Bar state: <c>"determinate"</c> (default, shows <see cref="Value"/>) or
-    /// <c>"indeterminate"</c> (an animated left-to-right stripe).</summary>
+    /// <summary>Bar state (Ionic <c>type</c>): <c>"determinate"</c> (default, shows
+    /// <see cref="Value"/> and <see cref="Buffer"/>) or <c>"indeterminate"</c> (two stripes loop
+    /// along the bar; <see cref="Value"/> and <see cref="Buffer"/> are ignored).</summary>
     [Parameter] public string Type { get; set; } = "determinate";
 
-    /// <summary>How much of the active fill shows when determinate. Clamped to [0, 1] (default 0).</summary>
+    /// <summary>The filled fraction of a determinate bar, clamped to [0, 1]. Changes are not
+    /// animated.</summary>
     [Parameter] public double Value { get; set; }
 
-    /// <summary>Buffer amount. Clamped to [0, 1] (default 1). When &lt; 1 the buffer track shows.</summary>
+    /// <summary>The buffered fraction of a determinate bar, clamped to [0, 1]. Below 1 the track
+    /// ends at this point and an animated dotted stream shows past it.</summary>
     [Parameter] public double Buffer { get; set; } = 1;
 
-    /// <summary>If true, reverse the progress bar direction.</summary>
+    /// <summary>If true, the bar is mirrored so it fills / animates from right to left (Ionic
+    /// <c>reversed</c>).</summary>
     [Parameter] public bool Reversed { get; set; }
 
     private Style? _progressStyle;

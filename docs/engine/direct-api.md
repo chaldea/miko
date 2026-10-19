@@ -72,10 +72,20 @@ var root = new DivElement
 };
 ```
 
-Available element types include containers (`DivElement`, `SpanElement`,
-`ParagraphElement`), headings (`H1Element`–`H6Element`), interactive elements
-(`ButtonElement`, `InputElement`, `SelectElement`), media (`ImageElement`), lists
-(`UlElement` / `OlElement` / `LiElement`), and tables (`TableElement` and friends).
+Each markup tag has an element class — the full list is in [Elements](../guide/elements.md).
+In code every public property can be set, including those markup cannot reach
+(`InputElement.Placeholder`, `Min` / `Max`, `OptionElement.Value`, `TdElement.ColSpan`, …), and
+`CanvasElement` paints custom content through its `Paint` callback.
+
+Members every element shares:
+
+| Member | Purpose |
+| --- | --- |
+| `Id`, `Class`, `Style`, `TextContent` | Identity, classes, inline `Style`, and text (a facade over the child text nodes). |
+| `Children`, `Parent`, `AddChild`, `RemoveChild` | The tree. Writes through `Children` (including collection initializers) are tracked like `AddChild`. |
+| `FindById`, `FindByClass`, `FindByTagName`, `HasClass` | Lookups in the subtree. |
+| `State`, `SetState`, `ClearState`, `HasState`, `IsDisabled` | `ElementState` flags (`Hover`, `Active`, `Focus`, `Disabled`); `IsDisabled` also checks ancestors. |
+| `OnClick`, `OnInput`, … , `AddEventListener<T>`, `RemoveEventListener<T>` | Event handlers — see [Events](../guide/events.md#on-dom-elements). |
 
 ## Incremental updates
 
@@ -97,5 +107,5 @@ engine.Update(canvas);            // incremental render of dirty regions only
 | `Update(canvas)` | Incremental render — repaints only dirty regions. |
 | `InvalidateElement(element)` | Mark an element dirty so the next `Update` repaints it. |
 
-See the [Pipeline Overview](/engine/overview) for what happens inside each call, and the
-[Bootstrap console example](/examples#bootstrap) for a complete render-to-image program.
+See the [Pipeline Overview](./overview.md) for what happens inside each call, and the
+[Bootstrap console example](../examples.md#bootstrap) for a complete render-to-image program.

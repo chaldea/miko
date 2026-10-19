@@ -1,0 +1,7 @@
+<IonRange Label="Temperature" Min="16" Max="30" Step="0.5" Pin="true" @bind-Value="_temperature" />
+<IonRange Label="Price" Min="0" Max="1000" Step="50" Pin="true" @bind-Value="_price" />
+
+@code {
+    private double _temperature = 21.5;
+    private double _price = 250;
+}

@@ -1,0 +1,19 @@
+@* Button="true" makes the whole card one tap target; OnClick does not fire while Disabled. *@
+<IonCard Button="true" OnClick="Open">
+    <IonCardHeader>
+        <IonCardTitle>Order #1024</IonCardTitle>
+        <IonCardSubtitle>Opened @_opens times</IonCardSubtitle>
+    </IonCardHeader>
+</IonCard>
+
+<IonCard Button="true" Disabled="true">
+    <IonCardHeader>
+        <IonCardTitle>Archived order</IonCardTitle>
+    </IonCardHeader>
+</IonCard>
+
+@code {
+    private int _opens;
+
+    private void Open() => _opens++;
+}

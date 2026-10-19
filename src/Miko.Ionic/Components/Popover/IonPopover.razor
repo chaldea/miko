@@ -63,25 +63,28 @@
     /// omitted.</summary>
     [Parameter] public bool ShowBackdrop { get; set; } = true;
 
-    /// <summary>Which side of the trigger the popover is anchored to: <c>"top"</c> / <c>"right"</c> /
-    /// <c>"bottom"</c> (default) / <c>"left"</c> / <c>"start"</c> / <c>"end"</c>. Stamps
-    /// <c>popover-side-{side}</c> (drives the arrow rotation); the anchor math is a marker here.</summary>
+    /// <summary>Which side of the <see cref="Event"/> target the popover opens on: <c>"top"</c> /
+    /// <c>"right"</c> / <c>"bottom"</c> (default) / <c>"left"</c> / <c>"start"</c> (left) /
+    /// <c>"end"</c> (right). It flips to the opposite side when that side has more room. The side
+    /// used is stamped as <c>popover-side-{side}</c>. Without an <see cref="Event"/> the popover is
+    /// centered.</summary>
     [Parameter] public string Side { get; set; } = "bottom";
 
-    /// <summary>How the popover content aligns with the trigger point: <c>"start"</c> / <c>"center"</c>
-    /// / <c>"end"</c> (Ionic <c>alignment</c>). Stored for API parity; positioning is a marker here.</summary>
+    /// <summary>How the popover lines up with the <see cref="Event"/> target: <c>"start"</c> /
+    /// <c>"center"</c> / <c>"end"</c> (Ionic <c>alignment</c>). Null uses the mode default
+    /// (<c>"start"</c> on md, <c>"center"</c> on ios).</summary>
     [Parameter] public string? Alignment { get; set; }
 
-    /// <summary>If true (default), the arrow pointing at the trigger is rendered. When false the
-    /// <c>.popover-arrow</c> element is omitted (Ionic <c>arrow</c>).</summary>
+    /// <summary>If true (default), a <c>.popover-arrow</c> element is rendered (Ionic <c>arrow</c>).
+    /// This port does not position or rotate it toward the trigger.</summary>
     [Parameter] public bool Arrow { get; set; } = true;
 
     /// <summary>If true, the ios popover uses a translucent (blurred) surface (Ionic
     /// <c>translucent</c>). Stamps <c>popover-translucent</c>; a marker in this port.</summary>
     [Parameter] public bool Translucent { get; set; }
 
-    /// <summary>Whether the popover can be dismissed by the backdrop/escape. Alias for
-    /// <see cref="BackdropDismiss"/> semantics; kept for API parity.</summary>
+    /// <summary>Kept for API parity. When false, a backdrop tap does not dismiss the popover, the
+    /// same as <see cref="BackdropDismiss"/> = false.</summary>
     [Parameter] public bool Dismissable { get; set; } = true;
 
     // ChildContent (the popover body, rendered inside .popover-content) is inherited from ComponentBase.

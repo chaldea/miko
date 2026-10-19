@@ -1,0 +1,17 @@
+@* Multi-value selects bind Values (a list), not Value. *@
+<IonList>
+    <IonItem>
+        <IonSelect Label="Toppings" Placeholder="Select toppings" Multiple="true" @bind-Values="_toppings">
+            <IonSelectOption Value="bacon">Bacon</IonSelectOption>
+            <IonSelectOption Value="olives">Black Olives</IonSelectOption>
+            <IonSelectOption Value="mushrooms">Mushrooms</IonSelectOption>
+            <IonSelectOption Value="pineapple" Disabled="true">Pineapple</IonSelectOption>
+        </IonSelect>
+    </IonItem>
+</IonList>
+
+<p>Selected: @string.Join(", ", _toppings)</p>
+
+@code {
+    private IReadOnlyList<string> _toppings = new[] { "bacon" };
+}

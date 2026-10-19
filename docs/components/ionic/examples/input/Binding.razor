@@ -1,0 +1,7 @@
+<IonInput Label="Name" Placeholder="Your name" @bind-Value="_name" />
+<p>Hello, @(_name ?? "stranger")!</p>
+
+@code {
+    // Updated on every keystroke (ValueChanged carries the whole new text).
+    private string? _name;
+}

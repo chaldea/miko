@@ -1,0 +1,12 @@
+@* The active-option tint comes from each option's own Color. *@
+<IonPicker>
+    <IonPickerColumn @bind-Value="_level">
+        <IonPickerColumnOption Value="low" Color="success">Low</IonPickerColumnOption>
+        <IonPickerColumnOption Value="medium" Color="warning">Medium</IonPickerColumnOption>
+        <IonPickerColumnOption Value="high" Color="danger">High</IonPickerColumnOption>
+    </IonPickerColumn>
+</IonPicker>
+
+@code {
+    private string? _level = "medium";
+}

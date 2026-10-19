@@ -1,0 +1,19 @@
+@* IonDatetimeButton only renders the formatted value and raises OnDateClick; the app opens its
+   own IonDatetime, here in a modal, and closes it again. *@
+<IonDatetimeButton DateText="@FormatDate(_date)" DatetimeActive="_isOpen"
+                   OnDateClick="@(() => _isOpen = true)" />
+
+<IonModal @bind-IsOpen="_isOpen">
+    <IonDatetime @bind-Value="_date"
+                 ShowDefaultButtons="true"
+                 OnConfirm="@(_ => _isOpen = false)"
+                 OnCancel="@(() => _isOpen = false)" />
+</IonModal>
+
+@code {
+    private string? _date = "2026-07-15";
+    private bool _isOpen;
+
+    private static string FormatDate(string? value) =>
+        DateTime.TryParse(value, out var date) ? date.ToString("MMM d, yyyy") : "Select date";
+}

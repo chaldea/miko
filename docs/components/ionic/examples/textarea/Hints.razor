@@ -1,0 +1,14 @@
+<IonTextarea Label="Bio"
+             LabelPlacement="stacked"
+             Counter="true"
+             Maxlength="160"
+             HelperText="@(TooLong ? null : "A short introduction")"
+             ErrorText="@(TooLong ? "Keep it under 160 characters" : null)"
+             @bind-Value="_bio" />
+
+@code {
+    private string? _bio;
+
+    // Maxlength only feeds the counter; enforce the limit yourself.
+    private bool TooLong => _bio?.Length > 160;
+}

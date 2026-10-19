@@ -75,7 +75,7 @@ dotnet run --project examples/Async/MikoApp.AsyncDemo.Desktop/MikoApp.AsyncDemo.
 Demonstrates: async lifecycle (`OnInitializedAsync`) with non-blocking loading states;
 `EventCallback` parameters and `@onclick` handlers; automatic re-render after an `await`;
 continuations marshalled back to the render thread. See
-[Async & Lifecycle](/guide/async) for the concepts.
+[Async & Lifecycle](./guide/async.md) for the concepts.
 
 ## Media
 

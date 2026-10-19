@@ -1,0 +1,18 @@
+<IonButton OnClick="@(() => _isOpen = true)">Open action sheet</IonButton>
+
+<IonActionSheet @bind-IsOpen="_isOpen"
+                Header="Albums"
+                Buttons="@_buttons" />
+
+@code {
+    private bool _isOpen;
+
+    // The cancel-role button is pulled into its own group at the bottom.
+    private readonly IReadOnlyList<IonActionSheetButton> _buttons =
+    [
+        new() { Text = "Delete", Role = "destructive" },
+        new() { Text = "Share" },
+        new() { Text = "Favorite" },
+        new() { Text = "Cancel", Role = "cancel" },
+    ];
+}

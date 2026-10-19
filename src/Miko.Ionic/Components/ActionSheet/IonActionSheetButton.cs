@@ -3,10 +3,10 @@ namespace Miko.Ionic.Components;
 /// <summary>
 /// A single action-sheet button. Mirrors Ionic's <c>ActionSheetButton</c> interface.
 /// <para>
-/// The <see cref="Role"/> drives both styling and dismiss semantics: <c>"cancel"</c> buttons are
-/// pulled into their own bottom group and dismiss without running as a normal option;
-/// <c>"destructive"</c> buttons render in the danger color (ios); <c>"selected"</c> marks the
-/// chosen option. A <see cref="Handler"/> runs on tap before the sheet dismisses.
+/// The <see cref="Role"/> drives styling and placement: the first <c>"cancel"</c> button is pulled
+/// into its own bottom group; <c>"destructive"</c> buttons render in the destructive (danger) color;
+/// <c>"selected"</c> renders bold. Every button — cancel included — runs its <see cref="Handler"/>
+/// on tap and then dismisses the sheet with its role and <see cref="Data"/>.
 /// </para>
 /// </summary>
 public sealed class IonActionSheetButton
@@ -27,12 +27,13 @@ public sealed class IonActionSheetButton
     /// <summary>Arbitrary data returned with the dismiss event when this button is tapped.</summary>
     public object? Data { get; set; }
 
-    /// <summary>When true the button is dimmed and non-interactive (ignored for cancel buttons).</summary>
+    /// <summary>When true, tapping the button does nothing (ignored for cancel buttons). The button
+    /// is not drawn dimmed in this port.</summary>
     public bool Disabled { get; set; }
 
     /// <summary>Optional handler run when the button is tapped, before the sheet dismisses.</summary>
     public Action? Handler { get; set; }
 
-    /// <summary>True when this button dismisses the sheet without acting as a normal option.</summary>
+    /// <summary>True when <see cref="Role"/> is <c>"cancel"</c> (case-insensitive).</summary>
     public bool IsCancel => string.Equals(Role, "cancel", StringComparison.OrdinalIgnoreCase);
 }

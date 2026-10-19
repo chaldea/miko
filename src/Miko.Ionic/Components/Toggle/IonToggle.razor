@@ -66,7 +66,7 @@
     /// <summary>If true, the user cannot interact with the toggle.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>The value submitted with the form data when the toggle participates in a form.</summary>
+    /// <summary>Ionic <c>value</c> (the form value when checked). Kept for API parity; Miko has no form submission.</summary>
     [Parameter] public string Value { get; set; } = "on";
 
     /// <summary>Form field name marker.</summary>
@@ -84,10 +84,10 @@
     /// Setting this changes the host <c>display</c> to block.</summary>
     [Parameter] public string? Alignment { get; set; }
 
-    /// <summary>Helper text displayed below the label when no error is present.</summary>
+    /// <summary>Helper text displayed below the label. Shown even when <see cref="ErrorText"/> is also set.</summary>
     [Parameter] public string? HelperText { get; set; }
 
-    /// <summary>Error text displayed below the label when the control is invalid.</summary>
+    /// <summary>Error text displayed below the label whenever it is set (Miko does not track validity).</summary>
     [Parameter] public string? ErrorText { get; set; }
 
     private bool HasBottomContent => !string.IsNullOrEmpty(HelperText) || !string.IsNullOrEmpty(ErrorText);

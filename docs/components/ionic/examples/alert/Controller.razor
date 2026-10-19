@@ -1,0 +1,27 @@
+@inject IonAlertController AlertController
+
+<IonButton Color="danger" OnClick="DeleteAsync">Delete account</IonButton>
+
+@code {
+    private async Task DeleteAsync()
+    {
+        var alert = await AlertController.CreateAsync(new IonAlertOptions
+        {
+            Header = "Delete account?",
+            Message = "This cannot be undone.",
+            BackdropDismiss = false, // only the buttons close it
+            Buttons =
+            [
+                new() { Text = "Cancel", Role = "cancel" },
+                new() { Text = "Delete", Role = "destructive" },
+            ],
+        });
+        await alert.PresentAsync();
+
+        var result = await alert.OnDidDismissAsync();
+        if (result.Role == "destructive")
+        {
+            // delete the account…
+        }
+    }
+}

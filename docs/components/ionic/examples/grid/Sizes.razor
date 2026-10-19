@@ -1,0 +1,17 @@
+@* Size is a count out of 12 columns; unsized columns split what is left. *@
+<IonGrid>
+    <IonRow>
+        <IonCol Size="6">Size 6 (half)</IonCol>
+        <IonCol>Rest</IonCol>
+        <IonCol>Rest</IonCol>
+    </IonRow>
+    <IonRow>
+        <IonCol Size="3">Size 3</IonCol>
+        <IonCol Size="9">Size 9</IonCol>
+    </IonRow>
+    <IonRow>
+        @* More than 12 in a row wraps onto a new line. *@
+        <IonCol Size="8">Size 8</IonCol>
+        <IonCol Size="8">Size 8 (wraps)</IonCol>
+    </IonRow>
+</IonGrid>

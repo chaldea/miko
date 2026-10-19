@@ -1,0 +1,10 @@
+<IonRadioGroup @bind-Value="_fruit">
+    <IonRadio Value="apple">Apple</IonRadio>
+    <IonRadio Value="grape">Grape</IonRadio>
+    <IonRadio Value="cherry">Cherry</IonRadio>
+</IonRadioGroup>
+<p>Selected: @_fruit</p>
+
+@code {
+    private string? _fruit = "grape";
+}

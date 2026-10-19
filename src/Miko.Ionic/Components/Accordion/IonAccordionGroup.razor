@@ -15,15 +15,15 @@
 </div>
 
 @code {
-    /// <summary>The expanded accordion value for single-select groups. Bind two-way with
-    /// <see cref="ValueChanged"/>. For multi-select use <see cref="Values"/>.</summary>
+    /// <summary>The expanded accordion's value in a single-select group (null when all are
+    /// collapsed). Ignored when <see cref="Multiple"/> is true — use <see cref="Values"/>.</summary>
     [Parameter] public string? Value { get; set; }
 
     /// <summary>Raised with the new single-select value when it changes (null when collapsed).</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
 
-    /// <summary>The expanded accordion values for multi-select groups (<see cref="Multiple"/>).
-    /// Bind two-way with <see cref="ValuesChanged"/>.</summary>
+    /// <summary>The expanded accordion values when <see cref="Multiple"/> is true; ignored
+    /// otherwise.</summary>
     [Parameter] public IReadOnlyList<string>? Values { get; set; }
 
     /// <summary>Raised with the new multi-select value set when it changes.</summary>
@@ -38,7 +38,8 @@
     /// <summary>If true, the group is non-interactive but not dimmed.</summary>
     [Parameter] public bool Readonly { get; set; }
 
-    /// <summary>If true (default), accordions animate on expand/collapse (marker only here).</summary>
+    /// <summary>Ionic's <c>animated</c>. Kept for API parity only: accordions never animate in this
+    /// port.</summary>
     [Parameter] public bool Animated { get; set; } = true;
 
     /// <summary>Expansion behavior: <c>"compact"</c> (default) or <c>"inset"</c>.</summary>

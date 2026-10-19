@@ -1,0 +1,21 @@
+<IonContent>
+    <Fixed>
+        <IonRefresher PullMin="80" OnRefresh="Refresh">
+            <IonRefresherContent PullingIcon="@Ionicons.ChevronDownCircleOutline"
+                                 PullingText="Pull to refresh"
+                                 RefreshingSpinner="dots"
+                                 RefreshingText="Refreshing..." />
+        </IonRefresher>
+    </Fixed>
+    <ChildContent>
+        <p class="ion-padding">Pull down from the top.</p>
+    </ChildContent>
+</IonContent>
+
+@code {
+    private async Task Refresh(IonRefresherCustomEvent e)
+    {
+        await Task.Delay(1000);
+        await e.Complete();
+    }
+}

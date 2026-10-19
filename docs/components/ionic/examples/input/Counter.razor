@@ -1,0 +1,10 @@
+<IonInput Label="Nickname"
+          LabelPlacement="stacked"
+          Counter="true"
+          Maxlength="20"
+          HelperText="Shown on your profile"
+          @bind-Value="_nickname" />
+
+@code {
+    private string? _nickname;
+}

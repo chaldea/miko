@@ -5,7 +5,9 @@
 </div>
 
 @code {
-    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .
+    /// Stamps <c>ion-color-*</c>, but no built-in rule colors the title — it inherits the color of
+    /// the card / header.</summary>
     [Parameter] public string? Color { get; set; }
 
     protected override void OnParametersSet()

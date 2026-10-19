@@ -1,0 +1,27 @@
+<IonContent>
+    <IonList>
+        @foreach (var item in _items)
+        {
+            <IonItem>
+                <IonLabel>@item</IonLabel>
+            </IonItem>
+        }
+    </IonList>
+
+    @* Fire 100px before the end instead of the default 15% of the viewport height. *@
+    <IonInfiniteScroll Threshold="100px" OnInfinite="LoadMore">
+        <IonInfiniteScrollContent LoadingSpinner="bubbles" LoadingText="Loading more data..." />
+    </IonInfiniteScroll>
+</IonContent>
+
+@code {
+    private readonly List<string> _items = Enumerable.Range(1, 30).Select(i => $"Item {i}").ToList();
+
+    private async Task LoadMore(IonInfiniteScrollCustomEvent e)
+    {
+        await Task.Delay(500);
+        _items.AddRange(Enumerable.Range(_items.Count + 1, 20).Select(i => $"Item {i}"));
+        StateHasChanged();
+        await e.Complete();
+    }
+}

@@ -1,0 +1,18 @@
+<IonRadioGroup Value="@_theme" ValueChanged="ApplyTheme">
+    <IonRadio Value="light">Light</IonRadio>
+    <IonRadio Value="dark">Dark</IonRadio>
+    <IonRadio Value="system">System</IonRadio>
+</IonRadioGroup>
+<p>@_message</p>
+
+@code {
+    private string? _theme = "system";
+    private string _message = string.Empty;
+
+    // ValueChanged is the group's only change notification.
+    private void ApplyTheme(string? theme)
+    {
+        _theme = theme;
+        _message = $"Theme set to {theme}";
+    }
+}

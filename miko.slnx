@@ -17,11 +17,15 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Miko.Components.Tests/Miko.Components.Tests.csproj" />
+    <Project Path="tests/Miko.Docs.Tests/Miko.Docs.Tests.csproj" />
     <Project Path="tests/Miko.Ionic.Tests/Miko.Ionic.Tests.csproj" />
     <Project Path="tests/Miko.McpServer.Tests/Miko.McpServer.Tests.csproj" />
     <Project Path="tests/Miko.Native.Tests/Miko.Native.Tests.csproj" />
     <Project Path="tests/Miko.Razor.Tests/Miko.Razor.Tests.csproj" />
     <Project Path="tests/Miko.Tests/Miko.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Miko.DocGen/Miko.DocGen.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/Miko.Benchmarks/Miko.Benchmarks.csproj" />

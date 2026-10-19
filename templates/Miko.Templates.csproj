@@ -45,11 +45,28 @@
     shipped.
   -->
   <ItemGroup>
-    <_AgentAsset Include="..\agent\**\*" Exclude="..\agent\README.md" />
+    <_AgentAsset Include="..\agent\**\*" Exclude="..\agent\README.md;..\agent\**\.DS_Store" />
     <Content Include="@(_AgentAsset)"
              PackagePath="content\MikoRazorApp\%(RecursiveDir)%(Filename)%(Extension)" />
     <Content Include="@(_AgentAsset)"
              PackagePath="content\MikoMultiplatformApp\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!--
+    The agent reference *content* is the developer documentation: every Markdown page of ../docs
+    ships under .miko/docs/, so agents and developers read the same text and nothing is
+    maintained twice. Only Markdown ships — the example .razor files next to the component pages
+    would otherwise be compiled into the generated app. Excluded: the VitePress landing page
+    and the Ionic theming design notes. Keep in sync with tools/Miko.DocGen/AgentPackageLayout.cs
+    (tests/Miko.Docs.Tests fails when the package and the layout disagree).
+  -->
+  <ItemGroup>
+    <_AgentDoc Include="..\docs\**\*.md"
+               Exclude="..\docs\node_modules\**;..\docs\.vitepress\**;..\docs\index.md;..\docs\ionic-theme.md" />
+    <Content Include="@(_AgentDoc)"
+             PackagePath="content\MikoRazorApp\.miko\docs\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Content Include="@(_AgentDoc)"
+             PackagePath="content\MikoMultiplatformApp\.miko\docs\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- This is a content-only package; nothing here should be compiled. -->

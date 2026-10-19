@@ -94,7 +94,9 @@
 </div>
 
 @code {
-    /// <summary>Named palette color (Ionic <c>color</c>).</summary>
+    /// <summary>Named palette color (Ionic <c>color</c>). Stamped as <c>ion-color-*</c> classes for
+    /// app styles to target; the built-in datetime styles do not read it, so on its own it changes
+    /// nothing.</summary>
     [Parameter] public string? Color { get; set; }
 
     /// <summary>Which view to show. Only the default <c>"date"</c> calendar grid is rendered in this
@@ -123,7 +125,9 @@
     /// <summary>If true (default), the header title/selected-date is shown.</summary>
     [Parameter] public bool ShowDefaultTitle { get; set; } = true;
 
-    /// <summary>If true, the footer Cancel/OK buttons are shown.</summary>
+    /// <summary>If true, the footer Cancel / Done buttons are shown. They only raise
+    /// <see cref="OnCancel"/> / <see cref="OnConfirm"/>; the value already changed when the day was
+    /// tapped.</summary>
     [Parameter] public bool ShowDefaultButtons { get; set; }
 
     /// <summary>Cancel button label.</summary>

@@ -25,7 +25,8 @@ MyApp/
 ├── MyApp/                 # Shared Razor UI — Pages, MainLayout, GlobalStyles, App.cs
 ├── MyApp.Desktop/         # Desktop host (Program.cs, references Miko.Windowing)
 ├── MyApp.Android/         # Android host (MainActivity, manifest, references Miko.Android)
-└── MyApp.iOS/             # iOS host (AppDelegate, Info.plist, references Miko.iOS)
+├── MyApp.iOS/             # iOS host (AppDelegate, Info.plist, references Miko.iOS)
+└── MyApp.Simulator/       # Device preview on the desktop (references Miko.Simulator)
 ```
 
 The shared project references only the core `Miko` (plus component packages such as
@@ -41,7 +42,18 @@ SetContentView(MikoAndroidApp.CreateView(this, MyApp.App.CreateContext)); // nee
 
 // iOS AppDelegate
 Window.RootViewController = new MikoViewController(MyApp.App.CreateContext()); // needs Miko.iOS
+
+// Simulator startup project
+MyApp.App.CreateContext().RunSimulator();  // needs Miko.Simulator
 ```
+
+### AI agent files
+
+`dotnet new … --agent claude|codex|cursor` adds an AI-agent setup to the generated app:
+`.miko/` with an index (`.miko/llms.txt`) and a copy of this documentation
+(`.miko/docs/`), plus the assistant's entry file (`CLAUDE.md`, `AGENTS.md`, or
+`.cursor/rules/`). With `--agent claude`, the multiplatform template also wires the
+[MCP server](../mcp-server.md) through `.mcp.json`. The default `--agent none` adds nothing.
 
 ## The Miko repository
 

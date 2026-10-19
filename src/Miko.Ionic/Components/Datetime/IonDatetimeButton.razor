@@ -21,7 +21,9 @@
 </div>
 
 @code {
-    /// <summary>Named palette color (Ionic <c>color</c>).</summary>
+    /// <summary>Named palette color (Ionic <c>color</c>). Stamped as <c>ion-color-*</c> classes for
+    /// app styles to target; the built-in datetime styles do not read it, so on its own it changes
+    /// nothing.</summary>
     [Parameter] public string? Color { get; set; }
 
     /// <summary>The id of the <c>ion-datetime</c> this button controls (Ionic <c>datetime</c>). Kept

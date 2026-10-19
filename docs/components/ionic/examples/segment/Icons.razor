@@ -1,0 +1,26 @@
+@* Icon-only buttons. *@
+<IonSegment @bind-Value="_view">
+    <IonSegmentButton Value="list">
+        <IonIcon Icon="@Ionicons.List" />
+    </IonSegmentButton>
+    <IonSegmentButton Value="grid">
+        <IonIcon Icon="@Ionicons.Grid" />
+    </IonSegmentButton>
+</IonSegment>
+
+@* Icon + label: the icon sits above the label unless Layout says otherwise. *@
+<IonSegment @bind-Value="_tab">
+    <IonSegmentButton Value="call" Layout="icon-start">
+        <IonIcon Icon="@Ionicons.Call" />
+        <IonLabel>Call</IonLabel>
+    </IonSegmentButton>
+    <IonSegmentButton Value="favorite" Layout="icon-start">
+        <IonIcon Icon="@Ionicons.Heart" />
+        <IonLabel>Favorite</IonLabel>
+    </IonSegmentButton>
+</IonSegment>
+
+@code {
+    private string? _view = "list";
+    private string? _tab = "call";
+}

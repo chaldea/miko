@@ -36,7 +36,7 @@ jobs:
         run: dotnet build miko.slnx -c Release
 
       # Run every test project in the solution, not just Miko.Tests. `dotnet test` on the
-      # solution picks up the six projects carrying Microsoft.NET.Test.Sdk and skips the rest,
+      # solution picks up the projects carrying Microsoft.NET.Test.Sdk and skips the rest,
       # so new test projects are covered without touching this workflow. --no-build reuses the
       # Release output from the step above instead of compiling the solution a second time.
       - name: Run tests

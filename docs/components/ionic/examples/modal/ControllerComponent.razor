@@ -1,0 +1,21 @@
+@inject IonModalController ModalController
+
+<IonButton OnClick="EditAsync">Name: @_name</IonButton>
+
+@code {
+    private string _name = "Ada";
+
+    private async Task EditAsync()
+    {
+        // Keys are the content component's [Parameter] property names.
+        var modal = await ModalController.CreateAsync<EditNameModal>(new Dictionary<string, object?>
+        {
+            [nameof(EditNameModal.Draft)] = new EditNameModal.NameDraft { Name = _name },
+        });
+        await modal.PresentAsync();
+
+        var result = await modal.OnDidDismissAsync();
+        if (result.Role == "confirm" && result.Data is string name)
+            _name = name;
+    }
+}

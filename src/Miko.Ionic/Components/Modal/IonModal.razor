@@ -42,7 +42,8 @@
     /// <summary>Raised with the new open state when the modal opens/closes.</summary>
     [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
 
-    /// <summary>If true (default), tapping the backdrop dismisses the modal.</summary>
+    /// <summary>If true (default), tapping the backdrop or pressing the system back button
+    /// dismisses the modal.</summary>
     [Parameter] public bool BackdropDismiss { get; set; } = true;
 
     /// <summary>If true (default), the backdrop is rendered behind the modal.</summary>
@@ -52,8 +53,9 @@
     /// this port, so this is retained for API parity.</summary>
     [Parameter] public string? Trigger { get; set; }
 
-    /// <summary>The element the modal is presented from. On iOS this stamps the card marker;
-    /// stacked card animation is not currently implemented.</summary>
+    /// <summary>The element the modal is presented from. Any non-null value makes it a card modal
+    /// (<c>modal-card</c>) in ios mode; it has no effect in md mode. The stacked card animation of
+    /// the presenting page is not implemented.</summary>
     [Parameter] public object? Presenting { get; set; }
 
     /// <summary>Sheet-modal snap points. Values outside the inclusive range 0..1 are ignored.</summary>
@@ -66,14 +68,17 @@
     /// <summary>Controls the sheet drag handle. It is shown by default for sheet modals.</summary>
     [Parameter] public bool? Handle { get; set; }
 
-    /// <summary>Keep the child content mounted while the modal is closed. The component host is
-    /// always mounted in this port and is hidden with <c>overlay-hidden</c>.</summary>
+    /// <summary>Ionic's <c>keepContentsMounted</c>. Kept for API parity; it has no effect in this
+    /// port.</summary>
     [Parameter] public bool KeepContentsMounted { get; set; }
 
-    /// <summary>Raised before the modal dismisses.</summary>
+    /// <summary>Raised before the modal dismisses, with the same role and data as
+    /// <see cref="OnDidDismiss"/>.</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnWillDismiss { get; set; }
 
-    /// <summary>Raised after the modal dismisses.</summary>
+    /// <summary>Raised after the modal dismisses, with role <c>"backdrop"</c>, <c>"back"</c> (system
+    /// back button), <c>"gesture"</c> (sheet dragged to 0), or the role passed to
+    /// <see cref="DismissAsync"/>.</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
 
     private double[] _sheetBreakpoints = Array.Empty<double>();

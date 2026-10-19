@@ -29,18 +29,20 @@
 
 @code {
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
-    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to text color.</summary>
+    /// Only stamped as an <c>ion-color-*</c> class: the back-button stylesheet has no palette
+    /// rules, so it does not change the color unless an app style targets that class.</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>The URL to navigate back to by default when there is no history.
-    /// When null, the button is hidden (mirrors Ionic's <c>show-back-button</c> logic).</summary>
+    /// <summary>The path to navigate back to when the history stack cannot go back. Also controls
+    /// visibility: when null the button is hidden (no <c>show-back-button</c> class) even if there
+    /// is history to pop.</summary>
     [Parameter] public string? DefaultHref { get; set; }
 
     /// <summary>When true, the user cannot interact with the button (dimmed, non-interactive).</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Override the default back button icon. When null, uses the mode default
-    /// (chevron-left for iOS, arrow-left for MD).</summary>
+    /// <summary>Override the default back button icon (an <c>Ionicons</c> name). When null, uses the
+    /// mode default: <c>chevron-back</c> on iOS, <c>arrow-back-sharp</c> on MD.</summary>
     [Parameter] public string? Icon { get; set; }
 
     /// <summary>Override the default back button text. When null, uses the mode default
@@ -107,7 +109,7 @@
     /// The navigation shared by a tap and the system back button: pop the nav stack when it can
     /// go back (with the mode's pop transition); otherwise fall back to <see cref="DefaultHref"/>
     /// with a back-direction navigation. Returns whether it actually navigated — that is the
-    /// honest answer to "was the back action consumed": with no <see cref="Navigation"/> (bare
+    /// honest answer to "was the back action consumed": with no <c>Navigation</c> (bare
     /// tests), or when <see cref="DefaultHref"/> is already the current page, nothing happens and
     /// the platform default (exit) must run instead of a silently swallowed press.
     /// </summary>

@@ -1,0 +1,15 @@
+<IonSegment Color="secondary" @bind-Value="_value">
+    <IonSegmentButton Value="day">
+        <IonLabel>Day</IonLabel>
+    </IonSegmentButton>
+    <IonSegmentButton Value="week">
+        <IonLabel>Week</IonLabel>
+    </IonSegmentButton>
+    <IonSegmentButton Value="month" Disabled="true">
+        <IonLabel>Month</IonLabel>
+    </IonSegmentButton>
+</IonSegment>
+
+@code {
+    private string? _value = "day";
+}

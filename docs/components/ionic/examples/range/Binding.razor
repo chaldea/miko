@@ -1,0 +1,7 @@
+<IonRange Label="Volume" @bind-Value="_volume" />
+<p>Volume: @_volume</p>
+
+@code {
+    // ValueChanged fires on press and on every drag step that changes the value.
+    private double _volume = 30;
+}

@@ -42,8 +42,9 @@
     /// <summary>When true the option is dimmed and non-interactive (Ionic <c>disabled</c>).</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>When true the option expands to take the available width and cover the other
-    /// options (Ionic <c>expandable</c>).</summary>
+    /// <summary>Ionic <c>expandable</c>. Stamps <c>item-option-expandable</c> (<c>flex-grow: 1</c>
+    /// within its <see cref="IonItemOptions"/>); Ionic's full-swipe expansion that covers the other
+    /// options and triggers this one is not implemented.</summary>
     [Parameter] public bool Expandable { get; set; }
 
     /// <summary>Link target (Ionic <c>href</c>). When set, the native surface is an <c>a</c>.

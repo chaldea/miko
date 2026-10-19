@@ -1,0 +1,6 @@
+<IonCheckbox @bind-Checked="_subscribe">Subscribe to the newsletter</IonCheckbox>
+<IonButton Disabled="@(!_subscribe)">Continue</IonButton>
+
+@code {
+    private bool _subscribe;
+}

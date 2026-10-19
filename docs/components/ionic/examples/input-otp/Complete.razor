@@ -1,0 +1,20 @@
+<IonInputOtp Length="6" Disabled="@_verifying" @bind-Value="_code" OnComplete="VerifyAsync">
+    @_status
+</IonInputOtp>
+
+@code {
+    private string? _code;
+    private string _status = "Enter the 6-digit code we sent you";
+    private bool _verifying;
+
+    // Raised once every box holds a valid character.
+    private async Task VerifyAsync(string code)
+    {
+        _verifying = true;
+        _status = "Checking…";
+        await Task.Delay(500); // call your API here
+        _verifying = false;
+        _status = code == "123456" ? "Verified" : "Wrong code, try again";
+        if (_status != "Verified") _code = string.Empty;
+    }
+}

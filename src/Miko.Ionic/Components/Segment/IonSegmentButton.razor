@@ -30,15 +30,19 @@
     /// <summary>This button's value; becomes the segment's selected value when tapped.</summary>
     [Parameter] public string Value { get; set; } = string.Empty;
 
-    /// <summary>Id of the <see cref="IonSegmentContent"/> this button activates in a segment view.</summary>
+    /// <summary>Id of the <see cref="IonSegmentContent"/> this button activates (Ionic
+    /// <c>content-id</c>). Kept for API parity and not read by this port: to switch an
+    /// <see cref="IonSegmentView"/>, bind the same field to the segment's <c>Value</c> and the view's
+    /// <c>Value</c>.</summary>
     [Parameter] public string? ContentId { get; set; }
 
     /// <summary>When true this individual button is dimmed and non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>
-    /// Content arrangement (Ionic <c>layout</c>: <c>"icon-top"</c>, <c>"icon-start"</c>, …).
-    /// Kept for API parity; emitted as a marker class only in this base port.
+    /// Arrangement of an icon and a label in the button (Ionic <c>layout</c>): <c>"icon-top"</c>
+    /// (default), <c>"icon-bottom"</c>, <c>"icon-start"</c>, <c>"icon-end"</c>, <c>"icon-hide"</c>
+    /// (hides the icon) or <c>"label-hide"</c> (hides the label).
     /// </summary>
     [Parameter] public string? Layout { get; set; } = "icon-top";
 

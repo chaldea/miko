@@ -1,0 +1,19 @@
+@* The icon rotates 180° when the accordion opens; ToggleIconSlot moves it before the header. *@
+<IonAccordionGroup ToggleIconSlot="start">
+    <IonAccordion Value="first" ToggleIcon="@Ionicons.CaretDownCircle">
+        <Header>
+            <IonItem><IonLabel>First</IonLabel></IonItem>
+        </Header>
+        <Content>
+            <div class="ion-padding">First content</div>
+        </Content>
+    </IonAccordion>
+    <IonAccordion Value="second" ToggleIcon="@Ionicons.CaretDownCircle">
+        <Header>
+            <IonItem><IonLabel>Second</IonLabel></IonItem>
+        </Header>
+        <Content>
+            <div class="ion-padding">Second content</div>
+        </Content>
+    </IonAccordion>
+</IonAccordionGroup>

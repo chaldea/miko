@@ -1,0 +1,15 @@
+<IonPicker>
+    <IonPickerColumn @bind-Value="_language">
+        <IonPickerColumnOption Value="csharp">C#</IonPickerColumnOption>
+        <IonPickerColumnOption Value="fsharp">F#</IonPickerColumnOption>
+        <IonPickerColumnOption Value="go">Go</IonPickerColumnOption>
+        <IonPickerColumnOption Value="rust">Rust</IonPickerColumnOption>
+        <IonPickerColumnOption Value="typescript">TypeScript</IonPickerColumnOption>
+    </IonPickerColumn>
+</IonPicker>
+
+<p>Selected: @_language</p>
+
+@code {
+    private string? _language = "csharp";
+}

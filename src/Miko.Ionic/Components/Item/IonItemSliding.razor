@@ -12,21 +12,26 @@
 </div>
 
 @code {
-    /// <summary>When true the row is slid open, revealing the options on <see cref="OpenSide"/>.</summary>
+    /// <summary>When true the row is slid open, revealing the options on <see cref="OpenSide"/>.
+    /// Bind it (<c>@bind-Open</c>): a re-render of the parent re-creates the row from its
+    /// parameters, so a swipe's open state that was not written back is lost.</summary>
     [Parameter] public bool Open { get; set; }
 
     /// <summary>Raised when a swipe opens or closes the row.</summary>
     [Parameter] public EventCallback<bool> OpenChanged { get; set; }
 
     /// <summary>Which side's options are revealed when <see cref="Open"/> is true: <c>"end"</c>
-    /// (default) or <c>"start"</c>.</summary>
+    /// (default) or <c>"start"</c>. A swipe does not write this back — update it from
+    /// <see cref="OnSwipe"/> when the row has start options.</summary>
     [Parameter] public string OpenSide { get; set; } = "end";
 
     /// <summary>When true, the row cannot be slid (Ionic <c>disabled</c> disables the swipe
     /// gesture).</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Raised after a recognized swipe with <c>"start"</c> or <c>"end"</c>.</summary>
+    /// <summary>Raised after a recognized horizontal swipe (at least 32px), before
+    /// <see cref="OpenChanged"/>, with the side it points to: <c>"end"</c> for a swipe to the left,
+    /// <c>"start"</c> for a swipe to the right.</summary>
     [Parameter] public EventCallback<string> OnSwipe { get; set; }
 
     private const float SwipeThreshold = 32f;

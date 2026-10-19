@@ -1,0 +1,12 @@
+<IonButton OnClick="@(() => _isOpen = true)">Open card</IonButton>
+
+@* Presenting marks a card modal: rounded corners and a shadow in ios mode, no change in md mode. *@
+<IonModal @bind-IsOpen="_isOpen" Presenting="@this">
+    <IonContent Class="ion-padding">
+        <p>A card-style modal.</p>
+    </IonContent>
+</IonModal>
+
+@code {
+    private bool _isOpen;
+}

@@ -21,9 +21,25 @@ directives:
 After an event handler runs, the component re-renders automatically — you do not need to
 call `StateHasChanged()` yourself for synchronous handlers.
 
+The available directives (`@onclick`, `@oninput`, `@onchange`, `@onpointermove`, `@onscroll`, …)
+are listed in [Elements](./elements.md#reference). Event arguments are optional: a handler may
+take none, or the matching `*EventArgs` type.
+
+Directives apply to **elements**. A component exposes its events as `EventCallback` parameters
+instead — `<IonButton OnClick="Save">` — and an `@onclick` written on a component compiles but
+is ignored.
+
+::: warning High-frequency events
+Every `@on…` directive re-renders the component after each event. For events that fire every
+frame — `@onscroll`, `@onpointermove`, `@onmousemove` during a drag — that rebuilds the
+component's subtree each frame. Attach those handlers to the element in code instead
+(`element.OnScroll = …`, `element.OnPointerMove = …`, see below) and call `StateHasChanged()` only
+when the visible state actually changes.
+:::
+
 ## On DOM elements
 
-When building the DOM directly (see [Using the Engine Directly](/engine/direct-api)),
+When building the DOM directly (see [Using the Engine Directly](../engine/direct-api.md)),
 elements expose convenience handler properties and a generic `AddEventListener`.
 
 Handlers use the `MikoEventHandler<T>` delegate, which takes a **single** event-args
@@ -54,7 +70,9 @@ Convenience handler properties on `Element` include:
 | --- | --- |
 | `OnClick` | `MouseEventArgs` |
 | `OnMouseEnter` / `OnMouseLeave` | `MouseEventArgs` |
-| `OnMouseDown` / `OnMouseUp` | `MouseEventArgs` |
+| `OnMouseDown` / `OnMouseUp` / `OnMouseMove` | `MouseEventArgs` |
+| `OnPointerDown` / `OnPointerUp` / `OnPointerMove` / `OnPointerCancel` | `PointerEventArgs` |
+| `OnLongPress` | `PointerEventArgs` |
 | `OnFocus` / `OnBlur` | `FocusEventArgs` |
 | `OnChange` | `ChangeEventArgs` |
 | `OnInput` | `InputEventArgs` |
@@ -93,5 +111,5 @@ builder.AddGlobalKeyHandler(key =>
 
 ## Async handlers
 
-Event handlers may be `async`. See [Async & Lifecycle](/guide/async) for how Miko awaits
+Event handlers may be `async`. See [Async & Lifecycle](./async.md) for how Miko awaits
 them and re-renders when the task completes.

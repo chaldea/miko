@@ -1,0 +1,19 @@
+@* The fab goes in IonContent's Fixed slot, so it stays put while the content scrolls. *@
+<IonContent>
+    <Fixed>
+        <IonFab Vertical="bottom" Horizontal="end">
+            <IonFabButton OnClick="Compose">
+                <IonIcon Icon="@Ionicons.Add" />
+            </IonFabButton>
+        </IonFab>
+    </Fixed>
+    <ChildContent>
+        <p class="ion-padding">Drafts: @_drafts</p>
+    </ChildContent>
+</IonContent>
+
+@code {
+    private int _drafts;
+
+    private void Compose() => _drafts++;
+}

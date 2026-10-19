@@ -1,0 +1,31 @@
+@inject IonPopoverController PopoverController
+
+<IonButton OnClick="ShowAsync">Sort: @_sort</IonButton>
+
+@code {
+    private string _sort = "Newest";
+    private IonOverlayReference? _popover;
+
+    private async Task ShowAsync(Miko.Events.MouseEventArgs e)
+    {
+        _popover = await PopoverController.CreateAsync(new IonPopoverOptions
+        {
+            Event = e, // anchor to the tapped button
+            Content = Options,
+        });
+        await _popover.PresentAsync();
+
+        var result = await _popover.OnDidDismissAsync();
+        if (result.Data is string sort)
+            _sort = sort;
+    }
+
+    private Task PickAsync(string sort) => _popover?.DismissAsync(sort) ?? Task.CompletedTask;
+
+    private RenderFragment Options =>
+        @<IonList>
+            <IonItem Button="true" OnClick="@(() => PickAsync("Newest"))">Newest</IonItem>
+            <IonItem Button="true" OnClick="@(() => PickAsync("Oldest"))">Oldest</IonItem>
+            <IonItem Button="true" Lines="none" OnClick="@(() => PickAsync("Title"))">Title</IonItem>
+        </IonList>;
+}

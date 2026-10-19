@@ -1,0 +1,17 @@
+@inject IonToastController ToastController
+
+<IonButton OnClick="CopyAsync">Copy link</IonButton>
+
+@code {
+    private async Task CopyAsync()
+    {
+        var toast = await ToastController.CreateAsync(new IonToastOptions
+        {
+            Message = "Link copied",
+            Icon = Ionicons.CheckmarkCircle,
+            Position = "top",
+            Duration = 1500,
+        });
+        await toast.PresentAsync();
+    }
+}

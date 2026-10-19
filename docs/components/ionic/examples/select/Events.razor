@@ -1,0 +1,21 @@
+<IonList>
+    <IonItem>
+        <IonSelect Label="Size" Placeholder="Select a size" Value="@_size"
+                   ValueChanged="@((string? v) => _size = v)"
+                   OnChange="HandleChange" OnCancel="@(() => _log = "Cancelled")">
+            <IonSelectOption Value="s">Small</IonSelectOption>
+            <IonSelectOption Value="m">Medium</IonSelectOption>
+            <IonSelectOption Value="l">Large</IonSelectOption>
+        </IonSelect>
+    </IonItem>
+</IonList>
+
+<p>@_log</p>
+
+@code {
+    private string? _size;
+    private string _log = "No change yet";
+
+    // NewValue is the selected value (comma-joined for a multi-value select).
+    private void HandleChange(Miko.Events.ChangeEventArgs e) => _log = $"Changed to {e.NewValue}";
+}

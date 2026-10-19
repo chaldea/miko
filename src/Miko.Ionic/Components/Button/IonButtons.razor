@@ -12,9 +12,10 @@
 
 @code {
     /// <summary>
-    /// Placement within the toolbar: <c>"start"</c> (default, leading edge) or
-    /// <c>"end"</c> (trailing edge). Mirrors Ionic's <c>slot</c> attribute on
-    /// <c>ion-buttons</c>. Visual order follows authoring order in the toolbar markup.
+    /// Ionic's <c>slot</c> attribute on <c>ion-buttons</c>: <c>"start"</c> (default) or
+    /// <c>"end"</c>, stamped as a <c>buttons-start</c> / <c>buttons-end</c> class. It does not
+    /// move the group — the <see cref="IonToolbar"/> slot it is placed in (<c>Start</c>,
+    /// <c>End</c>, <c>Primary</c>, <c>Secondary</c>) decides the position.
     /// </summary>
     [Parameter] public string Slot { get; set; } = "start";
 

@@ -1,0 +1,22 @@
+@* The segment and the view bind the same field; each button's Value matches a content Id. *@
+<IonSegment @bind-Value="_section">
+    <IonSegmentButton Value="details">
+        <IonLabel>Details</IonLabel>
+    </IonSegmentButton>
+    <IonSegmentButton Value="reviews">
+        <IonLabel>Reviews</IonLabel>
+    </IonSegmentButton>
+</IonSegment>
+
+<IonSegmentView Value="@_section">
+    <IonSegmentContent Id="details">
+        <p>Product details go here.</p>
+    </IonSegmentContent>
+    <IonSegmentContent Id="reviews">
+        <p>Customer reviews go here.</p>
+    </IonSegmentContent>
+</IonSegmentView>
+
+@code {
+    private string? _section = "details";
+}

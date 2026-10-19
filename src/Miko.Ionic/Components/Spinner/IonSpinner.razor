@@ -24,17 +24,19 @@
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>Animation duration in milliseconds. Defaults to Ionic's per-spinner timing.</summary>
+    /// <summary>Duration of one animation cycle in milliseconds (Ionic <c>duration</c>). When null,
+    /// uses Ionic's per-preset timing (750–1400 ms); 0 or less disables the animation.</summary>
     [Parameter] public int? Duration { get; set; }
 
     /// <summary>
-    /// Spinner preset name: <c>bubbles</c>, <c>circles</c>, <c>circular</c>, <c>crescent</c>,
-    /// <c>dots</c>, <c>lines</c>, <c>lines-small</c>, <c>lines-sharp</c>, or
-    /// <c>lines-sharp-small</c>.
+    /// Spinner preset name (Ionic <c>name</c>): <c>bubbles</c>, <c>circles</c>, <c>circular</c>,
+    /// <c>crescent</c>, <c>dots</c>, <c>lines</c>, <c>lines-small</c>, <c>lines-sharp</c>, or
+    /// <c>lines-sharp-small</c>. When null, <c>circular</c> in md mode and <c>lines</c> in ios mode;
+    /// an unrecognized name falls back to <c>lines</c>.
     /// </summary>
     [Parameter] public string? Name { get; set; }
 
-    /// <summary>When true, stamps Ionic's paused state and pauses the generated animation style.</summary>
+    /// <summary>When true, the animation is paused and the spinner is dimmed (Ionic <c>paused</c>).</summary>
     [Parameter] public bool Paused { get; set; }
 
     private string _spinnerName = "circular";

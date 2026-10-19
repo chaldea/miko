@@ -2,6 +2,11 @@ using Miko.Components;
 
 namespace Miko.Ionic.Components;
 
+/// <summary>
+/// Base class of the overlay controllers (<see cref="IonModalController"/>,
+/// <see cref="IonAlertController"/>, …). <c>AddIonic()</c> registers each controller as a singleton;
+/// overlays it creates render in the overlay layer of <see cref="IonApp"/>.
+/// </summary>
 public abstract class IonOverlayControllerBase
 {
     private readonly IonOverlayRegistry _registry;
@@ -30,6 +35,8 @@ public abstract class IonOverlayControllerBase
             overlay.Result.Task);
     }
 
+    /// <summary>The topmost presented overlay created by this controller, or null. Overlays of other
+    /// controllers and declarative overlays are not considered.</summary>
     public Task<IonOverlayReference?> GetTopAsync()
     {
         lock (_sync)

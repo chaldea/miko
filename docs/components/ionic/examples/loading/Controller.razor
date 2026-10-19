@@ -1,0 +1,22 @@
+@inject IonLoadingController LoadingController
+
+<IonButton OnClick="RefreshAsync">Refresh</IonButton>
+
+@code {
+    private async Task RefreshAsync()
+    {
+        var loading = await LoadingController.CreateAsync(new IonLoadingOptions
+        {
+            Message = "Refreshing…",
+        });
+        await loading.PresentAsync();
+        try
+        {
+            await Task.Delay(1500); // stand-in for the real work
+        }
+        finally
+        {
+            await loading.DismissAsync();
+        }
+    }
+}

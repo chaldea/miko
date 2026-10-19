@@ -100,15 +100,17 @@
     /// <summary>When true, the searchbar is dimmed and non-interactive (Ionic <c>disabled</c>).</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>When true, enables the iOS animated layout (Ionic <c>animated</c>).</summary>
+    /// <summary>Ionic <c>animated</c>. No animation is implemented; in ios mode it only keeps the cancel
+    /// button visible (like <c>ShowCancelButton="always"</c>), in md mode it has no effect.</summary>
     [Parameter] public bool Animated { get; set; }
 
     /// <summary>Cancel button behavior (Ionic <c>showCancelButton</c>): <c>"never"</c> (default),
-    /// <c>"focus"</c>, or <c>"always"</c>.</summary>
+    /// <c>"focus"</c>, or <c>"always"</c>. <c>"focus"</c> currently behaves like <c>"never"</c>.</summary>
     [Parameter] public string ShowCancelButton { get; set; } = "never";
 
     /// <summary>Clear button behavior (Ionic <c>showClearButton</c>): <c>"always"</c> (default),
-    /// <c>"focus"</c>, or <c>"never"</c>.</summary>
+    /// <c>"focus"</c>, or <c>"never"</c>. <c>"focus"</c> currently behaves like <c>"never"</c>. The button
+    /// appears only while the <see cref="Value"/> parameter is non-empty, so it needs a bound value.</summary>
     [Parameter] public string ShowClearButton { get; set; } = "always";
 
     /// <summary>Cancel button text, shown in iOS mode (Ionic <c>cancelButtonText</c>).</summary>
@@ -126,7 +128,8 @@
     /// <c>close-circle</c> (ios).</summary>
     [Parameter] public string? ClearIcon { get; set; }
 
-    /// <summary>Input type (Ionic <c>type</c>). Defaults to <c>"search"</c>.</summary>
+    /// <summary>Input type (Ionic <c>type</c>). Defaults to <c>"search"</c>; any value renders a plain
+    /// text field (no password masking or numeric keypad).</summary>
     [Parameter] public string Type { get; set; } = "search";
 
     /// <summary>Debounce in ms for the input event (Ionic <c>debounce</c>). Kept for API parity;

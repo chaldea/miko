@@ -1,0 +1,33 @@
+@* Tapping the main button opens the list (it turns into a close icon); tapping any button closes it again. *@
+<IonContent>
+    <Fixed>
+        <IonFab Vertical="bottom" Horizontal="end" @bind-Activated="_open">
+            <IonFabButton>
+                <IonIcon Icon="@Ionicons.Share" />
+            </IonFabButton>
+            <IonFabList Side="top">
+                <IonFabButton OnClick="@(() => ShareTo("Twitter"))">
+                    <IonIcon Icon="@Ionicons.LogoTwitter" />
+                </IonFabButton>
+                <IonFabButton OnClick="@(() => ShareTo("Facebook"))">
+                    <IonIcon Icon="@Ionicons.LogoFacebook" />
+                </IonFabButton>
+            </IonFabList>
+            <IonFabList Side="start">
+                <IonFabButton OnClick="@(() => ShareTo("Mail"))">
+                    <IonIcon Icon="@Ionicons.Mail" />
+                </IonFabButton>
+            </IonFabList>
+        </IonFab>
+    </Fixed>
+    <ChildContent>
+        <p class="ion-padding">@(_open ? "Choose a target" : $"Last shared to: {_target}")</p>
+    </ChildContent>
+</IonContent>
+
+@code {
+    private bool _open;
+    private string _target = "nothing yet";
+
+    private void ShareTo(string target) => _target = target;
+}

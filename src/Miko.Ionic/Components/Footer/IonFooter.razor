@@ -10,16 +10,15 @@
 
 @code {
     /// <summary>
-    /// If <c>true</c>, the footer will be translucent.
-    /// Only applies when the mode is <c>"ios"</c> and the device supports backdrop-filter.
-    /// Note: In order to scroll content behind the footer, the <c>fullscreen</c> attribute
-    /// needs to be set on the content.
+    /// Ionic's <c>translucent</c>. Has an effect only in iOS mode, and only a partial one: there
+    /// is no backdrop blur and content does not scroll behind the footer — the toolbars inside are
+    /// drawn at 80% opacity. Stamps <c>footer-translucent</c> / <c>footer-translucent-{mode}</c>.
     /// </summary>
     [Parameter] public bool Translucent { get; set; }
 
     /// <summary>
-    /// Describes the scroll effect that will be applied to the footer.
-    /// Only applies in iOS mode. Currently supports <c>"fade"</c>.
+    /// Ionic's <c>collapse</c> (<c>"fade"</c>). Kept as a marker for API parity: it stamps
+    /// <c>footer-collapse-{value}</c>, but no scroll-driven effect is implemented.
     /// </summary>
     [Parameter] public string? Collapse { get; set; }
 

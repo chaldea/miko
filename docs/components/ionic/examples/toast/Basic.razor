@@ -1,0 +1,10 @@
+<IonButton OnClick="@(() => _isOpen = true)">Save</IonButton>
+
+@* Duration hides the toast after 2 s (role "timeout"); @bind-IsOpen resets _isOpen. *@
+<IonToast @bind-IsOpen="_isOpen"
+          Message="Changes saved"
+          Duration="2000" />
+
+@code {
+    private bool _isOpen;
+}

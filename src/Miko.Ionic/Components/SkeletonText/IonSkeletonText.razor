@@ -21,7 +21,9 @@
     /// <summary>The non-breaking space (U+00A0) Ionic's markup uses as <c>&amp;nbsp;</c>.</summary>
     private const string Nbsp = " ";
 
-    /// <summary>If true, the skeleton bar animates (Ionic <c>animated</c>).</summary>
+    /// <summary>If true, the bar pulses between two grays once a second (Ionic <c>animated</c>;
+    /// Ionic's sliding shimmer gradient is modeled as a color pulse). The pulse uses the built-in
+    /// md / ios colors, not the app's <c>SkeletonText</c> tokens.</summary>
     [Parameter] public bool Animated { get; set; }
 
     /// <summary>

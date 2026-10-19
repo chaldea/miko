@@ -1,0 +1,7 @@
+@* Paused stops the animation and dims the spinner; Duration (ms) changes its speed. *@
+<IonSpinner Name="crescent" Paused="@_paused" Duration="2000" />
+<IonButton Size="small" OnClick="@(() => _paused = !_paused)">@(_paused ? "Resume" : "Pause")</IonButton>
+
+@code {
+    private bool _paused;
+}

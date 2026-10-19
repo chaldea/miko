@@ -1,0 +1,11 @@
+@* The clear button needs a bound Value to appear. *@
+<IonSearchbar @bind-Value="_query" OnClear="() => _cleared++" />
+<p>Cleared @_cleared times</p>
+
+@* No clear button at all. *@
+<IonSearchbar ShowClearButton="never" />
+
+@code {
+    private string? _query = "coffee";
+    private int _cleared;
+}

@@ -1,0 +1,32 @@
+<IonButton OnClick="@(() => _isOpen = true)">Toppings (@_toppings.Count)</IonButton>
+
+<IonAlert @bind-IsOpen="_isOpen"
+          Header="Toppings"
+          Inputs="@_inputs"
+          Buttons="@_buttons"
+          OnDidDismiss="OnDismissed" />
+
+@code {
+    private bool _isOpen;
+    private List<string?> _toppings = ["cheese"];
+
+    private readonly IReadOnlyList<IonAlertInput> _inputs =
+    [
+        new() { Type = "checkbox", Label = "Cheese", Value = "cheese", Checked = true },
+        new() { Type = "checkbox", Label = "Mushrooms", Value = "mushrooms" },
+        new() { Type = "checkbox", Label = "Olives", Value = "olives" },
+    ];
+
+    private readonly IReadOnlyList<IonAlertButton> _buttons =
+    [
+        new() { Text = "Cancel", Role = "cancel" },
+        new() { Text = "OK", Role = "confirm" },
+    ];
+
+    // For checkbox inputs Data is a List<string?> of the checked inputs' Values.
+    private void OnDismissed(IonOverlayDismissEventArgs e)
+    {
+        if (e.Role == "confirm" && e.Data is List<string?> values)
+            _toppings = values;
+    }
+}
