@@ -7,7 +7,11 @@
 }
 
 @code {
+    /// <summary>Registration key in the overlay layer. Overlays pass a stable id so a re-render
+    /// replaces their entry instead of adding a second one.</summary>
     [Parameter] public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    /// <summary>When false, the content is withdrawn from the overlay layer (e.g. a closed overlay).</summary>
     [Parameter] public bool Active { get; set; } = true;
 
     [CascadingParameter] public IonOverlayContext? OverlayContext { get; set; }

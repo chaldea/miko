@@ -1,0 +1,16 @@
+<IonList>
+    <IonListHeader>
+        <IonLabel>Adjust display</IonLabel>
+    </IonListHeader>
+    <IonItem>
+        <IonRange Label="Brightness" @bind-Value="_brightness" />
+    </IonItem>
+    <IonItem>
+        <IonRange Label="Contrast" Min="-100" Max="100" Pin="true" @bind-Value="_contrast" />
+    </IonItem>
+</IonList>
+
+@code {
+    private double _brightness = 20;
+    private double _contrast;
+}

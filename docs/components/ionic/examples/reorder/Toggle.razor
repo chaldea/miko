@@ -1,0 +1,30 @@
+@* Disabled defaults to true: the handles stay hidden until reordering is switched on. *@
+<IonButton OnClick="@(() => _editing = !_editing)">@(_editing ? "Done" : "Edit")</IonButton>
+
+<IonList>
+    <IonReorderGroup Disabled="@(!_editing)" OnItemReorder="Move">
+        @foreach (var city in _cities)
+        {
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>@city</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonReorder />
+                </End>
+            </IonItem>
+        }
+    </IonReorderGroup>
+</IonList>
+
+@code {
+    private readonly List<string> _cities = new() { "Lisbon", "Oslo", "Kyoto", "Lima" };
+    private bool _editing;
+
+    private void Move((int From, int To) move)
+    {
+        var city = _cities[move.From];
+        _cities.RemoveAt(move.From);
+        _cities.Insert(move.To, city);
+    }
+}

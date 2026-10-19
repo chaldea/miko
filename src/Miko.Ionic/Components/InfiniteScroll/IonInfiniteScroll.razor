@@ -39,7 +39,8 @@
     /// <summary>Position of the infinite scroll marker: <c>"bottom"</c> (default) or <c>"top"</c>.</summary>
     [Parameter] public string Position { get; set; } = "bottom";
 
-    /// <summary>Declarative loading state. Use <see cref="Complete"/> to reset it from code.</summary>
+    /// <summary>Declarative loading state: while true, every render puts the infinite scroll into its
+    /// loading state. Setting it back to false does not end a load — call <see cref="Complete"/>.</summary>
     [Parameter] public bool Loading { get; set; }
 
     /// <summary>

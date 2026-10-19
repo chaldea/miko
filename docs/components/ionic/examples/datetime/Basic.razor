@@ -1,0 +1,8 @@
+<IonDatetime @bind-Value="_date" />
+
+<p>Selected: @(_date ?? "nothing yet")</p>
+
+@code {
+    // ISO date string, "yyyy-MM-dd".
+    private string? _date = "2026-07-15";
+}

@@ -12,13 +12,10 @@
 
     /// <summary>Where the label sits inside an <c>ion-item</c> (Ionic <c>position</c>):
     /// <c>"fixed"</c>, <c>"stacked"</c> or <c>"floating"</c>. Stamped as a <c>label-*</c> class.
-    /// <para>
-    /// Only the position rules that stand on their own are ported (the <c>fixed</c> track width and
-    /// the stacked/floating margins). Ionic's stacked/floating transforms hang off
-    /// <c>:host-context(.item-has-focus)</c> / <c>.item-has-value</c> — an item focus/value state
-    /// machine this port does not have — so they are intentionally left out rather than emitted as
-    /// rules that could never match.
-    /// </para></summary>
+    /// <c>"fixed"</c> gives the label a 100px, non-shrinking track. <c>"stacked"</c> /
+    /// <c>"floating"</c> only adjust margins: the label stays beside the control in the item row
+    /// (Ionic's stacking and float transforms depend on an item focus/value state this port does
+    /// not have) — use the control's own <c>LabelPlacement</c> instead.</summary>
     [Parameter] public string? Position { get; set; }
 
     protected override void OnParametersSet()

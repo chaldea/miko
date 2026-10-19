@@ -1,0 +1,21 @@
+<IonSearchbar Placeholder="Search cities" @bind-Value="_query" />
+<IonList>
+    @foreach (var city in Matches)
+    {
+        <IonItem>
+            <IonLabel>@city</IonLabel>
+        </IonItem>
+    }
+</IonList>
+
+@code {
+    private static readonly string[] Cities =
+        ["Amsterdam", "Buenos Aires", "Cairo", "Geneva", "Kyoto", "Lima", "Oslo", "Seoul"];
+
+    // Updated on every keystroke; there is no built-in debounce.
+    private string? _query;
+
+    private IEnumerable<string> Matches => string.IsNullOrWhiteSpace(_query)
+        ? Cities
+        : Cities.Where(c => c.Contains(_query, StringComparison.OrdinalIgnoreCase));
+}

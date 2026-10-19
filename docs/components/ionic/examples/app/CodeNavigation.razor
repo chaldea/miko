@@ -1,0 +1,18 @@
+@inject Miko.Routing.NavigationManager Navigation
+@inject Miko.Platform.IPlatformInfo Platform
+
+<IonButton Expand="block" OnClick="OpenSettings">Settings</IonButton>
+<IonButton Expand="block" Fill="outline" OnClick="SignOut">Sign out</IonButton>
+
+@code {
+    // "ios" on iOS hosts, "md" elsewhere — the mode the Ionic components pick by default.
+    private string Mode => IonicModeResolver.ResolveClass(Platform);
+
+    // Forward: push onto the history stack, with Ionic's push transition for the mode.
+    private void OpenSettings() =>
+        Navigation.NavigateTo("/settings", Miko.Routing.NavigationDirection.Forward, IonicPageTransitions.Push(Mode));
+
+    // Root: clear the history and switch without a transition.
+    private void SignOut() =>
+        Navigation.NavigateTo("/login", Miko.Routing.NavigationDirection.Root);
+}

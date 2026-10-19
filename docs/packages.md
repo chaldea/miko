@@ -28,7 +28,7 @@ package that owns the window / surface / native input:
 A typical desktop app references `Miko` (+ optional `Miko.Bootstrap` / `Miko.Ionic` /
 `Miko.DevTools`), `Miko.Razor.Compiler`, and `Miko.Windowing`. A cross-platform app
 references the platform host packages from each respective head project (see
-[Project Structure](/guide/project-structure)).
+[Project Structure](./guide/project-structure.md)).
 
 ## Getting the packages
 

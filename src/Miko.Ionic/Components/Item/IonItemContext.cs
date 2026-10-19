@@ -8,7 +8,7 @@ namespace Miko.Ionic.Components;
 /// <c>.input-highlight</c> bar when inside an item because the item already has its own bottom
 /// border.
 /// <para>
-/// The context is matched by type via <see cref="CascadingValue{TValue}"/>, exactly like
+/// The context is matched by type via <see cref="Miko.Components.CascadingValue{TValue}"/>, exactly like
 /// <see cref="IonAccordionGroupContext"/> and <see cref="FabContext"/>. An item provides this
 /// marker; form controls receive it (nullable) and gate in-item-specific behavior on
 /// <c>ItemContext is not null</c>.

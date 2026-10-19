@@ -79,5 +79,5 @@ at runtime, then reference `"Inter"` from your styles.
 ## Text measurement
 
 Miko measures text with SkiaSharp's font metrics during layout (see
-[Layout](/guide/layout)), so wrapping, line height, and box sizing account for the actual
+[Layout](./layout.md)), so wrapping, line height, and box sizing account for the actual
 rendered glyphs of the resolved font.

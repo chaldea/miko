@@ -1,0 +1,10 @@
+@* Tapping the checked radio again clears the selection (Value becomes null). *@
+<IonRadioGroup AllowEmptySelection="true" @bind-Value="_topping">
+    <IonRadio Value="cheese">Extra cheese</IonRadio>
+    <IonRadio Value="basil">Basil</IonRadio>
+</IonRadioGroup>
+<p>Topping: @(_topping ?? "none")</p>
+
+@code {
+    private string? _topping = "cheese";
+}

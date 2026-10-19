@@ -5,16 +5,22 @@
 </div>
 
 @code {
-    /// <summary>Column size from 1 to 12, or <c>"auto"</c>.</summary>
+    /// <summary>Column size (Ionic <c>size</c>): a count from <c>"1"</c> to <c>"12"</c> (the column
+    /// takes that many twelfths of the row and does not grow or shrink), or <c>"auto"</c> (sized to
+    /// its content). When null, the column shares the remaining row width equally. Other values are
+    /// ignored. Not breakpoint-aware.</summary>
     [Parameter] public string? Size { get; set; }
 
-    /// <summary>Column offset from 1 to 11 columns.</summary>
+    /// <summary>Left margin of this many twelfths of the row width, <c>"1"</c>–<c>"12"</c> (Ionic
+    /// <c>offset</c>). Moves the following columns too.</summary>
     [Parameter] public string? Offset { get; set; }
 
-    /// <summary>Column push from 1 to 11 columns.</summary>
+    /// <summary>Shifts the column right by this many twelfths of the row width, <c>"1"</c>–<c>"12"</c>
+    /// (Ionic <c>push</c>), using relative positioning; other columns keep their places.</summary>
     [Parameter] public string? Push { get; set; }
 
-    /// <summary>Column pull from 1 to 11 columns.</summary>
+    /// <summary>Shifts the column left by this many twelfths of the row width, <c>"1"</c>–<c>"12"</c>
+    /// (Ionic <c>pull</c>), using relative positioning; other columns keep their places.</summary>
     [Parameter] public string? Pull { get; set; }
 
     private Style? _mergedStyle;

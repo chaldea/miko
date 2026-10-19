@@ -33,12 +33,14 @@
 
 @code {
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
-    /// Stamped as <c>ion-color</c> + <c>ion-color-*</c> classes the stylesheet maps to fill /
-    /// text color.</summary>
+    /// Stamped as <c>ion-color</c> + <c>ion-color-*</c> classes only: no stylesheet rule reads them
+    /// yet, so the divider keeps the theme's divider colors (Ionic fills it with the palette
+    /// color).</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>When true, the divider stays pinned to the top of the scroll viewport until the next
-    /// divider replaces it (Ionic <c>sticky</c>, backed by <c>position: sticky</c>).</summary>
+    /// <summary>Ionic <c>sticky</c> (pins the divider to the top of the scroll viewport). Stamps the
+    /// <c>item-divider-sticky</c> class only: Miko has no <c>position: sticky</c>, so the divider
+    /// scrolls with the content.</summary>
     [Parameter] public bool Sticky { get; set; }
 
     /// <summary>Content for Ionic's <c>start</c> slot — placed before the label (left in LTR).</summary>

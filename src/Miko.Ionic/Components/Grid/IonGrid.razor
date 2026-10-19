@@ -5,7 +5,9 @@
 </div>
 
 @code {
-    /// <summary>When true, constrains the grid to Ionic's fixed grid width.</summary>
+    /// <summary>When true, caps the grid at the <c>Grid.FixedWidth</c> theme token (1140px by
+    /// default) and centers it (Ionic <c>fixed</c>; Ionic's per-breakpoint widths are not
+    /// ported).</summary>
     [Parameter] public bool Fixed { get; set; }
 
     protected override void OnParametersSet()

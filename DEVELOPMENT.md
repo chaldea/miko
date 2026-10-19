@@ -56,7 +56,7 @@ miko-v5/
 │   │   └── Selectors/                 # 选择器实现
 │   │       ├── Selector.cs            # 基类（Matches + Specificity）
 │   │       ├── SimpleSelectors.cs     # Tag, Class, ID
-│   │       ├── PseudoClassSelectors.cs # :hover, :focus, :checked, :nth-child 等
+│   │       ├── PseudoClassSelectors.cs # :hover, :focus, :checked, :first-child 等
 │   │       ├── PseudoElementSelectors.cs # ::before, ::after
 │   │       ├── AttributeSelector.cs   # [attr=value]
 │   │       ├── CombinatorSelectors.cs # 后代、子代、相邻、通用兄弟
@@ -1349,6 +1349,17 @@ public class App
 ### 文档与资源
 
 - **在线文档**：https://chaldea.github.io/miko/（VitePress 站点，位于 `docs/` 目录）
+  - 组件文档在 `docs/components/ionic/`，每个页面由手写说明加生成区块组成：
+    `<!-- miko:api -->`（参数/事件/插槽表，取自反射 + XML 注释）、`<!-- miko:tokens -->`
+    （主题 Token 及 md/ios 默认值）、`<!-- miko:example -->`（内联 `examples/` 下的 `.razor`）、
+    `<!-- miko:elements -->`（Razor 编译器的标签/属性表）等。区块内不要手改。
+  - 生成：`dotnet run --project tools/Miko.DocGen`；本地构建解决方案时会自动生成（CI 不生成）。
+    `-- --check` 只校验，`-- --only <文件>` 只写指定文件。
+  - 改组件参数时写好 `///` 注释——它就是文档；缺注释、组件未入任何页面、示例未被引用、
+    链接失效，都会让 `tests/Miko.Docs.Tests` 失败。示例 `.razor` 在该测试项目里编译并渲染。
+- **Agent 文档**：`agent/` 只放与 agent 相关的内容（入口文件、`rules.md`、`llms.txt` 索引）。
+  打包模板时 `docs/**/*.md` 被复制到生成应用的 `.miko/docs/`，因此 agent 与开发者读同一份文档；
+  `tests/Miko.Docs.Tests` 会打包模板、用 `dotnet new` 生成应用并检查文档完整性与链接。
 - **开发指南**：本文档（DEVELOPMENT.md）
 - **项目指南**：CLAUDE.md（面向 AI 助手的项目概览）
 - **示例代码**：`examples/` 目录包含 Bootstrap、Ionic、多平台、异步、媒体播放等示例

@@ -1,0 +1,24 @@
+@* Wrapping the item makes the whole row the drag handle. *@
+<IonList>
+    <IonReorderGroup Disabled="false" OnItemReorder="Move">
+        @foreach (var photo in _photos)
+        {
+            <IonReorder>
+                <IonItem>
+                    <IonLabel>@photo</IonLabel>
+                </IonItem>
+            </IonReorder>
+        }
+    </IonReorderGroup>
+</IonList>
+
+@code {
+    private readonly List<string> _photos = new() { "Beach", "Mountains", "City", "Forest" };
+
+    private void Move((int From, int To) move)
+    {
+        var photo = _photos[move.From];
+        _photos.RemoveAt(move.From);
+        _photos.Insert(move.To, photo);
+    }
+}

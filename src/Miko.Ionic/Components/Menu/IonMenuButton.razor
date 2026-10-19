@@ -5,7 +5,8 @@
 </div>
 
 @code {
-    /// <summary>Invoked when the hamburger button is clicked (typically opens the menu).</summary>
+    /// <summary>Invoked when the hamburger button is clicked. The button does not find or toggle a
+    /// menu by itself — open it here by setting the <see cref="IonMenu"/>'s <c>IsOpen</c>.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
     protected override void OnParametersSet()

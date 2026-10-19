@@ -26,14 +26,15 @@
     [Parameter] public RenderFragment? Start { get; set; }
 
     /// <summary>
-    /// Buttons placed at the secondary edge — Ionic's <c>slot="secondary"</c>. On iOS this is the
-    /// start side, on Material Design the end side; the stylesheet resolves the visual placement.
+    /// Ionic's <c>slot="secondary"</c>, rendered between <see cref="Start"/> and the default
+    /// content. The order is the same in both modes — unlike Ionic, Material Design does not move
+    /// it after the title.
     /// </summary>
     [Parameter] public RenderFragment? Secondary { get; set; }
 
     /// <summary>
-    /// Buttons placed at the primary edge — Ionic's <c>slot="primary"</c>. On iOS this is the end
-    /// side, on Material Design the start side; the stylesheet resolves the visual placement.
+    /// Ionic's <c>slot="primary"</c>, rendered between the default content and <see cref="End"/>.
+    /// The order is the same in both modes (the toolbar does not reorder slots per mode).
     /// </summary>
     [Parameter] public RenderFragment? Primary { get; set; }
 

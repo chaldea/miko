@@ -1,0 +1,20 @@
+<IonInput Label="Password"
+          LabelPlacement="stacked"
+          Type="@(_reveal ? "text" : "password")"
+          @bind-Value="_password">
+    <StartSlot>
+        <IonIcon Icon="@Ionicons.LockClosedOutline" />
+    </StartSlot>
+    <EndSlot>
+        <IonButton Fill="clear" OnClick="() => _reveal = !_reveal">
+            <IconOnly>
+                <IonIcon Icon="@(_reveal ? Ionicons.EyeOffOutline : Ionicons.EyeOutline)" />
+            </IconOnly>
+        </IonButton>
+    </EndSlot>
+</IonInput>
+
+@code {
+    private string? _password;
+    private bool _reveal;
+}

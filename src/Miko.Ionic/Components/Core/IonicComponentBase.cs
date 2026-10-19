@@ -242,7 +242,7 @@ public abstract class IonicComponentBase : ComponentBase
 
     /// <summary>
     /// Utility for building CSS class names dynamically.
-    /// Components should use this in <see cref="OnParametersSet"/> to construct their class attribute.
+    /// Components should use this in <c>OnParametersSet</c> to construct their class attribute.
     /// </summary>
     protected ClassMapper ClassMapper { get; } = new();
 }

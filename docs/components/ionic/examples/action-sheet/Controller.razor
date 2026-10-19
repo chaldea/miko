@@ -1,0 +1,28 @@
+@inject IonActionSheetController ActionSheetController
+
+<IonButton OnClick="ShowAsync">Sort by…</IonButton>
+<p>Sorted by: @_sort</p>
+
+@code {
+    private string _sort = "date";
+
+    private async Task ShowAsync()
+    {
+        var sheet = await ActionSheetController.CreateAsync(new IonActionSheetOptions
+        {
+            Header = "Sort by",
+            Buttons =
+            [
+                new() { Text = "Date", Data = "date" },
+                new() { Text = "Name", Data = "name" },
+                new() { Text = "Size", Data = "size" },
+                new() { Text = "Cancel", Role = "cancel" },
+            ],
+        });
+        await sheet.PresentAsync();
+
+        var result = await sheet.OnDidDismissAsync();
+        if (result.Data is string sort)
+            _sort = sort;
+    }
+}

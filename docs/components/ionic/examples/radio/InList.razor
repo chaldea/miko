@@ -1,0 +1,21 @@
+@* The group can wrap any markup; every IonRadio below it joins the group. *@
+<IonList>
+    <IonRadioGroup @bind-Value="_shipping">
+        <IonListHeader>
+            <IonLabel>Shipping</IonLabel>
+        </IonListHeader>
+        <IonItem>
+            <IonRadio Value="standard">Standard (3-5 days)</IonRadio>
+        </IonItem>
+        <IonItem>
+            <IonRadio Value="express">Express (1-2 days)</IonRadio>
+        </IonItem>
+        <IonItem>
+            <IonRadio Value="pickup">Store pickup</IonRadio>
+        </IonItem>
+    </IonRadioGroup>
+</IonList>
+
+@code {
+    private string? _shipping = "standard";
+}

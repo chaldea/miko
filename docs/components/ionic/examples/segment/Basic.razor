@@ -1,0 +1,17 @@
+<IonSegment @bind-Value="_filter">
+    <IonSegmentButton Value="all">
+        <IonLabel>All</IonLabel>
+    </IonSegmentButton>
+    <IonSegmentButton Value="unread">
+        <IonLabel>Unread</IonLabel>
+    </IonSegmentButton>
+    <IonSegmentButton Value="flagged">
+        <IonLabel>Flagged</IonLabel>
+    </IonSegmentButton>
+</IonSegment>
+
+<p>Showing: @_filter</p>
+
+@code {
+    private string? _filter = "all";
+}

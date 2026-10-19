@@ -28,8 +28,8 @@
     /// (<c>vertical="bottom"</c>). Stamped as <c>fab-edge</c>.</summary>
     [Parameter] public bool Edge { get; set; }
 
-    /// <summary>If true, the main button shows the close icon and all fab-lists are visible. Two-way
-    /// bindable with <see cref="ActivatedChanged"/>.</summary>
+    /// <summary>If true, the main button shows the close icon and all fab-lists are visible. Tapping
+    /// any button in the fab toggles it, but only when the fab contains an <see cref="IonFabList"/>.</summary>
     [Parameter] public bool Activated { get; set; }
 
     /// <summary>Raised with the new activated state when the fab is toggled.</summary>

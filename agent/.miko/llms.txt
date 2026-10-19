@@ -1,37 +1,119 @@
 # Miko
 
-> Miko is a native, cross-platform UI rendering engine for .NET. You author the UI as **Razor components** (`.razor`) and Miko draws every pixel with **SkiaSharp** — there is no browser, no WebView, and no HTML/CSS runtime. A source generator (`Miko.Razor.Compiler`) compiles `.razor` into native draw calls.
+> Miko is a native, cross-platform UI engine for .NET. You author the UI as Razor components (`.razor`) and Miko draws every pixel with SkiaSharp — no browser, no WebView, no HTML/CSS runtime. This folder is the reference for AI agents building a Miko app: the rules below, and under `docs/` the full Miko documentation for the version this app was created with.
 
-This file is the entry point for AI agents building Miko apps. Read `overview.md` first, then the topic you need. All docs are plain Markdown optimized for machine reading: dense tables, minimal prose, minimal-but-complete code.
+## Rules
 
-## Read these first
+<!-- miko:include rules.md -->
+Miko renders Razor components natively with SkiaSharp. It looks like web development but it is **not** a browser: there is no HTML/CSS runtime, styles are C# objects, and only Miko's own elements, attributes and components exist. Check the reference before you write UI — do not assume web or Blazor behavior.
 
-- [Overview](overview.md): what Miko is, the render pipeline, and the hard constraints that differ from a browser (no CSS text, no `inherit`, typed `Style` objects). **Start here.**
-- [Project](project.md): the shape of a generated app, `MikoAppBuilder`, routing, layouts, hot reload.
-- [Razor](razor.md): authoring `.razor` components — `@page`, `@code`, `@bind`, `@onclick`, `EventCallback`, lifecycle.
+1. **Pages.** A `.razor` file under `Pages/` with `@page "/route"` is a route; routes are
+   discovered at build time. Layouts inherit `LayoutComponentBase` and render `@Body`.
+2. **Styles are typed C#.** Put rules in `GlobalStyles.cs` (`StyleSheet` + `CssObject` with
+   selector-string keys) or bind a `Style` object: `style="@_box"`. There is no CSS text:
+   `style="color:red"` does nothing. See [Styling](./docs/guide/styling.md).
+3. **Elements and attributes are a fixed set.** Attribute names are lowercase, and any attribute
+   not listed in [Elements](./docs/guide/elements.md) is dropped **silently** — e.g. `placeholder`
+   on `<input>`, `disabled`, `<option value>`. `<select @bind>` does not show the bound value.
+4. **Prefer Ionic components** for anything interactive or styled: buttons, inputs, toggles,
+   lists, cards, tabs, menus, overlays. Start at [Ionic components](./docs/components/ionic/index.md);
+   each component page lists **every** parameter, event and slot — if it is not in the table, it
+   does not exist. They need `builder.AddIonic()` and `@using Miko.Ionic.Components`.
+5. **Follow the component structure.** `IonApp` › `IonPage` › `IonHeader` / `IonContent`; many
+   children only work inside their parent — see
+   [Where components go](./docs/components/ionic/index.md#where-components-go). Toolbar buttons go
+   in an `IonButtons` placed in the toolbar's `Start` / `End` slot.
+6. **Named slots** are child elements (`<Start>`, `<End>`, …); once you use one, put the default
+   content in `<ChildContent>`.
+7. **Component events are parameters.** Use a component's own `EventCallback` parameters
+   (`OnClick`, `OnChange`, `@bind-Value`, …). `@onclick` and other `@on…` directives work on
+   elements only — on a component they compile but are ignored.
+8. **Re-rendering.** A component re-renders after its own event handlers. When a child
+   component's `EventCallback` changes state that a different component renders (e.g. a menu
+   button opening an `IonMenu` declared in the page), call `StateHasChanged()` in that component.
+   Do not use `@onscroll` / `@onpointermove` for per-frame work — see
+   [Events](./docs/guide/events.md).
+9. **Verify.** Build with `dotnet build` and fix every error and warning in your `.razor` files.
+   If the Miko MCP server is configured (multiplatform template, `--agent claude`), run the
+   simulator and inspect the live DOM and styles through it.
+<!-- /miko:include -->
 
-## Building UI
+## Guide
 
-- [Styling](styling.md): the typed `Style` object, `Length`, `Color`, box model, `StyleSheet` + `CssObject`, selectors, cascade.
-- [Layout](layout.md): `Display` (block/inline/flex/table), flexbox, `Position`, `Overflow`.
-- [Events](events.md): DOM-style capture/bubble events and handler signatures.
+- [Getting Started](docs/guide/getting-started.md): templates, layouts, running the app.
+- [Project Structure](docs/guide/project-structure.md): the files of a generated app and the platform heads.
+- [Razor Components](docs/guide/razor-components.md): components, parameters, child content, `@bind`, routing, layouts, `MikoAppBuilder`.
+- [Elements](docs/guide/elements.md): every markup tag and the attributes it accepts. **Check before using a tag or attribute.**
+- [Styling](docs/guide/styling.md): `Style`, `Length`, `Color`, `StyleSheet` + `CssObject`, selectors, cascade, inheritance.
+- [Layout](docs/guide/layout.md): box model, block / inline / flex / grid, positioning, overflow, sizing.
+- [Fonts & Text](docs/guide/fonts.md): font families, fallback, custom fonts.
+- [Events](docs/guide/events.md): event directives, handler properties, capture / bubbling.
+- [Async & Lifecycle](docs/guide/async.md): `OnInitializedAsync`, async handlers, `EventCallback`, `StateHasChanged`.
+- [Native Capabilities](docs/guide/native.md): camera, clipboard, filesystem, geolocation, … through `Miko.Native`.
+- [MCP Server](docs/mcp-server.md): inspect and drive the running simulator from an agent.
 
-## Reference
+## Ionic components
 
-- [Elements](elements/index.md): every built-in DOM element (`<div>`, `<h1>`, `<input>`, `<img>`, tables, lists…) with its tag, properties, and types. Includes the list of HTML elements Miko does **not** have.
-- [Components (Ionic)](components/index.md): the `Miko.Ionic` component library (`<IonButton>`, `<IonList>`, `<IonTabs>`…) with parameters and parent/child rules. Requires `builder.AddIonic()`.
+- [Overview](docs/components/ionic/index.md): setup, conventions, where components go, utility classes.
+- [Theming](docs/components/ionic/theming.md): tokens, palette, `ConfigProvider`, dark mode, mode, overriding styles.
+- [Overlays](docs/components/ionic/overlays.md): modals, alerts, action sheets, popovers, toasts, loading — declarative and through controllers.
 
-## Examples
+<!-- miko:component-index docs/components/ionic/ list -->
+- [Accordion](docs/components/ionic/accordion.md): `IonAccordion`, `IonAccordionGroup` — Accordions are collapsible sections: each has a header row that shows or hides the content beneath it, so long pages can be organized into groups the user expands on demand.
+- [Action Sheet](docs/components/ionic/action-sheet.md): `IonActionSheet` — An action sheet is a dialog that slides up from the bottom of the screen and offers a set of options.
+- [Alert](docs/components/ionic/alert.md): `IonAlert` — An alert is a dialog that shows a message, or asks for a choice, on top of the app.
+- [App and Page](docs/components/ionic/app.md): `IonApp`, `IonPage` — `IonApp` is the root container of an Ionic app, and `IonPage` is the root of each routed page; together they set up the screen structure every other Ionic component expects.
+- [Avatar](docs/components/ionic/avatar.md): `IonAvatar` — An avatar is a circular image, usually a picture of a person or an object, shown on its own or inside a chip or an item.
+- [Back Button](docs/components/ionic/back-button.md): `IonBackButton` — A back button navigates to the previous page: it pops the navigation history when there is something to pop, and otherwise goes to a default page.
+- [Badge](docs/components/ionic/badge.md): `IonBadge` — A badge is a small pill of bold text, usually a count or a short status, shown next to another element to flag new or pending content.
+- [Breadcrumbs](docs/components/ionic/breadcrumbs.md): `IonBreadcrumb`, `IonBreadcrumbs` — Breadcrumbs show where the user is in a hierarchy as a row of links, from the top level down to the current page.
+- [Button](docs/components/ionic/button.md): `IonButton`, `IonButtons` — Buttons provide a clickable element for actions anywhere in an app.
+- [Card](docs/components/ionic/card.md): `IonCard`, `IonCardContent`, `IonCardHeader`, `IonCardSubtitle`, `IonCardTitle` — Cards are raised, rounded surfaces that group related content — a header with a title and subtitle, body text, media, lists, and actions.
+- [Checkbox](docs/components/ionic/checkbox.md): `IonCheckbox` — Checkboxes let the user select any number of options from a set, or switch a single option on or off.
+- [Chip](docs/components/ionic/chip.md): `IonChip` — A chip is a compact, pill-shaped element for a tag, a filter, or a contact, holding text plus an optional icon or avatar.
+- [Content](docs/components/ionic/content.md): `IonContent` — Content is the scrollable main area of a page, between the header and the footer.
+- [Datetime](docs/components/ionic/datetime.md): `IonDatetime`, `IonDatetimeButton` — Datetime is an inline month calendar for picking a single date.
+- [Floating Action Button](docs/components/ionic/fab.md): `IonFab`, `IonFabButton`, `IonFabList` — A floating action button (FAB) is a circular button that floats above the content at a corner, edge, or the center of the screen, for the screen's primary action; it can also open lists of related actions.
+- [Footer](docs/components/ionic/footer.md): `IonFooter` — A footer is the bottom region of a page: a wrapper for one or more toolbars that stays below the scrolling content.
+- [Grid](docs/components/ionic/grid.md): `IonCol`, `IonGrid`, `IonRow` — The grid is a 12-column flexbox layout system for arranging content in rows and columns.
+- [Header](docs/components/ionic/header.md): `IonHeader` — A header is the top region of a page: a wrapper for one or more toolbars that stays above the scrolling content.
+- [Icon](docs/components/ionic/icon.md): `IonIcon` — Icons display a glyph from the bundled Ionicons set, or a custom SVG, as a square box that scales with the font size and takes the surrounding text color.
+- [Infinite Scroll](docs/components/ionic/infinite-scroll.md): `IonInfiniteScroll`, `IonInfiniteScrollContent` — Infinite scroll calls the app to load more data when the user scrolls near the end of a scrolling list.
+- [Input](docs/components/ionic/input.md): `IonInput` — Inputs are single-line text fields with an optional label, placeholder, helper and error text, clear button, and character counter.
+- [Input OTP](docs/components/ionic/input-otp.md): `IonInputOtp` — Input OTP is a row of single-character boxes for entering one-time codes such as SMS or authenticator codes.
+- [Item](docs/components/ionic/item.md): `IonItem`, `IonItemDivider`, `IonItemGroup`, `IonItemOption`, `IonItemOptions`, `IonItemSliding` — Items are the rows of a list: each one holds text plus optional icons, avatars, thumbnails, notes, badges, buttons, or a form control, and can be made tappable or swipeable.
+- [Label](docs/components/ionic/label.md): `IonLabel` — A label is the text content of an item, or a standalone line of text styled to match Ionic components.
+- [List](docs/components/ionic/list.md): `IonList`, `IonListHeader` — A list is a vertical container of rows, usually items, for content such as settings, contacts, or search results.
+- [Loading](docs/components/ionic/loading.md): `IonLoading` — A loading indicator is an overlay that shows a spinner and an optional message, and blocks interaction with the app while work is in progress.
+- [Menu](docs/components/ionic/menu.md): `IonMenu`, `IonMenuButton` — A menu is a navigation drawer that slides in from the side of the screen over the current page, with a dimmed backdrop behind it.
+- [Modal](docs/components/ionic/modal.md): `IonModal` — A modal is a dialog that covers the app with its own content, typically a header and scrollable content like a page, until the user dismisses it.
+- [Note](docs/components/ionic/note.md): `IonNote` — A note is a short piece of muted, smaller text for metadata, such as a count, a size, or a timestamp beside a list item.
+- [Picker](docs/components/ionic/picker.md): `IonPicker`, `IonPickerColumn`, `IonPickerColumnOption` — Pickers display one or more scrollable wheels of options, each with a single selected value, inline in the page.
+- [Popover](docs/components/ionic/popover.md): `IonPopover` — A popover is a small floating panel that opens next to the element that triggered it.
+- [Progress Bar](docs/components/ionic/progress-bar.md): `IonProgressBar` — A progress bar is a thin horizontal bar that shows how far an operation has progressed, or — when the amount is unknown — that it is still running.
+- [Radio](docs/components/ionic/radio.md): `IonRadio`, `IonRadioGroup` — Radios let the user pick exactly one option from a set.
+- [Range](docs/components/ionic/range.md): `IonRange` — Ranges are sliders for picking a number between a minimum and a maximum by dragging a knob along a bar.
+- [Refresher](docs/components/ionic/refresher.md): `IonRefresher`, `IonRefresherContent` — The refresher provides pull-to-refresh on a scrolling content area: pulling down from the top reveals an indicator, and releasing far enough starts a refresh.
+- [Reorder](docs/components/ionic/reorder.md): `IonReorder`, `IonReorderGroup` — Reorder lets the user drag items of a list into a new order by a handle.
+- [Searchbar](docs/components/ionic/searchbar.md): `IonSearchbar` — Searchbars are rounded search fields with a search icon, a clear button, and an optional cancel button.
+- [Segment](docs/components/ionic/segment.md): `IonSegment`, `IonSegmentButton`, `IonSegmentContent`, `IonSegmentView` — Segments display a row of buttons, of which exactly one is selected, for switching between views or filters within a page.
+- [Select](docs/components/ionic/select.md): `IonSelect`, `IonSelectOption` — Selects are form controls that let the user pick one or several values from a set of options; tapping the select opens an overlay listing the options.
+- [Skeleton Text](docs/components/ionic/skeleton-text.md): `IonSkeletonText` — Skeleton text is a gray placeholder bar shown in place of text or media while the real content loads.
+- [Slides](docs/components/ionic/slides.md): `IonSlide`, `IonSlides` — Slides is a swipeable carousel that shows one slide at a time, with optional arrows, pagination bullets, a scrollbar, autoplay, looping, and a fade effect.
+- [Spinner](docs/components/ionic/spinner.md): `IonSpinner` — A spinner is an animated indicator that shows something is loading or in progress, with no measure of how far along it is.
+- [Tabs](docs/components/ionic/tabs.md): `IonTabBar`, `IonTabButton`, `IonTabs` — Tabs are a top-level navigation pattern: a tab bar of buttons at the bottom (or top) of the screen switches between independent root pages.
+- [Text](docs/components/ionic/text.md): `IonText` — Text is an inline wrapper that colors the text inside it with a palette color, for anything from a single word to a whole heading.
+- [Textarea](docs/components/ionic/textarea.md): `IonTextarea` — Textareas are multi-line text fields with an optional label, placeholder, helper and error text, and character counter.
+- [Thumbnail](docs/components/ionic/thumbnail.md): `IonThumbnail` — A thumbnail is a square preview image, typically shown at the start or end of a list item.
+- [Title](docs/components/ionic/title.md): `IonTitle` — A title is the text label of a toolbar, naming the current screen or section.
+- [Toast](docs/components/ionic/toast.md): `IonToast` — A toast is a short, non-blocking notification that appears at the top, middle, or bottom of the screen, typically to confirm an action or report a status.
+- [Toggle](docs/components/ionic/toggle.md): `IonToggle` — Toggles are switches that turn a single option on or off.
+- [Toolbar](docs/components/ionic/toolbar.md): `IonToolbar` — A toolbar is a horizontal bar that holds a title, buttons, and other controls for the current screen, usually placed in an `IonHeader` or `IonFooter`.
+<!-- /miko:component-index -->
 
-- [Examples index](examples/index.md)
-- [Counter page](examples/counter.md): the minimal blank-layout page.
-- [Tabs layout](examples/tabs.md): Ionic bottom tab bar with routed tab pages.
-- [Side menu layout](examples/sidemenu.md): Ionic slide-in drawer over a page.
+## Engine and reference
 
-## Rules of thumb for agents
-
-1. Author UI in `.razor` files under `Pages/`. A file with `@page "/route"` becomes a route automatically.
-2. Styles are **C# objects**, not CSS strings. Set them in a `StyleSheet` (see styling.md) or inline via the `Style` property. There is no `style="color:red"` string parsing.
-3. Only the elements listed in `elements/index.md` exist. There is **no** `<textarea>`, `<form>`, `<header>`, `<section>`, `<em>`, `<br>`, `<hr>`. Use `<div>`/`<span>` instead.
-4. Ionic components require `builder.AddIonic()` and `@using Miko.Ionic.Components`. Respect the parent/child rules (e.g. `<IonItem>` must be inside `<IonList>`).
-5. Miko has no CSS `inherit` keyword for non-inherited properties — set values explicitly on each element.
+- [Pipeline Overview](docs/engine/overview.md): DOM → style → layout → paint.
+- [Using the Engine Directly](docs/engine/direct-api.md): building the element tree in C# without Razor.
+- [Packages](docs/packages.md): the NuGet packages and platform hosts.
+- [Examples](docs/examples.md): the sample apps in the Miko repository.

@@ -1,0 +1,31 @@
+@* The refresher goes in IonContent's Fixed slot; the list goes in ChildContent. *@
+<IonContent>
+    <Fixed>
+        <IonRefresher OnRefresh="Refresh">
+            <IonRefresherContent />
+        </IonRefresher>
+    </Fixed>
+    <ChildContent>
+        <IonList>
+            @foreach (var message in _messages)
+            {
+                <IonItem>
+                    <IonLabel>@message</IonLabel>
+                </IonItem>
+            }
+        </IonList>
+    </ChildContent>
+</IonContent>
+
+@code {
+    private readonly List<string> _messages = new() { "Welcome", "Your order shipped" };
+
+    private async Task Refresh(IonRefresherCustomEvent e)
+    {
+        await Task.Delay(1000); // stand-in for a network request
+        _messages.Insert(0, $"New message at {DateTime.Now:t}");
+
+        // Required: until Complete() is called the refresher keeps spinning.
+        await e.Complete();
+    }
+}

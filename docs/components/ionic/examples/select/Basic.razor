@@ -1,0 +1,13 @@
+<IonList>
+    <IonItem>
+        <IonSelect Label="Fruit" Placeholder="Select fruit" @bind-Value="_fruit">
+            <IonSelectOption Value="apple">Apple</IonSelectOption>
+            <IonSelectOption Value="banana">Banana</IonSelectOption>
+            <IonSelectOption Value="orange">Orange</IonSelectOption>
+        </IonSelect>
+    </IonItem>
+</IonList>
+
+@code {
+    private string? _fruit;
+}

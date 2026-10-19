@@ -1,0 +1,20 @@
+<IonList>
+    @* A button in a list header defaults to the clear fill. *@
+    <IonListHeader>
+        <IonLabel>Recently played</IonLabel>
+        <IonButton OnClick="ShowAll">See all</IonButton>
+    </IonListHeader>
+    <IonItem>
+        <IonLabel>Super Mario World</IonLabel>
+    </IonItem>
+    <IonItem>
+        <IonLabel>Pac-Man</IonLabel>
+    </IonItem>
+</IonList>
+
+@code {
+    private void ShowAll()
+    {
+        // Navigate to the full list, open a modal, …
+    }
+}

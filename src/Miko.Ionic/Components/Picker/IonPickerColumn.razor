@@ -62,8 +62,9 @@
     /// <summary>If true, the whole column is dimmed and non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Named palette color (Ionic <c>color</c>, defaults to <c>"primary"</c>): tints the
-    /// active option.</summary>
+    /// <summary>Named palette color (Ionic <c>color</c>). Stamped as <c>ion-color-*</c> classes on the
+    /// column only; the active-option tint is read from each <see cref="IonPickerColumnOption"/>'s own
+    /// <c>Color</c> (primary when unset), so this does not recolor the options.</summary>
     [Parameter] public string? Color { get; set; }
 
     /// <summary>Content shown on the left of the options (Ionic <c>slot="prefix"</c>).</summary>

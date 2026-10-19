@@ -1,34 +1,56 @@
 ---
 name: miko
-description: Build UI for this Miko app. Use whenever adding or editing pages, layouts, components, or styles — Miko renders Razor with SkiaSharp (no browser/HTML/CSS runtime), so its element set, typed Style objects, and Ionic components differ from the web. Triggers on ".razor", "add a page", "style this", "Ionic", "IonButton/IonList/IonTabs", "layout/flexbox", "MikoAppBuilder".
+description: Build UI for this Miko app. Use whenever adding or editing pages, layouts, components, or styles — Miko renders Razor with SkiaSharp (no browser/HTML/CSS runtime), so its elements, typed Style objects, and Ionic components differ from the web. Triggers on ".razor", "add a page", "style this", "Ionic", "IonButton/IonList/IonTabs", "layout/flexbox", "MikoAppBuilder".
 ---
 
 # Building UI with Miko
 
-This project uses **Miko** — a native .NET UI engine that compiles Razor components and draws them with SkiaSharp. It is *not* the web: there is no HTML/CSS runtime, styles are C# objects, and only a fixed set of elements exists.
+This project uses **Miko** — a native .NET UI engine that compiles Razor components and draws them with SkiaSharp. It is *not* the web.
 
 ## Before writing any UI, read the reference
 
-The authoritative, agent-optimized docs live in [`.miko/`](../../../.miko/) at the project root. Start with [`.miko/llms.txt`](../../../.miko/llms.txt), then open the topic you need:
+The Miko documentation for this app's Miko version is in `.miko/` at the project root. Start with [`.miko/llms.txt`](../../../.miko/llms.txt) — it indexes the guides and every Ionic component page. Open the page of each component you use: its tables list every parameter, event, and slot.
 
-- **`.miko/overview.md`** — mental model + the hard constraints that differ from a browser. Read first.
-- **`.miko/elements/index.md`** — the exact set of DOM elements. Check this before using any tag; there is **no** `<textarea>`, `<form>`, `<section>`, `<em>`, `<br>`, `<hr>`.
-- **`.miko/components/index.md`** — the `Miko.Ionic` components (`IonButton`, `IonList`, `IonTabs`…) and their parent/child rules.
-- **`.miko/styling.md`** — the typed `Style` object, `Length`, `Color`, `StyleSheet` + `CssObject`. Styles are **C# objects, not CSS strings**.
-- **`.miko/layout.md`**, **`.miko/events.md`**, **`.miko/razor.md`**, **`.miko/project.md`** — layout, events, Razor authoring, and app wiring.
-- **`.miko/examples/`** — copy-pasteable counter / tabs / sidemenu patterns.
+## Rules
+
+<!-- miko:include ../../../.miko/rules.md -->
+Miko renders Razor components natively with SkiaSharp. It looks like web development but it is **not** a browser: there is no HTML/CSS runtime, styles are C# objects, and only Miko's own elements, attributes and components exist. Check the reference before you write UI — do not assume web or Blazor behavior.
+
+1. **Pages.** A `.razor` file under `Pages/` with `@page "/route"` is a route; routes are
+   discovered at build time. Layouts inherit `LayoutComponentBase` and render `@Body`.
+2. **Styles are typed C#.** Put rules in `GlobalStyles.cs` (`StyleSheet` + `CssObject` with
+   selector-string keys) or bind a `Style` object: `style="@_box"`. There is no CSS text:
+   `style="color:red"` does nothing. See [Styling](../../../.miko/docs/guide/styling.md).
+3. **Elements and attributes are a fixed set.** Attribute names are lowercase, and any attribute
+   not listed in [Elements](../../../.miko/docs/guide/elements.md) is dropped **silently** — e.g. `placeholder`
+   on `<input>`, `disabled`, `<option value>`. `<select @bind>` does not show the bound value.
+4. **Prefer Ionic components** for anything interactive or styled: buttons, inputs, toggles,
+   lists, cards, tabs, menus, overlays. Start at [Ionic components](../../../.miko/docs/components/ionic/index.md);
+   each component page lists **every** parameter, event and slot — if it is not in the table, it
+   does not exist. They need `builder.AddIonic()` and `@using Miko.Ionic.Components`.
+5. **Follow the component structure.** `IonApp` › `IonPage` › `IonHeader` / `IonContent`; many
+   children only work inside their parent — see
+   [Where components go](../../../.miko/docs/components/ionic/index.md#where-components-go). Toolbar buttons go
+   in an `IonButtons` placed in the toolbar's `Start` / `End` slot.
+6. **Named slots** are child elements (`<Start>`, `<End>`, …); once you use one, put the default
+   content in `<ChildContent>`.
+7. **Component events are parameters.** Use a component's own `EventCallback` parameters
+   (`OnClick`, `OnChange`, `@bind-Value`, …). `@onclick` and other `@on…` directives work on
+   elements only — on a component they compile but are ignored.
+8. **Re-rendering.** A component re-renders after its own event handlers. When a child
+   component's `EventCallback` changes state that a different component renders (e.g. a menu
+   button opening an `IonMenu` declared in the page), call `StateHasChanged()` in that component.
+   Do not use `@onscroll` / `@onpointermove` for per-frame work — see
+   [Events](../../../.miko/docs/guide/events.md).
+9. **Verify.** Build with `dotnet build` and fix every error and warning in your `.razor` files.
+   If the Miko MCP server is configured (multiplatform template, `--agent claude`), run the
+   simulator and inspect the live DOM and styles through it.
+<!-- /miko:include -->
 
 ## Workflow
 
-1. **Add a page** → create `Pages/Foo.razor` with `@page "/foo"`. Routes are discovered automatically.
-2. **Style it** → add rules to `GlobalStyles.cs` (a `StyleSheet` built with `CssObject`), or set an inline `Style` object. Never write `style="color:red"` strings.
-3. **Use a tag you're unsure about** → confirm it exists in `.miko/elements/index.md`. If not, use the listed substitute (usually `<div>`/`<span>`).
-4. **Reach for a widget** (button variants, cards, tabs, menus) → use Ionic (`.miko/components/index.md`); ensure `builder.AddIonic()` is in `App.cs`.
-5. **Wire the app** → `App.cs` uses `MikoAppBuilder`; see `.miko/project.md`.
-
-## Guardrails
-
-- Styles are typed C# (`new Style { BackgroundColor = "#512BD4" }`), never CSS text.
-- Miko has no `inherit` keyword for non-inherited properties — set values explicitly.
-- Ionic components take a `Style` **object** (not a string) and require `AddIonic()` + `@using Miko.Ionic.Components`.
-- Respect Ionic parent/child rules (e.g. `IonItem` inside `IonList`, `IonCol` inside `IonRow`).
+1. **Add a page** → create `Pages/Foo.razor` with `@page "/foo"`.
+2. **Build it from Ionic components** → open each component's page under `.miko/docs/components/ionic/` and copy the closest example.
+3. **Style it** → add rules to `GlobalStyles.cs`, or override a component's token (see `.miko/docs/components/ionic/theming.md`).
+4. **Raw markup** → check every tag and attribute in `.miko/docs/guide/elements.md`.
+5. **Build** → `dotnet build`; fix all errors and warnings.

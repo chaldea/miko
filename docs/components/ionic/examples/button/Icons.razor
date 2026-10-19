@@ -1,0 +1,21 @@
+@* Icon-only: put the icon in the IconOnly slot (the button becomes square). *@
+<IonButton>
+    <IconOnly>
+        <IonIcon Icon="@Ionicons.Heart" />
+    </IconOnly>
+</IonButton>
+
+@* Leading / trailing icons: Start and End slots around the label. *@
+<IonButton>
+    <Start>
+        <IonIcon Icon="@Ionicons.Star" />
+    </Start>
+    <ChildContent>Left Icon</ChildContent>
+</IonButton>
+
+<IonButton>
+    <End>
+        <IonIcon Icon="@Ionicons.Heart" />
+    </End>
+    <ChildContent>Right Icon</ChildContent>
+</IonButton>

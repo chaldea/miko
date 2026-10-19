@@ -7,7 +7,7 @@ namespace Miko.Ionic.Components;
 /// build subtrees detached). A button that receives this context applies the
 /// <c>in-toolbar</c> / <c>in-buttons</c> styling and the clear-fill default automatically.
 /// <para>
-/// The context is matched by type via <see cref="CascadingValue{TValue}"/> — the same pattern as
+/// The context is matched by type via <see cref="Miko.Components.CascadingValue{TValue}"/> — the same pattern as
 /// <see cref="IonItemContext"/>, <see cref="IonAccordionGroupContext"/>, and <see cref="FabContext"/>.
 /// </para>
 /// </summary>

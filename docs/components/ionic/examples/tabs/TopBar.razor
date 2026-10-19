@@ -1,0 +1,22 @@
+@* The IonTabs slot decides the position; Slot="top" only moves the border to the bottom edge. *@
+<IonTabs>
+    <Top>
+        <IonTabBar Slot="top">
+            <IonTabButton Tab="music" Href="/music" Selected="true">
+                <IonLabel>Music</IonLabel>
+            </IonTabButton>
+            <IonTabButton Tab="movies" Href="/movies">
+                <IonLabel>Movies</IonLabel>
+            </IonTabButton>
+        </IonTabBar>
+    </Top>
+    <Content>
+        <IonPage>
+            <IonContent>
+                <div class="ion-padding">
+                    <p>Music</p>
+                </div>
+            </IonContent>
+        </IonPage>
+    </Content>
+</IonTabs>

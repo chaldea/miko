@@ -26,30 +26,76 @@
 </div>
 
 @code {
+    /// <summary>Ionic <c>autocapitalize</c>. Kept for API parity; Miko's on-screen keyboard
+    /// does not read it.</summary>
     [Parameter] public string Autocapitalize { get; set; } = "off";
+
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Tints the box borders (fully on the focused box) and the caret.</summary>
     [Parameter] public string? Color { get; set; }
+
+    /// <summary>When true, every box is dimmed and rejects focus and input.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Box fill (Ionic <c>fill</c>): <c>"outline"</c> (default) or <c>"solid"</c>.</summary>
     [Parameter] public string Fill { get; set; } = "outline";
+
+    /// <summary>Ionic <c>inputmode</c> keyboard hint. Kept for API parity; Miko's on-screen
+    /// keyboard does not read it.</summary>
     [Parameter] public string? Inputmode { get; set; }
+
+    /// <summary>Number of boxes, i.e. the code length (minimum 1).</summary>
     [Parameter] public int Length { get; set; } = 4;
+
+    /// <summary>Regular expression a single character must match to be accepted. Defaults to
+    /// digits when <see cref="Type"/> is <c>"number"</c>, letters and digits when it is
+    /// <c>"text"</c>.</summary>
     [Parameter] public string? Pattern { get; set; }
+
+    /// <summary>When true, the boxes can be focused but their value cannot be changed.</summary>
     [Parameter] public bool Readonly { get; set; }
 
     /// <summary>
-    /// Separator positions. Accepts <c>"all"</c>, a comma-separated string such as
-    /// <c>"1,3"</c>, or an <see cref="IEnumerable{Int32}"/>.
+    /// Separator positions (1-based; a separator follows that box). Accepts <c>"all"</c>, a
+    /// comma-separated string such as <c>"1,3"</c>, or an <c>int</c> collection. The parameter is
+    /// <c>object</c>, so Razor reads the attribute as C#: write <c>Separators="@("3")"</c>; a bare
+    /// <c>int</c> (<c>Separators="3"</c>) is ignored.
     /// </summary>
     [Parameter] public object? Separators { get; set; }
 
+    /// <summary>Box corners (Ionic <c>shape</c>): <c>"round"</c> (default), <c>"soft"</c>, or
+    /// <c>"rectangular"</c>.</summary>
     [Parameter] public string Shape { get; set; } = "round";
+
+    /// <summary>Box size (Ionic <c>size</c>): <c>"small"</c>, <c>"medium"</c> (default), or
+    /// <c>"large"</c>.</summary>
     [Parameter] public string Size { get; set; } = "medium";
+
+    /// <summary>Accepted characters when <see cref="Pattern"/> is not set: <c>"number"</c>
+    /// (default, digits only) or <c>"text"</c> (letters and digits).</summary>
     [Parameter] public string Type { get; set; } = "number";
+
+    /// <summary>The entered code. Two-way bindable with <c>@bind-Value</c>; bind it, because an
+    /// unbound component loses the entered characters when its parent re-renders.</summary>
     [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new code whenever a box changes (the <c>@bind-Value</c> callback).</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Raised with the whole code after every keystroke (Ionic <c>ionInput</c>).</summary>
     [Parameter] public EventCallback<string?> OnInput { get; set; }
+
+    /// <summary>Raised with the whole code when focus leaves the component after it changed
+    /// (Ionic <c>ionChange</c>).</summary>
     [Parameter] public EventCallback<string?> OnChange { get; set; }
+
+    /// <summary>Raised with the code once every box is filled (Ionic <c>ionComplete</c>).</summary>
     [Parameter] public EventCallback<string> OnComplete { get; set; }
+
+    /// <summary>Raised when focus enters the component (not again as it moves between boxes).</summary>
     [Parameter] public EventCallback OnFocus { get; set; }
+
+    /// <summary>Raised when focus leaves the component.</summary>
     [Parameter] public EventCallback OnBlur { get; set; }
     [Inject] private MikoInteractionController? InteractionController { get; set; }
 

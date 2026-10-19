@@ -1,0 +1,26 @@
+@* IonButtons gives its buttons the clear fill and the compact toolbar metrics. IonMenuButton
+   only raises OnClick — wire it to your IonMenu (see the Menu page). *@
+<IonToolbar>
+    <Start>
+        <IonButtons>
+            <IonMenuButton />
+        </IonButtons>
+    </Start>
+    <ChildContent>
+        <IonTitle>Inbox</IonTitle>
+    </ChildContent>
+    <End>
+        <IonButtons>
+            <IonButton>
+                <IconOnly>
+                    <IonIcon Icon="@Ionicons.Search" />
+                </IconOnly>
+            </IonButton>
+            <IonButton>
+                <IconOnly>
+                    <IonIcon Ios="@Ionicons.EllipsisHorizontal" Md="@Ionicons.EllipsisVertical" />
+                </IconOnly>
+            </IonButton>
+        </IonButtons>
+    </End>
+</IonToolbar>

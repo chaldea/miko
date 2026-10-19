@@ -1,0 +1,22 @@
+<IonList>
+    <IonItem>
+        <ChildContent>
+            <IonLabel>Inbox</IonLabel>
+        </ChildContent>
+        <End>
+            <IonBadge>@_unread</IonBadge>
+        </End>
+    </IonItem>
+    <IonItem>
+        <Start>
+            <IonBadge Color="success">New</IonBadge>
+        </Start>
+        <ChildContent>
+            <IonLabel>Release notes</IonLabel>
+        </ChildContent>
+    </IonItem>
+</IonList>
+
+@code {
+    private int _unread = 12;
+}

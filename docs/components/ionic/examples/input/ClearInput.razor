@@ -1,0 +1,6 @@
+@* Bind Value: the button only appears while the Value parameter is non-empty. *@
+<IonInput Label="Search term" ClearInput="true" @bind-Value="_term" />
+
+@code {
+    private string? _term = "Clear me";
+}

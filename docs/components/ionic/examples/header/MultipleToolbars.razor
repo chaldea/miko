@@ -1,0 +1,13 @@
+@* Toolbars stack top to bottom. Only the first one is padded for the status bar. *@
+<IonHeader>
+    <IonToolbar>
+        <IonTitle>Contacts</IonTitle>
+    </IonToolbar>
+    <IonToolbar>
+        <IonSearchbar @bind-Value="_query" Placeholder="Search contacts" />
+    </IonToolbar>
+</IonHeader>
+
+@code {
+    private string? _query;
+}

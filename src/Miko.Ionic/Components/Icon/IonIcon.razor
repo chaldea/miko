@@ -20,9 +20,10 @@
 
     /// <summary>
     /// Exact source of an SVG file to use (Ionic <c>src</c>), e.g. <c>"res://…"</c>,
-    /// <c>"file://…"</c> or a bare path. Takes precedence over <see cref="Icon"/>/<see cref="Ios"/>/
-    /// <see cref="Md"/>. Embedded resources are resolved through the resource assemblies registered
-    /// at startup (<c>builder.AddResourceAssembly(...)</c>).
+    /// <c>"file://…"</c> or a bare path. Takes precedence over <see cref="Icon"/>, <see cref="Ios"/>
+    /// and <see cref="Md"/>. Embedded resources are resolved through the resource assemblies
+    /// registered at startup (<c>builder.AddResourceAssembly(...)</c>); <c>http(s)</c> URLs are not
+    /// loaded. The SVG is drawn with its own colors (not tinted by <see cref="Color"/>).
     /// </summary>
     [Parameter] public string? Src { get; set; }
 

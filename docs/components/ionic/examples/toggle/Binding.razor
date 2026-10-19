@@ -1,0 +1,17 @@
+<IonList>
+    <IonItem>
+        <IonToggle @bind-Checked="_wifi">Wi-Fi</IonToggle>
+    </IonItem>
+    <IonItem>
+        <IonToggle Checked="@_bluetooth" IonChange="SetBluetooth">Bluetooth</IonToggle>
+    </IonItem>
+</IonList>
+<p>Wi-Fi is @(_wifi ? "on" : "off"), Bluetooth is @(_bluetooth ? "on" : "off").</p>
+
+@code {
+    private bool _wifi = true;
+    private bool _bluetooth;
+
+    // IonChange carries the new state; it is raised only by a user tap.
+    private void SetBluetooth(bool on) => _bluetooth = on;
+}

@@ -1,0 +1,25 @@
+@* IonToolbar has no Color parameter. Theme the subtree instead: the toolbar background, its
+   title and its buttons all read the Toolbar token. *@
+<ConfigProvider IonicTheme="_brand">
+    <IonToolbar>
+        <Start>
+            <IonButtons>
+                <IonButton>Cancel</IonButton>
+            </IonButtons>
+        </Start>
+        <ChildContent>
+            <IonTitle>Brand</IonTitle>
+        </ChildContent>
+    </IonToolbar>
+</ConfigProvider>
+
+@code {
+    private readonly IonicTheme _brand = new()
+    {
+        Toolbar = new ToolbarToken
+        {
+            Background = Color.FromHex("#0054e9"),
+            Color = Color.FromHex("#ffffff"),
+        },
+    };
+}

@@ -1,0 +1,23 @@
+@inject IonModalController ModalController
+
+<IonButton OnClick="OpenAsync">Show terms</IonButton>
+
+@code {
+    private IonOverlayReference? _modal;
+
+    private async Task OpenAsync()
+    {
+        _modal = await ModalController.CreateAsync(new IonModalOptions { Content = Terms });
+        await _modal.PresentAsync();
+    }
+
+    private Task CloseAsync() => _modal?.DismissAsync() ?? Task.CompletedTask;
+
+    // Inline content for the modal (IonModalOptions.Content).
+    private RenderFragment Terms =>
+        @<IonContent Class="ion-padding">
+            <h2>Terms of use</h2>
+            <p>By using this app you agree to…</p>
+            <IonButton Expand="block" OnClick="CloseAsync">Accept</IonButton>
+        </IonContent>;
+}

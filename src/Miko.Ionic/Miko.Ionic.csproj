@@ -21,6 +21,12 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- The XML doc file ships in the package (IntelliSense for consumers) and is what
+         tools/Miko.DocGen reads to describe every component parameter in docs/components.
+         Not every public member is documented yet, so the missing-comment warning stays off. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

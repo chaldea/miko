@@ -5,16 +5,20 @@ namespace Miko.Ionic.Components;
 /// Ionic's <c>OverlayEventDetail</c> (<c>{ role, data }</c>).
 /// <para>
 /// <see cref="Role"/> is the tapped button's role (<c>"cancel"</c>, <c>"destructive"</c>, a custom
-/// role, or <c>"backdrop"</c> when the backdrop was tapped). <see cref="Data"/> is the arbitrary
-/// value attached to the tapped button (or any inputs' values for an alert).
+/// role), <c>"backdrop"</c> (backdrop tap), <c>"back"</c> (system back button), <c>"gesture"</c>
+/// (sheet modal dragged closed), <c>"timeout"</c> (toast duration), or the role passed to
+/// <c>DismissAsync</c>. <see cref="Data"/> is the value attached to the tapped action-sheet button,
+/// an alert's input values, or the data passed to <c>DismissAsync</c>.
 /// </para>
 /// </summary>
 public sealed class IonOverlayDismissEventArgs
 {
-    /// <summary>The role of the button that dismissed the overlay, or <c>"backdrop"</c>.</summary>
+    /// <summary>How the overlay was dismissed: the tapped button's role, or one of the roles listed
+    /// on the type.</summary>
     public string? Role { get; }
 
-    /// <summary>Data attached to the dismissing button (or collected input values).</summary>
+    /// <summary>Data attached to the dismissing button, collected alert input values, or the data
+    /// passed to <c>DismissAsync</c>.</summary>
     public object? Data { get; }
 
     public IonOverlayDismissEventArgs(string? role, object? data)
@@ -23,7 +27,8 @@ public sealed class IonOverlayDismissEventArgs
         Data = data;
     }
 
-    /// <summary>True when the overlay was dismissed via a cancel button or the backdrop.</summary>
+    /// <summary>True when <see cref="Role"/> is <c>"cancel"</c> or <c>"backdrop"</c>
+    /// (case-insensitive); false for every other role, including <c>"back"</c>.</summary>
     public bool IsCancel =>
         string.Equals(Role, "cancel", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(Role, "backdrop", StringComparison.OrdinalIgnoreCase);

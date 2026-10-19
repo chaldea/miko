@@ -124,7 +124,8 @@
     /// the host drives <see cref="IsOpen"/> in this port.</summary>
     [Parameter] public string? Trigger { get; set; }
 
-    /// <summary>Raised when the toast dismisses, with the tapped button's role (or null).</summary>
+    /// <summary>Raised when the toast dismisses, with the tapped button's role, or
+    /// <c>"timeout"</c> when <see cref="Duration"/> ran out. Data is always null.</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
 
     /// <summary>

@@ -1,0 +1,20 @@
+@* IonChip has no click event: handle the tap on a wrapping element. *@
+@foreach (var tag in _tags)
+{
+    <span @onclick="() => Toggle(tag)">
+        <IonChip Color="@(_selected.Contains(tag) ? "primary" : null)">
+            <IonLabel>@tag</IonLabel>
+        </IonChip>
+    </span>
+}
+
+@code {
+    private readonly string[] _tags = ["Music", "Sports", "Travel"];
+    private readonly HashSet<string> _selected = ["Music"];
+
+    private void Toggle(string tag)
+    {
+        if (!_selected.Remove(tag))
+            _selected.Add(tag);
+    }
+}

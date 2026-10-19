@@ -1,0 +1,25 @@
+@* IonContent needs a parent that gives it a height — IonPage (or a menu drawer / modal). *@
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <IonTitle>Games</IonTitle>
+        </IonToolbar>
+    </IonHeader>
+
+    <IonContent>
+        <IonList>
+            @foreach (var game in _games)
+            {
+                <IonItem><IonLabel>@game</IonLabel></IonItem>
+            }
+        </IonList>
+    </IonContent>
+</IonPage>
+
+@code {
+    private readonly string[] _games =
+    {
+        "Pokémon Yellow", "Mega Man X", "The Legend of Zelda", "Pac-Man", "Super Mario World",
+        "Street Fighter II", "Chrono Trigger", "Secret of Mana", "Final Fantasy VI",
+    };
+}

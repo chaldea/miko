@@ -1,0 +1,41 @@
+@* A drawer on the right edge, with its own header, opened from a toolbar button. *@
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <ChildContent>
+                <IonTitle>Messages</IonTitle>
+            </ChildContent>
+            <End>
+                <IonButtons>
+                    <IonButton OnClick="@(() => _filtersOpen = true)">Filters</IonButton>
+                </IonButtons>
+            </End>
+        </IonToolbar>
+    </IonHeader>
+
+    <IonContent>
+        <div class="ion-padding">
+            <p>@(_unreadOnly ? "Unread messages" : "All messages")</p>
+        </div>
+    </IonContent>
+
+    <IonMenu Side="end" IsOpen="_filtersOpen" OnClose="@(() => _filtersOpen = false)">
+        <IonHeader>
+            <IonToolbar>
+                <IonTitle>Filters</IonTitle>
+            </IonToolbar>
+        </IonHeader>
+        <IonContent>
+            <IonList>
+                <IonItem>
+                    <IonToggle @bind-Checked="_unreadOnly">Unread only</IonToggle>
+                </IonItem>
+            </IonList>
+        </IonContent>
+    </IonMenu>
+</IonPage>
+
+@code {
+    private bool _filtersOpen;
+    private bool _unreadOnly;
+}

@@ -1,0 +1,16 @@
+@* @bind-ActiveIndex reports drags, arrows, bullets and autoplay, and moves the slides from code. *@
+<IonSlides @bind-ActiveIndex="_index" Pagination="true"
+           Style="@(new Style { Height = Length.Px(240) })">
+    @foreach (var step in _steps)
+    {
+        <IonSlide><h2>@step</h2></IonSlide>
+    }
+</IonSlides>
+
+<IonButton Disabled="@(_index == 0)" OnClick="@(() => _index--)">Back</IonButton>
+<IonButton Disabled="@(_index == _steps.Length - 1)" OnClick="@(() => _index++)">Next</IonButton>
+
+@code {
+    private readonly string[] _steps = { "Account", "Profile", "Done" };
+    private int _index;
+}

@@ -1,0 +1,15 @@
+<IonPicker>
+    <IonPickerColumn @bind-Value="_size">
+        <IonPickerColumnOption Value="s">Small</IonPickerColumnOption>
+        <IonPickerColumnOption Value="m">Medium</IonPickerColumnOption>
+        <IonPickerColumnOption Value="l" Disabled="true">Large (sold out)</IonPickerColumnOption>
+        <IonPickerColumnOption Value="xl">X-Large</IonPickerColumnOption>
+    </IonPickerColumn>
+    <IonPickerColumn Value="cotton" Disabled="true">
+        <IonPickerColumnOption Value="cotton">Cotton</IonPickerColumnOption>
+    </IonPickerColumn>
+</IonPicker>
+
+@code {
+    private string? _size = "m";
+}

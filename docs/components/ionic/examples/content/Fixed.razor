@@ -1,0 +1,20 @@
+@* Fixed content sits outside the scroll container, so the fab stays put while the list scrolls. *@
+<IonPage>
+    <IonContent>
+        <Fixed>
+            <IonFab Vertical="bottom" Horizontal="end">
+                <IonFabButton>
+                    <IonIcon Icon="@Ionicons.Add" />
+                </IonFabButton>
+            </IonFab>
+        </Fixed>
+        <ChildContent>
+            <IonList>
+                @for (var i = 1; i <= 30; i++)
+                {
+                    <IonItem><IonLabel>Note @i</IonLabel></IonItem>
+                }
+            </IonList>
+        </ChildContent>
+    </IonContent>
+</IonPage>

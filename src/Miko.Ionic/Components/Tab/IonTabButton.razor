@@ -5,15 +5,19 @@
 </a>
 
 @code {
-    /// <summary>Logical tab identifier (e.g. <c>"tab1"</c>).</summary>
+    /// <summary>Logical tab identifier (e.g. <c>"tab1"</c>, Ionic <c>tab</c>). Kept for API parity:
+    /// it is not used for selection or navigation (there is no <c>ion-tab</c> component).</summary>
     [Parameter] public string? Tab { get; set; }
 
     /// <summary>Navigation target for the tab button. When the button sits inside an
     /// <see cref="IonTabs"/>, clicking it performs a root-level navigation to this target
-    /// (no page transition), mirroring Ionic's tab switching.</summary>
+    /// (history cleared, no page transition), mirroring Ionic's tab switching. Outside an
+    /// <see cref="IonTabs"/> the button does not navigate.</summary>
     [Parameter] public string? Href { get; set; }
 
-    /// <summary>Whether this tab button is the currently selected one.</summary>
+    /// <summary>Whether this tab button is the currently selected one (stamps <c>tab-selected</c>).
+    /// Not derived from the route — the app sets it, e.g. by comparing
+    /// <c>NavigationManager.CurrentPath</c> with <see cref="Href"/>.</summary>
     [Parameter] public bool Selected { get; set; }
 
     /// <summary>Invoked when the tab button is clicked.</summary>

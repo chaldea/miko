@@ -79,6 +79,8 @@ The `Display` property selects the layout algorithm:
 | `Inline` | Children flow horizontally and wrap onto new lines. |
 | `InlineBlock` | Flows inline but lays its own contents out as a block. |
 | `Flex` | Flexbox layout along a main and cross axis. |
+| `InlineFlex` | Flows inline (shrink-to-fit) and lays its children out as flexbox. |
+| `Grid` | Grid layout on explicit tracks (a subset of CSS grid, see below). |
 | `Table` / `TableRow` / `TableCell` | Table layout. |
 | `None` | Not laid out and not rendered. |
 
@@ -117,8 +119,36 @@ new Style
 | `AlignSelf` | `Auto`, `FlexStart`, `FlexEnd`, `Center`, `Stretch`, `Baseline` |
 | `FlexWrap` | `Nowrap`, `Wrap`, `WrapReverse` |
 
-Per-item `flex-grow` / `flex-shrink` distribute or absorb leftover space along the main
-axis.
+Per-item `FlexGrow` / `FlexShrink` distribute or absorb leftover space along the main axis, and
+`FlexBasis` sets the starting size. `Gap` (or `RowGap` / `ColumnGap`) spaces the items.
+
+A common app shell — a layout that fills the window, with the routed page taking the remaining
+space:
+
+```csharp
+[".layout"]       = new() { Display = Display.Flex, Width = Length.Percent(100), Height = Length.Percent(100) },
+[".main-content"] = new() { FlexGrow = 1, Display = Display.Flex },
+```
+
+### Grid layout
+
+`Display.Grid` places children on explicit tracks. Tracks are `GridTrackSize` values:
+`GridTrackSize.Px(120)`, `GridTrackSize.Percent(25)`, `GridTrackSize.Fr(1)`, `GridTrackSize.Auto`
+(a bare number means pixels).
+
+```csharp
+new Style
+{
+    Display = Display.Grid,
+    GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(200), GridTrackSize.Fr(1) },
+    Gap = Length.Px(12),
+}
+```
+
+Children are placed automatically, or explicitly with `GridColumnStart` / `GridColumnEnd` /
+`GridRowStart` / `GridRowEnd` (1-based line numbers; `-1` is the last line). `JustifyItems` /
+`JustifySelf` and `AlignItems` / `AlignSelf` align items inside their cells. `repeat()`,
+`minmax()` and named areas are not supported.
 
 ## Positioning
 
@@ -134,7 +164,14 @@ The `Position` property controls how an element is placed relative to the normal
 `Overflow` (`Visible`, `Hidden`, `Scroll`, `Auto`) controls clipping and scrolling of
 content that exceeds the box.
 
+## Sizing
+
+`Width`, `Height`, `MinWidth`, `MaxWidth`, `MinHeight`, and `MaxHeight` take a `Length`
+(`Length.Px`, `Length.Percent`, `Length.Em`, `Length.Rem`, `Length.Auto`). Leave them unset for
+content-driven sizing. A percentage height needs a parent with a definite height — otherwise it
+behaves like `auto`.
+
 ## Next steps
 
-- [Styling](/guide/styling) — set these properties via stylesheets and inline styles.
-- [Pipeline Overview](/engine/overview) — where layout sits in the render pipeline.
+- [Styling](./styling.md) — set these properties via stylesheets and inline styles.
+- [Pipeline Overview](../engine/overview.md) — where layout sits in the render pipeline.

@@ -77,8 +77,8 @@ Miko is an experimental project under active development. APIs may change betwee
 
 ## Where to next?
 
-- New to Miko? Start with [Getting Started](/guide/getting-started).
+- New to Miko? Start with [Getting Started](./getting-started.md).
 - Want to understand how a frame is produced? See the
-  [Pipeline Overview](/engine/overview).
+  [Pipeline Overview](../engine/overview.md).
 - Prefer to skip Razor and build the DOM by hand? See
-  [Using the Engine Directly](/engine/direct-api).
+  [Using the Engine Directly](../engine/direct-api.md).

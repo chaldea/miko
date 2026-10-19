@@ -1,0 +1,21 @@
+<IonList>
+    @* Href: tapping navigates to the route (forward push with the mode's page transition). *@
+    <IonItem Href="/settings">
+        <IonLabel>Settings</IonLabel>
+    </IonItem>
+
+    @* Button: a tappable row; handle the tap in OnClick. *@
+    <IonItem Button="true" OnClick="Refresh">
+        <IonLabel>Refreshed @_refreshes times</IonLabel>
+    </IonItem>
+
+    <IonItem Button="true" Disabled="true">
+        <IonLabel>Delete account</IonLabel>
+    </IonItem>
+</IonList>
+
+@code {
+    private int _refreshes;
+
+    private void Refresh() => _refreshes++;
+}

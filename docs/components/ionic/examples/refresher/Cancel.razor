@@ -1,0 +1,32 @@
+<IonContent>
+    <Fixed>
+        <IonRefresher OnRefresh="Refresh">
+            <IonRefresherContent />
+        </IonRefresher>
+    </Fixed>
+    <ChildContent>
+        <p class="ion-padding">@_status</p>
+    </ChildContent>
+</IonContent>
+
+@code {
+    private string _status = "Pull down to sync.";
+
+    private async Task Refresh(IonRefresherCustomEvent e)
+    {
+        try
+        {
+            await SyncAsync();
+            _status = $"Synced at {DateTime.Now:t}";
+            await e.Complete();
+        }
+        catch (Exception ex)
+        {
+            _status = $"Sync failed: {ex.Message}";
+            // Cancel() slides the content back without the "completing" state.
+            await e.Target.Cancel();
+        }
+    }
+
+    private static Task SyncAsync() => Task.Delay(500);
+}

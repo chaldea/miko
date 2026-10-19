@@ -1,0 +1,34 @@
+@* Placeholder rows while data loads, then the real list. Inside IonAvatar / IonThumbnail
+   a skeleton bar fills the media box. *@
+@if (_loading)
+{
+    <IonList>
+        @for (var i = 0; i < 3; i++)
+        {
+            <IonItem>
+                <Start>
+                    <IonAvatar>
+                        <IonSkeletonText Animated="true" />
+                    </IonAvatar>
+                </Start>
+                <ChildContent>
+                    <IonLabel>
+                        <h3><IonSkeletonText Animated="true" Style="@(new Style { Width = Length.Percent(50) })" /></h3>
+                        <p><IonSkeletonText Animated="true" Style="@(new Style { Width = Length.Percent(80) })" /></p>
+                    </IonLabel>
+                </ChildContent>
+            </IonItem>
+        }
+    </IonList>
+}
+else
+{
+    <IonList>
+        <IonItem><IonLabel>Loaded item</IonLabel></IonItem>
+    </IonList>
+}
+<IonButton Size="small" OnClick="@(() => _loading = !_loading)">Toggle loading</IonButton>
+
+@code {
+    private bool _loading = true;
+}

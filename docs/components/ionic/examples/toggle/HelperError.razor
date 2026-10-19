@@ -1,0 +1,10 @@
+@* Both texts render when both are set, so show one or the other. *@
+<IonToggle @bind-Checked="_backup"
+           HelperText="@(_backup ? "Photos are backed up nightly" : null)"
+           ErrorText="@(_backup ? null : "Turn on backup to keep your photos safe")">
+    Cloud backup
+</IonToggle>
+
+@code {
+    private bool _backup = true;
+}

@@ -1,0 +1,22 @@
+<IonList>
+    @foreach (var message in _messages)
+    {
+        @* A tap pushes /messages/{id} with the mode's page transition. *@
+        <IonItem Href="@($"/messages/{message.Id}")">
+            <IonLabel>@message.Subject</IonLabel>
+        </IonItem>
+    }
+
+    @* "root" clears the history and switches without a transition. *@
+    <IonItem Href="/" RouterDirection="root">
+        <IonLabel>Start over</IonLabel>
+    </IonItem>
+</IonList>
+
+@code {
+    private readonly (int Id, string Subject)[] _messages =
+    {
+        (1, "Welcome to Miko"),
+        (2, "Your weekly summary"),
+    };
+}

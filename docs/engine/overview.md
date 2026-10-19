@@ -17,12 +17,12 @@ in Razor or build the DOM by hand, every frame goes through the same stages.
    `.razor` source generator, which compiles components into element-building calls.
 2. **Style computation.** `StyleResolver` matches each element against the stylesheets,
    sorts matches by specificity, and cascades them into a `ComputedStyle`. Cascade order
-   is **Tag → Class → ID → inline** (see [Styling](/guide/styling)).
+   is **Tag → Class → ID → inline** (see [Styling](../guide/styling.md)).
 3. **Layout tree build.** Elements are filtered and grouped by their `Display` value into
    a layout tree (`Display.None` elements are excluded).
 4. **Layout.** Each box is sized and positioned with the box model and the block / inline
    / flex algorithms — constraints flow down from parents, content sizes flow back up (see
-   [Layout](/guide/layout)).
+   [Layout](../guide/layout.md)).
 5. **Paint.** `RenderEngine` walks the layout tree and draws backgrounds, borders, text,
    and images to an `SKCanvas` via the `Painter`, repainting only dirty regions.
 
@@ -57,5 +57,5 @@ Incremental render →  MikoEngine.Update(canvas)   // dirty regions only
 
 ## Next steps
 
-- [Using the Engine Directly](/engine/direct-api) — drive this pipeline without Razor.
-- [Styling](/guide/styling) and [Layout](/guide/layout) — the stages in detail.
+- [Using the Engine Directly](./direct-api.md) — drive this pipeline without Razor.
+- [Styling](../guide/styling.md) and [Layout](../guide/layout.md) — the stages in detail.

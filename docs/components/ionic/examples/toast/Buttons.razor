@@ -1,0 +1,32 @@
+<IonButton OnClick="@(() => _isOpen = true)">Archive</IonButton>
+<p>@_status</p>
+
+<IonToast @bind-IsOpen="_isOpen"
+          Header="Archived"
+          Message="1 conversation moved to the archive."
+          Icon="@Ionicons.Archive"
+          Color="dark"
+          Buttons="@_buttons"
+          OnDidDismiss="OnDismissed" />
+
+@code {
+    private bool _isOpen;
+    private string _status = "";
+    private IReadOnlyList<IonToastButton> _buttons = [];
+
+    protected override void OnInitialized()
+    {
+        _buttons =
+        [
+            // Handler runs before the toast closes; a cancel-role button never runs its Handler.
+            new() { Text = "Undo", Role = "undo", Handler = () => _status = "Restored" },
+            new() { Icon = Ionicons.Close, Role = "cancel" }, // icon-only button
+        ];
+    }
+
+    private void OnDismissed(IonOverlayDismissEventArgs e)
+    {
+        if (e.Role != "undo")
+            _status = "Archived";
+    }
+}

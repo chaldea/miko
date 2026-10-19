@@ -1,0 +1,15 @@
+<IonList>
+    @* Detail unset: a clickable item shows the chevron in ios mode only. *@
+    <IonItem Button="true">
+        <IonLabel>Default</IonLabel>
+    </IonItem>
+    <IonItem Detail="true">
+        <IonLabel>Always shown</IonLabel>
+    </IonItem>
+    <IonItem Button="true" Detail="false">
+        <IonLabel>Never shown</IonLabel>
+    </IonItem>
+    <IonItem Button="true" Detail="true" DetailIcon="@Ionicons.CaretForwardOutline">
+        <IonLabel>Custom icon</IonLabel>
+    </IonItem>
+</IonList>

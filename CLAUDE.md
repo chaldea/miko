@@ -290,7 +290,7 @@ Cascade order: **cascade layer → selector specificity → source order → inl
 
 Selector specificity within a layer (lowest to highest): **Tag → Class → ID → inline style**
 
-Pseudo-classes: `:hover`, `:focus`, `:active`, `:disabled`, `:checked`, `:first-child`, `:last-child`, `:nth-child()`
+Pseudo-classes: `:hover`, `:focus`, `:active`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty`, `:not()` (no `:nth-child()`)
 
 Pseudo-elements: `::before`, `::after`
 
@@ -362,6 +362,30 @@ Ionic components use a platform-aware mode system:
 - Segment buttons use an indicator overlay (MD: underline bar, iOS: pill) for checked state
 
 See memory files for mode scoping and segment indicator patterns.
+
+### Documentation
+
+`docs/` is the single source of user documentation — the VitePress site **and** the reference
+shipped to AI agents in scaffolded apps (`templates/Miko.Templates.csproj` packs `docs/**/*.md`
+into `.miko/docs/`). `agent/` holds only agent-specific files: entry files, `.miko/rules.md`, and
+the `.miko/llms.txt` index. Links in shipped pages must be relative `.md` links.
+
+Pages mix hand-written prose with generated regions filled by `tools/Miko.DocGen`
+(`dotnet run --project tools/Miko.DocGen`; it also runs when the solution builds locally, never
+on CI). Never edit between the markers:
+
+- `<!-- miko:api IonFoo … -->` — parameter / event / slot tables from reflection over
+  `Miko.Ionic` plus its XML doc comments: a parameter's `///` summary **is** its documentation.
+- `<!-- miko:tokens Foo -->` — `IonicTheme.Foo` with md and ios defaults.
+- `<!-- miko:type … -->` — options / event-args / controller types.
+- `<!-- miko:example examples/x/Y.razor -->` — inlines an example; the `.razor` files under
+  `docs/components/**/examples/` are compiled and rendered by `tests/Miko.Docs.Tests`.
+- `<!-- miko:elements -->` — the Razor compiler's tag / attribute table (`MikoElements`).
+- `<!-- miko:component-index … -->`, `<!-- miko:include … -->` — indexes and shared fragments.
+
+`tests/Miko.Docs.Tests` fails when generated regions are stale, a public Ionic component is on
+no page, a parameter lacks a `///` summary, an example is unused or does not render, a link does
+not resolve (on the site or inside a scaffolded app), or the packed template is missing docs.
 
 ### Testing Conventions
 
@@ -661,5 +685,5 @@ animationManager.PlayAnimation(element, animation);
 - `IsDirty` is automatically set on `AddChild`/`RemoveChild`/state changes
 - The Razor compiler targets net10.0 and is consumed only as analyzer DLLs
 - Safe area insets are opt-in via `env()` function, never applied as root viewport insets (see memory)
-- Documentation site under `docs/` (VitePress) contains the usage guide
+- Documentation site under `docs/` (VitePress) contains the usage guide; see "Documentation" below
 - `DEVELOPMENT.md` (in Chinese) has developer-oriented walkthrough

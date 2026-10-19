@@ -1,0 +1,6 @@
+<IonTextarea Label="Notes" LabelPlacement="stacked" @bind-Value="_notes" />
+<p>@(_notes?.Split('\n').Length ?? 0) line(s)</p>
+
+@code {
+    private string? _notes;
+}

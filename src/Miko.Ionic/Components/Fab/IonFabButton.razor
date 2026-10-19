@@ -53,7 +53,7 @@
     [Parameter] public string? Href { get; set; }
 
     /// <summary>Button type (Ionic <c>type</c>): <c>"submit"</c>, <c>"reset"</c>, or
-    /// <c>"button"</c> (default).</summary>
+    /// <c>"button"</c> (default). Kept for API parity; not applied to the rendered button.</summary>
     [Parameter] public string Type { get; set; } = "button";
 
     /// <summary>Icon name shown when the button is the active close button (Ionic <c>closeIcon</c>).

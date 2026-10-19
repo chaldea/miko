@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- A repo tool: it writes into docs/, so it must never ship. The publish workflow packs
+         every packable project in miko.slnx. -->
+    <IsPackable>false</IsPackable>
+    <MikoRepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\'))</MikoRepoRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reflected over at run time: component parameters, theme tokens, and the XML doc file
+         (copied next to Miko.Ionic.dll) are the source of every generated API table. -->
+    <ProjectReference Include="..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
+    <!-- Build order only: the elements reference is read out of the built compiler's tag /
+         attribute table (ElementCatalog), loaded by path in its own load context. -->
+    <ProjectReference Include="..\..\src\Miko.Razor.Compiler\Miko.Razor.Compiler.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="MikoRazorCompilerDir"
+                      Value="$(MikoRepoRoot)src$([System.IO.Path]::DirectorySeparatorChar)Miko.Razor.Compiler$([System.IO.Path]::DirectorySeparatorChar)bin$([System.IO.Path]::DirectorySeparatorChar)$(Configuration)$([System.IO.Path]::DirectorySeparatorChar)net10.0" />
+  </ItemGroup>
+
+  <!--
+    Regenerate the docs whenever this tool builds — it builds whenever Miko.Ionic changes, so
+    building the solution keeps the parameter / token tables in step with the code.
+
+    Skipped on CI: there the docs must already be current, and tests/Miko.Docs.Tests fails when
+    they are not. Regenerating first would hide exactly the drift that test exists to catch.
+    Opt out locally with -p:MikoGenerateDocs=false.
+  -->
+  <ItemGroup>
+    <_MikoDocGenInput Include="$(MikoRepoRoot)docs\**\*.md;$(MikoRepoRoot)docs\**\*.razor;$(MikoRepoRoot)agent\**\*.md;$(MikoRepoRoot)agent\**\*.txt"
+                      Exclude="$(MikoRepoRoot)docs\node_modules\**;$(MikoRepoRoot)docs\.vitepress\**" />
+  </ItemGroup>
+
+  <Target Name="MikoGenerateDocs"
+          AfterTargets="Build"
+          Condition="'$(MikoGenerateDocs)' != 'false' and '$(CI)' != 'true'"
+          Inputs="$(TargetPath);@(ReferencePath);@(_MikoDocGenInput)"
+          Outputs="$(IntermediateOutputPath)docgen.stamp">
+    <PropertyGroup>
+      <_MikoDotnet>$(DOTNET_HOST_PATH)</_MikoDotnet>
+      <_MikoDotnet Condition="'$(_MikoDotnet)' == ''">dotnet</_MikoDotnet>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_MikoDotnet)&quot; &quot;$(TargetPath)&quot; --repo &quot;$(MikoRepoRoot.TrimEnd('\').TrimEnd('/'))&quot;" />
+    <Touch Files="$(IntermediateOutputPath)docgen.stamp" AlwaysCreate="true" />
+  </Target>
+
+</Project>

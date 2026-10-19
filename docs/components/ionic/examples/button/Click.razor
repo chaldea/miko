@@ -1,0 +1,8 @@
+<IonButton Strong="true" OnClick="Increment">Tapped @_count times</IonButton>
+
+@code {
+    private int _count;
+
+    // The component re-renders after the handler returns; no StateHasChanged() needed.
+    private void Increment() => _count++;
+}

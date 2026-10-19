@@ -10,7 +10,7 @@ namespace Miko.Ionic.Components;
 /// <c>ion-reorder</c> elements are revealed by a <c>.reorder-enabled ion-reorder { display: block }</c>
 /// rule (they are <c>display:none</c> otherwise). Miko has no ancestor-class descendant selector that
 /// a child can react to at build time, so instead each <see cref="IonReorder"/> reads this context
-/// (matched by type through a <see cref="Microsoft.AspNetCore.Components.CascadingValue{TValue}"/>)
+/// (matched by type through a <see cref="Miko.Components.CascadingValue{TValue}"/>)
 /// and stamps its own enabled/disabled class.
 /// </para>
 /// The group also owns the pointer gesture and raises its reorder callback; this context intentionally

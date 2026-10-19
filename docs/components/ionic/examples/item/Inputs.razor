@@ -1,0 +1,22 @@
+@* Form controls go in the default slot and bring their own label. *@
+<IonList>
+    <IonItem>
+        <IonInput Label="Name" Placeholder="Your name" @bind-Value="_name" />
+    </IonItem>
+    <IonItem>
+        <IonInput Label="Email" LabelPlacement="stacked" @bind-Value="_email" />
+    </IonItem>
+    <IonItem>
+        <IonToggle @bind-Checked="_notifications">Notifications</IonToggle>
+    </IonItem>
+    <IonItem>
+        <IonCheckbox @bind-Checked="_terms">I agree to the terms</IonCheckbox>
+    </IonItem>
+</IonList>
+
+@code {
+    private string? _name;
+    private string? _email;
+    private bool _notifications = true;
+    private bool _terms;
+}

@@ -10,8 +10,8 @@ namespace Miko.Ionic.Components;
 /// <para>
 /// Rules are scoped by the active mode class (<c>md</c> / <c>ios</c>) that each component
 /// stamps onto its root element, so a single stylesheet carries both modes and switching the
-/// root class alone re-styles the tree. <paramref name="mode"/> is woven into each selector;
-/// the mode-specific values come from <paramref name="t"/> (a per-mode <see cref="IonicTheme"/>).
+/// root class alone re-styles the tree. <c>mode</c> is woven into each selector;
+/// the mode-specific values come from <c>t</c> (a per-mode <see cref="IonicTheme"/>).
 /// </para>
 /// </summary>
 internal static class PageStyles

@@ -1,0 +1,39 @@
+<IonList>
+    <IonItem>
+        <IonSelect Label="Alert" Placeholder="Pick one" @bind-Value="_alert">
+            <IonSelectOption Value="red">Red</IonSelectOption>
+            <IonSelectOption Value="green">Green</IonSelectOption>
+            <IonSelectOption Value="blue">Blue</IonSelectOption>
+        </IonSelect>
+    </IonItem>
+    <IonItem>
+        <IonSelect Label="Action sheet" Placeholder="Pick one" Interface="action-sheet"
+                   InterfaceHeader="Colors" @bind-Value="_actionSheet">
+            <IonSelectOption Value="red">Red</IonSelectOption>
+            <IonSelectOption Value="green">Green</IonSelectOption>
+            <IonSelectOption Value="blue">Blue</IonSelectOption>
+        </IonSelect>
+    </IonItem>
+    <IonItem>
+        <IonSelect Label="Popover" Placeholder="Pick one" Interface="popover" @bind-Value="_popover">
+            <IonSelectOption Value="red">Red</IonSelectOption>
+            <IonSelectOption Value="green">Green</IonSelectOption>
+            <IonSelectOption Value="blue">Blue</IonSelectOption>
+        </IonSelect>
+    </IonItem>
+    <IonItem>
+        <IonSelect Label="Modal" Placeholder="Pick one" Interface="modal"
+                   InterfaceHeader="Choose a color" @bind-Value="_modal">
+            <IonSelectOption Value="red">Red</IonSelectOption>
+            <IonSelectOption Value="green">Green</IonSelectOption>
+            <IonSelectOption Value="blue">Blue</IonSelectOption>
+        </IonSelect>
+    </IonItem>
+</IonList>
+
+@code {
+    private string? _alert;
+    private string? _actionSheet;
+    private string? _popover;
+    private string? _modal;
+}

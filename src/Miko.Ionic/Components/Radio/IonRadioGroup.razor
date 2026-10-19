@@ -28,7 +28,7 @@
     /// <summary>If true, the radios in the group are non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>The name of the control, submitted with the form data.</summary>
+    /// <summary>Ionic <c>name</c>. Kept for API parity; Miko has no form submission.</summary>
     [Parameter] public string? Name { get; set; }
 
     // ChildContent (the radios placed inside the group, Ionic's default slot) is inherited from ComponentBase.

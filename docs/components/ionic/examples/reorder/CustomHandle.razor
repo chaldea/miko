@@ -1,0 +1,28 @@
+<IonList>
+    <IonReorderGroup Disabled="false" OnItemReorder="Move">
+        @foreach (var song in _songs)
+        {
+            <IonItem>
+                <ChildContent>
+                    <IonLabel>@song</IonLabel>
+                </ChildContent>
+                <End>
+                    <IonReorder>
+                        <IonIcon Icon="@Ionicons.SwapVertical" />
+                    </IonReorder>
+                </End>
+            </IonItem>
+        }
+    </IonReorderGroup>
+</IonList>
+
+@code {
+    private readonly List<string> _songs = new() { "Intro", "Verse", "Chorus", "Outro" };
+
+    private void Move((int From, int To) move)
+    {
+        var song = _songs[move.From];
+        _songs.RemoveAt(move.From);
+        _songs.Insert(move.To, song);
+    }
+}

@@ -1,0 +1,12 @@
+<IonButton OnClick="@(() => _dotsOpen = true)">Dots spinner</IonButton>
+<IonButton OnClick="@(() => _textOpen = true)">Message only</IonButton>
+
+<IonLoading @bind-IsOpen="_dotsOpen" Spinner="dots" Message="Syncing…" Duration="2000" />
+
+@* An empty Spinner hides the spinner; null (the default) picks the mode's spinner. *@
+<IonLoading @bind-IsOpen="_textOpen" Spinner="" Message="Connecting…" Duration="2000" />
+
+@code {
+    private bool _dotsOpen;
+    private bool _textOpen;
+}

@@ -64,7 +64,8 @@
     /// <summary>The current value. Bind two-way with <see cref="ValueChanged"/>.</summary>
     [Parameter] public double Value { get; set; }
 
-    /// <summary>Raised with the new value when it changes.</summary>
+    /// <summary>Raised with the new value when a press or drag on the slider changes it (repeatedly
+    /// while dragging). The only change event: there is no separate commit event on release.</summary>
     [Parameter] public EventCallback<double> ValueChanged { get; set; }
 
     /// <summary>Minimum value (default 0).</summary>
@@ -76,13 +77,14 @@
     /// <summary>The quantized step between allowed values (default 1).</summary>
     [Parameter] public double Step { get; set; } = 1;
 
-    /// <summary>If true, the range is non-interactive and dimmed.</summary>
+    /// <summary>If true, the range ignores input. ios dims the whole range; md dims only the label.</summary>
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>If true, a pin (value bubble) is shown above the knob.</summary>
     [Parameter] public bool Pin { get; set; }
 
-    /// <summary>If true, the knob snaps to tick marks along the bar.</summary>
+    /// <summary>Ionic <c>snaps</c>. Kept for API parity: no tick marks are drawn, and the value is always
+    /// rounded to <see cref="Step"/> whether or not this is set.</summary>
     [Parameter] public bool Snaps { get; set; }
 
     /// <summary>Named palette color (Ionic <c>color</c>). Stamped as an <c>ion-color-*</c> class.</summary>

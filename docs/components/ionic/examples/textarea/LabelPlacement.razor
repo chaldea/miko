@@ -1,0 +1,19 @@
+<IonList>
+    <IonItem>
+        <IonTextarea Label="Start (default)" Placeholder="Enter text" />
+    </IonItem>
+    <IonItem>
+        <IonTextarea Label="Fixed" LabelPlacement="fixed" Placeholder="Enter text" />
+    </IonItem>
+    <IonItem>
+        <IonTextarea Label="Stacked" LabelPlacement="stacked" Placeholder="Enter text" />
+    </IonItem>
+    <IonItem>
+        @* LabelContent is used only when Label is not set. *@
+        <IonTextarea LabelPlacement="stacked" Placeholder="Enter text">
+            <LabelContent>
+                Description <IonText Color="danger">(required)</IonText>
+            </LabelContent>
+        </IonTextarea>
+    </IonItem>
+</IonList>

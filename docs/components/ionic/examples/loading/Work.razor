@@ -1,0 +1,14 @@
+<IonButton OnClick="SaveAsync">Save</IonButton>
+
+<IonLoading IsOpen="_saving" Message="Saving…" />
+
+@code {
+    private bool _saving;
+
+    private async Task SaveAsync()
+    {
+        _saving = true;           // the component re-renders at the first await, showing the overlay
+        await Task.Delay(1500);   // stand-in for the real work
+        _saving = false;          // and again when the handler completes, hiding it
+    }
+}

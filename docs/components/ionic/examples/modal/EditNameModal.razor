@@ -1,0 +1,43 @@
+@* Content component for a controller-created modal. It closes itself through the controller,
+   like Ionic's modalController.dismiss(data, role). *@
+@inject IonModalController ModalController
+
+<IonHeader>
+    <IonToolbar>
+        <Start>
+            <IonButtons>
+                <IonButton OnClick="@(() => CloseAsync("cancel"))">Cancel</IonButton>
+            </IonButtons>
+        </Start>
+        <ChildContent>
+            <IonTitle>Edit name</IonTitle>
+        </ChildContent>
+        <End>
+            <IonButtons>
+                <IonButton Strong="true" OnClick="@(() => CloseAsync("confirm"))">Save</IonButton>
+            </IonButtons>
+        </End>
+    </IonToolbar>
+</IonHeader>
+<IonContent Class="ion-padding">
+    <IonInput Label="Name" LabelPlacement="stacked" @bind-Value="Draft.Name" />
+</IonContent>
+
+@code {
+    // Edit a caller-owned object, not a private field: the overlay layer re-creates this
+    // component whenever it re-renders (e.g. another overlay opens); parameters survive that.
+    [Parameter] public NameDraft Draft { get; set; } = new();
+
+    public sealed class NameDraft
+    {
+        public string? Name { get; set; }
+    }
+
+    private async Task CloseAsync(string role)
+    {
+        // The top controller-created modal is the one showing this component.
+        var modal = await ModalController.GetTopAsync();
+        if (modal is not null)
+            await modal.DismissAsync(Draft.Name, role);
+    }
+}

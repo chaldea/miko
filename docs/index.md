@@ -74,4 +74,4 @@ engine.Initialize(root, new List<StyleSheet> { styleSheet }, canvas, 800, 600);
 engine.Render(canvas);
 ```
 
-Head to the [Getting Started](/guide/getting-started) guide to scaffold your first app.
+Head to the [Getting Started](./guide/getting-started.md) guide to scaffold your first app.

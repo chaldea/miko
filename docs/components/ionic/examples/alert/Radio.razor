@@ -1,0 +1,33 @@
+<IonButton OnClick="@(() => _isOpen = true)">Theme: @_theme</IonButton>
+
+<IonAlert @bind-IsOpen="_isOpen"
+          Header="Theme"
+          Inputs="@_inputs"
+          Buttons="@_buttons"
+          OnDidDismiss="OnDismissed" />
+
+@code {
+    private bool _isOpen;
+    private string _theme = "system";
+
+    // Tapping a radio checks it and unchecks the others (it updates these objects' Checked).
+    private readonly IReadOnlyList<IonAlertInput> _inputs =
+    [
+        new() { Type = "radio", Label = "Light", Value = "light" },
+        new() { Type = "radio", Label = "Dark", Value = "dark" },
+        new() { Type = "radio", Label = "System", Value = "system", Checked = true },
+    ];
+
+    private readonly IReadOnlyList<IonAlertButton> _buttons =
+    [
+        new() { Text = "Cancel", Role = "cancel" },
+        new() { Text = "OK", Role = "confirm" },
+    ];
+
+    // For radio inputs Data is the checked input's Value.
+    private void OnDismissed(IonOverlayDismissEventArgs e)
+    {
+        if (e.Role == "confirm" && e.Data is string theme)
+            _theme = theme;
+    }
+}

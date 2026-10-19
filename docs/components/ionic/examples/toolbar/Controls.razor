@@ -1,0 +1,16 @@
+@* A segment or searchbar goes in the default slot, usually in its own toolbar below the title. *@
+<IonToolbar>
+    <IonSegment @bind-Value="_filter">
+        <IonSegmentButton Value="all">All</IonSegmentButton>
+        <IonSegmentButton Value="favorites">Favorites</IonSegmentButton>
+    </IonSegment>
+</IonToolbar>
+
+<IonToolbar>
+    <IonSearchbar @bind-Value="_query" Placeholder="Search contacts" />
+</IonToolbar>
+
+@code {
+    private string? _filter = "all";
+    private string? _query;
+}

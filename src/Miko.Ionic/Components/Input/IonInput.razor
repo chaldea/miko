@@ -75,7 +75,7 @@
 
 @code {
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
-    /// Stamped as an <c>ion-color-*</c> class the stylesheet maps to the focus highlight tint.</summary>
+    /// Stamped as an <c>ion-color-*</c> class that tints the md highlight bar (its only visible effect).</summary>
     [Parameter] public string? Color { get; set; }
 
     /// <summary>The value of the input.</summary>
@@ -87,7 +87,9 @@
     /// <summary>Raised each time the user modifies the value (Ionic <c>ionInput</c>).</summary>
     [Parameter] public EventCallback<string?> OnInput { get; set; }
 
-    /// <summary>Raised when the value change is committed, i.e. on the native change (Ionic <c>ionChange</c>).</summary>
+    /// <summary>Ionic <c>ionChange</c>, wired to the native change event. Miko does not emit a change
+    /// event for text fields, so typing never raises this; use <see cref="OnInput"/> or
+    /// <see cref="ValueChanged"/>.</summary>
     [Parameter] public EventCallback<string?> OnChange { get; set; }
 
     /// <summary>Instructional text shown before the input has a value.</summary>
@@ -97,11 +99,12 @@
     [Parameter] public string? Label { get; set; }
 
     /// <summary>Where the label sits relative to the input: <c>"start"</c> (default), <c>"end"</c>,
-    /// <c>"fixed"</c>, <c>"stacked"</c>, or <c>"floating"</c>.</summary>
+    /// <c>"fixed"</c>, <c>"stacked"</c>, or <c>"floating"</c> (laid out like <c>"stacked"</c>; no float animation).</summary>
     [Parameter] public string LabelPlacement { get; set; } = "start";
 
-    /// <summary>The native control type (<c>"text"</c>, <c>"password"</c>, <c>"search"</c>, …).
-    /// Types with no Miko equivalent (email/tel/url/number) fall back to a text field.</summary>
+    /// <summary>The native control type: <c>"password"</c> masks the text, <c>"number"</c> / <c>"tel"</c>
+    /// request the numeric keypad (the value stays an unfiltered string), anything else
+    /// (<c>"text"</c>, <c>"search"</c>, <c>"email"</c>, <c>"url"</c>, …) is a plain text field.</summary>
     [Parameter] public string Type { get; set; } = "text";
 
     /// <summary>The fill style: <c>"solid"</c> (filled) or <c>"outline"</c> (bordered).</summary>
@@ -125,13 +128,14 @@
     /// <summary>If true, a character counter is shown below the field. Requires <see cref="Maxlength"/>.</summary>
     [Parameter] public bool Counter { get; set; }
 
-    /// <summary>The maximum number of characters. Used by the counter and passed to the native control.</summary>
+    /// <summary>The maximum number of characters shown by the counter. Not enforced: the native field
+    /// has no length limit.</summary>
     [Parameter] public int? Maxlength { get; set; }
 
-    /// <summary>Helper text displayed below the input when no error is present.</summary>
+    /// <summary>Helper text displayed below the input. Shown even when <see cref="ErrorText"/> is also set.</summary>
     [Parameter] public string? HelperText { get; set; }
 
-    /// <summary>Error text displayed below the input when the control is invalid.</summary>
+    /// <summary>Error text displayed below the input whenever it is set (Miko does not track validity).</summary>
     [Parameter] public string? ErrorText { get; set; }
 
     /// <summary>Form field name marker.</summary>

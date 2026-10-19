@@ -1,0 +1,20 @@
+@* The /messages/{id} page. The back button pops back to the list; when the app was opened
+   directly on this page (nothing to pop), it navigates back to DefaultHref instead. *@
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonBackButton DefaultHref="/" />
+            </Start>
+            <ChildContent>
+                <IonTitle>Message</IonTitle>
+            </ChildContent>
+        </IonToolbar>
+    </IonHeader>
+
+    <IonContent>
+        <div class="ion-padding">
+            <p>Thanks for trying Miko.</p>
+        </div>
+    </IonContent>
+</IonPage>

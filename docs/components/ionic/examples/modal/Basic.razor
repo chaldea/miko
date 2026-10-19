@@ -1,0 +1,23 @@
+<IonButton OnClick="@(() => _isOpen = true)">Open modal</IonButton>
+
+<IonModal @bind-IsOpen="_isOpen">
+    <IonHeader>
+        <IonToolbar>
+            <ChildContent>
+                <IonTitle>Settings</IonTitle>
+            </ChildContent>
+            <End>
+                <IonButtons>
+                    <IonButton OnClick="@(() => _isOpen = false)">Close</IonButton>
+                </IonButtons>
+            </End>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent Class="ion-padding">
+        <p>The modal covers the screen; lay it out like a page, with a header and content.</p>
+    </IonContent>
+</IonModal>
+
+@code {
+    private bool _isOpen;
+}

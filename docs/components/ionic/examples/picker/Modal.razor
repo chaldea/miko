@@ -1,0 +1,44 @@
+@* The picker edits a draft; Done copies it to the confirmed value, Cancel discards it. *@
+<IonButton OnClick="Open">Pet: @_pet</IonButton>
+
+<IonModal @bind-IsOpen="_isOpen">
+    <IonToolbar>
+        <Start>
+            <IonButtons>
+                <IonButton OnClick="@(() => _isOpen = false)">Cancel</IonButton>
+            </IonButtons>
+        </Start>
+        <End>
+            <IonButtons>
+                <IonButton Strong="true" OnClick="Confirm">Done</IonButton>
+            </IonButtons>
+        </End>
+    </IonToolbar>
+    <IonPicker>
+        <IonPickerColumn @bind-Value="_draft">
+            @foreach (var pet in _pets)
+            {
+                <IonPickerColumnOption Value="@pet">@pet</IonPickerColumnOption>
+            }
+        </IonPickerColumn>
+    </IonPicker>
+</IonModal>
+
+@code {
+    private readonly string[] _pets = { "Dog", "Cat", "Bird", "Lizard", "Chinchilla" };
+    private string _pet = "Dog";
+    private string? _draft;
+    private bool _isOpen;
+
+    private void Open()
+    {
+        _draft = _pet;
+        _isOpen = true;
+    }
+
+    private void Confirm()
+    {
+        _pet = _draft ?? _pet;
+        _isOpen = false;
+    }
+}

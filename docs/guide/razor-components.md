@@ -34,7 +34,67 @@ A component is a `.razor` file mixing markup with C# in a `@code` block:
 
 The familiar Razor building blocks work as expected: `@expression` interpolation,
 `@if` / `@foreach` control flow, `@onclick` and other event directives, `@bind` data
-binding, and `@code` blocks for component logic.
+binding, `@code` blocks for component logic, and the `@inject`, `@using`, `@inherits` and
+`@namespace` directives.
+
+Markup tags compile to Miko's own elements, which have a fixed set of tags and attributes —
+see [Elements](./elements.md). Unknown attributes are dropped silently.
+
+## Parameters and child content
+
+A component exposes parameters with `[Parameter]`; content written between its tags arrives in
+`ChildContent`:
+
+```razor
+@* Card.razor *@
+<div class="card">
+    <div class="card-title">@Title</div>
+    <div class="card-body">@ChildContent</div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
+```
+
+```razor
+<Card Title="Hello">
+    <p>Body content projected into ChildContent.</p>
+</Card>
+```
+
+A component with several `RenderFragment` parameters takes them as child elements named after
+the parameter; the default content then goes in an explicit `<ChildContent>`:
+
+```razor
+<IonButton>
+    <Start><IonIcon Icon="@Ionicons.Star" /></Start>
+    <ChildContent>Favorite</ChildContent>
+</IonButton>
+```
+
+`[CascadingParameter]` receives a value from an ancestor `<CascadingValue>`; `[Inject]` (or
+`@inject`) resolves a service registered on `builder.Services`.
+
+## Data binding
+
+`@bind` keeps a field and an input in sync; `@bind-{Parameter}` does the same for a component
+parameter that has a matching `{Parameter}Changed` callback:
+
+```razor
+<input @bind="_name" />
+<p>Hello, @_name</p>
+
+<IonToggle @bind-Checked="_enabled">Notifications</IonToggle>
+
+@code {
+    private string _name = "";
+    private bool _enabled;
+}
+```
+
+Which elements support `@bind` is listed in [Elements](./elements.md#reference).
 
 ## Preformatted text & code blocks
 
@@ -84,7 +144,8 @@ A component becomes a routable page when it declares a `@page` directive:
 
 Routes are discovered automatically — drop a new `.razor` file with a `@page` directive
 into `Pages/` and it is wired up by the source generator when you call
-`UseGeneratedRoutes()`.
+`UseGeneratedRoutes()`. A component may declare several `@page` directives to answer on more
+than one route.
 
 Navigate programmatically by injecting `NavigationManager`:
 
@@ -149,10 +210,14 @@ var app = builder.Build();           // returns a MikoAppContext
 | `UseGeneratedRoutes()` | Wire up routes discovered from `@page` directives (generated extension). |
 | `UseRouter(params Assembly[])` / `UseRouter(Action<Router>)` | Configure routing manually. |
 | `UseDefaultLayout<TLayout>()` / `UseDefaultLayout(Type)` | Default layout for routed pages. |
-| `UseFonts(Action<FontBuilder>)` | Register custom fonts (see [Fonts & Text](/guide/fonts)). |
+| `UseFonts(Action<FontBuilder>)` | Register custom fonts (see [Fonts & Text](./fonts.md)). |
 | `AddGlobalKeyHandler(Func<MikoKey, bool>)` | Handle global key presses. |
 | `UseLogging(Action<ILoggingBuilder>)` | Configure logging. |
 | `EnableHotReload()` | Turn on `.razor` hot reload. |
+| `AddResourceAssembly(Assembly)` | Make an assembly's embedded resources loadable through `res://` paths. |
+| `AddIonic(...)` | Register the Ionic component library (`Miko.Ionic`, see [Ionic components](../components/ionic/index.md)). |
+| `AddDevTools(...)` | Runtime DOM / layout, console and resource inspector (`Miko.DevTools`). |
+| `AddMikoNative()` | Register the native capability interfaces (`Miko.Native`, see [Native Capabilities](./native.md)). |
 | `Build()` | Build the platform-agnostic `MikoAppContext`. |
 
 `Services` is an `IServiceCollection`, so you can register your own services (HTTP
@@ -189,6 +254,6 @@ restart.
 
 ## Next steps
 
-- [Styling](/guide/styling) — apply styles with stylesheets and selectors.
-- [Events](/guide/events) — handle pointer and keyboard input.
-- [Async & Lifecycle](/guide/async) — `OnInitializedAsync`, `EventCallback`, and data loading.
+- [Styling](./styling.md) — apply styles with stylesheets and selectors.
+- [Events](./events.md) — handle pointer and keyboard input.
+- [Async & Lifecycle](./async.md) — `OnInitializedAsync`, `EventCallback`, and data loading.

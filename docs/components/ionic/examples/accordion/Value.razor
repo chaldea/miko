@@ -1,0 +1,26 @@
+@* @bind-Value tracks the open accordion (null when all are closed) and opens one from code. *@
+<IonAccordionGroup @bind-Value="_open">
+    <IonAccordion Value="first">
+        <Header>
+            <IonItem><IonLabel>First</IonLabel></IonItem>
+        </Header>
+        <Content>
+            <div class="ion-padding">First content</div>
+        </Content>
+    </IonAccordion>
+    <IonAccordion Value="second">
+        <Header>
+            <IonItem><IonLabel>Second</IonLabel></IonItem>
+        </Header>
+        <Content>
+            <div class="ion-padding">Second content</div>
+        </Content>
+    </IonAccordion>
+</IonAccordionGroup>
+
+<p class="ion-padding">Open: @(_open ?? "none")</p>
+<IonButton OnClick="@(() => _open = _open == "second" ? null : "second")">Toggle second</IonButton>
+
+@code {
+    private string? _open = "first";
+}

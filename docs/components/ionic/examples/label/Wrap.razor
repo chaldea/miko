@@ -1,0 +1,25 @@
+<IonList>
+    @* Default: long text wraps onto more lines and the item grows. *@
+    <IonItem>
+        <IonLabel>
+            Multi-line text that wraps when it is too long to fit on one line. Lorem ipsum dolor sit
+            amet, consectetur adipiscing elit.
+        </IonLabel>
+    </IonItem>
+
+    @* ion-text-nowrap: one line, cut off with an ellipsis. *@
+    <IonItem>
+        <IonLabel Class="ion-text-nowrap">
+            Text that is truncated with an ellipsis when it is too long to fit on one line. Lorem
+            ipsum dolor sit amet, consectetur adipiscing elit.
+        </IonLabel>
+    </IonItem>
+
+    @* ion-text-wrap: wraps with the looser 1.5 line height (and 14px text in ios mode). *@
+    <IonItem>
+        <IonLabel Class="ion-text-wrap">
+            Multi-line text with the wrapped-label line height. Lorem ipsum dolor sit amet,
+            consectetur adipiscing elit.
+        </IonLabel>
+    </IonItem>
+</IonList>

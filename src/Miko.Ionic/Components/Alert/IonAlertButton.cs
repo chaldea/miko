@@ -4,8 +4,8 @@ namespace Miko.Ionic.Components;
 /// A single alert button. Mirrors Ionic's <c>AlertButton</c> interface.
 /// <para>
 /// A string button (e.g. <c>['Action']</c>) is normalized to a button whose <see cref="Text"/> is
-/// that string and whose <see cref="Role"/> is <c>"cancel"</c> only when the text is exactly
-/// "cancel" — see <see cref="FromText"/>. <see cref="Role"/> is stamped as
+/// that string and whose <see cref="Role"/> is <c>"cancel"</c> only when the text is "cancel"
+/// (case-insensitive) — see <see cref="FromText"/>. <see cref="Role"/> is stamped as
 /// <c>alert-button-role-{role}</c>.
 /// </para>
 /// </summary>
@@ -20,14 +20,16 @@ public sealed class IonAlertButton
     /// <summary>Extra CSS class(es) to add to the button.</summary>
     public string? CssClass { get; set; }
 
-    /// <summary>Optional handler run when the button is tapped, before the alert dismisses.</summary>
+    /// <summary>Optional handler run when the button is tapped (cancel buttons included), before the
+    /// alert dismisses. It cannot keep the alert open.</summary>
     public Action? Handler { get; set; }
 
-    /// <summary>True when this button dismisses without acting as a normal option.</summary>
+    /// <summary>True when <see cref="Role"/> is <c>"cancel"</c> (case-insensitive).</summary>
     public bool IsCancel => string.Equals(Role, "cancel", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Normalizes a bare string button the way <c>alert.tsx</c> <c>buttonsChanged()</c>
-    /// does: the text becomes the label, and the role is <c>"cancel"</c> only for "cancel".</summary>
+    /// <summary>Builds a button from a bare string, as Ionic's alert does for string buttons: the
+    /// text becomes the label, and the role is <c>"cancel"</c> only when the text is "cancel"
+    /// (case-insensitive).</summary>
     public static IonAlertButton FromText(string text) => new()
     {
         Text = text,

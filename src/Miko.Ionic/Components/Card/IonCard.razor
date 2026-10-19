@@ -28,10 +28,12 @@ else
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>When true, renders a clickable card surface.</summary>
+    /// <summary>When true, wraps the content in a clickable <c>button.card-native</c> surface that
+    /// raises <see cref="OnClick"/> (Ionic <c>button</c>).</summary>
     [Parameter] public bool Button { get; set; }
 
-    /// <summary>Link target. When set, the native card surface is an anchor.</summary>
+    /// <summary>Link target (Ionic <c>href</c>). When set, the card is clickable and its surface is
+    /// an anchor; the renderer does not navigate — handle <see cref="OnClick"/>.</summary>
     [Parameter] public string? Href { get; set; }
 
     /// <summary>Anchor target, used only when <see cref="Href"/> is set.</summary>
@@ -43,7 +45,8 @@ else
     /// <summary>When true, the card is dimmed and non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Raised when the clickable card surface is tapped.</summary>
+    /// <summary>Raised when the card is tapped; only when it is clickable (<see cref="Button"/> or
+    /// <see cref="Href"/>) and not <see cref="Disabled"/>.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
     private bool IsClickable => Button || !string.IsNullOrEmpty(Href);

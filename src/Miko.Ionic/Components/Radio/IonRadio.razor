@@ -50,7 +50,7 @@
     /// <summary>If true, the user cannot interact with the radio.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>The name of the control, submitted with the form data.</summary>
+    /// <summary>Ionic <c>name</c>. Kept for API parity; Miko has no form submission.</summary>
     [Parameter] public string? Name { get; set; }
 
     /// <summary>Where the label sits relative to the radio: <c>"start"</c> (default), <c>"end"</c>,

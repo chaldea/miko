@@ -1,0 +1,13 @@
+<IonSearchbar OnInput="@(v => _input = v)"
+              OnChange="@(v => _committed = v)"
+              OnFocus="@(() => _focused = true)"
+              OnBlur="@(() => _focused = false)" />
+<p>Typing: @_input</p>
+<p>Committed: @_committed</p>
+<p>@(_focused ? "Focused" : "Not focused")</p>
+
+@code {
+    private string? _input;      // OnInput: every edit
+    private string? _committed;  // OnChange: on blur, if the value changed while focused
+    private bool _focused;
+}

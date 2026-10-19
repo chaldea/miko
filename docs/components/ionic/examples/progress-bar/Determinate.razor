@@ -1,0 +1,9 @@
+@* Value runs from 0 to 1 (clamped). *@
+<IonProgressBar Value="@_value" />
+<IonButton Size="small" OnClick="Advance">Add 10%</IonButton>
+
+@code {
+    private double _value = 0.2;
+
+    private void Advance() => _value = Math.Min(1, _value + 0.1);
+}

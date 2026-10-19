@@ -1,0 +1,22 @@
+<IonButton OnClick="Open">Info</IonButton>
+
+@* Side picks the edge of the trigger (flipped when the viewport has no room on that side);
+   Alignment lines the popover up with the trigger's start, center or end. *@
+<IonPopover @bind-IsOpen="_isOpen"
+            Event="_event"
+            Side="top"
+            Alignment="center"
+            Arrow="false">
+    <div class="ion-padding">Last synced 2 minutes ago.</div>
+</IonPopover>
+
+@code {
+    private bool _isOpen;
+    private Miko.Events.MouseEventArgs? _event;
+
+    private void Open(Miko.Events.MouseEventArgs e)
+    {
+        _event = e;
+        _isOpen = true;
+    }
+}

@@ -1,0 +1,14 @@
+<IonToolbar>
+    <IonSegment @bind-Value="_mailbox">
+        <IonSegmentButton Value="inbox">
+            <IonLabel>Inbox</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton Value="sent">
+            <IonLabel>Sent</IonLabel>
+        </IonSegmentButton>
+    </IonSegment>
+</IonToolbar>
+
+@code {
+    private string? _mailbox = "inbox";
+}

@@ -1,0 +1,12 @@
+@* Each crumb supplies its own separator; it is still removed from the last one. *@
+<IonBreadcrumbs>
+    @foreach (var label in new[] { "Home", "Electronics", "Cameras" })
+    {
+        <IonBreadcrumb Href="#">
+            <ChildContent>@label</ChildContent>
+            <Separator>
+                <IonIcon Icon="@Ionicons.ArrowForwardCircle" />
+            </Separator>
+        </IonBreadcrumb>
+    }
+</IonBreadcrumbs>

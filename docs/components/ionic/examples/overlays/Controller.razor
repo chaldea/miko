@@ -1,0 +1,27 @@
+@inject IonAlertController AlertController
+
+<IonButton OnClick="ConfirmAsync">Delete draft</IonButton>
+
+<p>Last result: @_result</p>
+
+@code {
+    private string? _result;
+
+    private async Task ConfirmAsync()
+    {
+        var alert = await AlertController.CreateAsync(new IonAlertOptions
+        {
+            Header = "Delete draft?",
+            Buttons =
+            [
+                new() { Text = "Cancel", Role = "cancel" },
+                new() { Text = "Delete", Role = "destructive" },
+            ],
+        });
+        await alert.PresentAsync();
+
+        // Completes when the alert is dismissed — by a button, the backdrop, or alert.DismissAsync().
+        var result = await alert.OnDidDismissAsync();
+        _result = result.IsCancel ? "kept" : "deleted";
+    }
+}

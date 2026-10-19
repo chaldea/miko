@@ -1,0 +1,19 @@
+<IonButton OnClick="@(() => Show("top"))">Top</IonButton>
+<IonButton OnClick="@(() => Show("middle"))">Middle</IonButton>
+<IonButton OnClick="@(() => Show("bottom"))">Bottom</IonButton>
+
+<IonToast @bind-IsOpen="_isOpen"
+          Position="@_position"
+          Message="@($"Shown at the {_position}")"
+          Duration="1500" />
+
+@code {
+    private bool _isOpen;
+    private string _position = "bottom";
+
+    private void Show(string position)
+    {
+        _position = position;
+        _isOpen = true;
+    }
+}

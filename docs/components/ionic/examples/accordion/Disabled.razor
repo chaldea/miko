@@ -1,0 +1,27 @@
+@* Disabled dims and blocks one accordion (or the whole group); Readonly only blocks. *@
+<IonAccordionGroup Value="readonly">
+    <IonAccordion Value="enabled">
+        <Header>
+            <IonItem><IonLabel>Enabled</IonLabel></IonItem>
+        </Header>
+        <Content>
+            <div class="ion-padding">Enabled content</div>
+        </Content>
+    </IonAccordion>
+    <IonAccordion Value="disabled" Disabled="true">
+        <Header>
+            <IonItem><IonLabel>Disabled</IonLabel></IonItem>
+        </Header>
+        <Content>
+            <div class="ion-padding">Disabled content</div>
+        </Content>
+    </IonAccordion>
+    <IonAccordion Value="readonly" Readonly="true">
+        <Header>
+            <IonItem><IonLabel>Readonly</IonLabel></IonItem>
+        </Header>
+        <Content>
+            <div class="ion-padding">Readonly content</div>
+        </Content>
+    </IonAccordion>
+</IonAccordionGroup>

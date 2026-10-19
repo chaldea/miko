@@ -1,0 +1,21 @@
+<IonList>
+    @* A button in an item defaults to Size="small". *@
+    <IonItem>
+        <ChildContent>
+            <IonLabel>Backup codes</IonLabel>
+        </ChildContent>
+        <End>
+            <IonButton Fill="outline">Show</IonButton>
+        </End>
+    </IonItem>
+
+    @* Any explicit Size (including "default") keeps the button's own size. *@
+    <IonItem>
+        <ChildContent>
+            <IonLabel>Storage</IonLabel>
+        </ChildContent>
+        <End>
+            <IonButton Size="default">Upgrade</IonButton>
+        </End>
+    </IonItem>
+</IonList>

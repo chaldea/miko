@@ -1,0 +1,11 @@
+@* md shows CancelButtonIcon inside the field; ios shows CancelButtonText after it. *@
+<IonSearchbar ShowCancelButton="always" CancelButtonText="Done" @bind-Value="_query" OnCancel="HandleCancel" />
+<p>@_status</p>
+
+@code {
+    private string? _query;
+    private string _status = string.Empty;
+
+    // Raised before the searchbar clears its value.
+    private void HandleCancel() => _status = $"Cancelled search for \"{_query}\"";
+}

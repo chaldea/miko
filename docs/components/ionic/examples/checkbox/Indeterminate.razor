@@ -1,0 +1,38 @@
+<IonList>
+    <IonItem>
+        <IonCheckbox Checked="@AllChecked" Indeterminate="@SomeChecked" IonChange="CheckAll">
+            Select all
+        </IonCheckbox>
+    </IonItem>
+    @foreach (var topping in _toppings)
+    {
+        <IonItem>
+            <IonCheckbox @bind-Checked="topping.Checked">@topping.Name</IonCheckbox>
+        </IonItem>
+    }
+</IonList>
+
+@code {
+    private sealed class Topping
+    {
+        public required string Name { get; init; }
+        public bool Checked { get; set; }
+    }
+
+    private readonly List<Topping> _toppings =
+    [
+        new() { Name = "Mushrooms", Checked = true },
+        new() { Name = "Olives" },
+        new() { Name = "Peppers" },
+    ];
+
+    private bool AllChecked => _toppings.All(t => t.Checked);
+    private bool SomeChecked => !AllChecked && _toppings.Any(t => t.Checked);
+
+    // Indeterminate is derived state: the app decides it, the checkbox only draws it.
+    private void CheckAll(bool isChecked)
+    {
+        foreach (var topping in _toppings)
+            topping.Checked = isChecked;
+    }
+}

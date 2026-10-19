@@ -1,0 +1,32 @@
+@* Position="top": place it before the content; it fires when the user scrolls near the top. *@
+<IonContent>
+    <IonInfiniteScroll Position="top" Disabled="@(_oldest == 1)" OnInfinite="LoadOlder">
+        <IonInfiniteScrollContent LoadingSpinner="crescent" />
+    </IonInfiniteScroll>
+
+    <IonList>
+        @foreach (var message in _messages)
+        {
+            <IonItem>
+                <IonLabel>@message</IonLabel>
+            </IonItem>
+        }
+    </IonList>
+</IonContent>
+
+@code {
+    private int _oldest = 81;
+    private readonly List<string> _messages = Enumerable.Range(81, 20).Select(i => $"Message {i}").ToList();
+
+    private async Task LoadOlder(IonInfiniteScrollCustomEvent e)
+    {
+        await Task.Delay(500);
+
+        var from = Math.Max(1, _oldest - 20);
+        _messages.InsertRange(0, Enumerable.Range(from, _oldest - from).Select(i => $"Message {i}"));
+        _oldest = from;
+
+        StateHasChanged();
+        await e.Complete();
+    }
+}
