@@ -1,5 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Platform
 @* Mirrors Ionic's <ion-alert> (alert.tsx render()):
    <ion-alert class="{mode} overlay-hidden?">
      <ion-backdrop />
@@ -19,7 +20,7 @@
    OnDidDismiss with the tapped button's role. The
    button group goes vertical when there are more than two buttons (alert.tsx renderAlertButtons). *@
 <IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
-<div class="@ClassMapper.Class" style="@Style">
+<div class="@HostClass" style="@Style">
     <div class="ion-backdrop alert-backdrop" @onclick="OnBackdropTapAsync"></div>
     <div class="alert-wrapper ion-overlay-wrapper">
         <div class="alert-head">
@@ -103,6 +104,15 @@
 </IonPortal>
 
 @code {
+    /// <summary>
+    /// The host class, evaluated while rendering (ISSUE-153). It carries the theme scope class
+    /// because the host is drawn in IonApp's overlay layer, away from this component's root, so
+    /// <see cref="IonicComponentBase"/> cannot stamp it there — without it none of the overlay's
+    /// rules matched in the layer. The open / mounted markers are computed here too, so a self
+    /// re-render through the parentless branch (which skips OnParametersSet) still reflects them.
+    /// </summary>
+    private string HostClass => Join(ClassMapper.Class, ThemeScopeClass, IsOpen ? null : "overlay-hidden");
+
     private readonly string _overlayId = $"alert-{Guid.NewGuid():N}";
     /// <summary>Optional stable identifier used by the root overlay registry.</summary>
     [Parameter] public string? OverlayId { get; set; }
@@ -153,8 +163,9 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-alert")
-            .If(!IsOpen, "overlay-hidden")
             .If(Translucent, "alert-translucent");
+
+        RegisterBackHandler(IsOpen && BackdropDismiss ? HandleBack : null, BackButtonPriority.Overlay);
 
         _buttons = Buttons;
 
@@ -234,8 +245,32 @@
         await DismissAsync("backdrop");
     }
 
+    /// <summary>
+    /// The system back button dismisses the open alert with role <c>"back"</c> when
+    /// <see cref="BackdropDismiss"/> allows it — Ionic's overlays.ts answers back for the topmost
+    /// overlay whose backdropDismiss is true (ISSUE-153; modal and action sheet did since ISSUE-138).
+    /// </summary>
+    private bool HandleBack()
+    {
+        // Re-check at dispatch time: the registration reflects the last render.
+        if (!IsOpen) return false;
+        _ = DismissFromBackAsync();
+        return true;
+    }
+
+    // A tap re-renders this component through its EventCallback; the back button does not, so
+    // render the closed state here or an unbound overlay stays on screen.
+    private async Task DismissFromBackAsync()
+    {
+        await DismissAsync("back");
+        StateHasChanged();
+    }
+
     private async Task DismissAsync(string? role)
     {
+        // Release the back button before awaiting anything (see IonModal.DismissAsync).
+        ClearBackHandler();
+
         if (IsOpen)
         {
             IsOpen = false;

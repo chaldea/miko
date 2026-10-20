@@ -241,4 +241,85 @@ public class BackButtonHandlingTests : IonicComponentTestBase
         PressBack().ShouldBeTrue();
         menuClosed.ShouldBe(1);
     }
+
+    // ---- IonAlert / IonPopover / IonLoading (ISSUE-153) ---------------------
+    //
+    // Ionic's overlays.ts answers the back button for the topmost overlay whose backdropDismiss is
+    // true. Alerts and popovers default to true, a loading indicator to false; a toast has no
+    // backdropDismiss and never answers back.
+
+    [Fact]
+    public void OpenAlert_ConsumesBack_AndLeavesTheScreen()
+    {
+        string? role = null;
+        var cut = Context.Render<IonAlert>(p =>
+        {
+            p.Add(nameof(IonAlert.IsOpen), true);
+            p.Add(nameof(IonAlert.Header), "Delete?");
+            p.Add(nameof(IonAlert.OnDidDismiss),
+                EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this, e => role = e.Role));
+        });
+
+        PressBack().ShouldBeTrue();
+
+        role.ShouldBe("back");
+        cut.FindByClass("ion-alert").Single().ShouldHaveClass("overlay-hidden");
+        PressBack().ShouldBeFalse("a closed alert releases the back button");
+    }
+
+    [Fact]
+    public void AlertWithBackdropDismissDisabled_DoesNotConsumeBack()
+    {
+        Context.Render<IonAlert>(p =>
+        {
+            p.Add(nameof(IonAlert.IsOpen), true);
+            p.Add(nameof(IonAlert.BackdropDismiss), false);
+        });
+
+        PressBack().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OpenPopover_ConsumesBack()
+    {
+        string? role = null;
+        var cut = Context.Render<IonPopover>(p =>
+        {
+            p.Add(nameof(IonPopover.IsOpen), true);
+            p.Add(nameof(IonPopover.ChildContent), Body);
+            p.Add(nameof(IonPopover.OnDidDismiss),
+                EventCallback.Factory.Create<IonOverlayDismissEventArgs>(this, e => role = e.Role));
+        });
+
+        PressBack().ShouldBeTrue();
+
+        role.ShouldBe("back");
+        cut.FindByClass("ion-popover").Single().ShouldHaveClass("overlay-hidden");
+    }
+
+    [Fact]
+    public void Loading_AnswersBackOnlyWithBackdropDismiss()
+    {
+        Context.Render<IonLoading>(p => p.Add(nameof(IonLoading.IsOpen), true));
+        PressBack().ShouldBeFalse("BackdropDismiss defaults to false, as in Ionic");
+
+        Context.Render<IonLoading>(p =>
+        {
+            p.Add(nameof(IonLoading.IsOpen), true);
+            p.Add(nameof(IonLoading.BackdropDismiss), true);
+        });
+        PressBack().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Toast_NeverAnswersBack()
+    {
+        Context.Render<IonToast>(p =>
+        {
+            p.Add(nameof(IonToast.IsOpen), true);
+            p.Add(nameof(IonToast.Message), "Saved");
+        });
+
+        PressBack().ShouldBeFalse();
+    }
 }

@@ -29,7 +29,7 @@ An alert is a dialog that shows a message, or asks for a choice, on top of the a
 
 ## Buttons
 
-Any button closes the alert. `OnDidDismiss` reports the tapped button's `Role`, or `"backdrop"` when the user tapped outside the alert. A button's optional `Handler` runs before the alert closes; it cannot keep the alert open. With one or two buttons they sit in a row; with three or more, they stack vertically. `BackdropDismiss="false"` leaves only the buttons to close it. The system back button does not close an alert in this port.
+Any button closes the alert. `OnDidDismiss` reports the tapped button's `Role`, or `"backdrop"` when the user tapped outside the alert. A button's optional `Handler` runs before the alert closes; it cannot keep the alert open. With one or two buttons they sit in a row; with three or more, they stack vertically. The system back button closes it with role `"back"`. `BackdropDismiss="false"` leaves only the buttons to close it, so the back button then passes through.
 
 <!-- miko:example examples/alert/Buttons.razor -->
 ```razor

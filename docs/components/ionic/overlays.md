@@ -5,11 +5,13 @@ Overlays are views that open above the page: action sheets, alerts, loading indi
 | Overlay | Page | Controller | Backdrop | System back button |
 | --- | --- | --- | --- | --- |
 | `IonActionSheet` | [Action Sheet](./action-sheet.md) | `IonActionSheetController` | yes | closes it |
-| `IonAlert` | [Alert](./alert.md) | `IonAlertController` | yes | — |
-| `IonLoading` | [Loading](./loading.md) | `IonLoadingController` | yes (taps ignored by default) | — |
+| `IonAlert` | [Alert](./alert.md) | `IonAlertController` | yes | closes it |
+| `IonLoading` | [Loading](./loading.md) | `IonLoadingController` | yes (taps ignored by default) | closes it only with `BackdropDismiss` |
 | `IonModal` | [Modal](./modal.md) | `IonModalController` | yes | closes it |
-| `IonPopover` | [Popover](./popover.md) | `IonPopoverController` | yes | — |
+| `IonPopover` | [Popover](./popover.md) | `IonPopoverController` | yes | closes it |
 | `IonToast` | [Toast](./toast.md) | `IonToastController` | none, the page stays usable | — |
+
+As in Ionic, the system back button closes an open overlay when its `BackdropDismiss` allows it, with the dismiss role `"back"`; a toast never answers it.
 
 [`IonSelect`](./select.md) opens its options in one of these overlays, and the same rules apply to it.
 

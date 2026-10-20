@@ -79,6 +79,32 @@ public class RoutedOverlayLayerTests : IDisposable
     }
 
     /// <summary>
+    /// Moving declarative overlays into the layer must not lose their styles. The theme scope class
+    /// used to be stamped only on the component's root — for a portaled overlay that is the empty
+    /// placeholder left where it was declared — so none of the modal's scoped rules matched the
+    /// host drawn in the layer.
+    /// </summary>
+    [Fact]
+    public void DeclarativeOverlayInTheLayer_KeepsItsComponentStyles()
+    {
+        var app = BuildApp(typeof(DeclarativeModalPageFixture));
+        app.Engine.Render(_canvas);
+
+        var modal = app.Engine.GetRoot()!.FindByClass("ion-modal").Single();
+        modal.Class!.ShouldContain("ion-theme-");
+        var box = FindBox(app.Engine.GetCurrentLayout()!, modal).ShouldNotBeNull();
+        box.ComputedStyle.Position.ShouldBe(Miko.Common.Position.Fixed, "the modal host rule applies");
+    }
+
+    private static Miko.Layout.LayoutBox? FindBox(Miko.Layout.LayoutBox box, Element element)
+    {
+        if (ReferenceEquals(box.Element, element)) return box;
+        foreach (var child in box.Children)
+            if (FindBox(child, element) is { } found) return found;
+        return null;
+    }
+
+    /// <summary>
     /// Problem 1 also covers <see cref="IonSelect"/>, which opens its alert / popover / action
     /// sheet through the same context.
     /// </summary>

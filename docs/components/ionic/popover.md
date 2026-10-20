@@ -6,7 +6,7 @@ A popover is a small floating panel that opens next to the element that triggere
 
 ## Basic usage
 
-Put the content between the tags; it goes into a box 250 px wide on md and 200 px on ios, at most 90% of the screen height, scrolling if needed. To anchor the popover to the button that opened it, pass the button's click event as `Event`. `IonButton`'s `OnClick` handler can take a `Miko.Events.MouseEventArgs`. Without an `Event`, the popover is centered on the screen. Tapping the backdrop closes it with role `"backdrop"`, unless `BackdropDismiss` (or `Dismissable`) is `false`. The system back button does not close a popover in this port.
+Put the content between the tags; it goes into a box 250 px wide on md and 200 px on ios, at most 90% of the screen height, scrolling if needed. To anchor the popover to the button that opened it, pass the button's click event as `Event`. `IonButton`'s `OnClick` handler can take a `Miko.Events.MouseEventArgs`. Without an `Event`, the popover is centered on the screen. Tapping the backdrop closes it with role `"backdrop"`, unless `BackdropDismiss` (or `Dismissable`) is `false`; under the same condition the system back button closes it with role `"back"`.
 
 <!-- miko:example examples/popover/Basic.razor -->
 ```razor

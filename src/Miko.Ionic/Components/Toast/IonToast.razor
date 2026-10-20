@@ -27,7 +27,7 @@
    animating out; it is dropped only after the leave animation finishes (deferred unmount driven by
    AnimationManager.TransitionCompleted), the same pattern as IonActionSheet. *@
 <IonPortal Id="@(OverlayId ?? _overlayId)" Active="@(IsOpen || _mounted)">
-<div class="@ClassMapper.Class" style="@Style">
+<div class="@HostClass" style="@Style">
     <div class="@_wrapperClass">
         <div class="toast-container">
             @if (_startButtons.Count > 0)
@@ -84,6 +84,18 @@
 </IonPortal>
 
 @code {
+    /// <summary>
+    /// The host class, evaluated while rendering (ISSUE-153). It carries the theme scope class
+    /// because the host is drawn in IonApp's overlay layer, away from this component's root, so
+    /// <see cref="IonicComponentBase"/> cannot stamp it there — without it none of the overlay's
+    /// rules matched in the layer. The open / mounted markers are computed here too, so a self
+    /// re-render through the parentless branch (which skips OnParametersSet) still reflects them.
+    /// </summary>
+    private string HostClass => Join(ClassMapper.Class, ThemeScopeClass,
+        !IsOpen && !_mounted ? "overlay-hidden" : null,
+        _mounted ? "toast-mounted" : null,
+        IsOpen ? "toast-open" : null);
+
     private readonly string _overlayId = $"toast-{Guid.NewGuid():N}";
     /// <summary>Optional stable identifier used by the root overlay registry.</summary>
     [Parameter] public string? OverlayId { get; set; }
@@ -172,9 +184,6 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-toast")
-            .If(!IsOpen && !_mounted, "overlay-hidden")
-            .If(_mounted, "toast-mounted")
-            .If(IsOpen, "toast-open")
             .If(!string.IsNullOrEmpty(Color), "ion-color")
             .AddColor(Color)
             .If(Translucent, "toast-translucent");

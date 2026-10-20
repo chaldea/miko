@@ -5,7 +5,7 @@
    through IonModalController. A sheet modal is enabled when Breakpoints and InitialBreakpoint are
    supplied; its full-height wrapper is positioned so only the active fraction remains visible. *@
 <IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
-    <div class="@ClassMapper.Class" style="@Style" role="dialog">
+    <div class="@HostClass" style="@Style" role="dialog">
         @if (ShowBackdrop)
         {
             <div class="ion-backdrop modal-backdrop" @onclick="OnBackdropTapAsync"></div>
@@ -30,6 +30,15 @@
 </IonPortal>
 
 @code {
+    /// <summary>
+    /// The host class, evaluated while rendering (ISSUE-153). It carries the theme scope class
+    /// because the host is drawn in IonApp's overlay layer, away from this component's root, so
+    /// <see cref="IonicComponentBase"/> cannot stamp it there — without it none of the overlay's
+    /// rules matched in the layer. The open / mounted markers are computed here too, so a self
+    /// re-render through the parentless branch (which skips OnParametersSet) still reflects them.
+    /// </summary>
+    private string HostClass => Join(ClassMapper.Class, ThemeScopeClass, IsOpen ? null : "overlay-hidden");
+
     private readonly string _overlayId = $"modal-{Guid.NewGuid():N}";
 
     /// <summary>Optional stable identifier used by the root overlay registry.</summary>
@@ -133,8 +142,7 @@
             .Add("ion-modal")
             .If(!isCard && !isSheet, "modal-default")
             .If(isCard, "modal-card")
-            .If(isSheet, "modal-sheet")
-            .If(!IsOpen, "overlay-hidden");
+            .If(isSheet, "modal-sheet");
 
         UpdateBackHandler();
 

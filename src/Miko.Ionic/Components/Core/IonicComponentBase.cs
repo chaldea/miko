@@ -105,16 +105,33 @@ public abstract class IonicComponentBase : ComponentBase
 
     private Element ApplyThemeScope(Element root)
     {
-        if (IonicStyleRegistry == null)
-            return root;
-
-        var mode = EffectiveMode;
-        var resolvedTheme = ResolveTheme(mode);
-        var scope = IonicStyleRegistry.Register(GetType(), mode, resolvedTheme);
-        if (!string.IsNullOrWhiteSpace(scope))
+        var scope = ThemeScopeClass;
+        if (!string.IsNullOrWhiteSpace(scope) && !root.HasClass(scope))
             root.Class = string.IsNullOrWhiteSpace(root.Class) ? scope : $"{root.Class} {scope}";
 
         return root;
+    }
+
+    /// <summary>
+    /// The class that scopes this component's registered Ionic rules (<c>ion-theme-…</c>), or null
+    /// when no style registry is available. It is normally added to the component's root by
+    /// <see cref="Build"/>. A component whose host element is drawn somewhere else — an overlay
+    /// portaled into <see cref="IonApp"/>'s layer, where its root is only the empty placeholder
+    /// left in place — must put it on that host element itself, or none of its rules match there
+    /// (ISSUE-153).
+    /// </summary>
+    /// <summary>Joins class names, skipping null or empty ones.</summary>
+    protected static string Join(params string?[] classes)
+        => string.Join(" ", classes.Where(c => !string.IsNullOrWhiteSpace(c)));
+
+    protected string? ThemeScopeClass
+    {
+        get
+        {
+            if (IonicStyleRegistry == null) return null;
+            var mode = EffectiveMode;
+            return IonicStyleRegistry.Register(GetType(), mode, ResolveTheme(mode));
+        }
     }
 
     // Resolved themes, keyed by the three inputs that determine one: the app-level theme, the
