@@ -276,5 +276,9 @@
             await IsOpenChanged.InvokeAsync(false);
         }
         await OnDidDismiss.InvokeAsync(detail);
+        // Called from code (@ref) nothing else re-renders this instance; without @bind-IsOpen the
+        // popover would stay on screen (ISSUE-153). A bound host has already replaced it, and
+        // StateHasChanged on a discarded instance does nothing.
+        StateHasChanged();
     }
 }

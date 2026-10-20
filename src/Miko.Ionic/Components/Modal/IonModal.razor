@@ -249,6 +249,10 @@
             await IsOpenChanged.InvokeAsync(false);
         }
         await OnDidDismiss.InvokeAsync(detail);
+        // The system back button and @ref callers do not re-render this instance; without
+        // @bind-IsOpen the modal would stay on screen (ISSUE-153). A bound host has already
+        // replaced it, and StateHasChanged on a discarded instance does nothing.
+        StateHasChanged();
     }
 
     private void UpdateSheetStyle()

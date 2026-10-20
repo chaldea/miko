@@ -1,12 +1,10 @@
 @page "/"
 @namespace MikoRazorApp.Pages
-@inject Miko.Animation.AnimationManager Animations
 
 @* Sidemenu (overlay drawer) layout with slide/fade animation. The IonMenu is the last child of
    the IonPage, so the page keeps a single root element and the menu is hit-tested before the
-   page content it covers. IonMenu owns its own backdrop and the deferred-unmount timing — the
-   page only flips _menuOpen. The AnimationManager is passed down because nested components
-   don't receive DI injection. *@
+   page content it covers. IonMenu owns its backdrop and both animations — the page only flips
+   _menuOpen. *@
 <IonPage>
     <IonHeader>
         <IonToolbar>
@@ -29,7 +27,7 @@
         </div>
     </IonContent>
 
-    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu" Animations="Animations">
+    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu">
         <IonContent>
             <IonList Id="inbox-list">
                 <IonListHeader>Inbox</IonListHeader>

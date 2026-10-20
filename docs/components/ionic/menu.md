@@ -25,12 +25,9 @@ The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `Ion
 
 <!-- miko:example examples/menu/Home.razor -->
 ```razor
-@inject Miko.Animation.AnimationManager Animations
-
 @* The page (the real file starts with @page "/"). IonMenu is the last child of the IonPage, so
    the page keeps a single root. The page owns the open state: IonMenuButton opens the menu,
-   IonMenu.OnClose (backdrop tap or system back) closes it. Animations is passed as in the
-   template (see the note below the example). *@
+   IonMenu.OnClose (backdrop tap or system back) closes it. *@
 <IonPage>
     <IonHeader>
         <IonToolbar>
@@ -51,7 +48,7 @@ The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `Ion
         </div>
     </IonContent>
 
-    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu" Animations="Animations">
+    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu">
         <IonContent>
             <IonList>
                 <IonListHeader>Inbox</IonListHeader>
@@ -96,7 +93,7 @@ The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `Ion
 
 The sidemenu app template (`Pages/Home.sidemenu.razor`) is built the same way.
 
-`Animations` takes the injected `AnimationManager` and is meant to keep the backdrop mounted until its fade-out finishes. Currently the fade-out is skipped either way: re-rendering the page to set `IsOpen` to `false` creates a new `IonMenu` instance, which starts with the backdrop unmounted. The drawer's slide is a style transition on the drawer and does not depend on `Animations`.
+Opening and closing animate both ways: the drawer slides and the backdrop fades. As soon as `IsOpen` is `false` taps pass through to the page, also while the backdrop is still fading out.
 
 ## Side
 
@@ -161,7 +158,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Animations` | `AnimationManager?` | `null` | The app's `AnimationManager` (inject it in the page and pass it down). Lets this instance keep the backdrop mounted until its fade-out finishes. A host re-render creates a new instance, which starts with the backdrop unmounted, so closing the menu through a host re-render currently drops the backdrop at once either way. The drawer slide does not use it. |
+| `Animations` | `AnimationManager?` | `null` | No longer needed: the backdrop fade runs without it. Kept so existing markup that passes the app's `AnimationManager` still compiles. |
 | `BackButtonCloses` | `bool` | `true` | Whether the system back button closes the open menu. Defaults to `true`; only takes effect while [`IsOpen`](#ionmenu) and when a host has subscribed to [`OnClose`](#ionmenu) — with nobody listening there is nothing to close. |
 | `IsOpen` | `bool` | `false` | Whether the drawer is open (slid on-screen, backdrop dimmed). |
 | `Side` | `string` | `"start"` | Edge the drawer is anchored to: `"start"` (default, left) or `"end"` (right). |
@@ -208,9 +205,9 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 
 | Selector | Element |
 | --- | --- |
-| `.ion-menu-host` | The full-size layer holding drawer and backdrop. Also carries the mode (`md` / `ios`), `.ion-menu-host-start` / `-end`, and the state: `.ion-menu-host-open`, `-closing` (fading out), or `-idle` (closed; taps pass through). |
+| `.ion-menu-host` | The full-size layer holding drawer and backdrop. Also carries the mode (`md` / `ios`), `.ion-menu-host-start` / `-end`, and the state: `.ion-menu-host-open`, or `-idle` (closed; taps pass through). |
 | `.ion-menu-host .ion-menu-inner` | The drawer: width, background, shadow (md) or border (ios). Also `.ion-menu-inner-start` / `-end`, and `.ion-menu-inner-open` while open. |
-| `.ion-menu-host .ion-menu-backdrop` | The dimmed backdrop; `.ion-menu-backdrop-mounted` while open or fading out, `.ion-menu-backdrop-open` while open. |
+| `.ion-menu-host .ion-menu-backdrop` | The dimmed backdrop; `.ion-menu-backdrop-open` while open. |
 | `.ion-menu-button` | The `IonMenuButton` host: a 48×48 tap target in the toolbar's text color. |
 
 ```csharp

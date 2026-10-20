@@ -85,4 +85,24 @@ public class ComponentRefTests : IonicComponentTestBase
         ModalRefFixture.Role.ShouldBe("cancel");
         cut.FindInTopLayerByClass("modal-ref-body").ShouldBeEmpty();
     }
+
+    /// <summary>
+    /// ISSUE-153: without <c>@bind-IsOpen</c>, an overlay closed from code or by the system back
+    /// button stayed on screen — nothing re-rendered it after it set IsOpen to false.
+    /// </summary>
+    [Fact]
+    public async Task UnboundOverlays_ClosedFromCode_LeaveTheScreen()
+    {
+        Context.Services.AddSingleton(new Miko.Ionic.Components.IonOverlayRegistry());
+        var cut = Context.Render<UnboundOverlayRefFixture>();
+        cut.FindInTopLayerByClass("unbound-modal-body").ShouldHaveSingleItem();
+        cut.FindInTopLayerByClass("unbound-popover-body").ShouldHaveSingleItem();
+
+        await UnboundOverlayRefFixture.Popover!.DismissAsync("cancel");
+        cut.FindInTopLayerByClass("unbound-popover-body").ShouldBeEmpty();
+
+        PressBack().ShouldBeTrue("the open modal answers the system back button");
+        cut.FindInTopLayerByClass("unbound-modal-body").ShouldBeEmpty();
+        PressBack().ShouldBeFalse("a closed modal must not keep the back button");
+    }
 }

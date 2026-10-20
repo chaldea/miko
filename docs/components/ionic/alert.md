@@ -6,7 +6,7 @@ An alert is a dialog that shows a message, or asks for a choice, on top of the a
 
 ## Basic usage
 
-`Header`, `SubHeader`, and `Message` fill the alert. All three are plain text. `Buttons` takes a list of `IonAlertButton`; `IonAlertButton.FromText("OK")` builds a button from its label. Bind `IsOpen` with `@bind-IsOpen`. Without the binding, the alert stays on screen after a button tap.
+`Header`, `SubHeader`, and `Message` fill the alert. All three are plain text. `Buttons` takes a list of `IonAlertButton`; `IonAlertButton.FromText("OK")` builds a button from its label. Bind `IsOpen` with `@bind-IsOpen`. Without the binding the alert still closes after a button tap, but the parent keeps passing `true`, so it opens again the next time the parent re-renders.
 
 <!-- miko:example examples/alert/Basic.razor -->
 ```razor

@@ -51,17 +51,14 @@ internal static class MenuStyles
                 ZIndex = 1000,
             },
 
-            // Closed & settled: transparent to taps so the page below stays interactive.
+            // Closed: transparent to taps so the page below stays interactive (also while the
+            // backdrop fades out).
             [$".ion-menu-host.{mode}.ion-menu-host-idle"] = new()
             {
                 PointerEvents = PointerEvents.None,
             },
-            // Open or animating closed: interactive, so the backdrop catches the dim-area tap.
+            // Open: interactive, so the backdrop catches the dim-area tap.
             [$".ion-menu-host.{mode}.ion-menu-host-open"] = new()
-            {
-                PointerEvents = PointerEvents.Auto,
-            },
-            [$".ion-menu-host.{mode}.ion-menu-host-closing"] = new()
             {
                 PointerEvents = PointerEvents.Auto,
             },
@@ -122,7 +119,9 @@ internal static class MenuStyles
             },
 
             // ion-menu-backdrop — full-cover dim layer filling the host, below the drawer
-            // (z-index). display:none at rest; mounted while open/closing and animates opacity.
+            // (z-index). Always laid out and only its opacity changes, so the fade runs both ways
+            // across the re-render that changes IsOpen; at opacity 0 it is not painted, and the
+            // idle host's pointer-events:none lets taps through (ISSUE-153).
             [$".ion-menu-host.{mode} .ion-menu-backdrop"] = new()
             {
                 Position = Position.Absolute,
@@ -132,19 +131,13 @@ internal static class MenuStyles
                 Height = Length.Percent(100),
                 BackgroundColor = t.BackdropColor,
                 Opacity = 0f,
-                Display = Display.None,
+                Display = Display.Block,
                 ZIndex = 1000,
                 Cursor = Cursor.Pointer,
                 Transitions = new List<Transition>
                 {
                     Transition.For(x => x.Opacity).Duration(t.MenuAnimDuration).EaseOut(),
                 },
-            },
-
-            // Mounted (present) while the menu is open or animating closed.
-            [$".ion-menu-host.{mode} .ion-menu-backdrop-mounted"] = new()
-            {
-                Display = Display.Block,
             },
 
             // Faded in (open). BackdropColor already carries the ~.32 alpha.

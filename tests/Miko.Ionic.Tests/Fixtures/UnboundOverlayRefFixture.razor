@@ -1,0 +1,22 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* ISSUE-153: overlays opened without @bind-IsOpen and closed from code (@ref) or the system back
+   button. Nothing re-renders the host, so the overlay itself must render its closed state. *@
+<IonApp>
+    <IonPage>
+        <IonContent>
+            <IonModal @ref="Modal" IsOpen="true">
+                <div class="unbound-modal-body">Modal</div>
+            </IonModal>
+            <IonPopover @ref="Popover" IsOpen="true">
+                <div class="unbound-popover-body">Popover</div>
+            </IonPopover>
+        </IonContent>
+    </IonPage>
+</IonApp>
+
+@code {
+    internal static IonModal? Modal;
+    internal static IonPopover? Popover;
+}

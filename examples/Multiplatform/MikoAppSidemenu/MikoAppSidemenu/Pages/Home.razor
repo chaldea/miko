@@ -1,12 +1,10 @@
 @page "/"
 @namespace MikoAppSidemenu.Pages
-@inject Miko.Animation.AnimationManager Animations
 
 @* Sidemenu (overlay drawer) layout with slide/fade animation. IonApp lays out the page and
    the menu as siblings; the menu is authored after the page so the reverse-document-order
-   hit-test reaches the (full-screen) menu host first. IonMenu owns its own backdrop and the
-   deferred-unmount timing — the page only flips _menuOpen. The AnimationManager is passed
-   down because nested components don't receive DI injection. *@
+   hit-test reaches the (full-screen) menu host first. IonMenu owns its backdrop and both
+   animations — the page only flips _menuOpen. *@
 <IonPage>
     <IonHeader>
         <IonToolbar>
@@ -30,7 +28,7 @@
     </IonContent>
 </IonPage>
 
-<IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu" Animations="Animations">
+<IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu">
     <IonContent>
         <IonList Id="inbox-list">
             <IonListHeader>Inbox</IonListHeader>
