@@ -6,7 +6,7 @@ Ionic's dual knobs (`dualKnobs`), tick marks (`ticks`), `pinFormatter`, and the 
 
 ## Basic usage
 
-`Value` is a `double` (default 0) between `Min` (default 0) and `Max` (default 100). `Disabled` blocks input; ios mode dims the whole range, md mode dims only the label.
+`Value` is a `double` (default 0) between `Min` (default 0) and `Max` (default 100). `Disabled` blocks input; ios mode dims the whole range, md mode dims the label and turns the bars and knob grey (the knob also shrinks), as in Ionic.
 
 <!-- miko:example examples/range/Basic.razor -->
 ```razor

@@ -3,6 +3,7 @@ using Miko.Components;
 using Miko.Core;
 using Miko.Events;
 using Miko.Ionic.Components;
+using Miko.Platform;
 using Miko.Styling;
 using Miko.Testing;
 using Shouldly;
@@ -307,5 +308,31 @@ public class IonInfiniteScrollTests : IonicComponentTestBase
 
         var loading = cut.FindByClass("infinite-loading").Single();
         cut.GetComputedStyle(loading)!.Display.ShouldBe(Display.Block);
+    }
+
+    /// <summary>ISSUE-153: Ionic shows a mode-default spinner when loadingSpinner is unset; the port
+    /// showed none. An empty string still opts out.</summary>
+    [Theory]
+    [InlineData(HostPlatform.Android, null, "crescent")]
+    [InlineData(HostPlatform.Ios, null, "lines")]
+    [InlineData(HostPlatform.Android, "dots", "dots")]
+    [InlineData(HostPlatform.Android, "", null)]
+    public void IonInfiniteScrollContent_Spinner_DefaultsPerMode(HostPlatform platform, string? spinner, string? expected)
+    {
+        UsePlatform(platform);
+        var cut = Context.Render<IonInfiniteScrollContent>(p =>
+        {
+            if (spinner is not null) p.Add(nameof(IonInfiniteScrollContent.LoadingSpinner), spinner);
+        });
+
+        var icons = cut.FindByClass("ion-spinner");
+        if (expected is null)
+        {
+            icons.ShouldBeEmpty();
+        }
+        else
+        {
+            icons.ShouldHaveSingleItem().ShouldHaveClass($"spinner-{expected}");
+        }
     }
 }

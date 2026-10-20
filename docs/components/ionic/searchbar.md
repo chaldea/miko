@@ -121,13 +121,13 @@ In md mode the cancel button takes the search icon's place: the search icon is h
 
 ## Colors
 
-`Color` fills the field with a palette color (see [Theming](./theming.md#palette)). Only the background changes — the text and icons keep their default colors — so use light colors, or set a contrasting text color in your stylesheet.
+`Color` fills the field with a palette color (see [Theming](./theming.md#palette)) and switches the text and icons to the color's contrast color, as in Ionic.
 
 <!-- miko:example examples/searchbar/Colors.razor -->
 ```razor
-@* Color changes only the field background; text and icons keep the default (dark) colors. *@
+@* Color fills the field; the text and icons switch to the palette's contrast color. *@
 <IonSearchbar Color="light" />
-<IonSearchbar Color="warning" />
+<IonSearchbar Color="dark" />
 ```
 <!-- /miko:example -->
 

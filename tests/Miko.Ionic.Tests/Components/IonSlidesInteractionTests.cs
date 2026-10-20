@@ -340,7 +340,9 @@ public class IonSlidesInteractionTests : IonicComponentTestBase
 
         var wrapper = Wrapper(cut);
         TranslateXValue(wrapper).ShouldBe(-100f);
-        wrapper.Style!.Transitions.ShouldBeNull();
+        // Not suppressed: the step keeps a transform transition at Speed (default 300ms).
+        wrapper.Style!.Transitions!.Value.Value
+            .ShouldContain(t => t.Property == nameof(Miko.Styling.Style.Transform) && Math.Abs(t.Duration - 0.3f) < 1e-4f);
     }
 
     [Fact]
@@ -485,6 +487,33 @@ public class IonSlidesInteractionTests : IonicComponentTestBase
     }
 
     // ================================ helpers ================================
+
+    // ----------------------------------------------------------------------------------- speed
+
+    /// <summary>
+    /// ISSUE-153: Speed only reached the settle after a drag; arrows, bullets, autoplay and the
+    /// fade used the stylesheet's fixed 300ms. The transition captured for the next slide change
+    /// must carry Speed.
+    /// </summary>
+    [Theory]
+    [InlineData("slide")]
+    [InlineData("fade")]
+    public void Speed_DrivesEverySlideChange(string effect)
+    {
+        var changes = new List<int>();
+        var cut = RenderSlides(changes, p =>
+        {
+            p.Add(nameof(IonSlides.Speed), 900);
+            p.Add(nameof(IonSlides.Effect), effect);
+        });
+
+        var animated = effect == "fade"
+            ? cut.FindByClass("swiper-slide").First()
+            : Wrapper(cut);
+        var property = effect == "fade" ? nameof(Miko.Styling.Style.Opacity) : nameof(Miko.Styling.Style.Transform);
+        cut.GetComputedStyle(animated)!.Transitions
+            .ShouldContain(t => t.Property == property && Math.Abs(t.Duration - 0.9f) < 1e-4f);
+    }
 
     private ComponentUnderTest RenderSlides(
         List<int> changes, Action<ComponentParameterBuilder<IonSlides>>? extra = null)

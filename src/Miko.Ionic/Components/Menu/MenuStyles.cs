@@ -112,6 +112,14 @@ internal static class MenuStyles
             {
                 Left = Length.Auto,
                 Right = Length.Px(-t.MenuWidth),
+                // The divider faces the page: on the drawer's left edge when it opens from the
+                // right, as Ionic places it for side=end (menu.scss split-pane-side[side=end]:
+                // border on the start side). It was always on the right edge, against the screen
+                // edge (ISSUE-153).
+                BorderRight = new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
+                BorderLeft = t.MenuBorderWidth > 0
+                    ? new BorderSide(Length.Px(t.MenuBorderWidth), BorderStyle.Solid, t.MenuBorderColor)
+                    : new BorderSide(Length.Px(0), BorderStyle.None, Color.Transparent),
             },
             [$".ion-menu-host.{mode} .ion-menu-inner-end.ion-menu-inner-open"] = new()
             {

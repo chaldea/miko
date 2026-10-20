@@ -296,6 +296,21 @@ public class IonSearchbarTests : IonicComponentTestBase
         cut.Root.ShouldNotHaveClass("searchbar-has-focus");
     }
 
+    /// <summary>
+    /// ISSUE-153: Color only changed the input background; the text and icons kept their dark
+    /// defaults and could not be read on a dark palette. searchbar.scss switches the host to the
+    /// contrast color and lets the icons inherit it.
+    /// </summary>
+    [Fact]
+    public void IonSearchbar_DarkColor_UsesContrastTextAndIcons()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderBar(Context, p => p.Add(nameof(IonSearchbar.Color), "dark"));
+
+        cut.GetComputedStyle(cut.FindByClass("searchbar-input").Single())!.Color.ShouldBe(Color.White);
+        cut.GetComputedStyle(cut.FindByClass("searchbar-search-icon").Single())!.Color.ShouldBe(Color.White);
+    }
+
     [Fact]
     public void IonSearchbar_ColoredInput_UsesColorBackground()
     {

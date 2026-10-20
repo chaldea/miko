@@ -50,7 +50,7 @@ When the remaining distance to the end drops below `Threshold`, the infinite scr
 
 ## Threshold and loading content
 
-`Threshold` is either a percentage of the visible height (`"15%"`, the default) or a pixel distance (`"100px"`). `IonInfiniteScrollContent` shows `LoadingSpinner` (an [`IonSpinner`](./spinner.md) name) and `LoadingText` only while loading. Unlike Ionic there is no default spinner: without `LoadingSpinner` no spinner is shown. The content always reserves its minimum height (84px) at the end of the list while the infinite scroll is enabled.
+`Threshold` is either a percentage of the visible height (`"15%"`, the default) or a pixel distance (`"100px"`). `IonInfiniteScrollContent` shows `LoadingSpinner` (an [`IonSpinner`](./spinner.md) name) and `LoadingText` only while loading. Without `LoadingSpinner` the mode's default spinner is shown, as in Ionic (`lines` on ios, `crescent` on md); `LoadingSpinner=""` shows none. The content always reserves its minimum height (84px) at the end of the list while the infinite scroll is enabled.
 
 <!-- miko:example examples/infinite-scroll/Content.razor -->
 ```razor
@@ -155,7 +155,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `LoadingSpinner` | `string?` | `null` | Spinner name (an [`IonSpinner`](./spinner.md#ionspinner) `Name`) to show while loading. There is no default: when null, no spinner is shown. |
+| `LoadingSpinner` | `string?` | `null` | Spinner name (an [`IonSpinner`](./spinner.md#ionspinner) `Name`) to show while loading. When null, the mode default is used — `"lines"` on ios, `"crescent"` on md, as in Ionic; an empty string shows no spinner. |
 | `LoadingText` | `string?` | `null` | Optional text to display while loading. |
 <!-- /miko:api -->
 

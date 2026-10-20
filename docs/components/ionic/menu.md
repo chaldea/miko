@@ -183,7 +183,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 ### Theme tokens
 
-`Width` is the drawer width, `AnimDuration` the slide and fade duration in seconds. `BorderWidth` / `BorderColor` draw the ios hairline on the drawer's right edge (also for `Side="end"`). `AppBackground` is the background of [`IonApp`](./app.md). The backdrop color is the palette's `BackdropColor` (see [Theming](./theming.md#palette)).
+`Width` is the drawer width, `AnimDuration` the slide and fade duration in seconds. `BorderWidth` / `BorderColor` draw the ios hairline on the drawer's edge that faces the page (the right edge for `Side="start"`, the left for `Side="end"`). `AppBackground` is the background of [`IonApp`](./app.md). The backdrop color is the palette's `BackdropColor` (see [Theming](./theming.md#palette)).
 
 <!-- miko:tokens Menu -->
 Theme token `IonicTheme.Menu` (`MenuToken`). Assign only the values you want to change — the rest keep the mode defaults below. App-wide: `builder.AddIonic(o => o.Theme.Menu = new MenuToken { … })`; for one subtree: a `ConfigProvider`. See [Theming](./theming.md).

@@ -102,3 +102,25 @@ public class IonMenuFadeTests : IDisposable
         return false;
     }
 }
+
+/// <summary>ISSUE-153: the ios hairline sat on the drawer's right edge even for Side="end".</summary>
+public class IonMenuDividerTests : IonicComponentTestBase
+{
+    [Theory]
+    [InlineData("start", true)]
+    [InlineData("end", false)]
+    public void IosDivider_FacesThePage(string side, bool onRight)
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonMenu>(p =>
+        {
+            p.Add(nameof(IonMenu.IsOpen), true);
+            p.Add(nameof(IonMenu.Side), side);
+        });
+
+        var style = cut.GetComputedStyle(cut.FindByClass("ion-menu-inner").Single())!;
+        (style.BorderRightWidth.Value > 0).ShouldBe(onRight);
+        (style.BorderLeftWidth.Value > 0).ShouldBe(!onRight);
+    }
+}

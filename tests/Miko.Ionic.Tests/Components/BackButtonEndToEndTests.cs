@@ -226,4 +226,67 @@ public class BackButtonEndToEndTests : IDisposable
         app.Controller.OnBackButton().ShouldBeTrue("the shown button pops the history");
         nav.CurrentPath.ShouldBe("/");
     }
+
+    /// <summary>IonPage &gt; IonContent &gt; IonBreadcrumbs &gt; IonBreadcrumb(Href) ×2.</summary>
+    private sealed class BreadcrumbPage : ComponentBase
+    {
+        internal static int Clicks;
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var page = builder.OpenComponent<IonPage>();
+            page.ChildContent = p =>
+            {
+                var content = p.OpenComponent<IonContent>();
+                content.ChildContent = c =>
+                {
+                    var crumbs = c.OpenComponent<IonBreadcrumbs>();
+                    crumbs.ChildContent = b =>
+                    {
+                        var home = b.OpenComponent<IonBreadcrumb>();
+                        home.Href = "/";
+                        home.Class = "crumb-home";
+                        home.OnClick = EventCallback.Factory.Create(this, () => Clicks++);
+                        home.ChildContent = t => t.AddContent("Home");
+                        b.CloseComponent();
+                        var here = b.OpenComponent<IonBreadcrumb>();
+                        here.Href = "/crumbs";
+                        here.ChildContent = t => t.AddContent("Here");
+                        b.CloseComponent();
+                    };
+                    c.CloseComponent();
+                };
+                p.CloseComponent();
+            };
+            builder.CloseComponent();
+        }
+    }
+
+    /// <summary>
+    /// ISSUE-153: a breadcrumb's Href did not navigate and there was no click event. Ionic opens
+    /// the URL through the router (breadcrumb.tsx openURL).
+    /// </summary>
+    [Fact]
+    public void BreadcrumbHref_NavigatesAndRaisesOnClick()
+    {
+        BreadcrumbPage.Clicks = 0;
+        var builder = MikoAppBuilder.CreateDefault();
+        builder.AddIonic(c => c.Platform = HostPlatform.Android);
+        builder.UseRouter(router =>
+        {
+            router.MapRoute("/", typeof(HomePage));
+            router.MapRoute("/crumbs", typeof(BreadcrumbPage));
+        });
+        var app = builder.Build();
+        app.Controller.Initialize(_canvas, W, H);
+        var nav = (NavigationManager)app.Services.GetService(typeof(NavigationManager))!;
+        nav.NavigateTo("/crumbs");
+        app.Controller.Rebuild(_canvas, W, H);
+
+        var link = app.Engine.GetRoot()!.FindByClass("crumb-home").Single().FindByClass("breadcrumb-native").Single();
+        link.OnClick!.Invoke(new Miko.Events.MouseEventArgs { Target = link });
+
+        BreadcrumbPage.Clicks.ShouldBe(1);
+        nav.CurrentPath.ShouldBe("/");
+    }
 }

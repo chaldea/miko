@@ -290,13 +290,28 @@ internal static class SearchbarStyles
         return baseStyle;
     }
 
-    // Color: input background = base; icons/cancel/clear inherit the host color
-    // (searchbar.scss :host(.ion-color) rules).
+    // Color (searchbar.scss :host(.ion-color)): the host text takes the palette's contrast
+    // color, the input the base color as background, and the icons / clear / cancel buttons
+    // inherit the host color. Only the background was ported, so on a dark palette the text and
+    // icons kept their dark default and could not be read (ISSUE-153).
     private static void AddColor(CssObject css, string mode, string name, Color baseColor)
     {
+        var contrast = name is "success" or "warning" or "light" ? Color.Black : Color.White;
+        css[$".ion-searchbar.{mode}.ion-color-{name}"] = new()
+        {
+            Color = contrast,
+        };
         css[$".ion-searchbar.{mode}.ion-color-{name} .searchbar-input"] = new()
         {
             BackgroundColor = baseColor,
+            Color = contrast,
         };
+        foreach (var part in new[] { "searchbar-search-icon", "searchbar-clear-button", "searchbar-cancel-button" })
+        {
+            css[$".ion-searchbar.{mode}.ion-color-{name} .{part}"] = new()
+            {
+                Color = Css.Inherit,
+            };
+        }
     }
 }

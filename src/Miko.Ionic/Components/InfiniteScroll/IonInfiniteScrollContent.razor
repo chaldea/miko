@@ -2,10 +2,10 @@
 @inherits IonicComponentBase
 <div class="@ClassMapper.Class" style="@Style">
     <div class="infinite-loading">
-        @if (!string.IsNullOrEmpty(LoadingSpinner))
+        @if (!string.IsNullOrEmpty(_spinner))
         {
             <div class="infinite-loading-spinner">
-                <IonSpinner Name="@LoadingSpinner" Class="infinite-loading-spinner-icon" />
+                <IonSpinner Name="@_spinner" Class="infinite-loading-spinner-icon" />
             </div>
         }
         @if (LoadingText is not null)
@@ -16,15 +16,21 @@
 </div>
 
 @code {
-    /// <summary>Spinner name (an <see cref="IonSpinner"/> <c>Name</c>) to show while loading. There is
-    /// no default: when null, no spinner is shown.</summary>
+    /// <summary>Spinner name (an <see cref="IonSpinner"/> <c>Name</c>) to show while loading. When
+    /// null, the mode default is used — <c>"lines"</c> on ios, <c>"crescent"</c> on md, as in Ionic;
+    /// an empty string shows no spinner.</summary>
     [Parameter] public string? LoadingSpinner { get; set; }
+
+    private string? _spinner;
 
     /// <summary>Optional text to display while loading.</summary>
     [Parameter] public string? LoadingText { get; set; }
 
     protected override void OnParametersSet()
     {
+        // infinite-scroll-content.tsx: an unset loadingSpinner takes the mode default (ISSUE-153).
+        _spinner = LoadingSpinner ?? (Mode == "ios" ? "lines" : "crescent");
+
         ClassMapper
             .Clear()
             .Add(Class)

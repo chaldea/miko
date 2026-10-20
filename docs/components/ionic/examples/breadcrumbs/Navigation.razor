@@ -1,12 +1,10 @@
-@* A folder path: tapping a crumb trims the path back to it. Href only gives the crumb its
-   link styling — the tap is handled by the element inside it. *@
+@* A folder path: tapping a crumb trims the path back to it. No Href, so OnClick handles the
+   tap instead of navigating. *@
 <IonBreadcrumbs>
     @foreach (var folder in _path)
     {
         var target = folder;
-        <IonBreadcrumb Href="@($"#{target}")">
-            <span @onclick="@(() => Open(target))">@target</span>
-        </IonBreadcrumb>
+        <IonBreadcrumb OnClick="@(() => Open(target))">@target</IonBreadcrumb>
     }
 </IonBreadcrumbs>
 
