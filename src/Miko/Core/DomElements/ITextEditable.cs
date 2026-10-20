@@ -32,3 +32,19 @@ public interface ITextEditable
     /// <summary>将光标移动到文本末尾</summary>
     void MoveCursorToEnd();
 }
+
+internal static class TextEditing
+{
+    /// <summary>
+    /// 按 <c>maxlength</c> 截断待插入的文本：只保留还放得下的部分（HTML 按 UTF-16 码元计数）。
+    /// 截断落在代理对中间时连同高位一起丢弃，不留半个字符。
+    /// </summary>
+    internal static string LimitInsertion(string text, int currentLength, int? maxLength)
+    {
+        if (maxLength is not { } max) return text;
+        var room = Math.Max(0, max - currentLength);
+        if (text.Length <= room) return text;
+        if (room > 0 && char.IsHighSurrogate(text[room - 1])) room--;
+        return text[..room];
+    }
+}

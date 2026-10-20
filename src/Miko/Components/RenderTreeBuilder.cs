@@ -206,6 +206,13 @@ public class RenderTreeBuilder
     public static int ParseSpanAttribute(object? value)
         => TryParseInteger(value, out var span) ? Math.Clamp(span, 1, 1000) : 1;
 
+    /// <summary>
+    /// <c>maxlength</c> on <c>&lt;input&gt;</c> / <c>&lt;textarea&gt;</c>. A negative or invalid value
+    /// means no limit, as in HTML.
+    /// </summary>
+    public static int? ParseMaxLength(object? value)
+        => TryParseInteger(value, out var max) && max >= 0 ? max : null;
+
     /// <summary><c>&lt;ol start&gt;</c>. An invalid value keeps the default numbering.</summary>
     public static void SetListStart(OlElement list, object? value)
     {
@@ -498,6 +505,14 @@ public class RenderTreeBuilder
                 SetDisabled(element, value); break;
             case "placeholder" when element is InputElement placeholderInput:
                 placeholderInput.Placeholder = value; break;
+            case "readonly" when element is InputElement readOnlyInput:
+                readOnlyInput.ReadOnly = ParseHtmlBool(value); break;
+            case "maxlength" when element is InputElement maxLengthInput:
+                maxLengthInput.MaxLength = ParseMaxLength(value); break;
+            case "readonly" when element is TextAreaElement readOnlyTextArea:
+                readOnlyTextArea.ReadOnly = ParseHtmlBool(value); break;
+            case "maxlength" when element is TextAreaElement maxLengthTextArea:
+                maxLengthTextArea.MaxLength = ParseMaxLength(value); break;
             case "min" when element is InputElement minInput:
                 SetInputMin(minInput, value); break;
             case "max" when element is InputElement maxInput:

@@ -52,8 +52,8 @@ Event attributes (`@onclick="Handler"` etc.): `@onclick`, `@onmouseenter`, `@onm
 | `<span>` | `SpanElement` | — | — |
 | `<p>` | `ParagraphElement` | — | — |
 | `<button>` | `ButtonElement` | — | — |
-| `<input>` | `InputElement` | `type`, `checked`, `value`, `placeholder`, `min`, `max` | `@bind` → `checked` (checkbox); `value` (text, password, search, range) |
-| `<textarea>` | `TextAreaElement` | `placeholder`, `value`, `rows`, `cols` | `@bind` → `value` |
+| `<input>` | `InputElement` | `type`, `checked`, `value`, `placeholder`, `min`, `max`, `readonly`, `maxlength` | `@bind` → `checked` (checkbox); `value` (text, password, search, range) |
+| `<textarea>` | `TextAreaElement` | `placeholder`, `value`, `rows`, `cols`, `readonly`, `maxlength` | `@bind` → `value` |
 | `<select>` | `SelectElement` | `value`, `multiple` | `@bind` → `value` |
 | `<option>` | `OptionElement` | `value`, `selected` | — |
 | `<optgroup>` | `OptGroupElement` | `label` | — |

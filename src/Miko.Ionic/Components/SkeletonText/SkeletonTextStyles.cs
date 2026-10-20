@@ -9,11 +9,10 @@ namespace Miko.Ionic.Components;
 /// painted with a translucent gray fill (<c>rgba(text-color, .065)</c>) and rounded to inherit its
 /// container radius, with a 4px top/bottom margin and no pointer/selection interaction.
 /// <para>
-/// Ionic's <c>skeleton-text-animated</c> variant uses a keyframe shimmer gradient; Miko has no
-/// direct analog for that CSS animation here, so the animated state is modeled statically as the
-/// lighter pulse fill (<c>rgba(text-color, .135)</c>). The marker class is still stamped so callers
-/// can target the animated state. There is no mode-specific difference (a single shared SCSS), but
-/// rules are scoped per mode for registration parity with the rest of the suite.
+/// Ionic's <c>skeleton-text-animated</c> variant animates a gradient's background-position; the
+/// component walks the same colors as background-color keyframes instead (see
+/// <c>IonSkeletonText.BuildAnimationStyle</c>). There is no mode-specific difference (a single
+/// shared SCSS), but rules are scoped per mode for registration parity with the rest of the suite.
 /// </para>
 /// </summary>
 internal static class SkeletonTextStyles
@@ -30,6 +29,12 @@ internal static class SkeletonTextStyles
                 MarginTop = Length.Px(4),
                 MarginBottom = Length.Px(4),
                 BackgroundColor = t.SkeletonTextBackground,
+                // skeleton-text.scss: border-radius: var(--border-radius, inherit) — round inside an
+                // avatar, square elsewhere. The comment above promised it; no rule set it (ISSUE-153).
+                BorderTopLeftRadius = Css.Inherit,
+                BorderTopRightRadius = Css.Inherit,
+                BorderBottomRightRadius = Css.Inherit,
+                BorderBottomLeftRadius = Css.Inherit,
                 LineHeight = Length.Px(10),
                 UserSelect = UserSelect.None,
                 PointerEvents = PointerEvents.None,

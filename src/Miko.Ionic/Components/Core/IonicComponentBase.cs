@@ -67,6 +67,14 @@ public abstract class IonicComponentBase : ComponentBase
     /// </summary>
     protected string Mode => EffectiveMode == IonicMode.Ios ? "ios" : "md";
 
+    /// <summary>
+    /// The theme this component's stylesheet rules are generated from: the app theme
+    /// (<c>AddIonic</c>), resolved for <see cref="Mode"/>, with an ancestor <see cref="ConfigProvider"/>'s
+    /// values applied. For values a component computes in code — inline styles, keyframes — so they
+    /// follow the app's theme like its stylesheet rules do. Shared and read-only.
+    /// </summary>
+    protected IonicTheme ResolvedTheme => ResolveTheme(EffectiveMode);
+
     private IonicMode EffectiveMode => IonicOptions?.Value switch
     {
         { Platform: HostPlatform.Ios } => IonicMode.Ios,

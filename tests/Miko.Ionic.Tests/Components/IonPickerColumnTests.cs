@@ -79,6 +79,33 @@ public class IonPickerColumnTests : IonicComponentTestBase
         cut.FindByClass("my-suffix").ShouldHaveSingleItem();
     }
 
+    /// <summary>
+    /// ISSUE-153: the column was a vertical flex, so the prefix / suffix stacked above and below
+    /// the wheel and squeezed it below the 200px its centering math assumes. Ionic lays them out
+    /// beside the wheel.
+    /// </summary>
+    [Fact]
+    public void IonPickerColumn_PrefixAndSuffix_SitBesideAFullHeightWheel()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonPicker>(picker => picker.Add(nameof(IonPicker.ChildContent), (RenderFragment)(b =>
+        {
+            var column = b.OpenComponent<IonPickerColumn>();
+            column.ChildContent = Options();
+            column.SlotPrefix = p => p.AddContent("$");
+            column.SlotSuffix = s => s.AddContent("USD");
+            b.CloseComponent();
+        })));
+
+        var opts = cut.GetBoxModel(cut.FindByClass("picker-opts").Single())!.BorderBox;
+        var prefix = cut.GetBoxModel(cut.FindByClass("picker-column-prefix").Single())!.BorderBox;
+        var suffix = cut.GetBoxModel(cut.FindByClass("picker-column-suffix").Single())!.BorderBox;
+
+        opts.Height.ShouldBe(200f, 0.5f);
+        prefix.Right.ShouldBeLessThanOrEqualTo(opts.Left + 0.5f);
+        suffix.Left.ShouldBeGreaterThanOrEqualTo(opts.Right - 0.5f);
+    }
+
     // ---- Selected-value cascade -------------------------------------------
 
     [Fact]

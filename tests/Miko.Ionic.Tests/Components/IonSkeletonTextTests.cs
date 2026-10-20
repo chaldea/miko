@@ -1,4 +1,5 @@
 using Miko.Common;
+using Miko.Components;
 using Miko.Ionic.Components;
 using Miko.Styling;
 using Shouldly;
@@ -197,5 +198,52 @@ public class IonSkeletonTextTests : IonicComponentTestBase
 
         cut.Root.Style!.Width!.Value.Value.ShouldBe(Length.Percent(80));
         cut.Root.Style!.Animations!.Value.Value.ShouldHaveSingleItem();
+    }
+
+    // ---- ISSUE-153 ---------------------------------------------------------
+
+    /// <summary>
+    /// The shimmer read IonicTheme.CreateMd()/CreateIos(), so a SkeletonText token from the app or
+    /// a ConfigProvider changed the bar's stylesheet color but not its animation.
+    /// </summary>
+    [Fact]
+    public void IonSkeletonText_Animated_UsesTheThemeTokens()
+    {
+        var custom = new Miko.Common.Color(10, 20, 30, 255);
+        var highlight = new Miko.Common.Color(40, 50, 60, 255);
+        var cut = Context.Render<ConfigProvider>(p =>
+        {
+            p.Add(nameof(ConfigProvider.IonicTheme), new IonicTheme
+            {
+                SkeletonText = new SkeletonTextToken { Background = custom, BackgroundAnimated = highlight },
+            });
+            p.Add(nameof(ConfigProvider.ChildContent), (RenderFragment)(b =>
+            {
+                var skeleton = b.OpenComponent<IonSkeletonText>();
+                skeleton.Animated = true;
+                b.CloseComponent();
+            }));
+        });
+
+        var bar = cut.FindByClass("ion-skeleton-text").Single();
+        var keyframes = bar.Style!.Animations!.Value.Value.Single().Keyframes;
+        keyframes.Select(k => k.Style.BackgroundColor!.Value.Value)
+            .ShouldBe([custom, highlight, custom]);
+    }
+
+    /// <summary>Inside an avatar the bar takes the avatar's round corners (skeleton-text.scss
+    /// border-radius: inherit); a real IonAvatar &gt; IonSkeletonText nesting.</summary>
+    [Fact]
+    public void IonSkeletonText_InAvatar_InheritsTheAvatarRadius()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonAvatar>(p => p.Add(nameof(IonAvatar.ChildContent), (RenderFragment)(b =>
+        {
+            b.OpenComponent<IonSkeletonText>();
+            b.CloseComponent();
+        })));
+
+        var bar = cut.FindByClass("ion-skeleton-text").Single();
+        cut.GetComputedStyle(bar)!.BorderTopLeftRadius.ShouldBe(Length.Percent(50));
     }
 }

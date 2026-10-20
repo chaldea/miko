@@ -114,12 +114,14 @@ internal static class PickerStyles
                 ZIndex = 1,
             },
 
-            // ion-picker-column — a centered vertical column, full picker height, 22px text.
+            // ion-picker-column — full picker height, 22px text. A flex ROW (picker-column.scss sets no
+            // direction): the prefix and suffix slots sit beside the wheel. As a column they stacked
+            // above and below it and squeezed the wheel below the 200px the centering math assumes
+            // (ISSUE-153).
             [$".ion-picker-column.{mode}"] = new()
             {
                 Display = Display.Flex,
                 Position = Position.Relative,
-                FlexDirection = FlexDirection.Column,
                 AlignItems = AlignItems.Center,
                 JustifyContent = JustifyContent.Center,
                 MaxWidth = Length.Percent(100),
@@ -153,6 +155,22 @@ internal static class PickerStyles
                 ScrollbarWidth = ScrollbarWidth.None,
                 TextAlign = TextAlign.Center,
             },
+
+            // Prefix / suffix slots (picker-column.scss ::slotted([slot="prefix"|"suffix"])): at most
+            // 200px, one ellipsized line, 16px padding, aligned towards the wheel.
+            [$".ion-picker-column.{mode} .picker-column-prefix, .ion-picker-column.{mode} .picker-column-suffix"] = new()
+            {
+                Display = Display.Flex,
+                MaxWidth = Length.Px(200),
+                PaddingLeft = Length.Px(16),
+                PaddingRight = Length.Px(16),
+                WhiteSpace = WhiteSpace.Nowrap,
+                TextOverflow = TextOverflow.Ellipsis,
+                OverflowX = Overflow.Hidden,
+                OverflowY = Overflow.Hidden,
+            },
+            [$".ion-picker-column.{mode} .picker-column-prefix"] = new() { JustifyContent = JustifyContent.End },
+            [$".ion-picker-column.{mode} .picker-column-suffix"] = new() { JustifyContent = JustifyContent.Start },
 
             // .picker-item-empty — the six transparent spacer rows (three before, three after the
             // options) that let the first/last option scroll up/down to the center of the wheel.

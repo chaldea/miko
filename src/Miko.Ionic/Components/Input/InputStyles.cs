@@ -295,16 +295,15 @@ internal static class InputStyles
             };
         }
 
-        // Readonly / disabled — Ionic dims the disabled host and blocks pointer interaction.
+        // Disabled — Ionic dims the disabled host and blocks pointer interaction.
         css[$".ion-input.{mode}.input-disabled"] = new()
         {
             Opacity = t.InputDisabledOpacity,
             PointerEvents = PointerEvents.None,
         };
-        css[$".ion-input.{mode}.input-readonly"] = new()
-        {
-            PointerEvents = PointerEvents.None,
-        };
+        // No rule for input-readonly: Ionic has none either. Read-only is the native input's
+        // `readonly` (InputElement.ReadOnly), which still takes focus — the pointer-events:none
+        // that stood in for it here made a read-only field unfocusable (ISSUE-153).
 
         AddColor(css, mode, "primary", t.Primary);
         AddColor(css, mode, "secondary", t.Secondary);

@@ -40,17 +40,15 @@ Only the inner scroll container scrolls; the header and footer stay put. Vertica
 
 ## Padding
 
-`IonContent` itself takes no padding: `Class="ion-padding"` on it has no effect, because its padding is reset and the scroll container is positioned over it. Put the padding class on a wrapper inside instead.
+`Class="ion-padding"` on `IonContent` insets the scrolled content by 16px, as in Ionic; `ion-padding-top`, `-bottom`, `-start`, `-end`, `-vertical` and `-horizontal` pad single sides. The host itself keeps no padding — the scroll container inside it is padded. A wrapper with the class works too.
 
 <!-- miko:example examples/content/Padding.razor -->
 ```razor
-@* Put ion-padding on a wrapper inside IonContent: on IonContent itself it has no effect. *@
+@* ion-padding on IonContent insets the scrolled content by 16px on every side. *@
 <IonPage>
-    <IonContent>
-        <div class="ion-padding">
-            <h2>Welcome</h2>
-            <p>Content placed in the wrapper is inset by 16px on every side.</p>
-        </div>
+    <IonContent Class="ion-padding">
+        <h2>Welcome</h2>
+        <p>The content is inset by 16px on every side.</p>
     </IonContent>
 </IonPage>
 ```

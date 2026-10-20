@@ -287,10 +287,7 @@ internal static class TextareaStyles
             Opacity = t.InputDisabledOpacity,
             PointerEvents = PointerEvents.None,
         };
-        css[$".ion-textarea.{mode}.textarea-readonly"] = new()
-        {
-            PointerEvents = PointerEvents.None,
-        };
+        // No rule for textarea-readonly — see InputStyles (TextAreaElement.ReadOnly, ISSUE-153).
 
         AddColor(css, mode, "primary", t.Primary);
         AddColor(css, mode, "secondary", t.Secondary);

@@ -6,7 +6,7 @@ For multi-line text use [Textarea](./textarea.md), for search fields [Searchbar]
 
 ## Basic usage
 
-`Label` sets the visible label. `Placeholder` is drawn while the field is empty and not focused — it disappears as soon as the field gets focus. `Readonly` and `Disabled` both block pointer input, so neither can be focused; `Disabled` also dims the field.
+`Label` sets the visible label. `Placeholder` is drawn while the field is empty and not focused — it disappears as soon as the field gets focus. A `Readonly` field can be focused but not edited, and shows no on-screen keyboard; a `Disabled` field cannot be focused and is dimmed.
 
 <!-- miko:example examples/input/Basic.razor -->
 ```razor
@@ -131,7 +131,7 @@ In md mode, a field that is not inside an `IonItem` and not `Fill="outline"` als
 
 ## Character counter
 
-`Counter` shows `length / Maxlength` at the end of the bottom row and requires `Maxlength`. `Maxlength` does not stop typing — Miko's text field has no length limit — so enforce the limit in your own validation if you need one.
+`Counter` shows `length / Maxlength` at the end of the bottom row and requires `Maxlength`. `Maxlength` limits what the user can enter: typed or pasted text beyond it is cut off. A `Value` set from code is not shortened.
 
 <!-- miko:example examples/input/Counter.razor -->
 ```razor
@@ -219,10 +219,10 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `HelperText` | `string?` | `null` | Helper text displayed below the input. Shown even when [`ErrorText`](#ioninput) is also set. |
 | `Label` | `string?` | `null` | The visible plaintext label associated with the input. |
 | `LabelPlacement` | `string` | `"start"` | Where the label sits relative to the input: `"start"` (default), `"end"`, `"fixed"`, `"stacked"`, or `"floating"` (laid out like `"stacked"`; no float animation). |
-| `Maxlength` | `int?` | `null` | The maximum number of characters shown by the counter. Not enforced: the native field has no length limit. |
+| `Maxlength` | `int?` | `null` | The maximum number of characters the user can enter (Ionic `maxlength`), also shown by the counter. Typed or pasted text beyond it is cut off; a [`Value`](#ioninput) set from code is not shortened. |
 | `Name` | `string?` | `null` | Form field name marker. |
 | `Placeholder` | `string?` | `null` | Instructional text shown before the input has a value. |
-| `Readonly` | `bool` | `false` | If true, the user cannot modify the value. |
+| `Readonly` | `bool` | `false` | If true, the user cannot modify the value. The field can still be focused (no on-screen keyboard is shown). |
 | `Shape` | `string?` | `null` | The shape. Use `"round"` for an increased corner radius. |
 | `Type` | `string` | `"text"` | The native control type: `"password"` masks the text, `"number"` / `"tel"` request the numeric keypad (the value stays an unfiltered string), anything else (`"text"`, `"search"`, `"email"`, `"url"`, …) is a plain text field. |
 | `Value` | `string?` | `null` | The value of the input. Two-way bindable: `@bind-Value`. |

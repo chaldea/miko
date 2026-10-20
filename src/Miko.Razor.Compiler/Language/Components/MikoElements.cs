@@ -178,6 +178,10 @@ internal static class MikoElements
                 ["placeholder"] = new Slot("Placeholder", SlotKind.Converted, converter: FormatValue),
                 ["min"] = new Slot("Min", SlotKind.Helper, helper: BuilderTypeName + ".SetInputMin"),
                 ["max"] = new Slot("Max", SlotKind.Helper, helper: BuilderTypeName + ".SetInputMax"),
+                ["readonly"] = new Slot("ReadOnly", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseBooleanAttribute"),
+                ["maxlength"] = new Slot("MaxLength", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseMaxLength"),
             },
             // ISSUE-153 problem 3: these attributes compiled but were dropped. String-valued slots go
             // through FormatAttributeValue so a non-string expression (value="@item.Id") still
@@ -240,6 +244,10 @@ internal static class MikoElements
                     helper: BuilderTypeName + ".SetTextAreaRows"),
                 ["cols"] = new Slot("Cols", SlotKind.Helper,
                     helper: BuilderTypeName + ".SetTextAreaCols"),
+                ["readonly"] = new Slot("ReadOnly", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseBooleanAttribute"),
+                ["maxlength"] = new Slot("MaxLength", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseMaxLength"),
             },
             ["img"] = new(StringComparer.Ordinal)
             {

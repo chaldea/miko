@@ -6,6 +6,8 @@
     <input class="slot-input" placeholder="Your name" disabled />
     <input class="slot-enabled" disabled="@false" />
     <input class="slot-range" type="range" min="10" max="@_max" value="20" />
+    <input class="slot-limits" readonly maxlength="5" />
+    <textarea class="slot-area-limits" readonly="@false" maxlength="@_max"></textarea>
     <select class="slot-select" @bind="Choice">
         <optgroup label="Letters">
             <option value="a">Alpha</option>

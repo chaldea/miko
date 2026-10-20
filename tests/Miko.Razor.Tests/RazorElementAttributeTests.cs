@@ -47,6 +47,22 @@ public class RazorElementAttributeTests : IDisposable
     }
 
     [Fact]
+    public void ReadonlyAndMaxlength_ReachTheTextControls()
+    {
+        var input = Single<InputElement>("slot-limits");
+        input.ReadOnly.ShouldBeTrue();
+        input.MaxLength.ShouldBe(5);
+        input.IsEditable.ShouldBeFalse();
+
+        var area = Single<TextAreaElement>("slot-area-limits");
+        area.ReadOnly.ShouldBeFalse();
+        area.MaxLength.ShouldBe(50);
+
+        area.InsertText(new string('x', 60));
+        area.Value!.Length.ShouldBe(50, "maxlength cuts off inserted text");
+    }
+
+    [Fact]
     public void OptionValue_OptgroupLabel_AndSelected_ReachTheElements()
     {
         var cut = _ctx.Render<ElementAttributeSlotsFixture>();

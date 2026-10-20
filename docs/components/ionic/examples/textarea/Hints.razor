@@ -9,6 +9,6 @@
 @code {
     private string? _bio;
 
-    // Maxlength only feeds the counter; enforce the limit yourself.
+    // Maxlength stops typing at 160; a value set from code can still be longer.
     private bool TooLong => _bio?.Length > 160;
 }
