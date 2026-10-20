@@ -304,6 +304,11 @@ internal static class AlertStyles
                 Opacity = 0.5f,
                 PointerEvents = PointerEvents.None,
             },
+            // alert.scss textarea.alert-input: min-height $alert-input-min-height (37px).
+            [$".ion-alert.{mode} textarea.alert-input"] = new()
+            {
+                MinHeight = Length.Px(37),
+            },
         };
 
         // iOS divides stacked buttons with a hairline top border (md relies on margins instead).

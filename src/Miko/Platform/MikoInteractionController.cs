@@ -769,7 +769,12 @@ public sealed class MikoInteractionController
         // 已脱离树的元素上，渲染看不到它，光标便不会出现（ISSUE-121）。
         target = target.ResolveSuperseded();
 
-        if (target is InputElement inputElement)
+        if (target.IsDisabled && target is InputElement or TextAreaElement)
+        {
+            // A disabled control takes neither focus nor edits (HTML), whichever way the tap
+            // reached it — pointer-events is only a style.
+        }
+        else if (target is InputElement inputElement)
         {
             HandleInputClick(inputElement);
         }
@@ -1120,7 +1125,7 @@ public sealed class MikoInteractionController
                 if (editable.IsMultiline)
                 {
                     editable.InsertText("\n");
-                    DispatchInputEvent(element, editable);
+                    DispatchInputEvent(element, editable, "\n");
                 }
                 else
                 {
@@ -1138,6 +1143,7 @@ public sealed class MikoInteractionController
             if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return;
             var element = (Element)editable;
 
+            var inserted = new System.Text.StringBuilder(text.Length);
             foreach (var character in text)
             {
                 // Native IMEs may commit a newline directly (not as a key event) for a
@@ -1145,8 +1151,9 @@ public sealed class MikoInteractionController
                 if (char.IsControl(character) && !(character is '\r' or '\n' && editable.IsMultiline))
                     continue;
                 editable.InsertText(character.ToString());
+                inserted.Append(character);
             }
-            DispatchInputEvent(element, editable);
+            DispatchInputEvent(element, editable, inserted.ToString());
             PublishInputMethodState();
         }
     }
@@ -1297,7 +1304,7 @@ public sealed class MikoInteractionController
             content.Height);
     }
 
-    private void DispatchInputEvent(Element element, ITextEditable editable)
+    private void DispatchInputEvent(Element element, ITextEditable editable, string? insertedText = null)
     {
         // 文本内容已变更：标脏区域以调度重绘（同 ISSUE-104，IsDirty 标志无读取方）。
         _engine.InvalidateElement(element);
@@ -1306,6 +1313,7 @@ public sealed class MikoInteractionController
         {
             Target = element,
             Data = editable.Value ?? string.Empty,
+            InsertedText = insertedText,
             Bubbles = true
         };
         DispatchWithSyncContext(element, EventTypes.Input, inputArgs);

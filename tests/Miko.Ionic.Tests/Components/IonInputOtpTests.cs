@@ -48,7 +48,8 @@ public class IonInputOtpTests : IonicComponentTestBase
         var inputs = cut.FindByClass("native-input").OfType<InputElement>().ToList();
         inputs.Count.ShouldBe(4);
         inputs.ShouldAllBe(input => input.Type == InputType.Text);
-        inputs.Select(input => input.Value).ShouldAllBe(value => value == string.Empty);
+        // Unbound boxes are left undeclared (null) so typed text survives a parent re-render.
+        inputs.Select(input => input.Value).ShouldAllBe(value => string.IsNullOrEmpty(value));
         inputs.Select(input => input.Id).Distinct().Count().ShouldBe(4);
 
         cut.FindByClass("input-otp-description").Single()
@@ -253,6 +254,76 @@ public class IonInputOtpInteractionTests : IDisposable
             .ShouldBe(new string?[] { "1", "2", string.Empty, string.Empty });
     }
 
+    // ---- ISSUE-153: typing into filled boxes (input-otp.tsx onInput cases 2, 4 and 5) ----
+
+    [Fact]
+    public void TypingIntoAFilledBox_WhenAllAreFilled_ReplacesThatBox()
+    {
+        // Used to produce "39": the box held "39", which was taken for a two-character paste.
+        var (app, page) = BuildApp(host => host.Value = "1234");
+        Focus(app, 2);
+
+        app.Controller.OnTextInput("9");
+
+        page.Value.ShouldBe("1294");
+        CurrentInputs(app).Select(input => input.Value)
+            .ShouldBe(new string?[] { "1", "2", "9", "4" });
+    }
+
+    [Fact]
+    public void TypingIntoAFilledBox_WithAFreeBoxAtTheEnd_ShiftsRight()
+    {
+        var (app, page) = BuildApp(host => host.Value = "12");
+        Focus(app, 0);
+
+        app.Controller.OnTextInput("9");
+
+        page.Value.ShouldBe("912");
+        CurrentInputs(app).Select(input => input.Value)
+            .ShouldBe(new string?[] { "9", "1", "2", string.Empty });
+    }
+
+    [Fact]
+    public void InvalidCharacterInAFilledBox_IsRejectedWithoutEmitting()
+    {
+        // Used to shift the code to "112": only the box's old character was found valid.
+        var (app, page) = BuildApp(host => host.Value = "12");
+        Focus(app, 0);
+
+        app.Controller.OnTextInput("x");
+
+        page.Value.ShouldBe("12");
+        page.Inputs.ShouldBeEmpty();
+        CurrentInputs(app).Select(input => input.Value)
+            .ShouldBe(new string?[] { "1", "2", string.Empty, string.Empty });
+    }
+
+    [Fact]
+    public void Unbound_TypedCharactersSurviveTheParentRerender()
+    {
+        // No Value binding: the OnInput callback re-renders the host, which builds a new
+        // IonInputOtp with Value == null. That used to wipe every box.
+        var (app, page) = BuildApp(host => host.Bind = false);
+        Focus(app, 0);
+
+        app.Controller.OnTextInput("1");
+        app.Engine.Render(_canvas);
+        app.Controller.OnTextInput("2");
+        app.Engine.Render(_canvas);
+
+        page.Inputs.ShouldBe(new[] { "1", "12" });
+        CurrentInputs(app).Select(input => input.Value)
+            .ShouldBe(new string?[] { "1", "2", string.Empty, string.Empty });
+    }
+
+    [Fact]
+    public void IntSeparators_PlaceASeparator()
+    {
+        var (app, _) = BuildApp(host => host.Separators = 2);
+
+        app.Engine.GetRoot()!.FindByClass("input-otp-separator").Count.ShouldBe(1);
+    }
+
     private (MikoAppContext app, HostPage page) BuildApp(Action<HostPage>? configure = null)
     {
         var page = new HostPage();
@@ -275,6 +346,8 @@ public class IonInputOtpInteractionTests : IDisposable
     private sealed class HostPage : ComponentBase
     {
         public string? Value { get; set; } = string.Empty;
+        public bool Bind { get; set; } = true;
+        public object? Separators { get; set; }
         public bool Readonly { get; set; }
         public List<string?> Inputs { get; } = new();
         public List<string?> Changes { get; } = new();
@@ -284,10 +357,14 @@ public class IonInputOtpInteractionTests : IDisposable
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
             var __c2 = builder.OpenComponent<IonInputOtp>();
-            __c2.Value = Value;
             __c2.Readonly = Readonly;
-            __c2.ValueChanged = 
-                EventCallback.Factory.Create<string?>(this, value => Value = value);
+            __c2.Separators = Separators;
+            if (Bind)
+            {
+                __c2.Value = Value;
+                __c2.ValueChanged =
+                    EventCallback.Factory.Create<string?>(this, value => Value = value);
+            }
             __c2.OnInput = 
                 EventCallback.Factory.Create<string?>(this, value => Inputs.Add(value));
             __c2.OnChange = 

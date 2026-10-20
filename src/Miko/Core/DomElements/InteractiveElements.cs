@@ -47,9 +47,11 @@ public class InputElement : Element, ITextEditable
 
     /// <summary>
     /// input 在文本类类型（text / password / search / number）下接受键盘文本编辑；
-    /// checkbox / radio / range 不是文本控件，不参与编辑。
+    /// checkbox / radio / range 不是文本控件，不参与编辑。禁用的 input 不可编辑（HTML 语义；
+    /// ISSUE-153 之后标记里的 <c>disabled</c> 才真正生效，此前只靠 pointer-events 挡住点击）。
     /// </summary>
-    public bool IsEditable => Type is InputType.Text or InputType.Password or InputType.Search or InputType.Number;
+    public bool IsEditable => !IsDisabled &&
+        Type is InputType.Text or InputType.Password or InputType.Search or InputType.Number;
 
     /// <summary>
     /// input 始终为单行控件。
@@ -225,9 +227,9 @@ public class TextAreaElement : Element, ITextEditable
     private void SetUserValue(string? value) => _value = value;
 
     /// <summary>
-    /// textarea 始终接受键盘文本编辑。
+    /// textarea 接受键盘文本编辑，禁用时除外（见 InputElement.IsEditable）。
     /// </summary>
-    public bool IsEditable => true;
+    public bool IsEditable => !IsDisabled;
 
     /// <summary>
     /// textarea 是多行控件（回车插入换行）。

@@ -149,7 +149,7 @@ With `Type = "checkbox"`, each row toggles on its own. `Data` is a `List<string?
 
 ## Text inputs
 
-Any other `Type` (`"text"`, `"number"`, `"password"`, `"email"`, `"tel"`, …) renders one text field per input, with `Placeholder` and an initial `Value`. **The port does not read the typed text back**: `Data` is a list of the inputs' original `Value`s. `"textarea"` renders a single-line field. To ask for text, use an [`IonModal`](./modal.md) with an [`IonInput`](./input.md) for now.
+Any other `Type` (`"text"`, `"number"`, `"password"`, `"email"`, `"tel"`, …) renders one text field per input, with `Placeholder` and an initial `Value`, and `"textarea"` a multi-line field. The alert writes the typed text back to each input's `Value`, and `Data` is the list of those values in input order (Ionic returns an object keyed by `name`). A `Disabled` text field is dimmed and cannot be focused or edited; `CssClass` is added to the field.
 
 ## Using the controller
 
@@ -238,17 +238,17 @@ A single alert input. Mirrors Ionic's `AlertInput` interface. Inputs of one aler
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Type` | `string` | `"text"` | Input type: `"radio"`, `"checkbox"`, or a text-field type such as `"text"` (default), `"number"`, `"password"`, `"email"`, `"tel"`. `"textarea"` renders a single-line field in this port. |
+| `Type` | `string` | `"text"` | Input type: `"radio"`, `"checkbox"`, or a text-field type such as `"text"` (default), `"number"`, `"password"`, `"email"`, `"tel"`, or `"textarea"` for a multi-line field. |
 | `Name` | `string?` | `null` | Form field name (Ionic `name`). Not used by this port. |
 | `Placeholder` | `string?` | `null` | Placeholder text for text-style inputs. |
-| `Value` | `string?` | `null` | The input value, reported in the dismiss `Data`. For text fields it is the initial text only: text the user types is not read back in this port. |
+| `Value` | `string?` | `null` | The input value, reported in the dismiss `Data`. For a text field it starts as the initial text and follows what the user types (as in Ionic, the alert writes it back). |
 | `Label` | `string?` | `null` | Label shown beside a radio/checkbox. |
 | `Checked` | `bool` | `false` | Whether a radio/checkbox is checked. The alert updates it when a row is tapped. |
-| `Disabled` | `bool` | `false` | When true, a radio/checkbox row ignores taps. A text field only gets the `alert-input-disabled` class. |
-| `CssClass` | `string?` | `null` | Extra CSS class(es) (Ionic `cssClass`). Not applied by this port. |
+| `Disabled` | `bool` | `false` | When true, a radio/checkbox row ignores taps and a text field cannot be focused or edited; both are dimmed. |
+| `CssClass` | `string?` | `null` | Extra CSS class(es) (Ionic `cssClass`), added to the input element or the radio/checkbox button. |
 | `IsRadio` | `bool` | `false` | True for a radio input. (read-only) |
 | `IsCheckbox` | `bool` | `false` | True for checkbox inputs. (read-only) |
-| `IsTextarea` | `bool` | `false` | True for a textarea input (rendered as a single-line field in this port). (read-only) |
+| `IsTextarea` | `bool` | `false` | True for a textarea input. (read-only) |
 
 ### IonAlertOptions
 

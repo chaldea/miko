@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Components;
+using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Layout;
 using Miko.Styling;
@@ -619,4 +620,34 @@ public class InputElementTests
     }
 
     #endregion
+
+    /// <summary>
+    /// ISSUE-153: a disabled text control stayed editable — only pointer-events kept taps away.
+    /// Now that <c>disabled</c> applies from markup, the element itself must refuse edits.
+    /// </summary>
+    [Fact]
+    public void DisabledTextControls_AreNotEditable()
+    {
+        var input = new InputElement();
+        var textArea = new TextAreaElement();
+        input.IsEditable.ShouldBeTrue();
+        textArea.IsEditable.ShouldBeTrue();
+
+        input.SetState(ElementState.Disabled);
+        textArea.SetState(ElementState.Disabled);
+
+        input.IsEditable.ShouldBeFalse();
+        textArea.IsEditable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TextControlInsideADisabledAncestor_IsNotEditable()
+    {
+        var input = new InputElement();
+        var group = new DivElement { Children = { input } };
+
+        group.SetState(ElementState.Disabled);
+
+        input.IsEditable.ShouldBeFalse();
+    }
 }

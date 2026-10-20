@@ -6,7 +6,7 @@ Input OTP is a row of single-character boxes for entering one-time codes such as
 
 By default there are four boxes that accept digits. Content between the tags is a description shown centered under the boxes (hidden when empty).
 
-Typing a valid character fills the focused box and moves to the next one. Backspace deletes the focused box's character and shifts the following ones left, or moves back when the box is empty. Left moves to the previous box and Right to the next one (only from a filled box). Tapping an empty box focuses the first empty one; a filled box can be tapped directly. Text that arrives in one input event (paste, autofill, a composed IME string) is distributed across the boxes from the first one.
+Typing a valid character into an empty box fills it and moves to the next one. Typed into a filled box, the character is inserted there and the following characters shift right when the last box is free; when every box is filled it replaces the box's character. An invalid character is ignored. Backspace deletes the focused box's character and shifts the following ones left, or moves back when the box is empty. Left moves to the previous box and Right to the next one (only from a filled box). Tapping an empty box focuses the first empty one; a filled box can be tapped directly. Text that arrives in one input event (paste, autofill, a composed IME string) is distributed across the boxes from the first one.
 
 To change a character, delete it with Backspace first: typing into a box that already holds one currently treats the box's old and new character as a two-character paste, so the code is replaced by those two characters.
 
@@ -23,7 +23,7 @@ To change a character, delete it with Backspace first: typing into a box that al
 
 Bind `Value` with `@bind-Value`. After every change `ValueChanged` and then `OnInput` are raised with the whole code, and `OnComplete` follows whenever the change leaves every box filled. `OnChange` is raised when focus leaves the component and the code differs from when it was focused; `OnFocus` and `OnBlur` fire once when focus enters or leaves the group, not per box. Setting `Value` to an empty string clears the boxes.
 
-Always bind `Value` (or pair `Value` with `ValueChanged`): an unbound `IonInputOtp` loses the entered characters whenever its parent re-renders — including the re-render that follows one of its own callbacks, such as `OnComplete`.
+An unbound `IonInputOtp` keeps the entered characters when its parent re-renders, as an unbound `IonInput` does; bind `Value` to read or set the code.
 
 <!-- miko:example examples/input-otp/Complete.razor -->
 ```razor
@@ -52,12 +52,12 @@ Always bind `Value` (or pair `Value` with `ValueChanged`): an unbound `IonInputO
 
 ## Length and separators
 
-`Length` sets the number of boxes. `Separators` draws a dot after the box at each listed 1-based position: a comma-separated string (`"2,4"`), `"all"`, or an `int` collection. The parameter is typed `object`, so Razor treats the attribute as C# — write `Separators="@("3")"` or `Separators="@(new[] { 3 })"`. A bare number (`Separators="3"`) is an `int` and is ignored.
+`Length` sets the number of boxes. `Separators` draws a dot after the box at each listed 1-based position: a single position (`Separators="3"`), a comma-separated string (`"2,4"`), `"all"`, or an `int` collection. The parameter is typed `object`, so Razor treats the attribute as C#: a bare number is an `int`, and a string needs quotes — `Separators="@("2,4")"`.
 
 <!-- miko:example examples/input-otp/Separators.razor -->
 ```razor
-@* Separators is typed object, so the attribute is C#: pass a string or an int array. *@
-<IonInputOtp Length="6" Separators="@("3")" />
+@* Separators is typed object, so the attribute is C#: a number, a quoted string, or an int array. *@
+<IonInputOtp Length="6" Separators="3" />
 <IonInputOtp Length="6" Separators="@(new[] { 2, 4 })" />
 <IonInputOtp Length="4" Separators="@("all")" />
 ```
@@ -131,11 +131,11 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Length` | `int` | `4` | Number of boxes, i.e. the code length (minimum 1). |
 | `Pattern` | `string?` | `null` | Regular expression a single character must match to be accepted. Defaults to digits when [`Type`](#ioninputotp) is `"number"`, letters and digits when it is `"text"`. |
 | `Readonly` | `bool` | `false` | When true, the boxes can be focused but their value cannot be changed. |
-| `Separators` | `object?` | `null` | Separator positions (1-based; a separator follows that box). Accepts `"all"`, a comma-separated string such as `"1,3"`, or an `int` collection. The parameter is `object`, so Razor reads the attribute as C#: write `Separators="@("3")"`; a bare `int` (`Separators="3"`) is ignored. |
+| `Separators` | `object?` | `null` | Separator positions (1-based; a separator follows that box). Accepts `"all"`, a comma-separated string such as `"1,3"`, a single `int`, or an `int` collection. The parameter is `object`, so Razor reads the attribute as C#: `Separators="3"` is the int 3, and a string needs quotes (`Separators="@("2,4")"`). |
 | `Shape` | `string` | `"round"` | Box corners (Ionic `shape`): `"round"` (default), `"soft"`, or `"rectangular"`. |
 | `Size` | `string` | `"medium"` | Box size (Ionic `size`): `"small"`, `"medium"` (default), or `"large"`. |
 | `Type` | `string` | `"number"` | Accepted characters when [`Pattern`](#ioninputotp) is not set: `"number"` (default, digits only) or `"text"` (letters and digits). |
-| `Value` | `string?` | `null` | The entered code. Two-way bindable with `@bind-Value`; bind it, because an unbound component loses the entered characters when its parent re-renders. |
+| `Value` | `string?` | `null` | The entered code. Two-way bindable with `@bind-Value`. Unbound, the boxes keep what was typed across parent re-renders. |
 
 | Event | Type | Description |
 | --- | --- | --- |

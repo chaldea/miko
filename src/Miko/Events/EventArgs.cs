@@ -160,7 +160,15 @@ public class KeyboardEventArgs : MikoEventArgs
 /// </summary>
 public class InputEventArgs : MikoEventArgs
 {
+    /// <summary>The control's whole value after the edit.</summary>
     public string Data { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The text this edit inserted (DOM <c>InputEvent.data</c>), or null when the edit removed text.
+    /// Lets a handler tell what changed — e.g. which character was typed into a box that already
+    /// held one — without keeping its own copy of the previous value.
+    /// </summary>
+    public string? InsertedText { get; init; }
 }
 
 /// <summary>
