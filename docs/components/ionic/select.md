@@ -145,7 +145,7 @@ With `Multiple="true"` bind `Values` (`IReadOnlyList<string>`) instead of `Value
 
 ## Fill, shape, and helper text
 
-`Fill="solid"` gives the value area a background and `Fill="outline"` a border around the field (the outline is drawn in md mode only; in ios mode it renders no border). Fills are meant for standalone selects, not selects inside an `IonItem`. `Shape="round"` rounds the solid background's corners (it does not change the outline's corners). `HelperText` and `ErrorText` render below the field; both show whenever they are set, so toggle `ErrorText` yourself when validating. In md mode a standalone select without `Fill="outline"` also draws a 2px highlight line under the field.
+`Fill="solid"` gives the value area a background and `Fill="outline"` a border around the field with 16px of space inside it (the outline is drawn in md mode only, as in Ionic; in ios mode it renders no border). Fills are meant for standalone selects, not selects inside an `IonItem`. `Shape="round"` rounds the solid background's corners (it does not change the outline's corners). `HelperText` and `ErrorText` render below the field; both show whenever they are set, so toggle `ErrorText` yourself when validating. In md mode a standalone select without `Fill="outline"` also draws a 2px highlight line under the field.
 
 <!-- miko:example examples/select/Fill.razor -->
 ```razor

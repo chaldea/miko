@@ -290,7 +290,7 @@ Cascade order: **cascade layer → selector specificity → source order → inl
 
 Selector specificity within a layer (lowest to highest): **Tag → Class → ID → inline style**
 
-Pseudo-classes: `:hover`, `:focus`, `:active`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty`, `:not()` (no `:nth-child()`)
+Pseudo-classes: `:hover`, `:focus`, `:focus-within`, `:active`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty`, `:not()` (no `:nth-child()`)
 
 Pseudo-elements: `::before`, `::after`
 

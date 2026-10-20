@@ -267,6 +267,25 @@ internal static class SearchbarStyles
 
         // --- Named color fills (Ionic --ion-color-* palette) ---------------------------------
         // A searchbar with a color fills its input with that base; icons inherit the contrast color.
+        // ShowCancelButton / ShowClearButton = "focus" (searchbar.tsx: the focus arm of
+        // shouldShowCancelButton / shouldShowClearButton): the button shows while the field has
+        // focus. :focus-within reads the focus at style time; a component flag could not survive
+        // the re-renders a focus callback triggers, so "focus" used to behave like "never"
+        // (ISSUE-153).
+        css[$".ion-searchbar.{mode}.searchbar-show-cancel-focus:focus-within .searchbar-cancel-button"] = new() { Display = Display.Block };
+        css[$".ion-searchbar.{mode}.searchbar-has-value.searchbar-show-clear-focus:focus-within .searchbar-clear-button"] = new() { Display = Display.Block };
+        if (mode == "md")
+        {
+            css[$".ion-searchbar.{mode}.searchbar-show-cancel-focus:focus-within .searchbar-cancel-button + .searchbar-search-icon"] = new() { Display = Display.None };
+        }
+        else
+        {
+            css[$".ion-searchbar.{mode}.searchbar-has-value.searchbar-show-clear-focus:focus-within .searchbar-input"] = new()
+            {
+                PaddingRight = Length.Px(28),
+            };
+        }
+
         AddColor(css, mode, "primary", t.Primary);
         AddColor(css, mode, "secondary", t.Secondary);
         AddColor(css, mode, "tertiary", t.Tertiary);

@@ -68,7 +68,7 @@ Bind the text with `@bind-Value` and filter on it. `ValueChanged` is raised with
 
 ## Clear button
 
-With the default `ShowClearButton="always"` a clear button appears while there is a value. It follows the `Value` parameter, so bind `Value`: without a binding the button disappears as soon as the parent re-renders (for example after any of the searchbar's own callbacks). Tapping it raises `OnClear`, then clears the field and raises `ValueChanged` and `OnInput` with an empty string. `ShowClearButton="never"` removes it; `"focus"` currently behaves like `"never"`.
+With the default `ShowClearButton="always"` a clear button appears while there is a value. It follows the `Value` parameter, so bind `Value`: without a binding the button disappears as soon as the parent re-renders (for example after any of the searchbar's own callbacks). Tapping it raises `OnClear`, then clears the field and raises `ValueChanged` and `OnInput` with an empty string. `ShowClearButton="never"` removes it; `"focus"` shows it only while the field has focus (and has a value).
 
 <!-- miko:example examples/searchbar/Clear.razor -->
 ```razor
@@ -88,7 +88,7 @@ With the default `ShowClearButton="always"` a clear button appears while there i
 
 ## Cancel button
 
-`ShowCancelButton="always"` adds a cancel button: in md mode an icon inside the field at the start (`CancelButtonIcon`, default arrow-back-sharp), in ios mode a text button after the field (`CancelButtonText`, default `"Cancel"`). Tapping it raises `OnCancel`, then clears the value (raising `ValueChanged` and `OnInput`) and takes focus away. `"focus"` currently behaves like `"never"`, and `Animated` has no animation — in ios mode it only keeps the cancel button visible.
+`ShowCancelButton="always"` adds a cancel button: in md mode an icon inside the field at the start (`CancelButtonIcon`, default arrow-back-sharp), in ios mode a text button after the field (`CancelButtonText`, default `"Cancel"`). Tapping it raises `OnCancel`, then clears the value (raising `ValueChanged` and `OnInput`) and takes focus away. `"focus"` shows the cancel button only while the field has focus. `Animated` has no animation — in ios mode it only keeps the cancel button visible.
 
 In md mode the cancel button takes the search icon's place: the search icon is hidden while it shows.
 
@@ -166,8 +166,8 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Name` | `string?` | `null` | Form control name (Ionic `name`). Kept for API parity. |
 | `Placeholder` | `string` | `"Search"` | Placeholder text (Ionic `placeholder`). Defaults to `"Search"`. |
 | `SearchIcon` | `string?` | `null` | Search icon name (Ionic `searchIcon`). Defaults to `search-sharp` (md) / `search-outline` (ios). |
-| `ShowCancelButton` | `string` | `"never"` | Cancel button behavior (Ionic `showCancelButton`): `"never"` (default), `"focus"`, or `"always"`. `"focus"` currently behaves like `"never"`. |
-| `ShowClearButton` | `string` | `"always"` | Clear button behavior (Ionic `showClearButton`): `"always"` (default), `"focus"`, or `"never"`. `"focus"` currently behaves like `"never"`. The button appears only while the [`Value`](#ionsearchbar) parameter is non-empty, so it needs a bound value. |
+| `ShowCancelButton` | `string` | `"never"` | Cancel button behavior (Ionic `showCancelButton`): `"never"` (default), `"focus"` (shown while the field has focus), or `"always"`. |
+| `ShowClearButton` | `string` | `"always"` | Clear button behavior (Ionic `showClearButton`): `"always"` (default), `"focus"` (shown while the field has focus), or `"never"`. The button appears only while the [`Value`](#ionsearchbar) parameter is non-empty, so it needs a bound value. |
 | `Type` | `string` | `"search"` | Input type (Ionic `type`). Defaults to `"search"`; any value renders a plain text field (no password masking or numeric keypad). |
 | `Value` | `string?` | `null` | The current value of the search field (Ionic `value`). Two-way bindable: `@bind-Value`. |
 

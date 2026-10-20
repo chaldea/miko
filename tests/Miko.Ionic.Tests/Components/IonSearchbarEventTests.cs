@@ -351,4 +351,49 @@ public class IonSearchbarEventTests : IDisposable
 
     private static Element Host(MikoAppContext app)
         => app.Engine.GetRoot()!.FindByClass("ion-searchbar").Single();
+
+    // --- "focus" mode (ISSUE-153) ----------------------------------------------------------------
+
+    private static bool Shown(MikoAppContext app, string cls)
+    {
+        var element = app.Engine.GetRoot()!.FindByClass(cls).Single();
+        return FindBox(app.Engine.GetCurrentLayout()!, element) is not null; // display:none is pruned
+    }
+
+    private static Miko.Layout.LayoutBox? FindBox(Miko.Layout.LayoutBox box, Miko.Core.Element element)
+    {
+        if (ReferenceEquals(box.Element, element)) return box;
+        foreach (var child in box.Children)
+            if (FindBox(child, element) is { } found) return found;
+        return null;
+    }
+
+    /// <summary>
+    /// ShowCancelButton / ShowClearButton = "focus" behaved like "never". They now show while the
+    /// field has focus (searchbar.tsx), also after the re-render the focus callback triggers.
+    /// </summary>
+    [Fact]
+    public void FocusMode_ShowsCancelAndClearOnlyWhileFocused()
+    {
+        var (app, _) = BuildApp(p =>
+        {
+            p.Bound = "query";
+            p.ShowCancelButton = "focus";
+            p.ShowClearButton = "focus";
+        });
+
+        Shown(app, "searchbar-cancel-button").ShouldBeFalse();
+        Shown(app, "searchbar-clear-button").ShouldBeFalse();
+
+        app.Controller.SetFocus(SearchInput(app));
+        app.Engine.Render(_canvas);
+        Shown(app, "searchbar-cancel-button").ShouldBeTrue();
+        Shown(app, "searchbar-clear-button").ShouldBeTrue();
+        Shown(app, "searchbar-search-icon").ShouldBeFalse("md: the cancel button replaces the icon");
+
+        app.Controller.SetFocus(null);
+        app.Engine.Render(_canvas);
+        Shown(app, "searchbar-cancel-button").ShouldBeFalse();
+        Shown(app, "searchbar-clear-button").ShouldBeFalse();
+    }
 }

@@ -22,7 +22,7 @@ Cards are raised, rounded surfaces that group related content — a header with 
 
 In `ios` mode the header stacks in reverse (`flex-direction: column-reverse`), so the subtitle is drawn above the title; write the title first in both modes. When an `IonCardContent` directly follows an `IonCardHeader`, its top padding is removed.
 
-`IonCardTitle` and `IonCardSubtitle` have no typography of their own in this port — they use the card's font (14px) — unlike Ionic, which gives the title a larger font. Style `.ion-card-title` / `.ion-card-subtitle` in the app stylesheet if you need it (see [CSS classes](#css-classes)).
+`IonCardTitle` and `IonCardSubtitle` take Ionic's typography: in md a 20px medium title and a 14px subtitle, in ios a 28px bold title and a 12px uppercase subtitle. `Color` on either uses the palette color; inside a colored card both follow the card's contrast color.
 
 ## Media
 

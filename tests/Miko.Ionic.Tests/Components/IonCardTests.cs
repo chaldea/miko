@@ -3,7 +3,9 @@ using Miko.Components;
 using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Ionic.Components;
+using Miko.Platform;
 using Miko.Styling;
+using Miko.Testing;
 using Shouldly;
 
 namespace Miko.Ionic.Tests.Components;
@@ -319,5 +321,54 @@ public class IonCardTests : IonicComponentTestBase
             $"IonCard width should not be 0 in flex container, but got {cardBox.BoxModel.Content.Width}px");
         cardBox.BoxModel.Content.Width.ShouldBeLessThanOrEqualTo(containerBox.BoxModel.Content.Width,
             $"IonCard width should not exceed container width, but card is {cardBox.BoxModel.Content.Width}px and container is {containerBox.BoxModel.Content.Width}px");
+    }
+
+    // ---- ISSUE-153: title / subtitle typography and colors ------------------------------------
+
+    private ComponentUnderTest RenderCardWithHeader(string? cardColor = null, string? titleColor = null)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        return Context.Render<IonCard>(p =>
+        {
+            if (cardColor is not null) p.Add(nameof(IonCard.Color), cardColor);
+            p.Add(nameof(IonCard.ChildContent), (RenderFragment)(b =>
+            {
+                var header = b.OpenComponent<IonCardHeader>();
+                header.ChildContent = h =>
+                {
+                    var title = h.OpenComponent<IonCardTitle>();
+                    title.Color = titleColor;
+                    title.ChildContent = t => t.AddContent("Card Title");
+                    h.CloseComponent();
+                    var subtitle = h.OpenComponent<IonCardSubtitle>();
+                    subtitle.ChildContent = t => t.AddContent("Card Subtitle");
+                    h.CloseComponent();
+                };
+                b.CloseComponent();
+            }));
+        });
+    }
+
+    [Theory]
+    [InlineData(HostPlatform.Android, 20f, 14f)]
+    [InlineData(HostPlatform.Ios, 28f, 12f)]
+    public void CardTitleAndSubtitle_HaveIonicTypography(HostPlatform platform, float titleSize, float subtitleSize)
+    {
+        UsePlatform(platform);
+        var cut = RenderCardWithHeader();
+
+        cut.GetComputedStyle(cut.FindByClass("ion-card-title").Single())!.FontSize.Value.ShouldBe(titleSize);
+        cut.GetComputedStyle(cut.FindByClass("ion-card-subtitle").Single())!.FontSize.Value.ShouldBe(subtitleSize);
+    }
+
+    [Fact]
+    public void CardTitle_Color_UsesThePaletteBase_AndAColoredCardItsContrast()
+    {
+        var colored = RenderCardWithHeader(titleColor: "danger");
+        colored.GetComputedStyle(colored.FindByClass("ion-card-title").Single())!.Color
+            .ShouldBe(IonicTheme.CreateMd().Danger);
+
+        var inCard = RenderCardWithHeader(cardColor: "dark");
+        inCard.GetComputedStyle(inCard.FindByClass("ion-card-title").Single())!.Color.ShouldBe(Color.White);
     }
 }

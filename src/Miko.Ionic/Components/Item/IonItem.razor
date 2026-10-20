@@ -89,9 +89,8 @@
 
 @code {
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
-    /// Stamped as <c>ion-color</c> + <c>ion-color-*</c> classes. In this port only the text of the
-    /// item's <see cref="IonLabel"/>s (those without their own color) takes the palette color —
-    /// unlike Ionic, the item background is not filled.</summary>
+    /// Fills the row with the palette color and switches its text — including <see cref="IonLabel"/>s
+    /// without their own color — to the color's contrast color, as in Ionic.</summary>
     [Parameter] public string? Color { get; set; }
 
     /// <summary>When true, the item renders a clickable <c>button</c> native surface and becomes

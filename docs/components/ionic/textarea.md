@@ -80,7 +80,7 @@ Textareas are multi-line text fields with an optional label, placeholder, helper
 
 ## Fill and shape
 
-`Fill="solid"` gives the field a tinted background and a bottom border, `Fill="outline"` a rounded 1px border, and `Shape="round"` a 16px corner radius — in both modes. In md mode a field outside an `IonItem` and not `Fill="outline"` also shows a 2px highlight bar along its bottom edge, tinted by `Color` and always visible.
+`Fill="solid"` gives the field a tinted background and a bottom border, `Fill="outline"` a rounded 1px border, and `Shape="round"` a 16px corner radius — in both modes. In md mode a field outside an `IonItem` and not `Fill="outline"` also shows a 2px highlight bar along its bottom edge, tinted by `Color`, which grows in while the field has focus.
 
 <!-- miko:example examples/textarea/Fill.razor -->
 ```razor

@@ -75,7 +75,7 @@ For multi-line text use [Textarea](./textarea.md), for search fields [Searchbar]
 
 `Fill="solid"` gives the field a tinted background and a bottom border; `Fill="outline"` draws a rounded 1px border (without Ionic's label notch). `Shape="round"` raises the corner radius to 16px. Both fills apply in md and ios mode (Ionic limits them to md).
 
-In md mode, a field that is not inside an `IonItem` and not `Fill="outline"` also shows a 2px highlight bar along its bottom edge, tinted by `Color`. The bar is always visible (Ionic shows it only while focused), and it is the only thing `Color` changes.
+In md mode, a field that is not inside an `IonItem` and not `Fill="outline"` also shows a 2px highlight bar along its bottom edge, tinted by `Color`. As in Ionic, the bar grows in while the field has focus and is hidden otherwise; it is the only thing `Color` changes.
 
 <!-- miko:example examples/input/Fill.razor -->
 ```razor

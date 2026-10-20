@@ -1,3 +1,4 @@
+using Miko.Animation;
 using Miko.Common;
 using Miko.Styling;
 
@@ -284,6 +285,10 @@ internal static class InputStyles
         // emit the rule for md; the element is not rendered on ios anyway.
         if (mode == "md")
         {
+            // Collapsed (scale 0) until the field has focus, then grows over 200ms
+            // (input.md.scss: transform scale(0) → :host(.has-focus) scale(1)). It was drawn
+            // all the time (ISSUE-153). :focus-within stands in for Ionic's has-focus class,
+            // which a component instance could not keep across re-renders.
             css[$".ion-input.{mode} .input-highlight"] = new()
             {
                 Position = Position.Absolute,
@@ -292,6 +297,15 @@ internal static class InputStyles
                 Width = Length.Percent(100),
                 Height = Length.Px(t.InputHighlightHeight),
                 BackgroundColor = t.InputHighlightColor,
+                Transform = new Transform(new TransformFunction.Scale(0f, 0f)),
+                Transitions = new List<Transition>
+                {
+                    new Transition(nameof(Style.Transform), 0.2f, TimingFunction.Ease),
+                },
+            };
+            css[$".ion-input.{mode}:focus-within .input-highlight"] = new()
+            {
+                Transform = new Transform(new TransformFunction.Scale(1f, 1f)),
             };
         }
 

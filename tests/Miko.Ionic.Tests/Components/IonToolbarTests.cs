@@ -1,6 +1,9 @@
+using Miko.Common;
 using Miko.Components;
 using Miko.Core;
 using Miko.Ionic.Components;
+using Miko.Ionic;
+using Miko.Platform;
 using Miko.Testing;
 using Shouldly;
 
@@ -113,5 +116,38 @@ public class IonToolbarTests : IonicComponentTestBase
         var container = cut.FindByClass("toolbar-container").ShouldHaveSingleItem();
         container.Children[0].ShouldHaveClass("ion-buttons"); // Start
         container.Children[^1].ShouldHaveClass("ion-buttons"); // End
+    }
+
+    /// <summary>ISSUE-153: the ToolbarToken padding values were never read (and ios defaulted to 0
+    /// instead of Ionic's 3px / 4px). Rendered through the real theme registry (AddIonic), which
+    /// scopes rules per theme — the unscoped test sheet cannot show a theme override.</summary>
+    [Fact]
+    public void ToolbarPadding_ComesFromTheTheme()
+    {
+        UsePlatform(HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var ios = Context.Render<IonToolbar>();
+        var defaults = ios.GetComputedStyle(ios.FindByClass("toolbar-container").Single())!;
+        defaults.PaddingTop.Value.ShouldBe(3f);
+        defaults.PaddingLeft.Value.ShouldBe(4f);
+
+        var builder = Miko.Hosting.MikoAppBuilder.CreateDefault().AddIonic(options =>
+        {
+            options.Platform = HostPlatform.Android;
+            options.Theme = new IonicTheme
+            {
+                Toolbar = new ToolbarToken { PaddingStart = Length.Px(12), PaddingTop = Length.Px(6) },
+            };
+        });
+        using var themed = new TestContext();
+        foreach (var descriptor in builder.Services) themed.Services.Add(descriptor);
+        var registry = (IonicStyleRegistry)builder.Services
+            .Single(d => d.ServiceType == typeof(IonicStyleRegistry)).ImplementationInstance!;
+        themed.AddStyleSheet(registry.StyleSheet);
+
+        var cut = themed.Render<IonToolbar>();
+        var style = cut.GetComputedStyle(cut.FindByClass("toolbar-container").Single())!;
+        style.PaddingLeft.Value.ShouldBe(12f);
+        style.PaddingTop.Value.ShouldBe(6f);
     }
 }

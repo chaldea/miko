@@ -31,11 +31,10 @@
    that focus, or from cancel on an unfocused field — plus OnClear,
    OnCancel, OnFocus, OnBlur, and ValueChanged for @bind-Value.
 
-   Two documented gaps, both because host classes are computed from parameters at build time
-   while focus lives on the element: showCancelButton/showClearButton="focus" behaves like
-   "never", and the clear button needs Value bound to appear (searchbar-has-value derives from
-   the parameter, and an unbound field's text only lives on the element). Ionic has neither
-   limitation because its value is a mutable component prop. See IonSearchbarEventTests. *@
+   One documented gap: the clear button needs Value bound to appear (searchbar-has-value derives
+   from the parameter, and an unbound field's text only lives on the element). Ionic does not
+   have it because its value is a mutable component prop. showCancelButton/showClearButton="focus"
+   read the element's focus through :focus-within. See IonSearchbarEventTests. *@
 <div class="@ClassMapper.Class" style="@Style">
     <div class="searchbar-input-container">
         <input class="searchbar-input" type="@_type"
@@ -107,12 +106,12 @@
     [Parameter] public bool Animated { get; set; }
 
     /// <summary>Cancel button behavior (Ionic <c>showCancelButton</c>): <c>"never"</c> (default),
-    /// <c>"focus"</c>, or <c>"always"</c>. <c>"focus"</c> currently behaves like <c>"never"</c>.</summary>
+    /// <c>"focus"</c> (shown while the field has focus), or <c>"always"</c>.</summary>
     [Parameter] public string ShowCancelButton { get; set; } = "never";
 
     /// <summary>Clear button behavior (Ionic <c>showClearButton</c>): <c>"always"</c> (default),
-    /// <c>"focus"</c>, or <c>"never"</c>. <c>"focus"</c> currently behaves like <c>"never"</c>. The button
-    /// appears only while the <see cref="Value"/> parameter is non-empty, so it needs a bound value.</summary>
+    /// <c>"focus"</c> (shown while the field has focus), or <c>"never"</c>. The button appears only
+    /// while the <see cref="Value"/> parameter is non-empty, so it needs a bound value.</summary>
     [Parameter] public string ShowClearButton { get; set; } = "always";
 
     /// <summary>Cancel button text, shown in iOS mode (Ionic <c>cancelButtonText</c>).</summary>
@@ -168,20 +167,18 @@
             .If(HasValue, "searchbar-has-value")
             .If(ShouldShowClear, "searchbar-should-show-clear")
             .If(ShouldShowCancel, "searchbar-should-show-cancel")
+            .If(ShowCancelButton is "focus", "searchbar-show-cancel-focus")
+            .If(ShowClearButton is "focus", "searchbar-show-clear-focus")
             .AddColor(Color);
     }
 
     private bool HasValue => !string.IsNullOrEmpty(Value);
 
-    // Mirrors searchbar.tsx shouldShowCancelButton/shouldShowClearButton, minus the focus arm.
-    //
-    // "focus" still behaves like "never": a host class driven by focus cannot be held on the
-    // component. The focus/blur callback receiver is typically an ancestor (that is what
-    // `@bind`-style wiring produces), and its re-render rebuilds this component from scratch —
-    // any `_hasFocus` field resets to false while the element keeps its Focus state (ISSUE-121).
-    // Reveal-on-focus therefore needs the state read at style-resolve time, i.e. `:focus-within`
-    // in the selector engine, which the port does not have yet. The focus/blur *callbacks* below
-    // are unaffected: they fire from the element, not from retained component state.
+    // Mirrors searchbar.tsx shouldShowCancelButton/shouldShowClearButton for "always". The focus
+    // arm is a style rule instead (searchbar-show-*-focus + :focus-within, see SearchbarStyles):
+    // a host class driven by focus cannot be held on the component, because the focus/blur
+    // callbacks re-render an ancestor, which rebuilds this component and resets any field while
+    // the element keeps its Focus state (ISSUE-121, ISSUE-153).
     private bool ShouldShowCancel => ShowCancelButton is "always";
 
     private bool ShouldShowClear => ShowClearButton is "always";

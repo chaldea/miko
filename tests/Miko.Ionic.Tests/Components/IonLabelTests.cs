@@ -136,10 +136,32 @@ public class IonLabelTests : IonicComponentTestBase
                 listBuilder.CloseComponent();
             })));
 
+        // ISSUE-153: the row is filled with the base color (item.scss :host(.ion-color)
+        // .item-native), so the label takes the contrast color — not the base color it used to,
+        // which would be invisible on the filled row.
         var label = cut.FindByClass("ion-label").Single();
         var style = cut.GetComputedStyle(label);
         style.ShouldNotBeNull();
-        style.Color.ShouldBe(IonicTheme.CreateMd().Primary);
+        style.Color.ShouldBe(Color.FromHex("ffffff"));
+        cut.GetComputedStyle(cut.FindByClass("item-native").Single())!.BackgroundColor
+            .ShouldBe(IonicTheme.CreateMd().Primary);
+    }
+
+    [Fact]
+    public void IonItemDivider_Color_FillsTheDivider()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonItemGroup>(p => p.Add(nameof(IonItemGroup.ChildContent), (RenderFragment)(b =>
+        {
+            var divider = b.OpenComponent<IonItemDivider>();
+            divider.Color = "warning";
+            divider.ChildContent = t => t.AddContent("Section");
+            b.CloseComponent();
+        })));
+
+        var style = cut.GetComputedStyle(cut.FindByClass("ion-item-divider").Single())!;
+        style.BackgroundColor.ShouldBe(IonicTheme.CreateMd().Warning);
+        style.Color.ShouldBe(Color.FromHex("000000"));
     }
 
     [Fact]

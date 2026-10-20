@@ -219,6 +219,35 @@ internal static class ItemStyles
             [$".ion-item-option.{mode}.ion-color-dark"] = new() { BackgroundColor = t.Dark },
         };
 
+        // Named palette colors on ion-item and ion-item-divider (item.scss / item-divider.scss
+        // :host(.ion-color)): the row fills with the base color and its text takes the contrast
+        // color. Before ISSUE-153 only the label text changed, and to the base color. Ionic also
+        // darkens the item's divider to the color's shade; the palette has no shade tokens, so the
+        // divider keeps the theme border color.
+        foreach (var (name, color) in new[]
+        {
+            ("primary", t.Primary), ("secondary", t.Secondary), ("tertiary", t.Tertiary),
+            ("success", t.Success), ("warning", t.Warning), ("danger", t.Danger),
+            ("light", t.Light), ("medium", t.Medium), ("dark", t.Dark),
+        })
+        {
+            var contrast = PaletteContrast(name);
+            css[$".ion-item.{mode}.ion-color-{name} .item-native"] = new()
+            {
+                BackgroundColor = color,
+                Color = contrast,
+            };
+            css[$".ion-item-divider.{mode}.ion-color-{name}"] = new()
+            {
+                BackgroundColor = color,
+                Color = contrast,
+            };
+        }
+
         return css;
     }
+
+    /// <summary>The palette's contrast color (Ionic --ion-color-*-contrast defaults).</summary>
+    internal static Color PaletteContrast(string name)
+        => name is "success" or "warning" or "light" ? Color.FromHex("000000") : Color.FromHex("ffffff");
 }

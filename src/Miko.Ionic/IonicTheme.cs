@@ -822,10 +822,10 @@ public partial class IonicTheme
         t.ToolbarColor = Color.FromHex("000000");
         t.ToolbarBorderColor = Color.FromHex("c8c7cc");
         t.ToolbarMinHeight = 44f;
-        t.ToolbarPaddingTop = Length.Px(0);
-        t.ToolbarPaddingBottom = Length.Px(0);
-        t.ToolbarPaddingStart = Length.Px(0);
-        t.ToolbarPaddingEnd = Length.Px(0);
+        t.ToolbarPaddingTop = Length.Px(3);     // $toolbar-ios-padding-top
+        t.ToolbarPaddingBottom = Length.Px(3);
+        t.ToolbarPaddingStart = Length.Px(4);   // $toolbar-ios-padding-start / -end
+        t.ToolbarPaddingEnd = Length.Px(4);
 
         // Toolbar buttons (buttons.ios.scss `::slotted(*) ion-button`): 32px tall, 3px/5px padding,
         // 4px radius ($toolbar-ios-button-border-radius). Icon sizes are expressed against the 17px

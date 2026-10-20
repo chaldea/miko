@@ -213,11 +213,11 @@ Put a form control in the default slot; it renders its own label (`Label` on [`I
 
 ## Color
 
-`Color` takes a palette name, but in this port it only recolors the text of the item's `IonLabel`s (a label with its own `Color` keeps it). Unlike Ionic, the row background is not filled with the color.
+`Color` takes a palette name: the row is filled with the color and its text — including `IonLabel`s without their own `Color` — switches to the color's contrast color, as in Ionic. Ionic also darkens the row's divider to the color's shade; here the divider keeps the theme's border color.
 
 <!-- miko:example examples/item/Color.razor -->
 ```razor
-@* Only the label text takes the palette color; the row itself is not filled. *@
+@* The row is filled with the palette color; the label takes the contrast color. *@
 <IonList>
     <IonItem Button="true" Color="danger">
         <IonLabel>Delete account</IonLabel>
@@ -317,7 +317,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Button` | `bool` | `false` | When true, the item renders a clickable `button` native surface and becomes activatable (Ionic `button`). |
-| `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Stamped as `ion-color` + `ion-color-*` classes. In this port only the text of the item's [`IonLabel`](./label.md#ionlabel)s (those without their own color) takes the palette color — unlike Ionic, the item background is not filled. |
+| `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Fills the row with the palette color and switches its text — including [`IonLabel`](./label.md#ionlabel)s without their own color — to the color's contrast color, as in Ionic. |
 | `Detail` | `bool?` | `null` | When set, forces the detail chevron on (`true`) or off (`false`). When null, Ionic shows it only on iOS for a clickable item. Mirrors Ionic `detail`. |
 | `DetailIcon` | `string` | `"chevron-forward"` | Icon used for the detail chevron (Ionic `detailIcon`). Defaults to `chevron-forward`. |
 | `Disabled` | `bool` | `false` | When true, the item is dimmed and non-interactive (Ionic `disabled`). |
@@ -340,7 +340,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Stamped as `ion-color` + `ion-color-*` classes only: no stylesheet rule reads them yet, so the divider keeps the theme's divider colors (Ionic fills it with the palette color). |
+| `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Fills the divider with the palette color and switches its text to the color's contrast color, as in Ionic. |
 | `Sticky` | `bool` | `false` | Ionic `sticky` (pins the divider to the top of the scroll viewport). Stamps the `item-divider-sticky` class only: Miko has no `position: sticky`, so the divider scrolls with the content. |
 
 | Slot | Type | Description |

@@ -33,9 +33,8 @@
 
 @code {
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
-    /// Stamped as <c>ion-color</c> + <c>ion-color-*</c> classes only: no stylesheet rule reads them
-    /// yet, so the divider keeps the theme's divider colors (Ionic fills it with the palette
-    /// color).</summary>
+    /// Fills the divider with the palette color and switches its text to the color's contrast color,
+    /// as in Ionic.</summary>
     [Parameter] public string? Color { get; set; }
 
     /// <summary>Ionic <c>sticky</c> (pins the divider to the top of the scroll viewport). Stamps the

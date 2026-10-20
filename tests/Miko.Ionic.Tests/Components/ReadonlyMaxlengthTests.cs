@@ -152,4 +152,64 @@ public class ReadonlyMaxlengthTests : IDisposable
             if (FindBox(child, element) is { } found) return found;
         return null;
     }
+
+    /// <summary>
+    /// ISSUE-153: the md highlight bar under an input was always drawn; Ionic shows it only while
+    /// the field has focus. A standalone IonInput / IonTextarea (inside an item there is no bar).
+    /// </summary>
+    [Fact]
+    public void MdHighlightBar_IsCollapsedUntilTheFieldHasFocus()
+    {
+        var builder = MikoAppBuilder.CreateDefault();
+        builder.AddIonic(c => c.Platform = HostPlatform.Android);
+        builder.UseRouter(router => router.MapRoute("/", typeof(StandaloneFieldsPage)));
+        var app = builder.Build();
+        app.Controller.Initialize(_canvas, W, H);
+        app.Engine.Render(_canvas);
+
+        ScaleOf(app, "input-highlight").ShouldBe(0f);
+        ScaleOf(app, "textarea-highlight").ShouldBe(0f);
+
+        app.Controller.SetFocus(app.Engine.GetRoot()!.FindByClass("native-input").Single());
+        // The bar grows over 200ms, as in Ionic: pump frames the way the host's render loop does.
+        for (var i = 0; i < 20; i++) app.Controller.RenderFrame(_canvas, W, H, 1f / 30f, c => app.Engine.Render(c));
+        ScaleOf(app, "input-highlight").ShouldBe(1f);
+        ScaleOf(app, "textarea-highlight").ShouldBe(0f);
+    }
+
+    private sealed class StandaloneFieldsPage : ComponentBase
+    {
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var app = builder.OpenComponent<IonApp>();
+            app.ChildContent = a =>
+            {
+                var page = a.OpenComponent<IonPage>();
+                page.ChildContent = p =>
+                {
+                    var content = p.OpenComponent<IonContent>();
+                    content.ChildContent = c =>
+                    {
+                        var input = c.OpenComponent<IonInput>();
+                        input.Label = "Name";
+                        c.CloseComponent();
+                        var area = c.OpenComponent<IonTextarea>();
+                        area.Label = "Notes";
+                        c.CloseComponent();
+                    };
+                    p.CloseComponent();
+                };
+                a.CloseComponent();
+            };
+            builder.CloseComponent();
+        }
+    }
+
+    private static float ScaleOf(MikoAppContext app, string cls)
+    {
+        var bar = app.Engine.GetRoot()!.FindByClass(cls).Single();
+        var box = FindBox(app.Engine.GetCurrentLayout()!, bar).ShouldNotBeNull();
+        var scale = box.ComputedStyle.Transform.Functions.OfType<Miko.Animation.TransformFunction.Scale>().Single();
+        return scale.X;
+    }
 }

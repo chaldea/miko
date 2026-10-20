@@ -141,9 +141,12 @@ internal static class LabelStyles
         // .ion-color-* rule (5 classes vs 3), so without the guard an explicit color on a label
         // inside a colored item would be silently overridden. Ionic has the same guard — its
         // in-item-color rule only targets slotted <p>, never a label that set its own color.
+        // The label follows the item's text, which is the palette's CONTRAST color on the filled
+        // row (item.scss :host(.ion-color) .item-native). It used to take the base color — the
+        // same color as the row Ionic paints behind it (ISSUE-153).
         css[$".ion-item.{mode}.ion-color-{name} .ion-label.{mode}:not(.ion-color)"] = new()
         {
-            Color = color,
+            Color = ItemStyles.PaletteContrast(name),
         };
     }
 }

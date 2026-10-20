@@ -121,6 +121,7 @@ public static class CssSelectorParser
         "hover" => new HoverSelector(),
         "active" => new ActiveSelector(),
         "focus" => new FocusSelector(),
+        "focus-within" => new FocusWithinSelector(),
         "disabled" => new DisabledSelector(),
         "enabled" => new EnabledSelector(),
         "first-child" => new FirstChildSelector(),

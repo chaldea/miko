@@ -301,16 +301,6 @@ internal static class SelectStyles
                 PaddingRight = Length.Px(12),
             },
 
-            [$".ion-select.{mode}.select-fill-outline .select-wrapper-inner"] = new()
-            {
-                BorderWidth = Length.Px(1),
-                BorderStyle = BorderStyle.Solid,
-                BorderColor = t.SelectBorderColor,
-                BorderRadius = new BorderRadius(Length.Px(t.SelectBorderRadius)),
-                PaddingLeft = Length.Px(12),
-                PaddingRight = Length.Px(12),
-            },
-
             [$".ion-select.{mode}.select-shape-round .select-wrapper-inner"] = new()
             {
                 BorderRadius = new BorderRadius(Length.Px(t.SelectRoundBorderRadius)),
@@ -470,10 +460,24 @@ internal static class SelectStyles
         };
 
         // With the outline fill the border lives on the container fragments, not the inner wrapper.
+        // (A second rule with this key used to sit above, with a border and 12px padding; the
+        // later assignment replaced it, so it never applied — ISSUE-153.)
         css[$".ion-select.{mode}.select-fill-outline .select-wrapper-inner"] = new()
         {
             BorderWidth = Length.Px(0),
         };
+
+        // select.md.outline.scss: --padding-start / --padding-end 16px, which select.scss applies
+        // to .select-wrapper — keeps the text clear of the outline. Not applied before (ISSUE-153).
+        // Fill is md-only in Ionic (select.tsx: "Only available in md mode").
+        if (mode == "md")
+        {
+            css[$".ion-select.{mode}.select-fill-outline .select-wrapper"] = new()
+            {
+                PaddingLeft = Length.Px(16),
+                PaddingRight = Length.Px(16),
+            };
+        }
     }
 
     /// <summary>

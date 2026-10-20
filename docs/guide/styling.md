@@ -228,7 +228,7 @@ Selector strings support:
 | Simple | `div`, `.class`, `#id`, compound `.a.b` / `button.primary` |
 | Combinators | descendant (`.a .b`), child (`>`), adjacent sibling (`+`), general sibling (`~`) |
 | Attributes | `[href]`, `[type="checkbox"]`, `~=`, `^=`, `$=`, `*=`, … |
-| Pseudo-classes | `:hover`, `:active`, `:focus`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty`, `:not(…)` |
+| Pseudo-classes | `:hover`, `:active`, `:focus`, `:focus-within`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty`, `:not(…)` |
 | Pseudo-elements | `::before`, `::after`; `::range-thumb`, `::range-track`, `::range-progress` on `<input type="range">` |
 
 An unsupported pseudo-class (for example `:nth-child()`) throws when the stylesheet is built.

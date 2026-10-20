@@ -196,7 +196,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 ### Theme tokens
 
-The toolbar reads `Background`, `Color`, and `MinHeight` (an md-mode `IonSegment` in a toolbar also takes `MinHeight`). `Color` is also the text color of `IonTitle`, `IonMenuButton`, and every `IonButton` in the toolbar; the `Button…` values size the buttons inside `IonButtons`. `BorderColor` lands on the background layer, whose border is 0 wide in both modes, and `PaddingTop` / `PaddingBottom` / `PaddingStart` / `PaddingEnd` are not read by any rule — these five currently have no visible effect.
+The toolbar reads `Background`, `Color`, and `MinHeight` (an md-mode `IonSegment` in a toolbar also takes `MinHeight`). `Color` is also the text color of `IonTitle`, `IonMenuButton`, and every `IonButton` in the toolbar; the `Button…` values size the buttons inside `IonButtons`. `PaddingTop` / `PaddingBottom` / `PaddingStart` / `PaddingEnd` pad the row of slots and content (`.toolbar-container`): 0 in md, 3px / 4px in ios, as in Ionic. `BorderColor` lands on the background layer, whose border is 0 wide in both modes, so it currently has no visible effect.
 
 <!-- miko:tokens Toolbar -->
 Theme token `IonicTheme.Toolbar` (`ToolbarToken`). Assign only the values you want to change — the rest keep the mode defaults below. App-wide: `builder.AddIonic(o => o.Theme.Toolbar = new ToolbarToken { … })`; for one subtree: a `ConfigProvider`. See [Theming](./theming.md).
@@ -218,10 +218,10 @@ Theme token `IonicTheme.Toolbar` (`ToolbarToken`). Assign only the values you wa
 | `ButtonPaddingTop` | `Length` | `3px` | `3px` |
 | `Color` | `Color` | `#424242` | `#000000` |
 | `MinHeight` | `float` | `56` | `44` |
-| `PaddingBottom` | `Length` | `0px` | `0px` |
-| `PaddingEnd` | `Length` | `0px` | `0px` |
-| `PaddingStart` | `Length` | `0px` | `0px` |
-| `PaddingTop` | `Length` | `0px` | `0px` |
+| `PaddingBottom` | `Length` | `0px` | `3px` |
+| `PaddingEnd` | `Length` | `0px` | `4px` |
+| `PaddingStart` | `Length` | `0px` | `4px` |
+| `PaddingTop` | `Length` | `0px` | `3px` |
 <!-- /miko:tokens -->
 
 ### CSS classes
