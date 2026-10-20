@@ -314,4 +314,32 @@ public class IonAvatarTests : IonicComponentTestBase
         box.Content.Width.ShouldBe(40f);
         box.Content.Height.ShouldBe(40f);
     }
+
+    /// <summary>
+    /// ISSUE-153: in ios a start-slot avatar had no end margin and touched the label text. Ionic's
+    /// item.ios.scss ::slotted([slot="start"]) gives it 2px 16px 2px 0.
+    /// </summary>
+    [Fact]
+    public void IonAvatar_InStartSlot_Ios_LeavesAGapBeforeTheLabel()
+    {
+        UsePlatform(Miko.Platform.HostPlatform.Ios);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonItem>(parameters => parameters
+            .Add(nameof(IonItem.Start), (RenderFragment)(builder =>
+            {
+                var avatar = builder.OpenComponent<IonAvatar>();
+                avatar.ChildContent = MinimalChild;
+                builder.CloseComponent();
+            }))
+            .Add(nameof(IonItem.ChildContent), (RenderFragment)(builder =>
+            {
+                var label = builder.OpenComponent<IonLabel>();
+                label.ChildContent = b => b.AddContent("Item Avatar");
+                builder.CloseComponent();
+            })));
+
+        var avatarBox = cut.GetBoxModel(cut.FindByClass("ion-avatar").Single())!.BorderBox;
+        var labelBox = cut.GetBoxModel(cut.FindByClass("ion-label").Single())!.BorderBox;
+        (labelBox.Left - avatarBox.Right).ShouldBeGreaterThanOrEqualTo(16f - 0.5f);
+    }
 }

@@ -57,6 +57,7 @@ internal static class LabelStyles
         };
 
         AddPositionRules(css, mode, t);
+        AddTypographyRules(css, mode);
 
         // ion-color recolors the label text to the named palette base
         // (label.scss `:host(.ion-color) { color: current-color(base) }`). Without these the color
@@ -73,6 +74,97 @@ internal static class LabelStyles
         AddColor(css, mode, "dark", t.Dark);
 
         return css;
+    }
+
+    /// <summary>
+    /// Ionic gives direct heading and paragraph children compact sizing (label.md.scss /
+    /// label.ios.scss ::slotted(*) h1–h6 / ::slotted(*) p), tighter than the normal typography
+    /// (ISSUE-153: not reproduced before now). These rules select h1–h6 / p one level below
+    /// .ion-label: a direct heading/paragraph, or a heading/paragraph inside an immediate div.
+    /// </summary>
+    private static void AddTypographyRules(CssObject css, string mode)
+    {
+        var ios = mode == "ios";
+
+        css[$".ion-label.{mode} > h1, .ion-label.{mode} > div > h1"] = new()
+        {
+            Margin = ios ? new Margin(3, 0, 2, 0) : new Margin(0, 0, 2, 0),
+            FontSize = Length.Px(ios ? 22 : 24),
+            FontWeight = FontWeight.Normal,
+        };
+        css[$".ion-label.{mode} > h2, .ion-label.{mode} > div > h2"] = new()
+        {
+            Margin = ios ? new Margin(0, 0, 2, 0) : new Margin(2, 0, 2, 0),
+            FontSize = Length.Px(ios ? 17 : 16),
+            FontWeight = FontWeight.Normal,
+        };
+
+        var smallHeadingMargin = ios ? new Margin(0, 0, 3, 0) : new Margin(2, 0, 2, 0);
+        css[$".ion-label.{mode} > h3, .ion-label.{mode} > div > h3"] = new()
+        {
+            Margin = smallHeadingMargin,
+            FontSize = Length.Px(14),
+            FontWeight = FontWeight.Normal,
+            LineHeight = Length.Auto,
+        };
+        css[$".ion-label.{mode} > h4, .ion-label.{mode} > div > h4"] = new()
+        {
+            Margin = smallHeadingMargin,
+            FontSize = Length.Px(14),
+            FontWeight = FontWeight.Normal,
+            LineHeight = Length.Auto,
+        };
+        css[$".ion-label.{mode} > h5, .ion-label.{mode} > div > h5"] = new()
+        {
+            Margin = smallHeadingMargin,
+            FontSize = Length.Px(14),
+            FontWeight = FontWeight.Normal,
+            LineHeight = Length.Auto,
+        };
+        css[$".ion-label.{mode} > h6, .ion-label.{mode} > div > h6"] = new()
+        {
+            Margin = smallHeadingMargin,
+            FontSize = Length.Px(14),
+            FontWeight = FontWeight.Normal,
+            LineHeight = Length.Auto,
+        };
+
+        // label.{md|ios}.scss ::slotted(*) p: margin top/bottom (md 0 2px, ios 0 0 2px 0),
+        // 14px font, line-height 20px (md) or normal (ios). text-overflow / overflow inherit
+        // (the label's default is ellipsize).
+        // ::slotted(p) { color } is a DIRECT-p-only rule: applies to a direct <p>, but NOT a
+        // <div><p> (the specificity doesn't change, but the selector target does). Because Miko
+        // flattens ion-label's slot to html content, we replicate the same selector sensitivity:
+        // direct p gets the step-color, <div><p> does not.
+        css[$".ion-label.{mode} > p, .ion-label.{mode} > div > p"] = new()
+        {
+            Margin = ios ? new Margin(0, 0, 2, 0) : new Margin(0, 0, 2, 0),
+            FontSize = Length.Px(14),
+            LineHeight = ios ? Length.Auto : Length.Px(20),
+            // Ionic: text-overflow:inherit / overflow:inherit — the label sets ellipsize, but the
+            // paragraph inside doesn't. Unset clears it.
+            TextOverflow = TextOverflow.Clip,
+        };
+        // Ionic paragraph color rules (label.md.scss / label.ios.scss ::slotted(p)): gray
+        // except in a colored item (:host(.in-item-color)).
+        css[$".ion-label.{mode} > p"] = new()
+        {
+            Color = Color.FromHex(ios ? "a3a3a3" : "666666"),        // ios step-550 / md step-400
+        };
+        // in-item-color is stamped on the label when the item has Color set; the paragraph
+        // inherits the item's contrast color instead of forcing the gray.
+        css[$".ion-label.{mode}.in-item-color > p"] = new() { Color = Css.Inherit };
+
+        // label.ios.scss only: last-child margin-bottom 0 — collapses the 2px/3px gap so the row
+        // can still look vertically centered. Applies to direct h2–h6 / p or <div><...>.
+        if (ios)
+        {
+            foreach (var tag in new[] { "h2", "h3", "h4", "h5", "h6", "p" })
+            {
+                css[$".ion-label.{mode} > {tag}:last-child, .ion-label.{mode} > div > {tag}:last-child"] =
+                    new() { MarginBottom = Length.Px(0) };
+            }
+        }
     }
 
     /// <summary>

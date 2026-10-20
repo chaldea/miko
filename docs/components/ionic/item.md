@@ -412,8 +412,8 @@ Theme token `IonicTheme.Item` (`ItemToken`). Assign only the values you want to 
 | --- | --- | --- | --- |
 | `AvatarEndSlotMarginStart` | `float` | `16` | `8` |
 | `AvatarSize` | `float` | `40` | `36` |
-| `AvatarSlotMarginVertical` | `float` | `8` | `0` |
-| `AvatarStartSlotMarginEnd` | `float` | `16` | `0` |
+| `AvatarSlotMarginVertical` | `float` | `8` | `2` |
+| `AvatarStartSlotMarginEnd` | `float` | `16` | `16` |
 | `BorderColor` | `Color` | `rgba(0, 0, 0, 0.07)` | `rgba(0, 0, 0, 0.2)` |
 | `Color` | `Color` | `#000000` | `#000000` |
 | `DividerBackground` | `Color` | `#f2f2f2` | `#f7f7f7` |

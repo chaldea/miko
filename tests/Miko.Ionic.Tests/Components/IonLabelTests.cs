@@ -286,4 +286,35 @@ public class IonLabelTests : IonicComponentTestBase
         "dark" => t.Dark,
         _ => throw new ArgumentOutOfRangeException(nameof(name), name, "Unknown palette color"),
     };
+
+    /// <summary>
+    /// ISSUE-153: Ionic gives direct h1–h6 / p children compact sizing (label.md.scss /
+    /// label.ios.scss) tighter than the normal typography. Not reproduced before now.
+    /// </summary>
+    [Theory]
+    [InlineData(HostPlatform.Android, "h1", 24f)]
+    [InlineData(HostPlatform.Android, "h2", 16f)]
+    [InlineData(HostPlatform.Android, "h3", 14f)]
+    [InlineData(HostPlatform.Android, "p", 14f)]
+    [InlineData(HostPlatform.Ios, "h1", 22f)]
+    [InlineData(HostPlatform.Ios, "h2", 17f)]
+    [InlineData(HostPlatform.Ios, "h3", 14f)]
+    [InlineData(HostPlatform.Ios, "p", 14f)]
+    public void Label_HeadingAndParagraph_CompactSizing(HostPlatform platform, string tag, float size)
+    {
+        UsePlatform(platform);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonLabel>(p =>
+        {
+            p.Add(nameof(IonLabel.ChildContent), (RenderFragment)(b =>
+            {
+                b.OpenElement(0, tag);
+                b.AddContent(1, "Text");
+                b.CloseElement();
+            }));
+        });
+
+        var style = cut.GetComputedStyle(cut.FindByTagName(tag).Single())!;
+        style.FontSize.Value.ShouldBe(size);
+    }
 }

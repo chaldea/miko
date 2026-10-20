@@ -880,8 +880,10 @@ public partial class IonicTheme
         t.ItemIconSlotMarginVertical = 7f;                      // $item-ios-icon-slot-margin-top/bottom
         t.ItemIconStartSlotMarginEnd = 16f;                     // $item-ios-slot-start-margin-end survives the icon rule
         t.ItemIconEndSlotMarginStart = 0f;                      // iOS gives slotted icons no horizontal margin
-        t.ItemAvatarSlotMarginVertical = 0f;                    // iOS sizes slotted avatars only
-        t.ItemAvatarStartSlotMarginEnd = 0f;                    // iOS gives start avatars no margin
+        // item.ios.scss ::slotted([slot="start"]) { margin: 2px 16px 2px 0 } also applies to a start
+        // avatar / thumbnail. Zero here left the media touching the label text (ISSUE-153).
+        t.ItemAvatarSlotMarginVertical = 2f;                    // $item-ios-slot-start-margin-top/bottom
+        t.ItemAvatarStartSlotMarginEnd = 16f;                   // $item-ios-slot-start-margin-end
         t.ItemAvatarEndSlotMarginStart = 8f;                    // item.ios.scss ::slotted(ion-avatar[slot="end"])
         t.ListInsetMargin = 16f;                                // $list-inset-ios-margin-*
         t.ListInsetBorderRadius = 10f;                          // $list-inset-ios-border-radius
