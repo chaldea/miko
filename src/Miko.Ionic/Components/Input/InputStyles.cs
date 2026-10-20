@@ -140,12 +140,10 @@ internal static class InputStyles
             [$".ion-input.{mode} .input-bottom .helper-text"] = new()
             {
                 Color = t.InputHelperColor,
-                MarginLeft = mode == "md" ? Length.Px(16) : Length.Px(0),
             },
             [$".ion-input.{mode} .input-bottom .error-text"] = new()
             {
                 Color = t.InputErrorColor,
-                MarginLeft = mode == "md" ? Length.Px(16) : Length.Px(0),
             },
             [$".ion-input.{mode} .input-bottom .counter"] = new()
             {

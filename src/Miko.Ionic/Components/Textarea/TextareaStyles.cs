@@ -145,12 +145,10 @@ internal static class TextareaStyles
             [$".ion-textarea.{mode} .textarea-bottom .helper-text"] = new()
             {
                 Color = t.InputHelperColor,
-                MarginLeft = mode == "md" ? Length.Px(16) : Length.Px(0),
             },
             [$".ion-textarea.{mode} .textarea-bottom .error-text"] = new()
             {
                 Color = t.InputErrorColor,
-                MarginLeft = mode == "md" ? Length.Px(16) : Length.Px(0),
             },
             [$".ion-textarea.{mode} .textarea-bottom .counter"] = new()
             {
