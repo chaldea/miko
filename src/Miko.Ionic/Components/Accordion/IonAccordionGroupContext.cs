@@ -45,4 +45,19 @@ public sealed class IonAccordionGroupContext
 
     /// <summary>True when <paramref name="value"/> is in the expanded set.</summary>
     public bool IsExpanded(string value) => Values.Contains(value);
+
+    private int _nextAutoValue;
+
+    /// <summary>Restarts the numbering of value-less accordions; the group calls it at the start of
+    /// every render.</summary>
+    internal void ResetAutoValues() => _nextAutoValue = 0;
+
+    /// <summary>
+    /// The value of the next accordion without a <c>Value</c>, numbered by its position in the
+    /// group: <c>ion-accordion-0</c>, <c>-1</c>, … . Ionic numbers each element once, globally; Miko
+    /// creates new accordion instances on every group render, so a per-instance number changed
+    /// each time and such an accordion could never be opened (ISSUE-153). Numbered by position, the
+    /// same accordion gets the same value on every render.
+    /// </summary>
+    internal string NextAutoValue() => $"ion-accordion-{_nextAutoValue++}";
 }

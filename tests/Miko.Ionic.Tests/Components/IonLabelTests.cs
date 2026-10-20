@@ -189,6 +189,36 @@ public class IonLabelTests : IonicComponentTestBase
         box.BorderBox.Width.ShouldBe(100f, 0.5f);
     }
 
+    /// <summary>
+    /// ISSUE-153: next to another label in an item, a fixed label grew like a default one, because
+    /// the item's <c>.input-wrapper .ion-label</c> rule outranked <c>.label-fixed</c>. Real nesting:
+    /// IonItem with a fixed label and a default label, as in the Ionic "fixed labels" demo.
+    /// </summary>
+    [Fact]
+    public void IonLabel_PositionFixed_InItemNextToAnotherLabel_KeepsItsTrack()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.ViewportWidth = 400;
+
+        var cut = Context.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(b =>
+        {
+            var fixedLabel = b.OpenComponent<IonLabel>();
+            fixedLabel.Position = "fixed";
+            fixedLabel.Class = "probe-fixed";
+            fixedLabel.ChildContent = text => text.AddContent("Name");
+            b.CloseComponent();
+            var other = b.OpenComponent<IonLabel>();
+            other.Class = "probe-default";
+            other.ChildContent = text => text.AddContent("Ada Lovelace");
+            b.CloseComponent();
+        })));
+
+        var fixedBox = cut.GetBoxModel(cut.FindByClass("probe-fixed").Single())!;
+        var defaultBox = cut.GetBoxModel(cut.FindByClass("probe-default").Single())!;
+        fixedBox.BorderBox.Width.ShouldBe(100f, 0.5f);
+        defaultBox.BorderBox.Width.ShouldBeGreaterThan(150f, "the default label takes the free space");
+    }
+
     [Fact]
     public void IonLabel_TextWrap_LoosensLineHeight()
     {

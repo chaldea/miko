@@ -182,6 +182,39 @@ public class IonSegmentModeStyleTests
             IonicTheme.CreateIos().SegmentIndicatorColor);
     }
 
+    /// <summary>
+    /// ISSUE-153: a md segment with a Color painted every button's text in the palette color;
+    /// Ionic colors only the checked button (segment-button.md.scss
+    /// <c>:host(.in-segment-color.segment-button-checked)</c>), unchecked ones keep the neutral color.
+    /// </summary>
+    [Fact]
+    public void MdSegment_Color_PaintsOnlyTheCheckedButtonText()
+    {
+        using var context = ContextFor(HostPlatform.Android);
+        var cut = context.Render<IonSegment>(parameters =>
+        {
+            parameters.Add(nameof(IonSegment.Value), "all");
+            parameters.Add(nameof(IonSegment.Color), "secondary");
+            parameters.AddChildContent(builder =>
+            {
+                var __c1 = builder.OpenComponent<IonSegmentButton>();
+                __c1.Value = "all";
+                builder.CloseComponent();
+                var __c2 = builder.OpenComponent<IonSegmentButton>();
+                __c2.Value = "favorites";
+                builder.CloseComponent();
+            });
+        });
+
+        var buttons = cut.FindByClass("ion-segment-button");
+        var checkedButton = buttons.Single(b => b.HasClass("segment-button-checked"));
+        var other = buttons.Single(b => !b.HasClass("segment-button-checked"));
+        var md = IonicTheme.CreateMd();
+
+        cut.GetComputedStyle(checkedButton)!.Color.ShouldBe(md.Secondary);
+        cut.GetComputedStyle(other)!.Color.ShouldNotBe(md.Secondary);
+    }
+
     [Fact]
     public void MdSegment_Color_ChangesIndicatorToPalette()
     {

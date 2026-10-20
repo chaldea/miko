@@ -60,10 +60,15 @@
     /// <summary>Raised when the checked state changes as a result of a user action (Ionic <c>ionChange</c>).</summary>
     [Parameter] public EventCallback<bool> IonChange { get; set; }
 
-    /// <summary>If true, the checkbox visually appears as indeterminate (a minus mark). A tap clears it
-    /// inside the component, but there is no <c>IndeterminateChanged</c>: the app owns this state and
-    /// must update the value it passes in.</summary>
+    /// <summary>If true, the checkbox visually appears as indeterminate (a minus mark). A tap clears
+    /// it and raises <see cref="IndeterminateChanged"/>; bind it with <c>@bind-Indeterminate</c>, or
+    /// the parent's next render restores the minus mark from the value it still passes in.</summary>
     [Parameter] public bool Indeterminate { get; set; }
+
+    /// <summary>Raised with <c>false</c> when a tap clears <see cref="Indeterminate"/>, before
+    /// <see cref="CheckedChanged"/>. Enables <c>@bind-Indeterminate</c>. Ionic clears the property
+    /// silently; it has no event for this.</summary>
+    [Parameter] public EventCallback<bool> IndeterminateChanged { get; set; }
 
     /// <summary>If true, the user cannot interact with the checkbox.</summary>
     [Parameter] public bool Disabled { get; set; }
@@ -176,7 +181,13 @@
         if (Disabled) return;
 
         Checked = !Checked;
-        Indeterminate = false;
+        if (Indeterminate)
+        {
+            Indeterminate = false;
+            // Before CheckedChanged: with both bound, the parent re-renders after each callback,
+            // and must already hold false here or the minus mark returns (ISSUE-153).
+            await IndeterminateChanged.InvokeAsync(false);
+        }
 
         await CheckedChanged.InvokeAsync(Checked);
         await IonChange.InvokeAsync(Checked);

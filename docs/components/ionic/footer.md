@@ -27,11 +27,11 @@ In md mode the footer casts a shadow upward onto the content; in ios mode its fi
 
 ## Without a border
 
-The `ion-no-border` class removes the ios hairline. In md mode it currently does **not** remove the shadow — override `BoxShadow` with an app style for that (see [CSS classes](#css-classes)).
+The `ion-no-border` class removes the ios hairline, and the shadow in md mode.
 
 <!-- miko:example examples/footer/NoBorder.razor -->
 ```razor
-@* ion-no-border removes the ios hairline; the md shadow needs an app style (see CSS classes). *@
+@* ion-no-border removes the ios hairline and the md shadow. *@
 <IonFooter Class="ion-no-border">
     <IonToolbar>
         <IonTitle>Footer</IonTitle>
@@ -42,7 +42,7 @@ The `ion-no-border` class removes the ios hairline. In md mode it currently does
 
 ## Safe area
 
-The footer does not pad its last toolbar for the bottom safe-area inset (the home indicator / gesture bar), so on an edge-to-edge device the toolbar content can sit under it. Add the padding from the app stylesheet — the snippet under [CSS classes](#css-classes) does this.
+The footer pads its last toolbar for the bottom safe-area inset (the home indicator / gesture bar). Inside an [`IonTabs`](./tabs.md) that has a bottom tab bar, the tab bar clears the inset instead and the footer does not pad, as in Ionic. Unlike Ionic, the padding stays while the on-screen keyboard is open.
 
 ## Translucent and collapse
 
@@ -78,20 +78,8 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.ion-footer` | The host. Also carries the mode (`md` / `ios`) and `.footer-md` / `.footer-ios`. |
 | `.ion-footer .ion-toolbar:first-of-type` | The toolbar that gets the ios hairline top border. |
 | `.ion-footer .ion-toolbar:last-of-type` | The bottom-most toolbar (the one to pad for the safe area). |
-| `.ion-no-border` | Set on the host to remove the ios hairline. |
+| `.ion-no-border` | Set on the host to remove the ios hairline and the md shadow. |
 | `.footer-translucent`, `.footer-translucent-ios` | `Translucent` (the second one in ios mode). |
 | `.ion-footer .footer-background` | The empty background layer rendered for `Translucent` in ios mode. |
 | `.footer-collapse-{value}` | `Collapse` (e.g. `.footer-collapse-fade`). |
-| `.footer-toolbar-padding` | Always present on the host. |
-
-```csharp
-// GlobalStyles.cs — clear the home indicator, and drop the md shadow with ion-no-border.
-[".ion-footer .ion-toolbar:last-of-type"] = new()
-{
-    PaddingBottom = Length.SafeAreaInsetBottom,
-},
-[".ion-footer.ion-no-border"] = new()
-{
-    BoxShadow = new List<BoxShadow>(),
-},
-```
+| `.footer-toolbar-padding` | On the host unless the footer is inside an `IonTabs` with a bottom tab bar; pads the last toolbar for the bottom safe area. |

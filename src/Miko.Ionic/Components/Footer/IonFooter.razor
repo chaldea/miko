@@ -22,6 +22,8 @@
     /// </summary>
     [Parameter] public string? Collapse { get; set; }
 
+    [CascadingParameter] internal IonTabs? Tabs { get; set; }
+
     protected override void OnParametersSet()
     {
         ClassMapper
@@ -32,7 +34,8 @@
             .Add($"footer-{Mode}")
             .If(Translucent, "footer-translucent")
             .If(Translucent, $"footer-translucent-{Mode}")
-            .Add("footer-toolbar-padding")
+            // footer.tsx: the tab bar pads for the safe area instead (keyboard visibility is not tracked).
+            .If(Tabs?.Bottom is null, "footer-toolbar-padding")
             .AddValue(Collapse, "footer-collapse-");
     }
 }

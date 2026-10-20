@@ -511,4 +511,46 @@ public class IonToggleTests : IonicComponentTestBase
         cut.GetComputedStyle(cut.FindByClass("toggle-inner").Single())!
             .BackgroundColor.ShouldBe(IonicTheme.CreateMd().Primary);
     }
+
+    // ---- Justify + LabelPlacement="end" (ISSUE-153, same defect as ISSUE-116 for the checkbox) ----
+
+    private ComponentUnderTest RenderInItemStyled(string? justify, string placement)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.ViewportWidth = 400;
+        return RenderToggleInItem(Context, justify: justify, labelPlacement: placement, label: "Wi-Fi");
+    }
+
+    /// <summary>
+    /// In an item the toggle stretches over the row. LabelPlacement="end" alone must keep the
+    /// switch and label at the leading edge — the old flex-start (= the right edge under
+    /// row-reverse) pushed them to the end of the row.
+    /// </summary>
+    [Fact]
+    public void IonToggle_Layout_PlacementEndInItem_PacksToLeadingEdge()
+    {
+        var cut = RenderInItemStyled(justify: null, placement: "end");
+
+        var wrapper = cut.GetBoxModel(cut.FindByClass("toggle-wrapper").Single())!;
+        var native = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+        var label = cut.GetBoxModel(cut.FindByClass("label-text-wrapper").Single())!;
+
+        wrapper.Content.Width.ShouldBeGreaterThan(native.MarginBox.Width + 100);
+        native.MarginBox.Left.ShouldBe(wrapper.Content.Left, 0.5f);
+        native.Content.X.ShouldBeLessThan(label.Content.X);
+    }
+
+    /// <summary>An explicit Justify must win over the placement rule (declared after it, as in toggle.scss).</summary>
+    [Fact]
+    public void IonToggle_Layout_JustifySpaceBetweenWithPlacementEnd_SpreadsToBothEdges()
+    {
+        var cut = RenderInItemStyled(justify: "space-between", placement: "end");
+
+        var wrapper = cut.GetBoxModel(cut.FindByClass("toggle-wrapper").Single())!;
+        var native = cut.GetBoxModel(cut.FindByClass("native-wrapper").Single())!;
+        var label = cut.GetBoxModel(cut.FindByClass("label-text-wrapper").Single())!;
+
+        native.MarginBox.Left.ShouldBe(wrapper.Content.Left, 0.5f);
+        label.MarginBox.Right.ShouldBe(wrapper.Content.Right, 0.5f);
+    }
 }

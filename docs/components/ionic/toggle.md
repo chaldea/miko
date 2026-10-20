@@ -58,7 +58,7 @@ The child content is the label; without it only the switch is drawn. The knob sl
 
 `Justify` packs the label and switch along the line: `start`, `end`, or `space-between`. `Alignment` aligns them on the cross axis: `start` or `center`. Setting either turns the inline-block host into a block, so it spans its container. Inside an [`IonItem`](./item.md) the toggle always stretches to fill the row; without `Justify` the label then sits at the start and the switch at the far end.
 
-With `LabelPlacement="end"` on a full-width toggle (in an item, or with `Justify`), the switch and label are currently packed at the trailing edge and `Justify` has no effect — unlike `IonCheckbox` and `IonRadio`, which pack them at the start.
+With `LabelPlacement="end"` on a full-width toggle (in an item, or with `Justify`), the switch and label are packed at the start; an explicit `Justify` still applies.
 
 <!-- miko:example examples/toggle/Justify.razor -->
 ```razor

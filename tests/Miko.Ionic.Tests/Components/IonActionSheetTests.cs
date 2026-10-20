@@ -134,6 +134,33 @@ public class IonActionSheetTests : IonicComponentTestBase
         button.ShouldNotHaveClass("ion-activatable");
     }
 
+    /// <summary>
+    /// ISSUE-153: the dimming rule keyed on <c>action-sheet-button-disabled</c> was dead code — the
+    /// class was never stamped (Ionic: <c>.action-sheet-button:disabled { opacity: .4 }</c>).
+    /// </summary>
+    [Fact]
+    public void IonActionSheet_DisabledButton_IsDimmed_ButCancelNeverIs()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonActionSheet>(p =>
+        {
+            p.Add(nameof(IonActionSheet.IsOpen), true);
+            p.Add(nameof(IonActionSheet.Buttons), (IReadOnlyList<IonActionSheetButton>)new List<IonActionSheetButton>
+            {
+                new() { Text = "Nope", Disabled = true },
+                new() { Text = "Cancel", Role = "cancel", Disabled = true },
+            });
+        });
+
+        var buttons = cut.FindByClass("action-sheet-button");
+        var option = buttons.Single(b => !b.HasClass("action-sheet-cancel"));
+        var cancel = buttons.Single(b => b.HasClass("action-sheet-cancel"));
+
+        option.ShouldHaveClass("action-sheet-button-disabled");
+        cut.GetComputedStyle(option)!.Opacity.ShouldBe(0.4f);
+        cancel.ShouldNotHaveClass("action-sheet-button-disabled");
+    }
+
     // ---- Open / closed gating ---------------------------------------------
 
     [Fact]

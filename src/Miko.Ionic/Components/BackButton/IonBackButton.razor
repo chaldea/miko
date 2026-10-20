@@ -29,13 +29,12 @@
 
 @code {
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
-    /// Only stamped as an <c>ion-color-*</c> class: the back-button stylesheet has no palette
-    /// rules, so it does not change the color unless an app style targets that class.</summary>
+    /// Colors the button's text and icon.</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>The path to navigate back to when the history stack cannot go back. Also controls
-    /// visibility: when null the button is hidden (no <c>show-back-button</c> class) even if there
-    /// is history to pop.</summary>
+    /// <summary>The path to navigate back to when the history stack cannot go back. The button is
+    /// shown when this is set or when there is history to go back to (Ionic's
+    /// <c>.can-go-back</c>); with neither it is hidden.</summary>
     [Parameter] public string? DefaultHref { get; set; }
 
     /// <summary>When true, the user cannot interact with the button (dimmed, non-interactive).</summary>
@@ -73,9 +72,11 @@
         // Resolve the text — either the explicit Text parameter, or the mode default.
         _text = Text ?? (Mode == "ios" ? "Back" : null);
 
-        // Build the CSS class. Show the button only when DefaultHref is set (mirrors Ionic's
-        // logic: <c>showBackButton</c> = defaultHref !== undefined).
-        var showButton = DefaultHref != null;
+        // Build the CSS class. Ionic shows the button when defaultHref is set (showBackButton) and,
+        // through core.scss `.can-go-back > ion-header ion-back-button`, on any page that has
+        // history to go back to — without DefaultHref it used to stay hidden even then (ISSUE-153).
+        // The page is rebuilt on navigation, so CanGoBack is current here.
+        var showButton = DefaultHref != null || Navigation?.CanGoBack == true;
         var hasIconOnly = _icon != null && _text == null;
 
         ClassMapper

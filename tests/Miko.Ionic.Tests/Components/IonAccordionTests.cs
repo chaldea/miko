@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Miko.Common;
 using Miko.Components;
+using Miko.Events;
 using Miko.Ionic;
 using Miko.Ionic.Components;
 using Miko.Platform;
@@ -464,5 +465,75 @@ public class IonAccordionTests : IonicComponentTestBase
         var field = typeof(IonAccordionGroup).GetField("_context",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         return (IonAccordionGroupContext)field.GetValue(group)!;
+    }
+
+    /// <summary>
+    /// IonPage &gt; IonContent &gt; IonAccordionGroup with accordions that set no Value, as in
+    /// Ionic's basic demo.
+    /// </summary>
+    private sealed class ValuelessAccordionPage : ComponentBase
+    {
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var page = builder.OpenComponent<IonPage>();
+            page.ChildContent = p =>
+            {
+                var content = p.OpenComponent<IonContent>();
+                content.ChildContent = RenderGroup;
+                p.CloseComponent();
+            };
+            builder.CloseComponent();
+        }
+
+        private static void RenderGroup(RenderTreeBuilder builder)
+        {
+            var group = builder.OpenComponent<IonAccordionGroup>();
+            group.ChildContent = b =>
+            {
+                foreach (var label in new[] { "First", "Second", "Third" })
+                {
+                    var accordion = b.OpenComponent<IonAccordion>();
+                    accordion.Class = $"probe-{label.ToLowerInvariant()}";
+                    accordion.Header = h =>
+                    {
+                        var item = h.OpenComponent<IonItem>();
+                        item.ChildContent = t => t.AddContent(label);
+                        h.CloseComponent();
+                    };
+                    accordion.Content = c => c.AddContent(label + " body");
+                    b.CloseComponent();
+                }
+            };
+            builder.CloseComponent();
+        }
+    }
+
+    private static void TapHeader(ComponentUnderTest cut, string probe)
+    {
+        var header = cut.FindByClass(probe).Single().FindByClass("accordion-header").Single();
+        new Miko.Events.EventDispatcher().Dispatch(header, Miko.Events.EventTypes.Click,
+            new MouseEventArgs { Target = header, Bubbles = true });
+    }
+
+    /// <summary>
+    /// ISSUE-153: an accordion without Value could never expand — its generated value came from a
+    /// per-instance counter, and the group's re-render after the tap built new instances with new
+    /// values that no longer matched.
+    /// </summary>
+    [Fact]
+    public void ValuelessAccordions_ExpandAndCollapseOnTap()
+    {
+        var cut = Context.Render<ValuelessAccordionPage>();
+
+        TapHeader(cut, "probe-second");
+        cut.FindByClass("probe-second").Single().ShouldHaveClass("accordion-expanded");
+        cut.FindByClass("probe-first").Single().ShouldHaveClass("accordion-collapsed");
+
+        TapHeader(cut, "probe-third");
+        cut.FindByClass("probe-third").Single().ShouldHaveClass("accordion-expanded");
+        cut.FindByClass("probe-second").Single().ShouldHaveClass("accordion-collapsed");
+
+        TapHeader(cut, "probe-third");
+        cut.FindByClass("probe-third").Single().ShouldHaveClass("accordion-collapsed");
     }
 }

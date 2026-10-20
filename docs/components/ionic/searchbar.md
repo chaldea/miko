@@ -90,7 +90,7 @@ With the default `ShowClearButton="always"` a clear button appears while there i
 
 `ShowCancelButton="always"` adds a cancel button: in md mode an icon inside the field at the start (`CancelButtonIcon`, default arrow-back-sharp), in ios mode a text button after the field (`CancelButtonText`, default `"Cancel"`). Tapping it raises `OnCancel`, then clears the value (raising `ValueChanged` and `OnInput`) and takes focus away. `"focus"` currently behaves like `"never"`, and `Animated` has no animation — in ios mode it only keeps the cancel button visible.
 
-In md mode the search icon is not hidden while the cancel button shows, so the two icons overlap; hide the search icon with an app rule (see [CSS classes](#css-classes)).
+In md mode the cancel button takes the search icon's place: the search icon is hidden while it shows.
 
 <!-- miko:example examples/searchbar/Cancel.razor -->
 ```razor
@@ -231,14 +231,9 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.ion-color-{name}` | `Color` (e.g. `.ion-color-dark`). |
 
 ```csharp
-// GlobalStyles.cs — readable text on a dark searchbar, and no overlapping
-// search icon while the md cancel button shows.
+// GlobalStyles.cs — readable text on a dark searchbar.
 [".ion-searchbar.ion-color-dark .searchbar-input"] = new()
 {
     Color = Color.FromHex("#ffffff"),
-},
-[".ion-searchbar.md.searchbar-should-show-cancel .searchbar-search-icon"] = new()
-{
-    Display = Display.None,
 },
 ```

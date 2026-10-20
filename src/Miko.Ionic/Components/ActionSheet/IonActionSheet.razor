@@ -168,7 +168,10 @@
     private string ButtonClass(IonActionSheetButton button)
     {
         var cls = "action-sheet-button";
-        if (!button.Disabled) cls += " ion-activatable ion-focusable";
+        // Ionic dims a disabled button through :disabled; cancel buttons are never disabled
+        // (action-sheet.tsx renders `disabled` only for the option buttons).
+        if (button.Disabled && !button.IsCancel) cls += " action-sheet-button-disabled";
+        else cls += " ion-activatable ion-focusable";
         if (!string.IsNullOrEmpty(button.Role)) cls += $" action-sheet-{button.Role.ToLowerInvariant()}";
         if (!string.IsNullOrEmpty(button.CssClass)) cls += $" {button.CssClass}";
         return cls;

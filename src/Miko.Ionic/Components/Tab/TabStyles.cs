@@ -77,10 +77,13 @@ internal static class TabStyles
                 BorderTop = new BorderSide(Length.Px(t.TabBarBorderWidth), BorderStyle.Solid, t.TabBarBorderColor),
             },
 
-            // slot="top": border on the bottom instead.
+            // slot="top": border on the bottom instead, and the top safe area rather than the bottom
+            // one (tab-bar.scss :host([slot="top"])).
             [$".ion-tab-bar.{mode}.ion-tab-bar-top"] = new()
             {
                 BorderBottom = new BorderSide(Length.Px(t.TabBarBorderWidth), BorderStyle.Solid, t.TabBarBorderColor),
+                PaddingTop = Length.SafeAreaInsetTop,
+                PaddingBottom = Length.Px(0),
             },
 
             // ion-tab-button — each button: icon stacked above label, vertically centered.

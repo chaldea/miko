@@ -38,7 +38,27 @@ internal static class BackButtonStyles
             AddMdStyles(css, t);
         }
 
+        // Named palette colors (back-button.scss :host(.ion-color) .button-native { color: base }).
+        // Without these the ion-color-* class matched no rule and Color had no effect (ISSUE-153).
+        AddColor(css, mode, "primary", t.Primary);
+        AddColor(css, mode, "secondary", t.Secondary);
+        AddColor(css, mode, "tertiary", t.Tertiary);
+        AddColor(css, mode, "success", t.Success);
+        AddColor(css, mode, "warning", t.Warning);
+        AddColor(css, mode, "danger", t.Danger);
+        AddColor(css, mode, "light", t.Light);
+        AddColor(css, mode, "medium", t.Medium);
+        AddColor(css, mode, "dark", t.Dark);
+
         return css;
+    }
+
+    private static void AddColor(CssObject css, string mode, string name, Color color)
+    {
+        css[$".ion-back-button.{mode}.ion-color-{name} .button-native"] = new()
+        {
+            Color = color,
+        };
     }
 
     private static void AddIosStyles(CssObject css, IonicTheme t)

@@ -35,7 +35,7 @@ Show the sheet with `IsOpen`. `Buttons` takes a list of `IonActionSheetButton`. 
 
 `OnDidDismiss` reports the tapped button's `Role` and `Data`. A backdrop tap reports role `"backdrop"` and a back press role `"back"`, both with `null` data.
 
-A button's `Role` also styles it: `destructive` uses the theme's destructive color, `selected` is bold, and `cancel` gets the cancel weight. `Icon` takes an Ionicons name and draws it before the text. `Handler` runs before the sheet closes. `Disabled` makes a non-cancel button ignore taps; it is not drawn dimmed in this port.
+A button's `Role` also styles it: `destructive` uses the theme's destructive color, `selected` is bold, and `cancel` gets the cancel weight. `Icon` takes an Ionicons name and draws it before the text. `Handler` runs before the sheet closes. `Disabled` dims a non-cancel button and makes it ignore taps.
 
 <!-- miko:example examples/action-sheet/Result.razor -->
 ```razor
@@ -144,7 +144,7 @@ A single action-sheet button. Mirrors Ionic's `ActionSheetButton` interface. The
 | `Icon` | `string?` | `null` | Optional leading icon (an Ionicons name). |
 | `CssClass` | `string?` | `null` | Extra CSS class(es) to add to the button. |
 | `Data` | `object?` | `null` | Arbitrary data returned with the dismiss event when this button is tapped. |
-| `Disabled` | `bool` | `false` | When true, tapping the button does nothing (ignored for cancel buttons). The button is not drawn dimmed in this port. |
+| `Disabled` | `bool` | `false` | When true, the button is drawn dimmed and tapping it does nothing. Ignored for cancel buttons, as in Ionic. |
 | `Handler` | `Action?` | `null` | Optional handler run when the button is tapped, before the sheet dismisses. |
 | `IsCancel` | `bool` | `false` | True when [`Role`](#ionactionsheetbutton) is `"cancel"` (case-insensitive). (read-only) |
 

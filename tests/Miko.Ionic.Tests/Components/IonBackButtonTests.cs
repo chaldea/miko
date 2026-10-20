@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Miko.Common;
 using Miko.Ionic;
 using Miko.Ionic.Components;
+using Miko.Platform;
 using Miko.Testing;
 using Shouldly;
 
@@ -82,6 +83,25 @@ public class IonBackButtonTests : IonicComponentTestBase
 
         // Assert
         cut.Root.ShouldHaveClass("ion-color-primary");
+    }
+
+    /// <summary>ISSUE-153: Color only stamped a class that no rule matched.</summary>
+    [Theory]
+    [InlineData(HostPlatform.Android)]
+    [InlineData(HostPlatform.Ios)]
+    public void Build_WithColor_ColorsTheButton(HostPlatform platform)
+    {
+        UsePlatform(platform);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderBackButton(Context, p =>
+        {
+            p.Add(nameof(IonBackButton.DefaultHref), "/home");
+            p.Add(nameof(IonBackButton.Color), "danger");
+        });
+
+        var native = cut.FindByClass("button-native").Single();
+        var theme = platform == HostPlatform.Ios ? IonicTheme.CreateIos() : IonicTheme.CreateMd();
+        cut.GetComputedStyle(native)!.Color.ShouldBe(theme.Danger);
     }
 
     [Fact]

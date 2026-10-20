@@ -313,4 +313,20 @@ public class IonSearchbarTests : IonicComponentTestBase
         var clear = cut.FindByClass("searchbar-clear-button").Single();
         return cut.GetComputedStyle(clear)!;
     }
+
+    /// <summary>
+    /// ISSUE-153: in md mode a visible cancel button (the back arrow at the start) overlapped the
+    /// search icon; Ionic hides the icon (<c>.searchbar-cancel-button + .searchbar-search-icon</c>).
+    /// </summary>
+    [Fact]
+    public void IonSearchbar_Md_CancelButtonShown_HidesTheSearchIcon()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var shown = RenderBar(Context, p => p.Add(nameof(IonSearchbar.ShowCancelButton), "always"));
+        var hidden = RenderBar(Context);
+
+        // A display:none element is pruned from the layout tree, so it has no computed style.
+        shown.GetComputedStyle(shown.FindByClass("searchbar-search-icon").Single()).ShouldBeNull();
+        hidden.GetComputedStyle(hidden.FindByClass("searchbar-search-icon").Single()).ShouldNotBeNull();
+    }
 }

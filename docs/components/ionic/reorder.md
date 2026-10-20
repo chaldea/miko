@@ -2,7 +2,7 @@
 
 Reorder lets the user drag items of a list into a new order by a handle.
 
-`IonReorderGroup` wraps the items and runs the drag gesture; `IonReorder` is the drag handle placed inside each item. A handle only appears inside an enabled `IonReorderGroup` — without one it is hidden.
+`IonReorderGroup` wraps the items and runs the drag gesture; `IonReorder` is the drag handle placed inside each item. A handle in an item's `Start` or `End` slot only appears inside an enabled `IonReorderGroup` — without one it is hidden.
 
 ## Basic usage
 
@@ -46,7 +46,7 @@ Indexes count only the group's children that contain an `IonReorder`, in render 
 
 ## Toggling reordering
 
-Bind `Disabled` to switch reordering on and off, for example from an Edit button. While disabled every handle is hidden and presses do nothing.
+Bind `Disabled` to switch reordering on and off, for example from an Edit button. While disabled every slotted handle is hidden and presses do nothing.
 
 <!-- miko:example examples/reorder/Toggle.razor -->
 ```razor
@@ -122,7 +122,7 @@ An `IonReorder` with content shows that content as the handle instead of the def
 
 ## Dragging the whole item
 
-Wrap the item in `IonReorder` to make the whole row the handle. Note that a disabled group hides every `IonReorder` — here that hides the wrapped items too (in Ionic they stay visible) — so use this pattern only for a group that is always enabled.
+Wrap the item in `IonReorder` to make the whole row the handle. While the group is disabled the wrapped items stay visible and simply cannot be dragged.
 
 <!-- miko:example examples/reorder/WholeItem.razor -->
 ```razor

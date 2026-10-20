@@ -31,28 +31,30 @@ internal static class ReorderStyles
 
         var css = new CssObject
         {
-            // ion-reorder — the drag handle host. Ionic keeps it hidden (display:none) until the
-            // enclosing group is enabled; line-height:0 and z-index:100 come from reorder.scss.
-            [$".ion-reorder.{mode}"] = new()
+            // ion-reorder in an item slot — the drag handle. reorder.scss hides only a SLOTTED
+            // reorder (`:host([slot]) { display:none; line-height:0; z-index:100 }`) until the group
+            // is enabled; an unslotted reorder wraps the whole item and must stay visible, or a
+            // disabled group would hide every item (ISSUE-153). IonItem renders its Start / End
+            // slots in .ion-slot-start / .ion-slot-end, which stand in for [slot] here.
+            [$".ion-slot-start .ion-reorder.{mode}, .ion-slot-end .ion-reorder.{mode}"] = new()
             {
                 Display = Display.None,
                 LineHeight = Length.Number(0),
                 ZIndex = 100,
             },
 
-            // .reorder-hidden — explicit hidden marker stamped when the group is missing/disabled.
-            [$".ion-reorder.{mode}.reorder-hidden"] = new()
-            {
-                Display = Display.None,
-            },
-
             // .reorder-enabled — the group is enabled, so the handle is shown and grabbable
             // (Ionic's `.reorder-enabled ion-reorder { display:block; cursor:grab }`). Miko's Cursor
-            // enum has no `grab`; Move is the closest available drag affordance.
+            // enum has no `grab`; Move is the closest available drag affordance. Repeated with the
+            // slot ancestors so it outranks the slotted hide rule above.
             [$".ion-reorder.{mode}.reorder-enabled"] = new()
             {
                 Display = Display.Block,
                 Cursor = Cursor.Move,
+            },
+            [$".ion-slot-start .ion-reorder.{mode}.reorder-enabled, .ion-slot-end .ion-reorder.{mode}.reorder-enabled"] = new()
+            {
+                Display = Display.Block,
             },
 
             // .reorder-icon — the default drag glyph, block-level so it sizes cleanly.

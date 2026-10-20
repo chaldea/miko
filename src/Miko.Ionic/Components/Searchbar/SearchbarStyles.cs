@@ -197,6 +197,10 @@ internal static class SearchbarStyles
             // (searchbar.md.scss :host(.searchbar-has-focus/.searchbar-should-show-cancel)).
             css[$".ion-searchbar.{mode}.searchbar-has-focus .searchbar-cancel-button"] = new() { Display = Display.Block };
             css[$".ion-searchbar.{mode}.searchbar-should-show-cancel .searchbar-cancel-button"] = new() { Display = Display.Block };
+            // ...and the cancel (back arrow) button then takes the search icon's place, which is
+            // hidden — otherwise the two icons overlap (searchbar.md.scss, ISSUE-153).
+            css[$".ion-searchbar.{mode}.searchbar-has-focus .searchbar-cancel-button + .searchbar-search-icon"] = new() { Display = Display.None };
+            css[$".ion-searchbar.{mode}.searchbar-should-show-cancel .searchbar-cancel-button + .searchbar-search-icon"] = new() { Display = Display.None };
         }
         else
         {

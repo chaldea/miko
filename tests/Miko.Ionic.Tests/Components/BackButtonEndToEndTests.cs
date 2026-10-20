@@ -159,8 +159,10 @@ public class BackButtonEndToEndTests : IDisposable
     }
 
     // IonPage > IonHeader > IonToolbar(Start: IonBackButton) — the standard detail-page header.
-    private sealed class DetailPage : ComponentBase
+    private class DetailPage : ComponentBase
     {
+        protected virtual string? DefaultHref => "/";
+
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
             var page = builder.OpenComponent<IonPage>();
@@ -173,7 +175,7 @@ public class BackButtonEndToEndTests : IDisposable
                     toolbar.Start = (RenderFragment)(start =>
                     {
                         var back = start.OpenComponent<IonBackButton>();
-                        back.DefaultHref = "/";
+                        back.DefaultHref = DefaultHref;
                         start.CloseComponent();
                     });
                     h.CloseComponent();
@@ -182,5 +184,46 @@ public class BackButtonEndToEndTests : IDisposable
             });
             builder.CloseComponent();
         }
+    }
+
+    /// <summary>The detail header with a bare <c>&lt;IonBackButton /&gt;</c> (no DefaultHref).</summary>
+    private sealed class BareBackButtonPage : DetailPage
+    {
+        protected override string? DefaultHref => null;
+    }
+
+    private (MikoAppContext App, NavigationManager Nav) BuildAppWithBarePage()
+    {
+        var builder = MikoAppBuilder.CreateDefault();
+        builder.AddIonic(c => c.Platform = HostPlatform.Android);
+        builder.UseRouter(router =>
+        {
+            router.MapRoute("/", typeof(BareBackButtonPage));
+            router.MapRoute("/bare", typeof(BareBackButtonPage));
+        });
+        var app = builder.Build();
+        app.Controller.Initialize(_canvas, W, H);
+        return (app, (NavigationManager)app.Services.GetService(typeof(NavigationManager))!);
+    }
+
+    /// <summary>
+    /// ISSUE-153: without DefaultHref the button stayed hidden even with history to go back to.
+    /// Ionic shows it on any page that can go back (core.scss <c>.can-go-back</c>).
+    /// </summary>
+    [Fact]
+    public void BareBackButton_IsShownOnlyWhenThereIsHistory()
+    {
+        var (app, nav) = BuildAppWithBarePage();
+        app.Engine.GetRoot()!.FindByClass("ion-back-button").Single().ShouldNotHaveClass("show-back-button");
+
+        nav.NavigateTo("/bare");
+        app.Controller.Rebuild(_canvas, W, H);
+
+        var back = app.Engine.GetRoot()!.FindByClass("ion-back-button")
+            .Single(b => b.HasClass("show-back-button"));
+        back.ShouldNotBeNull();
+
+        app.Controller.OnBackButton().ShouldBeTrue("the shown button pops the history");
+        nav.CurrentPath.ShouldBe("/");
     }
 }
