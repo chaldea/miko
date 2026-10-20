@@ -27,7 +27,7 @@ Textareas are multi-line text fields with an optional label, placeholder, helper
 
 ## Binding the value
 
-`@bind-Value` keeps a field in sync with the text. `ValueChanged` is raised with the whole new value on every edit, and `OnInput` right after it. As with `IonInput`, `OnChange` (Ionic `ionChange`) is currently never raised by typing, because Miko does not emit a native change event for text fields.
+`@bind-Value` keeps a field in sync with the text. `ValueChanged` is raised with the whole new value on every edit, and `OnInput` right after it. `OnChange` (Ionic `ionChange`) is raised when the textarea loses focus with a value different from the one it had when it was focused; Enter inserts a line break rather than committing.
 
 <!-- miko:example examples/textarea/Binding.razor -->
 ```razor
@@ -142,7 +142,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Event | Type | Description |
 | --- | --- | --- |
-| `OnChange` | `EventCallback<string?>` | Ionic `ionChange`, wired to the native change event. Miko does not emit a change event for text fields, so typing never raises this; use [`OnInput`](#iontextarea) or [`ValueChanged`](#iontextarea). |
+| `OnChange` | `EventCallback<string?>` | Ionic `ionChange`: raised when the textarea loses focus with a value different from the one it had on focus. Enter inserts a line break and does not commit. Not raised while typing (see [`OnInput`](#iontextarea)) or for programmatic value changes. |
 | `OnInput` | `EventCallback<string?>` | Raised each time the user modifies the value (Ionic `ionInput`). |
 | `ValueChanged` | `EventCallback<string?>` | Raised (with the new value) as the user types (two-way binding support). |
 

@@ -2,11 +2,11 @@
 @namespace MikoMultiplatformApp.Pages
 @inject Miko.Animation.AnimationManager Animations
 
-@* Sidemenu (overlay drawer) layout with slide/fade animation. The layout's IonApp hosts the
-   page and menu as siblings; the menu is authored after the page so reverse-document-order
-   hit-test reaches the (full-screen) menu host first. IonMenu owns its own backdrop and the
-   deferred-unmount timing — the page only flips _menuOpen. The AnimationManager is passed
-   down because nested components don't receive DI injection. *@
+@* Sidemenu (overlay drawer) layout with slide/fade animation. The IonMenu is the last child of
+   the IonPage, so the page keeps a single root element and the menu is hit-tested before the
+   page content it covers. IonMenu owns its own backdrop and the deferred-unmount timing — the
+   page only flips _menuOpen. The AnimationManager is passed down because nested components
+   don't receive DI injection. *@
 <IonPage>
     <IonHeader>
         <IonToolbar>
@@ -28,9 +28,8 @@
                the page. Tap the dimmed backdrop to slide it back out.</p>
         </div>
     </IonContent>
-</IonPage>
 
-<IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu" Animations="Animations">
+    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu" Animations="Animations">
         <IonContent>
             <IonList Id="inbox-list">
                 <IonListHeader>Inbox</IonListHeader>
@@ -47,7 +46,8 @@
                 }
             </IonList>
         </IonContent>
-</IonMenu>
+    </IonMenu>
+</IonPage>
 
 @code {
     private bool _menuOpen;
@@ -62,20 +62,12 @@
         new("Spam", Ionicons.WarningOutline),
     };
 
-    // The click handlers live in IonMenuButton / IonMenu (their EventCallbacks re-render those
-    // child components, not this page), so call StateHasChanged() here — this page owns
-    // _menuOpen and renders IonMenu — to drive the open/close animation.
-    private void OpenMenu()
-    {
-        _menuOpen = true;
-        StateHasChanged();
-    }
+    // These handlers are defined in this page, so the EventCallbacks that IonMenuButton.OnClick
+    // and IonMenu.OnClose wrap them in re-render this page when they return — no
+    // StateHasChanged() needed to drive the open/close animation.
+    private void OpenMenu() => _menuOpen = true;
 
-    private void CloseMenu()
-    {
-        _menuOpen = false;
-        StateHasChanged();
-    }
+    private void CloseMenu() => _menuOpen = false;
 
     private readonly record struct MenuPage(string Title, string Icon);
 }

@@ -61,7 +61,7 @@ Put the `IonSlide`s directly in `IonSlides` (a `@foreach` is fine): the slide co
 ```
 <!-- /miko:example -->
 
-`IonSlides` also has public `SlideToAsync`, `SlideNextAsync`, `SlidePrevAsync`, `StartAutoplay`, and `StopAutoplay` methods and `SlideCount`, `IsBeginning`, and `IsEnd` properties, but Miko's Razor compiler does not populate `@ref`, so drive the carousel through `ActiveIndex` instead.
+`IonSlides` also has public `SlideToAsync`, `SlideNextAsync`, `SlidePrevAsync`, `StartAutoplay`, and `StopAutoplay` methods and `SlideCount`, `IsBeginning`, and `IsEnd` properties, reachable through `@ref` (`<IonSlides @ref="_slides">` with an `IonSlides? _slides` field). When the position is also bound with `@bind-ActiveIndex`, the binding follows these calls; without it, a re-render of the declaring component returns the carousel to the `ActiveIndex` it passes.
 
 ## Loop and autoplay
 

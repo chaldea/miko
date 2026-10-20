@@ -87,9 +87,9 @@
     /// <summary>Raised each time the user modifies the value (Ionic <c>ionInput</c>).</summary>
     [Parameter] public EventCallback<string?> OnInput { get; set; }
 
-    /// <summary>Ionic <c>ionChange</c>, wired to the native change event. Miko does not emit a change
-    /// event for text fields, so typing never raises this; use <see cref="OnInput"/> or
-    /// <see cref="ValueChanged"/>.</summary>
+    /// <summary>Ionic <c>ionChange</c>: raised when the edit is committed — when the input loses
+    /// focus or Enter is pressed, with a value different from the one it had on focus. Not raised
+    /// while typing (see <see cref="OnInput"/>) or for programmatic value changes.</summary>
     [Parameter] public EventCallback<string?> OnChange { get; set; }
 
     /// <summary>Instructional text shown before the input has a value.</summary>

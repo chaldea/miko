@@ -57,6 +57,8 @@ public class RenderTreeBuilder
         ["b"] = () => new BElement(),
         ["pre"] = () => new PreElement(),
         ["code"] = () => new CodeElement(),
+        // 绘制回调只能在 C# 里给（@ref 拿到元素后赋 Paint），标签本身此前却会抛 Unknown tag。
+        ["canvas"] = () => new CanvasElement(),
     };
 
     public void OpenElement(int seq, string tagName)
@@ -157,6 +159,118 @@ public class RenderTreeBuilder
         if (int.TryParse(value, out var cols)) textArea.Cols = cols;
     }
 
+    // ---------------------------------------------------------------------
+    // ISSUE-153 问题 3：此前不在属性表里、被静默丢弃的常用属性。
+    //
+    // 值参数一律接受 object?：属性值可以是字面量字符串，也可以是任意类型的表达式
+    // （<c>&lt;option value="@item.Id"&gt;</c>、<c>colspan="@n"</c>）。生成代码把表达式原样
+    // 传进来，限定为 string 会让这些写法编译失败——而它们此前虽无效果，却能编译通过。
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// A string-valued attribute (<c>placeholder</c>, <c>&lt;label for&gt;</c>,
+    /// <c>&lt;option value&gt;</c>, …). Strings pass through; other values are formatted with the
+    /// invariant culture, so a numeric option value matches the same number bound with <c>@bind</c>.
+    /// </summary>
+    public static string? FormatAttributeValue(string? value) => value;
+
+    /// <inheritdoc cref="FormatAttributeValue(string?)"/>
+    public static string? FormatAttributeValue(object? value)
+        => value is IFormattable formattable
+            ? formattable.ToString(null, CultureInfo.InvariantCulture)
+            : value?.ToString();
+
+    /// <summary>
+    /// HTML <c>disabled</c>: marks the element <see cref="ElementState.Disabled"/>, which also
+    /// disables its descendants (<see cref="Element.IsDisabled"/>) and matches <c>:disabled</c>.
+    /// A null value means the attribute is absent.
+    /// </summary>
+    public static void SetDisabled(Element element, string? value)
+        => SetDisabled(element, value is not null && ParseHtmlBool(value));
+
+    /// <inheritdoc cref="SetDisabled(Element, string?)"/>
+    public static void SetDisabled(Element element, bool value)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        // 此刻元素尚未进入布局树，无需失效。不写 false：新建的元素本来就没有禁用态。
+        if (value) element.SetState(ElementState.Disabled, invalidate: false);
+    }
+
+    /// <inheritdoc cref="SetDisabled(Element, string?)"/>
+    public static void SetDisabled(Element element, bool? value) => SetDisabled(element, value ?? false);
+
+    /// <summary>
+    /// <c>colspan</c> / <c>rowspan</c> / <c>span</c>. HTML treats a missing, invalid or zero value
+    /// as 1 and caps it at 1000 (<c>rowspan="0"</c>'s "to the end of the section" is not modelled).
+    /// </summary>
+    public static int ParseSpanAttribute(object? value)
+        => TryParseInteger(value, out var span) ? Math.Clamp(span, 1, 1000) : 1;
+
+    /// <summary><c>&lt;ol start&gt;</c>. An invalid value keeps the default numbering.</summary>
+    public static void SetListStart(OlElement list, object? value)
+    {
+        ArgumentNullException.ThrowIfNull(list);
+        if (TryParseInteger(value, out var start)) list.Start = start;
+    }
+
+    /// <summary><c>&lt;li value&gt;</c>. An invalid value keeps the item's ordinal number.</summary>
+    public static void SetListItemValue(LiElement item, object? value)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        if (TryParseInteger(value, out var ordinal)) item.Value = ordinal;
+    }
+
+    /// <summary>Range <c>min</c>. An invalid value keeps the default (0).</summary>
+    public static void SetInputMin(InputElement input, object? value)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        if (TryParseFloat(value, out var min)) input.Min = min;
+    }
+
+    /// <summary>Range <c>max</c>. An invalid value keeps the default (100).</summary>
+    public static void SetInputMax(InputElement input, object? value)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        if (TryParseFloat(value, out var max)) input.Max = max;
+    }
+
+    /// <summary>
+    /// <c>&lt;select value&gt;</c>. The options are the select's children, which are built after
+    /// its attributes, so the value is recorded here and applied when the element closes
+    /// (<see cref="CloseElement"/>). Without this slot <c>&lt;select @bind&gt;</c> never showed
+    /// the bound value. A null value declares nothing, as for inputs (ISSUE-121).
+    /// </summary>
+    public static void SetSelectValue(SelectElement select, object? value)
+    {
+        ArgumentNullException.ThrowIfNull(select);
+        if (FormatAttributeValue(value) is { } text) select.DeclaredValue = text;
+    }
+
+    private static bool TryParseInteger(object? value, out int result)
+    {
+        switch (value)
+        {
+            case int i: result = i; return true;
+            case long l when l is >= int.MinValue and <= int.MaxValue: result = (int)l; return true;
+            default:
+                return int.TryParse(FormatAttributeValue(value)?.Trim(), NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out result);
+        }
+    }
+
+    private static bool TryParseFloat(object? value, out float result)
+    {
+        switch (value)
+        {
+            case float f: result = f; return true;
+            case double d: result = (float)d; return true;
+            case int i: result = i; return true;
+            default:
+                return float.TryParse(FormatAttributeValue(value)?.Trim(), NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out result);
+        }
+    }
+
     /// <summary>
     /// Parses an HTML <c>input type</c> attribute. Kept here (rather than inlined by the
     /// compiler) so a runtime-valued <c>type</c> expression resolves identically to a literal.
@@ -250,6 +364,7 @@ public class RenderTreeBuilder
     {
         var element = _stack.Pop();
         NormalizeTextArea(element);
+        ApplyDeclaredSelectValue(element);
         if (_stack.Count > 0)
             _stack.Peek().AddChild(element);
         else
@@ -273,6 +388,13 @@ public class RenderTreeBuilder
             textArea.Value = childText;
         }
         textArea.Children.RemoveAll(c => c is TextNode);
+    }
+
+    /// <summary>See <see cref="SetSelectValue"/>: the options exist once the select closes.</summary>
+    private static void ApplyDeclaredSelectValue(Element element)
+    {
+        if (element is SelectElement { DeclaredValue: { } value } select)
+            select.Value = value;
     }
 
     // ---------------------------------------------------------------------
@@ -371,6 +493,43 @@ public class RenderTreeBuilder
                 code.Language = value; break;
             case "highlight" when element is CodeElement code:
                 code.Highlight = ParseHtmlBool(value); break;
+            // ISSUE-153 问题 3：与 MikoElements 新增的槽位一一对应。
+            case "disabled":
+                SetDisabled(element, value); break;
+            case "placeholder" when element is InputElement placeholderInput:
+                placeholderInput.Placeholder = value; break;
+            case "min" when element is InputElement minInput:
+                SetInputMin(minInput, value); break;
+            case "max" when element is InputElement maxInput:
+                SetInputMax(maxInput, value); break;
+            case "for" when element is LabelElement label:
+                label.For = value; break;
+            case "value" when element is OptionElement option:
+                option.Value = value; break;
+            case "selected" when element is OptionElement selectedOption:
+                selectedOption.Selected = ParseHtmlBool(value); break;
+            case "label" when element is OptGroupElement group:
+                group.Label = value; break;
+            case "value" when element is SelectElement select:
+                SetSelectValue(select, value); break;
+            case "multiple" when element is SelectElement multiSelect:
+                multiSelect.Multiple = ParseHtmlBool(value); break;
+            case "colspan" when element is TdElement td:
+                td.ColSpan = ParseSpanAttribute(value); break;
+            case "rowspan" when element is TdElement td:
+                td.RowSpan = ParseSpanAttribute(value); break;
+            case "colspan" when element is ThElement th:
+                th.ColSpan = ParseSpanAttribute(value); break;
+            case "rowspan" when element is ThElement th:
+                th.RowSpan = ParseSpanAttribute(value); break;
+            case "span" when element is ColElement col:
+                col.Span = ParseSpanAttribute(value); break;
+            case "span" when element is ColgroupElement colgroup:
+                colgroup.Span = ParseSpanAttribute(value); break;
+            case "start" when element is OlElement ol:
+                SetListStart(ol, value); break;
+            case "value" when element is LiElement li:
+                SetListItemValue(li, value); break;
         }
     }
 
@@ -583,8 +742,43 @@ public class RenderTreeBuilder
     {
         if (_componentStack.Count == 0) return;
         var component = _componentStack.Peek();
-        var prop = component.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-        prop?.SetValue(component, value);
+        var prop = FindParameterProperty(component.GetType(), name);
+        if (prop is null)
+        {
+            // 组件上没有同名参数的元素事件（<IonChip @onclick="…">）挂到组件渲染出的元素上，
+            // 如同 Ionic 宿主元素上的监听器。此前它被静默丢弃（ISSUE-153 问题 5）。
+            component.TryAddHostEventListener(name, value);
+            return;
+        }
+
+        // @onclick 写在声明了无参 EventCallback OnClick 的组件上（IonButton 等）：
+        // 编译器按事件类型生成 EventCallback<MouseEventArgs>，参数类型对不上时转换过去。
+        if (value is IEventCallback callback && prop.PropertyType == typeof(EventCallback))
+            value = new EventCallback(callback.Receiver, callback.Delegate);
+
+        prop.SetValue(component, value);
+    }
+
+    /// <summary>
+    /// 按名字找组件参数：先精确匹配，再不区分大小写——与 Blazor 一致。<c>@onclick</c> 在组件上
+    /// 生成名为 <c>"onclick"</c> 的属性，编译器也按不区分大小写把它与 <c>OnClick</c> 参数对应
+    /// （同时写两者会报 RZ10010），区分大小写的查找让它永远落空（ISSUE-153 问题 5）。
+    /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2070",
+        Justification = "See AddComponentParameter: the component type was opened through an " +
+                        "OpenComponent overload that preserves its public properties (ISSUE-140).")]
+    private static PropertyInfo? FindParameterProperty(Type componentType, string name)
+    {
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+        try
+        {
+            return componentType.GetProperty(name, flags)
+                ?? componentType.GetProperty(name, flags | BindingFlags.IgnoreCase);
+        }
+        catch (AmbiguousMatchException)
+        {
+            return null;
+        }
     }
 
     public void CloseComponent()
@@ -609,6 +803,62 @@ public class RenderTreeBuilder
     }
 
     public void SetKey(object? key) { }
+
+    // ---------------------------------------------------------------------
+    // @ref（ISSUE-153 问题 4）
+    //
+    // 引用在构建时就地赋值：元素与组件实例此刻已经存在，不必像 Blazor 那样等到渲染之后。
+    // 每次重渲染都产出新实例，字段也随之更新到在场的那一个。
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// <c>@ref</c> on an element whose type is known at compile time. The capture is typed by the
+    /// element (<c>CanvasElement</c>), so the field may be that type, <see cref="Element"/>, or
+    /// <see cref="ElementReference"/>.
+    /// </summary>
+    public void AddElementReferenceCapture<TElement>(TElement element, Action<TElement> capture)
+        where TElement : Element
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(capture);
+        capture(element);
+
+        // 顶层元素可能成为组件的根。无父组件的重渲染（StateHasChanged 的无父分支）会把新内容
+        // 搬进旧根、丢弃新根，此时字段要改指向留下的旧根——见 RebindRootCaptures。
+        if (_stack.Count == 1 && ReferenceEquals(_stack.Peek(), element))
+            (_topLevelCaptures ??= new()).Add((element, e => { if (e is TElement typed) capture(typed); }));
+    }
+
+    /// <summary><c>@ref</c> on the open element when its type is only known at run time.</summary>
+    public void AddElementReferenceCapture(int seq, Action<Element> capture)
+    {
+        ArgumentNullException.ThrowIfNull(capture);
+        if (_stack.Count == 0) return;
+        AddElementReferenceCapture(_stack.Peek(), capture);
+    }
+
+    /// <summary><c>@ref</c> on a component: captures the open component instance.</summary>
+    public void AddComponentReferenceCapture(int seq, Action<object> capture)
+    {
+        ArgumentNullException.ThrowIfNull(capture);
+        if (_componentStack.Count > 0) capture(_componentStack.Peek());
+    }
+
+    private List<(Element Element, Action<Element> Capture)>? _topLevelCaptures;
+
+    /// <summary>
+    /// Re-points the <c>@ref</c> fields that captured <paramref name="builtRoot"/> to
+    /// <paramref name="liveRoot"/>, the element that keeps the content when a component without
+    /// a parent element re-renders itself.
+    /// </summary>
+    internal void RebindRootCaptures(Element builtRoot, Element liveRoot)
+    {
+        if (_topLevelCaptures is null) return;
+        foreach (var (element, capture) in _topLevelCaptures)
+        {
+            if (ReferenceEquals(element, builtRoot)) capture(liveRoot);
+        }
+    }
 
     /// <summary>
     /// Emitted after an <c>@bind</c>-generated change handler to record which value attribute that
@@ -743,13 +993,19 @@ public class RenderTreeBuilder
             return;
         }
 
-        // 出现第二个及以上顶层元素：用一个透明片段平铺承载全部顶层元素（而非逐层嵌套，
-        // 也不套不透明 div，避免破坏样式布局）。若已有根本身就是片段，则直接复用为承载容器。
+        // 出现第二个及以上顶层元素：用一个透明片段平铺承载全部顶层元素（不套不透明 div，
+        // 避免破坏样式布局）。
+        //
+        // 承载片段必须是本构建器自己新建的，绝不能复用已有的根——即便它本身就是片段。
+        // 那个片段是别的组件的稳定根（多根页面、透明 CascadingValue 的内容……），属于它的
+        // 产出者：产出者重渲染时会把它整个换掉（StateHasChanged 的有父分支），于是此处并进去
+        // 的兄弟节点随之丢失。ISSUE-153 问题 2：多根页面直接放在 IonApp 下，IonOverlayHost
+        // 被并进了页面片段，页面第一次重渲染后弹层宿主就没了。片段套片段对布局无影响
+        // （LayoutEngine.AppendChildLayoutBoxes 递归摊平）。
         if (_syntheticRoot is null)
         {
-            _syntheticRoot = _root as FragmentElement ?? new FragmentElement();
-            if (!ReferenceEquals(_syntheticRoot, _root))
-                _syntheticRoot.AddChild(_root);
+            _syntheticRoot = new FragmentElement();
+            _syntheticRoot.AddChild(_root);
             _root = _syntheticRoot;
         }
         _syntheticRoot.AddChild(element);

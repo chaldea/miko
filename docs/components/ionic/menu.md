@@ -21,7 +21,7 @@ The drawer and its backdrop are absolutely positioned over their nearest positio
 
 ## Side menu
 
-The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `IonMenu.OnClose` — raised by a tap on the backdrop and by the system back button while the menu is open — clears it. Make the `IonMenu` the last child of the page's `IonPage`, so the page keeps a single root element (see [Page structure](./app.md#page-structure)); the drawer is a flex column, so an `IonHeader` / `IonContent` inside it lays out like a page. Handlers defined in the page re-render it when they return, so the explicit `StateHasChanged()` calls (kept from the template) are optional.
+The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `IonMenu.OnClose` — raised by a tap on the backdrop and by the system back button while the menu is open — clears it. Make the `IonMenu` the last child of the page's `IonPage` (see [Page structure](./app.md#page-structure)); the drawer is a flex column, so an `IonHeader` / `IonContent` inside it lays out like a page. Handlers defined in the page re-render it when they return, so they only need to flip the flag.
 
 <!-- miko:example examples/menu/Home.razor -->
 ```razor
@@ -84,26 +84,17 @@ The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `Ion
         new("Spam", Ionicons.WarningOutline),
     };
 
-    // As in the scaffolded template: flip the flag and re-render the page that renders IonMenu
-    // (the EventCallback would re-render it anyway).
-    private void OpenMenu()
-    {
-        _menuOpen = true;
-        StateHasChanged();
-    }
+    // Defined in this page, so the EventCallbacks re-render the page when they return.
+    private void OpenMenu() => _menuOpen = true;
 
-    private void CloseMenu()
-    {
-        _menuOpen = false;
-        StateHasChanged();
-    }
+    private void CloseMenu() => _menuOpen = false;
 
     private readonly record struct MenuPage(string Title, string Icon);
 }
 ```
 <!-- /miko:example -->
 
-The sidemenu app template (`Pages/Home.sidemenu.razor`) has the same parts, but places the `IonMenu` next to the `IonPage` rather than inside it, which gives the page two root elements; prefer the single-root form above.
+The sidemenu app template (`Pages/Home.sidemenu.razor`) is built the same way.
 
 `Animations` takes the injected `AnimationManager` and is meant to keep the backdrop mounted until its fade-out finishes. Currently the fade-out is skipped either way: re-rendering the page to set `IsOpen` to `false` creates a new `IonMenu` instance, which starts with the backdrop unmounted. The drawer's slide is a style transition on the drawer and does not depend on `Animations`.
 

@@ -46,7 +46,7 @@ Bind the text with `@bind-Value` and filter on it. `ValueChanged` is raised with
 
 ## Events
 
-`OnInput` is raised on every edit, right after `ValueChanged`. `OnChange` is the commit event: it is raised on blur when the value changed during that focus (and after the cancel button clears a non-focused field), never per keystroke and never for programmatic changes. `OnFocus` and `OnBlur` follow the field's focus; tapping the clear or cancel button takes focus away from the field.
+`OnInput` is raised on every edit, right after `ValueChanged`. `OnChange` is the commit event: it is raised on blur or Enter when the value changed during that focus (and after the cancel button clears a non-focused field), never per keystroke and never for programmatic changes. `OnFocus` and `OnBlur` follow the field's focus; tapping the clear or cancel button takes focus away from the field.
 
 <!-- miko:example examples/searchbar/Events.razor -->
 ```razor
@@ -175,7 +175,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | --- | --- | --- |
 | `OnBlur` | `EventCallback` | Raised when the search field loses focus (Ionic `ionBlur`). |
 | `OnCancel` | `EventCallback` | Raised when the cancel button is clicked (Ionic `ionCancel`). Fires before the value is cleared, like the Ionic source. |
-| `OnChange` | `EventCallback<string?>` | Raised when the value change is committed — on blur, or when the clear / cancel button changes the value (Ionic `ionChange`). Not raised for programmatic value changes, matching Ionic. |
+| `OnChange` | `EventCallback<string?>` | Raised when the value change is committed (Ionic `ionChange`): when the field loses focus or Enter is pressed with a value different from the one it had on focus — a clear-button tap counts as a change — or when the cancel button clears an unfocused field. Not raised for programmatic value changes, matching Ionic. |
 | `OnClear` | `EventCallback` | Raised when the clear button is clicked (Ionic `ionClear`). Fires before the value is cleared, like the Ionic source. |
 | `OnFocus` | `EventCallback` | Raised when the search field gains focus (Ionic `ionFocus`). |
 | `OnInput` | `EventCallback<string?>` | Raised each time the user modifies the value (Ionic `ionInput`). |

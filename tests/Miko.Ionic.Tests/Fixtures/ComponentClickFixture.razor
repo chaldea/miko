@@ -1,0 +1,18 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* @onclick written on components (ISSUE-153 problem 5). IonChip has no click parameter of its own,
+   so the handler belongs on the element the component renders, as on an Ionic host element.
+   IonButton declares OnClick, which @onclick binds to (the compiler matches it case-insensitively). *@
+<div>
+    <IonChip Class="chip" @onclick="ChipClicked">Chip</IonChip>
+    <IonButton Class="button" @onclick="ButtonClicked">Button</IonButton>
+</div>
+
+@code {
+    internal static readonly List<string> Log = new();
+
+    private void ChipClicked() => Log.Add("chip");
+
+    private void ButtonClicked() => Log.Add("button");
+}

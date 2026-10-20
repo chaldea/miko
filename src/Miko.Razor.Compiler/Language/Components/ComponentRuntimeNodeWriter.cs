@@ -235,6 +235,13 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
         }
         else
         {
+            // 小写标签不在元素表里：运行时 OpenElement 会抛 Unknown tag（ISSUE-153）。
+            // 大写开头的是写错名字或缺 @using 的组件，已由 RZ10012 报告。
+            if (node.TagName is { Length: > 0 } tagName && char.IsLower(tagName[0]))
+            {
+                context.AddDiagnostic(ComponentDiagnosticFactory.Create_UnknownElementTag(node.Source, tagName));
+            }
+
             context.CodeWriter
                 .WriteStartMethodInvocation($"{BuilderVariableName}.{ComponentsApi.RenderTreeBuilder.OpenElement}")
                 .WriteIntegerLiteral(_sourceSequence++)
@@ -332,7 +339,7 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
 
         if (node.AttributeNameExpression == null)
         {
-            WriteAttribute(context, node.AttributeName, _currentAttributeValues.ToImmutableAndClear());
+            WriteAttribute(context, node.AttributeName, _currentAttributeValues.ToImmutableAndClear(), node.Source);
         }
         else
         {
@@ -1209,10 +1216,21 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
         var methodName = node.IsComponentCapture
             ? ComponentsApi.RenderTreeBuilder.AddComponentReferenceCapture
             : ComponentsApi.RenderTreeBuilder.AddElementReferenceCapture;
-        codeWriter
-            .WriteStartMethodInvocation($"{BuilderVariableName}.{methodName}")
-            .WriteIntegerLiteral(_sourceSequence++)
-            .WriteParameterSeparator();
+        codeWriter.WriteStartMethodInvocation($"{BuilderVariableName}.{methodName}");
+
+        // 强类型元素（ISSUE-153 问题 4）：把元素局部变量本身传进去，捕获 lambda 的参数类型由它推断，
+        // 字段于是可以声明成元素自己的类型（CanvasElement）、Element 或 ElementReference：
+        // __builder.AddElementReferenceCapture(__e0, (__value) => { _canvas = __value; });
+        if (!node.IsComponentCapture && _currentElement.IsTyped)
+        {
+            codeWriter.Write(_currentElement.VariableName);
+        }
+        else
+        {
+            codeWriter.WriteIntegerLiteral(_sourceSequence++);
+        }
+
+        codeWriter.WriteParameterSeparator();
 
         WriteReferenceCaptureInnards(context, node, shouldTypeCheck: true);
 
@@ -1260,13 +1278,22 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
         context.CodeWriter.WriteLine(";");
     }
 
-    private void WriteAttribute(CodeRenderingContext context, string key, ImmutableArray<IntermediateToken> value)
+    private void WriteAttribute(
+        CodeRenderingContext context, string key, ImmutableArray<IntermediateToken> value, SourceSpan? source = null)
     {
         // 强类型路径（ISSUE-136）：已知标签上的已知属性直接写到元素实例上，
         // 不再经运行时的名字 switch。
         if (TryWriteTypedElementAttribute(context, key, value))
         {
             return;
+        }
+
+        // 已知标签上没有槽位的属性：运行时 switch 同样不认识它，属性被丢弃。此前没有任何
+        // 提示（ISSUE-153 问题 3），这里在编译期报告。
+        if (_currentElement.IsTyped && !MikoElements.IsSilentlyIgnoredAttribute(key))
+        {
+            context.AddDiagnostic(ComponentDiagnosticFactory.Create_UnsupportedElementAttribute(
+                source, key, _currentElement.TagName));
         }
 
         BeginWriteAttribute(context, key);

@@ -1,0 +1,37 @@
+@namespace Miko.Razor.Tests
+@* ISSUE-153 problem 3: attributes that used to compile and then do nothing, with literal and
+   expression values (expressions of a non-string type must keep compiling). *@
+<div class="slots-host">
+    <label class="slot-label" for="name-input">Name</label>
+    <input class="slot-input" placeholder="Your name" disabled />
+    <input class="slot-enabled" disabled="@false" />
+    <input class="slot-range" type="range" min="10" max="@_max" value="20" />
+    <select class="slot-select" @bind="Choice">
+        <optgroup label="Letters">
+            <option value="a">Alpha</option>
+            <option value="@_numericValue">Beta</option>
+        </optgroup>
+        <option value="c" selected>Gamma</option>
+    </select>
+    <table>
+        <tbody>
+            <tr>
+                <td class="slot-td" colspan="2" rowspan="@_rows">x</td>
+                <th class="slot-th" colspan="bad">y</th>
+            </tr>
+        </tbody>
+    </table>
+    <ol class="slot-ol" start="5">
+        <li class="slot-li" value="9">nine</li>
+    </ol>
+    <canvas class="slot-canvas"></canvas>
+</div>
+
+@code {
+    private readonly int _max = 50;
+    private readonly int _numericValue = 2;
+    private readonly int _rows = 3;
+
+    // Static so the test can read the written-back value; reset before each render.
+    internal static string? Choice { get; set; }
+}

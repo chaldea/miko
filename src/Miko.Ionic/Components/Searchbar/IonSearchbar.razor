@@ -27,7 +27,8 @@
    and edits it like any text input (the native <input> is InputType.Search).
 
    Events mirror searchbar.tsx: OnInput (ionInput) per edit, OnChange (ionChange) on commit —
-   i.e. on blur when the value changed during that focus, or from clear/cancel — plus OnClear,
+   the native change event, raised by the engine on blur or Enter when the value changed during
+   that focus, or from cancel on an unfocused field — plus OnClear,
    OnCancel, OnFocus, OnBlur, and ValueChanged for @bind-Value.
 
    Two documented gaps, both because host classes are computed from parameters at build time
@@ -75,9 +76,10 @@
     /// <summary>Raised each time the user modifies the value (Ionic <c>ionInput</c>).</summary>
     [Parameter] public EventCallback<string?> OnInput { get; set; }
 
-    /// <summary>Raised when the value change is committed — on blur, or when the clear / cancel
-    /// button changes the value (Ionic <c>ionChange</c>). Not raised for programmatic value
-    /// changes, matching Ionic.</summary>
+    /// <summary>Raised when the value change is committed (Ionic <c>ionChange</c>): when the field
+    /// loses focus or Enter is pressed with a value different from the one it had on focus — a
+    /// clear-button tap counts as a change — or when the cancel button clears an unfocused field.
+    /// Not raised for programmatic value changes, matching Ionic.</summary>
     [Parameter] public EventCallback<string?> OnChange { get; set; }
 
     /// <summary>Raised when the clear button is clicked (Ionic <c>ionClear</c>). Fires before the
@@ -143,14 +145,6 @@
     private string _searchIcon = Ionicons.SearchSharp;
     private string _clearIcon = Ionicons.CloseSharp;
     private string _cancelButtonIcon = Ionicons.ArrowBackSharp;
-
-    // 聚焦时的值快照（searchbar.tsx focusedValue）：失焦时与当前值比较，只有真的变了才发
-    // ionChange。原生 change 在这个渲染器里不为文本框发出（没有浏览器的提交语义），故由 blur 承担。
-    //
-    // 存在元素上而非组件字段上：祖先重渲染会换掉本组件实例，字段随之归零，而元素的状态会经
-    // CopyInteractionStateFrom 迁移到新实例（ISSUE-121）。这里借 input 自己的值做基准，
-    // 于是无需跨重渲染保活任何组件状态。
-    private string? _focusedValue;
 
     protected override void OnParametersSet()
     {
@@ -231,8 +225,9 @@
         await OnInput.InvokeAsync(next);
     }
 
-    // 引擎没有浏览器那套「提交」语义，原生 change 只在少数控件上发；文本框的提交时机由
-    // HandleBlur 承担（对齐 searchbar.tsx：onBlur 里比较 focusedValue 后补发 ionChange）。
+    // 提交语义由引擎承担（ISSUE-153 问题 6）：失焦或回车时，值与获得焦点时不同才派发原生 change，
+    // 与浏览器一致。基准值记在控制器上，跨组件重渲染仍然有效——此前这里靠 HandleBlur 比较组件
+    // 字段里的 focusedValue 补发，页面一重渲染（例如 OnChange 处理器本身）字段就归零，导致重复补发。
     private async Task HandleChange(ChangeEventArgs args)
     {
         if (Disabled) return;
@@ -251,23 +246,10 @@
     {
         if (Disabled) return;
 
-        // 以元素的当前值为基准，而不是组件参数：未绑定时用户键入只写在元素上。
-        _focusedValue = (args.Target as InputElement)?.Value ?? Value;
         await OnFocus.InvokeAsync();
     }
 
-    private async Task HandleBlur(FocusEventArgs args)
-    {
-        await OnBlur.InvokeAsync();
-
-        // 提交语义：值在这次聚焦期间确实变了才发 ionChange（searchbar.tsx onBlur）。
-        var current = (args.Target as InputElement)?.Value ?? Value;
-        if (_focusedValue != current)
-        {
-            await EmitValueChangeAsync(current);
-        }
-        _focusedValue = null;
-    }
+    private async Task HandleBlur(FocusEventArgs args) => await OnBlur.InvokeAsync();
 
     private async Task HandleClearClick(MouseEventArgs args)
     {
@@ -328,11 +310,7 @@
         StateHasChanged();
     }
 
-    private async Task EmitValueChangeAsync(string? value)
-    {
-        _focusedValue = value;
-        await OnChange.InvokeAsync(value);
-    }
+    private async Task EmitValueChangeAsync(string? value) => await OnChange.InvokeAsync(value);
 
     /// <summary>
     /// 从事件目标出发找到同一搜索框的原生 input：向上走到宿主（<c>ion-searchbar</c>），再向下找。

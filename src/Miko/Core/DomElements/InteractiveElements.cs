@@ -371,6 +371,12 @@ public class SelectElement : Element
     }
 
     /// <summary>
+    /// 标记中声明的 <c>value</c> 属性（ISSUE-153 问题 3）。选项是 select 的子元素、晚于属性构建，
+    /// 因此 <c>RenderTreeBuilder</c> 先记在这里，select 闭合、选项齐全后再写入 <see cref="Value"/>。
+    /// </summary>
+    internal string? DeclaredValue { get; set; }
+
+    /// <summary>
     /// 是否允许多选
     /// </summary>
     public bool Multiple { get; set; }

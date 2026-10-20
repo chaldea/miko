@@ -43,9 +43,13 @@ internal sealed class RefTagHelperDescriptorProvider() : TagHelperDescriptorProv
             TagHelperKind.Ref, "Ref", ComponentsApi.AssemblyName,
             out var builder);
 
+        // In a component document a tag helper is in scope only when its namespace is imported
+        // (ComponentDirectiveVisitor). The default import is Miko.Components, so Blazor's
+        // Microsoft.AspNetCore.Components here kept @ref out of scope everywhere: it compiled into
+        // a literal "@ref" attribute (ISSUE-153 problem 4).
         builder.SetTypeName(
-            fullName: "Microsoft.AspNetCore.Components.Ref",
-            typeNamespace: "Microsoft.AspNetCore.Components",
+            fullName: ComponentsApi.RenderFragment.Namespace + ".Ref",
+            typeNamespace: ComponentsApi.RenderFragment.Namespace,
             typeNameIdentifier: "Ref");
 
         builder.CaseSensitive = true;

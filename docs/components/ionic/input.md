@@ -34,7 +34,7 @@ For multi-line text use [Textarea](./textarea.md), for search fields [Searchbar]
 
 `@bind-Value` keeps a field in sync with the text. `ValueChanged` is raised with the whole new value on every edit (each typed or deleted character, and the clear button), and `OnInput` is raised right after it with the same value. An unbound input keeps whatever the user typed when its parent re-renders.
 
-`OnChange` (Ionic `ionChange`) is currently never raised by typing: Miko does not emit a native change event for text fields. React to `ValueChanged` / `OnInput` instead, or use [`IonSearchbar`](./searchbar.md), which raises `OnChange` on blur.
+`OnChange` (Ionic `ionChange`) is raised when the edit is committed: when the input loses focus, or Enter is pressed, with a value different from the one it had when it was focused. It is not raised while typing — use `ValueChanged` / `OnInput` for that.
 
 <!-- miko:example examples/input/Binding.razor -->
 ```razor
@@ -229,7 +229,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Event | Type | Description |
 | --- | --- | --- |
-| `OnChange` | `EventCallback<string?>` | Ionic `ionChange`, wired to the native change event. Miko does not emit a change event for text fields, so typing never raises this; use [`OnInput`](#ioninput) or [`ValueChanged`](#ioninput). |
+| `OnChange` | `EventCallback<string?>` | Ionic `ionChange`: raised when the edit is committed — when the input loses focus or Enter is pressed, with a value different from the one it had on focus. Not raised while typing (see [`OnInput`](#ioninput)) or for programmatic value changes. |
 | `OnInput` | `EventCallback<string?>` | Raised each time the user modifies the value (Ionic `ionInput`). |
 | `ValueChanged` | `EventCallback<string?>` | Raised (with the new value) as the user types (two-way binding support). |
 

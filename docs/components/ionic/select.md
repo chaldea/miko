@@ -30,7 +30,7 @@ Bind the selected value with `@bind-Value`. An option without `Value` uses its t
 
 `Interface` picks the overlay: `alert` (default, radio buttons with Cancel / OK), `action-sheet` (one button per option plus Cancel), `popover` (a radio list anchored to the tap), or `modal` (a full list with a close button). `InterfaceHeader`, `InterfaceSubHeader`, and `InterfaceMessage` fill the overlay's header; the alert falls back to `Label` when `InterfaceHeader` is not set.
 
-The alert and action sheet apply the selection when they close; the popover and modal apply it as soon as an option is tapped. The overlay is declared by the select itself, so on a routed page it renders where the select is rather than in `IonApp`'s overlay layer — see [Overlays](./overlays.md).
+The alert and action sheet apply the selection when they close; the popover and modal apply it as soon as an option is tapped. The overlay is declared by the select itself and is drawn in `IonApp`'s overlay layer — see [Overlays](./overlays.md).
 
 <!-- miko:example examples/select/Interfaces.razor -->
 ```razor

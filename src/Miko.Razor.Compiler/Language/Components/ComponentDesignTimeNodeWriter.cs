@@ -1081,11 +1081,18 @@ internal class ComponentDesignTimeNodeWriter : ComponentNodeWriter
             // just want sufficiently similar code that any unknown-identifier or type
             // errors will be equivalent
 
-            var assignmentText = string.Build((node.FieldTypeName, context.Options.SuppressNullabilityEnforcement), (ref builder, state) =>
+            // Miko: an element @ref may be typed as the element itself (CanvasElement), Element or
+            // ElementReference, so an element capture assigns an untyped default (ISSUE-153).
+            var fieldTypeName = node.IsComponentCapture ? node.FieldTypeName : null;
+            var assignmentText = string.Build((fieldTypeName, context.Options.SuppressNullabilityEnforcement), (ref builder, state) =>
             {
-                builder.Append(" = default(");
-                builder.Append(state.FieldTypeName);
-                builder.Append(")");
+                builder.Append(" = default");
+                if (state.fieldTypeName is not null)
+                {
+                    builder.Append("(");
+                    builder.Append(state.fieldTypeName);
+                    builder.Append(")");
+                }
 
                 if (!state.SuppressNullabilityEnforcement)
                 {

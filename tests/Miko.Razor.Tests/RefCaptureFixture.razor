@@ -1,0 +1,27 @@
+@namespace Miko.Razor.Tests
+@using Miko.Core
+@using Miko.Core.DomElements
+@* ISSUE-153 problem 4: @ref compiled into a literal "@ref" attribute and every field stayed null.
+   Element fields may be the element's own type, Element, or ElementReference. *@
+<div class="ref-root" @ref="Root">
+    <canvas class="ref-canvas" @ref="Canvas"></canvas>
+    <span class="ref-span" @ref="Span">@_renders</span>
+    <button class="ref-button" @ref="Button"></button>
+    <TypedEmitChild Label="child" @ref="Child" />
+</div>
+
+@code {
+    private int _renders;
+
+    public DivElement? Root;
+    public CanvasElement? Canvas;
+    public Element? Span;
+    public ElementReference Button;
+    public TypedEmitChild? Child;
+
+    public void Refresh()
+    {
+        _renders++;
+        StateHasChanged();
+    }
+}

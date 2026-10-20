@@ -23,7 +23,7 @@ namespace Miko.Components;
 /// </list>
 /// </para>
 /// </summary>
-public readonly struct EventCallback : IEquatable<EventCallback>
+public readonly struct EventCallback : IEquatable<EventCallback>, IEventCallback
 {
     /// <summary>Static factory exposed for Razor-generated code.</summary>
     public static readonly EventCallbackFactory Factory = new();
@@ -40,6 +40,9 @@ public readonly struct EventCallback : IEquatable<EventCallback>
         Receiver = receiver;
         Delegate = @delegate;
     }
+
+    object? IEventCallback.Receiver => Receiver;
+    Delegate? IEventCallback.Delegate => Delegate;
 
     /// <summary>True if a handler is bound.</summary>
     public bool HasDelegate => Delegate is not null;
@@ -107,7 +110,7 @@ public readonly struct EventCallback : IEquatable<EventCallback>
 /// </list>
 /// </para>
 /// </summary>
-public readonly struct EventCallback<TValue> : IEquatable<EventCallback<TValue>>
+public readonly struct EventCallback<TValue> : IEquatable<EventCallback<TValue>>, IEventCallback
 {
     public readonly object? Receiver;
     internal readonly Delegate? Delegate;
@@ -117,6 +120,9 @@ public readonly struct EventCallback<TValue> : IEquatable<EventCallback<TValue>>
         Receiver = receiver;
         Delegate = @delegate;
     }
+
+    object? IEventCallback.Receiver => Receiver;
+    Delegate? IEventCallback.Delegate => Delegate;
 
     public bool HasDelegate => Delegate is not null;
 
@@ -158,6 +164,16 @@ public readonly struct EventCallback<TValue> : IEquatable<EventCallback<TValue>>
 
     public override int GetHashCode() =>
         HashCode.Combine(Receiver, Delegate);
+}
+
+/// <summary>
+/// The receiver and delegate of either callback struct, so runtime code that holds a boxed
+/// <see cref="EventCallback{TValue}"/> of unknown <c>TValue</c> can rebind it (ISSUE-153 problem 5).
+/// </summary>
+internal interface IEventCallback
+{
+    object? Receiver { get; }
+    Delegate? Delegate { get; }
 }
 
 /// <summary>Shared logic for awaiting a callback Task and notifying the receiver to re-render.</summary>

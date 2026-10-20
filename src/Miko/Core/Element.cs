@@ -368,6 +368,26 @@ public abstract class Element
         _eventListeners.RemoveAll(l => l.EventType == eventType && l.Handler.Equals(handler));
     }
 
+    /// <summary>非泛型重载：处理器类型只在运行时可知（组件宿主监听器，见 ComponentBase）。</summary>
+    internal void AddEventListener(string eventType, Delegate handler)
+    {
+        _eventListeners.Add(new EventListener
+        {
+            EventType = eventType,
+            Handler = handler
+        });
+    }
+
+    internal bool HasEventListener(string eventType, Delegate handler)
+    {
+        for (int i = 0; i < _eventListeners.Count; i++)
+        {
+            if (_eventListeners[i].EventType == eventType && ReferenceEquals(_eventListeners[i].Handler, handler))
+                return true;
+        }
+        return false;
+    }
+
     /// <summary>
     /// 获取指定类型的事件监听器
     /// </summary>

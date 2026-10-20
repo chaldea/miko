@@ -99,6 +99,131 @@ public class RouteViewFragmentTests
         tree.FindByTagName("fragment").ShouldBeEmpty();
     }
 
+    /// <summary>页面经级联参数读取布局提供的值（ISSUE-153 问题 1）。</summary>
+    private sealed class CascadeReaderPage : ComponentBase
+    {
+        internal static string? Seen;
+
+        [CascadingParameter] public string? Theme { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            Seen = Theme;
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = "page";
+            builder.CloseElement();
+        }
+    }
+
+    /// <summary>等价 <c>&lt;CascadingValue Value="layout-theme"&gt;@Body&lt;/CascadingValue&gt;</c>。</summary>
+    private sealed class CascadingLayout : LayoutComponentBase
+    {
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var __c1 = builder.OpenComponent<CascadingValue<string>>();
+            __c1.Value = "layout-theme";
+            __c1.ChildContent = Body;
+            builder.CloseComponent();
+        }
+    }
+
+    /// <summary>手写布局：读 <see cref="LayoutComponentBase.BodyElement"/>，并在其外层级联一个值。</summary>
+    private sealed class CascadingBodyElementLayout : LayoutComponentBase
+    {
+        public override Element Build()
+        {
+            using var _ = CascadingValueSource.Push("hand-written", typeof(string), null);
+            return new DivElement { Class = "root", Children = { BodyElement! } };
+        }
+    }
+
+    /// <summary>
+    /// 页面必须在布局的渲染之内构建，才能拿到布局级联的值。RouteView 曾先建页面、后建布局，
+    /// 于是 <c>IonApp</c> 级联的弹层上下文永远到不了路由页面（ISSUE-153 问题 1）。
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(CascadingLayout), "layout-theme")]
+    [InlineData(typeof(CascadingBodyElementLayout), "hand-written")]
+    public void Page_ReceivesValuesCascadedByTheLayout(Type layout, string expected)
+    {
+        CascadeReaderPage.Seen = null;
+        var router = new Router();
+        router.MapRoute<CascadeReaderPage>("/");
+
+        var tree = CreateRouteView(router, layout).Render("/");
+
+        CascadeReaderPage.Seen.ShouldBe(expected);
+        tree.FindByClass("page").ShouldHaveSingleItem();
+    }
+
+    /// <summary>多根页面，可自行重渲染。</summary>
+    private sealed class RerenderableTwoRootPage : ComponentBase
+    {
+        internal static RerenderableTwoRootPage? Last;
+        private int _renders;
+
+        public RerenderableTwoRootPage() => Last = this;
+
+        internal void Refresh() => StateHasChanged();
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            _renders++;
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = $"page-a-{_renders}";
+            builder.CloseElement();
+            var __e2 = builder.OpenElement<DivElement>();
+            __e2.Class = "page-b";
+            builder.CloseElement();
+        }
+    }
+
+    /// <summary>
+    /// 等价 <c>IonApp</c>：<c>&lt;div&gt;&lt;CascadingValue&gt;@Body &lt;div class="sibling"/&gt;&lt;/CascadingValue&gt;&lt;/div&gt;</c>
+    /// ——页面内容之后，同一个透明组件里还跟着一个兄弟元素（IonOverlayHost 的位置）。
+    /// </summary>
+    private sealed class SiblingAfterBodyLayout : LayoutComponentBase
+    {
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var __e1 = builder.OpenElement<DivElement>();
+            __e1.Class = "root";
+            var __c1 = builder.OpenComponent<CascadingValue<string>>();
+            __c1.Value = "x";
+            var body = Body;
+            __c1.ChildContent = content =>
+            {
+                body?.Invoke(content);
+                var __e2 = content.OpenElement<DivElement>();
+                __e2.Class = "sibling";
+                content.CloseElement();
+            };
+            builder.CloseComponent();
+            builder.CloseElement();
+        }
+    }
+
+    /// <summary>
+    /// ISSUE-153 问题 2：<see cref="RenderTreeBuilder"/> 遇到第二个顶层元素时复用了已有的片段根，
+    /// 把多根页面自己的片段当成了承载容器，兄弟元素于是挂进页面片段，页面一重渲染就被一起换掉。
+    /// </summary>
+    [Fact]
+    public void MultiRootPageRerender_KeepsSiblingsTheLayoutPlacedAfterIt()
+    {
+        var router = new Router();
+        router.MapRoute<RerenderableTwoRootPage>("/");
+
+        var tree = CreateRouteView(router, typeof(SiblingAfterBodyLayout)).Render("/");
+        tree.FindByClass("sibling").ShouldHaveSingleItem();
+
+        RerenderableTwoRootPage.Last!.Refresh();
+
+        tree.FindByClass("page-a-2").ShouldHaveSingleItem();
+        tree.FindByClass("page-a-1").ShouldBeEmpty();
+        tree.FindByClass("sibling").ShouldHaveSingleItem(
+            "the page's re-render must not take the layout's sibling element with it");
+    }
+
     [Fact]
     public void MultiRootPage_NoLayout_ReturnsFragmentRoot()
     {

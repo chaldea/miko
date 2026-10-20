@@ -63,7 +63,7 @@ Setting both `Breakpoints` (fractions of the screen height, from `0` to `1`) and
 ```
 <!-- /miko:example -->
 
-When the component that declares the sheet re-renders, the sheet returns to `InitialBreakpoint`. `IonModal` has `SetCurrentBreakpointAsync` and `GetCurrentBreakpointAsync` methods, but markup cannot reach them because `@ref` is not supported.
+When the component that declares the sheet re-renders, the sheet returns to `InitialBreakpoint`. `IonModal` has `SetCurrentBreakpointAsync` and `GetCurrentBreakpointAsync` methods, reachable through `@ref` (`<IonModal @ref="_modal">` with an `IonModal? _modal` field).
 
 ## Card modal
 

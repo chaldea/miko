@@ -33,20 +33,46 @@ public abstract class LayoutComponentBase : ComponentBase
     {
         get
         {
-            if (_bodyElement is null) return null;
-            _bodyElement = _bodyElement.ResolveSuperseded();
+            if (ResolveBody() is null) return null;
+            _bodyElement = _bodyElement!.ResolveSuperseded();
             return _bodyElement;
         }
         internal set => _bodyElement = value;
     }
 
     private Element? _bodyElement;
+    private Func<Element>? _buildBody;
+
+    /// <summary>
+    /// 交给布局一个「按需构建页面」的入口（由 <see cref="Routing.RouteView"/> 在构建布局前调用）。
+    ///
+    /// <para>页面在布局<b>第一次要内容</b>时才构建——Razor 布局走到 <c>@Body</c>，手写布局读
+    /// <see cref="BodyElement"/>——两条路径共享同一次构建。这一刻布局的渲染仍在调用栈上，
+    /// 页面因此能拿到布局级联下来的值。先建页面再建布局时，页面永远拿不到布局里
+    /// <c>IonApp</c> 级联的弹层上下文，声明的弹层全部内联渲染（ISSUE-153 问题 1）。</para>
+    /// </summary>
+    internal void SetBody(Func<Element> buildBody)
+    {
+        _bodyElement = null;
+        _buildBody = buildBody;
+        Body = builder => builder.AttachElement(ResolveBody()!);
+    }
+
+    private Element? ResolveBody()
+    {
+        if (_bodyElement is null && _buildBody is not null)
+        {
+            _bodyElement = _buildBody();
+            _buildBody = null;
+        }
+        return _bodyElement;
+    }
 
     /// <summary>
     /// 主动放开对页面内容的引用（由 <see cref="Routing.RouteView"/> 在装配完布局后调用）。
     ///
-    /// <para>两个字段都要放：<see cref="BodyElement"/> 直接持有第 0 代内容根，而
-    /// <see cref="Body"/> 是一个<b>捕获了同一个元素</b>的闭包，留着任何一个都等于攥住第 0 代。
+    /// <para>三个字段都要放：<see cref="BodyElement"/> 直接持有第 0 代内容根，按需构建的入口
+    /// 捕获着页面组件，<see cref="Body"/> 闭包又经布局自身读回它们，留着任何一个都等于攥住第 0 代。
     /// 它的 <c>SupersededBy</c> <b>前向</b>链会让此后每一代——连同每个元素约 6&#160;KB 的
     /// <c>ComputedStyle</c>——全部可达（ISSUE-142 复审：反复点 <c>IonSegmentButton</c>
     /// 每次泄漏约 730&#160;KB，600 次后 21&#160;MB → 457&#160;MB，强制压缩回收也放不掉）。</para>
@@ -59,6 +85,7 @@ public abstract class LayoutComponentBase : ComponentBase
     internal void ReleaseBody()
     {
         _bodyElement = null;
+        _buildBody = null;
         Body = null;
     }
 }

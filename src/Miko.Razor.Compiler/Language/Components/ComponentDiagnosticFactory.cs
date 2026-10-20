@@ -429,4 +429,26 @@ internal static class ComponentDiagnosticFactory
     {
         return RazorDiagnostic.Create(RenderModeAttribute_ComponentDeclaredRenderMode, source, component);
     }
+
+    // Miko diagnostics (ISSUE-153). Miko's elements are typed objects, not HTML: an attribute or a
+    // tag outside the compiler's element table (MikoElements) used to compile and then do
+    // nothing — or, for a tag, throw "Unknown tag" when rendered. Both are warnings rather than
+    // errors so markup ported from HTML keeps building while the gaps become visible.
+    public static readonly RazorDiagnosticDescriptor UnsupportedElementAttribute =
+        new($"{DiagnosticPrefix}10100",
+            "The attribute '{0}' is not supported on <{1}> and is ignored. Miko elements expose only the " +
+            "attributes listed in the element table (docs/guide/elements.md).",
+            RazorDiagnosticSeverity.Warning);
+
+    public static RazorDiagnostic Create_UnsupportedElementAttribute(SourceSpan? source, string attribute, string tagName)
+        => RazorDiagnostic.Create(UnsupportedElementAttribute, source, attribute, tagName);
+
+    public static readonly RazorDiagnosticDescriptor UnknownElementTag =
+        new($"{DiagnosticPrefix}10101",
+            "<{0}> is not a Miko element; rendering it throws 'Unknown tag'. The supported tags are " +
+            "listed in the element table (docs/guide/elements.md).",
+            RazorDiagnosticSeverity.Warning);
+
+    public static RazorDiagnostic Create_UnknownElementTag(SourceSpan? source, string tagName)
+        => RazorDiagnostic.Create(UnknownElementTag, source, tagName);
 }

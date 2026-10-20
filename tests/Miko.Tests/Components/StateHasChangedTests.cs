@@ -298,4 +298,50 @@ public class StateHasChangedTests
         fragment.Children[0].TextContent.ShouldBe("a:1");
         fragment.Children[1].TextContent.ShouldBe("b:1");
     }
+
+    /// <summary>Records its disposals; renders one div.</summary>
+    private sealed class DisposalProbe : ComponentBase
+    {
+        internal static int Disposed;
+
+        protected override void OnDispose() => Disposed++;
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement<DivElement>();
+            builder.CloseElement();
+        }
+    }
+
+    /// <summary>A component whose markup starts with a component: the probe produces its root.</summary>
+    private sealed class RootIsComponent : ComponentBase
+    {
+        internal void Refresh() => StateHasChanged();
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<DisposalProbe>();
+            builder.CloseComponent();
+        }
+    }
+
+    /// <summary>
+    /// ISSUE-153: a self re-render disposed the nested components of the old root's children but
+    /// not the one that produced the old root itself. A self-dismissed IonAlert (root: IonPortal)
+    /// therefore stayed registered in IonApp's overlay layer.
+    /// </summary>
+    [Fact]
+    public void SelfRerender_DisposesTheComponentThatProducedTheOldRoot()
+    {
+        DisposalProbe.Disposed = 0;
+        var component = new RootIsComponent();
+        var host = new DivElement { Children = { component.Build() } };
+
+        component.Refresh();
+        DisposalProbe.Disposed.ShouldBe(1);
+
+        component.Refresh();
+        DisposalProbe.Disposed.ShouldBe(2, "each replaced instance is disposed exactly once");
+        host.Children.Count.ShouldBe(1);
+    }
 }

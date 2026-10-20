@@ -10,6 +10,9 @@
          lowering (ISSUE-115), so the emitted code needs to be inspectable. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
+    <!-- Compiler diagnostics as SARIF: the generator's warnings for unsupported element markup
+         (ISSUE-153) are asserted from here, as the emitted code is read from GeneratedFiles. -->
+    <ErrorLog>$(BaseIntermediateOutputPath)razor-diagnostics.sarif,version=2.1</ErrorLog>
   </PropertyGroup>
 
   <ItemGroup>

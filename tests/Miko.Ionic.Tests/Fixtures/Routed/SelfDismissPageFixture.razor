@@ -1,0 +1,14 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* Overlays opened declaratively without @bind-IsOpen: each closes itself when tapped. Through the
+   overlay layer (ISSUE-153 problem 1) the entry has to leave the layer too. *@
+<IonPage>
+    <IonContent>
+        <IonAlert IsOpen="true" Header="Saved" Buttons="_buttons" />
+    </IonContent>
+</IonPage>
+
+@code {
+    private readonly IonAlertButton[] _buttons = { new() { Text = "OK", Role = "confirm" } };
+}
