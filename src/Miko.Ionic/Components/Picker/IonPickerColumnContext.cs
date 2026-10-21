@@ -34,6 +34,24 @@ public sealed class IonPickerColumnContext
     /// </summary>
     public List<IonPickerColumnOptionInfo> Options { get; } = new();
 
+    private Dictionary<object, int>? _optionIndexes;
+
+    /// <summary>
+    /// Registers an option in render order. An option that renders again against the same context —
+    /// it re-renders on its own after a tap — updates its entry instead of appending a duplicate.
+    /// </summary>
+    internal void RegisterOption(object option, IonPickerColumnOptionInfo info)
+    {
+        _optionIndexes ??= new(ReferenceEqualityComparer.Instance);
+        if (_optionIndexes.TryGetValue(option, out var index))
+        {
+            Options[index] = info;
+            return;
+        }
+        _optionIndexes[option] = Options.Count;
+        Options.Add(info);
+    }
+
     /// <summary>True when <paramref name="value"/> is the column's selected value.</summary>
     public bool IsSelected(string value) => Value == value;
 }

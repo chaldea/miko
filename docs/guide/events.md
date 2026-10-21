@@ -21,6 +21,10 @@ directives:
 After an event handler runs, the component re-renders automatically — you do not need to
 call `StateHasChanged()` yourself for synchronous handlers.
 
+Re-renders requested while an event is handled wait until the handler returns or reaches its
+first `await`. A child that reports two bound values in one handler, such as `IsOpenChanged`
+followed by `OnDidDismiss`, therefore re-renders its parent once, with both values in place.
+
 The available directives (`@onclick`, `@oninput`, `@onchange`, `@onpointermove`, `@onscroll`, …)
 are listed in [Elements](./elements.md#reference). Event arguments are optional: a handler may
 take none, or the matching `*EventArgs` type.

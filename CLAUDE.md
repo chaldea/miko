@@ -352,6 +352,40 @@ Razor projects using Miko's custom compiler must include the `_OverrideRazorSour
 
 Components inherit from `MikoComponent` or `LayoutComponentBase` and use standard Razor syntax with `@page` directives for routing.
 
+`Miko.Razor.Compiler.props` (the NuGet package's build file) locates the compiler under
+`tools/<the compiler's own TFM>/` (`_MikoRazorCompilerToolFramework`), never the consumer's
+`$(TargetFramework)`, so platform projects (`net10.0-android`, `net10.0-ios`) with `.razor` files
+build from the package (ISSUE-154). The compiler csproj fails `pack` if the two drift apart.
+
+### Component identity, reuse and render batching (ISSUE-154)
+
+A parent re-render **reuses** each nested component whose identity is unchanged instead of
+recreating it, as in Blazor. Identity (`ComponentIdentity`) = scope (enclosing render-fragment call
+sites and keyed elements) + type + call-site sequence + `@key`, or for unkeyed components the
+ordinal among same-call-site components. The compiler emits `OpenComponent<T>(seq, key)`; hand-written
+`OpenComponent<T>()` uses seq -1 (position only). `RenderTreeBuilder` takes the owner's previous
+`ComponentRegistry` and claims instances from it; duplicate keys throw.
+
+- `OnInitialized` runs once per instance; parameters are reassigned and `OnParametersSet` runs on every
+  parent render; unassigned parameters keep their value. Components must not register (events,
+  registries, lists) in `OnParametersSet` without making it idempotent, and must not derive state once
+  from a parameter in `OnInitialized` if a parent may change it later.
+- Disposal is element-driven: `ComponentBase.StampRoot` makes an element's `DisposeCallback` dispose
+  only components whose root is *still* that element, so a reused instance (which has moved to a new
+  root) survives the walk over the discarded subtree. Root-sharing chains (`_rootChild`/`_rootOwner`,
+  a component whose markup is one component) are kept in step on self re-renders.
+- `RenderBatch`: `StateHasChanged` while an `EventCallback` or a controller-dispatched event runs is
+  queued and flushed after the handler's synchronous part, skipping components rendered since. Without
+  it, the first callback of a handler would re-render the parent synchronously and overwrite values the
+  child has not reported yet (`IonCheckbox`: `IndeterminateChanged` then `CheckedChanged`).
+- A component re-rendering itself keeps the root classes an ancestor's `Build()` post-pass added
+  (`ExternalRootClasses`), e.g. `IonItem`'s `button-small` on a child `IonButton`.
+- The root of a parentless component is preserved on re-render: children are moved in as built (text
+  order intact) and the root adopts the new root's full state (`Element.AdoptStateFrom`, with
+  subclass properties copied by the generated `ElementAttributeAccessor.CopyDeclaredProperties`).
+- `@key` on an element scopes the components inside it and pairs runtime state (focus, caret,
+  layout box) by key when carried across a re-render (`ComponentBase.PairChildren`).
+
 ### Working with Ionic Components
 
 Ionic components use a platform-aware mode system:
@@ -506,6 +540,8 @@ null-check or catch. One `PlatformInfo` instance backs `PlatformInfo`, `IPlatfor
 - Android haptics use `View.PerformHapticFeedback` (no `VIBRATE` permission, honours the system
   touch-feedback setting). On the emulator, `adb shell dumpsys vibrator_manager` lists each call
   under "Recent vibrations" with the app package and constant.
+- Android's minimum is API 26 (Android 8.0) in `Miko.Android`, templates and examples alike; newer APIs
+  sit behind `OperatingSystem.IsAndroidVersionAtLeast` (CA1416 is an error in `Miko.Android`).
 - An Android Activity whose app locks orientation must declare `ConfigurationChanges = Orientation |
   ScreenSize | …`; otherwise rotation recreates the Activity and rebuilds the whole app.
 - Hosts report their size only through `MikoInteractionController.RenderFrame(canvas, width, height, …)`;
@@ -520,6 +556,11 @@ Images are loaded asynchronously via `IImageLoader`:
 - Platform hosts inject via `MikoEngine.ImageLoader`
 - `ImageElement` tracks loading state and supports placeholder images
 - Loaded bitmaps are cached in element's `Bitmap` property
+
+`ResourceManager` caches successful decodes only: a failed entry stays listed (Failed) for DevTools
+but the next request for that path loads again, and a consumer's `CancellationToken` cancels only its
+own wait — the shared load is cancelled (and dropped) only when every waiting consumer has cancelled
+(ISSUE-154).
 
 `res://` paths are written like `file://` ones — **no assembly name**, `/` separators, relative
 to the project root: `res://Assets/logo.svg` for `Assets/logo.svg` embedded in any assembly
@@ -605,6 +646,12 @@ bypassing `AddChild`. If those writes went unrecorded, a structural change after
 not invalidate the layout cache and the added/removed/replaced nodes simply would not appear.
 Collection initializers still work, since the type exposes a public `Add`.
 
+The collection also enforces **one parent per element** (ISSUE-154): `Add`, `Insert`, the indexer,
+`AddRange` and `AddChild` *move* an element that already has a parent (DOM `appendChild` /
+`insertBefore` / `replaceChild` semantics, also within the same collection), and reject `null` and
+cycles before changing anything. Moving across engines bumps both engines and transfers ownership.
+Code that moves children from one element to another must iterate a snapshot.
+
 **Registration is `TryAdd`-based.** `AddMikoEngine` registers every default with `TryAdd`, so it is
 idempotent *and* never overrides a registration the caller already made — a custom `IImageLoader`,
 `ISyntaxHighlighter`, or `IVideoBackend` wins regardless of whether it was registered before or
@@ -685,5 +732,8 @@ animationManager.PlayAnimation(element, animation);
 - `IsDirty` is automatically set on `AddChild`/`RemoveChild`/state changes
 - The Razor compiler targets net10.0 and is consumed only as analyzer DLLs
 - Safe area insets are opt-in via `env()` function, never applied as root viewport insets (see memory)
+- Text editing (`ITextEditable`): `CursorPosition`, input-method selection and `MaxLength` count UTF-16
+  code units; insert/backspace/delete/arrow keys work on grapheme clusters (`TextEditing` in
+  `ITextEditable.cs`), so emoji and combining sequences are never split (ISSUE-154)
 - Documentation site under `docs/` (VitePress) contains the usage guide; see "Documentation" below
 - `DEVELOPMENT.md` (in Chinese) has developer-oriented walkthrough

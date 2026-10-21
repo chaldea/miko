@@ -264,14 +264,14 @@ Put a form control in the default slot; it renders its own label (`Label` on [`I
 
 `IonItemSliding` wraps one `IonItem` and up to two `IonItemOptions`, one per `Side` (`"end"` by default, or `"start"`). A horizontal swipe of at least 32px to the left opens the end options and a swipe to the right opens the start options; a swipe in the other direction closes the row again. A drag that is mostly vertical is left to scrolling. The options slide in over the row's edge when the swipe is released; the row does not follow the finger and the item itself does not move.
 
-Keep the open state in your component. Bind `Open` with `@bind-Open`, pass `OpenSide`, and update the side from `OnSwipe`. When the parent re-renders, the row is re-created from its parameters, so any swipe state they do not carry is lost: with only an `OnSwipe` handler the row closes again right away, and with only `@bind-Open` a start swipe reveals the end options. To close the row from code, for example after an option was tapped, set the bound value to `false`.
+Keep the open state in your component. Bind `Open` with `@bind-Open`, pass `OpenSide`, and update the side from `OnSwipe`. A row keeps a swipe's open state when the parent re-renders, but the `OpenSide` you pass decides which options an open row shows: with only `@bind-Open`, a start swipe reveals the end options. To close the row from code, for example after an option was tapped, set the bound value to `false`.
 
 Unlike Ionic, tapping the row does not close it, opening one row does not close the others, and `Expandable` does not add a full-swipe action. `Disabled` on `IonItemSliding` turns the swipe off.
 
 <!-- miko:example examples/item/Sliding.razor -->
 ```razor
 @* Swipe left reveals the end options, swipe right the start options. Keep Open and the side in
-   your own state: every re-render of this component re-creates the rows from their parameters. *@
+   your own state: an open row shows the options of the OpenSide you pass. *@
 <IonList>
     @foreach (var message in _messages)
     {
@@ -360,7 +360,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Disabled` | `bool` | `false` | When true, the row cannot be slid (Ionic `disabled` disables the swipe gesture). |
-| `Open` | `bool` | `false` | When true the row is slid open, revealing the options on [`OpenSide`](#ionitemsliding). Bind it (`@bind-Open`): a re-render of the parent re-creates the row from its parameters, so a swipe's open state that was not written back is lost. |
+| `Open` | `bool` | `false` | When true the row is slid open, revealing the options on [`OpenSide`](#ionitemsliding). Bind it (`@bind-Open`) to open or close the row from code. Unbound, the row keeps a swipe's open state across re-renders of the parent until the value passed here changes. |
 | `OpenSide` | `string` | `"end"` | Which side's options are revealed when [`Open`](#ionitemsliding) is true: `"end"` (default) or `"start"`. A swipe does not write this back — update it from [`OnSwipe`](#ionitemsliding) when the row has start options. |
 
 | Event | Type | Description |

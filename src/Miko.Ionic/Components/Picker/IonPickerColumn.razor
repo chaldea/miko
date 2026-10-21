@@ -97,8 +97,8 @@
 
     // Touch drag (ISSUE-149). Snapping on every scroll event undid each small finger step, so a slow
     // drag could never leave the selected option; while the finger is down the snap and the binding
-    // wait for the release instead. Deferring ValueChanged also keeps a two-way-bound parent from
-    // recreating this column (and losing this state) on every tick of the drag.
+    // wait for the release instead. Deferring ValueChanged also spares a two-way-bound parent a
+    // re-render on every tick of the drag.
     private bool _fingerDown;
     private string? _valueAtGestureStart;
 
@@ -106,6 +106,11 @@
     // re-renders the column, and re-applying it then would snap the wheel back under the finger; the
     // engine carries the scroll offset across those re-renders on its own.
     private bool _initialScrollApplied;
+
+    // The Value the wheel was last positioned for — by the initial centering, or by the column itself
+    // when the user picked it. The instance outlives parent re-renders (ISSUE-154), so a Value the
+    // parent changes later must move the wheel too; a value the column picked itself must not.
+    private string? _positionedValue;
 
     protected override void OnParametersSet()
     {
@@ -139,13 +144,15 @@
         root.OnPointerCancel = args => _ = ReleaseWheelAsync();
 
         _optsElement = root.FindByClass("picker-opts").FirstOrDefault();
-        if (_optsElement is not null && !_initialScrollApplied)
+        var valueChangedOutside = _initialScrollApplied && Value != _positionedValue && !_fingerDown;
+        if (_optsElement is not null && (!_initialScrollApplied || valueChangedOutside))
         {
             var selectedIndex = _context.Options.FindIndex(option => option.Value == Value && !option.Disabled);
             if (selectedIndex >= 0)
             {
                 _optsElement.InitialScrollTop = ScrollTopForOption(selectedIndex);
                 _initialScrollApplied = true;
+                _positionedValue = Value;
             }
         }
         return root;
@@ -184,6 +191,7 @@
     {
         if (Disabled || value == Value) return;
         Value = value;
+        _positionedValue = value;
         // A tap moves the wheel by one selection: one tick, like Ionic's smooth scroll to the option.
         ExtendHapticSelection();
         Haptics.SelectionChanged();
@@ -216,11 +224,13 @@
         var value = selectedOption.Value;
         if (value == Value)
         {
+            _positionedValue = value;
             if (!_fingerDown) ScrollActiveIntoView();
             return;
         }
 
         Value = value;
+        _positionedValue = value;
         // The wheel moved onto another option: this is the "click" of the gear. It precedes
         // ValueChanged because the parent's re-render may dispose this instance (ending the session).
         Haptics.SelectionChanged();
@@ -261,9 +271,9 @@
     }
 
     /// <summary>
-    /// A parent re-render (e.g. two-way binding on every tick) recreates the column mid-gesture
-    /// (ISSUE-138 constraint 1), so the session is closed here and the next scroll opens a new one on
-    /// the replacement instance. Platform implementations tolerate that split.
+    /// The column is dropped (removed from the page, or its identity changed): close the haptic
+    /// session it may still have open. A parent re-render reuses the column (ISSUE-154), so a gesture
+    /// is no longer split across instances; platform implementations tolerate a split all the same.
     /// </summary>
     protected override void OnDispose()
     {

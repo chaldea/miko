@@ -2,10 +2,10 @@
 @inherits IonicComponentBase
 <div class="@ClassMapper.Class" style="@Style">
     <div class="refresher-pulling">
-        @if (!string.IsNullOrEmpty(PullingIcon))
+        @if (!string.IsNullOrEmpty(_pullingIcon))
         {
             <div class="refresher-pulling-icon">
-                <IonIcon Icon="@PullingIcon" />
+                <IonIcon Icon="@_pullingIcon" />
             </div>
         }
         @if (PullingText is not null)
@@ -14,10 +14,10 @@
         }
     </div>
     <div class="refresher-refreshing">
-        @if (!string.IsNullOrEmpty(RefreshingSpinner))
+        @if (!string.IsNullOrEmpty(_refreshingSpinner))
         {
             <div class="refresher-refreshing-icon">
-                <IonSpinner Name="@RefreshingSpinner" />
+                <IonSpinner Name="@_refreshingSpinner" />
             </div>
         }
         @if (RefreshingText is not null)
@@ -49,7 +49,13 @@
             .Add(Mode)
             .Add("ion-refresher-content");
 
-        PullingIcon ??= Mode == "ios" ? Ionicons.Refresh : Ionicons.ArrowDown;
-        RefreshingSpinner ??= Mode == "ios" ? "lines" : "circular";
+        // Resolved per render rather than written back into the parameters: the instance outlives
+        // parent re-renders (ISSUE-154), and a written-back default would pass for a value the parent
+        // supplied.
+        _pullingIcon = PullingIcon ?? (Mode == "ios" ? Ionicons.Refresh : Ionicons.ArrowDown);
+        _refreshingSpinner = RefreshingSpinner ?? (Mode == "ios" ? "lines" : "circular");
     }
+
+    private string? _pullingIcon;
+    private string? _refreshingSpinner;
 }

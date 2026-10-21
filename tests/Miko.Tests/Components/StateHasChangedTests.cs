@@ -180,18 +180,22 @@ public class StateHasChangedTests
         protected override void OnDispose() => DisposeCount++;
     }
 
-    // A parent that re-renders and re-creates its nested child each render (like a page that
+    // A parent that re-renders and renders its nested child conditionally (like a page that
     // toggles _menuOpen and re-renders an IonMenu).
     private class ReRenderingParentComponent : ComponentBase
     {
         private int _tick;
+        public bool ShowChild { get; set; } = true;
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
             builder.OpenElement<DivElement>();
             builder.AddContent($"tick:{_tick}");
-            builder.OpenComponent<DisposableChildComponent>();
-            builder.CloseComponent();
+            if (ShowChild)
+            {
+                builder.OpenComponent<DisposableChildComponent>(1, null);
+                builder.CloseComponent();
+            }
             builder.CloseElement();
         }
 
@@ -202,8 +206,10 @@ public class StateHasChangedTests
         }
     }
 
+    // ISSUE-154: a re-render keeps the nested instance whose identity is unchanged, so it is not
+    // disposed; it is disposed exactly once, when a re-render stops rendering it.
     [Fact]
-    public void StateHasChanged_DiscardedNestedComponent_IsDisposed()
+    public void StateHasChanged_NestedComponent_IsKeptAcrossRerenders_AndDisposedOnceWhenDropped()
     {
         DisposableChildComponent.DisposeCount = 0;
 
@@ -213,26 +219,31 @@ public class StateHasChangedTests
         var grandparent = new DivElement();
         grandparent.AddChild(element);
 
+        parent.Bump();
+        parent.Bump();
         DisposableChildComponent.DisposeCount.ShouldBe(0);
 
-        // Each re-render creates a fresh child and discards the previous one — the discarded
-        // instance must be disposed exactly once per re-render.
+        parent.ShowChild = false;
         parent.Bump();
         DisposableChildComponent.DisposeCount.ShouldBe(1);
 
         parent.Bump();
-        DisposableChildComponent.DisposeCount.ShouldBe(2);
+        DisposableChildComponent.DisposeCount.ShouldBe(1);
     }
 
     [Fact]
-    public void StateHasChanged_RootComponent_DiscardedNestedComponent_IsDisposed()
+    public void StateHasChanged_RootComponent_NestedComponent_IsKept_AndDisposedOnceWhenDropped()
     {
         DisposableChildComponent.DisposeCount = 0;
 
-        // No grandparent → StateHasChanged takes the root (ReplaceElementContent) branch.
+        // No grandparent → StateHasChanged takes the root (in-place) branch.
         var parent = new ReRenderingParentComponent();
         parent.Build();
 
+        parent.Bump();
+        DisposableChildComponent.DisposeCount.ShouldBe(0);
+
+        parent.ShowChild = false;
         parent.Bump();
         DisposableChildComponent.DisposeCount.ShouldBe(1);
     }
@@ -313,14 +324,21 @@ public class StateHasChangedTests
         }
     }
 
-    /// <summary>A component whose markup starts with a component: the probe produces its root.</summary>
+    /// <summary>
+    /// A component whose markup starts with a component: the probe produces its root. With
+    /// <see cref="Keyed"/> the probe carries a key that changes on every render, so it is a new
+    /// identity each time.
+    /// </summary>
     private sealed class RootIsComponent : ComponentBase
     {
+        private int _renders;
+        internal bool Keyed { get; set; }
+
         internal void Refresh() => StateHasChanged();
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            builder.OpenComponent<DisposalProbe>();
+            builder.OpenComponent<DisposalProbe>(1, Keyed ? _renders++ : null);
             builder.CloseComponent();
         }
     }
@@ -328,13 +346,14 @@ public class StateHasChangedTests
     /// <summary>
     /// ISSUE-153: a self re-render disposed the nested components of the old root's children but
     /// not the one that produced the old root itself. A self-dismissed IonAlert (root: IonPortal)
-    /// therefore stayed registered in IonApp's overlay layer.
+    /// therefore stayed registered in IonApp's overlay layer. ISSUE-154: the instance producing the
+    /// root is kept while its identity holds; when it changes, the replaced one is disposed once.
     /// </summary>
     [Fact]
     public void SelfRerender_DisposesTheComponentThatProducedTheOldRoot()
     {
         DisposalProbe.Disposed = 0;
-        var component = new RootIsComponent();
+        var component = new RootIsComponent { Keyed = true };
         var host = new DivElement { Children = { component.Build() } };
 
         component.Refresh();
@@ -343,5 +362,23 @@ public class StateHasChangedTests
         component.Refresh();
         DisposalProbe.Disposed.ShouldBe(2, "each replaced instance is disposed exactly once");
         host.Children.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void SelfRerender_KeepsTheComponentThatProducesTheRoot()
+    {
+        DisposalProbe.Disposed = 0;
+        var component = new RootIsComponent();
+        var host = new DivElement { Children = { component.Build() } };
+
+        component.Refresh();
+        component.Refresh();
+
+        DisposalProbe.Disposed.ShouldBe(0);
+        host.Children.Count.ShouldBe(1);
+
+        // The probe still shares the root: discarding it disposes the probe exactly once.
+        host.Children[0].DisposeComponentSubtree();
+        DisposalProbe.Disposed.ShouldBe(1);
     }
 }

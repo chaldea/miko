@@ -43,9 +43,13 @@ internal sealed class KeyTagHelperDescriptorProvider() : TagHelperDescriptorProv
             TagHelperKind.Key, "Key", ComponentsApi.AssemblyName,
             out var builder);
 
+        // Scoped like @ref (see RefTagHelperDescriptorProvider): a component document only sees tag
+        // helpers whose namespace it imports, and the default import is Miko.Components. Under
+        // Blazor's Microsoft.AspNetCore.Components, @key compiled into a literal "@key" attribute and
+        // never reached RenderTreeBuilder (ISSUE-154).
         builder.SetTypeName(
-            fullName: "Microsoft.AspNetCore.Components.Key",
-            typeNamespace: "Microsoft.AspNetCore.Components",
+            fullName: ComponentsApi.RenderFragment.Namespace + ".Key",
+            typeNamespace: ComponentsApi.RenderFragment.Namespace,
             typeNameIdentifier: "Key");
 
         builder.CaseSensitive = true;

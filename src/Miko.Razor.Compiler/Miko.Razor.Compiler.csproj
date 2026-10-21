@@ -109,7 +109,11 @@
   <Target Name="_AddCompilerOutputToPackage" BeforeTargets="_GetPackageFiles" DependsOnTargets="Build">
     <PropertyGroup>
       <_MikoRazorCompilerOutDir>$(MSBuildThisFileDirectory)bin\$(Configuration)\$(TargetFramework)\</_MikoRazorCompilerOutDir>
+      <_MikoRazorCompilerPropsText>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)build\Miko.Razor.Compiler.props'))</_MikoRazorCompilerPropsText>
     </PropertyGroup>
+    <!-- The props locates the DLLs by the compiler's own TFM (ISSUE-154); keep the two in step. -->
+    <Error Condition="!$(_MikoRazorCompilerPropsText.Contains('&lt;_MikoRazorCompilerToolFramework&gt;$(TargetFramework)&lt;/_MikoRazorCompilerToolFramework&gt;'))"
+           Text="build\Miko.Razor.Compiler.props must set _MikoRazorCompilerToolFramework to '$(TargetFramework)', the folder the compiler is packed into." />
     <ItemGroup>
       <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" Pack="true" PackagePath="tools\$(TargetFramework)\" />
       <None Include="$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.pdb" Pack="true" PackagePath="tools\$(TargetFramework)\" Condition="Exists('$(_MikoRazorCompilerOutDir)Microsoft.CodeAnalysis.Razor.Compiler.pdb')" />

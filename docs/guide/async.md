@@ -14,7 +14,11 @@ thread automatically, so your code never touches the DOM off-thread.
 | `OnInitializedAsync()` | Once, asynchronously, when the component is first ready. |
 | `OnParametersSet()` | Each time the component receives parameters. |
 | `OnParametersSetAsync()` | Each time the component receives parameters, asynchronously. |
-| `OnDispose()` | When the component instance is discarded. |
+| `OnDispose()` | Once, when a render no longer produces the component, or the page it is on goes away. |
+
+A parent's re-render keeps the child components it renders again, so their `OnInitialized` does
+not run again and work they started keeps running; see
+[Component identity and `@key`](./razor-components.md#component-identity-and-key).
 
 If an async hook returns an incomplete `Task`, the component renders immediately with its
 current state, and **re-renders automatically when the task completes** — so a slow data

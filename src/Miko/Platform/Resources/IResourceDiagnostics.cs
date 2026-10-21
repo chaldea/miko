@@ -71,6 +71,6 @@ public enum CachedResourceState
     Loading,
     /// <summary>已解码，位图可用。</summary>
     Loaded,
-    /// <summary>加载或解码失败（缓存了失败结果，不会重试）。</summary>
+    /// <summary>最近一次加载或解码失败。条目只留作诊断，同一路径的下一次请求会重新加载。</summary>
     Failed,
 }

@@ -62,6 +62,11 @@
             .If(Scrollable, "segment-scrollable")
             .If(Disabled, "segment-disabled");
 
+        // Buttons register their position again on every render. The segment instance outlives a
+        // parent re-render (ISSUE-154), so positions from an earlier render — of buttons since removed
+        // or reordered — must not linger and skew the indicator translation.
+        _buttonIndexes.Clear();
+
         // Rebuild the cascaded context each render so buttons read the current Value and a
         // select callback bound to this segment instance.
         _context = CreateContext();

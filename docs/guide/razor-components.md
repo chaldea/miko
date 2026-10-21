@@ -78,6 +78,39 @@ the parameter; the default content then goes in an explicit `<ChildContent>`:
 `[CascadingParameter]` receives a value from an ancestor `<CascadingValue>`; `[Inject]` (or
 `@inject`) resolves a service registered on `builder.Services`.
 
+## Component identity and `@key`
+
+When a component re-renders, the child components it renders again keep their instances, as in
+Blazor. A kept child keeps its fields, its event subscriptions and any async work in progress.
+`OnInitialized` runs only once per instance. The parent assigns the parameters it passes again
+and `OnParametersSet` runs; a parameter the parent does not pass keeps its value. `OnDispose`
+runs once, when a render no longer produces the child.
+
+A child is kept when it has the same identity in the new render:
+
+- the same place in the markup: a component inside an `@if` block and the one after the block
+  are two different children, so a block appearing or disappearing does not hand one child's
+  instance to the other;
+- the same position among the children rendered from that place, for example inside an
+  `@foreach` loop;
+- the same `@key`, when one is given. A keyed child is matched by its key, wherever it is in the
+  list.
+
+Give list items a `@key` when the list can be reordered, or when items can be inserted or
+removed anywhere but the end. Without a key the instances stay in place, so the state of a
+removed item moves to the item that took its position:
+
+```razor
+@foreach (var todo in _todos)
+{
+    <TodoRow @key="todo.Id" Todo="todo" />
+}
+```
+
+`@key` on an element does the same for the components inside it, and moves the element's focus
+and caret with the item. Keys must be unique among the items of one list; a duplicate key throws
+`InvalidOperationException`.
+
 ## Data binding
 
 `@bind` keeps a field and an input in sync; `@bind-{Parameter}` does the same for a component

@@ -47,17 +47,32 @@ public sealed class IonAccordionGroupContext
     public bool IsExpanded(string value) => Values.Contains(value);
 
     private int _nextAutoValue;
+    private Dictionary<object, string>? _autoValues;
 
     /// <summary>Restarts the numbering of value-less accordions; the group calls it at the start of
     /// every render.</summary>
-    internal void ResetAutoValues() => _nextAutoValue = 0;
+    internal void ResetAutoValues()
+    {
+        _nextAutoValue = 0;
+        _autoValues?.Clear();
+    }
 
     /// <summary>
-    /// The value of the next accordion without a <c>Value</c>, numbered by its position in the
-    /// group: <c>ion-accordion-0</c>, <c>-1</c>, … . Ionic numbers each element once, globally; Miko
-    /// creates new accordion instances on every group render, so a per-instance number changed
-    /// each time and such an accordion could never be opened (ISSUE-153). Numbered by position, the
-    /// same accordion gets the same value on every render.
+    /// The value of a value-less <paramref name="accordion"/>, numbered by its position in the group:
+    /// <c>ion-accordion-0</c>, <c>-1</c>, … . Ionic numbers each element once, globally; numbered by
+    /// position here, the same accordion gets the same value on every group render (ISSUE-153), and
+    /// an accordion inserted later gets the next free number instead of colliding with a kept
+    /// instance's old one (ISSUE-154). The accordion re-rendering on its own asks again and gets the
+    /// number this render already gave it.
     /// </summary>
-    internal string NextAutoValue() => $"ion-accordion-{_nextAutoValue++}";
+    internal string AutoValueFor(object accordion)
+    {
+        _autoValues ??= new(ReferenceEqualityComparer.Instance);
+        if (!_autoValues.TryGetValue(accordion, out var value))
+        {
+            value = $"ion-accordion-{_nextAutoValue++}";
+            _autoValues[accordion] = value;
+        }
+        return value;
+    }
 }

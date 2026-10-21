@@ -89,12 +89,25 @@
             _session.Progress = declared == "refreshing" ? 1f : 0f;
         }
 
-        _attachedContext = IonRefresherContext.Current;
-        _attachedContext?.Attach(this);
+        // The instance outlives parent re-renders (ISSUE-154): move to the content's current context
+        // when it changes, detaching from the previous one so it stops forwarding pointer events here.
+        // A render outside the content's build (this refresher re-rendering on its own) has no ambient
+        // context and keeps the attachment it has.
+        var context = IonRefresherContext.Current;
+        if (context is not null)
+        {
+            if (!ReferenceEquals(context, _attachedContext)) _attachedContext?.Detach(this);
+            _attachedContext = context;
+            context.Attach(this);
+        }
         BuildClass();
     }
 
-    protected override void OnDispose() => _attachedContext?.Detach(this);
+    protected override void OnDispose()
+    {
+        _attachedContext?.Detach(this);
+        base.OnDispose();
+    }
 
     /// <summary>Starts a refresh as if the user had pulled past <see cref="PullMin"/> and let go.</summary>
     public Task BeginRefresh()

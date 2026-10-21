@@ -2,6 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0-android</TargetFramework>
+    <!-- Minimum Android version: 8.0 (API 26). Notification channels, VibrationEffect and the
+         network-callback APIs used by Miko.Native exist there unconditionally; newer APIs are
+         behind OperatingSystem.IsAndroidVersionAtLeast checks. Apps, templates and examples
+         declare the same minimum (ISSUE-154). -->
+    <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
+    <!-- A call to an API newer than the minimum must sit behind a version check. -->
+    <WarningsAsErrors>$(WarningsAsErrors);CA1416</WarningsAsErrors>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 

@@ -46,6 +46,11 @@
     private Style?[] _originalItemStyles = Array.Empty<Style?>();
     private Element? _activeGroupElement;
 
+    // The root the last build produced. The group outlives parent re-renders (ISSUE-154): one that
+    // happens while an async OnItemReorder is awaited rebuilds the root with the drag marker, so the
+    // marker is cleared there as well when the drag ends.
+    private Element? _currentRoot;
+
     // Whether the haptic selection opened at drag start is still open (ISSUE-149). Kept apart from
     // _isDragging, which stays set until the async reorder callback returns.
     private bool _hapticSelecting;
@@ -77,6 +82,7 @@
         root.OnMouseDown = OnPointerDown;
         root.OnMouseMove = OnPointerMove;
         root.OnMouseUp = args => _ = OnPointerUpAsync(args);
+        _currentRoot = root;
         return root;
     }
 
@@ -166,6 +172,8 @@
         finally
         {
             ClearDragState(groupElement);
+            if (_currentRoot is { } current && !ReferenceEquals(current, groupElement))
+                RemoveClass(current, "reorder-list-active");
         }
     }
 

@@ -214,6 +214,51 @@ public sealed class IonOverlayControllerTests : IonicComponentTestBase
         style.Top.ShouldBe(Length.Px(138));
     }
 
+    /// <summary>
+    /// ISSUE-154: the overlay layer keys its entries, and a re-render keeps component instances whose
+    /// identity is unchanged. A controller-presented content component therefore keeps its fields when
+    /// another overlay opens on top, and closing an overlay below does not hand its instances to the
+    /// one above.
+    /// </summary>
+    [Fact]
+    public async Task ControllerModalContent_KeepsItsInstance_WhenOverlaysOpenAndCloseAroundIt()
+    {
+        RegisterServices();
+        var modals = new IonModalController(_registry);
+        var toasts = new IonToastController(_registry);
+        var cut = Context.Render<IonApp>();
+        var below = await modals.CreateAsync<StatefulModalContent>();
+        var modal = await modals.CreateAsync<StatefulModalContent>();
+        await below.PresentAsync();
+        await modal.PresentAsync();
+        var instances = cut.FindInTopLayerByClass("stateful-modal-content").Select(e => e.TextContent).ToList();
+        instances.Count.ShouldBe(2);
+
+        var toast = await toasts.CreateAsync(new IonToastOptions { Message = "Saved" });
+        await toast.PresentAsync();
+        cut.FindInTopLayerByClass("stateful-modal-content").Select(e => e.TextContent).ShouldBe(instances);
+
+        (await below.DismissAsync()).ShouldBeTrue();
+        cut.FindInTopLayerByClass("stateful-modal-content").Single().TextContent.ShouldBe(instances[1]);
+    }
+
+    /// <summary>Shows a number unique to its instance, set once in <see cref="OnInitialized"/>.</summary>
+    public sealed class StatefulModalContent : ComponentBase
+    {
+        private static int _instances;
+        private int _instance;
+
+        protected override void OnInitialized() => _instance = Interlocked.Increment(ref _instances);
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            var div = builder.OpenElement<DivElement>();
+            div.Class = "stateful-modal-content";
+            builder.AddContent($"instance-{_instance}");
+            builder.CloseElement();
+        }
+    }
+
     public sealed class ControllerModalContent : ComponentBase
     {
         [Parameter] public string? Text { get; set; }

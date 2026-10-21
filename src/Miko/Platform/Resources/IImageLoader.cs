@@ -10,10 +10,16 @@ namespace Miko.Platform.Resources;
 /// 实现者必须保证 <see cref="LoadAsync"/> 不抛异常（失败返回 <c>null</c>，上层回退到占位图/背景），
 /// 且回调可能在后台线程完成（引擎侧通过 <c>MikoEngine.PostInvalidate</c> 把失效转交主循环）。
 /// </para>
+/// <para>
+/// 失败结果不应被永久缓存（同一路径之后的请求应能重新加载）；调用方的 <c>ct</c> 只取消该调用方
+/// 自己的等待，返回已取消的任务，不得让共享同一加载的其它调用方失败（ISSUE-154）。
+/// </para>
 /// </summary>
 public interface IImageLoader
 {
-    /// <summary>异步加载并解码图片。失败返回 <c>null</c>，不得抛异常。</summary>
+    /// <summary>
+    /// 异步加载并解码图片。失败返回 <c>null</c>，不得抛异常；<paramref name="ct"/> 被取消时返回已取消的任务。
+    /// </summary>
     Task<SKBitmap?> LoadAsync(MediaSource source, CancellationToken ct = default);
 }
 

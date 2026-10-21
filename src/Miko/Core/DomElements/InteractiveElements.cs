@@ -61,8 +61,8 @@ public class InputElement : Element, ITextEditable
     public bool ReadOnly { get; set; }
 
     /// <summary>
-    /// HTML <c>maxlength</c>：用户输入最多到这么多个字符（UTF-16 码元，与浏览器一致），超出部分
-    /// 在插入时截掉；从代码赋的 <see cref="Value"/> 不受限制。null 表示不限。
+    /// HTML <c>maxlength</c>：用户输入最多到这么多个 UTF-16 码元（与浏览器一致），超出部分在插入时
+    /// 按整个字素簇截掉，不会留下半个 emoji；从代码赋的 <see cref="Value"/> 不受限制。null 表示不限。
     /// </summary>
     public int? MaxLength { get; set; }
 
@@ -126,54 +126,52 @@ public class InputElement : Element, ITextEditable
     public float NumericValue { get; set; } = 50;
 
     /// <summary>
-    /// 光标位置（字符索引）
+    /// 光标位置：<see cref="Value"/> 中的 UTF-16 码元索引（见 <see cref="ITextEditable"/> 的单位说明）。
     /// </summary>
     public int CursorPosition { get; set; }
 
     /// <summary>
-    /// 插入文本到当前光标位置
+    /// 把整段文本插入到当前光标位置；超出 <see cref="MaxLength"/> 的字素簇整个丢弃。
     /// </summary>
     public void InsertText(string text)
     {
         var current = Value ?? string.Empty;
         text = TextEditing.LimitInsertion(text, current.Length, MaxLength);
         if (text.Length == 0) return;
-        var pos = Math.Clamp(CursorPosition, 0, current.Length);
+        var pos = TextEditing.SnapToBoundary(current, CursorPosition);
         SetUserValue(current.Insert(pos, text));
         CursorPosition = pos + text.Length;
         IsDirty = true;
     }
 
     /// <summary>
-    /// 删除光标前一个字符
+    /// 删除光标前一个字素簇
     /// </summary>
     public bool Backspace()
     {
         var current = Value ?? string.Empty;
-        if (CursorPosition > 0 && current.Length > 0)
-        {
-            var pos = Math.Clamp(CursorPosition, 0, current.Length);
-            SetUserValue(current.Remove(pos - 1, 1));
-            CursorPosition = pos - 1;
-            IsDirty = true;
-            return true;
-        }
-        return false;
+        var pos = TextEditing.SnapToBoundary(current, CursorPosition);
+        if (pos == 0) return false;
+        var start = TextEditing.PreviousBoundary(current, pos);
+        SetUserValue(current.Remove(start, pos - start));
+        CursorPosition = start;
+        IsDirty = true;
+        return true;
     }
 
     /// <summary>
-    /// 删除光标后一个字符
+    /// 删除光标后一个字素簇
     /// </summary>
     public bool Delete()
     {
         var current = Value ?? string.Empty;
-        if (CursorPosition < current.Length)
-        {
-            SetUserValue(current.Remove(CursorPosition, 1));
-            IsDirty = true;
-            return true;
-        }
-        return false;
+        var pos = TextEditing.SnapToBoundary(current, CursorPosition);
+        if (pos >= current.Length) return false;
+        var end = TextEditing.NextBoundary(current, pos);
+        SetUserValue(current.Remove(pos, end - pos));
+        CursorPosition = pos;
+        IsDirty = true;
+        return true;
     }
 
     /// <summary>
@@ -187,7 +185,7 @@ public class InputElement : Element, ITextEditable
     /// <summary>
     /// 除交互状态标志位外，还接过光标位置：它由键盘输入推进，组件重渲染不会重新写入
     /// （<c>Value</c> 会，光标位置不会），丢掉它会让光标跳回行首（ISSUE-121）。
-    /// 位置按新值长度夹取——重渲染可能同时改变了 <see cref="Value"/>。
+    /// 位置按新值夹取并退到字素簇边界——重渲染可能同时改变了 <see cref="Value"/>。
     /// </summary>
     protected internal override void CopyInteractionStateFrom(Element old)
     {
@@ -201,7 +199,15 @@ public class InputElement : Element, ITextEditable
         if (DeclaredValue is null)
             SetUserValue(oldInput.Value);
 
-        CursorPosition = Math.Clamp(oldInput.CursorPosition, 0, (Value ?? string.Empty).Length);
+        CursorPosition = TextEditing.SnapToBoundary(Value ?? string.Empty, oldInput.CursorPosition);
+    }
+
+    /// <summary>公开属性已整体搬过来；<see cref="Value"/> 的 setter 会把值记成声明值，这里还原两者。</summary>
+    private protected override void AdoptStateCore(Element source)
+    {
+        var input = (InputElement)source;
+        _value = input._value;
+        DeclaredValue = input.DeclaredValue;
     }
 }
 
@@ -273,54 +279,52 @@ public class TextAreaElement : Element, ITextEditable
     public int Cols { get; set; } = 20;
 
     /// <summary>
-    /// 光标位置（字符索引）
+    /// 光标位置：<see cref="Value"/> 中的 UTF-16 码元索引（见 <see cref="ITextEditable"/> 的单位说明）。
     /// </summary>
     public int CursorPosition { get; set; }
 
     /// <summary>
-    /// 插入文本到当前光标位置
+    /// 把整段文本插入到当前光标位置；超出 <see cref="MaxLength"/> 的字素簇整个丢弃。
     /// </summary>
     public void InsertText(string text)
     {
         var current = Value ?? string.Empty;
         text = TextEditing.LimitInsertion(text, current.Length, MaxLength);
         if (text.Length == 0) return;
-        var pos = Math.Clamp(CursorPosition, 0, current.Length);
+        var pos = TextEditing.SnapToBoundary(current, CursorPosition);
         SetUserValue(current.Insert(pos, text));
         CursorPosition = pos + text.Length;
         IsDirty = true;
     }
 
     /// <summary>
-    /// 删除光标前一个字符
+    /// 删除光标前一个字素簇（<c>\r\n</c> 算一个）
     /// </summary>
     public bool Backspace()
     {
         var current = Value ?? string.Empty;
-        if (CursorPosition > 0 && current.Length > 0)
-        {
-            var pos = Math.Clamp(CursorPosition, 0, current.Length);
-            SetUserValue(current.Remove(pos - 1, 1));
-            CursorPosition = pos - 1;
-            IsDirty = true;
-            return true;
-        }
-        return false;
+        var pos = TextEditing.SnapToBoundary(current, CursorPosition);
+        if (pos == 0) return false;
+        var start = TextEditing.PreviousBoundary(current, pos);
+        SetUserValue(current.Remove(start, pos - start));
+        CursorPosition = start;
+        IsDirty = true;
+        return true;
     }
 
     /// <summary>
-    /// 删除光标后一个字符
+    /// 删除光标后一个字素簇
     /// </summary>
     public bool Delete()
     {
         var current = Value ?? string.Empty;
-        if (CursorPosition < current.Length)
-        {
-            SetUserValue(current.Remove(CursorPosition, 1));
-            IsDirty = true;
-            return true;
-        }
-        return false;
+        var pos = TextEditing.SnapToBoundary(current, CursorPosition);
+        if (pos >= current.Length) return false;
+        var end = TextEditing.NextBoundary(current, pos);
+        SetUserValue(current.Remove(pos, end - pos));
+        CursorPosition = pos;
+        IsDirty = true;
+        return true;
     }
 
     /// <summary>
@@ -340,7 +344,15 @@ public class TextAreaElement : Element, ITextEditable
         if (DeclaredValue is null)
             SetUserValue(oldTextArea.Value);
 
-        CursorPosition = Math.Clamp(oldTextArea.CursorPosition, 0, (Value ?? string.Empty).Length);
+        CursorPosition = TextEditing.SnapToBoundary(Value ?? string.Empty, oldTextArea.CursorPosition);
+    }
+
+    /// <summary>见 <see cref="InputElement"/> 的同名方法。</summary>
+    private protected override void AdoptStateCore(Element source)
+    {
+        var textArea = (TextAreaElement)source;
+        _value = textArea._value;
+        DeclaredValue = textArea.DeclaredValue;
     }
 }
 
