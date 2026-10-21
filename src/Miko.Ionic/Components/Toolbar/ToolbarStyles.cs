@@ -61,6 +61,14 @@ public static class ToolbarStyles
                 // automatic so wrapping/default-slot content (for example breadcrumbs) can grow
                 // the toolbar beyond the minimum.
                 MinHeight = Length.Px(t.ToolbarMinHeight),
+                // toolbar.scss .toolbar-container padding(var(--padding-*)); the theme's toolbar
+                // padding tokens were never read (ISSUE-153). Border-box, so the padding sits
+                // inside the minimum height as in Ionic.
+                PaddingTop = t.ToolbarPaddingTop,
+                PaddingBottom = t.ToolbarPaddingBottom,
+                PaddingLeft = t.ToolbarPaddingStart,
+                PaddingRight = t.ToolbarPaddingEnd,
+                BoxSizing = BoxSizing.BorderBox,
                 // Keep the content above the absolutely-positioned toolbar background.
                 ZIndex = 1,
             },

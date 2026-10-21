@@ -1,5 +1,6 @@
 using Miko.Common;
 using Miko.Styling;
+using static Miko.Styling.Css;
 
 namespace Miko.Ionic.Components;
 
@@ -38,7 +39,15 @@ internal static class ContentStyles
                 BackgroundColor = t.ContentBackground,
                 Color = t.ContentColor,
                 // content.scss: margin/padding are !important-zeroed on the host — the padding
-                // belongs to .inner-scroll (--padding-*), never to the host itself.
+                // belongs to .inner-scroll, which reads it from --padding-* (0 by default; the
+                // ion-padding rules below set them).
+                Vars = new()
+                {
+                    ["--padding-top"] = Length.Px(0),
+                    ["--padding-bottom"] = Length.Px(0),
+                    ["--padding-start"] = Length.Px(0),
+                    ["--padding-end"] = Length.Px(0),
+                },
                 MarginTop = Length.Px(0),
                 MarginRight = Length.Px(0),
                 MarginBottom = Length.Px(0),
@@ -84,6 +93,12 @@ internal static class ContentStyles
                 Left = Length.Px(0),
                 Color = t.ContentColor,
                 BoxSizing = BoxSizing.BorderBox,
+                // content.scss: padding(var(--padding-top), var(--padding-end), …) — so the
+                // ion-padding utility classes on IonContent pad the scrolled content (ISSUE-153).
+                PaddingTop = Var("--padding-top"),
+                PaddingBottom = Var("--padding-bottom"),
+                PaddingLeft = Var("--padding-start"),
+                PaddingRight = Var("--padding-end"),
                 // content.scss: `.inner-scroll { overflow: hidden }` — neither axis scrolls until
                 // the corresponding marker class is present.
                 OverflowX = Overflow.Hidden,
@@ -199,6 +214,8 @@ internal static class ContentStyles
         AddColor(css, mode, "medium", t.Medium, Color.FromHex("ffffff"));
         AddColor(css, mode, "dark", t.Dark, Color.FromHex("ffffff"));
 
+        AddPaddingUtilities(css, mode);
+
         return css;
     }
 
@@ -218,5 +235,32 @@ internal static class ContentStyles
         {
             BackgroundColor = baseColor,
         };
+    }
+
+    /// <summary>
+    /// The padding utility classes on IonContent (Ionic's css/padding.scss sets --padding-* along
+    /// with padding). The host's own padding stays 0 and .inner-scroll reads the variables. Scoped
+    /// to <c>.ion-content.{mode}</c> so they outrank the host's 0 defaults above — in Ionic the
+    /// defaults live in the shadow :host and lose to the document's utility class by construction.
+    /// </summary>
+    private static void AddPaddingUtilities(CssObject css, string mode)
+    {
+        const float spacing = 16f; // padding.scss $content-padding
+        var sides = new (string Class, string[] Vars)[]
+        {
+            ("ion-padding", ["--padding-top", "--padding-bottom", "--padding-start", "--padding-end"]),
+            ("ion-padding-top", ["--padding-top"]),
+            ("ion-padding-bottom", ["--padding-bottom"]),
+            ("ion-padding-start", ["--padding-start"]),
+            ("ion-padding-end", ["--padding-end"]),
+            ("ion-padding-vertical", ["--padding-top", "--padding-bottom"]),
+            ("ion-padding-horizontal", ["--padding-start", "--padding-end"]),
+        };
+        foreach (var (cls, vars) in sides)
+        {
+            var values = new Dictionary<string, VarValue>();
+            foreach (var name in vars) values[name] = Length.Px(spacing);
+            css[$".ion-content.{mode}.{cls}"] = new() { Vars = values };
+        }
     }
 }

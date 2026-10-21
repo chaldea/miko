@@ -47,9 +47,24 @@ public class InputElement : Element, ITextEditable
 
     /// <summary>
     /// input 在文本类类型（text / password / search / number）下接受键盘文本编辑；
-    /// checkbox / radio / range 不是文本控件，不参与编辑。
+    /// checkbox / radio / range 不是文本控件，不参与编辑。禁用的 input 不可编辑（HTML 语义；
+    /// ISSUE-153 之后标记里的 <c>disabled</c> 才真正生效，此前只靠 pointer-events 挡住点击）。
     /// </summary>
-    public bool IsEditable => Type is InputType.Text or InputType.Password or InputType.Search or InputType.Number;
+    public bool IsEditable => !IsDisabled && !ReadOnly &&
+        Type is InputType.Text or InputType.Password or InputType.Search or InputType.Number;
+
+    /// <summary>
+    /// HTML <c>readonly</c>：可以获得焦点（光标、选区、失焦事件照常），但不接受编辑
+    /// （<see cref="IsEditable"/> 为 false，也不弹出软键盘）。ISSUE-153 之前 Ionic 用
+    /// <c>pointer-events: none</c> 代替它，于是只读输入框连焦点都拿不到。
+    /// </summary>
+    public bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// HTML <c>maxlength</c>：用户输入最多到这么多个字符（UTF-16 码元，与浏览器一致），超出部分
+    /// 在插入时截掉；从代码赋的 <see cref="Value"/> 不受限制。null 表示不限。
+    /// </summary>
+    public int? MaxLength { get; set; }
 
     /// <summary>
     /// input 始终为单行控件。
@@ -121,6 +136,8 @@ public class InputElement : Element, ITextEditable
     public void InsertText(string text)
     {
         var current = Value ?? string.Empty;
+        text = TextEditing.LimitInsertion(text, current.Length, MaxLength);
+        if (text.Length == 0) return;
         var pos = Math.Clamp(CursorPosition, 0, current.Length);
         SetUserValue(current.Insert(pos, text));
         CursorPosition = pos + text.Length;
@@ -225,9 +242,15 @@ public class TextAreaElement : Element, ITextEditable
     private void SetUserValue(string? value) => _value = value;
 
     /// <summary>
-    /// textarea 始终接受键盘文本编辑。
+    /// textarea 接受键盘文本编辑，禁用时除外（见 InputElement.IsEditable）。
     /// </summary>
-    public bool IsEditable => true;
+    public bool IsEditable => !IsDisabled && !ReadOnly;
+
+    /// <summary>见 <see cref="InputElement.ReadOnly"/>。</summary>
+    public bool ReadOnly { get; set; }
+
+    /// <summary>见 <see cref="InputElement.MaxLength"/>。</summary>
+    public int? MaxLength { get; set; }
 
     /// <summary>
     /// textarea 是多行控件（回车插入换行）。
@@ -260,6 +283,8 @@ public class TextAreaElement : Element, ITextEditable
     public void InsertText(string text)
     {
         var current = Value ?? string.Empty;
+        text = TextEditing.LimitInsertion(text, current.Length, MaxLength);
+        if (text.Length == 0) return;
         var pos = Math.Clamp(CursorPosition, 0, current.Length);
         SetUserValue(current.Insert(pos, text));
         CursorPosition = pos + text.Length;
@@ -369,6 +394,12 @@ public class SelectElement : Element
             SelectedIndex = -1;
         }
     }
+
+    /// <summary>
+    /// 标记中声明的 <c>value</c> 属性（ISSUE-153 问题 3）。选项是 select 的子元素、晚于属性构建，
+    /// 因此 <c>RenderTreeBuilder</c> 先记在这里，select 闭合、选项齐全后再写入 <see cref="Value"/>。
+    /// </summary>
+    internal string? DeclaredValue { get; set; }
 
     /// <summary>
     /// 是否允许多选

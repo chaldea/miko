@@ -27,8 +27,8 @@ public sealed class IonActionSheetButton
     /// <summary>Arbitrary data returned with the dismiss event when this button is tapped.</summary>
     public object? Data { get; set; }
 
-    /// <summary>When true, tapping the button does nothing (ignored for cancel buttons). The button
-    /// is not drawn dimmed in this port.</summary>
+    /// <summary>When true, the button is drawn dimmed and tapping it does nothing. Ignored for
+    /// cancel buttons, as in Ionic.</summary>
     public bool Disabled { get; set; }
 
     /// <summary>Optional handler run when the button is tapped, before the sheet dismisses.</summary>

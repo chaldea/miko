@@ -7,9 +7,10 @@
 @code {
     /// <summary>
     /// Ionic's <c>slot</c> attribute on <c>ion-tab-bar</c>: <c>"bottom"</c> (default) or
-    /// <c>"top"</c>, stamped as <c>ion-tab-bar-bottom</c> / <c>ion-tab-bar-top</c>. It only picks
-    /// the border side (top border for a bottom bar, bottom border for a top bar); the
-    /// <see cref="IonTabs"/> slot the bar is placed in (<c>Bottom</c> / <c>Top</c>) decides the position.
+    /// <c>"top"</c>, stamped as <c>ion-tab-bar-bottom</c> / <c>ion-tab-bar-top</c>. It picks the
+    /// border side and the safe-area inset the bar pads for (a bottom bar: top border, bottom
+    /// inset; a top bar: bottom border, top inset); the <see cref="IonTabs"/> slot the bar is
+    /// placed in (<c>Bottom</c> / <c>Top</c>) decides the position.
     /// </summary>
     [Parameter] public string Slot { get; set; } = "bottom";
 

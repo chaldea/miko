@@ -167,27 +167,8 @@ internal static class ToggleStyles
                 Color = t.SelectErrorColor,
             },
 
-            // Justify / alignment — setting either switches the host to block (Ionic's rule).
-            [$".ion-toggle.{mode}.toggle-justify-space-between .toggle-wrapper"] = new()
-            {
-                JustifyContent = JustifyContent.SpaceBetween,
-            },
-            [$".ion-toggle.{mode}.toggle-justify-start .toggle-wrapper"] = new()
-            {
-                JustifyContent = JustifyContent.FlexStart,
-            },
-            [$".ion-toggle.{mode}.toggle-justify-end .toggle-wrapper"] = new()
-            {
-                JustifyContent = JustifyContent.FlexEnd,
-            },
-            [$".ion-toggle.{mode}.toggle-alignment-start .toggle-wrapper"] = new()
-            {
-                AlignItems = AlignItems.FlexStart,
-            },
-            [$".ion-toggle.{mode}.toggle-alignment-center .toggle-wrapper"] = new()
-            {
-                AlignItems = AlignItems.Center,
-            },
+            // Justify / alignment switch the host to block (Ionic's rule). The wrapper rules for
+            // them come after the label-placement rules — see the end of this block.
             [$".ion-toggle.{mode}.toggle-justify-space-between"] = new() { Display = Display.Block },
             [$".ion-toggle.{mode}.toggle-justify-start"] = new() { Display = Display.Block },
             [$".ion-toggle.{mode}.toggle-justify-end"] = new() { Display = Display.Block },
@@ -273,10 +254,12 @@ internal static class ToggleStyles
             },
 
             // Label placement — end: switch left, label right (row-reverse), packed to the start.
+            // toggle.scss writes `justify-content: start` — the absolute keyword. Under row-reverse
+            // flex-start is the RIGHT edge, which pushed a full-width toggle to the end of the row.
             [$".ion-toggle.{mode}.toggle-label-placement-end .toggle-wrapper"] = new()
             {
                 FlexDirection = FlexDirection.RowReverse,
-                JustifyContent = JustifyContent.FlexStart,
+                JustifyContent = JustifyContent.Start,
             },
             [$".ion-toggle.{mode}.toggle-label-placement-end .label-text-wrapper"] = new()
             {
@@ -308,6 +291,32 @@ internal static class ToggleStyles
                 MarginTop = Length.Px(0),
                 MarginBottom = Length.Px(16),
                 MaxWidth = Length.Percent(100),
+            },
+
+            // Justify / alignment. Declared AFTER the label-placement rules, as in toggle.scss: the
+            // selectors have the same specificity, so source order is what lets an explicit
+            // Justify override the justify-content that label-placement-end sets. Ionic writes the
+            // absolute keywords (start / end), which do not flip under row-reverse — the same fix
+            // as the checkbox in ISSUE-116 problem 4 (ISSUE-153).
+            [$".ion-toggle.{mode}.toggle-justify-space-between .toggle-wrapper"] = new()
+            {
+                JustifyContent = JustifyContent.SpaceBetween,
+            },
+            [$".ion-toggle.{mode}.toggle-justify-start .toggle-wrapper"] = new()
+            {
+                JustifyContent = JustifyContent.Start,
+            },
+            [$".ion-toggle.{mode}.toggle-justify-end .toggle-wrapper"] = new()
+            {
+                JustifyContent = JustifyContent.End,
+            },
+            [$".ion-toggle.{mode}.toggle-alignment-start .toggle-wrapper"] = new()
+            {
+                AlignItems = AlignItems.FlexStart,
+            },
+            [$".ion-toggle.{mode}.toggle-alignment-center .toggle-wrapper"] = new()
+            {
+                AlignItems = AlignItems.Center,
             },
         };
 

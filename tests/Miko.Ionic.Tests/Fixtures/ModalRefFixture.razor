@@ -1,0 +1,20 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* ISSUE-153 problem 4: IonModal's public methods called through @ref, as in Ionic's
+   `modal.dismiss()`, with the open state bound so the dismissal shows on screen. *@
+<IonApp>
+    <IonPage>
+        <IonContent>
+            <IonModal @ref="Modal" @bind-IsOpen="Open" OnDidDismiss="@(e => Role = e.Role)">
+                <div class="modal-ref-body">Body</div>
+            </IonModal>
+        </IonContent>
+    </IonPage>
+</IonApp>
+
+@code {
+    internal static IonModal? Modal;
+    internal static string? Role;
+    internal bool Open = true;
+}

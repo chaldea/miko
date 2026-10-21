@@ -330,8 +330,10 @@ internal static class SegmentStyles
             return;
         }
 
-        // MD follows the palette for the button text and checked indicator.
-        css[$".ion-segment-button.{mode}.in-segment-color.ion-color-{name}"] = new()
+        // MD follows the palette for the CHECKED button's text and the indicator; unchecked buttons
+        // keep the neutral in-segment-color text (segment-button.md.scss
+        // :host(.in-segment-color.segment-button-checked) .button-native).
+        css[$".ion-segment-button.{mode}.in-segment-color.segment-button-checked.ion-color-{name}"] = new()
         {
             Color = color,
         };

@@ -2,6 +2,7 @@ using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Styling;
+using Miko.Styling.Selectors;
 using Shouldly;
 
 namespace Miko.Tests.Styling;
@@ -151,5 +152,43 @@ public class PseudoClassSelectorsTests
         element.Class = "btn";
 
         new StyleResolver().Resolve(element, [styleSheet]).BackgroundColor.ShouldBe(Color.Red);
+    }
+
+    /// <summary>ISSUE-153: :focus-within matches the focused element and every ancestor of it.</summary>
+    [Fact]
+    public void FocusWithin_MatchesTheFocusedElementAndItsAncestors()
+    {
+        var input = new InputElement();
+        var wrapper = new DivElement { Children = { input } };
+        var host = new DivElement { Class = "field", Children = { wrapper } };
+        var sibling = new DivElement();
+        var root = new DivElement { Children = { host, sibling } };
+        var selector = CssSelectorParser.Parse(".field:focus-within");
+
+        selector.Matches(host).ShouldBeFalse();
+
+        input.SetState(ElementState.Focus);
+
+        selector.Matches(host).ShouldBeTrue();
+        new FocusWithinSelector().Matches(input).ShouldBeTrue();
+        new FocusWithinSelector().Matches(root).ShouldBeTrue();
+        new FocusWithinSelector().Matches(sibling).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void FocusWithin_RestylesTheAncestorWhenFocusMoves()
+    {
+        var sheet = new StyleSheet();
+        sheet.AddRule(CssSelectorParser.Parse(".field:focus-within .bar"), new Style { Opacity = 1f });
+        sheet.AddRule(CssSelectorParser.Parse(".bar"), new Style { Opacity = 0f });
+        var input = new InputElement();
+        var bar = new DivElement { Class = "bar" };
+        var host = new DivElement { Class = "field", Children = { input, bar } };
+        var resolver = new StyleResolver();
+
+        resolver.Resolve(bar, new List<StyleSheet> { sheet }).Opacity.ShouldBe(0f);
+        input.SetState(ElementState.Focus);
+        resolver.Resolve(bar, new List<StyleSheet> { sheet }).Opacity.ShouldBe(1f);
+        GC.KeepAlive(host);
     }
 }

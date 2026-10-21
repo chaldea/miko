@@ -4,7 +4,7 @@ Textareas are multi-line text fields with an optional label, placeholder, helper
 
 ## Basic usage
 
-`Label` sets the visible label. Enter inserts a line break. `Placeholder` is drawn while the field is empty and not focused. `Readonly` and `Disabled` both block pointer input, so neither can be focused; `Disabled` also dims the field.
+`Label` sets the visible label. Enter inserts a line break. `Placeholder` is drawn while the field is empty and not focused. A `Readonly` field can be focused but not edited, and shows no on-screen keyboard; a `Disabled` field cannot be focused and is dimmed.
 
 <!-- miko:example examples/textarea/Basic.razor -->
 ```razor
@@ -27,7 +27,7 @@ Textareas are multi-line text fields with an optional label, placeholder, helper
 
 ## Binding the value
 
-`@bind-Value` keeps a field in sync with the text. `ValueChanged` is raised with the whole new value on every edit, and `OnInput` right after it. As with `IonInput`, `OnChange` (Ionic `ionChange`) is currently never raised by typing, because Miko does not emit a native change event for text fields.
+`@bind-Value` keeps a field in sync with the text. `ValueChanged` is raised with the whole new value on every edit, and `OnInput` right after it. `OnChange` (Ionic `ionChange`) is raised when the textarea loses focus with a value different from the one it had when it was focused; Enter inserts a line break rather than committing.
 
 <!-- miko:example examples/textarea/Binding.razor -->
 ```razor
@@ -80,7 +80,7 @@ Textareas are multi-line text fields with an optional label, placeholder, helper
 
 ## Fill and shape
 
-`Fill="solid"` gives the field a tinted background and a bottom border, `Fill="outline"` a rounded 1px border, and `Shape="round"` a 16px corner radius — in both modes. In md mode a field outside an `IonItem` and not `Fill="outline"` also shows a 2px highlight bar along its bottom edge, tinted by `Color` and always visible.
+`Fill="solid"` gives the field a tinted background and a bottom border, `Fill="outline"` a rounded 1px border, and `Shape="round"` a 16px corner radius — in both modes. In md mode a field outside an `IonItem` and not `Fill="outline"` also shows a 2px highlight bar along its bottom edge, tinted by `Color`, which grows in while the field has focus.
 
 <!-- miko:example examples/textarea/Fill.razor -->
 ```razor
@@ -93,7 +93,7 @@ Textareas are multi-line text fields with an optional label, placeholder, helper
 
 ## Helper text, error text, and counter
 
-`HelperText` and `ErrorText` render under the field whenever they are set (there is no validity tracking), so choose which one to show in your code. `Counter` shows `length / Maxlength` and requires `Maxlength`, which does not stop typing.
+`HelperText` and `ErrorText` render under the field whenever they are set (there is no validity tracking), so choose which one to show in your code. `Counter` shows `length / Maxlength` and requires `Maxlength`, which also limits what the user can enter.
 
 <!-- miko:example examples/textarea/Hints.razor -->
 ```razor
@@ -108,7 +108,7 @@ Textareas are multi-line text fields with an optional label, placeholder, helper
 @code {
     private string? _bio;
 
-    // Maxlength only feeds the counter; enforce the limit yourself.
+    // Maxlength stops typing at 160; a value set from code can still be longer.
     private bool TooLong => _bio?.Length > 160;
 }
 ```
@@ -132,17 +132,17 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `HelperText` | `string?` | `null` | Helper text displayed below the textarea. Shown even when [`ErrorText`](#iontextarea) is also set. |
 | `Label` | `string?` | `null` | The visible plaintext label associated with the textarea. |
 | `LabelPlacement` | `string` | `"start"` | Where the label sits relative to the textarea: `"start"` (default), `"end"`, `"fixed"`, `"stacked"`, or `"floating"` (laid out like `"stacked"`; no float animation). |
-| `Maxlength` | `int?` | `null` | The maximum number of characters shown by the counter. Not enforced: the native field has no length limit. |
+| `Maxlength` | `int?` | `null` | The maximum number of characters the user can enter (Ionic `maxlength`), also shown by the counter. Typed or pasted text beyond it is cut off; a [`Value`](#iontextarea) set from code is not shortened. |
 | `Name` | `string?` | `null` | Form field name marker. |
 | `Placeholder` | `string?` | `null` | Instructional text shown before the textarea has a value. |
-| `Readonly` | `bool` | `false` | If true, the user cannot modify the value. |
+| `Readonly` | `bool` | `false` | If true, the user cannot modify the value. The field can still be focused (no on-screen keyboard is shown). |
 | `Rows` | `int` | `2` | The number of visible text lines for the control (native `rows`). Defaults to 2. |
 | `Shape` | `string?` | `null` | The shape. Use `"round"` for an increased corner radius. |
 | `Value` | `string?` | `null` | The value of the textarea. Two-way bindable: `@bind-Value`. |
 
 | Event | Type | Description |
 | --- | --- | --- |
-| `OnChange` | `EventCallback<string?>` | Ionic `ionChange`, wired to the native change event. Miko does not emit a change event for text fields, so typing never raises this; use [`OnInput`](#iontextarea) or [`ValueChanged`](#iontextarea). |
+| `OnChange` | `EventCallback<string?>` | Ionic `ionChange`: raised when the textarea loses focus with a value different from the one it had on focus. Enter inserts a line break and does not commit. Not raised while typing (see [`OnInput`](#iontextarea)) or for programmatic value changes. |
 | `OnInput` | `EventCallback<string?>` | Raised each time the user modifies the value (Ionic `ionInput`). |
 | `ValueChanged` | `EventCallback<string?>` | Raised (with the new value) as the user types (two-way binding support). |
 

@@ -86,8 +86,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Value` | `double` | `0` | The filled fraction of a determinate bar, clamped to [0, 1]. Changes are not animated. |
 <!-- /miko:api -->
 
-Unlike the other components, `IonProgressBar` does not apply its `Style` parameter — style it with `Class` and an app stylesheet rule.
-
 ## Styling
 
 ### Theme tokens

@@ -21,16 +21,13 @@ The drawer and its backdrop are absolutely positioned over their nearest positio
 
 ## Side menu
 
-The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `IonMenu.OnClose` — raised by a tap on the backdrop and by the system back button while the menu is open — clears it. Make the `IonMenu` the last child of the page's `IonPage`, so the page keeps a single root element (see [Page structure](./app.md#page-structure)); the drawer is a flex column, so an `IonHeader` / `IonContent` inside it lays out like a page. Handlers defined in the page re-render it when they return, so the explicit `StateHasChanged()` calls (kept from the template) are optional.
+The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `IonMenu.OnClose` — raised by a tap on the backdrop and by the system back button while the menu is open — clears it. Make the `IonMenu` the last child of the page's `IonPage` (see [Page structure](./app.md#page-structure)); the drawer is a flex column, so an `IonHeader` / `IonContent` inside it lays out like a page. Handlers defined in the page re-render it when they return, so they only need to flip the flag.
 
 <!-- miko:example examples/menu/Home.razor -->
 ```razor
-@inject Miko.Animation.AnimationManager Animations
-
 @* The page (the real file starts with @page "/"). IonMenu is the last child of the IonPage, so
    the page keeps a single root. The page owns the open state: IonMenuButton opens the menu,
-   IonMenu.OnClose (backdrop tap or system back) closes it. Animations is passed as in the
-   template (see the note below the example). *@
+   IonMenu.OnClose (backdrop tap or system back) closes it. *@
 <IonPage>
     <IonHeader>
         <IonToolbar>
@@ -51,7 +48,7 @@ The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `Ion
         </div>
     </IonContent>
 
-    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu" Animations="Animations">
+    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu">
         <IonContent>
             <IonList>
                 <IonListHeader>Inbox</IonListHeader>
@@ -84,28 +81,19 @@ The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `Ion
         new("Spam", Ionicons.WarningOutline),
     };
 
-    // As in the scaffolded template: flip the flag and re-render the page that renders IonMenu
-    // (the EventCallback would re-render it anyway).
-    private void OpenMenu()
-    {
-        _menuOpen = true;
-        StateHasChanged();
-    }
+    // Defined in this page, so the EventCallbacks re-render the page when they return.
+    private void OpenMenu() => _menuOpen = true;
 
-    private void CloseMenu()
-    {
-        _menuOpen = false;
-        StateHasChanged();
-    }
+    private void CloseMenu() => _menuOpen = false;
 
     private readonly record struct MenuPage(string Title, string Icon);
 }
 ```
 <!-- /miko:example -->
 
-The sidemenu app template (`Pages/Home.sidemenu.razor`) has the same parts, but places the `IonMenu` next to the `IonPage` rather than inside it, which gives the page two root elements; prefer the single-root form above.
+The sidemenu app template (`Pages/Home.sidemenu.razor`) is built the same way.
 
-`Animations` takes the injected `AnimationManager` and is meant to keep the backdrop mounted until its fade-out finishes. Currently the fade-out is skipped either way: re-rendering the page to set `IsOpen` to `false` creates a new `IonMenu` instance, which starts with the backdrop unmounted. The drawer's slide is a style transition on the drawer and does not depend on `Animations`.
+Opening and closing animate both ways: the drawer slides and the backdrop fades. As soon as `IsOpen` is `false` taps pass through to the page, also while the backdrop is still fading out.
 
 ## Side
 
@@ -170,7 +158,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Animations` | `AnimationManager?` | `null` | The app's `AnimationManager` (inject it in the page and pass it down). Lets this instance keep the backdrop mounted until its fade-out finishes. A host re-render creates a new instance, which starts with the backdrop unmounted, so closing the menu through a host re-render currently drops the backdrop at once either way. The drawer slide does not use it. |
+| `Animations` | `AnimationManager?` | `null` | No longer needed: the backdrop fade runs without it. Kept so existing markup that passes the app's `AnimationManager` still compiles. |
 | `BackButtonCloses` | `bool` | `true` | Whether the system back button closes the open menu. Defaults to `true`; only takes effect while [`IsOpen`](#ionmenu) and when a host has subscribed to [`OnClose`](#ionmenu) — with nobody listening there is nothing to close. |
 | `IsOpen` | `bool` | `false` | Whether the drawer is open (slid on-screen, backdrop dimmed). |
 | `Side` | `string` | `"start"` | Edge the drawer is anchored to: `"start"` (default, left) or `"end"` (right). |
@@ -195,7 +183,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 ### Theme tokens
 
-`Width` is the drawer width, `AnimDuration` the slide and fade duration in seconds. `BorderWidth` / `BorderColor` draw the ios hairline on the drawer's right edge (also for `Side="end"`). `AppBackground` is the background of [`IonApp`](./app.md). The backdrop color is the palette's `BackdropColor` (see [Theming](./theming.md#palette)).
+`Width` is the drawer width, `AnimDuration` the slide and fade duration in seconds. `BorderWidth` / `BorderColor` draw the ios hairline on the drawer's edge that faces the page (the right edge for `Side="start"`, the left for `Side="end"`). `AppBackground` is the background of [`IonApp`](./app.md). The backdrop color is the palette's `BackdropColor` (see [Theming](./theming.md#palette)).
 
 <!-- miko:tokens Menu -->
 Theme token `IonicTheme.Menu` (`MenuToken`). Assign only the values you want to change — the rest keep the mode defaults below. App-wide: `builder.AddIonic(o => o.Theme.Menu = new MenuToken { … })`; for one subtree: a `ConfigProvider`. See [Theming](./theming.md).
@@ -217,9 +205,9 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 
 | Selector | Element |
 | --- | --- |
-| `.ion-menu-host` | The full-size layer holding drawer and backdrop. Also carries the mode (`md` / `ios`), `.ion-menu-host-start` / `-end`, and the state: `.ion-menu-host-open`, `-closing` (fading out), or `-idle` (closed; taps pass through). |
+| `.ion-menu-host` | The full-size layer holding drawer and backdrop. Also carries the mode (`md` / `ios`), `.ion-menu-host-start` / `-end`, and the state: `.ion-menu-host-open`, or `-idle` (closed; taps pass through). |
 | `.ion-menu-host .ion-menu-inner` | The drawer: width, background, shadow (md) or border (ios). Also `.ion-menu-inner-start` / `-end`, and `.ion-menu-inner-open` while open. |
-| `.ion-menu-host .ion-menu-backdrop` | The dimmed backdrop; `.ion-menu-backdrop-mounted` while open or fading out, `.ion-menu-backdrop-open` while open. |
+| `.ion-menu-host .ion-menu-backdrop` | The dimmed backdrop; `.ion-menu-backdrop-open` while open. |
 | `.ion-menu-button` | The `IonMenuButton` host: a 48×48 tap target in the toolbar's text color. |
 
 ```csharp

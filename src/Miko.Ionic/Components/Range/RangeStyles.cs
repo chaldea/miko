@@ -282,7 +282,11 @@ internal static class RangeStyles
                 PointerEvents = PointerEvents.None,
             };
 
-            // Disabled: label dims; the bars turn to a neutral grey (approximated with the track grey).
+            // Disabled (range.md.scss :host(.range-disabled)): the label dims, and instead of
+            // fading the bars and knob change color — $range-md-bar-background-color, the
+            // step-250 grey — while the knob shrinks to .55 inside a 5px white outline. Only the
+            // label was ported, so a disabled md range looked enabled (ISSUE-153). The bar and knob
+            // rules follow the palette rules at the end of GenStyle.
             css[".ion-range.md.range-disabled .label-text-wrapper"] = new()
             {
                 Opacity = 0.38f, // $range-md-disabled-opacity
@@ -361,6 +365,29 @@ internal static class RangeStyles
         AddColor(css, mode, "light", t.Light);
         AddColor(css, mode, "medium", t.Medium);
         AddColor(css, mode, "dark", t.Dark);
+
+        // After the palette rules: same specificity, and in Ionic the color rules only set
+        // variables while the disabled ones set the color itself, so disabled wins.
+        if (mode == "md")
+        {
+            var disabledGrey = Color.FromHex("bfbfbf"); // $background-color-step-250
+            css[".ion-range.md.range-disabled .range-bar"] = new()
+            {
+                BackgroundColor = disabledGrey,
+            };
+            css[".ion-range.md.range-disabled .range-bar.range-bar-active"] = new()
+            {
+                BackgroundColor = disabledGrey,
+            };
+            css[".ion-range.md.range-disabled .range-knob"] = new()
+            {
+                BackgroundColor = disabledGrey,
+                Transform = new Transform(new TransformFunction.Scale(0.55f, 0.55f)),
+                OutlineWidth = Length.Px(5),
+                OutlineStyle = BorderStyle.Solid,
+                OutlineColor = Color.FromHex("ffffff"),
+            };
+        }
 
         return css;
     }

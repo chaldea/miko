@@ -1,5 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Platform
 @* Mirrors Ionic's <ion-popover> (popover.tsx render()):
    <ion-popover class="{mode} popover-side-{side} popover-translucent? popover-nested? overlay-hidden?" role="dialog">
      <ion-backdrop />                                <!-- tappable dim layer (omitted for nested popovers) -->
@@ -15,7 +16,7 @@
    equivalent viewport-relative position to the wrapper; without an event it keeps the centered
    fallback. The host is always mounted; when closed it carries `overlay-hidden` (display:none). *@
 <IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
-    <div class="@ClassMapper.Class" style="@Style" role="dialog">
+    <div class="@HostClass" style="@Style" role="dialog">
         @if (ShowBackdrop)
         {
             <div class="ion-backdrop popover-backdrop" @onclick="OnBackdropTapAsync"></div>
@@ -33,6 +34,15 @@
 </IonPortal>
 
 @code {
+    /// <summary>
+    /// The host class, evaluated while rendering (ISSUE-153). It carries the theme scope class
+    /// because the host is drawn in IonApp's overlay layer, away from this component's root, so
+    /// <see cref="IonicComponentBase"/> cannot stamp it there — without it none of the overlay's
+    /// rules matched in the layer. The open / mounted markers are computed here too, so a self
+    /// re-render through the parentless branch (which skips OnParametersSet) still reflects them.
+    /// </summary>
+    private string HostClass => Join(ClassMapper.Class, ThemeScopeClass, IsOpen ? null : "overlay-hidden");
+
     private readonly string _overlayId = $"popover-{Guid.NewGuid():N}";
     /// <summary>Optional stable identifier used by the root overlay registry.</summary>
     [Parameter] public string? OverlayId { get; set; }
@@ -107,11 +117,12 @@
             .Add(Mode)
             .Add("ion-popover")
             .Add($"popover-side-{position.Side}")
-            .If(Translucent, "popover-translucent")
-            .If(!IsOpen, "overlay-hidden");
+            .If(Translucent, "popover-translucent");
 
         _positionStyle = position.WrapperStyle;
         _contentPositionStyle = position.ContentStyle;
+
+        RegisterBackHandler(IsOpen && BackdropDismiss && Dismissable ? HandleBack : null, BackButtonPriority.Overlay);
     }
 
     private Style? _positionStyle;
@@ -266,8 +277,24 @@
 
     /// <summary>Dismisses the popover, raising <see cref="OnWillDismiss"/> then
     /// <see cref="OnDidDismiss"/>. The host may call this to close the popover programmatically.</summary>
+    /// <summary>
+    /// The system back button dismisses the open popover with role <c>"back"</c> when
+    /// <see cref="BackdropDismiss"/> (and <see cref="Dismissable"/>) allow it — Ionic's overlays.ts answers back for the topmost
+    /// overlay whose backdropDismiss is true (ISSUE-153; modal and action sheet did since ISSUE-138).
+    /// </summary>
+    private bool HandleBack()
+    {
+        // Re-check at dispatch time: the registration reflects the last render.
+        if (!IsOpen) return false;
+        _ = DismissAsync("back", null);
+        return true;
+    }
+
     public async Task DismissAsync(string? role = null, object? data = null)
     {
+        // Release the back button before awaiting anything (see IonModal.DismissAsync).
+        ClearBackHandler();
+
         var detail = new IonOverlayDismissEventArgs(role, data);
         await OnWillDismiss.InvokeAsync(detail);
         if (IsOpen)
@@ -276,5 +303,9 @@
             await IsOpenChanged.InvokeAsync(false);
         }
         await OnDidDismiss.InvokeAsync(detail);
+        // Called from code (@ref) nothing else re-renders this instance; without @bind-IsOpen the
+        // popover would stay on screen (ISSUE-153). A bound host has already replaced it, and
+        // StateHasChanged on a discarded instance does nothing.
+        StateHasChanged();
     }
 }

@@ -118,6 +118,17 @@ internal static class BaseItemStyles
             MaxWidth = Length.Percent(100),
         },
 
+        // A fixed label keeps its fixed track in the row (label.scss :host(.label-fixed):
+        // flex 0 0 100px, max-width 200px). In Ionic the label is a scoped component, so its host
+        // rule beats the item's ::slotted rule above; here the item rule is more specific, so the
+        // fixed label needs one of its own or it grows like a default label (ISSUE-153).
+        [$".ion-item.{mode} .input-wrapper .ion-label.label-fixed"] = new()
+        {
+            FlexGrow = 0,
+            FlexShrink = 0,
+            MaxWidth = Length.Px(200),
+        },
+
         // Slotted label margins (item.md.scss / item.ios.scss ::slotted(ion-label)): the
         // label's vertical rhythm inside the row — 10px top/bottom both modes, plus an 8px
         // end margin on iOS only. ::slotted is not slot-scoped, so this applies to labels in

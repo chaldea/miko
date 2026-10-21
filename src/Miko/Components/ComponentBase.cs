@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Diagnostics;
+using Miko.Events;
 using Miko.Layout;
 using Miko.Routing;
 
@@ -131,7 +132,50 @@ public abstract class ComponentBase : IComponent
             BuildRenderTree(builder);
         }
         _rootElement = builder.Build();
+        _rootNestedDispose = _rootElement.DisposeCallback;
+        AttachHostEventListeners(_rootElement);
         return _rootElement;
+    }
+
+    /// <summary>
+    /// Element event handlers written on this component that match none of its parameters
+    /// (<c>&lt;IonChip @onclick="…"&gt;</c>). Listening on the element the component renders mirrors
+    /// a listener on an Ionic host element. Kept on the instance and re-attached on every
+    /// <see cref="Build"/>, because a self re-render produces a new root (ISSUE-153 problem 5).
+    /// </summary>
+    private List<(string EventType, Delegate Handler)>? _hostEventListeners;
+
+    internal bool TryAddHostEventListener(string attributeName, object? value)
+    {
+        if (!attributeName.StartsWith("on", StringComparison.Ordinal)) return false;
+        var eventType = attributeName.Substring(2);
+
+        Delegate? handler = value switch
+        {
+            EventCallback<MouseEventArgs> c => (MikoEventHandler<MouseEventArgs>)(a => _ = c.InvokeAsync(a)),
+            EventCallback<PointerEventArgs> c => (MikoEventHandler<PointerEventArgs>)(a => _ = c.InvokeAsync(a)),
+            EventCallback<FocusEventArgs> c => (MikoEventHandler<FocusEventArgs>)(a => _ = c.InvokeAsync(a)),
+            EventCallback<ChangeEventArgs> c => (MikoEventHandler<ChangeEventArgs>)(a => _ = c.InvokeAsync(a)),
+            EventCallback<ScrollEventArgs> c => (MikoEventHandler<ScrollEventArgs>)(a => _ = c.InvokeAsync(a)),
+            EventCallback<KeyboardEventArgs> c => (MikoEventHandler<KeyboardEventArgs>)(a => _ = c.InvokeAsync(a)),
+            EventCallback<InputEventArgs> c => (MikoEventHandler<InputEventArgs>)(a => _ = c.InvokeAsync(a)),
+            _ => null,
+        };
+        if (handler is null) return false;
+
+        (_hostEventListeners ??= new()).Add((eventType, handler));
+        return true;
+    }
+
+    private void AttachHostEventListeners(Element root)
+    {
+        if (_hostEventListeners is null) return;
+        foreach (var (eventType, handler) in _hostEventListeners)
+        {
+            // A component may return the same retained element from every build; add once.
+            if (!root.HasEventListener(eventType, handler))
+                root.AddEventListener(eventType, handler);
+        }
     }
 
     /// <summary>
@@ -243,6 +287,9 @@ public abstract class ComponentBase : IComponent
             foreach (var oldChild in _rootElement.Children.ToArray())
                 DisposeSubtree(oldChild);
             ReplaceElementContent(_rootElement, newElement);
+            // newElement itself is discarded; an @ref on it must follow the surviving root.
+            _lastBuildNewBuilder?.RebindRootCaptures(newElement, _rootElement);
+            _lastBuildNewBuilder = null;
             return;
         }
 
@@ -251,6 +298,7 @@ public abstract class ComponentBase : IComponent
         if (index < 0) return;
 
         var oldElement = _rootElement;
+        var oldRootNestedDispose = _rootNestedDispose;
         var rebuilt = Build();
         TransferLayoutBox(oldElement, rebuilt);
         TransferRuntimeState(oldElement, rebuilt);
@@ -270,7 +318,12 @@ public abstract class ComponentBase : IComponent
         _rootElement = rebuilt;
         // The old subtree (and the nested component instances that produced it) is now
         // unreferenced — dispose those components so their event subscriptions are released.
-        // Skip oldElement itself: this component instance persists and re-renders.
+        // oldElement's own callback also disposes this component, which persists and re-renders,
+        // so only the components nested at the root are disposed for it: when this component's
+        // markup starts with a component, that component produced oldElement itself. Skipping
+        // them left e.g. the old IonPortal of a self-dismissed IonAlert registered, so the alert
+        // stayed in IonApp's overlay layer (ISSUE-153).
+        oldRootNestedDispose?.Invoke();
         foreach (var oldChild in oldElement.Children.ToArray())
             DisposeSubtree(oldChild);
     }
@@ -297,11 +350,21 @@ public abstract class ComponentBase : IComponent
         }
     }
 
+    /// <summary>
+    /// Dispose chain of the components nested at the root of the last <see cref="Build"/> — those
+    /// whose produced element is this component's root. See <see cref="StateHasChanged"/>.
+    /// </summary>
+    private Action? _rootNestedDispose;
+
+    /// <summary>The builder of the last <see cref="BuildNew"/>, kept for its <c>@ref</c> captures.</summary>
+    private RenderTreeBuilder? _lastBuildNewBuilder;
+
     private Element BuildNewCore()
     {
         using var cascadingScope = CascadingValueSource.RestoreIfEmpty(_cascadingSnapshot);
         SetCascadingParameters();
         var builder = new RenderTreeBuilder();
+        _lastBuildNewBuilder = builder;
         // Re-push our captured provider so nested components rebuilt during StateHasChanged
         // still receive [Inject] services. StateHasChanged runs outside any ancestor's Build,
         // so without this push the ambient scope would be empty.

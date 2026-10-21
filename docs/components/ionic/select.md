@@ -30,7 +30,7 @@ Bind the selected value with `@bind-Value`. An option without `Value` uses its t
 
 `Interface` picks the overlay: `alert` (default, radio buttons with Cancel / OK), `action-sheet` (one button per option plus Cancel), `popover` (a radio list anchored to the tap), or `modal` (a full list with a close button). `InterfaceHeader`, `InterfaceSubHeader`, and `InterfaceMessage` fill the overlay's header; the alert falls back to `Label` when `InterfaceHeader` is not set.
 
-The alert and action sheet apply the selection when they close; the popover and modal apply it as soon as an option is tapped. The overlay is declared by the select itself, so on a routed page it renders where the select is rather than in `IonApp`'s overlay layer — see [Overlays](./overlays.md).
+The alert and action sheet apply the selection when they close; the popover and modal apply it as soon as an option is tapped. The overlay is declared by the select itself and is drawn in `IonApp`'s overlay layer — see [Overlays](./overlays.md).
 
 <!-- miko:example examples/select/Interfaces.razor -->
 ```razor
@@ -145,7 +145,7 @@ With `Multiple="true"` bind `Values` (`IReadOnlyList<string>`) instead of `Value
 
 ## Fill, shape, and helper text
 
-`Fill="solid"` gives the value area a background and `Fill="outline"` a border around the field (the outline is drawn in md mode only; in ios mode it renders no border). Fills are meant for standalone selects, not selects inside an `IonItem`. `Shape="round"` rounds the solid background's corners (it does not change the outline's corners). `HelperText` and `ErrorText` render below the field; both show whenever they are set, so toggle `ErrorText` yourself when validating. In md mode a standalone select without `Fill="outline"` also draws a 2px highlight line under the field.
+`Fill="solid"` gives the value area a background and `Fill="outline"` a border around the field with 16px of space inside it (the outline is drawn in md mode only, as in Ionic; in ios mode it renders no border). Fills are meant for standalone selects, not selects inside an `IonItem`. `Shape="round"` rounds the solid background's corners (it does not change the outline's corners). `HelperText` and `ErrorText` render below the field; both show whenever they are set, so toggle `ErrorText` yourself when validating. In md mode a standalone select without `Fill="outline"` also draws a 2px highlight line under the field.
 
 <!-- miko:example examples/select/Fill.razor -->
 ```razor

@@ -19,7 +19,7 @@
 <div class="@ClassMapper.Class" style="@Style">
     @if (Href is not null)
     {
-        <a class="breadcrumb-native" href="@Href">
+        <a class="breadcrumb-native" href="@Href" @onclick="HandleClick">
             @if (Start is not null)
             {
                 <span class="ion-slot-start">@Start</span>
@@ -33,7 +33,7 @@
     }
     else
     {
-        <span class="breadcrumb-native">
+        <span class="breadcrumb-native" @onclick="HandleClick">
             @if (Start is not null)
             {
                 <span class="ion-slot-start">@Start</span>
@@ -65,10 +65,20 @@
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>URL the breadcrumb points to (Ionic <c>href</c>). When set the native element is an
-    /// anchor with the link styling (<c>ion-activatable</c>). The renderer does not navigate and the
-    /// breadcrumb raises no click event — handle taps on an element inside its content.</summary>
+    /// <summary>The route the breadcrumb navigates to (Ionic <c>href</c>). When set the native element
+    /// is an anchor with the link styling (<c>ion-activatable</c>), and a tap raises
+    /// <see cref="OnClick"/> and then navigates through the app's <c>NavigationManager</c>, as
+    /// Ionic's <c>openURL</c> does.</summary>
     [Parameter] public string? Href { get; set; }
+
+    /// <summary>Navigation direction for <see cref="Href"/> (Ionic <c>routerDirection</c>):
+    /// <c>"forward"</c> (default — push with the mode's transition), <c>"back"</c> (pop-style
+    /// transition), or <c>"root"</c> (clear the history, no transition).</summary>
+    [Parameter] public string? RouterDirection { get; set; }
+
+    /// <summary>Raised when the breadcrumb is tapped — before it navigates, when it has an
+    /// <see cref="Href"/>. Not raised while <see cref="Disabled"/>.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
 
     /// <summary>If true, the breadcrumb takes on the active look. The enclosing
     /// <see cref="IonBreadcrumbs"/> sets this on the last breadcrumb when none is explicitly active.</summary>
@@ -93,7 +103,7 @@
 
     protected override void OnParametersSet()
     {
-        var clickable = Href is not null;
+        var clickable = Href is not null || OnClick.HasDelegate;
 
         ClassMapper
             .Clear()
@@ -107,5 +117,24 @@
             .If(clickable, "ion-focusable")
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
             .AddColor(Color);
+    }
+
+    // breadcrumb.tsx: onClick={openURL(href, ev, routerDirection, routerAnimation)} — the same
+    // routerLink navigation IonItem uses (ISSUE-153).
+    private async Task HandleClick(MouseEventArgs _)
+    {
+        if (Disabled) return;
+        await OnClick.InvokeAsync();
+
+        if (!string.IsNullOrEmpty(Href) && Navigation is not null)
+        {
+            var (direction, transition) = RouterDirection?.ToLowerInvariant() switch
+            {
+                "back" => (NavigationDirection.Back, IonicPageTransitions.Pop(Mode)),
+                "root" => (NavigationDirection.Root, (NavigationTransition?)null),
+                _ => (NavigationDirection.Forward, IonicPageTransitions.Push(Mode)),
+            };
+            Navigation.NavigateTo(Href, direction, transition);
+        }
     }
 }

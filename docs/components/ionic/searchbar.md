@@ -46,7 +46,7 @@ Bind the text with `@bind-Value` and filter on it. `ValueChanged` is raised with
 
 ## Events
 
-`OnInput` is raised on every edit, right after `ValueChanged`. `OnChange` is the commit event: it is raised on blur when the value changed during that focus (and after the cancel button clears a non-focused field), never per keystroke and never for programmatic changes. `OnFocus` and `OnBlur` follow the field's focus; tapping the clear or cancel button takes focus away from the field.
+`OnInput` is raised on every edit, right after `ValueChanged`. `OnChange` is the commit event: it is raised on blur or Enter when the value changed during that focus (and after the cancel button clears a non-focused field), never per keystroke and never for programmatic changes. `OnFocus` and `OnBlur` follow the field's focus; tapping the clear or cancel button takes focus away from the field.
 
 <!-- miko:example examples/searchbar/Events.razor -->
 ```razor
@@ -68,7 +68,7 @@ Bind the text with `@bind-Value` and filter on it. `ValueChanged` is raised with
 
 ## Clear button
 
-With the default `ShowClearButton="always"` a clear button appears while there is a value. It follows the `Value` parameter, so bind `Value`: without a binding the button disappears as soon as the parent re-renders (for example after any of the searchbar's own callbacks). Tapping it raises `OnClear`, then clears the field and raises `ValueChanged` and `OnInput` with an empty string. `ShowClearButton="never"` removes it; `"focus"` currently behaves like `"never"`.
+With the default `ShowClearButton="always"` a clear button appears while there is a value. It follows the `Value` parameter, so bind `Value`: without a binding the button disappears as soon as the parent re-renders (for example after any of the searchbar's own callbacks). Tapping it raises `OnClear`, then clears the field and raises `ValueChanged` and `OnInput` with an empty string. `ShowClearButton="never"` removes it; `"focus"` shows it only while the field has focus (and has a value).
 
 <!-- miko:example examples/searchbar/Clear.razor -->
 ```razor
@@ -88,9 +88,9 @@ With the default `ShowClearButton="always"` a clear button appears while there i
 
 ## Cancel button
 
-`ShowCancelButton="always"` adds a cancel button: in md mode an icon inside the field at the start (`CancelButtonIcon`, default arrow-back-sharp), in ios mode a text button after the field (`CancelButtonText`, default `"Cancel"`). Tapping it raises `OnCancel`, then clears the value (raising `ValueChanged` and `OnInput`) and takes focus away. `"focus"` currently behaves like `"never"`, and `Animated` has no animation — in ios mode it only keeps the cancel button visible.
+`ShowCancelButton="always"` adds a cancel button: in md mode an icon inside the field at the start (`CancelButtonIcon`, default arrow-back-sharp), in ios mode a text button after the field (`CancelButtonText`, default `"Cancel"`). Tapping it raises `OnCancel`, then clears the value (raising `ValueChanged` and `OnInput`) and takes focus away. `"focus"` shows the cancel button only while the field has focus. `Animated` has no animation — in ios mode it only keeps the cancel button visible.
 
-In md mode the search icon is not hidden while the cancel button shows, so the two icons overlap; hide the search icon with an app rule (see [CSS classes](#css-classes)).
+In md mode the cancel button takes the search icon's place: the search icon is hidden while it shows.
 
 <!-- miko:example examples/searchbar/Cancel.razor -->
 ```razor
@@ -121,13 +121,13 @@ In md mode the search icon is not hidden while the cancel button shows, so the t
 
 ## Colors
 
-`Color` fills the field with a palette color (see [Theming](./theming.md#palette)). Only the background changes — the text and icons keep their default colors — so use light colors, or set a contrasting text color in your stylesheet.
+`Color` fills the field with a palette color (see [Theming](./theming.md#palette)) and switches the text and icons to the color's contrast color, as in Ionic.
 
 <!-- miko:example examples/searchbar/Colors.razor -->
 ```razor
-@* Color changes only the field background; text and icons keep the default (dark) colors. *@
+@* Color fills the field; the text and icons switch to the palette's contrast color. *@
 <IonSearchbar Color="light" />
-<IonSearchbar Color="warning" />
+<IonSearchbar Color="dark" />
 ```
 <!-- /miko:example -->
 
@@ -166,8 +166,8 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Name` | `string?` | `null` | Form control name (Ionic `name`). Kept for API parity. |
 | `Placeholder` | `string` | `"Search"` | Placeholder text (Ionic `placeholder`). Defaults to `"Search"`. |
 | `SearchIcon` | `string?` | `null` | Search icon name (Ionic `searchIcon`). Defaults to `search-sharp` (md) / `search-outline` (ios). |
-| `ShowCancelButton` | `string` | `"never"` | Cancel button behavior (Ionic `showCancelButton`): `"never"` (default), `"focus"`, or `"always"`. `"focus"` currently behaves like `"never"`. |
-| `ShowClearButton` | `string` | `"always"` | Clear button behavior (Ionic `showClearButton`): `"always"` (default), `"focus"`, or `"never"`. `"focus"` currently behaves like `"never"`. The button appears only while the [`Value`](#ionsearchbar) parameter is non-empty, so it needs a bound value. |
+| `ShowCancelButton` | `string` | `"never"` | Cancel button behavior (Ionic `showCancelButton`): `"never"` (default), `"focus"` (shown while the field has focus), or `"always"`. |
+| `ShowClearButton` | `string` | `"always"` | Clear button behavior (Ionic `showClearButton`): `"always"` (default), `"focus"` (shown while the field has focus), or `"never"`. The button appears only while the [`Value`](#ionsearchbar) parameter is non-empty, so it needs a bound value. |
 | `Type` | `string` | `"search"` | Input type (Ionic `type`). Defaults to `"search"`; any value renders a plain text field (no password masking or numeric keypad). |
 | `Value` | `string?` | `null` | The current value of the search field (Ionic `value`). Two-way bindable: `@bind-Value`. |
 
@@ -175,7 +175,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | --- | --- | --- |
 | `OnBlur` | `EventCallback` | Raised when the search field loses focus (Ionic `ionBlur`). |
 | `OnCancel` | `EventCallback` | Raised when the cancel button is clicked (Ionic `ionCancel`). Fires before the value is cleared, like the Ionic source. |
-| `OnChange` | `EventCallback<string?>` | Raised when the value change is committed — on blur, or when the clear / cancel button changes the value (Ionic `ionChange`). Not raised for programmatic value changes, matching Ionic. |
+| `OnChange` | `EventCallback<string?>` | Raised when the value change is committed (Ionic `ionChange`): when the field loses focus or Enter is pressed with a value different from the one it had on focus — a clear-button tap counts as a change — or when the cancel button clears an unfocused field. Not raised for programmatic value changes, matching Ionic. |
 | `OnClear` | `EventCallback` | Raised when the clear button is clicked (Ionic `ionClear`). Fires before the value is cleared, like the Ionic source. |
 | `OnFocus` | `EventCallback` | Raised when the search field gains focus (Ionic `ionFocus`). |
 | `OnInput` | `EventCallback<string?>` | Raised each time the user modifies the value (Ionic `ionInput`). |
@@ -231,14 +231,9 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.ion-color-{name}` | `Color` (e.g. `.ion-color-dark`). |
 
 ```csharp
-// GlobalStyles.cs — readable text on a dark searchbar, and no overlapping
-// search icon while the md cancel button shows.
+// GlobalStyles.cs — readable text on a dark searchbar.
 [".ion-searchbar.ion-color-dark .searchbar-input"] = new()
 {
     Color = Color.FromHex("#ffffff"),
-},
-[".ion-searchbar.md.searchbar-should-show-cancel .searchbar-search-icon"] = new()
-{
-    Display = Display.None,
 },
 ```

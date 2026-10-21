@@ -68,7 +68,9 @@
     {
         if (!Animated) return null;
 
-        var theme = Mode == "ios" ? IonicTheme.CreateIos() : IonicTheme.CreateMd();
+        // The app's theme, not the mode defaults: the shimmer must use the same SkeletonText
+        // colors as the bar's stylesheet rule (ISSUE-153).
+        var theme = ResolvedTheme;
 
         return new Style
         {

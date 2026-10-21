@@ -296,6 +296,21 @@ public class IonSearchbarTests : IonicComponentTestBase
         cut.Root.ShouldNotHaveClass("searchbar-has-focus");
     }
 
+    /// <summary>
+    /// ISSUE-153: Color only changed the input background; the text and icons kept their dark
+    /// defaults and could not be read on a dark palette. searchbar.scss switches the host to the
+    /// contrast color and lets the icons inherit it.
+    /// </summary>
+    [Fact]
+    public void IonSearchbar_DarkColor_UsesContrastTextAndIcons()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderBar(Context, p => p.Add(nameof(IonSearchbar.Color), "dark"));
+
+        cut.GetComputedStyle(cut.FindByClass("searchbar-input").Single())!.Color.ShouldBe(Color.White);
+        cut.GetComputedStyle(cut.FindByClass("searchbar-search-icon").Single())!.Color.ShouldBe(Color.White);
+    }
+
     [Fact]
     public void IonSearchbar_ColoredInput_UsesColorBackground()
     {
@@ -312,5 +327,21 @@ public class IonSearchbarTests : IonicComponentTestBase
     {
         var clear = cut.FindByClass("searchbar-clear-button").Single();
         return cut.GetComputedStyle(clear)!;
+    }
+
+    /// <summary>
+    /// ISSUE-153: in md mode a visible cancel button (the back arrow at the start) overlapped the
+    /// search icon; Ionic hides the icon (<c>.searchbar-cancel-button + .searchbar-search-icon</c>).
+    /// </summary>
+    [Fact]
+    public void IonSearchbar_Md_CancelButtonShown_HidesTheSearchIcon()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var shown = RenderBar(Context, p => p.Add(nameof(IonSearchbar.ShowCancelButton), "always"));
+        var hidden = RenderBar(Context);
+
+        // A display:none element is pruned from the layout tree, so it has no computed style.
+        shown.GetComputedStyle(shown.FindByClass("searchbar-search-icon").Single()).ShouldBeNull();
+        hidden.GetComputedStyle(hidden.FindByClass("searchbar-search-icon").Single()).ShouldNotBeNull();
     }
 }

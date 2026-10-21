@@ -4,7 +4,7 @@
 
 `IonApp` wraps all routed pages, once, in the app's layout. It is a positioned flex column that fills its parent, and it provides:
 
-- **The overlay layer.** It renders the overlay host, painted above the page, the tab bar, and the menu. Overlays presented through a controller (`IonModalController`, `IonAlertController`, …) are rendered *only* there — without an `IonApp` they never appear. Declarative overlays (`IonModal`, `IonAlert`, …) move into the layer only when they are part of `IonApp`'s own render, such as markup in the layout; declared on a routed page, they render inline where they are declared, because the page is built before the layout. See [Overlays](./overlays.md).
+- **The overlay layer.** It renders the overlay host, painted above the page, the tab bar, and the menu. Overlays presented through a controller (`IonModalController`, `IonAlertController`, …) are rendered *only* there — without an `IonApp` they never appear. Declarative overlays (`IonModal`, `IonAlert`, …) declared on a routed page or in the layout are drawn there as well. See [Overlays](./overlays.md).
 - **The menu area.** It is the positioned box an [`IonMenu`](./menu.md) drawer and its backdrop cover.
 
 `IonApp` does not handle the system back button itself — the components that respond to it (overlays, the menu, [`IonBackButton`](./back-button.md)) register with the platform's back-button chain. Its services come from `builder.AddIonic()`.
@@ -29,7 +29,7 @@ Put a single `IonApp` in the default layout, around `@Body`. Every app template 
 
 Each routed page starts with `IonPage`: a flex column that fills the space it is given (the `IonApp`, or the content area of `IonTabs`). Inside it, an optional [`IonHeader`](./header.md) stays at the top, an optional [`IonFooter`](./footer.md) at the bottom, and [`IonContent`](./content.md) grows to fill the rest and is the only part that scrolls.
 
-Keep `IonPage` the page's **only root element** — put anything else, an `IonMenu` included, inside it. A page with several root elements placed directly in `<IonApp>@Body</IonApp>` breaks the overlay layer: after the page first re-renders, controller-presented overlays no longer show.
+Make `IonPage` the page's root element and put anything else, an `IonMenu` included, inside it, as the app templates do. A page may also have several root elements; they are placed in the `IonApp` side by side.
 
 <!-- miko:example examples/app/Page.razor -->
 ```razor

@@ -48,6 +48,29 @@ public class FocusSelector : PseudoClassSelector
 }
 
 /// <summary>
+/// :focus-within 伪类选择器：元素自身或其任一后代持有焦点。
+/// <para>焦点变化经 <c>SetState</c> 递增变更版本、触发整树级联，祖先因此会重新匹配，无需额外记账。
+/// 匹配时向下查找，找到即停；它几乎总出现在组合器左侧（<c>.ion-input:focus-within .input-highlight</c>），
+/// 只有右侧先命中时才会被求值，代价是一个组件子树的遍历。Ionic 的 <c>has-focus</c> 类由组件在焦点事件里
+/// 维护，Miko 的组件实例随重渲染重建，类会丢，故改用它（ISSUE-153）。</para>
+/// </summary>
+public class FocusWithinSelector : PseudoClassSelector
+{
+    public override bool Matches(Element element) => ContainsFocus(element);
+
+    private static bool ContainsFocus(Element element)
+    {
+        if (element.HasState(ElementState.Focus)) return true;
+        var children = element.Children;
+        for (int i = 0; i < children.Count; i++)
+        {
+            if (ContainsFocus(children[i])) return true;
+        }
+        return false;
+    }
+}
+
+/// <summary>
 /// :disabled 伪类选择器
 /// </summary>
 public class DisabledSelector : PseudoClassSelector

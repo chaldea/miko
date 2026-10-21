@@ -9,6 +9,7 @@
    When an accordion's header is tapped it calls back through RequestToggleAsync, which applies the
    single/multiple rules (accordion-group.tsx requestAccordionToggle) and re-emits ValueChanged. *@
 <div class="@ClassMapper.Class" style="@Style">
+    @{ _context.ResetAutoValues(); }
     <CascadingValue TValue="IonAccordionGroupContext" Value="_context">
         @ChildContent
     </CascadingValue>

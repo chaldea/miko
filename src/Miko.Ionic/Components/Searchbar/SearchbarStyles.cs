@@ -197,6 +197,10 @@ internal static class SearchbarStyles
             // (searchbar.md.scss :host(.searchbar-has-focus/.searchbar-should-show-cancel)).
             css[$".ion-searchbar.{mode}.searchbar-has-focus .searchbar-cancel-button"] = new() { Display = Display.Block };
             css[$".ion-searchbar.{mode}.searchbar-should-show-cancel .searchbar-cancel-button"] = new() { Display = Display.Block };
+            // ...and the cancel (back arrow) button then takes the search icon's place, which is
+            // hidden — otherwise the two icons overlap (searchbar.md.scss, ISSUE-153).
+            css[$".ion-searchbar.{mode}.searchbar-has-focus .searchbar-cancel-button + .searchbar-search-icon"] = new() { Display = Display.None };
+            css[$".ion-searchbar.{mode}.searchbar-should-show-cancel .searchbar-cancel-button + .searchbar-search-icon"] = new() { Display = Display.None };
         }
         else
         {
@@ -263,6 +267,25 @@ internal static class SearchbarStyles
 
         // --- Named color fills (Ionic --ion-color-* palette) ---------------------------------
         // A searchbar with a color fills its input with that base; icons inherit the contrast color.
+        // ShowCancelButton / ShowClearButton = "focus" (searchbar.tsx: the focus arm of
+        // shouldShowCancelButton / shouldShowClearButton): the button shows while the field has
+        // focus. :focus-within reads the focus at style time; a component flag could not survive
+        // the re-renders a focus callback triggers, so "focus" used to behave like "never"
+        // (ISSUE-153).
+        css[$".ion-searchbar.{mode}.searchbar-show-cancel-focus:focus-within .searchbar-cancel-button"] = new() { Display = Display.Block };
+        css[$".ion-searchbar.{mode}.searchbar-has-value.searchbar-show-clear-focus:focus-within .searchbar-clear-button"] = new() { Display = Display.Block };
+        if (mode == "md")
+        {
+            css[$".ion-searchbar.{mode}.searchbar-show-cancel-focus:focus-within .searchbar-cancel-button + .searchbar-search-icon"] = new() { Display = Display.None };
+        }
+        else
+        {
+            css[$".ion-searchbar.{mode}.searchbar-has-value.searchbar-show-clear-focus:focus-within .searchbar-input"] = new()
+            {
+                PaddingRight = Length.Px(28),
+            };
+        }
+
         AddColor(css, mode, "primary", t.Primary);
         AddColor(css, mode, "secondary", t.Secondary);
         AddColor(css, mode, "tertiary", t.Tertiary);
@@ -286,13 +309,28 @@ internal static class SearchbarStyles
         return baseStyle;
     }
 
-    // Color: input background = base; icons/cancel/clear inherit the host color
-    // (searchbar.scss :host(.ion-color) rules).
+    // Color (searchbar.scss :host(.ion-color)): the host text takes the palette's contrast
+    // color, the input the base color as background, and the icons / clear / cancel buttons
+    // inherit the host color. Only the background was ported, so on a dark palette the text and
+    // icons kept their dark default and could not be read (ISSUE-153).
     private static void AddColor(CssObject css, string mode, string name, Color baseColor)
     {
+        var contrast = name is "success" or "warning" or "light" ? Color.Black : Color.White;
+        css[$".ion-searchbar.{mode}.ion-color-{name}"] = new()
+        {
+            Color = contrast,
+        };
         css[$".ion-searchbar.{mode}.ion-color-{name} .searchbar-input"] = new()
         {
             BackgroundColor = baseColor,
+            Color = contrast,
         };
+        foreach (var part in new[] { "searchbar-search-icon", "searchbar-clear-button", "searchbar-cancel-button" })
+        {
+            css[$".ion-searchbar.{mode}.ion-color-{name} .{part}"] = new()
+            {
+                Color = Css.Inherit,
+            };
+        }
     }
 }

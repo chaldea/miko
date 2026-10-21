@@ -495,4 +495,22 @@ public class IonBreadcrumbTests : IonicComponentTestBase
         var native = cut.FindByClass("breadcrumb-native").ShouldHaveSingleItem();
         cut.GetComputedStyle(native)!.Color.ShouldBe(IonicTheme.CreateMd().Danger);
     }
+
+    /// <summary>ISSUE-153: OnClick also fires on a crumb without Href (the docs' folder-path example).</summary>
+    [Fact]
+    public void IonBreadcrumb_OnClick_FiresWithoutHref()
+    {
+        var clicks = 0;
+        var cut = Context.Render<IonBreadcrumb>(p =>
+        {
+            p.Add(nameof(IonBreadcrumb.OnClick), EventCallback.Factory.Create(this, () => clicks++));
+            p.Add(nameof(IonBreadcrumb.ChildContent), (RenderFragment)(b => b.AddContent("Docs")));
+        });
+
+        var native = cut.FindByClass("breadcrumb-native").Single();
+        native.OnClick!.Invoke(new MouseEventArgs { Target = native });
+
+        clicks.ShouldBe(1);
+        cut.Root.ShouldHaveClass("ion-activatable");
+    }
 }

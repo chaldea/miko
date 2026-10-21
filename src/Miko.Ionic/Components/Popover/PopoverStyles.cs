@@ -106,10 +106,14 @@ internal static class PopoverStyles
                 ZIndex = 10,                                 // $z-index-overlay-wrapper
             },
 
-            // Arrow — the little pointer at the trigger. A rotated square peeking out of the content;
-            // rotation per side is a marker here (the web uses popover-side-* transforms). The visible
-            // square matches the content background.
-            [$".ion-popover.{mode} .popover-arrow"] = new()
+        };
+
+        // Arrow — the little pointer at the trigger, styled only in ios (popover.ios.scss; md has no
+        // arrow rule, so Ionic's md arrow element is an empty, invisible box). Styled in md too, it
+        // drew a stray box at the wrapper's corner (ISSUE-153). The port does not yet place it
+        // against the trigger or rotate it per side.
+        css[$".ion-popover.{mode} .popover-arrow"] = mode == "ios"
+            ? new()
             {
                 Position = Position.Absolute,
                 Display = Display.Block,
@@ -119,8 +123,11 @@ internal static class PopoverStyles
                 OverflowY = Overflow.Hidden,
                 ZIndex = 11,
                 BackgroundColor = t.BackgroundColor,         // matches --background (arrow ::after fill)
-            },
-        };
+            }
+            : new()
+            {
+                Display = Display.None,
+            };
 
         return css;
     }

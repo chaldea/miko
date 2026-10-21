@@ -307,4 +307,27 @@ public class IonRangeTests : IonicComponentTestBase
 
         cut.GetComputedStyle(slider)!.Height.ShouldBe(Length.Px(42));
     }
+
+    /// <summary>
+    /// ISSUE-153: a disabled md range only dimmed its label. range.md.scss turns the bars and knob
+    /// grey and shrinks the knob — also for a colored range, whose palette rules come first.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("danger")]
+    public void IonRange_Md_Disabled_GreysTheBarsAndKnob(string? color)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonRange>(p =>
+        {
+            p.Add(nameof(IonRange.Disabled), true);
+            if (color is not null) p.Add(nameof(IonRange.Color), color);
+        });
+
+        var grey = Miko.Common.Color.FromHex("bfbfbf");
+        cut.GetComputedStyle(cut.FindByClass("range-bar-active").Single())!.BackgroundColor.ShouldBe(grey);
+        var knob = cut.GetComputedStyle(cut.FindByClass("range-knob").Single())!;
+        knob.BackgroundColor.ShouldBe(grey);
+        knob.Transform.Functions.ShouldContain(f => f is Miko.Animation.TransformFunction.Scale);
+    }
 }

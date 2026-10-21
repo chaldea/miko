@@ -353,4 +353,19 @@ public class IonPopoverTests : IonicComponentTestBase
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         await (Task)mi.Invoke(component, new[] { arg })!;
     }
+
+    /// <summary>ISSUE-153: Ionic styles the arrow only in ios; in md the port drew it as a stray box.</summary>
+    [Theory]
+    [InlineData(Miko.Platform.HostPlatform.Android, false)]
+    [InlineData(Miko.Platform.HostPlatform.Ios, true)]
+    public void IonPopover_Arrow_IsDrawnOnlyInIos(Miko.Platform.HostPlatform platform, bool drawn)
+    {
+        UsePlatform(platform);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonPopover>(p => p.Add(nameof(IonPopover.IsOpen), true));
+
+        var arrow = cut.FindByClass("popover-arrow").Single();
+        // A display:none element is pruned from the layout tree, so it has no computed style.
+        (cut.GetComputedStyle(arrow) is not null).ShouldBe(drawn);
+    }
 }

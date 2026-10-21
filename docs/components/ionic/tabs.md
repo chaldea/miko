@@ -97,7 +97,7 @@ An [`IonBadge`](./badge.md) inside a tab button floats over the top-right corner
 
 ## Top tab bar
 
-Put the bar in the `Top` slot to place it above the content; `Slot="top"` on the bar moves its border to the bottom edge. A tab bar is always padded for the *bottom* safe-area inset and never for the top one, even at the top of the screen — adjust the padding of `.ion-tab-bar-top` in an app style if your target devices have insets.
+Put the bar in the `Top` slot to place it above the content; `Slot="top"` on the bar moves its border to the bottom edge and pads it for the top safe-area inset instead of the bottom one.
 
 <!-- miko:example examples/tabs/TopBar.razor -->
 ```razor
@@ -149,7 +149,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Slot` | `string` | `"bottom"` | Ionic's `slot` attribute on `ion-tab-bar`: `"bottom"` (default) or `"top"`, stamped as `ion-tab-bar-bottom` / `ion-tab-bar-top`. It only picks the border side (top border for a bottom bar, bottom border for a top bar); the [`IonTabs`](#iontabs) slot the bar is placed in (`Bottom` / `Top`) decides the position. |
+| `Slot` | `string` | `"bottom"` | Ionic's `slot` attribute on `ion-tab-bar`: `"bottom"` (default) or `"top"`, stamped as `ion-tab-bar-bottom` / `ion-tab-bar-top`. It picks the border side and the safe-area inset the bar pads for (a bottom bar: top border, bottom inset; a top bar: bottom border, top inset); the [`IonTabs`](#iontabs) slot the bar is placed in (`Bottom` / `Top`) decides the position. |
 
 | Slot | Type | Description |
 | --- | --- | --- |

@@ -71,7 +71,7 @@ The child content is the label; without it only the box is drawn. `Disabled` blo
 
 ## Indeterminate
 
-`Indeterminate` shows a minus mark instead of the checkmark, typically on a "select all" box whose options are only partly selected. It is state the app owns: a tap clears it inside the component but nothing is raised for it, so derive it from your data, as below.
+`Indeterminate` shows a minus mark instead of the checkmark, typically on a "select all" box whose options are only partly selected. A tap clears it and raises `IndeterminateChanged(false)`, so it can be bound with `@bind-Indeterminate`; for a "select all" box it is usually simpler to derive it from your data, as below.
 
 <!-- miko:example examples/checkbox/Indeterminate.razor -->
 ```razor
@@ -169,7 +169,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Disabled` | `bool` | `false` | If true, the user cannot interact with the checkbox. |
 | `ErrorText` | `string?` | `null` | Error text displayed below the label whenever it is set (Miko does not track validity). |
 | `HelperText` | `string?` | `null` | Helper text displayed below the label. Shown even when [`ErrorText`](#ioncheckbox) is also set. |
-| `Indeterminate` | `bool` | `false` | If true, the checkbox visually appears as indeterminate (a minus mark). A tap clears it inside the component, but there is no `IndeterminateChanged`: the app owns this state and must update the value it passes in. |
+| `Indeterminate` | `bool` | `false` | If true, the checkbox visually appears as indeterminate (a minus mark). A tap clears it and raises [`IndeterminateChanged`](#ioncheckbox); bind it with `@bind-Indeterminate`, or the parent's next render restores the minus mark from the value it still passes in. |
 | `Justify` | `string?` | `null` | How to pack the label and box within a line: `"start"`, `"end"`, or `"space-between"`. Setting this changes the host `display` to block. |
 | `LabelPlacement` | `string` | `"start"` | Where the label sits relative to the box: `"start"` (default), `"end"`, `"fixed"`, or `"stacked"`. |
 | `Name` | `string?` | `null` | Form field name marker. |
@@ -178,6 +178,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | Event | Type | Description |
 | --- | --- | --- |
 | `CheckedChanged` | `EventCallback<bool>` | Raised (with the new checked state) when the user toggles the checkbox. |
+| `IndeterminateChanged` | `EventCallback<bool>` | Raised with `false` when a tap clears [`Indeterminate`](#ioncheckbox), before [`CheckedChanged`](#ioncheckbox). Enables `@bind-Indeterminate`. Ionic clears the property silently; it has no event for this. |
 | `IonChange` | `EventCallback<bool>` | Raised when the checked state changes as a result of a user action (Ionic `ionChange`). |
 
 | Slot | Type | Description |

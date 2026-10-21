@@ -61,7 +61,7 @@ Put the `IonSlide`s directly in `IonSlides` (a `@foreach` is fine): the slide co
 ```
 <!-- /miko:example -->
 
-`IonSlides` also has public `SlideToAsync`, `SlideNextAsync`, `SlidePrevAsync`, `StartAutoplay`, and `StopAutoplay` methods and `SlideCount`, `IsBeginning`, and `IsEnd` properties, but Miko's Razor compiler does not populate `@ref`, so drive the carousel through `ActiveIndex` instead.
+`IonSlides` also has public `SlideToAsync`, `SlideNextAsync`, `SlidePrevAsync`, `StartAutoplay`, and `StopAutoplay` methods and `SlideCount`, `IsBeginning`, and `IsEnd` properties, reachable through `@ref` (`<IonSlides @ref="_slides">` with an `IonSlides? _slides` field). When the position is also bound with `@bind-ActiveIndex`, the binding follows these calls; without it, a re-render of the declaring component returns the carousel to the `ActiveIndex` it passes.
 
 ## Loop and autoplay
 
@@ -94,7 +94,7 @@ Put the `IonSlide`s directly in `IonSlides` (a `@foreach` is fine): the slide co
 ```
 <!-- /miko:example -->
 
-Arrow, bullet, autoplay, and `ActiveIndex` changes animate over a fixed 300ms (as does the fade). `Speed` only sets the duration of the settle animation after a drag is released.
+`Speed` (milliseconds, default 300) is the duration of every slide change: arrows, bullets, autoplay, `ActiveIndex` changes, the settle after a drag, and the fade.
 
 ## API
 
@@ -114,7 +114,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Navigation` | `bool` | `false` | If true, render the previous/next navigation arrows (Swiper's `navigation`). Unless [`Loop`](#ionslides) is set, the arrow at the first / last slide is disabled. |
 | `Pagination` | `bool` | `false` | If true, render the pagination bullets (Swiper's `pagination`). |
 | `Scrollbar` | `bool` | `false` | If true, render the scrollbar (Swiper's `scrollbar`). |
-| `Speed` | `int` | `300` | Duration in milliseconds of the settle animation after a drag is released (Swiper's `speed`). Arrow, bullet, autoplay and [`ActiveIndex`](#ionslides) changes, and the fade cross-fade, use the stylesheet's fixed 300 ms transition instead. |
+| `Speed` | `int` | `300` | Duration in milliseconds of every slide change (Swiper's `speed`): the settle after a drag, arrow, bullet, autoplay and [`ActiveIndex`](#ionslides) changes, and the fade cross-fade. |
 
 | Event | Type | Description |
 | --- | --- | --- |

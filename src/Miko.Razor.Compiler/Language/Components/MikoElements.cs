@@ -26,6 +26,8 @@ internal static class MikoElements
 {
     private const string DomNamespace = "global::Miko.Core.DomElements.";
     private const string BuilderTypeName = "global::" + ComponentsApi.RenderTreeBuilder.FullTypeName;
+    private const string FormatValue = BuilderTypeName + ".FormatAttributeValue";
+    private const string ParseSpan = BuilderTypeName + ".ParseSpanAttribute";
 
     /// <summary>How a value expression is written onto the element instance.</summary>
     internal enum SlotKind
@@ -111,6 +113,7 @@ internal static class MikoElements
         ["b"] = DomNamespace + "BElement",
         ["pre"] = DomNamespace + "PreElement",
         ["code"] = DomNamespace + "CodeElement",
+        ["canvas"] = DomNamespace + "CanvasElement",
     };
 
     /// <summary>
@@ -126,6 +129,8 @@ internal static class MikoElements
         // Both casings appear in the wild, matching the legacy switch.
         ["style"] = new Slot("Style", SlotKind.Helper, helper: BuilderTypeName + ".SetStyle"),
         ["Style"] = new Slot("Style", SlotKind.Helper, helper: BuilderTypeName + ".SetStyle"),
+        // A state rather than a property: ElementState.Disabled, inherited by descendants (ISSUE-153).
+        ["disabled"] = new Slot("Disabled", SlotKind.Helper, helper: BuilderTypeName + ".SetDisabled"),
 
         ["onclick"] = new Slot("OnClick", SlotKind.EventHandler),
         ["onmouseenter"] = new Slot("OnMouseEnter", SlotKind.EventHandler),
@@ -147,9 +152,10 @@ internal static class MikoElements
     };
 
     /// <summary>
-    /// Element-specific attributes, keyed by tag then attribute name. Only the tags whose
-    /// attributes the legacy switch actually handled appear here — anything else keeps falling
-    /// through to the legacy path (and is therefore still silently ignored, as before).
+    /// Element-specific attributes, keyed by tag then attribute name. Each entry has a twin in
+    /// the legacy switch (<c>RenderTreeBuilder.AddAttribute</c>). Anything else on a known tag
+    /// falls through to that switch and is dropped there — the compiler reports it
+    /// (<see cref="ComponentDiagnosticFactory.UnsupportedElementAttribute"/>, ISSUE-153).
     /// </summary>
     private static readonly Dictionary<string, Dictionary<string, Slot>> s_tagSlots =
         new(StringComparer.OrdinalIgnoreCase)
@@ -169,6 +175,63 @@ internal static class MikoElements
                 // Absent `value` must not clear user input — see SetInputValue (ISSUE-121).
                 ["value"] = new Slot("Value", SlotKind.Helper,
                     helper: BuilderTypeName + ".SetInputValue"),
+                ["placeholder"] = new Slot("Placeholder", SlotKind.Converted, converter: FormatValue),
+                ["min"] = new Slot("Min", SlotKind.Helper, helper: BuilderTypeName + ".SetInputMin"),
+                ["max"] = new Slot("Max", SlotKind.Helper, helper: BuilderTypeName + ".SetInputMax"),
+                ["readonly"] = new Slot("ReadOnly", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseBooleanAttribute"),
+                ["maxlength"] = new Slot("MaxLength", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseMaxLength"),
+            },
+            // ISSUE-153 problem 3: these attributes compiled but were dropped. String-valued slots go
+            // through FormatAttributeValue so a non-string expression (value="@item.Id") still
+            // compiles, as it did when the attribute fell through to the runtime switch.
+            ["label"] = new(StringComparer.Ordinal)
+            {
+                ["for"] = new Slot("For", SlotKind.Converted, converter: FormatValue),
+            },
+            ["select"] = new(StringComparer.Ordinal)
+            {
+                // Applied once the options exist — see SetSelectValue. Makes <select @bind> work.
+                ["value"] = new Slot("Value", SlotKind.Helper, helper: BuilderTypeName + ".SetSelectValue"),
+                ["multiple"] = new Slot("Multiple", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseBooleanAttribute"),
+            },
+            ["option"] = new(StringComparer.Ordinal)
+            {
+                ["value"] = new Slot("Value", SlotKind.Converted, converter: FormatValue),
+                ["selected"] = new Slot("Selected", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseBooleanAttribute"),
+            },
+            ["optgroup"] = new(StringComparer.Ordinal)
+            {
+                ["label"] = new Slot("Label", SlotKind.Converted, converter: FormatValue),
+            },
+            ["td"] = new(StringComparer.Ordinal)
+            {
+                ["colspan"] = new Slot("ColSpan", SlotKind.Converted, converter: ParseSpan),
+                ["rowspan"] = new Slot("RowSpan", SlotKind.Converted, converter: ParseSpan),
+            },
+            ["th"] = new(StringComparer.Ordinal)
+            {
+                ["colspan"] = new Slot("ColSpan", SlotKind.Converted, converter: ParseSpan),
+                ["rowspan"] = new Slot("RowSpan", SlotKind.Converted, converter: ParseSpan),
+            },
+            ["col"] = new(StringComparer.Ordinal)
+            {
+                ["span"] = new Slot("Span", SlotKind.Converted, converter: ParseSpan),
+            },
+            ["colgroup"] = new(StringComparer.Ordinal)
+            {
+                ["span"] = new Slot("Span", SlotKind.Converted, converter: ParseSpan),
+            },
+            ["ol"] = new(StringComparer.Ordinal)
+            {
+                ["start"] = new Slot("Start", SlotKind.Helper, helper: BuilderTypeName + ".SetListStart"),
+            },
+            ["li"] = new(StringComparer.Ordinal)
+            {
+                ["value"] = new Slot("Value", SlotKind.Helper, helper: BuilderTypeName + ".SetListItemValue"),
             },
             ["textarea"] = new(StringComparer.Ordinal)
             {
@@ -181,6 +244,10 @@ internal static class MikoElements
                     helper: BuilderTypeName + ".SetTextAreaRows"),
                 ["cols"] = new Slot("Cols", SlotKind.Helper,
                     helper: BuilderTypeName + ".SetTextAreaCols"),
+                ["readonly"] = new Slot("ReadOnly", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseBooleanAttribute"),
+                ["maxlength"] = new Slot("MaxLength", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseMaxLength"),
             },
             ["img"] = new(StringComparer.Ordinal)
             {
@@ -235,6 +302,17 @@ internal static class MikoElements
 
         return s_commonSlots.TryGetValue(attributeName, out var commonSlot) ? commonSlot : null;
     }
+
+    /// <summary>
+    /// Attributes that are dropped on purpose, without a diagnostic: accessibility and custom
+    /// data attributes (<c>aria-*</c>, <c>role</c>, <c>data-*</c>) are carried over verbatim when
+    /// markup is ported from HTML or Ionic, and have no rendering effect in any engine.
+    /// </summary>
+    public static bool IsSilentlyIgnoredAttribute(string attributeName)
+        => attributeName != null
+        && (attributeName == "role"
+            || attributeName.StartsWith("aria-", StringComparison.Ordinal)
+            || attributeName.StartsWith("data-", StringComparison.Ordinal));
 
     /// <summary>
     /// Whether the slot needs a value at all. Minimized HTML boolean attributes

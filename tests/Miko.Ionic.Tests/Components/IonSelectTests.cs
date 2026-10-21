@@ -1139,4 +1139,17 @@ public class IonSelectTests : IonicComponentTestBase
         (icon.BorderBox.Y + icon.BorderBox.Height / 2f)
             .ShouldBe(wrapper.Content.Y + wrapper.Content.Height / 2f, 0.01f);
     }
+
+    /// <summary>ISSUE-153: md outline fill pads its text 16px from the outline (select.md.outline.scss);
+    /// the rule meant for it was overwritten by a later rule with the same key.</summary>
+    [Fact]
+    public void IonSelect_MdOutline_PadsTheTextFromTheOutline()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = RenderSelect(Context, p => p.Add(nameof(IonSelect.Fill), "outline"));
+
+        var wrapper = cut.GetComputedStyle(cut.FindByClass("select-wrapper").Single())!;
+        wrapper.PaddingLeft.Value.ShouldBe(16f);
+        wrapper.PaddingRight.Value.ShouldBe(16f);
+    }
 }

@@ -1,0 +1,13 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* A routed page declaring an overlay inline, inside its content (ISSUE-153 problem 1). *@
+<IonPage>
+    <IonContent>
+        <div class="page-body">
+            <IonModal IsOpen="true">
+                <div class="routed-modal-content">Modal content</div>
+            </IonModal>
+        </div>
+    </IonContent>
+</IonPage>

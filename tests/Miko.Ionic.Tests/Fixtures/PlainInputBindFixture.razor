@@ -1,0 +1,12 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@inherits Miko.Components.ComponentBase
+@* Element-level @bind on text controls: both default to the change event (ISSUE-153 problem 6). *@
+<div>
+    <input class="plain-input" @bind="InputText" />
+    <textarea class="plain-textarea" @bind="AreaText"></textarea>
+</div>
+
+@code {
+    internal static string? InputText;
+    internal static string? AreaText;
+}

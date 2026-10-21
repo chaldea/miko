@@ -56,7 +56,7 @@ Long label text wraps by default and the item grows to fit. Add the `ion-text-no
 
 ## Fixed labels
 
-`Position="fixed"` turns the label into a 100px column that does not shrink, so the controls next to it line up across rows. Beside a control that fills the row (as here) it stays 100px wide; beside another label it can still grow.
+`Position="fixed"` turns the label into a 100px column that does not shrink, so the controls next to it line up across rows. It stays 100px wide beside a control that fills the row (as here) and beside another label.
 
 `Position="stacked"` and `"floating"` are accepted but only adjust margins: the label stays beside the control instead of moving above it. For a stacked or floating label, use the control's own `LabelPlacement` (see [Input](./input.md)).
 

@@ -6,7 +6,7 @@ For multi-line text use [Textarea](./textarea.md), for search fields [Searchbar]
 
 ## Basic usage
 
-`Label` sets the visible label. `Placeholder` is drawn while the field is empty and not focused — it disappears as soon as the field gets focus. `Readonly` and `Disabled` both block pointer input, so neither can be focused; `Disabled` also dims the field.
+`Label` sets the visible label. `Placeholder` is drawn while the field is empty and not focused — it disappears as soon as the field gets focus. A `Readonly` field can be focused but not edited, and shows no on-screen keyboard; a `Disabled` field cannot be focused and is dimmed.
 
 <!-- miko:example examples/input/Basic.razor -->
 ```razor
@@ -34,7 +34,7 @@ For multi-line text use [Textarea](./textarea.md), for search fields [Searchbar]
 
 `@bind-Value` keeps a field in sync with the text. `ValueChanged` is raised with the whole new value on every edit (each typed or deleted character, and the clear button), and `OnInput` is raised right after it with the same value. An unbound input keeps whatever the user typed when its parent re-renders.
 
-`OnChange` (Ionic `ionChange`) is currently never raised by typing: Miko does not emit a native change event for text fields. React to `ValueChanged` / `OnInput` instead, or use [`IonSearchbar`](./searchbar.md), which raises `OnChange` on blur.
+`OnChange` (Ionic `ionChange`) is raised when the edit is committed: when the input loses focus, or Enter is pressed, with a value different from the one it had when it was focused. It is not raised while typing — use `ValueChanged` / `OnInput` for that.
 
 <!-- miko:example examples/input/Binding.razor -->
 ```razor
@@ -75,7 +75,7 @@ For multi-line text use [Textarea](./textarea.md), for search fields [Searchbar]
 
 `Fill="solid"` gives the field a tinted background and a bottom border; `Fill="outline"` draws a rounded 1px border (without Ionic's label notch). `Shape="round"` raises the corner radius to 16px. Both fills apply in md and ios mode (Ionic limits them to md).
 
-In md mode, a field that is not inside an `IonItem` and not `Fill="outline"` also shows a 2px highlight bar along its bottom edge, tinted by `Color`. The bar is always visible (Ionic shows it only while focused), and it is the only thing `Color` changes.
+In md mode, a field that is not inside an `IonItem` and not `Fill="outline"` also shows a 2px highlight bar along its bottom edge, tinted by `Color`. As in Ionic, the bar grows in while the field has focus and is hidden otherwise; it is the only thing `Color` changes.
 
 <!-- miko:example examples/input/Fill.razor -->
 ```razor
@@ -131,7 +131,7 @@ In md mode, a field that is not inside an `IonItem` and not `Fill="outline"` als
 
 ## Character counter
 
-`Counter` shows `length / Maxlength` at the end of the bottom row and requires `Maxlength`. `Maxlength` does not stop typing — Miko's text field has no length limit — so enforce the limit in your own validation if you need one.
+`Counter` shows `length / Maxlength` at the end of the bottom row and requires `Maxlength`. `Maxlength` limits what the user can enter: typed or pasted text beyond it is cut off. A `Value` set from code is not shortened.
 
 <!-- miko:example examples/input/Counter.razor -->
 ```razor
@@ -219,17 +219,17 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `HelperText` | `string?` | `null` | Helper text displayed below the input. Shown even when [`ErrorText`](#ioninput) is also set. |
 | `Label` | `string?` | `null` | The visible plaintext label associated with the input. |
 | `LabelPlacement` | `string` | `"start"` | Where the label sits relative to the input: `"start"` (default), `"end"`, `"fixed"`, `"stacked"`, or `"floating"` (laid out like `"stacked"`; no float animation). |
-| `Maxlength` | `int?` | `null` | The maximum number of characters shown by the counter. Not enforced: the native field has no length limit. |
+| `Maxlength` | `int?` | `null` | The maximum number of characters the user can enter (Ionic `maxlength`), also shown by the counter. Typed or pasted text beyond it is cut off; a [`Value`](#ioninput) set from code is not shortened. |
 | `Name` | `string?` | `null` | Form field name marker. |
 | `Placeholder` | `string?` | `null` | Instructional text shown before the input has a value. |
-| `Readonly` | `bool` | `false` | If true, the user cannot modify the value. |
+| `Readonly` | `bool` | `false` | If true, the user cannot modify the value. The field can still be focused (no on-screen keyboard is shown). |
 | `Shape` | `string?` | `null` | The shape. Use `"round"` for an increased corner radius. |
 | `Type` | `string` | `"text"` | The native control type: `"password"` masks the text, `"number"` / `"tel"` request the numeric keypad (the value stays an unfiltered string), anything else (`"text"`, `"search"`, `"email"`, `"url"`, …) is a plain text field. |
 | `Value` | `string?` | `null` | The value of the input. Two-way bindable: `@bind-Value`. |
 
 | Event | Type | Description |
 | --- | --- | --- |
-| `OnChange` | `EventCallback<string?>` | Ionic `ionChange`, wired to the native change event. Miko does not emit a change event for text fields, so typing never raises this; use [`OnInput`](#ioninput) or [`ValueChanged`](#ioninput). |
+| `OnChange` | `EventCallback<string?>` | Ionic `ionChange`: raised when the edit is committed — when the input loses focus or Enter is pressed, with a value different from the one it had on focus. Not raised while typing (see [`OnInput`](#ioninput)) or for programmatic value changes. |
 | `OnInput` | `EventCallback<string?>` | Raised each time the user modifies the value (Ionic `ionInput`). |
 | `ValueChanged` | `EventCallback<string?>` | Raised (with the new value) as the user types (two-way binding support). |
 

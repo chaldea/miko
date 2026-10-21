@@ -6,7 +6,7 @@ A popover is a small floating panel that opens next to the element that triggere
 
 ## Basic usage
 
-Put the content between the tags; it goes into a box 250 px wide on md and 200 px on ios, at most 90% of the screen height, scrolling if needed. To anchor the popover to the button that opened it, pass the button's click event as `Event`. `IonButton`'s `OnClick` handler can take a `Miko.Events.MouseEventArgs`. Without an `Event`, the popover is centered on the screen. Tapping the backdrop closes it with role `"backdrop"`, unless `BackdropDismiss` (or `Dismissable`) is `false`. The system back button does not close a popover in this port.
+Put the content between the tags; it goes into a box 250 px wide on md and 200 px on ios, at most 90% of the screen height, scrolling if needed. To anchor the popover to the button that opened it, pass the button's click event as `Event`. `IonButton`'s `OnClick` handler can take a `Miko.Events.MouseEventArgs`. Without an `Event`, the popover is centered on the screen. Tapping the backdrop closes it with role `"backdrop"`, unless `BackdropDismiss` (or `Dismissable`) is `false`; under the same condition the system back button closes it with role `"back"`.
 
 <!-- miko:example examples/popover/Basic.razor -->
 ```razor
@@ -38,7 +38,7 @@ Put the content between the tags; it goes into a box 250 px wide on md and 200 p
 
 ## Position
 
-With an `Event`, `Side` chooses which edge of the trigger the popover opens on: `bottom` (default), `top`, `left`, `right`, `start` (left), or `end` (right). It flips to the opposite side when that side has more room (for `left` / `right`, only when the content does not fit). `Alignment` lines it up with the trigger's `start`, `center`, or `end`; the default is `start` on md and `center` on ios. On the top and bottom sides, the popover is also kept 8 px inside the left and right screen edges. `Arrow` (default `true`) adds a `.popover-arrow` element, but this port does not place or rotate it toward the trigger, so `Arrow="false"` usually looks cleaner.
+With an `Event`, `Side` chooses which edge of the trigger the popover opens on: `bottom` (default), `top`, `left`, `right`, `start` (left), or `end` (right). It flips to the opposite side when that side has more room (for `left` / `right`, only when the content does not fit). `Alignment` lines it up with the trigger's `start`, `center`, or `end`; the default is `start` on md and `center` on ios. On the top and bottom sides, the popover is also kept 8 px inside the left and right screen edges. `Arrow` (default `true`) adds a `.popover-arrow` element, drawn only in ios mode as in Ionic. This port does not yet place or rotate it toward the trigger, so on ios `Arrow="false"` usually looks cleaner.
 
 <!-- miko:example examples/popover/Position.razor -->
 ```razor

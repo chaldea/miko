@@ -165,7 +165,7 @@ A column gives the same haptic feedback as Ionic: a selection starts with the fi
 
 ## API
 
-`SlotPrefix` and `SlotSuffix` currently stack above and below the wheel (shortening it) instead of sitting beside it as in Ionic; to label a column, put the label outside the picker or in a separate column.
+`SlotPrefix` and `SlotSuffix` sit beside the wheel, before and after it, as in Ionic: at most 200px wide, on one line that is cut off with an ellipsis.
 
 <!-- miko:api IonPicker IonPickerColumn IonPickerColumnOption -->
 Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).

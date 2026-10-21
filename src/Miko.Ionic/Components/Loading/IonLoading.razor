@@ -1,5 +1,6 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@using Miko.Platform
 @* Mirrors Ionic's <ion-loading> (loading.tsx render()):
    <ion-loading class="{mode} overlay-hidden? loading-translucent?" role="dialog">
      <ion-backdrop visible=showBackdrop tappable=backdropDismiss />
@@ -14,7 +15,7 @@
    carries `overlay-hidden` (display:none). Loading blocks input by default (backdrop is NOT
    tappable — BackdropDismiss defaults to false). *@
 <IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
-<div class="@ClassMapper.Class" style="@Style" role="dialog">
+<div class="@HostClass" style="@Style" role="dialog">
     @if (ShowBackdrop)
     {
         <div class="ion-backdrop loading-backdrop" @onclick="OnBackdropTapAsync"></div>
@@ -35,6 +36,15 @@
 </IonPortal>
 
 @code {
+    /// <summary>
+    /// The host class, evaluated while rendering (ISSUE-153). It carries the theme scope class
+    /// because the host is drawn in IonApp's overlay layer, away from this component's root, so
+    /// <see cref="IonicComponentBase"/> cannot stamp it there — without it none of the overlay's
+    /// rules matched in the layer. The open / mounted markers are computed here too, so a self
+    /// re-render through the parentless branch (which skips OnParametersSet) still reflects them.
+    /// </summary>
+    private string HostClass => Join(ClassMapper.Class, ThemeScopeClass, IsOpen ? null : "overlay-hidden");
+
     private readonly string _overlayId = $"loading-{Guid.NewGuid():N}";
     /// <summary>Optional stable identifier used by the root overlay registry.</summary>
     [Parameter] public string? OverlayId { get; set; }
@@ -92,8 +102,10 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-loading")
-            .If(!IsOpen, "overlay-hidden")
             .If(Translucent, "loading-translucent");
+
+        // Off by default, as in Ionic: a loading indicator's BackdropDismiss defaults to false.
+        RegisterBackHandler(IsOpen && BackdropDismiss ? HandleBack : null, BackButtonPriority.Overlay);
 
         // Schedule auto-dismiss when opening with a positive duration.
         if (IsOpen && Duration > 0 && !_timerScheduled && Dispatcher != null)
@@ -143,8 +155,31 @@
         await DismissAsync("backdrop");
     }
 
+    /// <summary>
+    /// The system back button dismisses the open loading indicator with role <c>"back"</c> when
+    /// <see cref="BackdropDismiss"/> allows it — Ionic's overlays.ts answers back for the topmost
+    /// overlay whose backdropDismiss is true (ISSUE-153; modal and action sheet did since ISSUE-138).
+    /// </summary>
+    private bool HandleBack()
+    {
+        // Re-check at dispatch time: the registration reflects the last render.
+        if (!IsOpen) return false;
+        _ = DismissFromBackAsync();
+        return true;
+    }
+
+    // A tap re-renders this component through its EventCallback; the back button does not, so
+    // render the closed state here or an unbound overlay stays on screen.
+    private async Task DismissFromBackAsync()
+    {
+        await DismissAsync("back");
+        StateHasChanged();
+    }
+
     private async Task DismissAsync(string? role)
     {
+        ClearBackHandler();
+
         if (IsOpen)
         {
             IsOpen = false;

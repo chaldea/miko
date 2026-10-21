@@ -136,10 +136,32 @@ public class IonLabelTests : IonicComponentTestBase
                 listBuilder.CloseComponent();
             })));
 
+        // ISSUE-153: the row is filled with the base color (item.scss :host(.ion-color)
+        // .item-native), so the label takes the contrast color — not the base color it used to,
+        // which would be invisible on the filled row.
         var label = cut.FindByClass("ion-label").Single();
         var style = cut.GetComputedStyle(label);
         style.ShouldNotBeNull();
-        style.Color.ShouldBe(IonicTheme.CreateMd().Primary);
+        style.Color.ShouldBe(Color.FromHex("ffffff"));
+        cut.GetComputedStyle(cut.FindByClass("item-native").Single())!.BackgroundColor
+            .ShouldBe(IonicTheme.CreateMd().Primary);
+    }
+
+    [Fact]
+    public void IonItemDivider_Color_FillsTheDivider()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonItemGroup>(p => p.Add(nameof(IonItemGroup.ChildContent), (RenderFragment)(b =>
+        {
+            var divider = b.OpenComponent<IonItemDivider>();
+            divider.Color = "warning";
+            divider.ChildContent = t => t.AddContent("Section");
+            b.CloseComponent();
+        })));
+
+        var style = cut.GetComputedStyle(cut.FindByClass("ion-item-divider").Single())!;
+        style.BackgroundColor.ShouldBe(IonicTheme.CreateMd().Warning);
+        style.Color.ShouldBe(Color.FromHex("000000"));
     }
 
     [Fact]
@@ -189,6 +211,36 @@ public class IonLabelTests : IonicComponentTestBase
         box.BorderBox.Width.ShouldBe(100f, 0.5f);
     }
 
+    /// <summary>
+    /// ISSUE-153: next to another label in an item, a fixed label grew like a default one, because
+    /// the item's <c>.input-wrapper .ion-label</c> rule outranked <c>.label-fixed</c>. Real nesting:
+    /// IonItem with a fixed label and a default label, as in the Ionic "fixed labels" demo.
+    /// </summary>
+    [Fact]
+    public void IonLabel_PositionFixed_InItemNextToAnotherLabel_KeepsItsTrack()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.ViewportWidth = 400;
+
+        var cut = Context.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent), (RenderFragment)(b =>
+        {
+            var fixedLabel = b.OpenComponent<IonLabel>();
+            fixedLabel.Position = "fixed";
+            fixedLabel.Class = "probe-fixed";
+            fixedLabel.ChildContent = text => text.AddContent("Name");
+            b.CloseComponent();
+            var other = b.OpenComponent<IonLabel>();
+            other.Class = "probe-default";
+            other.ChildContent = text => text.AddContent("Ada Lovelace");
+            b.CloseComponent();
+        })));
+
+        var fixedBox = cut.GetBoxModel(cut.FindByClass("probe-fixed").Single())!;
+        var defaultBox = cut.GetBoxModel(cut.FindByClass("probe-default").Single())!;
+        fixedBox.BorderBox.Width.ShouldBe(100f, 0.5f);
+        defaultBox.BorderBox.Width.ShouldBeGreaterThan(150f, "the default label takes the free space");
+    }
+
     [Fact]
     public void IonLabel_TextWrap_LoosensLineHeight()
     {
@@ -234,4 +286,35 @@ public class IonLabelTests : IonicComponentTestBase
         "dark" => t.Dark,
         _ => throw new ArgumentOutOfRangeException(nameof(name), name, "Unknown palette color"),
     };
+
+    /// <summary>
+    /// ISSUE-153: Ionic gives direct h1–h6 / p children compact sizing (label.md.scss /
+    /// label.ios.scss) tighter than the normal typography. Not reproduced before now.
+    /// </summary>
+    [Theory]
+    [InlineData(HostPlatform.Android, "h1", 24f)]
+    [InlineData(HostPlatform.Android, "h2", 16f)]
+    [InlineData(HostPlatform.Android, "h3", 14f)]
+    [InlineData(HostPlatform.Android, "p", 14f)]
+    [InlineData(HostPlatform.Ios, "h1", 22f)]
+    [InlineData(HostPlatform.Ios, "h2", 17f)]
+    [InlineData(HostPlatform.Ios, "h3", 14f)]
+    [InlineData(HostPlatform.Ios, "p", 14f)]
+    public void Label_HeadingAndParagraph_CompactSizing(HostPlatform platform, string tag, float size)
+    {
+        UsePlatform(platform);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var cut = Context.Render<IonLabel>(p =>
+        {
+            p.Add(nameof(IonLabel.ChildContent), (RenderFragment)(b =>
+            {
+                b.OpenElement(0, tag);
+                b.AddContent(1, "Text");
+                b.CloseElement();
+            }));
+        });
+
+        var style = cut.GetComputedStyle(cut.FindByTagName(tag).Single())!;
+        style.FontSize.Value.ShouldBe(size);
+    }
 }

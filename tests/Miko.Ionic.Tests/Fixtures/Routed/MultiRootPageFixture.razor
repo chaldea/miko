@@ -1,0 +1,19 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* The sidemenu template's shape: IonPage and IonMenu as two root nodes (ISSUE-153 problem 2). *@
+<IonPage>
+    <IonContent>
+        <button class="toggle-menu" @onclick="Toggle">Menu</button>
+    </IonContent>
+</IonPage>
+
+<IonMenu IsOpen="_open" OnClose="@(() => _open = false)">
+    <div class="menu-body">Menu</div>
+</IonMenu>
+
+@code {
+    private bool _open;
+
+    private void Toggle() => _open = !_open;
+}

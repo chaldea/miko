@@ -26,8 +26,10 @@ are listed in [Elements](./elements.md#reference). Event arguments are optional:
 take none, or the matching `*EventArgs` type.
 
 Directives apply to **elements**. A component exposes its events as `EventCallback` parameters
-instead — `<IonButton OnClick="Save">` — and an `@onclick` written on a component compiles but
-is ignored.
+instead — `<IonButton OnClick="Save">`. An event directive written on a component binds to the
+component parameter of the same name, ignoring case (`@onclick` on `IonButton` sets `OnClick`);
+when the component has no such parameter, the handler listens on the element the component
+renders, so `<IonChip @onclick="Select">` fires when the chip is tapped.
 
 ::: warning High-frequency events
 Every `@on…` directive re-renders the component after each event. For events that fire every

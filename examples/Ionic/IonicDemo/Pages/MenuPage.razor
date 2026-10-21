@@ -1,14 +1,12 @@
 @page "/menu"
 
 @* NOTE: Ionic opens the drawer imperatively via menuController.open() and links it to the page
-   with contentId. Miko's IonMenu is declarative — the host binds IsOpen and passes the
-   AnimationManager down (nested components don't get DI). *@
+   with contentId. Miko's IonMenu is declarative — the host binds IsOpen. *@
 
 <IonPage>
     <IonMenu Side="start"
              IsOpen="@_isMenuOpen"
-             OnClose="@(() => _isMenuOpen = false)"
-             Animations="@Animations">
+             OnClose="@(() => _isMenuOpen = false)">
         <IonHeader>
             <IonToolbar>
                 <IonTitle>Menu</IonTitle>
@@ -46,8 +44,6 @@
     </IonContent>
 </IonPage>
 @code {
-    [Inject] public Miko.Animation.AnimationManager? Animations { get; set; }
-
     private bool _isMenuOpen;
 
     private readonly (string Label, string Icon)[] _entries =

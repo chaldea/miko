@@ -235,6 +235,34 @@ public class IonListTests : IonicComponentTestBase
         style.BorderTopLeftRadius.ShouldBe(Length.Px(2)); // $list-inset-md-border-radius
     }
 
+    /// <summary>
+    /// ISSUE-153: the list had Width = 100% on top of the inset margins, so an inset list in a page
+    /// started 16px in and kept the full width — overflowing its container on the right. Real
+    /// nesting: IonPage &gt; IonContent &gt; IonList(Inset) &gt; IonItem.
+    /// </summary>
+    [Fact]
+    public void IonList_Inset_InContent_StaysInsideTheContainer()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.ViewportWidth = 400;
+        var cut = Context.Render<IonPage>(p => p.Add(nameof(IonPage.ChildContent), (RenderFragment)(page =>
+        {
+            var content = page.OpenComponent<IonContent>();
+            content.ChildContent = c =>
+            {
+                var list = c.OpenComponent<IonList>();
+                list.Inset = true;
+                list.ChildContent = Items((string?)null);
+                c.CloseComponent();
+            };
+            page.CloseComponent();
+        })));
+
+        var box = cut.GetBoxModel(cut.FindByClass("ion-list").Single())!;
+        box.BorderBox.Left.ShouldBe(16f, 0.5f);
+        box.BorderBox.Width.ShouldBe(400f - 32f, 0.5f);
+    }
+
     [Fact]
     public void IonList_Inset_UsesIosRadius_OnIosPlatform()
     {

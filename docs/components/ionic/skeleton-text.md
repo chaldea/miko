@@ -30,7 +30,7 @@ Set the bar's `Width` through `Style` to imitate lines of different length.
 
 ## Loading placeholders
 
-Swap skeleton rows for the real content when it arrives. Inside an [`IonAvatar`](./avatar.md) or [`IonThumbnail`](./thumbnail.md) the bar drops its margins and fills the media box. Unlike Ionic it does not take the container's corner radius, so in a round avatar it shows as a square; add a `BorderRadius` through `Style` if that matters.
+Swap skeleton rows for the real content when it arrives. Inside an [`IonAvatar`](./avatar.md) or [`IonThumbnail`](./thumbnail.md) the bar drops its margins and fills the media box. It takes the container's corner radius, so it is round in an avatar.
 
 <!-- miko:example examples/skeleton-text/List.razor -->
 ```razor

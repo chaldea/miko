@@ -248,6 +248,12 @@ public class RenderEngine
             return;
         }
 
+        // opacity: 0（含动画投影后的值）—— 整棵子树都不可见：opacity 建立层叠上下文，fixed 与带
+        // z-index 的后代也关在这一组里，故直接跳过绘制。只跳过绘制，命中测试照旧（CSS 中透明的
+        // 元素仍接收事件）。常驻、靠透明度过渡显隐的覆盖层（菜单遮罩）空闲时因此不再每帧分配
+        // 离屏层（ISSUE-153）。
+        if (box.ComputedStyle.Opacity <= 0f) return;
+
         // 建立层叠上下文的盒子自行收集内部后代，祖先的延迟集合到此为止。
         if (!isStackingRoot && EstablishesStackingContext(box)) isStackingRoot = true;
         if (isStackingRoot) inheritedDeferred = null;

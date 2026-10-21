@@ -22,19 +22,17 @@ The last crumb is automatically made active (the `ColorActive` color and `Active
 
 ## Handling taps
 
-`Href` renders the crumb as an anchor and gives it the link look (`ion-activatable`), but in this port it does not navigate, and `IonBreadcrumb` has no click event. Handle taps with a clickable element inside the crumb's content, as below, and navigate from its handler if needed.
+`Href` renders the crumb as an anchor with the link look (`ion-activatable`). A tap raises `OnClick` and then navigates to `Href` through the app's `NavigationManager` — a forward push with the mode's transition, or as set by `RouterDirection` (`"back"`, `"root"`), the same as [`IonItem`](./item.md). To handle the tap yourself instead, leave out `Href` and use `OnClick`.
 
 <!-- miko:example examples/breadcrumbs/Navigation.razor -->
 ```razor
-@* A folder path: tapping a crumb trims the path back to it. Href only gives the crumb its
-   link styling — the tap is handled by the element inside it. *@
+@* A folder path: tapping a crumb trims the path back to it. No Href, so OnClick handles the
+   tap instead of navigating. *@
 <IonBreadcrumbs>
     @foreach (var folder in _path)
     {
         var target = folder;
-        <IonBreadcrumb Href="@($"#{target}")">
-            <span @onclick="@(() => Open(target))">@target</span>
-        </IonBreadcrumb>
+        <IonBreadcrumb OnClick="@(() => Open(target))">@target</IonBreadcrumb>
     }
 </IonBreadcrumbs>
 
@@ -203,7 +201,12 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Active` | `bool` | `false` | If true, the breadcrumb takes on the active look. The enclosing [`IonBreadcrumbs`](#ionbreadcrumbs) sets this on the last breadcrumb when none is explicitly active. |
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, .... |
 | `Disabled` | `bool` | `false` | If true, the breadcrumb is dimmed and non-interactive. |
-| `Href` | `string?` | `null` | URL the breadcrumb points to (Ionic `href`). When set the native element is an anchor with the link styling (`ion-activatable`). The renderer does not navigate and the breadcrumb raises no click event — handle taps on an element inside its content. |
+| `Href` | `string?` | `null` | The route the breadcrumb navigates to (Ionic `href`). When set the native element is an anchor with the link styling (`ion-activatable`), and a tap raises [`OnClick`](#ionbreadcrumb) and then navigates through the app's `NavigationManager`, as Ionic's `openURL` does. |
+| `RouterDirection` | `string?` | `null` | Navigation direction for [`Href`](#ionbreadcrumb) (Ionic `routerDirection`): `"forward"` (default — push with the mode's transition), `"back"` (pop-style transition), or `"root"` (clear the history, no transition). |
+
+| Event | Type | Description |
+| --- | --- | --- |
+| `OnClick` | `EventCallback` | Raised when the breadcrumb is tapped — before it navigates, when it has an [`Href`](#ionbreadcrumb). Not raised while [`Disabled`](#ionbreadcrumb). |
 
 | Slot | Type | Description |
 | --- | --- | --- |

@@ -87,9 +87,9 @@
     /// <summary>Raised each time the user modifies the value (Ionic <c>ionInput</c>).</summary>
     [Parameter] public EventCallback<string?> OnInput { get; set; }
 
-    /// <summary>Ionic <c>ionChange</c>, wired to the native change event. Miko does not emit a change
-    /// event for text fields, so typing never raises this; use <see cref="OnInput"/> or
-    /// <see cref="ValueChanged"/>.</summary>
+    /// <summary>Ionic <c>ionChange</c>: raised when the edit is committed — when the input loses
+    /// focus or Enter is pressed, with a value different from the one it had on focus. Not raised
+    /// while typing (see <see cref="OnInput"/>) or for programmatic value changes.</summary>
     [Parameter] public EventCallback<string?> OnChange { get; set; }
 
     /// <summary>Instructional text shown before the input has a value.</summary>
@@ -113,7 +113,8 @@
     /// <summary>The shape. Use <c>"round"</c> for an increased corner radius.</summary>
     [Parameter] public string? Shape { get; set; }
 
-    /// <summary>If true, the user cannot modify the value.</summary>
+    /// <summary>If true, the user cannot modify the value. The field can still be focused (no
+    /// on-screen keyboard is shown).</summary>
     [Parameter] public bool Readonly { get; set; }
 
     /// <summary>If true, the user cannot interact with the input.</summary>
@@ -128,8 +129,9 @@
     /// <summary>If true, a character counter is shown below the field. Requires <see cref="Maxlength"/>.</summary>
     [Parameter] public bool Counter { get; set; }
 
-    /// <summary>The maximum number of characters shown by the counter. Not enforced: the native field
-    /// has no length limit.</summary>
+    /// <summary>The maximum number of characters the user can enter (Ionic <c>maxlength</c>), also
+    /// shown by the counter. Typed or pasted text beyond it is cut off; a <see cref="Value"/> set
+    /// from code is not shortened.</summary>
     [Parameter] public int? Maxlength { get; set; }
 
     /// <summary>Helper text displayed below the input. Shown even when <see cref="ErrorText"/> is also set.</summary>
@@ -215,6 +217,8 @@
             // attribute, which the browser leaves alone.
             if (Value is not null) input.Value = Value;
             input.Placeholder = Placeholder;
+            input.ReadOnly = Readonly;
+            input.MaxLength = Maxlength;
             if (Disabled) input.SetState(ElementState.Disabled);
         }
 

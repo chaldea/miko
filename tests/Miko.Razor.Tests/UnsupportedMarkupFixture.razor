@@ -1,0 +1,8 @@
+@namespace Miko.Razor.Tests
+@* ISSUE-153 problem 3: markup the compiler must report (RZ10100 / RZ10101). Never rendered.
+   Building this test project therefore prints these two warnings on purpose;
+   RazorElementDiagnosticsTests reads them back from the SARIF error log. *@
+<div class="unsupported-host">
+    <input class="probe" tabindex="1" aria-label="ok" data-test="1" role="note" />
+    <section class="probe-section"></section>
+</div>

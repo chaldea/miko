@@ -28,7 +28,7 @@
    open or animating out; it is dropped only after the slide-down finishes (deferred unmount driven
    by AnimationManager.TransitionCompleted), the same pattern as IonMenu's backdrop. *@
 <IonPortal Id="@(OverlayId ?? _overlayId)" Active="@(IsOpen || _mounted)">
-<div class="@ClassMapper.Class" style="@Style">
+<div class="@HostClass" style="@Style">
     <div class="ion-backdrop action-sheet-backdrop" @onclick="OnBackdropTapAsync"></div>
     <div class="action-sheet-wrapper ion-overlay-wrapper">
         <div class="action-sheet-container">
@@ -76,6 +76,18 @@
 </IonPortal>
 
 @code {
+    /// <summary>
+    /// The host class, evaluated while rendering (ISSUE-153). It carries the theme scope class
+    /// because the host is drawn in IonApp's overlay layer, away from this component's root, so
+    /// <see cref="IonicComponentBase"/> cannot stamp it there — without it none of the overlay's
+    /// rules matched in the layer. The open / mounted markers are computed here too, so a self
+    /// re-render through the parentless branch (which skips OnParametersSet) still reflects them.
+    /// </summary>
+    private string HostClass => Join(ClassMapper.Class, ThemeScopeClass,
+        !IsOpen && !_mounted ? "overlay-hidden" : null,
+        _mounted ? "action-sheet-mounted" : null,
+        IsOpen ? "action-sheet-open" : null);
+
     private readonly string _overlayId = $"action-sheet-{Guid.NewGuid():N}";
     /// <summary>Optional stable identifier used by the root overlay registry.</summary>
     [Parameter] public string? OverlayId { get; set; }
@@ -150,9 +162,6 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-action-sheet")
-            .If(!IsOpen && !_mounted, "overlay-hidden")
-            .If(_mounted, "action-sheet-mounted")
-            .If(IsOpen, "action-sheet-open")
             .If(Translucent, "action-sheet-translucent");
 
         // Split the buttons: cancel-role buttons render in their own bottom group.
@@ -168,7 +177,10 @@
     private string ButtonClass(IonActionSheetButton button)
     {
         var cls = "action-sheet-button";
-        if (!button.Disabled) cls += " ion-activatable ion-focusable";
+        // Ionic dims a disabled button through :disabled; cancel buttons are never disabled
+        // (action-sheet.tsx renders `disabled` only for the option buttons).
+        if (button.Disabled && !button.IsCancel) cls += " action-sheet-button-disabled";
+        else cls += " ion-activatable ion-focusable";
         if (!string.IsNullOrEmpty(button.Role)) cls += $" action-sheet-{button.Role.ToLowerInvariant()}";
         if (!string.IsNullOrEmpty(button.CssClass)) cls += $" {button.CssClass}";
         return cls;

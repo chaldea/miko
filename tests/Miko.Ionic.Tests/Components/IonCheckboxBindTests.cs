@@ -20,7 +20,7 @@ public class IonCheckboxBindTests : IonicComponentTestBase
         var cut = Context.Render<IonCheckboxBindFixture>();
 
         // 未选中：host 不应带 checkbox-checked 类。
-        var host = cut.FindByClass("ion-checkbox").ShouldHaveSingleItem();
+        var host = cut.FindByClass("ion-checkbox").Single(c => !c.HasClass("tri-state"));
         host.HasClass("checkbox-checked").ShouldBeFalse();
     }
 
@@ -34,9 +34,33 @@ public class IonCheckboxBindTests : IonicComponentTestBase
 
         component.CheckedValue.ShouldBeFalse();
 
-        var wrapper = cut.FindByClass("checkbox-wrapper").ShouldHaveSingleItem();
+        var wrapper = cut.FindByClass("checkbox-wrapper").First();
         wrapper.OnClick!.Invoke(new MouseEventArgs { Target = wrapper });
 
         component.CheckedValue.ShouldBeTrue();
     }
+
+    /// <summary>
+    /// ISSUE-153: a tap cleared Indeterminate without telling the parent, so with
+    /// <c>@bind-Checked</c> the parent's re-render passed <c>Indeterminate=true</c> again and the
+    /// minus mark came straight back.
+    /// </summary>
+    [Fact]
+    public void BindIndeterminate_TapClearsItForGood()
+    {
+        var component = new IonCheckboxBindFixture();
+        var host = new Miko.Core.DomElements.DivElement { Children = { component.Build() } };
+        Context.RenderElement(host);
+        Checkbox(host).HasClass("checkbox-indeterminate").ShouldBeTrue();
+
+        var wrapper = Checkbox(host).FindByClass("checkbox-wrapper").Single();
+        wrapper.OnClick!.Invoke(new MouseEventArgs { Target = wrapper });
+
+        component.PartialValue.ShouldBeFalse();
+        Checkbox(host).HasClass("checkbox-indeterminate").ShouldBeFalse();
+        Checkbox(host).HasClass("checkbox-checked").ShouldBeTrue();
+    }
+
+    private static Miko.Core.Element Checkbox(Miko.Core.Element root)
+        => root.FindByClass("tri-state").Single();
 }

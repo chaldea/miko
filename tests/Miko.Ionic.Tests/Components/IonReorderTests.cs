@@ -115,37 +115,70 @@ public class IonReorderTests : IonicComponentTestBase
 
     // ---- Key style ---------------------------------------------------------
 
-    [Fact]
-    public void IonReorder_Style_HiddenByDefault()
+    // Real nesting: IonReorderGroup > IonList-less items, each the shape of Ionic's two usages —
+    // a handle in the item's End slot, or an IonReorder wrapping the whole item.
+    private ComponentUnderTest RenderStyledGroup(bool disabled, bool wrapper)
     {
-        // The host is display:none until an enabling group reveals it. A collapsed/hidden host is
-        // pruned from the layout tree, so assert on the matched stylesheet rule instead.
-        var sheet = IonicStyleSheetFactory.CreateAllModes();
-
-        var handle = new Miko.Core.DomElements.DivElement { Class = "md ion-reorder reorder-hidden" };
-
-        var rule = sheet.Rules
-            .Where(r => r.Selector.Matches(handle))
-            .OrderByDescending(r => r.Selector.Specificity)
-            .FirstOrDefault(r => r.Style.Display is not null);
-
-        rule.ShouldNotBeNull();
-        rule.Style.Display!.Value.Value.ShouldBe(Display.None);
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        return Context.Render<IonReorderGroup>(p =>
+        {
+            p.Add(nameof(IonReorderGroup.Disabled), disabled);
+            p.Add(nameof(IonReorderGroup.ChildContent), (RenderFragment)(b =>
+            {
+                if (wrapper)
+                {
+                    var reorder = b.OpenComponent<IonReorder>();
+                    reorder.ChildContent = r =>
+                    {
+                        var item = r.OpenComponent<IonItem>();
+                        item.ChildContent = text => text.AddContent("Wrapped item");
+                        r.CloseComponent();
+                    };
+                    b.CloseComponent();
+                }
+                else
+                {
+                    var item = b.OpenComponent<IonItem>();
+                    item.ChildContent = text => text.AddContent("Item");
+                    item.End = end =>
+                    {
+                        end.OpenComponent<IonReorder>();
+                        end.CloseComponent();
+                    };
+                    b.CloseComponent();
+                }
+            }));
+        });
     }
 
     [Fact]
-    public void IonReorder_Style_EnabledShowsBlock()
+    public void IonReorder_Style_SlottedHandle_HiddenInDisabledGroup()
     {
-        var sheet = IonicStyleSheetFactory.CreateAllModes();
+        var cut = RenderStyledGroup(disabled: true, wrapper: false);
 
-        var handle = new Miko.Core.DomElements.DivElement { Class = "md ion-reorder reorder-enabled" };
+        // display:none prunes the handle from the layout tree, so it has no computed style.
+        cut.GetComputedStyle(cut.FindByClass("ion-reorder").Single()).ShouldBeNull();
+    }
 
-        var rule = sheet.Rules
-            .Where(r => r.Selector.Matches(handle))
-            .OrderByDescending(r => r.Selector.Specificity)
-            .FirstOrDefault(r => r.Style.Display is not null);
+    [Fact]
+    public void IonReorder_Style_SlottedHandle_ShownInEnabledGroup()
+    {
+        var cut = RenderStyledGroup(disabled: false, wrapper: false);
 
-        rule.ShouldNotBeNull();
-        rule.Style.Display!.Value.Value.ShouldBe(Display.Block);
+        cut.GetComputedStyle(cut.FindByClass("ion-reorder").Single())!.Display.ShouldBe(Display.Block);
+    }
+
+    /// <summary>
+    /// ISSUE-153: a disabled group hid every IonReorder, including one wrapping a whole item, so
+    /// the items vanished. Ionic hides only slotted handles (reorder.scss <c>:host([slot])</c>).
+    /// </summary>
+    [Fact]
+    public void IonReorder_Style_WrapperKeepsItsItemVisibleInDisabledGroup()
+    {
+        var cut = RenderStyledGroup(disabled: true, wrapper: true);
+
+        var item = cut.FindByClass("ion-item").Single();
+        cut.GetComputedStyle(cut.FindByClass("ion-reorder").Single()).ShouldNotBeNull();
+        cut.GetBoxModel(item)!.BorderBox.Height.ShouldBeGreaterThan(0f);
     }
 }

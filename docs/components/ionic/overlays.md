@@ -1,15 +1,17 @@
 # Overlays
 
-Overlays are views that open above the page: action sheets, alerts, loading indicators, modals, popovers, and toasts. All of them except the toast block the page until they close. Each one can be declared in markup and shown through its `IsOpen` parameter, or created from code through a controller service. Both ways report the same dismiss result. Overlays are drawn in the overlay layer that [`IonApp`](./app.md) hosts; see [current limitations](#current-limitations) for declarative overlays on routed pages.
+Overlays are views that open above the page: action sheets, alerts, loading indicators, modals, popovers, and toasts. All of them except the toast block the page until they close. Each one can be declared in markup and shown through its `IsOpen` parameter, or created from code through a controller service. Both ways report the same dismiss result. Overlays are drawn in the overlay layer that [`IonApp`](./app.md) hosts, whether they are declared on a routed page, in the layout, or presented through a controller.
 
 | Overlay | Page | Controller | Backdrop | System back button |
 | --- | --- | --- | --- | --- |
 | `IonActionSheet` | [Action Sheet](./action-sheet.md) | `IonActionSheetController` | yes | closes it |
-| `IonAlert` | [Alert](./alert.md) | `IonAlertController` | yes | — |
-| `IonLoading` | [Loading](./loading.md) | `IonLoadingController` | yes (taps ignored by default) | — |
+| `IonAlert` | [Alert](./alert.md) | `IonAlertController` | yes | closes it |
+| `IonLoading` | [Loading](./loading.md) | `IonLoadingController` | yes (taps ignored by default) | closes it only with `BackdropDismiss` |
 | `IonModal` | [Modal](./modal.md) | `IonModalController` | yes | closes it |
-| `IonPopover` | [Popover](./popover.md) | `IonPopoverController` | yes | — |
+| `IonPopover` | [Popover](./popover.md) | `IonPopoverController` | yes | closes it |
 | `IonToast` | [Toast](./toast.md) | `IonToastController` | none, the page stays usable | — |
+
+As in Ionic, the system back button closes an open overlay when its `BackdropDismiss` allows it, with the dismiss role `"back"`; a toast never answers it.
 
 [`IonSelect`](./select.md) opens its options in one of these overlays, and the same rules apply to it.
 
@@ -33,10 +35,7 @@ Overlays are views that open above the page: action sheets, alerts, loading indi
 - **Use one `IonApp`, never nest them.** Each `IonApp` draws the whole layer, so an inner one shows every overlay twice.
 - `IonOverlayManager` (inject it) gives a read-only view of the layer: `Count`, and `GetTopIdAsync()` for the `Id` of the topmost overlay.
 
-### Current limitations
-
-- **Routed pages do not portal their declarative overlays.** A declarative overlay moves into the layer only when it is built as part of `IonApp`'s own content, for example markup written in the layout itself. The router builds a page before the layout around it, so a page's overlay components never receive `IonApp`'s overlay context. They render inline, where they are declared, which is the same fallback used without any `IonApp`. Alert, action sheet, loading, modal, and popover hosts are fixed and full-screen, so they still cover the screen. The toast host is absolutely positioned, so it covers its nearest positioned ancestor instead. Taps inside an inline overlay also bubble up to the elements it is declared in, so do not declare an overlay inside a clickable element (an `IonItem` with `Button`, a card with `OnClick`). To get an overlay that is always in the top layer, present it with its controller.
-- **Keep a single root element in each page** (normally `IonPage`). If a page has several root nodes directly under `<IonApp>@Body</IonApp>`, its first re-render drops the overlay layer, and controller overlays stop appearing.
+- **Declarative overlays move into the layer too.** A routed page is built inside the layout, so an overlay declared anywhere on the page receives `IonApp`'s overlay context and is drawn in the layer, not where it is declared. Taps on it therefore do not bubble to the elements around its declaration. Without an `IonApp` (a component rendered on its own) a declarative overlay falls back to rendering inline.
 
 ## Declarative overlays
 
@@ -70,7 +69,7 @@ Declare the component in markup and bind `IsOpen` two-way with `@bind-IsOpen`. W
 ```
 <!-- /miko:example -->
 
-Miko's Razor compiler does not support `@ref`, so the public methods some overlays expose (for example `IonModal.DismissAsync`) cannot be called from markup. Close a declarative overlay through `IsOpen`. When two overlays declared by the same component are open at once, the one declared later in the markup is on top. The exception is overlays in the layer that each have a stable `OverlayId`: those keep the order in which they were opened.
+The public methods some overlays expose (for example `IonModal.DismissAsync`) can be called through `@ref`: declare a field of the component type and write `@ref="_modal"` on the component. The field always refers to the current instance; Miko creates a new one each time the declaring component re-renders. When two overlays declared by the same component are open at once, the one declared later in the markup is on top. The exception is overlays in the layer that each have a stable `OverlayId`: those keep the order in which they were opened.
 
 ## Controllers
 

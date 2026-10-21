@@ -562,4 +562,38 @@ public class IonContentTests : IonicComponentTestBase
         cut.GetComputedStyle(cut.FindByClass("inner-scroll").ShouldHaveSingleItem())!
             .OverflowY.ShouldBe(Overflow.Auto);
     }
+
+    /// <summary>
+    /// ISSUE-153: ion-padding on IonContent had no effect — the host's padding is zeroed and the
+    /// inner scroller never read --padding-*. The IonicDemo Tabs / Fab / Menu pages rely on it.
+    /// Real nesting: IonPage &gt; IonContent(Class="ion-padding") &gt; content.
+    /// </summary>
+    [Theory]
+    [InlineData("ion-padding", 16f, 16f)]
+    [InlineData("ion-padding-top", 16f, 0f)]
+    [InlineData("ion-padding-start", 0f, 16f)]
+    [InlineData(null, 0f, 0f)]
+    public void IonContent_PaddingClass_PadsTheScrolledContent(string? padding, float top, float left)
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        Context.ViewportWidth = 400;
+        var cut = Context.Render<IonPage>(p => p.Add(nameof(IonPage.ChildContent), (RenderFragment)(page =>
+        {
+            var content = page.OpenComponent<IonContent>();
+            content.Class = padding;
+            content.ChildContent = c =>
+            {
+                var probe = c.OpenElement<Miko.Core.DomElements.DivElement>();
+                probe.Class = "padding-probe";
+                c.AddContent("Body");
+                c.CloseElement();
+            };
+            page.CloseComponent();
+        })));
+
+        var scroller = cut.GetBoxModel(cut.FindByClass("inner-scroll").Single())!.BorderBox;
+        var probe = cut.GetBoxModel(cut.FindByClass("padding-probe").Single())!.BorderBox;
+        (probe.Top - scroller.Top).ShouldBe(top, 0.5f);
+        (probe.Left - scroller.Left).ShouldBe(left, 0.5f);
+    }
 }

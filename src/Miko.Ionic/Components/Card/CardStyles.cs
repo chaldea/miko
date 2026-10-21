@@ -65,7 +65,9 @@ internal static class CardStyles
                 PaddingBottom = Length.Px(t.CardHeaderPaddingBottom),
                 PaddingLeft = Length.Px(t.CardHeaderPaddingStart),
                 BackgroundColor = Color.Transparent,
-                Color = t.CardColor,
+                // card-header.scss --color: inherit — the header follows the card, so a colored
+                // card's contrast color reaches the titles inside it.
+                Color = Css.Inherit,
             },
 
             [$".ion-card-content.{mode}"] = new()
@@ -85,6 +87,8 @@ internal static class CardStyles
                 PaddingTop = Length.Px(0),
             },
         };
+
+        AddTitles(css, mode);
 
         AddColor(css, mode, "primary", t.Primary, Color.White);
         AddColor(css, mode, "secondary", t.Secondary, Color.White);
@@ -111,5 +115,66 @@ internal static class CardStyles
             BackgroundColor = background,
             Color = color,
         };
+        // card-title.scss / card-subtitle.scss :host(.ion-color) { color: current-color(base) }.
+        css[$".ion-card-title.{mode}.ion-color-{name}"] = new() { Color = background };
+        css[$".ion-card-subtitle.{mode}.ion-color-{name}"] = new() { Color = background };
+    }
+
+    /// <summary>
+    /// ion-card-title / ion-card-subtitle typography (card-title.{mode}.scss, card-subtitle.{mode}.scss
+    /// and their vars). Without these rules both rendered like the card body — 14px, regular weight
+    /// (ISSUE-153).
+    /// </summary>
+    private static void AddTitles(CssObject css, string mode)
+    {
+        var md = mode == "md";
+        css[$".ion-card-title.{mode}"] = new()
+        {
+            Display = Display.Block,
+            Position = Position.Relative,
+            MarginTop = Length.Px(0),
+            MarginBottom = Length.Px(0),
+            PaddingTop = Length.Px(0),
+            PaddingBottom = Length.Px(0),
+            FontSize = Length.Px(md ? 20 : 28),                       // $card-{mode}-title-font-size
+            FontWeight = md ? FontWeight.Medium : FontWeight.Bold,     // 500 / 700
+            LineHeight = Length.Number(1.2f),
+            Color = Color.FromHex(md ? "262626" : "000000"),          // text-color-step-150 / text-color
+        };
+        css[$".ion-card-subtitle.{mode}"] = new()
+        {
+            Display = Display.Block,
+            Position = Position.Relative,
+            MarginTop = Length.Px(0),
+            MarginBottom = Length.Px(md ? 0 : 4),                      // $card-ios-subtitle-margin-bottom
+            PaddingTop = Length.Px(0),
+            PaddingBottom = Length.Px(0),
+            FontSize = Length.Px(md ? 14 : 12),
+            FontWeight = md ? FontWeight.Medium : FontWeight.Bold,
+            TextTransform = md ? null : TextTransform.Uppercase,
+            LetterSpacing = md ? null : Length.Px(0.4f),
+            Color = Color.FromHex(md ? "737373" : "666666"),          // text-color-step-450 / -400
+        };
+
+        // In a colored card the titles follow its contrast color: the hosts carry Ionic's
+        // ion-inherit-color class (core.scss .ion-color .ion-inherit-color { color: inherit }).
+        css[$".ion-card.{mode}.ion-color .ion-card-title.{mode}:not(.ion-color)"] = new() { Color = Css.Inherit };
+        css[$".ion-card.{mode}.ion-color .ion-card-subtitle.{mode}:not(.ion-color)"] = new() { Color = Css.Inherit };
+
+        if (md)
+        {
+            // card-header.md.scss: stacked title / subtitle are 8px apart.
+            css[$".ion-card-header.{mode} .ion-card-title.{mode}:not(:first-child)"] = new() { MarginTop = Length.Px(8) };
+            css[$".ion-card-header.{mode} .ion-card-subtitle.{mode}:not(:first-child)"] = new() { MarginTop = Length.Px(8) };
+        }
+        else
+        {
+            // card-header.ios.scss :host(.card-header-translucent): a 90% opaque header. Miko has no
+            // backdrop-filter, so the blur behind it is not reproduced.
+            css[$".ion-card-header.{mode}.card-header-translucent"] = new()
+            {
+                BackgroundColor = Color.FromRgba(255, 255, 255, 0.9f),
+            };
+        }
     }
 }

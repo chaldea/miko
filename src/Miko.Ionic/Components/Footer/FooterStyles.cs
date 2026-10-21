@@ -30,13 +30,12 @@ internal static class FooterStyles
                 ZIndex = 10,
             },
 
-            // Footer toolbar padding for safe areas (ion-safe-area-bottom)
-            // Applied to the last toolbar when footer-toolbar-padding class is present
+            // footer.scss: the last toolbar clears the bottom safe area (home indicator) unless a
+            // bottom tab bar already does — IonFooter omits footer-toolbar-padding inside IonTabs
+            // with a Bottom slot, as footer.tsx does for a tab bar with slot="bottom".
             [$".{mode}.ion-footer.footer-toolbar-padding .{mode}.ion-toolbar:last-of-type"] = new()
             {
-                // Safe area padding bottom - in real implementation this would use env(safe-area-inset-bottom)
-                // For now we set a base value that can be overridden by platform-specific safe area handling
-                PaddingBottom = Length.Px(0),
+                PaddingBottom = Length.SafeAreaInsetBottom,
             },
         };
 
@@ -102,10 +101,11 @@ internal static class FooterStyles
                 }
             };
 
-            // No border variant (removes shadow)
+            // No border variant (footer.md.scss: box-shadow: none). An empty list, not null: null
+            // means "not set" and would leave the shadow above in place.
             css[$".{mode}.ion-footer.footer-md.ion-no-border"] = new()
             {
-                BoxShadow = null,
+                BoxShadow = new List<BoxShadow>(),
             };
         }
 

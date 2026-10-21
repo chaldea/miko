@@ -41,16 +41,20 @@ public class RouteView
         using var _ = Components.ComponentServiceScope.Push(_serviceProvider);
 
         var component = CreateComponent(componentType);
-        var content = component.Build();
 
         if (_defaultLayout != null)
         {
             var layout = (LayoutComponentBase)CreateComponent(_defaultLayout);
-            // The page content (possibly a transparent multi-root FragmentElement) is placed into
-            // the layout's body. The fragment stays in the DOM as the page's stable root, but the
-            // layout engine skips it (display:contents), so no wrapper element disturbs the layout.
-            layout.BodyElement = content;
-            layout.Body = builder => { builder.AttachElement(content); };
+            // The page is built where the layout places its body — inside the layout's render,
+            // not before it — so it receives the values the layout cascades, as in Blazor. Built
+            // up front, a page never saw the IonOverlayContext of the layout's IonApp, and every
+            // overlay it declared rendered inline instead of in the app's overlay layer
+            // (ISSUE-153 problem 1).
+            //
+            // The page content (possibly a transparent multi-root FragmentElement) stays in the
+            // DOM as the page's stable root, but the layout engine skips it (display:contents),
+            // so no wrapper element disturbs the layout.
+            layout.SetBody(component.Build);
             var rendered = layout.Build();
             // 装配完就放开对页面内容的引用（BodyElement 与捕获了它的 Body 闭包）：内容此后由
             // 已建成的元素树自己持有，页面重渲染走 StateHasChanged 就地替换，不会再回头
@@ -65,7 +69,7 @@ public class RouteView
         // FragmentElement; the layout engine treats a root-level fragment as the (permitted)
         // auto-created wrapper, so it can be returned as-is — keeping it as the component's
         // stable root so StateHasChanged can re-render it in place.
-        return content;
+        return component.Build();
     }
 
     private ComponentBase CreateComponent(

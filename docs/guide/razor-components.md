@@ -38,7 +38,8 @@ binding, `@code` blocks for component logic, and the `@inject`, `@using`, `@inhe
 `@namespace` directives.
 
 Markup tags compile to Miko's own elements, which have a fixed set of tags and attributes —
-see [Elements](./elements.md). Unknown attributes are dropped silently.
+see [Elements](./elements.md). An attribute or tag outside that set is reported at compile time
+(warnings RZ10100 and RZ10101).
 
 ## Parameters and child content
 

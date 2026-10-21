@@ -18,11 +18,12 @@ internal static class ListStyles
     {
         var css = new CssObject
         {
-            // ion-list — vertical stack of items with a small top/bottom inset.
+            // ion-list — vertical stack of items with a small top/bottom inset. No width, as in
+            // list.scss: a block fills its container, and an explicit 100% made an inset list (16px
+            // margins) overflow it by its left margin (ISSUE-153).
             [$".ion-list.{mode}"] = new()
             {
                 Display = Display.Block,
-                Width = Length.Percent(100),
                 BackgroundColor = t.ListBackground,
                 PaddingTop = Length.Px(8),
                 PaddingBottom = Length.Px(8),

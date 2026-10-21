@@ -6,11 +6,11 @@ A back button navigates to the previous page: it pops the navigation history whe
 
 ## Basic usage
 
-`DefaultHref` is required in practice: the button is **hidden unless `DefaultHref` is set**, even when there is history to go back to (Ionic also shows it whenever the stack can go back; Miko does not). On a tap it pops the history with the mode's pop transition; when the history cannot go back, it navigates to `DefaultHref` in the back direction with the same transition. When `DefaultHref` is already the current page, nothing happens. See [App and Page](./app.md#going-back).
+The button is shown when there is history to go back to, or when `DefaultHref` is set; with neither it is hidden. Set `DefaultHref` so the button also appears on a page opened without history, such as a deep link. On a tap it pops the history with the mode's pop transition; when the history cannot go back, it navigates to `DefaultHref` in the back direction with the same transition. When `DefaultHref` is already the current page, nothing happens. See [App and Page](./app.md#going-back).
 
 <!-- miko:example examples/back-button/Basic.razor -->
 ```razor
-@* DefaultHref is required: without it the button is hidden. *@
+@* DefaultHref keeps the button visible even when there is no history to go back to. *@
 <IonToolbar>
     <Start>
         <IonBackButton DefaultHref="/" />
@@ -78,8 +78,8 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Only stamped as an `ion-color-*` class: the back-button stylesheet has no palette rules, so it does not change the color unless an app style targets that class. |
-| `DefaultHref` | `string?` | `null` | The path to navigate back to when the history stack cannot go back. Also controls visibility: when null the button is hidden (no `show-back-button` class) even if there is history to pop. |
+| `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Colors the button's text and icon. |
+| `DefaultHref` | `string?` | `null` | The path to navigate back to when the history stack cannot go back. The button is shown when this is set or when there is history to go back to (Ionic's `.can-go-back`); with neither it is hidden. |
 | `Disabled` | `bool` | `false` | When true, the user cannot interact with the button (dimmed, non-interactive). |
 | `Icon` | `string?` | `null` | Override the default back button icon (an `Ionicons` name). When null, uses the mode default: `chevron-back` on iOS, `arrow-back-sharp` on MD. |
 | `RespondToHardwareBack` | `bool` | `true` | Whether the system back button (hardware back / back gesture / Escape) navigation-pops the same way a tap on this button does. Defaults to `true`. Set to `false` when the page wants hardware back to behave differently from tapping the on-screen button. |
@@ -92,7 +92,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 ## Styling
 
-`IonBackButton` has no theme token. Its color is the palette's `Primary` in ios mode and the palette's `TextColor` in md mode. The `Color` parameter only stamps an `ion-color-*` class — no Ionic rule styles it, so target the class from an app stylesheet if you use it.
+`IonBackButton` has no theme token. Its color is the palette's `Primary` in ios mode and the palette's `TextColor` in md mode. `Color` takes a palette name (see [Theming](./theming.md#palette)) and colors the text and icon.
 
 ### CSS classes
 

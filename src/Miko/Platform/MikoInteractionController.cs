@@ -70,6 +70,10 @@ public sealed class MikoInteractionController
     // 焦点元素。读取一律经 FocusedElement（下方）而非直接读字段：组件重渲染会用全新实例
     // 替换整棵子树，此处缓存的引用可能已脱离树（ISSUE-121）。
     private Element? _focusedElement;
+
+    // 文本控件获得焦点（或上一次提交）时的值。失焦或单行控件按回车时与当前值比较，
+    // 不同才派发 change——与 HTML 及 Ionic 的 ionChange（focusedValue）同一语义（ISSUE-153 问题 6）。
+    private string? _committedText;
     private InputElement? _draggingRange;
     private bool _isDragging;
     private MikoEngine.ScrollbarHitResult? _draggingScrollbar;
@@ -765,7 +769,12 @@ public sealed class MikoInteractionController
         // 已脱离树的元素上，渲染看不到它，光标便不会出现（ISSUE-121）。
         target = target.ResolveSuperseded();
 
-        if (target is InputElement inputElement)
+        if (target.IsDisabled && target is InputElement or TextAreaElement)
+        {
+            // A disabled control takes neither focus nor edits (HTML), whichever way the tap
+            // reached it — pointer-events is only a style.
+        }
+        else if (target is InputElement inputElement)
         {
             HandleInputClick(inputElement);
         }
@@ -952,6 +961,12 @@ public sealed class MikoInteractionController
         if (oldFocus != null)
         {
             _compositionText = string.Empty;
+
+            // 文本控件的 change 在失焦时派发、且先于 blur（浏览器与 Ionic 的 onBlur 都是此顺序）。
+            // change 处理器可能重渲染组件，故派发后要重新解析出在场的实例再清焦点、发 blur。
+            if (CommitTextChange(oldFocus))
+                oldFocus = oldFocus.ResolveSuperseded();
+
             oldFocus.ClearState(ElementState.Focus);
             var blurArgs = new FocusEventArgs
             {
@@ -970,6 +985,9 @@ public sealed class MikoInteractionController
         // the click path's post-dispatch resolution above.
         newFocus = newFocus?.ResolveSuperseded();
         _focusedElement = newFocus;
+        _committedText = newFocus is ITextEditable { IsEditable: true } focusedText
+            ? focusedText.Value ?? string.Empty
+            : null;
 
         if (newFocus != null)
         {
@@ -1102,11 +1120,16 @@ public sealed class MikoInteractionController
                 _engine.InvalidateElement(element);
                 break;
             case MikoKey.Enter:
-                // 多行控件（textarea）回车插入换行；单行控件不处理（可用于表单提交，由上层处理）。
+                // 多行控件（textarea）回车插入换行；单行控件回车即提交，值有变化时派发 change
+                // （与浏览器、Ionic 的 ionChange 一致），其余（表单提交等）由上层处理。
                 if (editable.IsMultiline)
                 {
                     editable.InsertText("\n");
-                    DispatchInputEvent(element, editable);
+                    DispatchInputEvent(element, editable, "\n");
+                }
+                else
+                {
+                    CommitTextChange(element);
                 }
                 break;
         }
@@ -1120,6 +1143,7 @@ public sealed class MikoInteractionController
             if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return;
             var element = (Element)editable;
 
+            var inserted = new System.Text.StringBuilder(text.Length);
             foreach (var character in text)
             {
                 // Native IMEs may commit a newline directly (not as a key event) for a
@@ -1127,8 +1151,9 @@ public sealed class MikoInteractionController
                 if (char.IsControl(character) && !(character is '\r' or '\n' && editable.IsMultiline))
                     continue;
                 editable.InsertText(character.ToString());
+                inserted.Append(character);
             }
-            DispatchInputEvent(element, editable);
+            DispatchInputEvent(element, editable, inserted.ToString());
             PublishInputMethodState();
         }
     }
@@ -1279,7 +1304,7 @@ public sealed class MikoInteractionController
             content.Height);
     }
 
-    private void DispatchInputEvent(Element element, ITextEditable editable)
+    private void DispatchInputEvent(Element element, ITextEditable editable, string? insertedText = null)
     {
         // 文本内容已变更：标脏区域以调度重绘（同 ISSUE-104，IsDirty 标志无读取方）。
         _engine.InvalidateElement(element);
@@ -1288,9 +1313,29 @@ public sealed class MikoInteractionController
         {
             Target = element,
             Data = editable.Value ?? string.Empty,
+            InsertedText = insertedText,
             Bubbles = true
         };
         DispatchWithSyncContext(element, EventTypes.Input, inputArgs);
+    }
+
+    /// <summary>
+    /// 提交文本控件的编辑：值与获得焦点（或上一次提交）时不同则派发 change，返回是否派发了。
+    /// <para>复选框、单选框、select 与 range 在操作时即派发 change（见各自的调用点）；文本类控件
+    /// 只在失焦或单行控件按回车时提交。缺了这一步，<c>IonInput.OnChange</c> /
+    /// <c>IonTextarea.OnChange</c> 从不触发，默认走 onchange 的 <c>&lt;input @bind&gt;</c> /
+    /// <c>&lt;textarea @bind&gt;</c> 也从不回写（ISSUE-153 问题 6）。</para>
+    /// </summary>
+    private bool CommitTextChange(Element element)
+    {
+        if (element is not ITextEditable editable || _committedText is null) return false;
+
+        var current = editable.Value ?? string.Empty;
+        if (current == _committedText) return false;
+
+        _committedText = current;
+        DispatchChange(element);
+        return true;
     }
 
     private void DispatchChange(Element element)

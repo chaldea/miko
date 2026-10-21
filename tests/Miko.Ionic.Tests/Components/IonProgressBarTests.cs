@@ -303,4 +303,14 @@ public class IonProgressBarTests : IonicComponentTestBase
         translate.X.Value.ShouldBe(value);
         translate.X.Unit.ShouldBe(unit);
     }
+
+    /// <summary>ISSUE-153: the root div did not bind <c>style</c>, so the parameter was ignored.</summary>
+    [Fact]
+    public void IonProgressBar_AppliesStyleParameter()
+    {
+        var style = new Miko.Styling.Style { MarginTop = Length.Px(12) };
+        var cut = Context.Render<IonProgressBar>(p => p.Add(nameof(IonProgressBar.Style), style));
+
+        cut.Root.Style.ShouldBeSameAs(style);
+    }
 }

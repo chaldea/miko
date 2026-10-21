@@ -31,7 +31,10 @@
    scroll event. Ionic's IntersectionObserver / keyboard logic is runtime DOM behavior with no Miko
    equivalent and remains omitted. *@
 <div class="@ClassMapper.Class" style="@Style">
-    @SlotPrefix
+    @if (SlotPrefix is not null)
+    {
+        <div class="picker-column-prefix">@SlotPrefix</div>
+    }
     <div class="picker-opts" @onscroll="HandleScroll">
         <div class="picker-item-empty">&nbsp;</div>
         <div class="picker-item-empty">&nbsp;</div>
@@ -43,7 +46,10 @@
         <div class="picker-item-empty">&nbsp;</div>
         <div class="picker-item-empty">&nbsp;</div>
     </div>
-    @SlotSuffix
+    @if (SlotSuffix is not null)
+    {
+        <div class="picker-column-suffix">@SlotSuffix</div>
+    }
 </div>
 
 @code {

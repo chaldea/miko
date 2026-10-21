@@ -1,9 +1,6 @@
-@inject Miko.Animation.AnimationManager Animations
-
 @* The page (the real file starts with @page "/"). IonMenu is the last child of the IonPage, so
    the page keeps a single root. The page owns the open state: IonMenuButton opens the menu,
-   IonMenu.OnClose (backdrop tap or system back) closes it. Animations is passed as in the
-   template (see the note below the example). *@
+   IonMenu.OnClose (backdrop tap or system back) closes it. *@
 <IonPage>
     <IonHeader>
         <IonToolbar>
@@ -24,7 +21,7 @@
         </div>
     </IonContent>
 
-    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu" Animations="Animations">
+    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu">
         <IonContent>
             <IonList>
                 <IonListHeader>Inbox</IonListHeader>
@@ -57,19 +54,10 @@
         new("Spam", Ionicons.WarningOutline),
     };
 
-    // As in the scaffolded template: flip the flag and re-render the page that renders IonMenu
-    // (the EventCallback would re-render it anyway).
-    private void OpenMenu()
-    {
-        _menuOpen = true;
-        StateHasChanged();
-    }
+    // Defined in this page, so the EventCallbacks re-render the page when they return.
+    private void OpenMenu() => _menuOpen = true;
 
-    private void CloseMenu()
-    {
-        _menuOpen = false;
-        StateHasChanged();
-    }
+    private void CloseMenu() => _menuOpen = false;
 
     private readonly record struct MenuPage(string Title, string Icon);
 }

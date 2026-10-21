@@ -1,0 +1,12 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* A routed page with an IonSelect, whose alert opens through IonApp's overlay context. *@
+<IonPage>
+    <IonContent>
+        <IonSelect Placeholder="Pick one">
+            <IonSelectOption Value="a">Alpha</IonSelectOption>
+            <IonSelectOption Value="b">Beta</IonSelectOption>
+        </IonSelect>
+    </IonContent>
+</IonPage>

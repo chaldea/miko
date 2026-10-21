@@ -91,7 +91,7 @@ By default the buttons share the row's width equally. With `Scrollable="true"` e
 
 ## Colors and disabled buttons
 
-`Color` takes a palette name (see [Theming](./theming.md#palette)). In md mode the button text and the checked indicator take the color; in ios mode only the segment's track is tinted. `Disabled` on the segment dims and blocks the whole row; `Disabled` on a button blocks just that button.
+`Color` takes a palette name (see [Theming](./theming.md#palette)). In md mode the checked button's text and the indicator take the color, while the other buttons keep the neutral text color; in ios mode only the segment's track is tinted. `Disabled` on the segment dims and blocks the whole row; `Disabled` on a button blocks just that button.
 
 <!-- miko:example examples/segment/Colors.razor -->
 ```razor
