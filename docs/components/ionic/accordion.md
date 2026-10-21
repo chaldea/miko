@@ -46,7 +46,7 @@ While an accordion is collapsed, a header item without an explicit `Lines` shows
 
 ## Controlling which accordion is open
 
-`Value` on the group is the open accordion's value (`null` when all are closed). Use `@bind-Value` to read it and to open or close accordions from code. Without a binding the group tracks the open accordion itself, but a re-render of the parent recreates the group with the `Value` you pass — bind it when the parent has other state.
+`Value` on the group is the open accordion's value (`null` when all are closed). Use `@bind-Value` to read it and to open or close accordions from code. Without a binding the group tracks the open accordion itself. A `Value` you pass without binding it is applied again on every re-render of the parent, so bind it when the parent has other state.
 
 <!-- miko:example examples/accordion/Value.razor -->
 ```razor

@@ -24,8 +24,7 @@
 </IonContent>
 
 @code {
-    // Edit a caller-owned object, not a private field: the overlay layer re-creates this
-    // component whenever it re-renders (e.g. another overlay opens); parameters survive that.
+    // Edit a caller-owned object so the page can read the result once the modal closes.
     [Parameter] public NameDraft Draft { get; set; } = new();
 
     public sealed class NameDraft

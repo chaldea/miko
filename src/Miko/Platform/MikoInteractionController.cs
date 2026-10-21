@@ -927,13 +927,23 @@ public sealed class MikoInteractionController
     {
         var prevContext = SynchronizationContext.Current;
         SynchronizationContext.SetSynchronizationContext(_syncContext);
+        // One render batch for the whole dispatch (every bubbling handler): components re-render once,
+        // after all handlers ran, before the controller looks at the tree again (ISSUE-154).
+        RenderBatch.Enter();
         try
         {
             _eventDispatcher.Dispatch(target, eventType, args);
         }
         finally
         {
-            SynchronizationContext.SetSynchronizationContext(prevContext);
+            try
+            {
+                RenderBatch.Exit();
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(prevContext);
+            }
         }
     }
 
@@ -1098,17 +1108,21 @@ public sealed class MikoInteractionController
                     DispatchInputEvent(element, editable);
                 break;
             case MikoKey.Left:
+                // 按字素簇移动：一个 emoji / 组合重音 / ZWJ 序列是一个字符，光标不能停在它中间。
                 if (editable.CursorPosition > 0)
                 {
-                    editable.CursorPosition--;
+                    editable.CursorPosition = TextEditing.PreviousBoundary(editable.Value ?? string.Empty, editable.CursorPosition);
                     _engine.InvalidateElement(element);
                 }
                 break;
             case MikoKey.Right:
-                if (editable.CursorPosition < (editable.Value ?? string.Empty).Length)
                 {
-                    editable.CursorPosition++;
-                    _engine.InvalidateElement(element);
+                    var value = editable.Value ?? string.Empty;
+                    if (editable.CursorPosition < value.Length)
+                    {
+                        editable.CursorPosition = TextEditing.NextBoundary(value, editable.CursorPosition);
+                        _engine.InvalidateElement(element);
+                    }
                 }
                 break;
             case MikoKey.Home:
@@ -1135,25 +1149,118 @@ public sealed class MikoInteractionController
         }
     }
 
-    /// <summary>文本输入（已组合的字符）。控制字符会被忽略。</summary>
+    /// <summary>
+    /// 文本输入（已组合的文本）。整段一次性插入（受 <c>MaxLength</c> 约束时按字素簇截断），
+    /// 控制字符被滤掉；值确有变化时派发一次 input 事件，其 <see cref="InputEventArgs.InsertedText"/>
+    /// 是实际插入的文本（ISSUE-154 BUG-04）。
+    /// <para>逐个 UTF-16 码元投递字符的平台（Windows 的 WM_CHAR、Android 的按键 UnicodeChar）会把
+    /// 代理对拆成两次调用：高位代理先暂存，与下一次调用开头的低位代理拼回一个字符再插入。</para>
+    /// </summary>
     public void OnTextInput(string text)
+    {
+        lock (_sync)
+        {
+            if (FocusedElement is not ITextEditable editable || !editable.IsEditable)
+            {
+                _pendingHighSurrogate = null;
+                return;
+            }
+            var element = (Element)editable;
+
+            var filtered = FilterTextInput(element, text, editable.IsMultiline);
+            if (filtered.Length == 0) return;
+
+            var before = editable.Value ?? string.Empty;
+            editable.InsertText(filtered);
+            var after = editable.Value ?? string.Empty;
+
+            // 已到 maxlength 等情况下什么也没插进去：值没变就不派发 input（与浏览器一致）。
+            if (after == before)
+            {
+                PublishInputMethodState();
+                return;
+            }
+
+            // 插入后光标停在插入内容之后，据此取回真正插入（可能被截断）的那段。
+            var insertedLength = after.Length - before.Length;
+            var insertedStart = editable.CursorPosition - insertedLength;
+            var inserted = insertedLength > 0 && insertedStart >= 0 && insertedStart + insertedLength <= after.Length
+                ? after.Substring(insertedStart, insertedLength)
+                : filtered;
+            DispatchInputEvent(element, editable, inserted);
+            PublishInputMethodState();
+        }
+    }
+
+    /// <summary>
+    /// 一次 <see cref="OnTextInput"/> 拆成两半投递的代理对的前一半（及其所属元素）。
+    /// 焦点换了人，或下一次输入不以低位代理开头时丢弃——单独的高位代理不是合法文本。
+    /// </summary>
+    private (Element Element, char High)? _pendingHighSurrogate;
+
+    /// <summary>
+    /// 滤掉控制字符（多行控件保留换行），并把跨调用拆开的代理对拼回去；孤立代理项一律丢弃。
+    /// </summary>
+    private string FilterTextInput(Element element, string text, bool multiline)
+    {
+        var pending = _pendingHighSurrogate is { } p && ReferenceEquals(p.Element, element) ? p.High : (char?)null;
+        _pendingHighSurrogate = null;
+
+        var result = new System.Text.StringBuilder(text.Length + 1);
+        for (int i = 0; i < text.Length; i++)
+        {
+            var character = text[i];
+            if (char.IsHighSurrogate(character))
+            {
+                if (i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+                {
+                    result.Append(character).Append(text[i + 1]);
+                    i++;
+                }
+                else if (i == text.Length - 1)
+                {
+                    // 末尾的高位代理：另一半可能在下一次调用里。
+                    _pendingHighSurrogate = (element, character);
+                }
+                continue;
+            }
+
+            if (char.IsLowSurrogate(character))
+            {
+                if (i == 0 && pending is { } high) result.Append(high).Append(character);
+                continue;
+            }
+
+            // Native IMEs may commit a newline directly (not as a key event) for a
+            // multiline editor; preserve it while still filtering other controls.
+            if (char.IsControl(character) && !(character is '\r' or '\n' && multiline))
+                continue;
+            result.Append(character);
+        }
+        return result.ToString();
+    }
+
+    /// <summary>
+    /// 输入法删除光标前后的文本（Android <c>InputConnection.deleteSurroundingText</c>）。
+    /// <paramref name="beforeLength"/>/<paramref name="afterLength"/> 是 UTF-16 码元数；删除按字素簇
+    /// 进行，直到覆盖了要求的长度——不会拆开代理对或组合序列。整个操作只派发一次 input 事件。
+    /// </summary>
+    public void DeleteSurroundingText(int beforeLength, int afterLength)
     {
         lock (_sync)
         {
             if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return;
             var element = (Element)editable;
+            var original = editable.Value ?? string.Empty;
 
-            var inserted = new System.Text.StringBuilder(text.Length);
-            foreach (var character in text)
-            {
-                // Native IMEs may commit a newline directly (not as a key event) for a
-                // multiline editor; preserve it while still filtering other controls.
-                if (char.IsControl(character) && !(character is '\r' or '\n' && editable.IsMultiline))
-                    continue;
-                editable.InsertText(character.ToString());
-                inserted.Append(character);
-            }
-            DispatchInputEvent(element, editable, inserted.ToString());
+            var target = original.Length - Math.Max(0, beforeLength);
+            while ((editable.Value ?? string.Empty).Length > target && editable.Backspace()) { }
+
+            target = (editable.Value ?? string.Empty).Length - Math.Max(0, afterLength);
+            while ((editable.Value ?? string.Empty).Length > target && editable.Delete()) { }
+
+            if ((editable.Value ?? string.Empty) != original)
+                DispatchInputEvent(element, editable);
             PublishInputMethodState();
         }
     }
@@ -1193,14 +1300,17 @@ public sealed class MikoInteractionController
         }
     }
 
-    /// <summary>Updates the insertion point reported by a native text connection.</summary>
+    /// <summary>
+    /// Updates the insertion point reported by a native text connection. <paramref name="start"/> and
+    /// <paramref name="end"/> are UTF-16 code-unit offsets (as on Android/iOS); Miko keeps a collapsed
+    /// caret at the start, snapped back to a grapheme-cluster boundary.
+    /// </summary>
     public void SetTextSelection(int start, int end)
     {
         lock (_sync)
         {
             if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return;
-            var length = (editable.Value ?? string.Empty).Length;
-            editable.CursorPosition = Math.Clamp(Math.Min(start, end), 0, length);
+            editable.CursorPosition = TextEditing.SnapToBoundary(editable.Value ?? string.Empty, Math.Min(start, end));
             _engine.InvalidateElement((Element)editable);
             PublishInputMethodState();
         }

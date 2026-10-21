@@ -2,12 +2,15 @@
 @inherits IonicComponentBase
 
 <div class="@ClassMapper.Class">
-    <CascadingValue TValue="IonOverlayRenderContext" Value="_renderContext">
-        @foreach (var entry in _entries)
-        {
+    @* Each entry is keyed by its registration id, so the component instances of an overlay stay with
+       that overlay when others open or close around it (ISSUE-154). Unkeyed, a dismissed alert's
+       instances would be handed to the next alert in the stack. *@
+    @foreach (var entry in _entries)
+    {
+        <CascadingValue TValue="IonOverlayRenderContext" Value="_renderContext" @key="entry.Id">
             @entry.Content
-        }
-    </CascadingValue>
+        </CascadingValue>
+    }
 </div>
 
 @code {
@@ -36,6 +39,7 @@
     {
         if (_registry is not null) _registry.Changed -= HandleRegistryChanged;
         _registry = null;
+        base.OnDispose();
     }
 
     private void HandleRegistryChanged()

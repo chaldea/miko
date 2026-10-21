@@ -293,24 +293,28 @@ public class IonSearchbarEventTests : IDisposable
     }
 
     /// <summary>
-    /// 未绑定 <c>Value</c> 时清除按钮不会出现：揭示规则依赖宿主的 <c>searchbar-has-value</c>，
-    /// 而该类由 <c>Value</c> 参数推导，用户键入只写在元素上、不回流参数。与浏览器里 Ionic 的差别
-    /// 源于它把 value 存在组件自身可变属性上（<c>@Prop({ mutable: true })</c>）。
-    /// <para>因此需要清除按钮的场景必须绑定 Value（<c>@bind-Value</c> 或显式 ValueChanged）。
-    /// 这里把这个约束固定下来，避免日后误以为它是 bug 而去掉 has-value 条件。</para>
+    /// 未绑定 <c>Value</c> 时清除按钮同样出现，与浏览器里的 Ionic 一致——Ionic 把 value 存在组件自身的
+    /// 可变属性上（<c>@Prop({ mutable: true })</c>）。
+    /// <para>此前组件实例随每次重渲染重建，键入写回的 <c>Value</c> 跟着旧实例丢掉，宿主永远没有
+    /// <c>searchbar-has-value</c>，这个用例曾把「清除按钮不出现」固定为已知差异。父级重渲染复用身份
+    /// 不变的子组件后（ISSUE-154），未声明的参数保留组件自己写入的值，差异随之消失。</para>
     /// </summary>
     [Fact]
-    public void ClearButton_StaysHidden_WhenValueUnbound()
+    public void ClearButton_Appears_WhenValueUnbound()
     {
         var (app, _) = BuildApp(p => p.BindValue = false);
         FocusField(app);
         app.Controller.OnTextInput("ab");
         app.Engine.Render(_canvas);
 
-        // 元素确实有了文本，但宿主没有 has-value，清除按钮仍是 display:none（命不中）。
         SearchInput(app).Value.ShouldBe("ab");
+        Host(app).ShouldHaveClass("searchbar-has-value");
+
+        ClickOn(app, "searchbar-clear-button");
+        app.Engine.Render(_canvas);
+
+        SearchInput(app).Value.ShouldBe(string.Empty);
         Host(app).ShouldNotHaveClass("searchbar-has-value");
-        FindPoint(app, "searchbar-clear-button").ShouldBeNull();
     }
 
     [Fact]

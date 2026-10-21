@@ -144,17 +144,28 @@
 
     private DateTime _working;            // the month currently displayed
     private DateTime? _active;            // the selected date
-    private readonly DateTime _today = DateTime.Today;
+    private DateTime _today = DateTime.Today;
+    private string? _renderedValue;       // the Value the displayed month last followed
     private IReadOnlyList<IonCalendarDay> _monthDays = Array.Empty<IonCalendarDay>();
 
     protected override void OnParametersSet()
     {
+        // The instance outlives parent re-renders (ISSUE-154), so "today" is read per render.
+        _today = DateTime.Today;
         _active = ParseValue(Value);
-        // The displayed month defaults to the selected date, else today.
+        // The displayed month defaults to the selected date, else today, and follows a Value set
+        // from outside to another month (Ionic's value watcher). Month navigation by the user stays
+        // until then.
         if (_working == default)
         {
             _working = _active ?? _today;
         }
+        else if (Value != _renderedValue && _active is { } active &&
+                 (active.Year != _working.Year || active.Month != _working.Month))
+        {
+            _working = active;
+        }
+        _renderedValue = Value;
 
         var presentation = string.IsNullOrWhiteSpace(Presentation) ? "date" : Presentation.ToLowerInvariant();
         var size = string.IsNullOrWhiteSpace(Size) ? "fixed" : Size.ToLowerInvariant();

@@ -147,9 +147,10 @@
             var input = inputs[index];
             input.Id = $"{_inputId}-{index}";
             input.Type = InputType.Text;
-            // Unbound (Value null) after a parent re-render, this instance has no values of its
-            // own: leave the boxes undeclared so the typed characters carry over from the replaced
-            // inputs (InputElement.DeclaredValue, ISSUE-121) instead of being wiped (ISSUE-153).
+            // Unbound (Value null) on the first build there is nothing to declare: leave the boxes
+            // undeclared so typed characters carry over from replaced inputs (InputElement.DeclaredValue,
+            // ISSUE-121) instead of being wiped (ISSUE-153). Later builds declare the characters
+            // OnParametersSet read back from the boxes this instance built last.
             if (Value is not null || _builtInputs.Count > 0)
             {
                 input.Value = _inputValues[index];

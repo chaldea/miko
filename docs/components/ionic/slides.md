@@ -38,7 +38,7 @@ Put the `IonSlide`s directly in `IonSlides` (a `@foreach` is fine): the slide co
 
 ## Active slide
 
-`ActiveIndex` is the current slide (0-based; clamped to the slide count). `@bind-ActiveIndex` reports every change — drag, arrow, bullet, or autoplay — and moves the carousel when the page changes the value. Without a binding the carousel tracks its own position, but a re-render of the parent recreates it at the `ActiveIndex` you pass.
+`ActiveIndex` is the current slide (0-based; clamped to the slide count). `@bind-ActiveIndex` reports every change — drag, arrow, bullet, or autoplay — and moves the carousel when the page changes the value. Without a binding the carousel tracks its own position; a re-render of the parent moves it only when the `ActiveIndex` you pass changes.
 
 <!-- miko:example examples/slides/ActiveIndex.razor -->
 ```razor

@@ -280,8 +280,9 @@
 
     protected override void OnDispose()
     {
-        // Nested components are rebuilt each render; release the subscription so handlers from
-        // discarded instances don't accumulate, and drop the pending timer with them.
+        // Runs once, when the instance is finally dropped (a parent re-render reuses it, ISSUE-154):
+        // release the subscription so the animation manager stops calling a dead instance, and drop
+        // the pending timer with it.
         if (_subscribed && Animations is not null)
         {
             Animations.TransitionCompleted -= OnTransitionCompleted;
@@ -289,6 +290,8 @@
         }
         _timerCancellation?.Cancel();
         _timerCancellation = null;
+        // Also releases the back-button slot an open toast holds.
+        base.OnDispose();
     }
 
     private void OnTransitionCompleted(Element element, string property)

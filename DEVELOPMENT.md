@@ -367,7 +367,9 @@ Miko 实现类浏览器的渲染管线：
 | PseudoElement | ::before / ::after | 伪元素 |
 
 **元素方法：**
-- `AddChild(Element)` / `RemoveChild(Element)` — 添加/移除子元素（自动设置 IsDirty）
+- `AddChild(Element)` / `RemoveChild(Element)` — 添加/移除子元素（自动设置 IsDirty）。
+  一个元素只能有一个父节点：`AddChild` 与 `Children.Add/Insert/索引器/AddRange` 遇到已有父节点的元素时
+  按 DOM 语义**移动**它（同一集合内也是移动，不会出现两份），`null` 与祖先环在任何改动之前被拒绝（ISSUE-154）
 - `FindById(string)` / `FindByClass(string)` / `FindByTagName(string)` — 查找元素
 - `HasClass(string)` / `AddClass(string)` / `RemoveClass(string)` — 类名操作
 - `SetState(ElementState)` / `ClearState(ElementState)` — 状态管理
@@ -664,6 +666,16 @@ public static class App
 App.CreateContext().RunDesktop();
 ```
 
+**组件身份与复用（ISSUE-154）：** 父组件重渲染时，身份不变的子组件复用原实例（与 Blazor 一致）——
+字段、订阅、进行中的异步工作都保留，`OnInitialized` 只执行一次，`OnParametersSet` 每次父级渲染都执行，
+父级没有传的参数保留原值，实例不再被渲染时才 `OnDispose`。身份由所在位置（标记中的调用点、所在的片段
+与带键元素）、同一位置上的出现次序以及 `@key` 决定；会重排或在中间增删的列表应给每项加 `@key`，
+重复的 key 抛出 `InvalidOperationException`。
+
+由此带来的编写约束：不要在 `OnParametersSet` 里重复订阅/登记（必须幂等），也不要只在 `OnInitialized`
+里从参数推导一次状态而期望它随父级传入的新值更新。事件处理期间请求的重渲染会等处理器同步部分结束后
+统一执行（`RenderBatch`），因此一个处理器里先后回报多个绑定值时，父级只按最终状态重渲染一次。
+
 ### 自定义 Razor 编译器配置
 
 Razor 项目必须包含 `_OverrideRazorSourceGenerator` 目标以使用 Miko 的自定义编译器：
@@ -685,6 +697,10 @@ Razor 项目必须包含 `_OverrideRazorSourceGenerator` 目标以使用 Miko �
   </ItemGroup>
 </Target>
 ```
+
+通过 NuGet 包引用编译器时无需手写上述目标：包内 `build/Miko.Razor.Compiler.props` 按编译器**自身**的
+目标框架（`net10.0`）定位 `tools/net10.0/`，与消费项目的 TFM 无关，因此 `net10.0-android` / `net10.0-ios`
+项目直接包含 `.razor` 文件也能构建（ISSUE-154）。
 
 项目还需要对 `Miko.Razor.Compiler` 的构建顺序引用：
 
@@ -938,6 +954,10 @@ image.Placeholder = "res://Assets/placeholder.png";
 // 自定义加载器
 builder.Services.AddSingleton<IImageLoader, MyCustomImageLoader>();
 ```
+
+`ResourceManager` 只长期缓存解码成功的位图：失败的条目仍留在诊断列表里（Failed），但同一路径的下一次
+请求会重新加载（文件出现、网络恢复后即可加载）；调用方的 `CancellationToken` 只取消它自己的等待，所有
+等待者都取消后共享加载才会被取消并移出缓存（ISSUE-154）。
 
 ### 编写测试
 
@@ -1319,6 +1339,10 @@ public class App
 - **组件面向的平台服务**：`IPlatformService` 提供返回键链（`Back`）、屏幕方向/常亮（`Orientation`）与
   触觉反馈（`Haptics`），全部同步、不支持时静默空操作。真实实现由平台头项目调用 `Use*Native()` 接入，
   不调用时 `IonPicker` 的滚轮触感、`MikoPlayer` 全屏横屏都不会生效（ISSUE-138、ISSUE-149）
+- **Android 最低版本**：API 26（Android 8.0），`Miko.Android`、模板与示例保持一致；更高版本的 API 必须
+  放在 `OperatingSystem.IsAndroidVersionAtLeast` 分支里（`Miko.Android` 把 CA1416 视为错误）
+- **文本编辑单位**：`CursorPosition`、输入法选区与 `MaxLength` 按 UTF-16 码元计（与浏览器一致），插入、
+  退格、删除与左右移动按字素簇进行，emoji、组合重音、ZWJ 序列不会被拆开（ISSUE-154）
 - **屏幕旋转**：Android 上需要锁定方向的应用（如播放器全屏）要在 Activity 上声明
   `ConfigurationChanges = Orientation | ScreenSize | …`，否则旋转会销毁重建 Activity、整个应用回到首页
 

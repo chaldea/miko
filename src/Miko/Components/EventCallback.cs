@@ -62,27 +62,36 @@ public readonly struct EventCallback : IEquatable<EventCallback>, IEventCallback
     {
         if (Delegate is null) return Task.CompletedTask;
 
-        Task task;
+        // Re-renders requested by the handler's synchronous part wait until it is done (ISSUE-154).
+        RenderBatch.Enter();
         try
         {
-            switch (Delegate)
+            Task task;
+            try
             {
-                case Action a: a(); task = Task.CompletedTask; break;
-                case Func<Task> f: task = f() ?? Task.CompletedTask; break;
-                default:
-                    var result = Delegate.Method.GetParameters().Length == 0
-                        ? Delegate.DynamicInvoke()
-                        : Delegate.DynamicInvoke(arg);
-                    task = result is Task t ? t : Task.CompletedTask;
-                    break;
+                switch (Delegate)
+                {
+                    case Action a: a(); task = Task.CompletedTask; break;
+                    case Func<Task> f: task = f() ?? Task.CompletedTask; break;
+                    default:
+                        var result = Delegate.Method.GetParameters().Length == 0
+                            ? Delegate.DynamicInvoke()
+                            : Delegate.DynamicInvoke(arg);
+                        task = result is Task t ? t : Task.CompletedTask;
+                        break;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            return Task.FromException(ex);
-        }
+            catch (Exception ex)
+            {
+                return Task.FromException(ex);
+            }
 
-        return EventCallbackHelper.AwaitAndNotifyStateChanged(task, Receiver);
+            return EventCallbackHelper.AwaitAndNotifyStateChanged(task, Receiver);
+        }
+        finally
+        {
+            RenderBatch.Exit();
+        }
     }
 
     public bool Equals(EventCallback other) =>
@@ -131,27 +140,36 @@ public readonly struct EventCallback<TValue> : IEquatable<EventCallback<TValue>>
     {
         if (Delegate is null) return Task.CompletedTask;
 
-        Task task;
+        // Re-renders requested by the handler's synchronous part wait until it is done (ISSUE-154).
+        RenderBatch.Enter();
         try
         {
-            switch (Delegate)
+            Task task;
+            try
             {
-                case Action a: a(); task = Task.CompletedTask; break;
-                case Action<TValue> at: at(arg); task = Task.CompletedTask; break;
-                case Func<Task> f: task = f() ?? Task.CompletedTask; break;
-                case Func<TValue, Task> ft: task = ft(arg) ?? Task.CompletedTask; break;
-                default:
-                    var result = Delegate.DynamicInvoke(arg);
-                    task = result is Task t ? t : Task.CompletedTask;
-                    break;
+                switch (Delegate)
+                {
+                    case Action a: a(); task = Task.CompletedTask; break;
+                    case Action<TValue> at: at(arg); task = Task.CompletedTask; break;
+                    case Func<Task> f: task = f() ?? Task.CompletedTask; break;
+                    case Func<TValue, Task> ft: task = ft(arg) ?? Task.CompletedTask; break;
+                    default:
+                        var result = Delegate.DynamicInvoke(arg);
+                        task = result is Task t ? t : Task.CompletedTask;
+                        break;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            return Task.FromException(ex);
-        }
+            catch (Exception ex)
+            {
+                return Task.FromException(ex);
+            }
 
-        return EventCallbackHelper.AwaitAndNotifyStateChanged(task, Receiver);
+            return EventCallbackHelper.AwaitAndNotifyStateChanged(task, Receiver);
+        }
+        finally
+        {
+            RenderBatch.Exit();
+        }
     }
 
     /// <summary>Invokes the handler with the default argument value.</summary>

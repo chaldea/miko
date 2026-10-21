@@ -111,7 +111,7 @@ public class MikoSurfaceView : SKGLSurfaceView
         {
             int left, top, right, bottom;
 
-            if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.R)
+            if (OperatingSystem.IsAndroidVersionAtLeast(30))
             {
                 // API 30+：用类型化 inset（状态栏 + 导航栏 + 刘海）。
                 var bars = insets.GetInsets(
@@ -123,7 +123,7 @@ public class MikoSurfaceView : SKGLSurfaceView
             }
             else
             {
-                // API 21–29：回退到已废弃的 system-window inset。
+                // API 26–29：回退到已废弃的 system-window inset。
 #pragma warning disable CA1422 // 旧 API 在新平台标记过时，此处为向后兼容有意调用
                 left = insets.SystemWindowInsetLeft;
                 top = insets.SystemWindowInsetTop;
@@ -203,10 +203,7 @@ public class MikoSurfaceView : SKGLSurfaceView
             var window = _activity.Window;
             if (window == null) return;
 
-            // 各分支均已通过 Build.VERSION.SdkInt 守卫；分析器无法跨匿名方法跟踪平台版本，
-            // 故在此处显式抑制 CA1416/CA1422（与本文件 OnApplyWindowInsets 中相同模式）。
-#pragma warning disable CA1416, CA1422
-            if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.R)
+            if (OperatingSystem.IsAndroidVersionAtLeast(30))
             {
                 // API 30+：通过 WindowInsetsController 切换系统栏外观。
                 // LightStatusBars / LightNavigationBars = 浅色背景下使用深色图标。
@@ -218,25 +215,20 @@ public class MikoSurfaceView : SKGLSurfaceView
                 var appearance = useDarkIcons ? mask : WindowInsetsControllerAppearance.None;
                 controller.SetSystemBarsAppearance((int)appearance, (int)mask);
             }
-            else if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.M)
+            else
             {
-                // API 23–29：通过 DecorView 的 SystemUiFlags 标志切换。
-                // Android O+ (API 26) 起还支持 LightNavigationBar；早于 O 时仅切换状态栏。
+                // API 26–29（最低支持 API 26）：通过 DecorView 的 SystemUiFlags 标志切换。
+                // 这组标志在 API 30 起标记过时，此分支只在更低版本上执行。
+#pragma warning disable CA1422
                 var decor = window.DecorView;
                 var flags = decor.SystemUiFlags;
 
-                if (useDarkIcons) flags |= SystemUiFlags.LightStatusBar;
-                else flags &= ~SystemUiFlags.LightStatusBar;
-
-                if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.O)
-                {
-                    if (useDarkIcons) flags |= SystemUiFlags.LightNavigationBar;
-                    else flags &= ~SystemUiFlags.LightNavigationBar;
-                }
+                if (useDarkIcons) flags |= SystemUiFlags.LightStatusBar | SystemUiFlags.LightNavigationBar;
+                else flags &= ~(SystemUiFlags.LightStatusBar | SystemUiFlags.LightNavigationBar);
 
                 decor.SystemUiFlags = flags;
+#pragma warning restore CA1422
             }
-#pragma warning restore CA1416, CA1422
         });
     }
 
@@ -605,10 +597,8 @@ public class MikoSurfaceView : SKGLSurfaceView
 
             public override bool DeleteSurroundingText(int beforeLength, int afterLength)
             {
-                for (var i = 0; i < beforeLength; i++)
-                    _owner._controller.OnKeyDown(MikoKey.Backspace, MikoKeyModifiers.None);
-                for (var i = 0; i < afterLength; i++)
-                    _owner._controller.OnKeyDown(MikoKey.Delete, MikoKeyModifiers.None);
+                // 长度是 UTF-16 码元数；控制器按字素簇删除，不会把 emoji 删掉半个（ISSUE-154）。
+                _owner._controller.DeleteSurroundingText(beforeLength, afterLength);
                 _owner.RequestFrame();
                 return true;
             }
@@ -640,11 +630,14 @@ public class MikoSurfaceView : SKGLSurfaceView
                 }
                 else
                 {
+                    // UnicodeChar 是完整码位（可能大于 0xFFFF），按码位转成字符串——强转 char 会截断
+                    // 增补平面字符。带 COMBINING_ACCENT 标志的是死键，不产生文本。
                     var unicode = e.UnicodeChar;
-                    if (unicode == 0) return true;
-                    var character = (char)unicode;
-                    if (char.IsControl(character)) return true;
-                    _owner._controller.OnTextInput(character.ToString());
+                    if (unicode <= 0 || (unicode & KeyCharacterMap.CombiningAccent) != 0) return true;
+                    if (unicode > 0x10FFFF || unicode is >= 0xD800 and <= 0xDFFF) return true;
+                    var text = char.ConvertFromUtf32(unicode);
+                    if (text.Length == 1 && char.IsControl(text[0])) return true;
+                    _owner._controller.OnTextInput(text);
                 }
 
                 _owner.RequestFrame();

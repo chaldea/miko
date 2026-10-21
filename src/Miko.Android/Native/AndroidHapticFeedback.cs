@@ -41,7 +41,7 @@ internal sealed class AndroidHapticFeedback : IHapticFeedback
     public void Impact(HapticImpactStyle style = HapticImpactStyle.Medium) => Perform(style switch
     {
         HapticImpactStyle.Light => FeedbackConstants.VirtualKey,
-        HapticImpactStyle.Heavy when OperatingSystem.IsAndroidVersionAtLeast(23) => FeedbackConstants.ContextClick,
+        HapticImpactStyle.Heavy => FeedbackConstants.ContextClick,
         _ => FeedbackConstants.KeyboardTap,
     });
 

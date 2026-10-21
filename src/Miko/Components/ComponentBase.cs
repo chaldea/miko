@@ -18,10 +18,42 @@ public abstract class ComponentBase : IComponent
     private bool _initialized;
 
     /// <summary>
-    /// Set when this component's produced subtree has been discarded by an ancestor's re-render.
-    /// A discarded component must never render again — see <see cref="StateHasChanged"/>.
+    /// Set once the component has been disposed: the element it produced was discarded and no render
+    /// claimed the instance again. A disposed component never renders again — see
+    /// <see cref="StateHasChanged"/>.
     /// </summary>
     private bool _discarded;
+
+    /// <summary>
+    /// The nested components this component's last render produced, by identity. The next render
+    /// reuses those whose identity is unchanged instead of recreating them (ISSUE-154 BUG-01).
+    /// </summary>
+    private ComponentRegistry? _children;
+
+    /// <summary>The registry before last, emptied, kept so a re-render does not allocate a new one.</summary>
+    private ComponentRegistry? _spareChildren;
+
+    /// <summary>
+    /// The nested component whose produced element is also this component's root — set when this
+    /// component's markup is a single component (<c>IonAlert</c> renders an <c>IonPortal</c>).
+    /// </summary>
+    private ComponentBase? _rootChild;
+
+    /// <summary>The reverse link of <see cref="_rootChild"/>: the component whose root is this component's element.</summary>
+    private ComponentBase? _rootOwner;
+
+    /// <summary>
+    /// The root element's class list as this component's own <see cref="Build"/> left it, before an
+    /// ancestor's build post-pass added to it (<c>IonItem</c> stamping <c>button-small</c> on a child
+    /// button). The difference is carried over when the component later re-renders on its own.
+    /// </summary>
+    private string? _builtRootClass;
+
+    /// <summary>The root the last run of <c>base.Build()</c> produced. See <see cref="AdoptProducedElement"/>.</summary>
+    private Element? _lastBuiltRoot;
+
+    /// <summary>See <see cref="AdoptProducedElement"/>.</summary>
+    private Action? _adoptedDisposeCallback;
 
     /// <summary>
     /// The service provider that resolved this component's <see cref="InjectAttribute"/>
@@ -57,20 +89,37 @@ public abstract class ComponentBase : IComponent
     protected virtual Task OnParametersSetAsync() => Task.CompletedTask;
 
     /// <summary>
-    /// Invoked when the component instance is discarded — i.e. the element it produced is
-    /// replaced or removed during a re-render. Override to release resources or unsubscribe
-    /// from events (nested components are recreated each render, so subscriptions made in
-    /// <see cref="OnInitialized"/>/<see cref="OnParametersSet"/> must be torn down here).
+    /// Invoked once, when the component instance is finally discarded — the element it produced
+    /// was removed by a re-render that did not keep the instance (its identity changed, or its
+    /// markup is no longer rendered), or the whole tree was replaced. Override to release resources
+    /// or unsubscribe from events.
+    ///
+    /// <para>A parent re-render keeps a nested component whose identity is unchanged — the same
+    /// call site, position and <c>@key</c> — so <see cref="OnInitialized"/> runs once per instance
+    /// and subscriptions made there live until this method (ISSUE-154). Work started in
+    /// <see cref="OnParametersSet"/>, which runs on every parent render, must not register again
+    /// each time.</para>
     /// </summary>
     protected virtual void OnDispose() { }
 
     internal void DisposeInternal()
     {
-        // 该组件产出的子树已被祖先的重渲染丢弃：此后它的 StateHasChanged 必须失效
-        // （见 StateHasChanged 中的说明，ISSUE-121）。
+        // 幂等：同一个实例可能同时出现在多条拆解路径上（旧根的拆解链与子树遍历）。
+        if (_discarded) return;
+        // 此后它的 StateHasChanged 必须失效（见 StateHasChanged 中的说明，ISSUE-121）。
         _discarded = true;
         OnDispose();
     }
+
+    /// <summary>Whether a parent render may reuse this instance (it has not been disposed).</summary>
+    internal bool CanBeReused => !_discarded;
+
+    /// <summary>
+    /// Called when a parent render reuses this instance, before it assigns the parameters again.
+    /// Element event handlers written on the component (<see cref="TryAddHostEventListener"/>) are
+    /// supplied anew by every parent render, so the previous set is dropped here.
+    /// </summary>
+    internal void BeginParentRender() => _hostEventListeners = null;
 
     public virtual Element Build()
     {
@@ -122,7 +171,10 @@ public abstract class ComponentBase : IComponent
         var paramsTask = OnParametersSetAsync();
         TrackPendingTask(paramsTask);
 
-        var builder = new RenderTreeBuilder();
+        // The builder reuses the nested components of the previous render whose identity is
+        // unchanged (ISSUE-154).
+        RenderVersion++;
+        var builder = new RenderTreeBuilder(_children, TakeSpareChildren());
         // Make this component's service provider ambient to its descendants. Nested components
         // produced by RenderTreeBuilder.OpenComponent<T>() construct via new T() and resolve
         // [Inject] from ComponentServiceScope.Current in their own Build() — which runs on the
@@ -131,10 +183,114 @@ public abstract class ComponentBase : IComponent
         {
             BuildRenderTree(builder);
         }
-        _rootElement = builder.Build();
-        _rootNestedDispose = _rootElement.DisposeCallback;
-        AttachHostEventListeners(_rootElement);
-        return _rootElement;
+        var root = builder.Build();
+        CommitRender(builder);
+        _rootElement = _lastBuiltRoot = root;
+        _builtRootClass = root.Class;
+        StampRoot(root);
+        AttachHostEventListeners(root);
+        return root;
+    }
+
+    /// <summary>Records what a render produced: its nested components and the root-sharing link.</summary>
+    private void CommitRender(RenderTreeBuilder builder)
+    {
+        CommitChildren(builder);
+        _rootChild = builder.RootComponent;
+        if (_rootChild is not null) _rootChild._rootOwner = this;
+    }
+
+    private ComponentRegistry? TakeSpareChildren()
+    {
+        var spare = _spareChildren;
+        _spareChildren = null;
+        return spare;
+    }
+
+    /// <summary>
+    /// Makes the render's nested components the ones the next render claims from. The previous
+    /// registry only holds instances this render did not keep — they leave with the discarded
+    /// subtree — so it is emptied and kept for the render after next.
+    /// </summary>
+    private void CommitChildren(RenderTreeBuilder builder)
+    {
+        var previous = _children;
+        _children = builder.Components;
+        if (previous is not null && !ReferenceEquals(previous, _children))
+        {
+            previous.Clear();
+            _spareChildren = previous;
+        }
+    }
+
+    /// <summary>
+    /// Links <paramref name="root"/> to the components that share it — the nested components whose
+    /// produced element it is, this component, and the outer components whose root it already is —
+    /// so that discarding the element disposes them.
+    ///
+    /// <para>The callback disposes only components whose root is <b>still</b> this element. A
+    /// component that a later render reused has moved on to a new element by the time the old one is
+    /// discarded, so it is skipped and keeps running (ISSUE-154). Each stamp replaces the previous
+    /// callback, so a component that returns the same retained element from every build does not
+    /// grow a chain of callbacks.</para>
+    /// </summary>
+    private void StampRoot(Element root)
+    {
+        // Common case: no other component shares the root.
+        if (!SharesRoot(_rootChild, root) && !SharesRoot(_rootOwner, root))
+        {
+            root.DisposeCallback = () =>
+            {
+                if (ReferenceEquals(_rootElement, root)) DisposeInternal();
+            };
+            return;
+        }
+
+        var chain = new List<ComponentBase>(2);
+        for (var inner = _rootChild; inner is not null && ReferenceEquals(inner._rootElement, root); inner = inner._rootChild)
+            chain.Add(inner);
+        chain.Reverse();
+        chain.Add(this);
+        for (var owner = _rootOwner; owner is not null && ReferenceEquals(owner._rootElement, root); owner = owner._rootOwner)
+            chain.Add(owner);
+
+        var components = chain.ToArray();
+        root.DisposeCallback = () =>
+        {
+            foreach (var component in components)
+            {
+                if (ReferenceEquals(component._rootElement, root))
+                    component.DisposeInternal();
+            }
+        };
+    }
+
+    private static bool SharesRoot(ComponentBase? component, Element root)
+        => component is not null && ReferenceEquals(component._rootElement, root);
+
+    /// <summary>
+    /// Called by <see cref="RenderTreeBuilder.CloseComponent"/> with the element <see cref="Build"/>
+    /// returned. Normally that is the root <see cref="Build"/> just produced and stamped, and only the
+    /// class list the component built is recorded. A <see cref="Build"/> override that returns an
+    /// element without going through <c>base.Build()</c> (one that returns another component's
+    /// element) is adopted here instead, so it is still disposed with that element.
+    /// </summary>
+    internal void AdoptProducedElement(Element element)
+    {
+        _builtRootClass = element.Class;
+        if (ReferenceEquals(_lastBuiltRoot, element)) return;
+
+        _rootElement = element;
+        // Compose over whatever callback the element carries — unless it is still the one composed
+        // last time (re-composing would grow a chain on a retained element).
+        if (ReferenceEquals(element.DisposeCallback, _adoptedDisposeCallback)) return;
+        var inner = element.DisposeCallback;
+        _adoptedDisposeCallback = () =>
+        {
+            inner?.Invoke();
+            if (ReferenceEquals(_rootElement, element)) DisposeInternal();
+        };
+        element.DisposeCallback = _adoptedDisposeCallback;
     }
 
     /// <summary>
@@ -260,13 +416,27 @@ public abstract class ComponentBase : IComponent
 
     protected void StateHasChanged()
     {
+        if (_rootElement == null || _discarded) return;
+        // While an event is being handled the render waits until the handler's synchronous part is
+        // done, so a parent rendered meanwhile does not overwrite values its child has yet to report
+        // (see RenderBatch, ISSUE-154).
+        if (RenderBatch.TryDefer(this)) return;
+        RenderNow();
+    }
+
+    /// <summary>
+    /// Incremented on every render of this component — by its parent or by itself. A deferred render
+    /// (<see cref="RenderBatch"/>) is dropped when the component has rendered since it was requested.
+    /// </summary>
+    internal int RenderVersion { get; private set; }
+
+    /// <summary>Performs a <see cref="StateHasChanged"/> render immediately.</summary>
+    internal void RenderNow()
+    {
         if (_rootElement == null) return;
 
-        // 已被丢弃的组件不得再渲染（ISSUE-121）。
-        //
-        // 一次按键会引发<b>两次</b>重渲染，顺序固定：`@bind-Value` 让<b>祖先</b>成为
-        // ValueChanged 的 receiver，祖先先重渲染，把本组件连同其子树整体换成新实例；随后本
-        // 组件自己的 `@oninput` 回调才轮到 StateHasChanged——而此刻本实例已经出局。
+        // 已被丢弃的组件不得再渲染（ISSUE-121）。组件实例身份不变时会被父级重渲染复用
+        // （ISSUE-154），只有真正出局（被拆解）的实例才会走到这里。
         //
         // 若放任它渲染：它会在自己那棵<b>已脱离 DOM</b>的旧树上重建，并把 SupersededBy 转发
         // 指针改写为指向那棵孤树。控制器随后经转发链拿到的就是看不见的元素，编辑落在其上——
@@ -275,21 +445,7 @@ public abstract class ComponentBase : IComponent
 
         if (_rootElement.Parent == null)
         {
-            var newElement = BuildNew();
-            // Carry focus / caret state onto the incoming children before the old ones are
-            // dropped (ISSUE-121). The root element itself survives this branch, so only its
-            // children are paired up.
-            int carried = Math.Min(_rootElement.Children.Count, newElement.Children.Count);
-            for (int i = 0; i < carried; i++)
-                TransferRuntimeState(_rootElement.Children[i], newElement.Children[i]);
-            // The old children are discarded by ReplaceElementContent — tear down the nested
-            // components that produced them first.
-            foreach (var oldChild in _rootElement.Children.ToArray())
-                DisposeSubtree(oldChild);
-            ReplaceElementContent(_rootElement, newElement);
-            // newElement itself is discarded; an @ref on it must follow the surviving root.
-            _lastBuildNewBuilder?.RebindRootCaptures(newElement, _rootElement);
-            _lastBuildNewBuilder = null;
+            RerenderInPlace();
             return;
         }
 
@@ -298,42 +454,152 @@ public abstract class ComponentBase : IComponent
         if (index < 0) return;
 
         var oldElement = _rootElement;
-        var oldRootNestedDispose = _rootNestedDispose;
+        var externalClasses = ExternalRootClasses(oldElement);
         var rebuilt = Build();
+        AdoptProducedElement(rebuilt);
+        AddClasses(rebuilt, externalClasses);
+
+        if (ReferenceEquals(rebuilt, oldElement))
+        {
+            // 每次都交回同一个保留元素的组件（MikoPlayer）：结构没有替换，但内容可能变了。
+            rebuilt.MarkDirty();
+            rebuilt.BumpMutationVersion();
+            return;
+        }
+
         TransferLayoutBox(oldElement, rebuilt);
         TransferRuntimeState(oldElement, rebuilt);
-        // Build() preserves cleanup callbacks produced by the new nested subtree but does not stamp
-        // this component itself (that normally happens in an ancestor's CloseComponent). Compose
-        // the current component onto the new callback chain. Copying the old chain would retain
-        // callbacks for discarded nested components and lose callbacks for their replacements.
-        var nestedDispose = rebuilt.DisposeCallback;
-        rebuilt.DisposeCallback = () =>
-        {
-            nestedDispose?.Invoke();
-            DisposeInternal();
-        };
         // ElementCollection 的索引器会自动设置父引用、下发引擎归属并记账这次结构替换
         // （ISSUE-129）——缺了记账，下一帧的布局缓存判定会认为「无事发生」而复用旧布局。
         parent.Children[index] = rebuilt;
-        _rootElement = rebuilt;
-        // The old subtree (and the nested component instances that produced it) is now
-        // unreferenced — dispose those components so their event subscriptions are released.
-        // oldElement's own callback also disposes this component, which persists and re-renders,
-        // so only the components nested at the root are disposed for it: when this component's
-        // markup starts with a component, that component produced oldElement itself. Skipping
-        // them left e.g. the old IonPortal of a self-dismissed IonAlert registered, so the alert
-        // stayed in IonApp's overlay layer (ISSUE-153).
-        oldRootNestedDispose?.Invoke();
-        foreach (var oldChild in oldElement.Children.ToArray())
-            DisposeSubtree(oldChild);
+
+        // 以本组件的产出为根的外层组件（本组件是其标记的唯一内容）的根随之换成新元素：否则它们
+        // 之后的 StateHasChanged 会在已脱离的旧根上重建，拆解时也会认错自己的根。
+        for (var owner = _rootOwner; owner is not null && ReferenceEquals(owner._rootElement, oldElement); owner = owner._rootOwner)
+            owner._rootElement = rebuilt;
+        StampRoot(rebuilt);
+
+        // 旧子树出局：其中被本次渲染复用的组件已换到新元素上，拆解回调会跳过它们；只有本次
+        // 渲染丢弃的组件被拆解（包括以本组件根元素为产出的那个——ISSUE-153：自行关闭的
+        // IonAlert 的旧 IonPortal 若不拆解就一直留在 IonApp 的弹层里）。
+        oldElement.DisposeComponentSubtree();
     }
 
-    // Walks a discarded element subtree and invokes each element's component dispose callback.
-    private static void DisposeSubtree(Element element) => element.DisposeComponentSubtree();
+    /// <summary>
+    /// Re-renders a component whose root element has no parent — the engine's root, or a component
+    /// built on its own. Whoever holds that root (the engine) keeps holding it, so the root element is
+    /// preserved and the new render's content and state are moved into it.
+    ///
+    /// <para>The new children are moved in exactly as built, interleaved text included (ISSUE-154
+    /// BUG-02: the old copy re-assigned <c>TextContent</c>, which merged every text child into one
+    /// leading node, so <c>before&lt;span/&gt;after</c> became <c>beforeafter&lt;span/&gt;</c>). The
+    /// root's own state — attributes, inline style, event handlers and listeners, state flags and
+    /// control values — is migrated in full (<see cref="Element.AdoptStateFrom"/>).</para>
+    ///
+    /// <para>A root can only be preserved as the same element type. When a multi-root render (a
+    /// transparent <see cref="FragmentElement"/>) becomes a single element, the element is placed in
+    /// the preserved fragment, which the layout engine skips. Any other change of root type keeps the
+    /// old element as the container of the new content.</para>
+    /// </summary>
+    private void RerenderInPlace()
+    {
+        var root = _rootElement!;
+        var oldInner = InnerRootChain(root);
+        var externalClasses = ExternalRootClasses(root);
+
+        var built = BuildNew();
+        var builder = _lastBuildNewBuilder;
+        _lastBuildNewBuilder = null;
+
+        var sameType = built.GetType() == root.GetType();
+        var nestInFragment = !sameType && root is FragmentElement;
+        var content = nestInFragment ? new FragmentElement { Children = { built } } : built;
+
+        // Carry focus / caret state onto the incoming children before the old ones are dropped
+        // (ISSUE-121). The root element itself survives, so only its children are paired up.
+        foreach (var (oldChild, newChild) in PairChildren(root, content))
+            TransferRuntimeState(oldChild, newChild);
+        if (sameType) built.CopyInteractionStateFrom(root);
+
+        var oldChildren = root.Children.ToArray();
+        var pairs = PairChildren(root, content);
+        root.Children.Clear();
+        root.Children.AddRange(content.Children.ToArray());
+        foreach (var (oldChild, newChild) in pairs)
+            TransferLayoutBox(oldChild, newChild);
+
+        if (!nestInFragment)
+        {
+            root.AdoptStateFrom(built);
+            _builtRootClass = root.Class;
+            AddClasses(root, externalClasses);
+            // The built root itself is discarded; an @ref on it must follow the surviving root.
+            builder?.RebindRootCaptures(built, root);
+        }
+
+        // The nested components that produced the built root now produce the preserved one; the
+        // ones the previous render had there and this render dropped are disposed — the preserved
+        // root is not discarded, so its dispose callback will not reach them.
+        var newInner = nestInFragment ? null : builder?.RootComponent;
+        for (var inner = newInner; inner is not null && ReferenceEquals(inner._rootElement, built); inner = inner._rootChild)
+            inner._rootElement = root;
+        _rootChild = newInner;
+        if (newInner is not null) newInner._rootOwner = this;
+        var kept = InnerRootChain(root);
+        foreach (var previous in oldInner)
+        {
+            if (ReferenceEquals(previous._rootElement, root) && !kept.Contains(previous))
+                previous.DisposeInternal();
+        }
+        StampRoot(root);
+
+        // The old children are discarded: tear down the nested components this render did not keep.
+        foreach (var oldChild in oldChildren)
+            oldChild.DisposeComponentSubtree();
+    }
+
+    /// <summary>The nested components that share <paramref name="root"/> with this component, innermost last.</summary>
+    private List<ComponentBase> InnerRootChain(Element root)
+    {
+        var chain = new List<ComponentBase>();
+        for (var inner = _rootChild; inner is not null && ReferenceEquals(inner._rootElement, root); inner = inner._rootChild)
+            chain.Add(inner);
+        return chain;
+    }
+
+    /// <summary>
+    /// Class names on <paramref name="root"/> that this component's own build did not put there — an
+    /// ancestor's build post-pass added them (<c>IonItem</c> marks a child <c>IonButton</c>
+    /// <c>button-small</c>, an outer component adds its theme scope). A component re-rendering on its
+    /// own does not run those ancestors again, so the names are carried over to the new root.
+    /// </summary>
+    private string[]? ExternalRootClasses(Element root)
+    {
+        var current = root.Class;
+        if (string.IsNullOrWhiteSpace(current) || current == _builtRootClass) return null;
+
+        var built = _builtRootClass?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+        List<string>? external = null;
+        foreach (var name in current.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (Array.IndexOf(built, name) < 0) (external ??= new()).Add(name);
+        }
+        return external?.ToArray();
+    }
+
+    private static void AddClasses(Element element, string[]? names)
+    {
+        if (names is null) return;
+        foreach (var name in names)
+        {
+            if (!element.HasClass(name))
+                element.Class = string.IsNullOrWhiteSpace(element.Class) ? name : $"{element.Class} {name}";
+        }
+    }
 
     /// <summary>
     /// Builds the replacement subtree used by <see cref="StateHasChanged"/> when the root
-    /// element remains attached. Derived components can augment the emitted root in the same way
+    /// element has no parent. Derived components can augment the emitted root in the same way
     /// as <see cref="Build"/>.
     /// </summary>
     protected virtual Element BuildNew()
@@ -350,20 +616,15 @@ public abstract class ComponentBase : IComponent
         }
     }
 
-    /// <summary>
-    /// Dispose chain of the components nested at the root of the last <see cref="Build"/> — those
-    /// whose produced element is this component's root. See <see cref="StateHasChanged"/>.
-    /// </summary>
-    private Action? _rootNestedDispose;
-
-    /// <summary>The builder of the last <see cref="BuildNew"/>, kept for its <c>@ref</c> captures.</summary>
+    /// <summary>The builder of the last <see cref="BuildNew"/>, kept for its <c>@ref</c> captures and root component.</summary>
     private RenderTreeBuilder? _lastBuildNewBuilder;
 
     private Element BuildNewCore()
     {
         using var cascadingScope = CascadingValueSource.RestoreIfEmpty(_cascadingSnapshot);
         SetCascadingParameters();
-        var builder = new RenderTreeBuilder();
+        RenderVersion++;
+        var builder = new RenderTreeBuilder(_children, TakeSpareChildren());
         _lastBuildNewBuilder = builder;
         // Re-push our captured provider so nested components rebuilt during StateHasChanged
         // still receive [Inject] services. StateHasChanged runs outside any ancestor's Build,
@@ -372,7 +633,9 @@ public abstract class ComponentBase : IComponent
         {
             BuildRenderTree(builder);
         }
-        return builder.Build();
+        var built = builder.Build();
+        CommitChildren(builder);
+        return built;
     }
 
     /// <summary>
@@ -401,24 +664,53 @@ public abstract class ComponentBase : IComponent
         }
     }
 
-    private static void ReplaceElementContent(Element target, Element source)
+    /// <summary>
+    /// Pairs the children of a discarded element with those of its replacement, for carrying runtime
+    /// state across a re-render. Children with an <c>@key</c> pair by key — so the state follows a
+    /// list item when items are inserted, removed or reordered (ISSUE-154) — and the remaining
+    /// children pair by position, as before. Pairs are listed in the replacement's child order.
+    /// </summary>
+    private static List<(Element Old, Element New)> PairChildren(Element oldElement, Element newElement)
     {
-        var oldChildren = new List<Element>(target.Children);
-        target.Children.Clear();
-        for (int i = 0; i < source.Children.Count; i++)
-        {
-            var newChild = source.Children[i];
-            // Add 会自动设置父引用、下发引擎归属并记账（见 ElementCollection，ISSUE-129）。
-            target.Children.Add(newChild);
+        var oldChildren = oldElement.Children;
+        var newChildren = newElement.Children;
+        var pairs = new List<(Element, Element)>(Math.Min(oldChildren.Count, newChildren.Count));
 
-            if (i < oldChildren.Count)
-                TransferLayoutBox(oldChildren[i], newChild);
+        if (!HasKeyedChild(oldElement) && !HasKeyedChild(newElement))
+        {
+            int count = Math.Min(oldChildren.Count, newChildren.Count);
+            for (int i = 0; i < count; i++) pairs.Add((oldChildren[i], newChildren[i]));
+            return pairs;
         }
-        target.Style = source.Style;
-        target.TextContent = source.TextContent;
-        target.Id = source.Id;
-        target.Class = source.Class;
-        target.IsDirty = true;
+
+        Dictionary<object, Element>? oldByKey = null;
+        foreach (var child in oldChildren)
+        {
+            if (child.Key is { } key) (oldByKey ??= new()).TryAdd(key, child);
+        }
+
+        int nextUnkeyed = 0;
+        foreach (var newChild in newChildren)
+        {
+            if (newChild.Key is { } key)
+            {
+                if (oldByKey is not null && oldByKey.TryGetValue(key, out var match)) pairs.Add((match, newChild));
+                continue;
+            }
+
+            while (nextUnkeyed < oldChildren.Count && oldChildren[nextUnkeyed].Key is not null) nextUnkeyed++;
+            if (nextUnkeyed < oldChildren.Count) pairs.Add((oldChildren[nextUnkeyed++], newChild));
+        }
+        return pairs;
+    }
+
+    private static bool HasKeyedChild(Element element)
+    {
+        foreach (var child in element.Children)
+        {
+            if (child.Key is not null) return true;
+        }
+        return false;
     }
 
     private static void TransferLayoutBox(Element oldElement, Element newElement)
@@ -434,10 +726,6 @@ public abstract class ComponentBase : IComponent
             newElement.LayoutBox = transferred;
         }
 
-        int count = Math.Min(oldElement.Children.Count, newElement.Children.Count);
-        for (int i = 0; i < count; i++)
-            TransferLayoutBox(oldElement.Children[i], newElement.Children[i]);
-
         // 子 LayoutBox 必须重新挂上本次配对产出的新盒，绝不能沿用 oldElement.LayoutBox.Children。
         //
         // 旧写法直接 `Children = oldElement.LayoutBox.Children`，于是新盒握着的是**上一代**的子盒，
@@ -445,15 +733,38 @@ public abstract class ComponentBase : IComponent
         // 拖动滑块时每个 mousemove 都重渲染，于是整条历史全部可达：内存随拖动持续上涨、G2 暴涨，
         // 且 GC 完全无法回收（弱引用实测 30 步后 30 代全存活）。
         //
-        // 未配对到的尾部子元素（新树更长）此处无盒可继承，交由下一次布局正常生成。
+        // 未配对到的子元素（新树更长、或新出现的键）此处无盒可继承，交由下一次布局正常生成。
+        if (!HasKeyedChild(oldElement) && !HasKeyedChild(newElement))
+        {
+            // 热路径（无 @key）：按位置配对，不分配。
+            int count = Math.Min(oldElement.Children.Count, newElement.Children.Count);
+            for (int i = 0; i < count; i++)
+                TransferLayoutBox(oldElement.Children[i], newElement.Children[i]);
+            if (transferred != null)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    var childBox = newElement.Children[i].LayoutBox;
+                    if (childBox != null) transferred.Children.Add(childBox);
+                }
+            }
+        }
+        else
+        {
+            var pairs = PairChildren(oldElement, newElement);
+            foreach (var (oldChild, newChild) in pairs)
+                TransferLayoutBox(oldChild, newChild);
+            if (transferred != null)
+            {
+                foreach (var (_, newChild) in pairs)
+                {
+                    if (newChild.LayoutBox is { } childBox) transferred.Children.Add(childBox);
+                }
+            }
+        }
+
         if (transferred != null)
         {
-            for (int i = 0; i < count; i++)
-            {
-                var childBox = newElement.Children[i].LayoutBox;
-                if (childBox != null) transferred.Children.Add(childBox);
-            }
-
             // 伪元素盒（::before/::after）由布局阶段合成，在 DOM 里没有对应子元素可配对，
             // 因此必须显式带过来——否则 CaptureTransitionableStyles 读不到它们的旧计算样式，
             // 伪元素上的 transition 会在重渲染后丢掉起始值。它们各自持有当次布局新建的
@@ -477,8 +788,9 @@ public abstract class ComponentBase : IComponent
     /// <para>同时在旧实例上留下 <see cref="Element.SupersededBy"/> 转发指针：控制器按引用
     /// 缓存了焦点元素，键盘输入需要经它找回在场的新实例。</para>
     ///
-    /// <para>与 <see cref="TransferLayoutBox"/> 同款的按位置逐层配对，并要求标签一致才配对
-    /// ——形状变化（如出现清除按钮）时不至于把状态错搭到别的元素上。</para>
+    /// <para>与 <see cref="TransferLayoutBox"/> 同款的逐层配对（带 <c>@key</c> 的按键、其余按位置，
+    /// 见 <see cref="PairChildren"/>），并要求标签一致才配对——形状变化（如出现清除按钮）时不至于
+    /// 把状态错搭到别的元素上。</para>
     /// </summary>
     private static void TransferRuntimeState(Element oldElement, Element newElement)
     {
@@ -487,8 +799,15 @@ public abstract class ComponentBase : IComponent
         oldElement.SupersededBy = newElement;
         newElement.CopyInteractionStateFrom(oldElement);
 
-        int count = Math.Min(oldElement.Children.Count, newElement.Children.Count);
-        for (int i = 0; i < count; i++)
-            TransferRuntimeState(oldElement.Children[i], newElement.Children[i]);
+        if (!HasKeyedChild(oldElement) && !HasKeyedChild(newElement))
+        {
+            int count = Math.Min(oldElement.Children.Count, newElement.Children.Count);
+            for (int i = 0; i < count; i++)
+                TransferRuntimeState(oldElement.Children[i], newElement.Children[i]);
+            return;
+        }
+
+        foreach (var (oldChild, newChild) in PairChildren(oldElement, newElement))
+            TransferRuntimeState(oldChild, newChild);
     }
 }

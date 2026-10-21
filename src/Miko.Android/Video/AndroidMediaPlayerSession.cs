@@ -108,10 +108,9 @@ internal sealed class AndroidMediaPlayerSession : IVideoSession
             long seek = Interlocked.Exchange(ref _seek, -1);
             if (seek >= 0)
             {
-                if (OperatingSystem.IsAndroidVersionAtLeast(26)) _player.SeekTo(seek, MediaPlayerSeekMode.Closest);
-                else _player.SeekTo((int)Math.Min(int.MaxValue, seek));
+                _player.SeekTo(seek, MediaPlayerSeekMode.Closest);
             }
-            if (_appliedRate != _rate && OperatingSystem.IsAndroidVersionAtLeast(23))
+            if (_appliedRate != _rate)
             {
                 using var parameters = new PlaybackParams();
                 parameters.SetSpeed(_rate);

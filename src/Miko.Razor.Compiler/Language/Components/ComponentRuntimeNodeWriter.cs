@@ -522,7 +522,22 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
                 context.CodeWriter.Write(">");
             }
 
-            context.CodeWriter.Write(">();");
+            // 组件身份（ISSUE-154）：传入调用点序号与 @key，父级重渲染据此复用身份不变的子组件实例。
+            // key 必须在打开时给出——参数随后直接赋给返回的实例，等到 SetKey 再挑实例就晚了。
+            // (5, key) / (5, null)
+            context.CodeWriter.Write(">(");
+            context.CodeWriter.WriteIntegerLiteral(_sourceSequence++);
+            context.CodeWriter.Write(", ");
+            var componentKey = node.SetKeys.FirstOrDefault();
+            if (componentKey is not null)
+            {
+                WriteSetKeyInnards(context, componentKey);
+            }
+            else
+            {
+                context.CodeWriter.Write("null");
+            }
+            context.CodeWriter.Write(");");
             context.CodeWriter.WriteLine();
 
             // We can skip type arguments during runtime codegen, they are handled in the
@@ -560,10 +575,7 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
                 context.RenderNode(childContent);
             }
 
-            foreach (var setKey in node.SetKeys)
-            {
-                context.RenderNode(setKey);
-            }
+            // @key 已作为 OpenComponent 的参数发射，此处不再调用 SetKey。
 
             foreach (var capture in node.Captures)
             {

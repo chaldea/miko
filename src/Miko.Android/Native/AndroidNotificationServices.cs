@@ -24,6 +24,9 @@ internal sealed class AndroidLocalNotificationService : NativeServiceBase, ILoca
 {
     private const string DefaultChannelId = "miko-default";
 
+    /// <summary>未指定渠道的静默通知所用的渠道：低重要度、无声音、无振动。</summary>
+    private const string SilentChannelId = "miko-silent";
+
     private readonly INativeHostContext _hostContext;
     private readonly Lock _gate = new();
     private readonly Dictionary<int, LocalNotification> _posted = new();
@@ -52,7 +55,11 @@ internal sealed class AndroidLocalNotificationService : NativeServiceBase, ILoca
                     "app's AndroidManifest; Miko.Android only posts immediate notifications. " +
                     $"Notification {notification.Id} requested a schedule.");
 
-            var channelId = notification.ChannelId ?? DefaultChannelId;
+            // Android 8.0+（最低支持版本）上声音、振动与浮动提醒由渠道决定，Notification.Builder 的
+            // SetSound/SetVibrate/SetPriority 会被系统忽略。静默通知因此投递到一个不发声、不振动的
+            // 低重要度渠道；显式指定了渠道时以该渠道的设置为准（用户也可以在系统设置里改它）。
+            var channelId = notification.ChannelId
+                ?? (notification.Silent ? SilentChannelId : DefaultChannelId);
             EnsureChannel(manager, channelId);
 
             var builder = new AndroidNotification.Builder(context, channelId)
@@ -69,15 +76,8 @@ internal sealed class AndroidLocalNotificationService : NativeServiceBase, ILoca
             if (notification.Badge is { } badge) builder.SetNumber(badge);
             if (notification.Group is { } group) builder.SetGroup(group);
             if (notification.GroupSummary) builder.SetGroupSummary(true);
-            // 静默：清掉声音/振动/灯光的默认行为，并降到 Low 优先级（不弹浮动通知）。
-            // Notification.Builder 的 SetSilent 未出现在当前绑定中，故用等价的组合。
-            if (notification.Silent)
-            {
-                builder.SetDefaults(0);
-                builder.SetSound(null);
-                builder.SetVibrate(null);
-                builder.SetPriority((int)NotificationPriority.Low);
-            }
+            // 静默通知更新时也不再提醒（渠道本身的静音见上方渠道选择）。
+            if (notification.Silent) builder.SetOnlyAlertOnce(true);
 
             manager.Notify(notification.Id, builder.Build());
 
@@ -297,6 +297,16 @@ internal sealed class AndroidLocalNotificationService : NativeServiceBase, ILoca
         if (manager.GetNotificationChannel(channelId) is not null) return;
 
         // Android O+ 上没有渠道的通知会被直接丢弃，因此默认渠道必须兜底创建。
+        if (channelId == SilentChannelId)
+        {
+            using var silent = new AndroidNotificationChannel(
+                channelId, "Miko (silent)", NotificationImportance.Low);
+            silent.SetSound(null, null);
+            silent.EnableVibration(false);
+            manager.CreateNotificationChannel(silent);
+            return;
+        }
+
         using var channel = new AndroidNotificationChannel(
             channelId, "Miko", NotificationImportance.Default);
 

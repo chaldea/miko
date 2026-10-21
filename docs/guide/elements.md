@@ -93,6 +93,12 @@ Event attributes (`@onclick="Handler"` etc.): `@onclick`, `@onmouseenter`, `@onm
 `number` / `tel` (both edit as text and ask the platform for a numeric keypad). Any other value
 falls back to `text`.
 
+Text positions and lengths count UTF-16 code units, as in the browser: `maxlength`, the caret
+position (`CursorPosition`) and the selection an input method reports. Editing works on whole
+characters, though. The arrow keys, Backspace and Delete step over an emoji, a letter with a
+combining accent or a flag as one character. Text that does not fit `maxlength` is cut before
+the first character that does not fit, never in the middle of one.
+
 ```razor
 <input type="checkbox" @bind="_agree" />
 <input @bind="_name" />

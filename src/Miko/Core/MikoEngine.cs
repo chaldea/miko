@@ -209,8 +209,8 @@ public class MikoEngine
 
         // 旧根树到此彻底出局（有转场时它还要作为 leaving 层画一会儿，由转场收尾时拆解）：
         // 逐个调用其中组件的清理回调，否则这些组件对应用级服务的订阅永不退订，一个订阅就
-        // 把整棵旧树钉在 DI 单例上（ISSUE-141）。
-        var discardedRoot = startTransition ? null : _root;
+        // 把整棵旧树钉在 DI 单例上（ISSUE-141）。以同一棵树重新初始化时它仍然在场，不能拆。
+        var discardedRoot = startTransition || ReferenceEquals(_root, root) ? null : _root;
 
         _root = root;
         _styleSheets = styleSheets;

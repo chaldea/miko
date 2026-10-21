@@ -1,0 +1,12 @@
+@namespace Miko.Razor.Tests
+@* ISSUE-154: shows which instance rendered it, so a test can tell reuse from recreation. *@
+<span class="keyed-child">@Label:@Instance</span>
+
+@code {
+    private static int _next;
+
+    /// <summary>A number unique to this instance.</summary>
+    public int Instance { get; } = Interlocked.Increment(ref _next);
+
+    [Parameter] public string? Label { get; set; }
+}

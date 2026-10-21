@@ -168,6 +168,17 @@
         return true;
     }
 
+    /// <summary>
+    /// Cancels a pending auto-dismiss: a timer outliving the instance would raise
+    /// <see cref="IsOpenChanged"/> for an indicator that no longer exists.
+    /// </summary>
+    protected override void OnDispose()
+    {
+        _timerCancellation?.Cancel();
+        _timerCancellation = null;
+        base.OnDispose();
+    }
+
     // A tap re-renders this component through its EventCallback; the back button does not, so
     // render the closed state here or an unbound overlay stays on screen.
     private async Task DismissFromBackAsync()

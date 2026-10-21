@@ -13,8 +13,92 @@ namespace Miko.Components;
 public class RenderTreeBuilder
 {
     private readonly Stack<Element> _stack = new();
-    private readonly Stack<ComponentBase> _componentStack = new();
+    private readonly Stack<ComponentFrame> _componentStack = new();
     private Element? _root;
+
+    // ---------------------------------------------------------------------
+    // 组件身份与复用（ISSUE-154 BUG-01）
+    //
+    // 一个组件的每次渲染用一个新的构建器。构建器拿着该组件「上一次渲染产出的子组件」
+    // (_previousComponents)：OpenComponent 按身份（见 ComponentIdentity）从中认领实例——
+    // 身份不变就复用原实例（字段、订阅、进行中的异步工作都保留，OnInitialized 不再执行），
+    // 否则新建。本次渲染产出的子组件记入 _components，成为下一次渲染的 _previousComponents；
+    // 没被认领的旧实例随旧子树一起被拆解（见 ComponentBase.StampRoot）。
+    // ---------------------------------------------------------------------
+
+    private readonly ComponentRegistry? _previousComponents;
+    private ComponentRegistry? _components;
+    private ComponentRegistry? _recycledComponents;
+
+    /// <summary>当前身份作用域：所在的渲染片段调用点与带键元素（见 <see cref="RenderScope"/>）。</summary>
+    private RenderScope? _scope;
+
+    /// <summary>打开中的带键元素，及打开它之前的作用域（元素关闭时恢复）。</summary>
+    private Stack<(Element Element, RenderScope? Scope)>? _keyedElements;
+
+    /// <summary>本次渲染已用过的元素键，按父元素区分，用于报告重复的 <c>@key</c>。</summary>
+    private HashSet<(object Parent, object Key)>? _elementKeys;
+
+    /// <summary>直接成为构建器根的那个组件产出（组件的标记以另一个组件开头时）。</summary>
+    private (ComponentBase Component, Element Element)? _rootComponent;
+
+    /// <summary>Creates a builder with no previous render to reuse components from.</summary>
+    public RenderTreeBuilder() { }
+
+    /// <summary>
+    /// Creates the builder for one render of a component. <paramref name="previousComponents"/> are
+    /// the nested components its previous render produced; components whose identity is unchanged are
+    /// claimed from it instead of being recreated.
+    /// </summary>
+    /// <param name="previousComponents">The previous render's nested components.</param>
+    /// <param name="recycled">An emptied registry whose storage this render may use for its own.</param>
+    internal RenderTreeBuilder(ComponentRegistry? previousComponents, ComponentRegistry? recycled = null)
+    {
+        _previousComponents = previousComponents;
+        _recycledComponents = recycled;
+    }
+
+    /// <summary>The nested components this render produced, by identity (null when there were none).</summary>
+    internal ComponentRegistry? Components => _components;
+
+    /// <summary>
+    /// The component whose produced element is this builder's root — set when the rendered markup
+    /// is a single component (the outer component then shares that component's root element).
+    /// </summary>
+    internal ComponentBase? RootComponent
+        => _rootComponent is { } root && ReferenceEquals(_root, root.Element) ? root.Component : null;
+
+    /// <summary>
+    /// An open component. Strongly typed opens resolve the instance immediately (the compiler passes
+    /// the key along); the name-based <see cref="OpenComponent{T}(int)"/> path may receive its key
+    /// later through <see cref="SetKey"/>, so it records its parameters and resolves the instance on
+    /// <see cref="CloseComponent"/>.
+    /// </summary>
+    private readonly struct ComponentFrame
+    {
+        public ComponentFrame(ComponentBase component) { Component = component; Deferred = null; }
+        public ComponentFrame(DeferredComponent deferred) { Component = null; Deferred = deferred; }
+
+        public ComponentBase? Component { get; }
+        public DeferredComponent? Deferred { get; }
+    }
+
+    private sealed class DeferredComponent
+    {
+        public DeferredComponent(
+            [DynamicallyAccessedMembers(ComponentTypeMembers.Activation)] Type type, int sequence)
+        {
+            Type = type;
+            Sequence = sequence;
+        }
+
+        [DynamicallyAccessedMembers(ComponentTypeMembers.Activation)]
+        public Type Type { get; }
+        public int Sequence { get; }
+        public object? Key { get; set; }
+        public List<(string Name, object? Value)>? Parameters { get; set; }
+        public List<Action<object>>? Captures { get; set; }
+    }
 
     private static readonly Dictionary<string, Func<Element>> _tagMap = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -364,12 +448,33 @@ public class RenderTreeBuilder
         // A RenderFragment may emit top-level elements (e.g. a transparent CascadingValue whose
         // ChildContent is rendered with no open element on the stack), so invoke it regardless
         // of stack depth.
-        fragment?.Invoke(this);
+        if (fragment is not null) RenderFragmentInScope(-1, fragment);
+    }
+
+    /// <summary>
+    /// Invokes <paramref name="fragment"/> inside an identity scope for its call site. The components a
+    /// fragment renders carry sequence numbers from the file that defined it, so without the scope
+    /// they could collide with the rendering component's own (ISSUE-154).
+    /// </summary>
+    private void RenderFragmentInScope(int sequence, RenderFragment fragment)
+    {
+        var outer = _scope;
+        _scope = new RenderScope(outer, sequence, null);
+        try
+        {
+            fragment(this);
+        }
+        finally
+        {
+            _scope = outer;
+        }
     }
 
     public void CloseElement()
     {
         var element = _stack.Pop();
+        if (_keyedElements is { Count: > 0 } keyed && ReferenceEquals(keyed.Peek().Element, element))
+            _scope = keyed.Pop().Scope;
         NormalizeTextArea(element);
         ApplyDeclaredSelectValue(element);
         if (_stack.Count > 0)
@@ -660,7 +765,7 @@ public class RenderTreeBuilder
         // stack depth. Only literal/text content requires an open element to attach to.
         if (text is RenderFragment fragment)
         {
-            fragment(this);
+            RenderFragmentInScope(seq, fragment);
             return;
         }
         var str = text.ToString();
@@ -694,15 +799,37 @@ public class RenderTreeBuilder
         ParseMarkup(markup);
     }
 
+    /// <summary>
+    /// Opens a component whose parameters are then set by name (<see cref="AddComponentParameter"/>),
+    /// as the compiler does for type-inferred generic components. <paramref name="seq"/> identifies the
+    /// call site; a key may follow through <see cref="SetKey"/>. The instance — reused from the previous
+    /// render or new — is chosen when the component closes.
+    /// </summary>
     public void OpenComponent<[DynamicallyAccessedMembers(ComponentTypeMembers.Activation)] T>(int seq) where T : ComponentBase, new()
     {
-        _componentStack.Push(new T());
+        _componentStack.Push(new ComponentFrame(new DeferredComponent(typeof(T), seq)));
     }
+
+    /// <summary>
+    /// Opens a component of a statically known type and returns the instance so the caller can assign
+    /// its <see cref="ParameterAttribute"/> properties directly (ISSUE-136). Hand-written code that has
+    /// no call-site number uses this overload; same-typed components opened by it match the previous
+    /// render's instances by position. See <see cref="OpenComponent{T}(int, object?)"/>.
+    /// </summary>
+    public T OpenComponent<[DynamicallyAccessedMembers(ComponentTypeMembers.Activation)] T>() where T : ComponentBase, new()
+        => OpenComponent<T>(-1, null);
 
     /// <summary>
     /// Opens a component of a statically known type and returns the instance so the caller
     /// (normally generated code) can assign its <see cref="ParameterAttribute"/> properties
     /// directly, instead of going through reflection by parameter name (ISSUE-136).
+    ///
+    /// <para>When the previous render of the component being built produced a component with the same
+    /// identity — this call site (<paramref name="seq"/>), the enclosing fragment and keyed elements,
+    /// and <paramref name="key"/> (<c>@key</c>), or for unkeyed components the same position — that
+    /// instance is returned and keeps its state; only its parameters are assigned again
+    /// (ISSUE-154 BUG-01). Parameters not assigned keep their previous values. Two components of one
+    /// call site with equal keys throw <see cref="InvalidOperationException"/>.</para>
     ///
     /// <para>Must be paired with <see cref="CloseComponent"/>, which builds the component and
     /// attaches its produced element.</para>
@@ -713,12 +840,48 @@ public class RenderTreeBuilder
     /// component type and <see cref="ComponentParameterCache"/>'s <c>GetProperties</c> comes back
     /// empty at run time — injections stay null and cascading contexts never arrive (ISSUE-140).</para>
     /// </summary>
-    public T OpenComponent<[DynamicallyAccessedMembers(ComponentTypeMembers.Activation)] T>() where T : ComponentBase, new()
+    public T OpenComponent<[DynamicallyAccessedMembers(ComponentTypeMembers.Activation)] T>(int seq, object? key) where T : ComponentBase, new()
     {
-        var component = new T();
-        _componentStack.Push(component);
+        var identity = CreateIdentity(typeof(T), seq, key);
+        var component = ClaimPrevious(identity) as T ?? new T();
+        Register(identity, component);
+        _componentStack.Push(new ComponentFrame(component));
         return component;
     }
+
+    /// <summary>The identity of the next component opened at this call site in this render.</summary>
+    private ComponentIdentity CreateIdentity(Type type, int sequence, object? key)
+    {
+        var components = _components ??= _recycledComponents ?? new ComponentRegistry();
+        return key is null
+            ? new ComponentIdentity(_scope, type, sequence, null, components.NextOrdinal(_scope, type, sequence))
+            : new ComponentIdentity(_scope, type, sequence, key, 0);
+    }
+
+    /// <summary>
+    /// Takes the previous render's instance with this identity, if it is still alive, and prepares it
+    /// to receive a new set of parameters from this render.
+    /// </summary>
+    private ComponentBase? ClaimPrevious(in ComponentIdentity identity)
+    {
+        if (identity.Key is not null && _components!.Contains(identity))
+            throw DuplicateKey(identity);
+        if (_previousComponents is null || !_previousComponents.TryClaim(identity, out var previous))
+            return null;
+        if (!previous.CanBeReused) return null;
+        previous.BeginParentRender();
+        return previous;
+    }
+
+    private void Register(in ComponentIdentity identity, ComponentBase component)
+    {
+        if (!_components!.TryAdd(identity, component))
+            throw DuplicateKey(identity);
+    }
+
+    private static InvalidOperationException DuplicateKey(in ComponentIdentity identity)
+        => new($"More than one {identity.Type.Name} component rendered at the same place uses the @key " +
+               $"'{identity.Key}'. Keys must be unique among the components of a list.");
 
     /// <summary>
     /// Opens a component whose type is only known at runtime.
@@ -738,9 +901,32 @@ public class RenderTreeBuilder
         if (!typeof(ComponentBase).IsAssignableFrom(componentType))
             throw new ArgumentException($"{componentType} is not a Miko component.", nameof(componentType));
 
-        var component = Activator.CreateInstance(componentType) as ComponentBase
-            ?? throw new InvalidOperationException($"Unable to create component {componentType}.");
-        _componentStack.Push(component);
+        _componentStack.Push(new ComponentFrame(new DeferredComponent(componentType, seq)));
+    }
+
+    /// <summary>
+    /// Chooses the instance for a name-based component frame now that its key is known, then applies
+    /// the parameters and <c>@ref</c> captures recorded while it was open.
+    /// </summary>
+    private ComponentBase ResolveDeferred(DeferredComponent deferred)
+    {
+        var identity = CreateIdentity(deferred.Type, deferred.Sequence, deferred.Key);
+        var component = ClaimPrevious(identity)
+            ?? Activator.CreateInstance(deferred.Type) as ComponentBase
+            ?? throw new InvalidOperationException($"Unable to create component {deferred.Type}.");
+        Register(identity, component);
+
+        if (deferred.Parameters is { } parameters)
+        {
+            foreach (var (name, value) in parameters)
+                ApplyComponentParameter(component, name, value);
+        }
+        if (deferred.Captures is { } captures)
+        {
+            foreach (var capture in captures)
+                capture(component);
+        }
+        return component;
     }
 
     /// <summary>
@@ -748,15 +934,25 @@ public class RenderTreeBuilder
     /// statically: a weakly-typed attribute, and a component opened through the runtime-typed
     /// <see cref="OpenComponent(int, Type)"/>.
     /// </summary>
-    [UnconditionalSuppressMessage("Trimming", "IL2075",
-        Justification = "The open component reached this builder through OpenComponent<T> or " +
-                        "OpenComponent(int, Type); both declare ComponentTypeMembers.Activation, " +
-                        "which includes PublicProperties — the exact binding this lookup uses. " +
-                        "GetType() on the stacked instance is merely statically unannotated (ISSUE-140).")]
     public void AddComponentParameter(int seq, string name, object? value)
     {
         if (_componentStack.Count == 0) return;
-        var component = _componentStack.Peek();
+        var frame = _componentStack.Peek();
+        if (frame.Deferred is { } deferred)
+        {
+            (deferred.Parameters ??= new()).Add((name, value));
+            return;
+        }
+        ApplyComponentParameter(frame.Component!, name, value);
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "The component reached this builder through OpenComponent<T> or " +
+                        "OpenComponent(int, Type); both declare ComponentTypeMembers.Activation, " +
+                        "which includes PublicProperties — the exact binding this lookup uses. " +
+                        "GetType() on the instance is merely statically unannotated (ISSUE-140).")]
+    private static void ApplyComponentParameter(ComponentBase component, string name, object? value)
+    {
         var prop = FindParameterProperty(component.GetType(), name);
         if (prop is null)
         {
@@ -799,31 +995,72 @@ public class RenderTreeBuilder
     public void CloseComponent()
     {
         if (_componentStack.Count == 0) return;
-        var component = _componentStack.Pop();
-        var element = component.Build();
-        // Link the produced element back to its component so the component can be disposed
-        // (e.g. unsubscribe from events) when this element subtree is later discarded. When the
+        var frame = _componentStack.Pop();
+        var component = frame.Component ?? ResolveDeferred(frame.Deferred!);
+        // Build() also links the produced element back to the component (ComponentBase.StampRoot) so
+        // the component is disposed when this element subtree is later discarded — and only then: a
+        // component a later render reuses has moved on to a new element by that time. When the
         // component produced several top-level elements, `element` is a transparent FragmentElement
-        // that stays in the tree (and is skipped by layout); the callback lives on it as usual.
-        var childDispose = element.DisposeCallback;
-        element.DisposeCallback = () =>
-        {
-            childDispose?.Invoke();
-            component.DisposeInternal();
-        };
+        // that stays in the tree (and is skipped by layout).
+        var element = component.Build();
+        component.AdoptProducedElement(element);
         if (_stack.Count > 0)
+        {
             _stack.Peek().AddChild(element);
+        }
         else
+        {
             AttachToTree(element);
+            if (ReferenceEquals(_root, element)) _rootComponent = (component, element);
+        }
     }
 
-    public void SetKey(object? key) { }
+    /// <summary>
+    /// <c>@key</c>. On an element it scopes the identity of the components inside it — so a keyed list
+    /// item keeps its components when items are inserted, removed or reordered — and pairs the element
+    /// with its previous counterpart by key rather than by position when runtime state (focus, caret,
+    /// layout) is carried over (ISSUE-154). Equal keys among the children of one element throw.
+    ///
+    /// <para>On a component opened by name (<see cref="OpenComponent{T}(int)"/>) it decides which
+    /// previous instance is reused. Components opened with a strongly typed overload take their key as
+    /// an <see cref="OpenComponent{T}(int, object?)"/> argument instead, because their parameters are
+    /// assigned to the returned instance before a later <c>SetKey</c> could choose it.</para>
+    /// </summary>
+    public void SetKey(object? key)
+    {
+        if (key is null) return;
+
+        if (_componentStack.Count > 0)
+        {
+            if (_componentStack.Peek().Deferred is { } deferred) deferred.Key = key;
+            return;
+        }
+
+        if (_stack.Count == 0) return;
+        var element = _stack.Peek();
+        object parent = this;
+        foreach (var open in _stack)
+        {
+            if (ReferenceEquals(open, element)) continue;
+            parent = open;
+            break;
+        }
+        if (!(_elementKeys ??= new()).Add((parent, key)))
+            throw new InvalidOperationException(
+                $"More than one <{element.TagName}> element rendered at the same place uses the @key '{key}'. " +
+                "Keys must be unique among the children of an element.");
+
+        element.Key = key;
+        (_keyedElements ??= new()).Push((element, _scope));
+        _scope = new RenderScope(_scope, -1, key);
+    }
 
     // ---------------------------------------------------------------------
     // @ref（ISSUE-153 问题 4）
     //
     // 引用在构建时就地赋值：元素与组件实例此刻已经存在，不必像 Blazor 那样等到渲染之后。
-    // 每次重渲染都产出新实例，字段也随之更新到在场的那一个。
+    // 每次重渲染都产出新的元素实例，字段也随之更新到在场的那一个；组件实例身份不变时被复用
+    // （ISSUE-154），引用随之保持不变。
     // ---------------------------------------------------------------------
 
     /// <summary>
@@ -856,7 +1093,12 @@ public class RenderTreeBuilder
     public void AddComponentReferenceCapture(int seq, Action<object> capture)
     {
         ArgumentNullException.ThrowIfNull(capture);
-        if (_componentStack.Count > 0) capture(_componentStack.Peek());
+        if (_componentStack.Count == 0) return;
+        var frame = _componentStack.Peek();
+        if (frame.Deferred is { } deferred)
+            (deferred.Captures ??= new()).Add(capture);
+        else
+            capture(frame.Component!);
     }
 
     private List<(Element Element, Action<Element> Capture)>? _topLevelCaptures;

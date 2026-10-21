@@ -1,0 +1,31 @@
+@namespace Miko.Razor.Tests
+@* ISSUE-154: the compiler passes each component's call site and @key to OpenComponent, so a
+   re-render keeps the instances whose identity is unchanged. *@
+<div class="keyed-root">
+    @if (ShowLeading)
+    {
+        <KeyedReuseChild Label="leading" />
+    }
+    @foreach (var item in Items)
+    {
+        <KeyedReuseChild @key="item" Label="@item" />
+    }
+    <KeyedReuseChild Label="@($"trailing-{_renders}")" />
+    @foreach (var item in Items)
+    {
+        <input class="keyed-input" @key="item" id="@item" />
+    }
+</div>
+
+@code {
+    private int _renders;
+
+    public List<string> Items { get; set; } = new() { "a", "b", "c" };
+    public bool ShowLeading { get; set; }
+
+    public void Refresh()
+    {
+        _renders++;
+        StateHasChanged();
+    }
+}

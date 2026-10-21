@@ -59,17 +59,16 @@
     private string _contentId = string.Empty;
     private string _toggleIconSlot = "end";
     private string _value = string.Empty;
-    private string? _autoValue;
 
     /// <summary>True when this accordion's value is in the group's expanded set.</summary>
     public bool Expanded { get; private set; }
 
     protected override void OnParametersSet()
     {
-        // Ionic autogenerates `ion-accordion-{n}` when no value is set. Taken once per instance,
-        // so a self re-render keeps it; see IonAccordionGroupContext.NextAutoValue.
+        // Ionic autogenerates `ion-accordion-{n}` when no value is set: the position in the group,
+        // stable across renders; see IonAccordionGroupContext.AutoValueFor.
         _value = string.IsNullOrEmpty(Value)
-            ? _autoValue ??= GroupContext?.NextAutoValue() ?? $"ion-accordion-{_instanceId}"
+            ? GroupContext?.AutoValueFor(this) ?? $"ion-accordion-{_instanceId}"
             : Value!;
         _headerId = $"accordion-header-{_instanceId}";
         _contentId = $"accordion-content-{_instanceId}";

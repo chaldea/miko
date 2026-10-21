@@ -36,7 +36,9 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
    component's `EventCallback` changes state that a different component renders (e.g. a menu
    button opening an `IonMenu` declared in the page), call `StateHasChanged()` in that component.
    Do not use `@onscroll` / `@onpointermove` for per-frame work — see
-   [Events](../.miko/docs/guide/events.md).
+   [Events](../.miko/docs/guide/events.md). A parent's re-render keeps its child components (their fields
+   and subscriptions survive, `OnInitialized` runs once); give the items of a list that can be
+   reordered a `@key` — see [Razor Components](../.miko/docs/guide/razor-components.md#component-identity-and-key).
 9. **Verify.** Build with `dotnet build` and fix every error and warning in your `.razor` files.
    If the Miko MCP server is configured (multiplatform template, `--agent claude`), run the
    simulator and inspect the live DOM and styles through it.

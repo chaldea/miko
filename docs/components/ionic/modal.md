@@ -120,7 +120,7 @@ Setting `Presenting` (any non-null value, usually `this`) makes it a card modal.
 
 ## Presenting a component
 
-`CreateAsync<TComponent>(parameters)` presents a component as the modal's content. Each parameter is assigned by name to a public property of the component, so use `nameof(...)` for the keys. The component can close its own modal: inject the controller and call `DismissAsync(data, role)` on `GetTopAsync()`, the equivalent of Ionic's `modalController.dismiss(data, role)`. The overlay layer re-creates the content component whenever the stack changes, for example when a toast appears. So the component should edit an object passed in as a parameter rather than a private field.
+`CreateAsync<TComponent>(parameters)` presents a component as the modal's content. Each parameter is assigned by name to a public property of the component, so use `nameof(...)` for the keys. The component can close its own modal: inject the controller and call `DismissAsync(data, role)` on `GetTopAsync()`, the equivalent of Ionic's `modalController.dismiss(data, role)`. The content component keeps its instance, and so its fields, while the modal is open, also when other overlays open or close around it. To hand an edit back to the page, change an object passed in as a parameter or pass the data to `DismissAsync`.
 
 <!-- miko:example examples/modal/EditNameModal.razor -->
 ```razor
@@ -150,8 +150,7 @@ Setting `Presenting` (any non-null value, usually `this`) makes it a card modal.
 </IonContent>
 
 @code {
-    // Edit a caller-owned object, not a private field: the overlay layer re-creates this
-    // component whenever it re-renders (e.g. another overlay opens); parameters survive that.
+    // Edit a caller-owned object so the page can read the result once the modal closes.
     [Parameter] public NameDraft Draft { get; set; } = new();
 
     public sealed class NameDraft

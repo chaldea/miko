@@ -190,8 +190,15 @@ public abstract class Element
                 return;
             }
 
-            // 移除已有的文本节点。用不记账的原始写入，本 setter 末尾统一记账一次。
-            Children.RemoveAllInternal(c => c is TextNode);
+            // 移除已有的文本节点。用不记账的原始写入，本 setter 末尾统一记账一次；
+            // 被移除的节点断开父引用与归属，与经集合移除的节点一致。
+            Children.RemoveAllInternal(static c =>
+            {
+                if (c is not TextNode) return false;
+                c.ClearParent();
+                c.ClearOwner();
+                return true;
+            });
             if (!string.IsNullOrEmpty(value))
             {
                 // 重建为单个前置文本节点，保持旧「文本排在子元素之前」的语义。
@@ -322,6 +329,74 @@ public abstract class Element
         if (carried != ElementState.None)
             SetState(carried, invalidate: false);
     }
+
+    /// <summary>
+    /// 把一个刚构建出来的同类元素的全部声明状态搬到本元素上，使本元素此后与 <paramref name="source"/>
+    /// 无从区分（子节点除外，由调用方处理）——属性、行内样式、事件处理器与监听器、状态标志、
+    /// 子类声明的属性与控件值（ISSUE-154 BUG-02）。
+    ///
+    /// <para>用于组件无父节点的重渲染：引擎持有旧根元素的引用，因此保留旧根、搬入新内容。此前只搬了
+    /// <see cref="Id"/>/<see cref="Class"/>/<see cref="Style"/>，根元素上的 <c>@onclick</c>、
+    /// <c>href</c>、<c>disabled</c>、输入框的值等都停留在第一次渲染的状态。</para>
+    ///
+    /// <para>交互状态（焦点、光标位置、未声明的输入值）应先经 <c>source.CopyInteractionStateFrom(this)</c>
+    /// 并入 <paramref name="source"/>，再调用本方法——<paramref name="source"/> 就是最终状态。</para>
+    /// </summary>
+    internal void AdoptStateFrom(Element source)
+    {
+        Id = source.Id;
+        Class = source.Class;
+        Style = source.Style;
+        PseudoElementStyles = source.PseudoElementStyles;
+        if (source.InitialScrollTop is { } scrollTop) InitialScrollTop = scrollTop;
+        Key = source.Key;
+
+        OnClick = source.OnClick;
+        OnMouseEnter = source.OnMouseEnter;
+        OnMouseLeave = source.OnMouseLeave;
+        OnMouseDown = source.OnMouseDown;
+        OnMouseUp = source.OnMouseUp;
+        OnMouseMove = source.OnMouseMove;
+        OnPointerDown = source.OnPointerDown;
+        OnPointerUp = source.OnPointerUp;
+        OnPointerMove = source.OnPointerMove;
+        OnPointerCancel = source.OnPointerCancel;
+        OnLongPress = source.OnLongPress;
+        OnFocus = source.OnFocus;
+        OnBlur = source.OnBlur;
+        OnChange = source.OnChange;
+        OnScroll = source.OnScroll;
+        OnKeyDown = source.OnKeyDown;
+        OnInput = source.OnInput;
+        _eventListeners.Clear();
+        _eventListeners.AddRange(source._eventListeners);
+
+        var added = source.State & ~State;
+        var removed = State & ~source.State;
+        if (added != ElementState.None) SetState(added);
+        if (removed != ElementState.None) ClearState(removed);
+
+        if (GetType() == source.GetType())
+        {
+            ElementAttributeAccessor.CopyDeclaredProperties(this, source);
+            AdoptStateCore(source);
+        }
+
+        IsDirty = true;
+        BumpMutationVersion();
+    }
+
+    /// <summary>
+    /// <see cref="AdoptStateFrom"/> 的子类扩展点：搬运公开属性以外的内部状态（如输入框的声明值）。
+    /// 仅在 <paramref name="source"/> 与本元素类型相同时调用。
+    /// </summary>
+    private protected virtual void AdoptStateCore(Element source) { }
+
+    /// <summary>
+    /// 渲染时 <c>@key</c> 指定的键（ISSUE-154）。重渲染在新旧子节点之间迁移运行时状态（焦点、光标、
+    /// 布局盒）时，带键的子节点按键配对而不是按位置——列表插入、删除、重排后状态跟随对应的项。
+    /// </summary>
+    internal object? Key { get; set; }
 
     // 脏标记
     internal bool IsDirty { get; set; }
@@ -534,46 +609,16 @@ public abstract class Element
         => ElementAttributeAccessor.TryGetValue(this, name, out value);
 
     /// <summary>
-    /// 添加子元素
+    /// 添加子元素（追加到末尾）。与 <c>Children.Add</c> 完全相同：已有父节点的元素被移动过来，
+    /// null 与会成环的元素被拒绝（见 <see cref="ElementCollection"/>，ISSUE-154）。
+    /// 新子树立即继承本元素的引擎归属（ISSUE-129）。
     /// </summary>
-    public void AddChild(Element child)
-    {
-        if (child.Parent != null)
-        {
-            child.Parent.RemoveChild(child);
-        }
-
-        // 用不记账的原始写入，本方法自己完成父引用/归属/记账（否则版本号会被递增两次）。
-        Children.AddInternal(child);
-        child.Parent = this;
-        // 新子树立即继承本元素的引擎归属，使其在挂入后的变更马上被计入，而不必等到
-        // 下一帧引擎的 AssignOwner 遍历（ISSUE-129）。本元素尚无归属时不下发，
-        // 该子树会在整棵树被挂入引擎时一并赋值。
-        if (Owner != null) child.AssignOwner(Owner);
-        IsDirty = true;
-        BumpMutationVersion();
-    }
+    public void AddChild(Element child) => Children.Add(child);
 
     /// <summary>
-    /// 移除子元素
+    /// 移除子元素。结构变更先记在<b>旧引擎</b>头上，随后才清除被移除子树的归属（ISSUE-129）。
     /// </summary>
-    public bool RemoveChild(Element child)
-    {
-        // 用不记账的原始写入，本方法自己完成记账（否则版本号会被递增两次）。
-        if (Children.RemoveInternal(child))
-        {
-            child.Parent = null;
-            // 移除本身是结构变更，必须先记在**旧引擎**头上——它的布局缓存要失效。
-            IsDirty = true;
-            BumpMutationVersion();
-            // 随后才清除被移除子树的归属：已脱离 DOM 的元素继续被修改时不应再递增旧引擎的
-            // 版本号，否则会产生无意义的重排工作，也违背「未挂入引擎的游离元素不记账」的
-            // 归属语义（ISSUE-129）。顺序不能颠倒。
-            child.ClearOwner();
-            return true;
-        }
-        return false;
-    }
+    public bool RemoveChild(Element child) => Children.Remove(child);
 
     /// <summary>
     /// 查找元素（通过ID）

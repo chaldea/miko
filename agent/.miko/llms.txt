@@ -32,7 +32,9 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
    component's `EventCallback` changes state that a different component renders (e.g. a menu
    button opening an `IonMenu` declared in the page), call `StateHasChanged()` in that component.
    Do not use `@onscroll` / `@onpointermove` for per-frame work — see
-   [Events](./docs/guide/events.md).
+   [Events](./docs/guide/events.md). A parent's re-render keeps its child components (their fields
+   and subscriptions survive, `OnInitialized` runs once); give the items of a list that can be
+   reordered a `@key` — see [Razor Components](./docs/guide/razor-components.md#component-identity-and-key).
 9. **Verify.** Build with `dotnet build` and fix every error and warning in your `.razor` files.
    If the Miko MCP server is configured (multiplatform template, `--agent claude`), run the
    simulator and inspect the live DOM and styles through it.
@@ -42,7 +44,7 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
 
 - [Getting Started](docs/guide/getting-started.md): templates, layouts, running the app.
 - [Project Structure](docs/guide/project-structure.md): the files of a generated app and the platform heads.
-- [Razor Components](docs/guide/razor-components.md): components, parameters, child content, `@bind`, routing, layouts, `MikoAppBuilder`.
+- [Razor Components](docs/guide/razor-components.md): components, parameters, child content, component identity and `@key`, `@bind`, routing, layouts, `MikoAppBuilder`.
 - [Elements](docs/guide/elements.md): every markup tag and the attributes it accepts. **Check before using a tag or attribute.**
 - [Styling](docs/guide/styling.md): `Style`, `Length`, `Color`, `StyleSheet` + `CssObject`, selectors, cascade, inheritance.
 - [Layout](docs/guide/layout.md): box model, block / inline / flex / grid, positioning, overflow, sizing.

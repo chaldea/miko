@@ -79,11 +79,43 @@ public class ElementAttributeAccessorGenerator : IIncrementalGenerator
             }
         }
 
-        if (properties.Count == 0)
+        var copyable = GetCopyableProperties(symbol);
+
+        if (properties.Count == 0 && copyable.Count == 0)
             return null;
 
         properties.Sort(static (a, b) => string.CompareOrdinal(a.Name, b.Name));
-        return new ElementInfo(symbol.ToDisplayString(), properties, GetInheritanceDepth(symbol));
+        return new ElementInfo(symbol.ToDisplayString(), properties, copyable, GetInheritanceDepth(symbol));
+    }
+
+    /// <summary>
+    /// 元素子类自己声明的、公开可读写的实例属性（含委托槽，如 <c>CanvasElement.Paint</c>）：
+    /// 组件无父节点的重渲染保留旧根元素时，要把新建根元素的这些状态整体搬到旧根上（ISSUE-154 BUG-02）。
+    /// <c>Element</c> 自身声明的成员不在其列——它们由 <c>Element.AdoptStateFrom</c> 手写搬运。
+    /// </summary>
+    private static List<string> GetCopyableProperties(INamedTypeSymbol symbol)
+    {
+        var result = new List<string>();
+        var seen = new HashSet<string>(System.StringComparer.Ordinal);
+
+        for (var current = symbol; current != null && current.ToDisplayString() != "Miko.Core.Element"; current = current.BaseType)
+        {
+            foreach (var member in current.GetMembers())
+            {
+                if (member is not IPropertySymbol property) continue;
+                if (property.DeclaredAccessibility != Accessibility.Public) continue;
+                if (property.IsStatic || property.IsIndexer) continue;
+                if (property.GetMethod is not { DeclaredAccessibility: Accessibility.Public }) continue;
+                if (property.SetMethod is not { DeclaredAccessibility: Accessibility.Public, IsInitOnly: false }) continue;
+                if (property.Name == "TextContent") continue;
+                if (!seen.Add(property.Name)) continue;
+
+                result.Add(property.Name);
+            }
+        }
+
+        result.Sort(string.CompareOrdinal);
+        return result;
     }
 
     private static bool InheritsFromElement(INamedTypeSymbol symbol)
@@ -144,6 +176,7 @@ public class ElementAttributeAccessorGenerator : IIncrementalGenerator
 
         foreach (var element in elements)
         {
+            if (element.Properties.Count == 0) continue;
             sb.AppendLine($"            case global::{element.TypeName} __e:");
             sb.AppendLine("                switch (name.ToLowerInvariant())");
             sb.AppendLine("                {");
@@ -160,6 +193,31 @@ public class ElementAttributeAccessorGenerator : IIncrementalGenerator
         sb.AppendLine("        value = null;");
         sb.AppendLine("        return false;");
         sb.AppendLine("    }");
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>");
+        sb.AppendLine("    /// 把 <paramref name=\"source\"/> 上由元素子类声明的公开可读写属性逐一赋给同类型的");
+        sb.AppendLine("    /// <paramref name=\"target\"/>（ISSUE-154 BUG-02）。类型不同时什么也不做。");
+        sb.AppendLine("    /// </summary>");
+        sb.AppendLine("    internal static void CopyDeclaredProperties(global::Miko.Core.Element target, global::Miko.Core.Element source)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        if (target.GetType() != source.GetType()) return;");
+        sb.AppendLine("        switch (target)");
+        sb.AppendLine("        {");
+        foreach (var element in elements)
+        {
+            if (element.CopyableProperties.Count == 0) continue;
+            sb.AppendLine($"            case global::{element.TypeName} __t:");
+            sb.AppendLine("            {");
+            sb.AppendLine($"                var __s = (global::{element.TypeName})source;");
+            foreach (var propertyName in element.CopyableProperties)
+            {
+                sb.AppendLine($"                __t.{propertyName} = __s.{propertyName};");
+            }
+            sb.AppendLine("                break;");
+            sb.AppendLine("            }");
+        }
+        sb.AppendLine("        }");
+        sb.AppendLine("    }");
         sb.AppendLine("}");
 
         context.AddSource("ElementAttributeAccessor.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
@@ -167,15 +225,19 @@ public class ElementAttributeAccessorGenerator : IIncrementalGenerator
 
     private sealed class ElementInfo
     {
-        internal ElementInfo(string typeName, List<(string Name, string Type)> properties, int depth)
+        internal ElementInfo(string typeName, List<(string Name, string Type)> properties, List<string> copyableProperties, int depth)
         {
             TypeName = typeName;
             Properties = properties;
+            CopyableProperties = copyableProperties;
             Depth = depth;
         }
 
         internal string TypeName { get; }
         internal List<(string Name, string Type)> Properties { get; }
+
+        /// <summary>见 <see cref="GetCopyableProperties"/>。</summary>
+        internal List<string> CopyableProperties { get; }
 
         /// <summary>到 <c>Element</c> 的继承层数；生成 switch 时按其降序排列。</summary>
         internal int Depth { get; }

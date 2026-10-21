@@ -13,8 +13,8 @@
 
 @code {
     /// <summary>When true the row is slid open, revealing the options on <see cref="OpenSide"/>.
-    /// Bind it (<c>@bind-Open</c>): a re-render of the parent re-creates the row from its
-    /// parameters, so a swipe's open state that was not written back is lost.</summary>
+    /// Bind it (<c>@bind-Open</c>) to open or close the row from code. Unbound, the row keeps a
+    /// swipe's open state across re-renders of the parent until the value passed here changes.</summary>
     [Parameter] public bool Open { get; set; }
 
     /// <summary>Raised when a swipe opens or closes the row.</summary>

@@ -234,8 +234,8 @@
 
     protected override void OnDispose()
     {
-        // Nested components are rebuilt each render; release the subscription so handlers from
-        // discarded instances don't accumulate.
+        // Runs once, when the instance is finally dropped (a parent re-render reuses it, ISSUE-154):
+        // release the subscription so the animation manager stops calling a dead instance.
         if (_subscribed && Animations is not null)
         {
             Animations.TransitionCompleted -= OnTransitionCompleted;
