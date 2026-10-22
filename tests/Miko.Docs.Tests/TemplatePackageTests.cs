@@ -212,6 +212,21 @@ public partial class TemplatePackageTests(TemplatePackageFixture fixture) : ICla
     [System.Text.RegularExpressions.GeneratedRegex("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$")]
     private static partial System.Text.RegularExpressions.Regex AndroidPackageName();
 
+    // Release-1.0.0 D4: the multiplatform template used to grant Bash(*)/Edit(*)/Write(*) with
+    // acceptEdits. Scaffolding may pre-approve the Miko MCP server only; the rest is the user's call.
+    [Fact]
+    public void Should_only_pre_approve_the_miko_mcp_server()
+    {
+        var multiplatform = fixture.Scaffold("miko-multiplatform", "claude");
+        var settings = System.Text.Json.Nodes.JsonNode.Parse(
+            File.ReadAllText(Path.Combine(multiplatform, ".claude", "settings.local.json")))!;
+
+        settings["permissions"]!["allow"]!.AsArray().Select(p => p!.GetValue<string>()).ShouldBe(["mcp__miko"]);
+        settings["permissions"]!["defaultMode"].ShouldBeNull();
+        File.Exists(Path.Combine(fixture.Scaffold("miko-razor", "claude"), ".claude", "settings.local.json")).ShouldBeFalse(
+            "the desktop template has no MCP server to approve");
+    }
+
     [Fact]
     public void Should_not_scaffold_agent_files_by_default()
     {

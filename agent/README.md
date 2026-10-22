@@ -9,9 +9,11 @@ every page, maintained once.
 - `.miko/rules.md` — the rules every assistant gets; inlined into each entry file below.
 - `CLAUDE.md`, `AGENTS.md`, `.claude/skills/miko/SKILL.md`, `.codex/config.md`,
   `.cursor/rules/miko.mdc` — per-assistant entry files pointing at `.miko/llms.txt`.
-- `.claude/settings.local.json` — a Claude Code permissions preset that pre-approves the `miko`
-  MCP server; `.mcp.json` — points Claude Code at the Miko MCP debug server
+- `.claude/settings.local.json` — a Claude Code permissions preset that enables and pre-approves
+  the `miko` MCP server and nothing else (shell, edit and write permissions stay the user's
+  decision); `.mcp.json` — points Claude Code at the Miko MCP debug server
   (`http://localhost:5800`, started by the simulator head via `AddMikoMcpServer()`).
+  Both ship only with the multiplatform template, which has that head.
 - `README.md` — this file (documents the source; **not** shipped).
 
 ## How it ships
