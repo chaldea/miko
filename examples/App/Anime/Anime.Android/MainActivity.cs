@@ -13,15 +13,16 @@ namespace Anime.Android;
 // Theme.Material.Light.NoActionBar hides Android's native title/action bar so the Ionic
 // layout's own IonHeader is the only header on screen (it would otherwise stack a second
 // bar above it). It's a built-in platform theme, so no Resources/values/styles.xml is needed.
-// ConfigurationChanges keeps the activity (and the whole Miko app) alive across rotation: the
-// player locks landscape when it goes fullscreen (ISSUE-149), and a recreated activity would
-// rebuild the app on its first page instead.
+// ConfigurationChanges keeps the activity (and the whole Miko app) alive across rotation, dark-mode
+// switches, font / display-size changes and foldable resizes: the player locks landscape when it
+// goes fullscreen (ISSUE-149), and a recreated activity would rebuild the app on its first page.
 [Activity(
     Label = "Anime",
     MainLauncher = true,
     Theme = "@android:style/Theme.Material.Light.NoActionBar",
-    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize
-        | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize)]
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.ScreenLayout
+        | ConfigChanges.SmallestScreenSize | ConfigChanges.Density | ConfigChanges.UiMode
+        | ConfigChanges.FontScale | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
 public class MainActivity : Activity
 {
     private MikoSurfaceView? _view;

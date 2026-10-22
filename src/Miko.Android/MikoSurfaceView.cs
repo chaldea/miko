@@ -25,7 +25,8 @@ public class MikoSurfaceView : SKGLSurfaceView
 {
     private readonly MikoAppContext _context;
     private readonly MikoInteractionController _controller;
-    private readonly float _density;
+    // UI 线程写（OnConfigurationChanged），GL 线程与触摸回调读。
+    private volatile float _density;
     private readonly Stopwatch _frameTimer = new();
     private float _lastFrameTime;
     private bool _initialized;
@@ -133,6 +134,9 @@ public class MikoSurfaceView : SKGLSurfaceView
             }
 
             _controller.SetSafeAreaInsets(left / _density, top / _density, right / _density, bottom / _density);
+            // WhenDirty 渲染：inset 变化不一定伴随 surface 尺寸变化（改密度、系统栏显隐），
+            // 不主动请求一帧的话，新的安全区要等下一次触摸才画出来。
+            RequestRender();
         }
 
         return base.OnApplyWindowInsets(insets);
@@ -304,6 +308,27 @@ public class MikoSurfaceView : SKGLSurfaceView
         var consumed = _controller.OnBackButton();
         if (consumed) RequestRender();
         return consumed;
+    }
+
+    /// <summary>
+    /// Activity 声明了 <c>ConfigurationChanges</c>（含 Density）时，系统不再重建 Activity，
+    /// 而是回调这里。改「显示大小」或拖到另一块屏幕都会改变密度：必须刷新换算系数，
+    /// 并让系统重新下发 inset，否则逻辑尺寸、触摸坐标和安全区都按旧密度换算。
+    /// </summary>
+    protected override void OnConfigurationChanged(global::Android.Content.Res.Configuration? newConfig)
+    {
+        base.OnConfigurationChanged(newConfig);
+
+        var density = newConfig is { DensityDpi: > 0 }
+            ? newConfig.DensityDpi / (float)DisplayMetricsDensity.Default
+            : Resources?.DisplayMetrics?.Density ?? _density;
+        if (density != _density)
+        {
+            _density = density;
+            RequestApplyInsets();
+        }
+
+        RequestRender();
     }
 
     protected override void OnAttachedToWindow()

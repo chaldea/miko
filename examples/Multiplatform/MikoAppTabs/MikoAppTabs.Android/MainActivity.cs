@@ -1,4 +1,5 @@
 using Android.App;
+using Android.Content.PM;
 using Android.OS;
 using Miko.Android;
 
@@ -10,7 +11,10 @@ namespace MikoAppTabs.Android;
 [Activity(
     Label = "MikoAppTabs",
     MainLauncher = true,
-    Theme = "@android:style/Theme.Material.Light.NoActionBar")]
+    Theme = "@android:style/Theme.Material.Light.NoActionBar",
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.ScreenLayout
+        | ConfigChanges.SmallestScreenSize | ConfigChanges.Density | ConfigChanges.UiMode
+        | ConfigChanges.FontScale | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
 public class MainActivity : Activity
 {
     private MikoSurfaceView? _view;

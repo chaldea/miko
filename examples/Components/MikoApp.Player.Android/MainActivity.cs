@@ -16,8 +16,9 @@ namespace MikoApp.Player.Android;
 // ConfigurationChanges keeps the activity (and the player) alive across rotation: fullscreen locks
 // landscape (ISSUE-149), and a recreated activity would start over with a new, windowed player.
 [Activity(Label = "MikoPlayer", MainLauncher = true, Theme = "@android:style/Theme.Material.Light.NoActionBar",
-    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize
-        | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize)]
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.ScreenLayout
+        | ConfigChanges.SmallestScreenSize | ConfigChanges.Density | ConfigChanges.UiMode
+        | ConfigChanges.FontScale | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
 public class MainActivity : Activity
 {
     private MikoPlayer? _player;
