@@ -13,6 +13,7 @@
     <PackageId>Miko.Ionic</PackageId>
     <Authors>Miko</Authors>
     <Description>Ionic-style component library and styles for Miko, the lightweight DOM rendering engine.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>miko;ionic;components;ui;razor</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
@@ -60,5 +61,9 @@
       <Analyzer Include="@(_RazorAnalyzer)" />
     </ItemGroup>
   </Target>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

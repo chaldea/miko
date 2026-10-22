@@ -10,6 +10,10 @@
     <PackageId>Miko.Windowing</PackageId>
     <Authors>Miko</Authors>
     <Description>Desktop (Windows/Linux/macOS) windowing and input host for Miko, built on Silk.NET.</Description>
+    <!-- IntelliSense for package consumers. CS1591: not every public member is documented yet;
+         CS1573/CS1574: param tags and crefs in existing comments still to clean up (Release-1.0.0 P1-B1). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574</NoWarn>
     <PackageTags>miko;windowing;desktop;silk.net;skiasharp;ui</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
