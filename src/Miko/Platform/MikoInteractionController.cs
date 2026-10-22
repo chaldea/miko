@@ -408,6 +408,10 @@ public sealed class MikoInteractionController
             bool rebuilt = _needsRebuild;
             try
             {
+                // 内存告警（TrimMemory）记下的清理请求在渲染线程上执行，GPU 上下文属于这里。
+                if (_trimMemoryRequested)
+                    TrimGpuResources(_engine.GraphicsContext);
+
                 // The frame's size is the viewport's size. The mobile hosts report it only here,
                 // every frame — rotating the device (e.g. the player locking landscape, ISSUE-149)
                 // changes it with no separate resize call, and without this the layout kept the
@@ -450,6 +454,81 @@ public sealed class MikoInteractionController
         {
             _engine.SetSafeAreaInsets(new SafeAreaInsets(left, top, right, bottom));
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // 应用生命周期（Release-1.0.0 A1）
+    // ---------------------------------------------------------------------
+
+    private bool _suspended;
+    private volatile bool _trimMemoryRequested;
+
+    /// <summary>应用当前是否在后台（<see cref="Suspend"/> 之后、<see cref="Resume"/> 之前）。</summary>
+    public bool IsSuspended
+    {
+        get { lock (_sync) return _suspended; }
+    }
+
+    /// <summary>应用进入后台。<see cref="Suspend"/> 释放锁之后、在调用线程上触发。</summary>
+    public event Action? Suspended;
+
+    /// <summary>应用回到前台。<see cref="Resume"/> 释放锁之后、在调用线程上触发。</summary>
+    public event Action? Resumed;
+
+    /// <summary>
+    /// 平台宿主在应用进入后台时调用（Android <c>Activity.OnPause</c>、iOS
+    /// <c>DidEnterBackground</c>）：暂停正在播放的视频并触发 <see cref="Suspended"/>。
+    /// 宿主自己负责停止出帧——后台禁止提交 GPU 命令（iOS），GL 线程也应停下（Android）。
+    /// 重复调用无副作用。
+    /// </summary>
+    public void Suspend()
+    {
+        lock (_sync)
+        {
+            if (_suspended) return;
+            _suspended = true;
+            _engine.SuspendMedia();
+        }
+        Suspended?.Invoke();
+    }
+
+    /// <summary>
+    /// 平台宿主在应用回到前台时调用：恢复 <see cref="Suspend"/> 暂停的视频、请求重绘一帧
+    /// （后台期间的状态变化，以及系统可能丢弃的可绘制内容），并触发 <see cref="Resumed"/>。
+    /// 动画时钟不需要另行暂停：恢复后的第一帧间隔超过上限，按标称帧步长推进（见 <see cref="Update"/>）。
+    /// </summary>
+    public void Resume()
+    {
+        lock (_sync)
+        {
+            if (!_suspended) return;
+            _suspended = false;
+            _engine.ResumeMedia();
+            _engine.RequestRepaint();
+        }
+        Resumed?.Invoke();
+    }
+
+    /// <summary>
+    /// 系统内存告警（iOS <c>DidReceiveMemoryWarning</c>、Android <c>OnTrimMemory</c>）时调用。
+    /// GPU 上下文只能在渲染线程使用，所以这里只记下请求：下一次 <see cref="RenderFrame"/>
+    /// 开头清掉 Skia 缓存中未被引用的 GPU 资源，宿主随后可再调 <see cref="TrimGpuResources"/>
+    /// 处理不出帧的情况（例如已在后台）。可从任意线程调用。
+    /// </summary>
+    public void TrimMemory()
+    {
+        _trimMemoryRequested = true;
+        _engine.RequestRepaint();
+    }
+
+    /// <summary>
+    /// 立即清掉 <paramref name="context"/> 中未被引用的 GPU 资源。必须在拥有该上下文的线程调用；
+    /// 不确定时用 <see cref="TrimMemory"/>。
+    /// </summary>
+    public void TrimGpuResources(GRContext? context)
+    {
+        _trimMemoryRequested = false;
+        Rendering.GpuResourceCache.PurgeUnlockedResources(context);
     }
 
     // ---------------------------------------------------------------------

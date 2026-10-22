@@ -102,8 +102,15 @@ public class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         SetNeedsDisplay();
     }
 
+    /// <summary>内存告警：清掉 Skia 缓存里未被引用的 GPU 资源。在主线程调用（与绘制同一线程）。</summary>
+    internal void TrimGpuResources() => _controller.TrimGpuResources(_grContext);
+
     void IMTKViewDelegate.Draw(MTKView view)
     {
+        // 后台不得提交 GPU 命令（会被系统以 Insufficient Permission 中止）。进入后台的过渡期里
+        // 旋转、安全区或尺寸变化仍可能请求一帧，直接跳过；应用切换器沿用最后呈现的画面。
+        if (_controller.IsSuspended) return;
+
         // 可绘制纹理全部在 GPU 上排队时，CurrentDrawable 会等待其中一块空出来（GPU 背压）。
         var drawable = CurrentDrawable;
         var texture = drawable?.Texture;

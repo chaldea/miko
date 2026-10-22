@@ -96,6 +96,11 @@ public class MikoSurfaceView : SKGLSurfaceView
         // render while an animation, invalidation, or queued callback is active.
         RenderMode = global::Android.Opengl.Rendermode.WhenDirty;
 
+        // 切后台时（OnPause，见 LifecycleCallbacks）尽量保住 EGL 上下文：视频的 OES 纹理与
+        // SurfaceTexture 都属于它，丢了回来就是黑屏。系统仍可能在内存紧张时销毁上下文，
+        // 那时 SKGLSurfaceView 在 OnSurfaceCreated 重建 GRContext，引擎每帧同步 GraphicsContext。
+        PreserveEGLContextOnPause = true;
+
         // 接收系统窗口 inset 以便计算安全区（edge-to-edge 下系统栏会覆盖内容）。
         SetFitsSystemWindows(false);
         Focusable = true;
@@ -331,9 +336,20 @@ public class MikoSurfaceView : SKGLSurfaceView
         RequestRender();
     }
 
+    // 应用生命周期（Release-1.0.0 A1）。GLSurfaceView 要求宿主 Activity 在 OnPause/OnResume 里
+    // 转发 view.OnPause()/OnResume()，否则切到后台 GL 线程照跑、EGL 上下文也不释放。模板与示例
+    // 从没转发过，所以视图自己监听所属 Activity 的生命周期，App 不必再写一行。
+    private LifecycleCallbacks? _lifecycle;
+
     protected override void OnAttachedToWindow()
     {
         base.OnAttachedToWindow();
+        if (_activity is not null && _lifecycle is null)
+        {
+            _lifecycle = new LifecycleCallbacks(this, _activity);
+            _activity.Application?.RegisterActivityLifecycleCallbacks(_lifecycle);
+            _activity.Application?.RegisterComponentCallbacks(_lifecycle);
+        }
         // RequestRender 可从任意线程调用，投递动作的正是各种后台线程。
         if (_dispatcher is not null) _dispatcher.Posted += RequestRender;
         if (_backRegistry is null || !OperatingSystem.IsAndroidVersionAtLeast(33)) return;
@@ -343,6 +359,13 @@ public class MikoSurfaceView : SKGLSurfaceView
 
     protected override void OnDetachedFromWindow()
     {
+        if (_lifecycle is not null)
+        {
+            _activity?.Application?.UnregisterActivityLifecycleCallbacks(_lifecycle);
+            _activity?.Application?.UnregisterComponentCallbacks(_lifecycle);
+            _lifecycle.Dispose();
+            _lifecycle = null;
+        }
         if (_dispatcher is not null) _dispatcher.Posted -= RequestRender;
         if (_backRegistry is not null && OperatingSystem.IsAndroidVersionAtLeast(33))
         {
@@ -350,6 +373,51 @@ public class MikoSurfaceView : SKGLSurfaceView
             SyncBackCallback();
         }
         base.OnDetachedFromWindow();
+    }
+
+    /// <summary>
+    /// 只转发视图所属 Activity 的回调：同一进程里的其他 Activity（相机、分享面板）切到前台时，
+    /// 本 Activity 的 OnPause 才是真正的「离开」，别的 Activity 的事件与本视图无关。
+    /// </summary>
+    private sealed class LifecycleCallbacks(MikoSurfaceView view, global::Android.App.Activity activity)
+        : Java.Lang.Object, global::Android.App.Application.IActivityLifecycleCallbacks, global::Android.Content.IComponentCallbacks2
+    {
+        public void OnActivityPaused(global::Android.App.Activity a)
+        {
+            if (a != activity) return;
+            Log.Info("MikoSurfaceView", "Activity paused: suspending rendering");
+            // 先停引擎侧（视频等），再停 GL 线程；SKGLSurfaceView 的 OnPause 会等渲染线程空闲。
+            view._controller.Suspend();
+            view.OnPause();
+        }
+
+        public void OnActivityResumed(global::Android.App.Activity a)
+        {
+            if (a != activity) return;
+            Log.Info("MikoSurfaceView", "Activity resumed: resuming rendering");
+            view.OnResume();
+            view._controller.Resume();
+            view.RequestRender();
+        }
+
+        public void OnTrimMemory(global::Android.Content.TrimMemory level)
+        {
+            // RunningLow 及以上（前台也吃紧）或 UiHidden（已不可见）都值得放掉 GPU 缓存。
+            if (level >= global::Android.Content.TrimMemory.RunningLow)
+            {
+                view._controller.TrimMemory();
+                view.RequestRender();
+            }
+        }
+
+        public void OnLowMemory() => OnTrimMemory(global::Android.Content.TrimMemory.Complete);
+
+        public void OnConfigurationChanged(global::Android.Content.Res.Configuration newConfig) { }
+        public void OnActivityCreated(global::Android.App.Activity a, Bundle? savedInstanceState) { }
+        public void OnActivityDestroyed(global::Android.App.Activity a) { }
+        public void OnActivitySaveInstanceState(global::Android.App.Activity a, Bundle outState) { }
+        public void OnActivityStarted(global::Android.App.Activity a) { }
+        public void OnActivityStopped(global::Android.App.Activity a) { }
     }
 
     // 处理者在 GL 线程上随组件构建注册/注销；系统回调的注册必须回到 UI 线程。

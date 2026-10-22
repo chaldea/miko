@@ -1585,6 +1585,39 @@ public class MikoEngine
         foreach (var (video, session) in _videoSessions)
             ReleaseVideoSession(video, session);
         _videoSessions.Clear();
+        _suspendedVideoSessions.Clear();
+    }
+
+    // 应用进入后台时被暂停、回到前台需要恢复播放的会话（应用自己暂停的不在其中）。
+    private readonly HashSet<IVideoSession> _suspendedVideoSessions = new();
+
+    /// <summary>
+    /// 应用进入后台：暂停正在播放的视频，并记下它们，以便 <see cref="ResumeMedia"/> 只恢复这些。
+    /// 后台既不出帧也不该继续解码、出声。由 <see cref="Platform.MikoInteractionController.Suspend"/> 调用。
+    /// </summary>
+    internal void SuspendMedia()
+    {
+        foreach (var session in _videoSessions.Values)
+        {
+            if (session.State is not VideoSessionState.Playing) continue;
+            session.Pause();
+            _suspendedVideoSessions.Add(session);
+        }
+    }
+
+    /// <summary>
+    /// 回到前台：恢复 <see cref="SuspendMedia"/> 暂停的会话。后台期间已被回收（元素离开树、
+    /// 换了源）的会话不再在 <c>_videoSessions</c> 里，跳过——它们已经释放。
+    /// </summary>
+    internal void ResumeMedia()
+    {
+        if (_suspendedVideoSessions.Count == 0) return;
+        foreach (var session in _videoSessions.Values)
+        {
+            if (_suspendedVideoSessions.Contains(session))
+                session.Play();
+        }
+        _suspendedVideoSessions.Clear();
     }
 
     // ---------------------------------------------------------------------

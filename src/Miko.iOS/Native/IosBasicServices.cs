@@ -9,6 +9,7 @@ using Miko.Native.Haptics;
 using Miko.Native.ScreenReader;
 using Miko.Native.SplashScreen;
 using Miko.Native.Toast;
+using Miko.Platform;
 using SafariServices;
 using UIKit;
 using DeviceOperatingSystem = Miko.Native.Device.OperatingSystem;
@@ -137,8 +138,14 @@ internal sealed class IosDeviceService : NativeServiceBase, IDeviceService
 internal sealed class IosAppService : NativeServiceBase, IAppService
 {
     private readonly INativeHostContext _hostContext;
+    private readonly MikoInteractionController? _controller;
 
-    public IosAppService(INativeHostContext hostContext) => _hostContext = hostContext;
+    // 控制器可选：只有完整应用（MikoAppBuilder）才有，单独构造的引擎容器里没有它。
+    public IosAppService(INativeHostContext hostContext, MikoInteractionController? controller = null)
+    {
+        _hostContext = hostContext;
+        _controller = controller;
+    }
 
     /// <summary>iOS 不允许应用主动退出（主动调用会被 App Store 审核拒绝）。</summary>
     public Task ExitAppAsync() => UnsupportedAsync();
@@ -174,10 +181,66 @@ internal sealed class IosAppService : NativeServiceBase, IAppService
     public Task<AppLanguageCode> GetAppLanguageAsync()
         => Task.FromResult(new AppLanguageCode(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName));
 
-    /// <summary>生命周期事件需要 <c>AppDelegate</c> 主动转发；当前宿主未接线。</summary>
-    public event Action<AppState>? OnAppStateChange { add { } remove { } }
-    public event Action? OnPause { add { } remove { } }
-    public event Action? OnResume { add { } remove { } }
+    /// <summary>
+    /// 前后台切换来自 <see cref="MikoViewController"/>：它监听 <c>DidEnterBackground</c>/
+    /// <c>WillEnterForeground</c>，经 <see cref="MikoInteractionController.Suspend"/>/
+    /// <see cref="MikoInteractionController.Resume"/> 转到这里，在主线程触发。
+    /// </summary>
+    public event Action<AppState>? OnAppStateChange
+    {
+        add { _appStateChange += value; Sync(); }
+        remove { _appStateChange -= value; Sync(); }
+    }
+
+    public event Action? OnPause
+    {
+        add { _pause += value; Sync(); }
+        remove { _pause -= value; Sync(); }
+    }
+
+    public event Action? OnResume
+    {
+        add { _resume += value; Sync(); }
+        remove { _resume -= value; Sync(); }
+    }
+
+    private Action<AppState>? _appStateChange;
+    private Action? _pause;
+    private Action? _resume;
+    private bool _subscribed;
+
+    // 有订阅者才挂到控制器上，最后一个退订时摘掉（Native 层规则 4）。
+    private void Sync()
+    {
+        if (_controller is null) return;
+        var wanted = _appStateChange is not null || _pause is not null || _resume is not null;
+        if (wanted == _subscribed) return;
+        _subscribed = wanted;
+        if (wanted)
+        {
+            _controller.Suspended += RaisePause;
+            _controller.Resumed += RaiseResume;
+        }
+        else
+        {
+            _controller.Suspended -= RaisePause;
+            _controller.Resumed -= RaiseResume;
+        }
+    }
+
+    private void RaisePause()
+    {
+        _pause?.Invoke();
+        _appStateChange?.Invoke(new AppState(false));
+    }
+
+    private void RaiseResume()
+    {
+        _resume?.Invoke();
+        _appStateChange?.Invoke(new AppState(true));
+    }
+
+    /// <summary>深链接需要 <c>AppDelegate</c>/<c>SceneDelegate</c> 转发 <c>OpenUrl</c>；未接线，不触发。</summary>
     public event Action<UrlOpenEvent>? OnAppUrlOpen { add { } remove { } }
 
     /// <summary>Android 专有。</summary>

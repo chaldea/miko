@@ -52,6 +52,37 @@ public class MikoViewController : UIViewController
 
         _displayLink = CADisplayLink.Create(OnFrame);
         _displayLink.AddToRunLoop(NSRunLoop.Main, NSRunLoopMode.Default);
+
+        // 应用生命周期（Release-1.0.0 A1）。iOS 禁止后台提交 GPU 命令：进入后台先停掉
+        // CADisplayLink 并让引擎暂停视频，回到前台再恢复；内存告警时清掉 Skia 的 GPU 缓存。
+        // UIApplication 的这几个通知在 Scene 生命周期下照样发出（最后一个场景进入后台时）。
+        _lifecycleObservers =
+        [
+            UIApplication.Notifications.ObserveDidEnterBackground((_, _) => OnDidEnterBackground()),
+            UIApplication.Notifications.ObserveWillEnterForeground((_, _) => OnWillEnterForeground()),
+            UIApplication.Notifications.ObserveDidReceiveMemoryWarning((_, _) => OnMemoryWarning()),
+        ];
+    }
+
+    private NSObject[] _lifecycleObservers = [];
+
+    private void OnDidEnterBackground()
+    {
+        if (_displayLink is not null) _displayLink.Paused = true;
+        _context.Controller.Suspend();
+    }
+
+    private void OnWillEnterForeground()
+    {
+        _context.Controller.Resume();
+        if (_displayLink is not null) _displayLink.Paused = false;
+        _metalView?.SetNeedsDisplay();
+    }
+
+    private void OnMemoryWarning()
+    {
+        // 通知在主线程发出，Metal 视图也在主线程绘制，可以直接清理它的 GPU 上下文。
+        _metalView?.TrimGpuResources();
     }
 
     /// <inheritdoc />
@@ -108,6 +139,9 @@ public class MikoViewController : UIViewController
     {
         if (disposing)
         {
+            foreach (var observer in _lifecycleObservers)
+                observer.Dispose();
+            _lifecycleObservers = [];
             _displayLink?.Invalidate();
             _displayLink?.Dispose();
             _displayLink = null;
