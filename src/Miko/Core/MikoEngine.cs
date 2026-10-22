@@ -245,7 +245,7 @@ public class MikoEngine
         // 重排一遍——每次导航到带图的页面都要排两次。
         SyncImageSources(root);
 
-        _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
+        _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, LayoutViewportHeight, LayoutSafeArea);
 
         // Restore scroll positions from old layout (ISSUE-092)
         if (UsesStructuralScrollRestore(transition))
@@ -260,7 +260,7 @@ public class MikoEngine
             bool transitionsTriggered = DetectAndTriggerTransitions(root, oldStyles);
             if (transitionsTriggered)
             {
-                _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, viewportHeight, _safeArea);
+                _currentLayout = _layoutEngine.Layout(root, _styleSheets, viewportWidth, LayoutViewportHeight, LayoutSafeArea);
                 // Restore scroll state again after re-layout
                 if (UsesStructuralScrollRestore(transition))
                     RestoreScrollState(oldLayout, _currentLayout, IsCrossPageNavigation(transition));
@@ -458,7 +458,7 @@ public class MikoEngine
             if (_dirtyManager.HasDirtyRegions())
             {
                 var oldLayout = _currentLayout;
-                _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
+                _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
                 RestoreScrollState(oldLayout, _currentLayout);
             }
             RenderTransitionFrame();
@@ -470,7 +470,7 @@ public class MikoEngine
         {
             var dirtyRegions = _dirtyManager.GetDirtyRegions();
             var oldLayout = _currentLayout;
-            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
+            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
             RestoreScrollState(oldLayout, _currentLayout);
 
             // 脏区域过多时，增量渲染会退化为多次全树遍历，成本超过一次全量渲染，
@@ -525,7 +525,7 @@ public class MikoEngine
         // 直接复用现有布局树。此时不可能有新的 transition 触发（transition 由样式变化引起，
         // 而任何样式变化都会递增变更版本号），故一并跳过 transition 检测的整树扫描。
         if (_currentLayout != null
-            && _layoutEngine.IsLayoutCurrent(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea))
+            && _layoutEngine.IsLayoutCurrent(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea))
         {
             // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
             SyncVideoSessions(_root);
@@ -541,13 +541,13 @@ public class MikoEngine
         // 同 Initialize：先同步图片源再布局，缓存命中的图片同步写入的内禀尺寸就能赶上本次布局，
         // 而不是让它立刻过期、下一帧再排一遍（ISSUE-146）。
         SyncImageSources(_root);
-        _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
+        _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
 
         bool transitionsTriggered = DetectAndTriggerTransitions(_root, oldStyles);
         if (transitionsTriggered)
         {
             // 重新布局，使用 transition 起始值（已写入 inline style）
-            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, _viewportHeight, _safeArea);
+            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
         }
 
         // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
@@ -644,7 +644,7 @@ public class MikoEngine
         {
             if (HasPendingRenderWork) return true;
             // 布局输入已变（DOM/样式/视口/安全区）→ 需要重排重绘
-            if (!_layoutEngine.IsLayoutCurrent(_root!, _styleSheets, _viewportWidth, _viewportHeight, _safeArea)) return true;
+            if (!_layoutEngine.IsLayoutCurrent(_root!, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea)) return true;
             return false;
         }
     }
@@ -778,6 +778,90 @@ public class MikoEngine
 
     /// <summary>当前安全区边距（逻辑像素）。</summary>
     public SafeAreaInsets SafeAreaInsets => _safeArea;
+
+    private float _keyboardInset;
+
+    /// <summary>软键盘盖住的视口底部高度（逻辑像素），没有键盘时为 0。</summary>
+    public float KeyboardInset => _keyboardInset;
+
+    /// <summary>
+    /// 设置软键盘高度（逻辑像素，从视口底边量起，含被它盖住的底部安全区）。Release-1.0.0 A2。
+    ///
+    /// <para>布局按「视口减去键盘」排：根内容整体变矮，固定在底部的工具栏（<c>IonFooter</c>）、
+    /// 滚动容器的可视区都落在键盘上方——即 Android <c>adjustResize</c> / Capacitor 默认的 resize 行为。
+    /// 键盘打开期间底部安全区记为 0：Home 指示条在键盘下面，再留一条空白只会把内容顶得更高。
+    /// 与安全区分开记，是因为两者的生命周期和含义都不同，宿主也是分别得到这两个值的。</para>
+    /// </summary>
+    public void SetKeyboardInset(float height)
+    {
+        height = Math.Max(0f, height);
+        if (Math.Abs(_keyboardInset - height) < 0.5f) return;
+        _keyboardInset = height;
+
+        CancelNavigationTransition();
+        if (_root != null)
+            InvalidateElement(_root);
+    }
+
+    /// <summary>
+    /// 把 <paramref name="element"/> 滚进最近的纵向滚动容器的可视区（对应 Ionic 的 scroll-assist）：
+    /// 元素已完全可见时不动，否则只滚到刚好露出、四周留 <paramref name="margin"/>。
+    /// 软键盘打开、布局变矮后，聚焦的输入框可能已落到可视区之外，宿主据此把它带回来。
+    /// 返回是否滚动了。需要当前布局；滚动后派发 scroll 事件并标脏。
+    /// </summary>
+    public bool ScrollIntoViewIfNeeded(Element element, float margin = 16f)
+    {
+        var box = element.LayoutBox;
+        if (_currentLayout == null || box == null) return false;
+
+        for (var current = element.Parent; current != null; current = current.Parent)
+        {
+            var scroller = current.LayoutBox;
+            if (scroller == null || !scroller.HasVerticalScrollbar ||
+                scroller.ComputedStyle.OverflowY is not (Overflow.Auto or Overflow.Scroll))
+                continue;
+
+            // 布局坐标不含滚动。元素在屏幕上的位置 = 布局位置 − 其所有滚动祖先的 ScrollTop；
+            // 滚动容器自身的可视区则只扣它外层的滚动。
+            float elementTop = box.BoxModel.BorderBox.Top - AccumulatedScrollTop(element);
+            float elementBottom = elementTop + box.BoxModel.BorderBox.Height;
+            var padding = scroller.BoxModel.PaddingBox;
+            float viewTop = padding.Top - AccumulatedScrollTop(current);
+            float viewBottom = viewTop + padding.Height - scroller.HorizontalScrollbarThickness;
+
+            float delta = 0f;
+            if (elementBottom + margin > viewBottom)
+                delta = elementBottom + margin - viewBottom;
+            if (elementTop - margin < viewTop + delta)
+                delta = elementTop - margin - viewTop;   // 元素比可视区还高时，以顶部为准
+            if (Math.Abs(delta) < 0.5f) return false;
+
+            float oldLeft = scroller.ScrollLeft, oldTop = scroller.ScrollTop;
+            float maxScrollTop = Math.Max(0f, scroller.ScrollableContentHeight - padding.Height
+                + scroller.HorizontalScrollbarThickness);
+            scroller.ScrollTop = Math.Clamp(oldTop + delta, 0f, maxScrollTop);
+            if (Math.Abs(scroller.ScrollTop - oldTop) < 0.01f) return false;
+
+            DispatchScrollEvent(scroller, oldLeft, oldTop);
+            return true;
+        }
+        return false;
+    }
+
+    private static float AccumulatedScrollTop(Element element)
+    {
+        float sum = 0f;
+        for (var current = element.Parent; current != null; current = current.Parent)
+        {
+            if (current.LayoutBox is { } b)
+                sum += b.ScrollTop + b.OverscrollY;
+        }
+        return sum;
+    }
+
+    // 布局实际使用的视口高度与安全区：键盘打开时扣掉键盘，底部安全区归零（见 SetKeyboardInset）。
+    private float LayoutViewportHeight => Math.Max(0f, _viewportHeight - _keyboardInset);
+    private SafeAreaInsets LayoutSafeArea => _keyboardInset > 0f ? _safeArea with { Bottom = 0f } : _safeArea;
 
     /// <summary>
     /// 设置安全区边距（逻辑像素）。由平台宿主从系统状态栏/导航栏获取后传入。

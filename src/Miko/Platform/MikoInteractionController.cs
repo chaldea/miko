@@ -423,6 +423,7 @@ public sealed class MikoInteractionController
 
                 Update(deltaTime);
                 render(canvas);
+                RevealFocusedElementIfRequested();
                 // Layout may have moved after a rebuild or scroll. Keep the native candidate
                 // window anchored to the current input rectangle instead of (0, 0).
                 PublishInputMethodState();
@@ -454,6 +455,38 @@ public sealed class MikoInteractionController
         {
             _engine.SetSafeAreaInsets(new SafeAreaInsets(left, top, right, bottom));
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // 软键盘（Release-1.0.0 A2）
+    // ---------------------------------------------------------------------
+
+    private bool _revealFocusedRequested;
+
+    /// <summary>
+    /// 软键盘高度变化（逻辑像素，从视口底边量起；收起时为 0）。平台宿主从系统的键盘 inset /
+    /// frame 通知换算后调用。布局按视口减去键盘重排（见 <see cref="MikoEngine.SetKeyboardInset"/>），
+    /// 键盘升起或变高时，下一帧把聚焦的输入框滚进可视区。
+    /// </summary>
+    public void SetKeyboardInset(float height)
+    {
+        lock (_sync)
+        {
+            bool grew = height > _engine.KeyboardInset + 0.5f;
+            _engine.SetKeyboardInset(height);
+            if (grew && FocusedElement is ITextEditable { IsEditable: true })
+                _revealFocusedRequested = true;
+        }
+    }
+
+    // 在本帧绘制之后执行：只有按新键盘高度排出的布局里才知道可视区缩到了哪里。
+    // 滚动会标脏并请求下一帧，输入框在那一帧露出来——键盘本身也还在升起的动画里。
+    private void RevealFocusedElementIfRequested()
+    {
+        if (!_revealFocusedRequested) return;
+        _revealFocusedRequested = false;
+        if (FocusedElement is { } focused)
+            _engine.ScrollIntoViewIfNeeded(focused);
     }
 
     // ---------------------------------------------------------------------
@@ -1088,6 +1121,11 @@ public sealed class MikoInteractionController
                 Bubbles = false
             };
             DispatchWithSyncContext(newFocus, EventTypes.Focus, focusArgs);
+
+            // 键盘已经开着时换到另一个输入框（例如「下一项」）：键盘高度不变、不会再触发
+            // SetKeyboardInset，新的输入框却可能就在键盘底下。
+            if (_engine.KeyboardInset > 0f && newFocus is ITextEditable { IsEditable: true })
+                _revealFocusedRequested = true;
         }
 
         PublishInputMethodState();

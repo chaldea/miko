@@ -126,6 +126,12 @@ public class MikoSurfaceView : SKGLSurfaceView
                 top = bars.Top;
                 right = bars.Right;
                 bottom = bars.Bottom;
+
+                // 软键盘（Release-1.0.0 A2）。edge-to-edge 下 adjustResize 不再缩小窗口，键盘高度只经
+                // Ime inset 报出来（从窗口底边量起，含导航栏）；推给引擎，布局排到键盘上方。
+                // API 26–29 没有 Ime 类型，那里的窗口仍由 windowSoftInputMode 处理。
+                var ime = insets.GetInsets(WindowInsets.Type.Ime());
+                _controller.SetKeyboardInset(ime.Bottom / _density);
             }
             else
             {

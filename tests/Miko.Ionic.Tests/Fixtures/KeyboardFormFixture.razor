@@ -1,0 +1,19 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* Release-1.0.0 A2: a form page whose last field sits low on the screen, with a footer bar, as on a
+   login or comment page. The soft keyboard covers that field unless the page is laid out above it. *@
+<IonApp>
+    <IonPage>
+        <IonHeader>
+            <IonToolbar><IonTitle>Form</IonTitle></IonToolbar>
+        </IonHeader>
+        <IonContent>
+            <div class="spacer"></div>
+            <IonInput Class="last-field" Label="Comment" />
+        </IonContent>
+        <IonFooter>
+            <IonToolbar><IonTitle Class="footer-title">Footer</IonTitle></IonToolbar>
+        </IonFooter>
+    </IonPage>
+</IonApp>

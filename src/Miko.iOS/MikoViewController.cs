@@ -61,7 +61,25 @@ public class MikoViewController : UIViewController
             UIApplication.Notifications.ObserveDidEnterBackground((_, _) => OnDidEnterBackground()),
             UIApplication.Notifications.ObserveWillEnterForeground((_, _) => OnWillEnterForeground()),
             UIApplication.Notifications.ObserveDidReceiveMemoryWarning((_, _) => OnMemoryWarning()),
+            // 软键盘（Release-1.0.0 A2）：frame 变化覆盖弹出、收起、切换输入法与悬浮键盘。
+            UIKeyboard.Notifications.ObserveWillChangeFrame((_, e) => OnKeyboardFrameChange(e.FrameEnd)),
         ];
+    }
+
+    /// <summary>
+    /// 键盘盖住视图底部的高度（逻辑点）推给引擎，布局排到键盘上方。frame 是屏幕坐标，先换算到本视图；
+    /// 收起、悬浮（iPad 浮动键盘）或外接键盘时与视图不相交，高度为 0。
+    /// </summary>
+    private void OnKeyboardFrameChange(CoreGraphics.CGRect keyboardFrameInScreen)
+    {
+        var view = View;
+        if (view is null) return;
+        var frame = view.ConvertRectFromCoordinateSpace(keyboardFrameInScreen, UIScreen.MainScreen.CoordinateSpace);
+        var overlap = frame.IntersectsWith(view.Bounds) && frame.Width >= view.Bounds.Width
+            ? (float)Math.Max(0, view.Bounds.Bottom - frame.Top)
+            : 0f;
+        _context.Controller.SetKeyboardInset(overlap);
+        _metalView?.SetNeedsDisplay();
     }
 
     private NSObject[] _lifecycleObservers = [];
