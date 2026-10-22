@@ -19,14 +19,38 @@ internal sealed class GlWindowGraphics(IWindow window) : SilkWindowGraphics
 
     public override void Initialize()
     {
+        // 失败要在这里说清楚原因：Linux 上 GLFW 的错误不会变成异常（Silk.NET 只在 Windows 抛），
+        // 拿不到上下文时后面只会报一句笼统的「图形未初始化」，或者直接原生崩溃。
+        var glContext = window.GLContext ?? throw new InvalidOperationException(
+            "The window has no OpenGL context. Miko's desktop host needs OpenGL 3.3 or later; " +
+            "on Linux check the GPU driver (glxinfo -B / eglinfo -B) and, under Wayland, try XDG_SESSION_TYPE=x11." +
+            (GlfwDiagnostics.LastError is { } glfw ? $" Last GLFW error: {glfw}" : ""));
         _gl = window.CreateOpenGL();
 
         var grInterface = GRGlInterface.Create(name =>
-            window.GLContext!.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
+            glContext.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero)
+            ?? throw new InvalidOperationException(
+                $"Skia could not load the OpenGL entry points ({DescribeGl()}).");
 
-        Context = GRContext.CreateGl(grInterface);
+        Context = GRContext.CreateGl(grInterface)
+            ?? throw new InvalidOperationException(
+                $"Skia could not create an OpenGL context ({DescribeGl()}). Miko needs OpenGL 3.3 or later.");
         GpuResourceCache.Configure(Context);
         _renderTarget = new WindowRenderTarget(Context);
+    }
+
+    private string DescribeGl()
+    {
+        string gl;
+        try
+        {
+            gl = $"GL_VERSION={_gl?.GetStringS(StringName.Version)}, GL_RENDERER={_gl?.GetStringS(StringName.Renderer)}";
+        }
+        catch (Exception ex)
+        {
+            gl = $"GL strings unavailable: {ex.Message}";
+        }
+        return GlfwDiagnostics.LastError is { } glfw ? $"{gl}; last GLFW error: {glfw}" : gl;
     }
 
     public override SKSurface? BeginFrame(int width, int height)

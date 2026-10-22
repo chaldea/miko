@@ -252,6 +252,8 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
             ShouldSwapAutomatically = false,
         };
 
+        // 与桌面宿主相同：Linux 上让 GLFW 的错误可见。
+        Miko.Windowing.Common.GlfwDiagnostics.Install();
         _window = Window.Create(options);
         _window.Load += OnLoad;
         _window.Resize += OnResize;

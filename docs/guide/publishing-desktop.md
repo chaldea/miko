@@ -74,7 +74,7 @@ builder.AddDevTools();
 #endif
 ```
 
-Release builds therefore contain neither `Miko.DevTools` nor its F12 inspector. (Silk.NET and SDL2 are still in the output: they are the desktop host itself, `Miko.Windowing`.)
+Release builds therefore contain neither `Miko.DevTools` nor its F12 inspector. (Silk.NET and its GLFW native library are still in the output: they are the desktop host itself, `Miko.Windowing`.)
 
 The template code uses `//-:cnd:noEmit` markers around `#if DEBUG` so that `dotnet new` keeps the directive; in your own app a plain `#if DEBUG` is enough.
 

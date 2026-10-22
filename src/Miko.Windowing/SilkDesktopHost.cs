@@ -109,6 +109,8 @@ public sealed class SilkDesktopHost
             ShouldSwapAutomatically = false,
         };
 
+        // Linux 上 GLFW 的错误默认被静默吞掉（见 GlfwDiagnostics）：先接上日志，启动失败才有原因可查。
+        Common.GlfwDiagnostics.Install(_logger);
         _window = Window.Create(options);
         _window.Load += OnLoad;
         _window.Resize += OnResize;
