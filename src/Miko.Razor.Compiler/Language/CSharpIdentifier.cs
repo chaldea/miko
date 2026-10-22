@@ -41,6 +41,32 @@ internal static class CSharpIdentifier
         return builder.ToString();
     }
 
+    /// <summary>
+    /// Sanitizes each dot-separated segment of a namespace, as components get theirs
+    /// (NamespaceComputer): an MSBuild RootNamespace of <c>my-app</c> becomes <c>my_app</c>.
+    /// Code that Miko generates beside the components must use the same form.
+    /// </summary>
+    public static string SanitizeNamespace(string namespaceName)
+    {
+        using var _ = StringBuilderPool.GetPooledObject(out var builder);
+        foreach (var segment in namespaceName.Split('.'))
+        {
+            if (segment.Length == 0)
+            {
+                continue;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append('.');
+            }
+
+            AppendSanitized(builder, segment.AsSpan());
+        }
+
+        return builder.ToString();
+    }
+
     public static void AppendSanitized(StringBuilder builder, ReadOnlySpan<char> inputName)
     {
         if (inputName.Length == 0)
