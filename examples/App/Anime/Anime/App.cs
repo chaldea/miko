@@ -1,7 +1,6 @@
 // The Chaldea licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Miko.DevTools;
 using Miko.Hosting;
 using Miko.Ionic;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,7 +33,6 @@ public static class App
         // Phone-portrait viewport showcases the Ionic mobile layout.
         builder.UseSize(390, 844);
 
-        builder.AddDevTools();
         builder.AddIonic(options => options.Theme = AppTheme.Create());
         builder.Services.AddMikoPlayer();
         builder.Services.AddSingleton<MockAnimeStore>();

@@ -1,3 +1,4 @@
+using Miko.DevTools;
 using Miko.McpServer;
 using Miko.Simulator;
 using Miko.Simulator.Native;
@@ -17,10 +18,13 @@ public static class Program
         //
         // UseSimulatorNative() supplies simulated Miko.Native capabilities and platform services,
         // logging calls such as component haptics so they can be observed on the desktop.
+        //
+        // AddDevTools() enables the inspector window for debugging the simulator itself.
         var context = App.CreateContext(builder =>
         {
             builder.AddMikoMcpServer();
             builder.UseSimulatorNative();
+            builder.AddDevTools();
         });
 
         // Hot reload is wired up inside the shared app assembly, same as the desktop head.

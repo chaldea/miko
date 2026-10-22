@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Anime\Anime.csproj" />
     <ProjectReference Include="..\..\..\..\src\Miko.Simulator\Miko.Simulator.csproj" />
     <ProjectReference Include="..\..\..\..\src\Miko.McpServer\Miko.McpServer.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
   </ItemGroup>
 
 </Project>
