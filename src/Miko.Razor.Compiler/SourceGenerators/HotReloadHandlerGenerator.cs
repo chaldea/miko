@@ -25,12 +25,22 @@ public class HotReloadHandlerGenerator : IIncrementalGenerator
                 transform: static (ctx, _) => GetSemanticTargetForGeneration(ctx))
             .Where(static m => m is not null);
 
+        // The MSBuild root namespace, as GeneratedRouteRegistration uses. It differs from the
+        // assembly name when the project name is not a valid identifier: `my-app` has the
+        // root namespace `my_app`, and `namespace my-app` would not compile.
+        var rootNamespace = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+            options.GlobalOptions.TryGetValue("build_property.RootNamespace", out var value) && !string.IsNullOrWhiteSpace(value)
+                ? value
+                : null);
+
         // Combine with compilation to get namespace and assembly info
-        var compilationAndInvocations = context.CompilationProvider.Combine(enableHotReloadInvocations.Collect());
+        var compilationAndInvocations = context.CompilationProvider
+            .Combine(enableHotReloadInvocations.Collect())
+            .Combine(rootNamespace);
 
         // Generate the hot reload handler if any EnableHotReload calls are found
         context.RegisterSourceOutput(compilationAndInvocations,
-            static (spc, source) => Execute(source.Left, source.Right!, spc));
+            static (spc, source) => Execute(source.Left.Left, source.Left.Right!, source.Right, spc));
     }
 
     private static bool IsEnableHotReloadInvocation(SyntaxNode node)
@@ -67,15 +77,16 @@ public class HotReloadHandlerGenerator : IIncrementalGenerator
         return methodSymbol.Name; // Return a marker indicating we found it
     }
 
-    private static void Execute(Compilation compilation, ImmutableArray<string?> invocations, SourceProductionContext context)
+    private static void Execute(Compilation compilation, ImmutableArray<string?> invocations, string? buildRootNamespace, SourceProductionContext context)
     {
         // If no EnableHotReload() calls found, don't generate anything
         if (invocations.IsEmpty || invocations.All(i => i is null))
             return;
 
-        // Get the root namespace from the assembly
+        // Prefer the MSBuild root namespace; fall back to the assembly name for projects that
+        // do not expose it to the compiler
         var assemblyName = compilation.AssemblyName ?? "Application";
-        var rootNamespace = GetRootNamespace(compilation) ?? assemblyName.Replace(".", "_");
+        var rootNamespace = buildRootNamespace ?? GetRootNamespace(compilation) ?? assemblyName.Replace(".", "_");
 
         // Generate the hot reload handler
         var source = GenerateHotReloadHandler(rootNamespace);

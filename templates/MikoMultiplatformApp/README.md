@@ -22,6 +22,12 @@ for its platform.
 The template accepts `--layout blank`, `tabs`, `sidemenu`, `list`, or `full`. The `full`
 layout includes the Ionic component showcase and its embedded demo assets.
 
+## Application ID
+
+The Android `ApplicationId` and the iOS `ApplicationId`/`CFBundleIdentifier` are both
+`com.miko.multiplatformapp`. Pass `--appId com.example.myapp` to `dotnet new` to choose your own; to change
+it later, edit all three places. Store submissions need an ID under a domain you own.
+
 ## Run
 
 Desktop:
