@@ -6,7 +6,12 @@ official templates.
 ## Requirements
 
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/) or later
-- A platform supported by SkiaSharp (Windows, macOS, Linux, Android, or iOS)
+- A platform supported by SkiaSharp:
+  - **Windows** — Windows 10 or 11
+  - **macOS** — Current macOS release
+  - **Linux** — glibc-based distros (Ubuntu, Debian, Fedora, etc.). Desktop apps require a working OpenGL driver; `libSkiaSharp.so` is shipped via `SkiaSharp.NativeAssets.Linux`.
+  - **Android** — API 26 (Android 8.0) or later, targeting API 36
+  - **iOS** — iOS 15.0 or later
 
 For Android / iOS heads you also need the corresponding .NET workloads
 (`dotnet workload install android ios`).
@@ -16,8 +21,8 @@ For Android / iOS heads you also need the corresponding .NET workloads
 The fastest way to start is the Razor app template:
 
 ```bash
-# Install the templates
-dotnet new install Miko.Templates
+# Install the templates (preview version must be specified explicitly)
+dotnet new install Miko.Templates::1.0.0-preview.1
 
 # Scaffold and run a new app
 dotnet new miko-razor -o MyApp
