@@ -34,7 +34,7 @@ When scaffolding, `--agent` selects what lands in the app (via the `.template.co
 modifiers):
 
 ```bash
-dotnet new miko-multiplatform --layout tabs --agent claude -o MyApp
+dotnet new miko-multiplatform --layout=tabs --agent claude -o MyApp
 dotnet new miko-razor --agent codex  -o MyApp
 dotnet new miko-razor --agent cursor -o MyApp
 ```

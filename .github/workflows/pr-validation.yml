@@ -41,3 +41,45 @@ jobs:
       # Release output from the step above instead of compiling the solution a second time.
       - name: Run tests
         run: dotnet test miko.slnx -c Release --no-build
+
+  templates:
+    name: Template end-to-end
+    # Scaffolds every template/layout from the packed packages and builds each head
+    # (Desktop, Simulator, Android, iOS ios-arm64 unsigned) in Release — what a user does
+    # after `dotnet new install`, which the unit tests never exercise.
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install mobile workloads
+        run: dotnet workload install android ios
+
+      - name: Scaffold and build templates
+        run: tools/template-e2e.sh
+
+  linux-desktop:
+    name: Linux desktop publish
+    # A Linux desktop app must carry libSkiaSharp.so; SkiaSharp's own dependency group only
+    # brings the macOS and Windows natives (Release-1.0.0 B3).
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Scaffold and publish the desktop head for linux-x64
+        run: |
+          HEADS="Desktop" LAYOUTS="blank" WORK_DIR="$RUNNER_TEMP/e2e" tools/template-e2e.sh
+          app="$RUNNER_TEMP/e2e/apps/multiplatform-blank"
+          dotnet publish "$app"/*.Desktop/*.Desktop.csproj -c Release -r linux-x64 --self-contained false -o "$RUNNER_TEMP/publish"
+          test -f "$RUNNER_TEMP/publish/libSkiaSharp.so" || { echo "::error::libSkiaSharp.so missing from the linux-x64 publish output"; exit 1; }

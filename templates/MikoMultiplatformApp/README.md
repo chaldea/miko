@@ -31,7 +31,8 @@ their file names and pixel sizes:
 
 ## Layouts
 
-The template accepts `--layout blank`, `tabs`, `sidemenu`, `list`, or `full`. The `full`
+The template accepts `--layout=blank`, `tabs`, `sidemenu`, `list`, or `full`; write it with `=`,
+because `dotnet new` reads a separate `list` argument as its own `list` command. The `full`
 layout includes the Ionic component showcase and its embedded demo assets.
 
 ## Application ID

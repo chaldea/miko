@@ -35,11 +35,11 @@ The template accepts a `--layout` option to scaffold a starting UI. Every layout
 the [Ionic components](../components/ionic/index.md) (`Miko.Ionic`):
 
 ```bash
-dotnet new miko-razor --layout blank     -o MyApp   # empty page (default)
-dotnet new miko-razor --layout tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
-dotnet new miko-razor --layout sidemenu  -o MyApp   # Ionic side-menu drawer over a page
-dotnet new miko-razor --layout list      -o MyApp   # Ionic list page
-dotnet new miko-razor --layout full      -o MyApp   # showcase with a demo page per Ionic component
+dotnet new miko-razor --layout=blank     -o MyApp   # empty page (default)
+dotnet new miko-razor --layout=tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
+dotnet new miko-razor --layout=sidemenu  -o MyApp   # Ionic side-menu drawer over a page
+dotnet new miko-razor --layout=list      -o MyApp   # Ionic list page
+dotnet new miko-razor --layout=full      -o MyApp   # showcase with a demo page per Ionic component
 ```
 
 ## Working with an AI agent

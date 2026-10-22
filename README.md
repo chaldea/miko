@@ -121,11 +121,11 @@ Ionic component tree; `blank` is the default, while `tabs`, `sidemenu`, and `lis
 common shells and `full` copies the complete Ionic component showcase:
 
 ```bash
-dotnet new miko-razor --layout blank     -o MyApp   # empty page (default)
-dotnet new miko-razor --layout tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
-dotnet new miko-razor --layout sidemenu  -o MyApp   # Ionic side-menu drawer over a page
-dotnet new miko-razor --layout list      -o MyApp   # Ionic list page
-dotnet new miko-razor --layout full      -o MyApp   # all Ionic component demos
+dotnet new miko-razor --layout=blank     -o MyApp   # empty page (default)
+dotnet new miko-razor --layout=tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
+dotnet new miko-razor --layout=sidemenu  -o MyApp   # Ionic side-menu drawer over a page
+dotnet new miko-razor --layout=list      -o MyApp   # Ionic list page
+dotnet new miko-razor --layout=full      -o MyApp   # all Ionic component demos
 ```
 
 For a cross-platform app (Desktop + Android + iOS), use the multiplatform template instead:
@@ -169,7 +169,7 @@ Miko is designed to be built **with an AI coding agent**, not just by hand. Scaf
 with the `--agent` option and the agent gets everything it needs to write and debug Miko UI:
 
 ```bash
-dotnet new miko-multiplatform --layout tabs --agent claude -o MyApp
+dotnet new miko-multiplatform --layout=tabs --agent claude -o MyApp
 ```
 
 `--agent` accepts `claude`, `codex`, or `cursor` (default `none`). Each scaffolds two things:
