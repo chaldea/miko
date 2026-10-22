@@ -2,34 +2,14 @@
 
 The repository's [`examples/`](https://github.com/chaldea/miko/tree/main/examples)
 folder contains runnable sample apps, grouped by theme. Each shows a different aspect of
-the framework — from a static render-to-PNG console app to full cross-platform Razor apps.
+the framework — from cross-platform Razor apps to async HTTP communication and media playback.
 
 | Folder | What it shows |
 | --- | --- |
-| [Bootstrap](#bootstrap) | A Bootstrap-styled component gallery hosted from many platform heads. |
 | [Multiplatform](#multiplatform) | Starter templates with a shared Razor core and Android / iOS / Desktop heads. |
 | [Windows](#windows) | The same starter templates as single Windows desktop projects. |
 | [Async](#async) | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls. |
 | [Media](#media) | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
-
-## Bootstrap
-
-A gallery of Bootstrap-inspired components (buttons, forms, tables, lists, icons,
-animations) implemented once and hosted from several platform "heads". The shared UI lives
-in `MikoApp1/`; each sibling project is a thin host (Console, Razor desktop, WinUI,
-Android, iOS).
-
-```bash
-# Run the console renderer (writes output.png showing all component variants)
-dotnet run --project examples/Bootstrap/MikoApp1.Console/MikoApp1.Console.csproj
-
-# Run the desktop window
-dotnet run --project examples/Bootstrap/MikoApp1.Razor/MikoApp1.Razor.csproj
-```
-
-Demonstrates: authoring a reusable component library and hosting it from multiple entry
-points; a Bootstrap-inspired palette; routing and a shared `MainLayout`; rendering both to
-an image file and to a live window.
 
 ## Multiplatform
 

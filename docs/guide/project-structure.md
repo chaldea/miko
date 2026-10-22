@@ -30,7 +30,7 @@ MyApp/
 ```
 
 The shared project references only the core `Miko` (plus component packages such as
-`Miko.Bootstrap` / `Miko.Ionic`). Each host project owns the window / GL surface / native
+`Miko.Ionic`). Each host project owns the window / GL surface / native
 input for its platform and drives the render loop:
 
 ```csharp
@@ -77,7 +77,6 @@ miko/
 │   ├── Miko.Windowing/         # Desktop host (Windows/Linux/macOS, Silk.NET)
 │   ├── Miko.Android/           # Android host
 │   ├── Miko.iOS/               # iOS host
-│   ├── Miko.Bootstrap/         # Bootstrap-style Razor component library
 │   ├── Miko.Ionic/             # Ionic-style Razor component library
 │   ├── Miko.DevTools/          # Runtime DOM / layout inspector
 │   └── Miko.Razor.Compiler/    # Source generator for .razor components & routes
