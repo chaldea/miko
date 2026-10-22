@@ -14,7 +14,6 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Android</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
     <Description>Android host (SkiaSharp GL surface + touch input) for the Miko rendering engine.</Description>
     <PackageTags>miko;android;skiasharp;ui</PackageTags>

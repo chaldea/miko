@@ -9,7 +9,6 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Testing</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
     <Description>Testing utilities for Miko - includes component testing, layout testing, and more</Description>
     <PackageTags>miko;testing;unit-test;components;razor</PackageTags>

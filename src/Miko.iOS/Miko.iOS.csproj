@@ -7,7 +7,6 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko.iOS</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
     <Description>iOS host (Metal view + touch input) for the Miko rendering engine.</Description>
     <PackageTags>miko;ios;skiasharp;ui</PackageTags>

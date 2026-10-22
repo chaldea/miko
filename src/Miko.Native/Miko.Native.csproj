@@ -7,7 +7,6 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Native</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
     <Description>Cross-platform native capability abstractions for Miko (app, camera, clipboard, filesystem, geolocation, notifications, and more). Platform packages supply the implementations.</Description>
     <PackageTags>miko;native;platform;capacitor;abstractions</PackageTags>

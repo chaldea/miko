@@ -11,7 +11,6 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Ionic</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
     <Description>Ionic-style component library and styles for Miko, the lightweight DOM rendering engine.</Description>
     <PackageTags>miko;ionic;components;ui;razor</PackageTags>

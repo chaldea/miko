@@ -10,4 +10,15 @@
     <PackageOutputPath>$(MSBuildThisFileDirectory)packages</PackageOutputPath>
   </PropertyGroup>
 
+  <!--
+    Centralized versioning for all packages.
+    - VersionPrefix: base version (1.0.0)
+    - VersionSuffix: defaults to "dev" for local builds, CI overrides with preview/release tags
+    - Local builds produce 1.0.0-dev, which sorts lower than 1.0.0-preview.N in NuGet
+  -->
+  <PropertyGroup>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''">dev</VersionSuffix>
+  </PropertyGroup>
+
 </Project>
