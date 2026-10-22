@@ -4,7 +4,7 @@
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <TargetFramework>net10.0</TargetFramework>
-    <Description>Razor is a markup syntax for adding server-side logic to web pages. This package contains the Razor compiler.</Description>
+    <Description>Razor source generator for Miko: compiles .razor components into native Miko element trees instead of HTML. A fork of the ASP.NET Core Razor compiler (dotnet/razor, MIT); bundles Roslyn and Microsoft.Extensions.ObjectPool. See THIRD-PARTY-NOTICES.txt.</Description>
     <ExcludeFromSourceOnlyBuild>false</ExcludeFromSourceOnlyBuild>
     <IsPackable>true</IsPackable>
     <IsShippingAssembly>true</IsShippingAssembly>

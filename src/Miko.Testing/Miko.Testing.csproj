@@ -10,7 +10,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Testing</PackageId>
     <Authors>Miko</Authors>
-    <Description>Testing utilities for Miko - includes component testing, layout testing, and more</Description>
+    <Description>Testing utilities for Miko: render components and inspect layout in unit tests. Preview; the API may change.</Description>
     <PackageTags>miko;testing;unit-test;components;razor</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>

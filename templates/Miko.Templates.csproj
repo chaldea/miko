@@ -68,6 +68,15 @@
              PackagePath="content\MikoMultiplatformApp\.miko\docs\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!--
+    Scaffolded apps embed Ionicons and the .NET MAUI app icon, so they carry the notices too.
+    The package-root copy comes from Directory.Build.props.
+  -->
+  <ItemGroup>
+    <Content Include="..\THIRD-PARTY-NOTICES.txt" PackagePath="content\MikoRazorApp\THIRD-PARTY-NOTICES.txt" />
+    <Content Include="..\THIRD-PARTY-NOTICES.txt" PackagePath="content\MikoMultiplatformApp\THIRD-PARTY-NOTICES.txt" />
+  </ItemGroup>
+
   <!-- This is a content-only package; nothing here should be compiled. -->
   <ItemGroup>
     <Compile Remove="**\*" />

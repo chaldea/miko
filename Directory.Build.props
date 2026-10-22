@@ -21,4 +21,13 @@
     <VersionSuffix Condition="'$(VersionSuffix)' == ''">dev</VersionSuffix>
   </PropertyGroup>
 
+  <!--
+    Every package carries the third-party notices (Ionicons, Ionic Framework, the forked Razor
+    compiler and its bundled Roslyn/ObjectPool, the template app icon). Pack metadata is ignored
+    by projects that are not packed.
+  -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
 </Project>
