@@ -28,7 +28,7 @@ namespace Miko.iOS;
 /// <para>按需出帧：视图保持暂停，只在 <see cref="UIView.SetNeedsDisplay"/> 之后的显示周期绘制一次
 /// （由 <see cref="MikoViewController"/> 的 CADisplayLink 与触摸事件请求），静止页面不占用 GPU。</para>
 /// </remarks>
-public class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
+public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
 {
     private readonly MikoAppContext _context;
     private readonly MikoInteractionController _controller;
@@ -261,10 +261,20 @@ public class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
 
     public bool HasText => !string.IsNullOrEmpty(_inputMethod.Text);
 
-    public void InsertText(string text) => _inputMethod.Commit(text);
+    public void InsertText(string text)
+    {
+        // 组合中的 marked text 由这次提交取代（输入法选定候选后直接 InsertText 最终文字）。
+        _markedText = string.Empty;
+        _markedSelection = default;
+        _inputMethod.Commit(text);
+        SetNeedsDisplay();
+    }
 
     public void DeleteBackward()
-        => _controller.OnKeyDown(MikoKey.Backspace, MikoKeyModifiers.None);
+    {
+        _controller.OnKeyDown(MikoKey.Backspace, MikoKeyModifiers.None);
+        SetNeedsDisplay();
+    }
 
     protected override void Dispose(bool disposing)
     {
@@ -293,6 +303,8 @@ public class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         }
 
         public string Text => _state?.Text ?? string.Empty;
+        public int CursorPosition => _state?.CursorPosition ?? 0;
+        public Common.RectF CursorRect => _state?.CursorRect ?? default;
 
         public override void SetState(InputMethodState? state)
         {
@@ -303,6 +315,7 @@ public class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
                     _view.ResignFirstResponder();
                 else
                     _view.BecomeFirstResponder();
+                _view.NotifyTextInputStateChanged();
             });
         }
 
@@ -319,7 +332,7 @@ public class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
             });
         }
 
-        public void Commit(string text) => CommitText(text);
+        public void Commit(string text) => EndComposition(string.IsNullOrEmpty(text) ? null : text);
         public void Begin() => StartComposition();
         public void Update(string text) => UpdateComposition(text);
         public void End(string? text = null) => EndComposition(text);
