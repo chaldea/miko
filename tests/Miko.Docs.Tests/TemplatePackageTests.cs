@@ -194,6 +194,39 @@ public partial class TemplatePackageTests(TemplatePackageFixture fixture) : ICla
         }
     }
 
+    // ISSUE-155 / Release-1.0.0 A5, A6: a solution over every head, store-ready icons (from the .NET
+    // MAUI template) and the iOS launch screen and scene lifecycle.
+    [Theory]
+    [InlineData("MyApp")]
+    [InlineData("my-app")]
+    public void Should_scaffold_a_solution_icons_and_ios_launch_setup(string name)
+    {
+        var app = fixture.ScaffoldNamed("miko-multiplatform", name);
+
+        var solution = Directory.GetFiles(app, "*.slnx").ShouldHaveSingleItem();
+        var listed = XDocument.Load(solution).Descendants("Project")
+            .Select(p => Path.GetFullPath(Path.Combine(app, p.Attribute("Path")!.Value)))
+            .Order().ToList();
+        listed.ShouldBe(Directory.GetFiles(app, "*.csproj", SearchOption.AllDirectories).Select(Path.GetFullPath).Order().ToList());
+
+        var android = Path.GetDirectoryName(Directory.GetFiles(app, "*.Android.csproj", SearchOption.AllDirectories).Single())!;
+        foreach (var density in new[] { "mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi" })
+            File.Exists(Path.Combine(android, "Resources", $"mipmap-{density}", "appicon.png")).ShouldBeTrue(density);
+        File.Exists(Path.Combine(android, "Resources", "mipmap-anydpi-v26", "appicon.xml")).ShouldBeTrue();
+        File.ReadAllText(Path.Combine(android, "MainActivity.cs")).ShouldContain("Icon = \"@mipmap/appicon\"");
+
+        var ios = Path.GetDirectoryName(Directory.GetFiles(app, "*.iOS.csproj", SearchOption.AllDirectories).Single())!;
+        var iconSet = Path.Combine(ios, "Assets.xcassets", "AppIcon.appiconset");
+        var images = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(iconSet, "Contents.json")))!["images"]!.AsArray();
+        images.Select(i => i!["filename"]!.GetValue<string>()).Distinct()
+            .ShouldAllBe(file => File.Exists(Path.Combine(iconSet, file)));
+        File.Exists(Path.Combine(ios, "Resources", "LaunchScreen.storyboard")).ShouldBeTrue();
+        var plist = File.ReadAllText(Path.Combine(ios, "Info.plist"));
+        plist.ShouldContain("<key>UILaunchStoryboardName</key>");
+        plist.ShouldContain("<key>UIApplicationSceneManifest</key>");
+        plist.ShouldContain("<string>Assets.xcassets/AppIcon.appiconset</string>");
+    }
+
     /// <summary>Android ApplicationId, iOS ApplicationId and iOS CFBundleIdentifier, in that order.</summary>
     private static string[] ApplicationIds(string app)
     {

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="MikoMultiplatformApp/MikoMultiplatformApp.csproj" />
+  <Project Path="MikoMultiplatformApp.Desktop/MikoMultiplatformApp.Desktop.csproj" />
+  <Project Path="MikoMultiplatformApp.Simulator/MikoMultiplatformApp.Simulator.csproj" />
+  <Project Path="MikoMultiplatformApp.Android/MikoMultiplatformApp.Android.csproj" />
+  <Project Path="MikoMultiplatformApp.iOS/MikoMultiplatformApp.iOS.csproj" />
+</Solution>

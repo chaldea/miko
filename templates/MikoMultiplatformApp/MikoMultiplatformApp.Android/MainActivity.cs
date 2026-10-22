@@ -1,4 +1,5 @@
 using Android.App;
+using Android.Content.PM;
 using Android.OS;
 using Miko.Android;
 using Miko.Android.Native;
@@ -8,10 +9,23 @@ namespace MikoMultiplatformApp.Android;
 // Theme.Material.Light.NoActionBar hides Android's native title/action bar so the Ionic
 // layout's own IonHeader is the only header on screen (it would otherwise stack a second
 // bar above it). It's a built-in platform theme, so no Resources/values/styles.xml is needed.
+//
+// The launcher icon lives in Resources/mipmap-*: an adaptive icon (appicon_foreground over
+// appicon_background, API 26+) with a pre-rendered appicon.png fallback. Replace those PNGs
+// with your own artwork at the same sizes; Android 12+ also derives the launch splash from it.
+//
+// ConfigurationChanges keeps the Activity alive across rotation, dark-mode switches, font /
+// display-size changes and foldable resizes. Without it Android recreates the Activity and
+// the app rebuilds from scratch, losing the navigation stack and page state.
 [Activity(
     Label = "Miko Multiplatform App",
     MainLauncher = true,
-    Theme = "@android:style/Theme.Material.Light.NoActionBar")]
+    Icon = "@mipmap/appicon",
+    RoundIcon = "@mipmap/appicon_round",
+    Theme = "@android:style/Theme.Material.Light.NoActionBar",
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.ScreenLayout
+        | ConfigChanges.SmallestScreenSize | ConfigChanges.Density | ConfigChanges.UiMode
+        | ConfigChanges.FontScale | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
 public class MainActivity : Activity
 {
     private MikoSurfaceView? _view;

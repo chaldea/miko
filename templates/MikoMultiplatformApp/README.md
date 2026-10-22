@@ -15,7 +15,19 @@ components for its UI, rendered with SkiaSharp on Desktop, Android and iOS.
 
 The shared project exposes `App.CreateContext()`, which returns a platform-neutral
 `MikoAppContext`. Each startup project consumes that context and drives the render loop
-for its platform.
+for its platform. `MikoMultiplatformApp.slnx` opens all five projects in Visual Studio, Rider or VS Code.
+
+## App icon and launch screen
+
+The default icon is the .NET bot from the .NET MAUI template. Replace the PNGs in place, keeping
+their file names and pixel sizes:
+
+- Android: `MikoMultiplatformApp.Android/Resources/mipmap-*/`. `appicon_foreground.png` and
+  `appicon_background.png` form the adaptive icon (API 26+); `appicon.png` is the pre-rendered
+  fallback. Android 12+ builds the launch splash from the icon.
+- iOS: `MikoMultiplatformApp.iOS/Assets.xcassets/AppIcon.appiconset/` (sizes listed in
+  `Contents.json`; `Icon1024.png` is the App Store icon). The launch screen is
+  `Resources/LaunchScreen.storyboard`, a plain white view; App Store builds need one.
 
 ## Layouts
 
