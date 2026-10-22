@@ -1,7 +1,9 @@
 // The Chaldea licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#if DEBUG
 using Miko.DevTools;
+#endif
 using Miko.Native;
 using Miko.Windowing;
 using Miko.Windowing.Video;
@@ -16,7 +18,9 @@ public static class Program
     {
         var context = App.CreateContext(builder =>
         {
+#if DEBUG
             builder.AddDevTools();
+#endif
             builder.UseSystemVideo();
             // The frame probe closes the window through the native host context when it finishes.
             if (DesktopFrameProbe.IsRequested)

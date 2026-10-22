@@ -24,7 +24,8 @@
     <!--#endif -->
     <PackageReference Include="Miko" Version="1.0.0-dev" />
     <PackageReference Include="Miko.Windowing" Version="1.0.0-dev" />
-    <PackageReference Include="Miko.DevTools" Version="1.0.0-dev" />
+    <!-- DevTools (F12 inspector) is a debugging aid: Release builds do not reference it. -->
+    <PackageReference Include="Miko.DevTools" Version="1.0.0-dev" Condition="'$(Configuration)' == 'Debug'" />
     <PackageReference Include="Miko.Razor.Compiler" Version="1.0.0-dev" />
     <!--#if (useIonic) -->
     <PackageReference Include="Miko.Ionic" Version="1.0.0-dev" />

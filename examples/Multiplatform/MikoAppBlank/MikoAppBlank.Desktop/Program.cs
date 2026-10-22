@@ -1,4 +1,6 @@
+#if DEBUG
 using Miko.DevTools;
+#endif
 using Miko.Windowing;
 using Miko.Windowing.Native;
 using MikoAppBlank;
@@ -15,7 +17,9 @@ public static class Program
         // with no desktop system stack keep throwing PlatformNotSupportedException.
         var context = App.CreateContext(builder =>
         {
+#if DEBUG
             builder.AddDevTools();
+#endif
             builder.UseDesktopNative();
         });
 

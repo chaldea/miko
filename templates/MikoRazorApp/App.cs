@@ -1,4 +1,8 @@
+//-:cnd:noEmit
+#if DEBUG
 using Miko.DevTools;
+#endif
+//+:cnd:noEmit
 using Miko.Hosting;
 //#if (useFull)
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +30,12 @@ public static class App
         builder.UseSize(1024, 768);
         //#endif
 
+//-:cnd:noEmit
+#if DEBUG
+        // F12 opens the DevTools inspector. Debug builds only: Release builds do not reference it.
         builder.AddDevTools();
+#endif
+//+:cnd:noEmit
         //#if (useIonic)
         builder.AddIonic();
         //#endif

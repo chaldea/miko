@@ -1,4 +1,8 @@
+//-:cnd:noEmit
+#if DEBUG
 using Miko.DevTools;
+#endif
+//+:cnd:noEmit
 using Miko.Windowing;
 using MikoMultiplatformApp;
 
@@ -9,12 +13,15 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        // Enable DevTools for desktop debugging. DevTools provides an interactive
-        // inspector window with DOM tree, styles, resources, and performance profiling.
-        // It's desktop-only and not included in mobile builds.
         var context = App.CreateContext(builder =>
         {
+//-:cnd:noEmit
+#if DEBUG
+            // F12 opens the DevTools inspector (DOM, styles, resources, logs). It is a
+            // debugging aid: Release builds do not reference Miko.DevTools at all.
             builder.AddDevTools();
+#endif
+//+:cnd:noEmit
         });
 
         // Hot reload is wired up inside the shared app assembly, where the
