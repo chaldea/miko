@@ -1,9 +1,9 @@
 {
   "$schema": "http://json.schemastore.org/template",
   "author": "Miko",
-  "classifications": [ "Miko", "Razor", "WinUI", "Desktop", "Empty" ],
-  "identity": "Miko.Razor.WinUI.Empty",
-  "name": "Miko Razor WinUI App",
+  "classifications": [ "Miko", "Razor", "Desktop", "Empty" ],
+  "identity": "Miko.Razor.Desktop.Empty",
+  "name": "Miko Razor Desktop App",
   "shortName": "miko-razor",
   "description": "An empty Miko desktop application using Razor components, rendered with SkiaSharp.",
   "tags": {

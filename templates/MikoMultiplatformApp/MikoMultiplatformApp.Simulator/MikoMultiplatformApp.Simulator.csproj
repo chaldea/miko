@@ -11,7 +11,9 @@
   <ItemGroup>
     <ProjectReference Include="..\MikoMultiplatformApp\MikoMultiplatformApp.csproj" />
     <PackageReference Include="Miko.Simulator" Version="1.0.0-dev" />
+    <!--#if (!agentNone) -->
     <PackageReference Include="Miko.McpServer" Version="1.0.0-dev" />
+    <!--#endif -->
     <PackageReference Include="Miko.DevTools" Version="1.0.0-dev" />
   </ItemGroup>
 

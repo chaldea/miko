@@ -1,5 +1,7 @@
 using Miko.DevTools;
+//#if (!agentNone)
 using Miko.McpServer;
+//#endif
 using Miko.Simulator;
 using Miko.Simulator.Native;
 using MikoMultiplatformApp;
@@ -11,18 +13,19 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        // Enable the MCP debug server. It starts a local HTTP endpoint
-        // (default http://localhost:5800) once the simulator window is up,
-        // exposing DOM/style/screenshot/device tools to MCP clients such as
-        // Claude Code. Only the simulator head references Miko.McpServer.
-        //
         // UseSimulatorNative() supplies simulated Miko.Native capabilities and platform services,
         // logging calls such as component haptics so they can be observed on the desktop.
         //
         // AddDevTools() enables the inspector window for debugging the simulator itself.
         var context = App.CreateContext(builder =>
         {
+//#if (!agentNone)
+            // MCP debug server for AI agents: once the simulator window is up it listens on
+            // http://localhost:5800 (localhost only, no authentication) and exposes the DOM,
+            // styles, screenshots, clicks and device switching to MCP clients such as Claude Code.
+            // Only the simulator head references Miko.McpServer; remove this line to turn it off.
             builder.AddMikoMcpServer();
+//#endif
             builder.UseSimulatorNative();
             builder.AddDevTools();
         });

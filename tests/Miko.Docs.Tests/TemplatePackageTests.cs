@@ -260,6 +260,23 @@ public partial class TemplatePackageTests(TemplatePackageFixture fixture) : ICla
             "the desktop template has no MCP server to approve");
     }
 
+    // Release-1.0.0 P1-B5: the simulator head started the unauthenticated MCP server for every
+    // app; it is only for agents, so `--agent none` (the default) must not reference it.
+    [Theory]
+    [InlineData("none", false)]
+    [InlineData("claude", true)]
+    [InlineData("codex", true)]
+    public void Should_reference_the_mcp_server_only_when_an_agent_is_chosen(string agent, bool expected)
+    {
+        var app = fixture.Scaffold("miko-multiplatform", agent);
+        var head = Directory.GetDirectories(app, "*.Simulator").Single();
+
+        File.ReadAllText(Directory.GetFiles(head, "*.csproj").Single()).Contains("Miko.McpServer").ShouldBe(expected);
+        var program = File.ReadAllText(Path.Combine(head, "Program.cs"));
+        program.Contains("AddMikoMcpServer").ShouldBe(expected);
+        program.Contains("using Miko.McpServer;").ShouldBe(expected);
+    }
+
     [Fact]
     public void Should_not_scaffold_agent_files_by_default()
     {

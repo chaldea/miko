@@ -291,7 +291,7 @@ dotnet test
 ```
 
 The repository also contains runnable samples under [`examples/`](examples/), including
-Console, WinUI, and Android launchers.
+`examples/App/Anime` (a complete Ionic app with Desktop, Simulator, Android and iOS heads).
 
 ---
 
