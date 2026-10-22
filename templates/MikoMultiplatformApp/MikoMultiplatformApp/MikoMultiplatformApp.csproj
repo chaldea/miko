@@ -20,10 +20,10 @@
     <!--#if (useFull) -->
     <EmbeddedResource Include="Assets\**\*" />
     <!--#endif -->
-    <PackageReference Include="Miko" Version="1.0.0" />
-    <PackageReference Include="Miko.Razor.Compiler" Version="1.0.0" />
+    <PackageReference Include="Miko" Version="1.0.0-dev" />
+    <PackageReference Include="Miko.Razor.Compiler" Version="1.0.0-dev" />
     <!--#if (useIonic) -->
-    <PackageReference Include="Miko.Ionic" Version="1.0.0" />
+    <PackageReference Include="Miko.Ionic" Version="1.0.0-dev" />
     <!--#endif -->
   </ItemGroup>
 

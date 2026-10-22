@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MikoAppSidemenu\MikoAppSidemenu.csproj" />
     <ProjectReference Include="..\..\..\..\src\Miko.Simulator\Miko.Simulator.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Miko.DevTools\Miko.DevTools.csproj" />
   </ItemGroup>
 
 </Project>

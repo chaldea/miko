@@ -10,8 +10,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MikoMultiplatformApp\MikoMultiplatformApp.csproj" />
-    <PackageReference Include="Miko.Windowing" Version="1.0.0" />
-    <PackageReference Include="Miko.DevTools" Version="1.0.0" />
+    <PackageReference Include="Miko.Windowing" Version="1.0.0-dev" />
+    <PackageReference Include="Miko.DevTools" Version="1.0.0-dev" />
   </ItemGroup>
 
 </Project>

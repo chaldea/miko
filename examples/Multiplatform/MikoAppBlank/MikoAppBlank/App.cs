@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Miko.DevTools;
 using Miko.Hosting;
 using Miko.Native;
 
@@ -28,7 +27,6 @@ public static class App
         builder.UseTitle("MikoAppBlank");
         builder.UseSize(1024, 768);
 
-        builder.AddDevTools();
         builder.AddStyleSheet(GlobalStyles.Create());
 
         // Register the native capability interfaces so pages can [Inject] them anywhere.

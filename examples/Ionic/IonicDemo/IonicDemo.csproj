@@ -19,7 +19,6 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\**\*" />
     <ProjectReference Include="..\..\..\src\Miko\Miko.csproj" />
-    <ProjectReference Include="..\..\..\src\Miko.DevTools\Miko.DevTools.csproj"  />
     <ProjectReference Include="..\..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
   </ItemGroup>
 

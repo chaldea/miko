@@ -33,8 +33,14 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
+    <!--
+      Svg.Skia 2.0.0.4 declares SkiaSharp.HarfBuzz 2.88.8, which drags in HarfBuzzSharp 7.3.0.2 —
+      its Android libHarfBuzzSharp.so is 4 KB page-aligned (XA0141, rejected by Google Play).
+      Referencing the SkiaSharp 3.x build directly wins NuGet's nearest-wins resolution for every
+      consumer of this package and brings HarfBuzzSharp 8.3.1.2, which is 16 KB aligned.
+      Svg.Skia's assemblies never call HarfBuzz, so this only fixes the dependency graph.
+    -->
     <PackageReference Include="SkiaSharp.HarfBuzz" Version="3.119.1" />
-    <PackageReference Include="HarfBuzzSharp" Version="14.2.0" />
     <PackageReference Include="Svg.Skia" Version="2.0.0.4" />
   </ItemGroup>
 

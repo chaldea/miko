@@ -44,9 +44,9 @@
     <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />
     <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
+    <!-- SkiaSharp's net8.0+ dependency group carries only macOS and Win32 natives; without this
+         a desktop app cannot load libSkiaSharp on Linux. -->
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.1" />
-    <PackageReference Include="SkiaSharp.HarfBuzz" Version="3.119.1" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.4.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
   </ItemGroup>
