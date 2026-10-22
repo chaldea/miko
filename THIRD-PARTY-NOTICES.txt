@@ -65,9 +65,6 @@ THE SOFTWARE.
 3. .NET Foundation projects
    - ASP.NET Core Razor compiler, https://github.com/dotnet/razor
      Used in: Miko.Razor.Compiler, a fork of the Razor source generator
-   - Roslyn (Microsoft.CodeAnalysis, Microsoft.CodeAnalysis.CSharp),
-     https://github.com/dotnet/roslyn
-     Used in: Miko.Razor.Compiler (bundled in tools/)
    - ASP.NET Core (Microsoft.Extensions.ObjectPool), https://github.com/dotnet/aspnetcore
      Used in: Miko.Razor.Compiler (bundled in tools/)
    - .NET MAUI template app icon ("dotnet_bot"), https://github.com/dotnet/maui
