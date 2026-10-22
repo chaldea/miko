@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -22,7 +23,7 @@ public static class NativeServiceRegistration
     /// **之后**——「顺序无关」只对 <c>AddMikoNative()</c> 的默认实现成立。
     /// </para>
     /// </summary>
-    public static IServiceCollection ReplaceNative<TService, TImplementation>(this IServiceCollection services)
+    public static IServiceCollection ReplaceNative<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>(this IServiceCollection services)
         where TService : class
         where TImplementation : class, TService
     {

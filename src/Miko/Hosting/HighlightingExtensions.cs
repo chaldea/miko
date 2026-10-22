@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Miko.Highlight;
@@ -26,7 +27,7 @@ public static class HighlightingExtensions
     /// <summary>
     /// 注册自定义的 <see cref="ISyntaxHighlighter"/> 实现，覆盖内置高亮器。
     /// </summary>
-    public static MikoAppBuilder UseSyntaxHighlighter<THighlighter>(this MikoAppBuilder builder)
+    public static MikoAppBuilder UseSyntaxHighlighter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THighlighter>(this MikoAppBuilder builder)
         where THighlighter : class, ISyntaxHighlighter
     {
         // Replace 而非 Add：无论默认实现是先注册还是后注册，自定义实现都确定生效（ISSUE-129）。
