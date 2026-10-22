@@ -49,28 +49,21 @@ For distribution outside the App Store, you must sign and notarize the app with 
 
 The output is a native ELF executable. **Important:** the `SkiaSharp.NativeAssets.Linux` package dependency ships `libSkiaSharp.so`. The target system must have:
 
-- A working **OpenGL** driver (desktop uses OpenGL for rendering on Linux)
+- A working **OpenGL** driver (the desktop host renders with OpenGL on Windows and Linux, and with Metal on macOS)
 - glibc (the library is not compatible with musl-based distros like Alpine)
 
-The templates include `SkiaSharp.NativeAssets.Linux` as a dependency of `Miko.Windowing`, so `libSkiaSharp.so` is included in the publish output automatically.
+`Miko.Windowing` depends on `SkiaSharp.NativeAssets.Linux`, so `libSkiaSharp.so` is included in the `linux-x64` publish output automatically.
 
 ## Trimming and Native AOT
 
-Miko 1.0.0-preview.1 does not officially support desktop trimming or Native AOT. The core engine and Ionic components are designed to be trimming-friendly, but:
-
-- `Miko.DevTools` and `Miko.Simulator` reference Silk.NET, which has trimming warnings
-- The templates do not enable `PublishTrimmed` or `PublishAot` for desktop by default
-
-Trimming and AOT support for desktop is planned for a future release. iOS and Android use full AOT and are tested.
+Miko 1.0.0-preview.1 does not support trimming or Native AOT for desktop apps, and the templates do not enable `PublishTrimmed` or `PublishAot`. The desktop host (Silk.NET, Vortice) and some dependencies (Svg.Skia, ExCSS) still produce trim warnings. iOS and Android builds are trimmed and AOT-compiled by their SDKs.
 
 ## DevTools in Release builds
 
-The templates reference `Miko.DevTools` only in Debug configuration:
+The templates reference `Miko.DevTools` only in the Debug configuration:
 
 ```xml
-<ItemGroup Condition="'$(Configuration)' == 'Debug'">
-  <PackageReference Include="Miko.DevTools" Version="1.0.0-dev" />
-</ItemGroup>
+<PackageReference Include="Miko.DevTools" Version="1.0.0-preview.1" Condition="'$(Configuration)' == 'Debug'" />
 ```
 
 And the startup code wraps `AddDevTools()` in `#if DEBUG`:
@@ -81,13 +74,15 @@ builder.AddDevTools();
 #endif
 ```
 
-This ensures DevTools and its native dependencies (Silk.NET, SDL2, DirectX interop) do not ship in Release builds.
+Release builds therefore contain neither `Miko.DevTools` nor its F12 inspector. (Silk.NET and SDL2 are still in the output: they are the desktop host itself, `Miko.Windowing`.)
+
+The template code uses `//-:cnd:noEmit` markers around `#if DEBUG` so that `dotnet new` keeps the directive; in your own app a plain `#if DEBUG` is enough.
 
 ### Simulator and MCP server
 
 The `Miko.Simulator` host and `Miko.McpServer` are **development tools only**. The MCP server listens on `localhost:5800` without authentication and exposes DOM read, screenshot, and click simulation. **Never ship these packages in a distributed app.**
 
-The templates include them only in the Simulator startup project, which is not intended for end-user distribution.
+The templates reference them only from the Simulator head project, which is not meant for distribution.
 
 ## What to distribute
 
@@ -96,4 +91,4 @@ For end users, distribute:
 - The Desktop startup project published as shown above (framework-dependent or self-contained)
 - **Do not** include the Simulator project or MCP server in distributed builds
 
-Release builds of the Desktop head do not reference DevTools (via the `Condition` shown above), so they automatically exclude it and its dependencies.
+Release builds of the Desktop head do not reference DevTools (the `Condition` shown above), so nothing has to be removed by hand.

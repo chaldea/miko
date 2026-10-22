@@ -48,13 +48,13 @@ Stylesheets must be built in C# as `StyleSheet` objects. There is no `.css` file
 
 Multi-touch is not supported. Android and iOS track only the primary pointer. Pinch-to-zoom and rotation gestures are not available.
 
-### Soft keyboard on Android 8–9
+### Soft keyboard on Android 8–10
 
-On Android API 26–29 (Android 8.0–9.0), the soft keyboard may cover input fields. The layout adjusts automatically on Android 10+ (API 30+) and iOS. Older Android versions rely on the system `windowSoftInputMode` setting.
+On Android 8.0–10 (API 26–29) the soft keyboard may cover input fields: the window's `windowSoftInputMode` decides what happens. On Android 11 (API 30) and later and on iOS, the page is laid out above the keyboard and the focused field scrolls into view.
 
 ### iOS IME composition
 
-The iOS text input implementation supports IME composition (Japanese kana, Chinese pinyin), but **tap-to-position inside text** and **selection handles** are not implemented. You can type and compose, but caret repositioning must be done with arrow keys or by clearing and re-entering.
+The iOS text input implementation supports IME composition (Japanese kana, Chinese pinyin), but **tap-to-position inside text** and **selection handles** are not implemented. You can type and compose, but tapping inside the text does not move the caret (it stays where typing left it).
 
 ## Component libraries
 

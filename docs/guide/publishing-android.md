@@ -28,7 +28,8 @@ To build an APK for direct installation or testing:
 ```bash
 dotnet publish MyApp.Android/MyApp.Android.csproj \
   -c Release \
-  -f net10.0-android
+  -f net10.0-android \
+  -p:AndroidPackageFormat=apk
 ```
 
 The output is `bin/Release/net10.0-android/publish/com.example.myapp-Signed.apk`.
@@ -91,7 +92,7 @@ The following properties in `MyApp.Android.csproj` control the app's identity an
 
 The template's `AndroidManifest.xml` declares:
 
-- `targetSdkVersion="36"` (Android 14, API level 36) — required for new apps and updates on Google Play as of August 2026
+- `targetSdkVersion="36"` (Android 16) — Google Play requires new apps and updates to target a recent API level; check the Play Console for the current requirement
 - `minSdkVersion="26"` (Android 8.0) — Miko's minimum supported version
 - `INTERNET` permission — required for network access in Release builds (Debug builds add it implicitly)
 
@@ -100,14 +101,14 @@ The template's `AndroidManifest.xml` declares:
 <uses-permission android:name="android.permission.INTERNET" />
 ```
 
-The MainActivity declares `ConfigurationChanges` so that rotation, dark mode toggle, and font scale changes do not restart the entire app:
+`MainActivity` declares `ConfigurationChanges` so that rotation, dark mode, font scale and display-size changes do not recreate the Activity (which would rebuild the app and lose the navigation stack). Keep it if you edit the attribute:
 
-```xml
-<activity
-    android:name=".MainActivity"
-    android:configChanges="orientation|screenSize|uiMode|screenLayout|smallestScreenSize|density|fontScale|keyboard|keyboardHidden"
-    ...>
-</activity>
+```csharp
+[Activity(
+    ...,
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.ScreenLayout
+        | ConfigChanges.SmallestScreenSize | ConfigChanges.Density | ConfigChanges.UiMode
+        | ConfigChanges.FontScale | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
 ```
 
 ## App icon and launch screen
@@ -120,9 +121,9 @@ The template includes a default adaptive icon in `Resources/mipmap-*/`:
 - `appicon_background.png` — background layer (solid color or image)
 - `appicon.png` — fallback for launchers that do not support adaptive icons
 
-Replace these files with your own icon assets. The default icon is generated from the .NET MAUI template and is only a placeholder.
+Replace these files with your own artwork, keeping the file names and pixel sizes. The default icon is the .NET bot from the .NET MAUI template and is only a placeholder.
 
-Declare them in `MainActivity`:
+`MainActivity` already references them:
 
 ```csharp
 [Activity(
@@ -149,7 +150,7 @@ See the [Android permissions guide](https://developer.android.com/guide/topics/p
 
 ## 16 KB page alignment
 
-Google Play requires native libraries in apps targeting API 35+ to be aligned to 16 KB page boundaries. The Miko packages and their dependencies (`SkiaSharp`, `HarfBuzzSharp`) satisfy this requirement as of version 1.0.0-dev. If you see the `XA0141` warning, you are using an older version of a dependency that does not meet the alignment requirement.
+Google Play requires native libraries in apps targeting API 35+ to be aligned to 16 KB page boundaries. The native libraries Miko ships (`SkiaSharp`, `HarfBuzzSharp`) are 16 KB aligned. If a build reports `XA0141`, another dependency brought in a native library that is not; check which `.so` the warning names.
 
 ## Testing
 
@@ -158,7 +159,8 @@ Test the signed AAB or APK on a real device or emulator:
 ```bash
 # Install and run (device or emulator must be connected via adb)
 adb install bin/Release/net10.0-android/publish/com.example.myapp-Signed.apk
-adb shell am start -n com.example.myapp/crc64f8a89c5b5f7f9e0f.MainActivity
+# The Activity class name is generated; ask the package manager for it
+adb shell am start -n "$(adb shell cmd package resolve-activity --brief com.example.myapp | tail -1)"
 ```
 
 Or open the project in Visual Studio or Rider and deploy to a connected device.

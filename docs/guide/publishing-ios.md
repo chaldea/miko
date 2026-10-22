@@ -53,12 +53,14 @@ The following properties control the app's identity and versioning:
 ```xml
 <PropertyGroup>
   <ApplicationId>com.example.myapp</ApplicationId>
-  <ApplicationVersion>1.0.0</ApplicationVersion>
+  <ApplicationVersion>1</ApplicationVersion>
+  <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 </PropertyGroup>
 ```
 
-- `ApplicationId` — the bundle identifier (must match the one in your provisioning profile and the Android `ApplicationId` if you have a multiplatform app). Use `--appId` when scaffolding: `dotnet new miko-multiplatform --appId com.mycompany.myapp`
-- `ApplicationVersion` — the version string (e.g. `1.0.0`, `1.2.3`)
+- `ApplicationId` — the bundle identifier; it must match your provisioning profile and `CFBundleIdentifier` below. `dotnet new miko-multiplatform --appId com.mycompany.myapp` sets it together with the Android `ApplicationId`.
+- `ApplicationVersion` — the build number (`CFBundleVersion`), incremented for every upload
+- `ApplicationDisplayVersion` — the public version (`CFBundleShortVersionString`)
 
 ### In `Info.plist`
 
@@ -68,37 +70,27 @@ The template's `Info.plist` includes:
 <key>CFBundleIdentifier</key>
 <string>com.example.myapp</string>
 <key>CFBundleShortVersionString</key>
-<string>1.0.0</string>
+<string>1.0</string>
 <key>CFBundleVersion</key>
 <string>1</string>
 ```
 
-- `CFBundleIdentifier` must match `ApplicationId` in the csproj
-- `CFBundleShortVersionString` is the public version (e.g. `1.0.0`)
-- `CFBundleVersion` is the build number, incremented for each TestFlight or App Store submission
-
-`dotnet new` with `--appId` sets all three automatically.
+- `CFBundleIdentifier` must match `ApplicationId` in the csproj; `--appId` writes both
+- Keep `CFBundleShortVersionString` / `CFBundleVersion` in step with `ApplicationDisplayVersion` / `ApplicationVersion` when you bump the version
 
 ## App icon
 
-The template includes a placeholder app icon in `Assets.xcassets/AppIcon.appiconset/`. Replace `Icon1024.png` with your own 1024×1024 px icon. This single image is used to generate all required sizes.
-
-The `Icon1024.png` file is also the **App Store icon** shown in the App Store listing.
+The template includes a placeholder icon (the .NET bot from the .NET MAUI template) in `Assets.xcassets/AppIcon.appiconset/`, referenced from `Info.plist` by `XSAppIconAssets`. The set contains one PNG per size listed in its `Contents.json`; replace every file with your artwork at the same pixel size. `Icon1024.png` is the App Store icon.
 
 ## Launch screen
 
-iOS requires a launch screen. The template includes `Resources/LaunchScreen.storyboard`, a plain white screen with the app name. Without a launch screen, iOS runs the app in a letterboxed compatibility mode, and **App Store Connect will reject the upload**.
+iOS requires a launch screen. The template includes `Resources/LaunchScreen.storyboard`, a plain white view, referenced by `UILaunchStoryboardName` in `Info.plist`. Without a launch screen, iOS runs the app in a letterboxed compatibility mode, and **App Store Connect will reject the upload**.
 
 Customize the storyboard in Xcode if you want a branded splash screen.
 
 ## Privacy manifest
 
-iOS 17.2 and later require apps to declare the "required reason" APIs they use. The template includes `Resources/PrivacyInfo.xcprivacy` with the APIs used by the .NET runtime itself:
-
-- File timestamp APIs (for file I/O)
-- System boot time API (for timer implementations)
-- Disk space APIs (for storage checks)
-- User defaults APIs (for settings persistence)
+App Store Connect requires apps to declare the "required reason" APIs they use. The template includes `Resources/PrivacyInfo.xcprivacy` (from the .NET MAUI template) with the categories the .NET runtime itself uses: file timestamps, system boot time and disk space. A user-defaults entry is present but commented out; enable it if your app uses `NSUserDefaults` (directly or through a library).
 
 If your app uses additional privacy-sensitive APIs (camera, location, photo library, etc.), you must add entries to this file. See [Apple's Privacy manifest guide](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files) for the full list.
 
@@ -106,18 +98,18 @@ If your app uses additional privacy-sensitive APIs (camera, location, photo libr
 
 The template uses the modern **UISceneSession** lifecycle:
 
-- `AppDelegate.GetConfiguration()` creates a `UISceneConfiguration`
-- `SceneDelegate` implements `WillConnect`, `DidDisconnect`, `DidBecomeActive`, `WillResignActive`, `WillEnterForeground`, and `DidEnterBackground`
+- `Info.plist` declares `UIApplicationSceneManifest`
+- `AppDelegate.GetConfiguration()` returns a configuration whose delegate is `SceneDelegate`
+- `SceneDelegate.WillConnect` creates the window for its `UIWindowScene` and sets `MikoViewController` as the root
 
-The Miko rendering loop runs only when the scene is active. Background and foreground transitions are handled automatically.
+Background and foreground transitions need no code: `MikoViewController` stops rendering and pauses video when the app enters the background, resumes when it returns, and releases GPU caches on a memory warning.
 
 ## Minimum iOS version
 
-The template declares a minimum of **iOS 15.0** in `Info.plist`:
+The template sets a minimum of **iOS 15.0** in the iOS csproj (the build writes `MinimumOSVersion` into the app's `Info.plist` from it):
 
 ```xml
-<key>MinimumOSVersion</key>
-<string>15.0</string>
+<SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
 ```
 
 This is Miko's minimum supported iOS version. You can raise it if your app targets newer iOS features.
