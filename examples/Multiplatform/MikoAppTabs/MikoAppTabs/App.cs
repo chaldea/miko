@@ -1,4 +1,3 @@
-using Miko.DevTools;
 using Miko.Hosting;
 using Miko.Ionic;
 
@@ -28,7 +27,6 @@ public static class App
         // Phone-portrait viewport showcases the Ionic mobile layout.
         builder.UseSize(390, 844);
 
-        builder.AddDevTools();
         builder.AddIonic();
         builder.AddStyleSheet(GlobalStyles.Create());
 

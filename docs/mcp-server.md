@@ -11,8 +11,13 @@ device/orientation, capture screenshots, and more, in real time.
 
 ## Quick start
 
-In the **simulator startup project** (`MyApp.Simulator`), call `AddMikoMcpServer()`
-when creating the app context:
+An app created with `dotnet new miko-multiplatform --agent claude` (or `codex` / `cursor`) is
+already set up: its simulator head references `Miko.McpServer` and calls
+`AddMikoMcpServer()`. With the default `--agent none` it does neither. The server listens on
+localhost without authentication, so keep it in the simulator head and out of release builds.
+
+To add it by hand, reference `Miko.McpServer` from the **simulator startup project**
+(`MyApp.Simulator`) and call `AddMikoMcpServer()` when creating the app context:
 
 ```csharp
 using Miko.McpServer;

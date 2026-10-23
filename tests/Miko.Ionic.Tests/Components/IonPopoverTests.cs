@@ -99,16 +99,6 @@ public class IonPopoverTests : IonicComponentTestBase
         cut.Root.ShouldNotHaveClass("popover-side-bottom");
     }
 
-    // ---- Translucent -------------------------------------------------------
-
-    [Fact]
-    public void IonPopover_Translucent_StampsClass()
-    {
-        var cut = RenderPopover(Context, p => p.Add(nameof(IonPopover.Translucent), true));
-
-        cut.Root.ShouldHaveClass("popover-translucent");
-    }
-
     // ---- ShowBackdrop ------------------------------------------------------
 
     [Fact]

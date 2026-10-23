@@ -228,7 +228,7 @@ Put a form control in the default slot; it renders its own label (`Label` on [`I
 
 ## Item groups and dividers
 
-`IonItemGroup` is a plain block that groups one section's rows. `IonItemDivider` is the section header: a tinted row with its own minimum height, `Start`/`End` slots, and a bottom hairline. `Sticky` and `Color` on the divider only stamp classes: Miko has no `position: sticky`, so the divider scrolls with the content, and no rule styles a colored divider yet.
+`IonItemGroup` is a plain block that groups one section's rows. `IonItemDivider` is the section header: a tinted row with its own minimum height, `Start`/`End` slots, and a bottom hairline. `Color` fills the divider with the palette color. Ionic's `sticky` is not ported (Miko has no `position: sticky`), so the divider scrolls with the content.
 
 <!-- miko:example examples/item/Groups.razor -->
 ```razor
@@ -310,7 +310,7 @@ Unlike Ionic, tapping the row does not close it, opening one row does not close 
 ## API
 
 <!-- miko:api IonItem IonItemDivider IonItemGroup IonItemSliding IonItemOptions IonItemOption -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonItem
 
@@ -324,7 +324,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Href` | `string?` | `null` | Link target (Ionic `href`). When set, the native surface is an `a` and the item is clickable; the default click behavior navigates to the target through the injected `NavigationManager` with a mode page transition (iOS push / MD fade-up). |
 | `Lines` | `string?` | `null` | How the bottom border is displayed (Ionic `lines`): `"full"`, `"inset"`, or `"none"`. Null uses the theme default hairline. |
 | `RouterDirection` | `string?` | `null` | Navigation direction when [`Href`](#ionitem) is clicked (mirrors Ionic's `routerDirection`): `"forward"` (default — push with transition), `"back"` (pop-style reverse transition), or `"root"` (clear the history stack, no transition). |
-| `Type` | `string` | `"button"` | Native button type when the item is a button (Ionic `type`): `"button"` (default), `"submit"`, or `"reset"`. Kept as a marker for API parity. |
 
 | Event | Type | Description |
 | --- | --- | --- |
@@ -341,7 +340,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Fills the divider with the palette color and switches its text to the color's contrast color, as in Ionic. |
-| `Sticky` | `bool` | `false` | Ionic `sticky` (pins the divider to the top of the scroll viewport). Stamps the `item-divider-sticky` class only: Miko has no `position: sticky`, so the divider scrolls with the content. |
 
 | Slot | Type | Description |
 | --- | --- | --- |
@@ -389,8 +387,8 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Color` | `string?` | `null` | Named palette color for the fill (e.g. `"primary"`, `"danger"`, `"success"`). Null uses the default option fill. Mirrors Ionic's `color`. |
 | `Disabled` | `bool` | `false` | When true the option is dimmed and non-interactive (Ionic `disabled`). |
 | `Expandable` | `bool` | `false` | Ionic `expandable`. Stamps `item-option-expandable` (`flex-grow: 1` within its [`IonItemOptions`](#ionitemoptions)); Ionic's full-swipe expansion that covers the other options and triggers this one is not implemented. |
-| `Href` | `string?` | `null` | Link target (Ionic `href`). When set, the native surface is an `a`. The renderer does not perform navigation. |
-| `Type` | `string` | `"button"` | Native button type (Ionic `type`): `"button"` (default), `"submit"`, or `"reset"`. Kept as a marker for API parity. |
+| `Href` | `string?` | `null` | Route to navigate to (Ionic `href`). When set, the native surface is an `a`, and a tap raises [`OnClick`](#ionitemoption) and then navigates through the app's `NavigationManager` with the mode's page transition, like [`IonItem`](#ionitem). |
+| `RouterDirection` | `string?` | `null` | Navigation direction for [`Href`](#ionitemoption) (Ionic `routerDirection`): `"forward"` (default — push with the mode's transition), `"back"` (pop-style transition), or `"root"` (clear the history, no transition). |
 
 | Event | Type | Description |
 | --- | --- | --- |
@@ -451,7 +449,6 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.ion-color`, `.ion-color-{name}` | `Color` (e.g. `.ion-color-danger`). |
 | `.item-last-in-list` | The last item of an inset list (stamped by `IonList`). |
 | `.ion-item-divider`, `.item-divider-inner`, `.item-divider-wrapper` | The divider host, its inner row, and the default-slot wrapper. |
-| `.item-divider-sticky` | `Sticky` on a divider. |
 | `.ion-item-group` | The group. |
 | `.ion-item-sliding`, `.item-sliding-open`, `.item-sliding-open-start`, `.item-sliding-open-end`, `.item-sliding-disabled` | The sliding host and its open / disabled state. |
 | `.ion-item-options`, `.item-options-start`, `.item-options-end` | An options container and its `Side`. |

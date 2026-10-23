@@ -6,7 +6,7 @@ A popover is a small floating panel that opens next to the element that triggere
 
 ## Basic usage
 
-Put the content between the tags; it goes into a box 250 px wide on md and 200 px on ios, at most 90% of the screen height, scrolling if needed. To anchor the popover to the button that opened it, pass the button's click event as `Event`. `IonButton`'s `OnClick` handler can take a `Miko.Events.MouseEventArgs`. Without an `Event`, the popover is centered on the screen. Tapping the backdrop closes it with role `"backdrop"`, unless `BackdropDismiss` (or `Dismissable`) is `false`; under the same condition the system back button closes it with role `"back"`.
+Put the content between the tags; it goes into a box 250 px wide on md and 200 px on ios, at most 90% of the screen height, scrolling if needed. To anchor the popover to the button that opened it, pass the button's click event as `Event`. `IonButton`'s `OnClick` handler can take a `Miko.Events.MouseEventArgs`. Without an `Event`, the popover is centered on the screen. Tapping the backdrop closes it with role `"backdrop"`, unless `BackdropDismiss` is `false`; under the same condition the system back button closes it with role `"back"`.
 
 <!-- miko:example examples/popover/Basic.razor -->
 ```razor
@@ -34,7 +34,7 @@ Put the content between the tags; it goes into a box 250 px wide on md and 200 p
 ```
 <!-- /miko:example -->
 
-`Trigger` and `TriggerAction` are kept for API parity only: nothing opens the popover except `IsOpen` or a controller.
+`Trigger` does both at once: set it to the id of the button and the popover opens on its click, anchored to it, without an `OnClick` handler or an `Event` (see [Opening from a trigger](./overlays.md#opening-from-a-trigger)). With `TriggerAction="context-menu"` it opens on a long press instead — what a context menu is on a touch screen.
 
 ## Position
 
@@ -110,7 +110,7 @@ With an `Event`, `Side` chooses which edge of the trigger the popover opens on: 
 ## API
 
 <!-- miko:api IonPopover -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonPopover
 
@@ -119,15 +119,13 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Alignment` | `string?` | `null` | How the popover lines up with the [`Event`](#ionpopover) target: `"start"` / `"center"` / `"end"` (Ionic `alignment`). Null uses the mode default (`"start"` on md, `"center"` on ios). |
 | `Arrow` | `bool` | `true` | If true (default), a `.popover-arrow` element is rendered (Ionic `arrow`). This port does not position or rotate it toward the trigger. |
 | `BackdropDismiss` | `bool` | `true` | If true (default), tapping the backdrop dismisses the popover. |
-| `Dismissable` | `bool` | `true` | Kept for API parity. When false, a backdrop tap does not dismiss the popover, the same as [`BackdropDismiss`](#ionpopover) = false. |
 | `Event` | `MouseEventArgs?` | `null` | The click/pointer event used to anchor the popover. Controllers pass Ionic's `event` option here; declarative callers can bind the event received by their trigger. |
 | `IsOpen` | `bool` | `false` | Whether the popover is presented. Bind two-way with [`IsOpenChanged`](#ionpopover). Two-way bindable: `@bind-IsOpen`. |
 | `OverlayId` | `string?` | `null` | Optional stable identifier used by the root overlay registry. |
 | `ShowBackdrop` | `bool` | `true` | If true (default), the backdrop is rendered. When false the backdrop element is omitted. |
 | `Side` | `string` | `"bottom"` | Which side of the [`Event`](#ionpopover) target the popover opens on: `"top"` / `"right"` / `"bottom"` (default) / `"left"` / `"start"` (left) / `"end"` (right). It flips to the opposite side when that side has more room. The side used is stamped as `popover-side-{side}`. Without an [`Event`](#ionpopover) the popover is centered. |
-| `Translucent` | `bool` | `false` | If true, the ios popover uses a translucent (blurred) surface (Ionic `translucent`). Stamps `popover-translucent`; a marker in this port. |
-| `Trigger` | `string?` | `null` | Id of the element that opens the popover (Ionic `trigger`). Kept for API parity; the host drives [`IsOpen`](#ionpopover) in this port. |
-| `TriggerAction` | `string` | `"click"` | How the trigger opens the popover: `"click"` (default), `"context-menu"`, or `"hover"` (Ionic `triggerAction`). Stored for API parity; there is no runtime trigger wiring in this static port. |
+| `Trigger` | `string?` | `null` | Id of the element that opens the popover (Ionic `trigger`), e.g. `<IonButton Id="open-popover">`. Opening sets [`IsOpen`](#ionpopover), raises [`IsOpenChanged`](#ionpopover) and anchors the popover to the pressed element (unless [`Event`](#ionpopover) is set). The page must be inside an [`IonApp`](./app.md#ionapp). |
+| `TriggerAction` | `string` | `"click"` | How the [`Trigger`](#ionpopover) element opens the popover (Ionic `triggerAction`): `"click"` (default) or `"context-menu"`, which opens on a long press — what a context menu is on a touch screen. Other values behave like `"click"`. |
 
 | Event | Type | Description |
 | --- | --- | --- |
@@ -156,7 +154,6 @@ Options for [`IonPopoverController.CreateAsync`](#ionpopovercontroller). Each pr
 | `Side` | `string` | `"bottom"` | Side of the trigger to open on (see [`IonPopover.Side`](#ionpopover)). |
 | `Alignment` | `string?` | `null` | Alignment with the trigger (see [`IonPopover.Alignment`](#ionpopover)). |
 | `Arrow` | `bool` | `true` | If true (default), renders the arrow element. |
-| `Translucent` | `bool` | `false` | Stamps `popover-translucent`; a marker only. |
 | `CssClass` | `string?` | `null` | Extra CSS class(es) for the popover host (its `Class`). |
 
 ### IonPopoverController
@@ -184,7 +181,6 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.popover-wrapper` | The positioned box that holds the arrow and the content. |
 | `.popover-content` | The visible panel holding your content: width, background, radius, shadow. |
 | `.popover-arrow` | The arrow element (`Arrow="true"`). |
-| `.popover-translucent` | `Translucent="true"`. Only a marker; no translucent style is applied. |
 
 ```csharp
 // GlobalStyles.cs — a wider menu: <IonPopover Class="wide" …>

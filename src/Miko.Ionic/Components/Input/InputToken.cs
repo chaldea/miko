@@ -62,13 +62,6 @@ public sealed class InputToken : IonicToken
         set { _textColor = value; Mark(nameof(TextColor)); }
     }
 
-    private Color _placeholderColor = default;
-    public Color PlaceholderColor
-    {
-        get => _placeholderColor;
-        set { _placeholderColor = value; Mark(nameof(PlaceholderColor)); }
-    }
-
     private Color _labelColor = default;
     public Color LabelColor
     {
@@ -129,7 +122,6 @@ public sealed class InputToken : IonicToken
         if (IsSpecified(nameof(PaddingEnd))) token.PaddingEnd = PaddingEnd;
         if (IsSpecified(nameof(DisabledOpacity))) token.DisabledOpacity = DisabledOpacity;
         if (IsSpecified(nameof(TextColor))) token.TextColor = TextColor;
-        if (IsSpecified(nameof(PlaceholderColor))) token.PlaceholderColor = PlaceholderColor;
         if (IsSpecified(nameof(LabelColor))) token.LabelColor = LabelColor;
         if (IsSpecified(nameof(Background))) token.Background = Background;
         if (IsSpecified(nameof(BorderColor))) token.BorderColor = BorderColor;
@@ -155,7 +147,6 @@ public sealed class InputToken : IonicToken
         AppendValue(builder, MinHeight);
         AppendValue(builder, PaddingEnd);
         AppendValue(builder, PaddingStart);
-        AppendValue(builder, PlaceholderColor);
         AppendValue(builder, TextColor);
     }
 }

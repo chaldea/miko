@@ -7,9 +7,12 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
     <Description>Miko is a lightweight DOM rendering engine written in C# that uses SkiaSharp for graphics rendering.</Description>
+    <!-- IntelliSense for package consumers. CS1591: not every public member is documented yet;
+         CS1573/CS1574: param tags and crefs in existing comments still to clean up (Release-1.0.0 P1-B1). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574</NoWarn>
     <PackageTags>miko;dom;rendering;skiasharp;ui</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
@@ -34,6 +37,14 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
+    <!--
+      Svg.Skia 2.0.0.4 declares SkiaSharp.HarfBuzz 2.88.8, which drags in HarfBuzzSharp 7.3.0.2 —
+      its Android libHarfBuzzSharp.so is 4 KB page-aligned (XA0141, rejected by Google Play).
+      Referencing the SkiaSharp 3.x build directly wins NuGet's nearest-wins resolution for every
+      consumer of this package and brings HarfBuzzSharp 8.3.1.2, which is 16 KB aligned.
+      Svg.Skia's assemblies never call HarfBuzz, so this only fixes the dependency graph.
+    -->
+    <PackageReference Include="SkiaSharp.HarfBuzz" Version="3.119.1" />
     <PackageReference Include="Svg.Skia" Version="2.0.0.4" />
   </ItemGroup>
 

@@ -1,3 +1,4 @@
+using Miko.DevTools;
 using Miko.Simulator;
 using Miko.Simulator.Native;
 using IonicDemo;
@@ -17,7 +18,11 @@ public static class Program
         // UseSimulatorNative() supplies the simulated platform services; the component haptics
         // (picker ticks, reorder drags) are logged there so the call chain is observable on the
         // desktop (ISSUE-149).
-        var context = App.CreateContext(builder => builder.UseSimulatorNative());
+        var context = App.CreateContext(builder =>
+        {
+            builder.AddDevTools();
+            builder.UseSimulatorNative();
+        });
 
         // Hot reload is wired up inside the shared app assembly, same as the desktop head.
         App.InitializeHotReload(context);

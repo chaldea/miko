@@ -8,9 +8,8 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko.DevTools</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
-    <Description>Developer tools for Miko, the lightweight DOM rendering engine.</Description>
+    <Description>Developer tools for Miko (F12 inspector: DOM, styles, resources, logs). A debugging aid for desktop Debug builds; do not ship it in release builds.</Description>
     <PackageTags>miko;devtools;debugging;ui</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>

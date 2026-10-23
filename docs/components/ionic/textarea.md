@@ -42,7 +42,7 @@ Textareas are multi-line text fields with an optional label, placeholder, helper
 
 ## Rows
 
-`Rows` (default 2) sets the height of the field in lines of text. `AutoGrow` only stamps the `textarea-auto-grow` class — the field does not grow with its content.
+`Rows` (default 2) sets the height of the field in lines of text. With `AutoGrow`, `Rows` is the minimum: the field gains a line each time the wrapped text needs one and shrinks back as text is deleted, as a chat or comment box does.
 
 <!-- miko:example examples/textarea/Rows.razor -->
 ```razor
@@ -117,13 +117,13 @@ Textareas are multi-line text fields with an optional label, placeholder, helper
 ## API
 
 <!-- miko:api IonTextarea -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonTextarea
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `AutoGrow` | `bool` | `false` | If true, the textarea container grows and shrinks with its contents (Ionic `autoGrow`). Marker only: stamped as a host class; Miko has no auto-resize pseudo-element so no live growth happens here. |
+| `AutoGrow` | `bool` | `false` | If true, the field grows and shrinks with its text (Ionic `autoGrow`): it is at least [`Rows`](#iontextarea) lines tall and gains a line whenever the wrapped text needs one — the usual chat or comment box. |
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Stamped as an `ion-color-*` class that tints the md highlight bar (its only visible effect). |
 | `Counter` | `bool` | `false` | If true, a character counter is shown below the field. Requires [`Maxlength`](#iontextarea). |
 | `Disabled` | `bool` | `false` | If true, the user cannot interact with the textarea. |
@@ -133,7 +133,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Label` | `string?` | `null` | The visible plaintext label associated with the textarea. |
 | `LabelPlacement` | `string` | `"start"` | Where the label sits relative to the textarea: `"start"` (default), `"end"`, `"fixed"`, `"stacked"`, or `"floating"` (laid out like `"stacked"`; no float animation). |
 | `Maxlength` | `int?` | `null` | The maximum number of characters the user can enter (Ionic `maxlength`), also shown by the counter. Typed or pasted text beyond it is cut off; a [`Value`](#iontextarea) set from code is not shortened. |
-| `Name` | `string?` | `null` | Form field name marker. |
 | `Placeholder` | `string?` | `null` | Instructional text shown before the textarea has a value. |
 | `Readonly` | `bool` | `false` | If true, the user cannot modify the value. The field can still be focused (no on-screen keyboard is shown). |
 | `Rows` | `int` | `2` | The number of visible text lines for the control (native `rows`). Defaults to 2. |

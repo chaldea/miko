@@ -7,9 +7,12 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Native</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
-    <Description>Cross-platform native capability abstractions for Miko (app, camera, clipboard, filesystem, geolocation, notifications, and more). Platform packages supply the implementations.</Description>
+    <Description>Cross-platform native capability abstractions for Miko (app, camera, clipboard, filesystem, geolocation, notifications, and more). Platform packages supply the implementations. Preview in 1.0: the API may change.</Description>
+    <!-- IntelliSense for package consumers. CS1591: not every public member is documented yet;
+         CS1573/CS1574: param tags and crefs in existing comments still to clean up (Release-1.0.0 P1-B1). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574</NoWarn>
     <PackageTags>miko;native;platform;capacitor;abstractions</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>

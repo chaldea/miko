@@ -90,6 +90,10 @@ internal static class TextareaStyles
             },
 
             // .native-textarea — the actual multi-line field. Fills the wrapper, transparent, borderless.
+            // Ionic's `max-height: 100%` is left out: the wrappers' percentage heights have no
+            // definite base here, and the engine resolved the cap to ~0, collapsing the field to its
+            // padding (text clipped, Rows and AutoGrow invisible). Its height is Rows lines, or the
+            // wrapped text with AutoGrow.
             [$".ion-textarea.{mode} .native-textarea"] = new()
             {
                 Display = Display.Block,
@@ -97,7 +101,6 @@ internal static class TextareaStyles
                 FlexGrow = 1,
                 Width = Length.Percent(100),
                 MaxWidth = Length.Percent(100),
-                MaxHeight = Length.Percent(100),
                 BorderWidth = Length.Px(0),
                 BackgroundColor = Color.Transparent,
                 Color = t.InputTextColor,

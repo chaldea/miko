@@ -5,7 +5,6 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Components</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
     <Description>Native player components for Miko.</Description>
     <PackageTags>miko;components;player;video;ui</PackageTags>

@@ -135,9 +135,9 @@
     /// <summary>The number of visible text lines for the control (native <c>rows</c>). Defaults to 2.</summary>
     [Parameter] public int Rows { get; set; } = 2;
 
-    /// <summary>If true, the textarea container grows and shrinks with its contents (Ionic
-    /// <c>autoGrow</c>). Marker only: stamped as a host class; Miko has no auto-resize pseudo-element
-    /// so no live growth happens here.</summary>
+    /// <summary>If true, the field grows and shrinks with its text (Ionic <c>autoGrow</c>): it is at
+    /// least <see cref="Rows"/> lines tall and gains a line whenever the wrapped text needs one —
+    /// the usual chat or comment box.</summary>
     [Parameter] public bool AutoGrow { get; set; }
 
     /// <summary>Helper text displayed below the textarea. Shown even when <see cref="ErrorText"/> is also set.</summary>
@@ -145,9 +145,6 @@
 
     /// <summary>Error text displayed below the textarea whenever it is set (Miko does not track validity).</summary>
     [Parameter] public string? ErrorText { get; set; }
-
-    /// <summary>Form field name marker.</summary>
-    [Parameter] public string? Name { get; set; }
 
     /// <summary>Content shown at the leading edge of the textarea.</summary>
     [Parameter] public RenderFragment? StartSlot { get; set; }
@@ -218,6 +215,8 @@
             if (Value is not null) textarea.Value = Value;
             textarea.Placeholder = Placeholder;
             textarea.Rows = Rows;
+            // textarea.tsx autoGrow: the engine sizes the native field to its wrapped text.
+            textarea.AutoGrow = AutoGrow;
             textarea.ReadOnly = Readonly;
             textarea.MaxLength = Maxlength;
             if (Disabled) textarea.SetState(ElementState.Disabled);

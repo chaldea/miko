@@ -14,7 +14,7 @@
             </ChildContent>
         </IonToolbar>
     </IonHeader>
-    <IonContent Fullscreen>
+    <IonContent>
         <IonList>
             <IonListHeader>
                 <IonLabel>Adjust Display</IonLabel>
@@ -54,7 +54,7 @@
             </IonItem>
 
             <IonItem>
-                <IonRange Min="1000" Max="2000" Step="100" Snaps Color="danger" @bind-Value="_temperature">
+                <IonRange Min="1000" Max="2000" Step="100" Color="danger" @bind-Value="_temperature">
                     <StartSlot>
                         <IonIcon Icon="@Ionicons.Thermometer" Size="small" Color="danger"></IonIcon>
                     </StartSlot>

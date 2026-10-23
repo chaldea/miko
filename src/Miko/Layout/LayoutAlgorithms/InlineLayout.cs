@@ -254,7 +254,7 @@ public class InlineLayout
             if (AspectRatioSizing.HasContentBasedMinimumHeight(box))
                 contentHeight = Math.Max(contentHeight, lineHeight);
         }
-        else if (BlockLayout.GetTextFormControlContentHeight(box) is float formControlHeight)
+        else if (BlockLayout.GetTextFormControlContentHeight(box, contentWidth) is float formControlHeight)
         {
             // 单行文本表单控件（input、select）：以一行文本（行高/字体度量）撑起内容高度。
             // select 的 option 子元素由下拉层叠加渲染，不计入闭合态高度，因此即便存在子元素

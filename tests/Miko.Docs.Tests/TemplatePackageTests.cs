@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Xml.Linq;
 using Miko.DocGen;
 using Shouldly;
 
@@ -37,6 +38,15 @@ public sealed class TemplatePackageFixture : IDisposable
         return output;
     }
 
+    /// <summary>Scaffolds an app under the given project name and returns its directory.</summary>
+    public string ScaffoldNamed(string template, string name, params string[] options)
+    {
+        var output = Path.Combine(Root, "named", $"{template}-{name}-{string.Join('-', options).Replace("--", "")}", "app");
+        if (!Directory.Exists(output))
+            Run("dotnet", ["new", template, "-n", name, "-o", output, .. options, "--debug:custom-hive", Hive]);
+        return output;
+    }
+
     public static string Run(string fileName, params string[] arguments)
     {
         var start = new ProcessStartInfo(fileName == "dotnet" ? Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet" : fileName)
@@ -66,7 +76,7 @@ public sealed class TemplatePackageFixture : IDisposable
     }
 }
 
-public class TemplatePackageTests(TemplatePackageFixture fixture) : IClassFixture<TemplatePackageFixture>
+public partial class TemplatePackageTests(TemplatePackageFixture fixture) : IClassFixture<TemplatePackageFixture>
 {
     private static readonly string[] TemplateRoots = ["MikoRazorApp", "MikoMultiplatformApp"];
 
@@ -141,6 +151,130 @@ public class TemplatePackageTests(TemplatePackageFixture fixture) : IClassFixtur
             }
         }
         broken.ShouldBeEmpty();
+    }
+
+    // Release-1.0.0 D3: `-n my-app` produced the Android package name `com.miko.my-app`, which is
+    // invalid, and head projects referencing a shared project that did not exist under that name.
+    [Theory]
+    [InlineData("my-app", "com.miko.myapp")]
+    [InlineData("My.Cool_App", "com.miko.mycoolapp")]
+    [InlineData("2048Game", "com.miko.app2048game")]
+    public void Should_derive_a_valid_application_id_from_the_project_name(string name, string expected)
+    {
+        var app = fixture.ScaffoldNamed("miko-multiplatform", name);
+
+        ApplicationIds(app).ShouldAllBe(id => id == expected);
+    }
+
+    [Fact]
+    public void Should_use_the_app_id_option_for_android_and_ios()
+    {
+        var app = fixture.ScaffoldNamed("miko-multiplatform", "my-app", "--appId", "com.example.shop");
+
+        ApplicationIds(app).ShouldAllBe(id => id == "com.example.shop");
+    }
+
+    [Theory]
+    [InlineData("miko-multiplatform")]
+    [InlineData("miko-razor")]
+    public void Should_resolve_every_project_reference_when_the_name_is_not_an_identifier(string template)
+    {
+        var app = fixture.ScaffoldNamed(template, "my-app");
+
+        var projects = Directory.EnumerateFiles(app, "*.csproj", SearchOption.AllDirectories).ToList();
+        projects.ShouldNotBeEmpty();
+        foreach (var project in projects)
+        {
+            foreach (var reference in XDocument.Load(project).Descendants("ProjectReference"))
+            {
+                var include = reference.Attribute("Include")!.Value.Replace('\\', Path.DirectorySeparatorChar);
+                File.Exists(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(project)!, include)))
+                    .ShouldBeTrue($"{Path.GetRelativePath(app, project)} references missing {include}");
+            }
+        }
+    }
+
+    // ISSUE-155 / Release-1.0.0 A5, A6: a solution over every head, store-ready icons (from the .NET
+    // MAUI template) and the iOS launch screen and scene lifecycle.
+    [Theory]
+    [InlineData("MyApp")]
+    [InlineData("my-app")]
+    public void Should_scaffold_a_solution_icons_and_ios_launch_setup(string name)
+    {
+        var app = fixture.ScaffoldNamed("miko-multiplatform", name);
+
+        var solution = Directory.GetFiles(app, "*.slnx").ShouldHaveSingleItem();
+        var listed = XDocument.Load(solution).Descendants("Project")
+            .Select(p => Path.GetFullPath(Path.Combine(app, p.Attribute("Path")!.Value)))
+            .Order().ToList();
+        listed.ShouldBe(Directory.GetFiles(app, "*.csproj", SearchOption.AllDirectories).Select(Path.GetFullPath).Order().ToList());
+
+        var android = Path.GetDirectoryName(Directory.GetFiles(app, "*.Android.csproj", SearchOption.AllDirectories).Single())!;
+        foreach (var density in new[] { "mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi" })
+            File.Exists(Path.Combine(android, "Resources", $"mipmap-{density}", "appicon.png")).ShouldBeTrue(density);
+        File.Exists(Path.Combine(android, "Resources", "mipmap-anydpi-v26", "appicon.xml")).ShouldBeTrue();
+        File.ReadAllText(Path.Combine(android, "MainActivity.cs")).ShouldContain("Icon = \"@mipmap/appicon\"");
+
+        var ios = Path.GetDirectoryName(Directory.GetFiles(app, "*.iOS.csproj", SearchOption.AllDirectories).Single())!;
+        var iconSet = Path.Combine(ios, "Assets.xcassets", "AppIcon.appiconset");
+        var images = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(iconSet, "Contents.json")))!["images"]!.AsArray();
+        images.Select(i => i!["filename"]!.GetValue<string>()).Distinct()
+            .ShouldAllBe(file => File.Exists(Path.Combine(iconSet, file)));
+        File.Exists(Path.Combine(ios, "Resources", "LaunchScreen.storyboard")).ShouldBeTrue();
+        var plist = File.ReadAllText(Path.Combine(ios, "Info.plist"));
+        plist.ShouldContain("<key>UILaunchStoryboardName</key>");
+        plist.ShouldContain("<key>UIApplicationSceneManifest</key>");
+        plist.ShouldContain("<string>Assets.xcassets/AppIcon.appiconset</string>");
+    }
+
+    /// <summary>Android ApplicationId, iOS ApplicationId and iOS CFBundleIdentifier, in that order.</summary>
+    private static string[] ApplicationIds(string app)
+    {
+        static string Single(string root, string pattern) => Directory.GetFiles(root, pattern, SearchOption.AllDirectories).Single();
+
+        var android = XDocument.Load(Single(app, "*.Android.csproj")).Descendants("ApplicationId").Single().Value;
+        var ios = XDocument.Load(Single(app, "*.iOS.csproj")).Descendants("ApplicationId").Single().Value;
+        var plistKeys = XDocument.Load(Single(app, "Info.plist")).Descendants("key").ToList();
+        var bundleId = ((XElement)plistKeys.Single(k => k.Value == "CFBundleIdentifier").NextNode!).Value;
+        string[] ids = [android, ios, bundleId];
+        ids.ShouldAllBe(id => AndroidPackageName().IsMatch(id), $"invalid application id in [{string.Join(", ", ids)}]");
+        return ids;
+    }
+
+    // Android package names: two or more dot-separated segments, each starting with a letter.
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$")]
+    private static partial System.Text.RegularExpressions.Regex AndroidPackageName();
+
+    // Release-1.0.0 D4: the multiplatform template used to grant Bash(*)/Edit(*)/Write(*) with
+    // acceptEdits. Scaffolding may pre-approve the Miko MCP server only; the rest is the user's call.
+    [Fact]
+    public void Should_only_pre_approve_the_miko_mcp_server()
+    {
+        var multiplatform = fixture.Scaffold("miko-multiplatform", "claude");
+        var settings = System.Text.Json.Nodes.JsonNode.Parse(
+            File.ReadAllText(Path.Combine(multiplatform, ".claude", "settings.local.json")))!;
+
+        settings["permissions"]!["allow"]!.AsArray().Select(p => p!.GetValue<string>()).ShouldBe(["mcp__miko"]);
+        settings["permissions"]!["defaultMode"].ShouldBeNull();
+        File.Exists(Path.Combine(fixture.Scaffold("miko-razor", "claude"), ".claude", "settings.local.json")).ShouldBeFalse(
+            "the desktop template has no MCP server to approve");
+    }
+
+    // Release-1.0.0 P1-B5: the simulator head started the unauthenticated MCP server for every
+    // app; it is only for agents, so `--agent none` (the default) must not reference it.
+    [Theory]
+    [InlineData("none", false)]
+    [InlineData("claude", true)]
+    [InlineData("codex", true)]
+    public void Should_reference_the_mcp_server_only_when_an_agent_is_chosen(string agent, bool expected)
+    {
+        var app = fixture.Scaffold("miko-multiplatform", agent);
+        var head = Directory.GetDirectories(app, "*.Simulator").Single();
+
+        File.ReadAllText(Directory.GetFiles(head, "*.csproj").Single()).Contains("Miko.McpServer").ShouldBe(expected);
+        var program = File.ReadAllText(Path.Combine(head, "Program.cs"));
+        program.Contains("AddMikoMcpServer").ShouldBe(expected);
+        program.Contains("using Miko.McpServer;").ShouldBe(expected);
     }
 
     [Fact]

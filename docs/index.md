@@ -47,8 +47,8 @@ process with optional Native AOT.
 looks identical across targets), and you can bring much of an existing Blazor component
 codebase.
 
-::: tip Experimental
-Miko is an experimental project under active development. APIs may change between versions.
+::: tip 1.0.0-preview.1
+This is a preview release. APIs may change before the stable 1.0 release. See [Known Limitations](./guide/known-limitations.md) for the current feature boundaries.
 :::
 
 ## A taste of the code

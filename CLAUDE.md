@@ -65,9 +65,12 @@ dotnet clean
 dotnet pack miko.slnx
 dotnet pack templates/Miko.Templates.csproj
 ```
-The in-repo templates' `nuget.config` restores `Miko*` from `packages/`. Every local pack is version
-1.0.0 and NuGet caches by version, so after re-packing delete the stale copies
-(`rm -rf ~/.nuget/packages/miko*`) before restoring again. CI passes `-o`, which overrides the default.
+The in-repo templates' `nuget.config` restores `Miko*` from `packages/`. `Directory.Build.props` sets
+`VersionPrefix=1.0.0` + `VersionSuffix=dev`, so every local pack is `1.0.0-dev` (below any
+`1.0.0-preview.N`) and the templates reference `1.0.0-dev`; the publish workflow passes `-p:Version=`
+and rewrites the template references to the released version. NuGet caches by version, so after
+re-packing delete the stale copies (`rm -rf ~/.nuget/packages/miko*`) before restoring again.
+CI passes `-o`, which overrides the default output path.
 
 ## Architecture Overview
 

@@ -26,20 +26,4 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
   </ItemGroup>
 
-  <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
-    <PropertyGroup>
-      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\..\..\src\Miko.Razor.Compiler\bin\$(Configuration)\$(TargetFramework)\</_CustomRazorGeneratorDir>
-    </PropertyGroup>
-    <ItemGroup>
-      <Analyzer Remove="@(_RazorAnalyzer)" />
-      <_RazorAnalyzer Remove="@(_RazorAnalyzer)" />
-    </ItemGroup>
-    <ItemGroup>
-      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" />
-      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.AspNetCore.Razor.Utilities.Shared.dll" />
-      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.Extensions.ObjectPool.dll" />
-      <Analyzer Include="@(_RazorAnalyzer)" />
-    </ItemGroup>
-  </Target>
-
 </Project>

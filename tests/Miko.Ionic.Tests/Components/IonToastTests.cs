@@ -705,7 +705,11 @@ public class IonToastTests : IonicComponentTestBase
     }
 
     /// <summary>Waits for <paramref name="condition"/> to hold, polling until the timeout.</summary>
-    private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 2000)
+    // The auto-dismiss timer is a real Task.Delay whose continuation needs a thread-pool thread.
+    // Under the full parallel suite other tests block pool threads (Thread.Sleep), and a 2 s
+    // budget failed intermittently even for a 60 ms toast (same as IonLoadingAutoDismissTests).
+    // The wait polls, so a generous ceiling costs nothing when the toast dismisses on time.
+    private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 10_000)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
         while (sw.ElapsedMilliseconds < timeoutMs && !condition())

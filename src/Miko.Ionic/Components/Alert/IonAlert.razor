@@ -142,15 +142,16 @@
     /// <summary>If true (default), tapping the backdrop dismisses the alert.</summary>
     [Parameter] public bool BackdropDismiss { get; set; } = true;
 
-    /// <summary>If true, the surface is translucent (marker only in this port).</summary>
-    [Parameter] public bool Translucent { get; set; }
-
-    /// <summary>Id of the element that opens the alert (Ionic <c>trigger</c>). Kept for API parity;
-    /// the host drives <see cref="IsOpen"/> in this port.</summary>
+    /// <summary>Id of the element that opens the alert when clicked (Ionic <c>trigger</c>), e.g.
+    /// <c>&lt;IonButton Id="open-alert"&gt;</c>. Opening sets <see cref="IsOpen"/> and raises
+    /// <see cref="IsOpenChanged"/>. The page must be inside an <see cref="IonApp"/>.</summary>
     [Parameter] public string? Trigger { get; set; }
 
     /// <summary>Raised when the alert dismisses, with the tapped button's role (or <c>"backdrop"</c>).</summary>
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
+
+    /// <summary>Supplied by <see cref="IonApp"/>; carries the <see cref="Trigger"/> bindings.</summary>
+    [CascadingParameter] private IonOverlayContext? OverlayContext { get; set; }
 
     private IReadOnlyList<IonAlertButton> _buttons = Array.Empty<IonAlertButton>();
     private string _inputKind = "none";
@@ -162,9 +163,9 @@
             .Clear()
             .Add(Class)
             .Add(Mode)
-            .Add("ion-alert")
-            .If(Translucent, "alert-translucent");
+            .Add("ion-alert");
 
+        OverlayContext?.Triggers.Set(this, Trigger, OpenFromTriggerAsync);
         RegisterBackHandler(IsOpen && BackdropDismiss ? HandleBack : null, BackButtonPriority.Overlay);
 
         _buttons = Buttons;
@@ -279,6 +280,21 @@
         // Data carries the current input values (checked radio value, or checked checkbox values).
         object? data = CollectInputData();
         await OnDidDismiss.InvokeAsync(new IonOverlayDismissEventArgs(role, data));
+    }
+
+    // The Trigger element was clicked (overlays.ts createTriggerController → present()).
+    private async Task OpenFromTriggerAsync(MouseEventArgs _)
+    {
+        if (IsOpen) return;
+        IsOpen = true;
+        await IsOpenChanged.InvokeAsync(true);
+        StateHasChanged();
+    }
+
+    protected override void OnDispose()
+    {
+        OverlayContext?.Triggers.Remove(this);
+        base.OnDispose();
     }
 
     private object? CollectInputData()

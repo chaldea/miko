@@ -48,7 +48,7 @@ public class IonTabButtonTests : IonicComponentTestBase
     [Fact]
     public void IonTabButton_RendersDomContract()
     {
-        var cut = RenderButton(Context, IconLabelBadge("47"), p => p.Add(nameof(IonTabButton.Tab), "tab1"));
+        var cut = RenderButton(Context, IconLabelBadge("47"));
 
         cut.Root.TagName.ShouldBe("a");
         cut.Root.ShouldHaveClass("md ion-tab-button");
@@ -218,7 +218,6 @@ public class IonTabButtonTests : IonicComponentTestBase
         p.Add(nameof(IonTabBar.ChildContent), (RenderFragment)(builder =>
         {
             var __c4 = builder.OpenComponent<IonTabButton>();
-            __c4.Tab = "tab1";
             __c4.ChildContent = 
                 emptyBadge ? EmptyBadge() : IconLabelBadge("47");
             builder.CloseComponent();

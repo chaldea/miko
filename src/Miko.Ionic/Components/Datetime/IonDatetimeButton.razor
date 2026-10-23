@@ -21,14 +21,9 @@
 </div>
 
 @code {
-    /// <summary>Named palette color (Ionic <c>color</c>). Stamped as <c>ion-color-*</c> classes for
-    /// app styles to target; the built-in datetime styles do not read it, so on its own it changes
-    /// nothing.</summary>
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// The text color of the active button (see <see cref="DatetimeActive"/>), primary by default.</summary>
     [Parameter] public string? Color { get; set; }
-
-    /// <summary>The id of the <c>ion-datetime</c> this button controls (Ionic <c>datetime</c>). Kept
-    /// for API parity; the host wires the click callbacks in this port.</summary>
-    [Parameter] public string? Datetime { get; set; }
 
     /// <summary>The formatted date label; when empty the date button is not rendered.</summary>
     [Parameter] public string? DateText { get; set; }

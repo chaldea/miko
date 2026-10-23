@@ -26,7 +26,6 @@ namespace Miko.Ionic.Styles
             styles.MergeChildrenFrom(FlexUtilsStyle.GenStyle());
             styles.MergeChildrenFrom(TextStyle.GenStyle());
             styles.MergeChildrenFrom(PaddingMarginStyle.GenStyle());
-            styles.MergeChildrenFrom(FloatStyle.GenStyle());
 
             return styles;
         }

@@ -49,7 +49,6 @@ public class IonInfiniteScrollDemoScrollTests : IDisposable
             __c1.ChildContent = (RenderFragment)(page =>
             {
                 var __c3 = page.OpenComponent<IonContent>();
-                __c3.Fullscreen = true;
                 __c3.ChildContent = (RenderFragment)(c =>
                 {
                     var __c5 = c.OpenComponent<IonList>();

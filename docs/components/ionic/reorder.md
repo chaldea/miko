@@ -160,7 +160,7 @@ Picking up an item gives a light impact, each time the drop position changes the
 ## API
 
 <!-- miko:api IonReorder IonReorderGroup -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonReorder
 

@@ -13,13 +13,6 @@ public sealed class SpinnerToken : IonicToken
         set { _size = value; Mark(nameof(Size)); }
     }
 
-    private float _smallSize = 16f;
-    public float SmallSize
-    {
-        get => _smallSize;
-        set { _smallSize = value; Mark(nameof(SmallSize)); }
-    }
-
     private Color _color = default;
     public Color Color
     {
@@ -38,7 +31,6 @@ public sealed class SpinnerToken : IonicToken
     {
         var token = (SpinnerToken)target;
         if (IsSpecified(nameof(Size))) token.Size = Size;
-        if (IsSpecified(nameof(SmallSize))) token.SmallSize = SmallSize;
         if (IsSpecified(nameof(Color))) token.Color = Color;
         if (IsSpecified(nameof(TrackColor))) token.TrackColor = TrackColor;
     }
@@ -47,7 +39,6 @@ public sealed class SpinnerToken : IonicToken
     {
         AppendValue(builder, Color);
         AppendValue(builder, Size);
-        AppendValue(builder, SmallSize);
         AppendValue(builder, TrackColor);
     }
 }

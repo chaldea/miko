@@ -24,7 +24,7 @@
             </ChildContent>
         </IonToolbar>
     </IonHeader>
-    <IonContent Fullscreen>
+    <IonContent>
         <ComponentDetails Name="Popover">
             The Popover is a dialog that appears on top of the current page. It can be used for
             anything, but generally it is used for overflow actions that don't fit in the navigation bar.
@@ -55,7 +55,6 @@
         {
             Content = _popList,
             Event = args,
-            Translucent = true,
         });
         await popover.PresentAsync();
     }

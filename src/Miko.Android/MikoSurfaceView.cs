@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Android.Content;
+using Android.OS;
+using Android.Runtime;
 using Android.Text;
 using Android.Util;
 using Android.Views;
@@ -25,7 +27,8 @@ public class MikoSurfaceView : SKGLSurfaceView
 {
     private readonly MikoAppContext _context;
     private readonly MikoInteractionController _controller;
-    private readonly float _density;
+    // UI 线程写（OnConfigurationChanged），GL 线程与触摸回调读。
+    private volatile float _density;
     private readonly Stopwatch _frameTimer = new();
     private float _lastFrameTime;
     private bool _initialized;
@@ -95,11 +98,79 @@ public class MikoSurfaceView : SKGLSurfaceView
         // render while an animation, invalidation, or queued callback is active.
         RenderMode = global::Android.Opengl.Rendermode.WhenDirty;
 
+        // 切后台时（OnPause，见 LifecycleCallbacks）尽量保住 EGL 上下文：视频的 OES 纹理与
+        // SurfaceTexture 都属于它，丢了回来就是黑屏。系统仍可能在内存紧张时销毁上下文，
+        // 那时 SKGLSurfaceView 在 OnSurfaceCreated 重建 GRContext，引擎每帧同步 GraphicsContext。
+        PreserveEGLContextOnPause = true;
+
         // 接收系统窗口 inset 以便计算安全区（edge-to-edge 下系统栏会覆盖内容）。
         SetFitsSystemWindows(false);
         Focusable = true;
         FocusableInTouchMode = true;
+
+        // 固定 id：Android 只为有 id 的视图保存/恢复状态，而且按 id 配对，进程被回收后重建的视图
+        // 必须拿到同一个 id。取值避开 aapt 生成的 0x7fxxxxxx 资源 id。
+        Id = SavedStateViewId;
+        SaveEnabled = true;
     }
+
+    // ---------------------------------------------------------------------
+    // 状态恢复（Release-1.0.0 P1-A3）
+    // ---------------------------------------------------------------------
+
+    private const int SavedStateViewId = 0x4D696B6F; // "Miko"
+    private const string SuperStateKey = "miko:super";
+    private const string HistoryKey = "miko:navigation-history";
+
+    /// <summary>
+    /// 进程在后台被系统回收后，Activity 会带着保存的状态重建，App 却从首页冷启动。这里把导航历史
+    /// 存进视图状态，恢复时按原顺序重放，用户回到离开时的页面（返回栈也在）。页面内部状态
+    /// （表单内容、滚动位置）不保存。
+    /// </summary>
+    protected override IParcelable? OnSaveInstanceState()
+    {
+        var bundle = new Bundle();
+        bundle.PutParcelable(SuperStateKey, base.OnSaveInstanceState());
+        var navigation = _context.Services.GetService<Routing.NavigationManager>();
+        if (navigation is not null)
+            bundle.PutStringArray(HistoryKey, navigation.History.ToArray());
+        return bundle;
+    }
+
+    protected override void OnRestoreInstanceState(IParcelable? state)
+    {
+        if (state is not Bundle bundle)
+        {
+            base.OnRestoreInstanceState(state);
+            return;
+        }
+
+        // GetParcelable 返回的是 Java 对象的代理：转成接口要用 JavaCast，C# 强转会抛 InvalidCastException。
+        var superState = OperatingSystem.IsAndroidVersionAtLeast(33)
+            ? bundle.GetParcelable(SuperStateKey, Java.Lang.Class.FromType(typeof(IParcelable)))
+            : GetSuperStateLegacy(bundle);
+        base.OnRestoreInstanceState(superState?.JavaCast<IParcelable>());
+
+        var history = bundle.GetStringArray(HistoryKey);
+        var navigation = _context.Services.GetService<Routing.NavigationManager>();
+        if (history is null || history.Length == 0 || navigation is null) return;
+
+        // 历史栈第 0 项是根页面（新进程已在那里），其余按前进方向逐个压栈。导航会改组件树，
+        // 交给渲染线程在帧里执行（与其他投递的动作一样）。
+        void Replay()
+        {
+            foreach (var path in history.Skip(1))
+                navigation.NavigateTo(path);
+        }
+
+        if (_dispatcher is not null) _dispatcher.Post(Replay);
+        else Replay();
+        RequestRender();
+    }
+
+#pragma warning disable CA1422 // API 33 以下只有无类型参数的重载
+    private static Java.Lang.Object? GetSuperStateLegacy(Bundle bundle) => bundle.GetParcelable(SuperStateKey);
+#pragma warning restore CA1422
 
     /// <summary>
     /// 系统窗口 inset 变化（首次 attach、旋转、系统栏显隐）时回调。读取状态栏/导航栏
@@ -120,6 +191,12 @@ public class MikoSurfaceView : SKGLSurfaceView
                 top = bars.Top;
                 right = bars.Right;
                 bottom = bars.Bottom;
+
+                // 软键盘（Release-1.0.0 A2）。edge-to-edge 下 adjustResize 不再缩小窗口，键盘高度只经
+                // Ime inset 报出来（从窗口底边量起，含导航栏）；推给引擎，布局排到键盘上方。
+                // API 26–29 没有 Ime 类型，那里的窗口仍由 windowSoftInputMode 处理。
+                var ime = insets.GetInsets(WindowInsets.Type.Ime());
+                _controller.SetKeyboardInset(ime.Bottom / _density);
             }
             else
             {
@@ -133,6 +210,9 @@ public class MikoSurfaceView : SKGLSurfaceView
             }
 
             _controller.SetSafeAreaInsets(left / _density, top / _density, right / _density, bottom / _density);
+            // WhenDirty 渲染：inset 变化不一定伴随 surface 尺寸变化（改密度、系统栏显隐），
+            // 不主动请求一帧的话，新的安全区要等下一次触摸才画出来。
+            RequestRender();
         }
 
         return base.OnApplyWindowInsets(insets);
@@ -245,28 +325,50 @@ public class MikoSurfaceView : SKGLSurfaceView
         return luminance > 0.5f;
     }
 
+    // 引擎只建模一个指针（Release-1.0.0 P1-A1）：跟踪按下的第一根手指，其余手指忽略。
+    // 此前 Move 永远读下标 0、Up 只在最后一根手指抬起时到达：两指按住、先抬第一根，
+    // 坐标会跳到第二根手指上，抬起的位置也是第二根的。-1 = 当前没有在跟踪的手指。
+    private int _primaryPointerId = -1;
+
     public override bool OnTouchEvent(MotionEvent? e)
     {
         if (e == null) return base.OnTouchEvent(e);
 
-        // 原生坐标为物理像素，按密度换算为逻辑坐标。
-        float x = e.GetX() / _density;
-        float y = e.GetY() / _density;
-
         switch (e.ActionMasked)
         {
             case MotionEventActions.Down:
-                _controller.OnPointerDown(x, y, MouseButton.Left, PointerType.Touch, e.GetPointerId(0));
+                _primaryPointerId = e.GetPointerId(0);
+                _controller.OnPointerDown(LogicalX(e, 0), LogicalY(e, 0), MouseButton.Left, PointerType.Touch, _primaryPointerId);
                 break;
             case MotionEventActions.Move:
-                _controller.OnPointerMove(x, y);
+            {
+                var index = _primaryPointerId < 0 ? -1 : e.FindPointerIndex(_primaryPointerId);
+                if (index < 0) return true;
+                _controller.OnPointerMove(LogicalX(e, index), LogicalY(e, index));
+                break;
+            }
+            case MotionEventActions.PointerUp when e.GetPointerId(e.ActionIndex) == _primaryPointerId:
+                // 被跟踪的手指先于其他手指抬起：在它自己的位置结束这次按压。
+                _controller.OnPointerUp(LogicalX(e, e.ActionIndex), LogicalY(e, e.ActionIndex), MouseButton.Left, PointerType.Touch, _primaryPointerId);
+                _primaryPointerId = -1;
                 break;
             case MotionEventActions.Up:
-                _controller.OnPointerUp(x, y, MouseButton.Left, PointerType.Touch, e.GetPointerId(0));
+                if (_primaryPointerId < 0 || e.GetPointerId(0) != _primaryPointerId) { _primaryPointerId = -1; return true; }
+                _controller.OnPointerUp(LogicalX(e, 0), LogicalY(e, 0), MouseButton.Left, PointerType.Touch, _primaryPointerId);
+                _primaryPointerId = -1;
                 break;
             case MotionEventActions.Cancel:
-                _controller.OnPointerCancel(x, y, e.GetPointerId(0));
+                if (_primaryPointerId >= 0)
+                {
+                    var index = System.Math.Max(0, e.FindPointerIndex(_primaryPointerId));
+                    _controller.OnPointerCancel(LogicalX(e, index), LogicalY(e, index), _primaryPointerId);
+                }
+                _primaryPointerId = -1;
                 break;
+            case MotionEventActions.PointerDown:
+            case MotionEventActions.PointerUp:
+                // 其他手指的按下/抬起：不参与。
+                return true;
             default:
                 return base.OnTouchEvent(e);
         }
@@ -276,6 +378,10 @@ public class MikoSurfaceView : SKGLSurfaceView
 
         return true;
     }
+
+    // 原生坐标为物理像素，按密度换算为逻辑坐标。
+    private float LogicalX(MotionEvent e, int index) => e.GetX(index) / _density;
+    private float LogicalY(MotionEvent e, int index) => e.GetY(index) / _density;
 
     /// <summary>
     /// 系统返回键（ISSUE-138），返回是否被某个组件（覆盖层/菜单/返回按钮）消费。
@@ -306,9 +412,41 @@ public class MikoSurfaceView : SKGLSurfaceView
         return consumed;
     }
 
+    /// <summary>
+    /// Activity 声明了 <c>ConfigurationChanges</c>（含 Density）时，系统不再重建 Activity，
+    /// 而是回调这里。改「显示大小」或拖到另一块屏幕都会改变密度：必须刷新换算系数，
+    /// 并让系统重新下发 inset，否则逻辑尺寸、触摸坐标和安全区都按旧密度换算。
+    /// </summary>
+    protected override void OnConfigurationChanged(global::Android.Content.Res.Configuration? newConfig)
+    {
+        base.OnConfigurationChanged(newConfig);
+
+        var density = newConfig is { DensityDpi: > 0 }
+            ? newConfig.DensityDpi / (float)DisplayMetricsDensity.Default
+            : Resources?.DisplayMetrics?.Density ?? _density;
+        if (density != _density)
+        {
+            _density = density;
+            RequestApplyInsets();
+        }
+
+        RequestRender();
+    }
+
+    // 应用生命周期（Release-1.0.0 A1）。GLSurfaceView 要求宿主 Activity 在 OnPause/OnResume 里
+    // 转发 view.OnPause()/OnResume()，否则切到后台 GL 线程照跑、EGL 上下文也不释放。模板与示例
+    // 从没转发过，所以视图自己监听所属 Activity 的生命周期，App 不必再写一行。
+    private LifecycleCallbacks? _lifecycle;
+
     protected override void OnAttachedToWindow()
     {
         base.OnAttachedToWindow();
+        if (_activity is not null && _lifecycle is null)
+        {
+            _lifecycle = new LifecycleCallbacks(this, _activity);
+            _activity.Application?.RegisterActivityLifecycleCallbacks(_lifecycle);
+            _activity.Application?.RegisterComponentCallbacks(_lifecycle);
+        }
         // RequestRender 可从任意线程调用，投递动作的正是各种后台线程。
         if (_dispatcher is not null) _dispatcher.Posted += RequestRender;
         if (_backRegistry is null || !OperatingSystem.IsAndroidVersionAtLeast(33)) return;
@@ -318,6 +456,13 @@ public class MikoSurfaceView : SKGLSurfaceView
 
     protected override void OnDetachedFromWindow()
     {
+        if (_lifecycle is not null)
+        {
+            _activity?.Application?.UnregisterActivityLifecycleCallbacks(_lifecycle);
+            _activity?.Application?.UnregisterComponentCallbacks(_lifecycle);
+            _lifecycle.Dispose();
+            _lifecycle = null;
+        }
         if (_dispatcher is not null) _dispatcher.Posted -= RequestRender;
         if (_backRegistry is not null && OperatingSystem.IsAndroidVersionAtLeast(33))
         {
@@ -325,6 +470,51 @@ public class MikoSurfaceView : SKGLSurfaceView
             SyncBackCallback();
         }
         base.OnDetachedFromWindow();
+    }
+
+    /// <summary>
+    /// 只转发视图所属 Activity 的回调：同一进程里的其他 Activity（相机、分享面板）切到前台时，
+    /// 本 Activity 的 OnPause 才是真正的「离开」，别的 Activity 的事件与本视图无关。
+    /// </summary>
+    private sealed class LifecycleCallbacks(MikoSurfaceView view, global::Android.App.Activity activity)
+        : Java.Lang.Object, global::Android.App.Application.IActivityLifecycleCallbacks, global::Android.Content.IComponentCallbacks2
+    {
+        public void OnActivityPaused(global::Android.App.Activity a)
+        {
+            if (a != activity) return;
+            Log.Info("MikoSurfaceView", "Activity paused: suspending rendering");
+            // 先停引擎侧（视频等），再停 GL 线程；SKGLSurfaceView 的 OnPause 会等渲染线程空闲。
+            view._controller.Suspend();
+            view.OnPause();
+        }
+
+        public void OnActivityResumed(global::Android.App.Activity a)
+        {
+            if (a != activity) return;
+            Log.Info("MikoSurfaceView", "Activity resumed: resuming rendering");
+            view.OnResume();
+            view._controller.Resume();
+            view.RequestRender();
+        }
+
+        public void OnTrimMemory(global::Android.Content.TrimMemory level)
+        {
+            // RunningLow 及以上（前台也吃紧）或 UiHidden（已不可见）都值得放掉 GPU 缓存。
+            if (level >= global::Android.Content.TrimMemory.RunningLow)
+            {
+                view._controller.TrimMemory();
+                view.RequestRender();
+            }
+        }
+
+        public void OnLowMemory() => OnTrimMemory(global::Android.Content.TrimMemory.Complete);
+
+        public void OnConfigurationChanged(global::Android.Content.Res.Configuration newConfig) { }
+        public void OnActivityCreated(global::Android.App.Activity a, Bundle? savedInstanceState) { }
+        public void OnActivityDestroyed(global::Android.App.Activity a) { }
+        public void OnActivitySaveInstanceState(global::Android.App.Activity a, Bundle outState) { }
+        public void OnActivityStarted(global::Android.App.Activity a) { }
+        public void OnActivityStopped(global::Android.App.Activity a) { }
     }
 
     // 处理者在 GL 线程上随组件构建注册/注销；系统回调的注册必须回到 UI 线程。

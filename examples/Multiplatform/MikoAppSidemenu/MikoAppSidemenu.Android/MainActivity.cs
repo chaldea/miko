@@ -1,4 +1,5 @@
 using Android.App;
+using Android.Content.PM;
 using Android.OS;
 using Miko.Android;
 
@@ -10,7 +11,12 @@ namespace MikoAppSidemenu.Android;
 [Activity(
     Label = "MikoAppSidemenu",
     MainLauncher = true,
-    Theme = "@android:style/Theme.Material.Light.NoActionBar")]
+    Icon = "@mipmap/appicon",
+    RoundIcon = "@mipmap/appicon_round",
+    Theme = "@android:style/Theme.Material.Light.NoActionBar",
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.ScreenLayout
+        | ConfigChanges.SmallestScreenSize | ConfigChanges.Density | ConfigChanges.UiMode
+        | ConfigChanges.FontScale | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
 public class MainActivity : Activity
 {
     private MikoSurfaceView? _view;
@@ -28,7 +34,7 @@ public class MainActivity : Activity
         }
 
         // Reuse the shared app configuration; Miko.Android drives rendering and touch input.
-        _view = MikoAndroidApp.CreateView(this, MikoAppSidemenu.App.CreateContext);
+        _view = MikoAndroidApp.CreateView(this, () => MikoAppSidemenu.App.CreateContext());
         SetContentView(_view);
     }
 

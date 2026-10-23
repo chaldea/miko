@@ -946,11 +946,6 @@ public class RenderTreeBuilder
         ApplyComponentParameter(frame.Component!, name, value);
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2075",
-        Justification = "The component reached this builder through OpenComponent<T> or " +
-                        "OpenComponent(int, Type); both declare ComponentTypeMembers.Activation, " +
-                        "which includes PublicProperties — the exact binding this lookup uses. " +
-                        "GetType() on the instance is merely statically unannotated (ISSUE-140).")]
     private static void ApplyComponentParameter(ComponentBase component, string name, object? value)
     {
         var prop = FindParameterProperty(component.GetType(), name);
@@ -976,8 +971,11 @@ public class RenderTreeBuilder
     /// （同时写两者会报 RZ10010），区分大小写的查找让它永远落空（ISSUE-153 问题 5）。
     /// </summary>
     [UnconditionalSuppressMessage("Trimming", "IL2070",
-        Justification = "See AddComponentParameter: the component type was opened through an " +
-                        "OpenComponent overload that preserves its public properties (ISSUE-140).")]
+        Justification = "The component reached this builder through OpenComponent<T> or " +
+                        "OpenComponent(int, Type); both declare ComponentTypeMembers.Activation, " +
+                        "which includes PublicProperties, the exact binding this lookup uses. The " +
+                        "caller passes GetType() of that instance, which is merely statically " +
+                        "unannotated (ISSUE-140).")]
     private static PropertyInfo? FindParameterProperty(Type componentType, string name)
     {
         const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;

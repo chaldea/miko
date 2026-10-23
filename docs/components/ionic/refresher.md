@@ -124,7 +124,7 @@ A pull can only start while the content is scrolled to the very top. Releasing a
 ## API
 
 <!-- miko:api IonRefresher IonRefresherContent -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonRefresher
 

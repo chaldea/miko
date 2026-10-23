@@ -124,8 +124,6 @@ public sealed class IonPopoverOptions
     public string? Alignment { get; set; }
     /// <summary>If true (default), renders the arrow element.</summary>
     public bool Arrow { get; set; } = true;
-    /// <summary>Stamps <c>popover-translucent</c>; a marker only.</summary>
-    public bool Translucent { get; set; }
     /// <summary>Extra CSS class(es) for the popover host (its <c>Class</c>).</summary>
     public string? CssClass { get; set; }
 }
@@ -316,7 +314,6 @@ public sealed class IonPopoverController : IonOverlayControllerBase
             __c5.Side = options.Side;
             __c5.Alignment = options.Alignment;
             __c5.Arrow = options.Arrow;
-            __c5.Translucent = options.Translucent;
             __c5.Class = options.CssClass;
             __c5.ChildContent = options.Content;
             __c5.OnDidDismiss = 

@@ -15,28 +15,51 @@
    marker span (ion-slot-*) so the slot styles apply and the icon-only detection can find them —
    mirroring Ionic's ::slotted([slot=…]) selectors and querySelector('[slot="icon-only"]').
    The default slot maps to ChildContent, rendered between start and end (Ionic's authoring order).
-   Ionic renders an <a> instead of a <button> when an `href` is set; this port keeps the
-   <button> surface and exposes Href as a marker (navigation is out of scope for the renderer).
+   As in Ionic the native surface is an <a> instead of a <button> when Href is set, and a tap
+   navigates through the NavigationManager (the routerLink behavior IonItem / IonBreadcrumb share).
    The `fill` default is solid, except inside a toolbar / list-header where Ionic defaults to
    clear — modeled here when an explicit Fill is not supplied. *@
 <div class="@ClassMapper.Class" style="@Style">
-    <button class="button-native" @onclick="HandleClick">
-        <span class="button-inner">
-            @if (IconOnly is not null)
-            {
-                <span class="ion-slot-icon-only">@IconOnly</span>
-            }
-            @if (Start is not null)
-            {
-                <span class="ion-slot-start">@Start</span>
-            }
-            @ChildContent
-            @if (End is not null)
-            {
-                <span class="ion-slot-end">@End</span>
-            }
-        </span>
-    </button>
+    @if (string.IsNullOrEmpty(Href))
+    {
+        <button class="button-native" @onclick="HandleClick">
+            <span class="button-inner">
+                @if (IconOnly is not null)
+                {
+                    <span class="ion-slot-icon-only">@IconOnly</span>
+                }
+                @if (Start is not null)
+                {
+                    <span class="ion-slot-start">@Start</span>
+                }
+                @ChildContent
+                @if (End is not null)
+                {
+                    <span class="ion-slot-end">@End</span>
+                }
+            </span>
+        </button>
+    }
+    else
+    {
+        <a class="button-native" href="@Href" @onclick="HandleClick">
+            <span class="button-inner">
+                @if (IconOnly is not null)
+                {
+                    <span class="ion-slot-icon-only">@IconOnly</span>
+                }
+                @if (Start is not null)
+                {
+                    <span class="ion-slot-start">@Start</span>
+                }
+                @ChildContent
+                @if (End is not null)
+                {
+                    <span class="ion-slot-end">@End</span>
+                }
+            </span>
+        </a>
+    }
 </div>
 
 @code {
@@ -71,9 +94,15 @@
     /// <summary>When true, the button is dimmed and non-interactive (Ionic <c>disabled</c>).</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Link target (Ionic <c>href</c>). Kept as a marker for API parity; the renderer
-    /// does not perform navigation.</summary>
+    /// <summary>Route to navigate to (Ionic <c>href</c>). When set, the native surface is an
+    /// <c>a</c>, and a tap raises <see cref="OnClick"/> and then navigates through the app's
+    /// <c>NavigationManager</c> with the mode's page transition, like <see cref="IonItem"/>.</summary>
     [Parameter] public string? Href { get; set; }
+
+    /// <summary>Navigation direction when <see cref="Href"/> is clicked (mirrors Ionic's
+    /// <c>routerDirection</c>): <c>"forward"</c> (default — push with transition), <c>"back"</c>
+    /// (pop-style reverse transition), or <c>"root"</c> (clear the history stack, no transition).</summary>
+    [Parameter] public string? RouterDirection { get; set; }
 
     /// <summary>Raised when the button is tapped (skipped when disabled).</summary>
     [Parameter] public EventCallback OnClick { get; set; }
@@ -148,5 +177,8 @@
     {
         if (Disabled) return;
         await OnClick.InvokeAsync(args);
+
+        // button.tsx: an href button navigates like routerLink (openURL), after ionClick.
+        NavigateHref(Href, RouterDirection);
     }
 }

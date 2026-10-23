@@ -48,7 +48,7 @@ The page owns a `bool` for the open state: `IonMenuButton.OnClick` sets it, `Ion
         </div>
     </IonContent>
 
-    <IonMenu IsOpen="_menuOpen" Side="start" Type="overlay" OnClose="CloseMenu">
+    <IonMenu IsOpen="_menuOpen" Side="start" OnClose="CloseMenu">
         <IonContent>
             <IonList>
                 <IonListHeader>Inbox</IonListHeader>
@@ -152,17 +152,15 @@ The menu never closes itself: a backdrop tap and the system back button only rai
 ## API
 
 <!-- miko:api IonMenu IonMenuButton -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonMenu
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Animations` | `AnimationManager?` | `null` | No longer needed: the backdrop fade runs without it. Kept so existing markup that passes the app's `AnimationManager` still compiles. |
 | `BackButtonCloses` | `bool` | `true` | Whether the system back button closes the open menu. Defaults to `true`; only takes effect while [`IsOpen`](#ionmenu) and when a host has subscribed to [`OnClose`](#ionmenu) — with nobody listening there is nothing to close. |
 | `IsOpen` | `bool` | `false` | Whether the drawer is open (slid on-screen, backdrop dimmed). |
 | `Side` | `string` | `"start"` | Edge the drawer is anchored to: `"start"` (default, left) or `"end"` (right). |
-| `Type` | `string` | `"overlay"` | Reveal behavior. Only `"overlay"` (drawer slides over the content with a backdrop) is implemented; kept for Ionic API parity. |
 
 | Event | Type | Description |
 | --- | --- | --- |

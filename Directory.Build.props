@@ -10,4 +10,36 @@
     <PackageOutputPath>$(MSBuildThisFileDirectory)packages</PackageOutputPath>
   </PropertyGroup>
 
+  <!--
+    Centralized versioning for all packages.
+    - VersionPrefix: base version (1.0.0)
+    - VersionSuffix: defaults to "dev" for local builds, CI overrides with preview/release tags
+    - Local builds produce 1.0.0-dev, which sorts lower than 1.0.0-preview.N in NuGet
+  -->
+  <PropertyGroup>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''">dev</VersionSuffix>
+  </PropertyGroup>
+
+  <!--
+    Every package carries the third-party notices (Ionicons, Ionic Framework, the forked Razor
+    compiler and its bundled ObjectPool, the template app icon). Pack metadata is ignored
+    by projects that are not packed.
+  -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <!-- Package metadata shared by every package (Release-1.0.0 P1-B1). -->
+  <PropertyGroup>
+    <Copyright>Copyright (c) 2024 Chaldea Contributors</Copyright>
+    <!-- Checks the packed assets for compatibility problems (e.g. across target frameworks). -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <!-- Deterministic, source-mapped paths in released binaries and symbols. -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
 </Project>

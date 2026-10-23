@@ -81,8 +81,6 @@ internal static class ComponentParameterCache
         }
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2070",
-        Justification = "Cascading/inject properties are declared on the component type and preserved with it.")]
     private static Descriptor Build(
         [DynamicallyAccessedMembers(ComponentTypeMembers.Parameters)] Type type)
     {

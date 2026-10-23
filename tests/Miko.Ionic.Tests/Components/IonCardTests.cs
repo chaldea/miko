@@ -45,14 +45,12 @@ public class IonCardTests : IonicComponentTestBase
         var cut = Context.Render<IonCard>(p =>
         {
             p.Add(nameof(IonCard.Href), "/details");
-            p.Add(nameof(IonCard.Target), "_blank");
             p.Add(nameof(IonCard.ChildContent), Body);
         });
 
         var anchor = cut.Root.Children[0].ShouldBeOfType<AnchorElement>();
         anchor.Class.ShouldBe("card-native");
         anchor.Href.ShouldBe("/details");
-        anchor.Target.ShouldBe("_blank");
     }
 
     [Fact]

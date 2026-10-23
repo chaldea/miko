@@ -117,7 +117,7 @@ With `LabelPlacement="end"` on a full-width toggle (in an item, or with `Justify
 ## API
 
 <!-- miko:api IonToggle -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonToggle
 
@@ -131,8 +131,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `HelperText` | `string?` | `null` | Helper text displayed below the label. Shown even when [`ErrorText`](#iontoggle) is also set. |
 | `Justify` | `string?` | `null` | How to pack the label and switch within a line: `"start"`, `"end"`, or `"space-between"`. Setting this changes the host `display` to block. |
 | `LabelPlacement` | `string` | `"start"` | Where the label sits relative to the switch: `"start"` (default), `"end"`, `"fixed"`, or `"stacked"`. |
-| `Name` | `string?` | `null` | Form field name marker. |
-| `Value` | `string` | `"on"` | Ionic `value` (the form value when checked). Kept for API parity; Miko has no form submission. |
 
 | Event | Type | Description |
 | --- | --- | --- |

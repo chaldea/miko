@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -60,7 +61,7 @@ public static class ImageLoadingExtensions
     /// <summary>
     /// 注册自定义的 <see cref="IImageLoader"/> 实现。
     /// </summary>
-    public static MikoAppBuilder UseImageLoading<TLoader>(this MikoAppBuilder builder)
+    public static MikoAppBuilder UseImageLoading<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TLoader>(this MikoAppBuilder builder)
         where TLoader : class, IImageLoader
     {
         // Replace 而非 Add：无论默认实现是先注册还是后注册，自定义实现都确定生效（ISSUE-129）。

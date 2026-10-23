@@ -17,12 +17,10 @@ This testing framework provides utilities for unit testing Miko applications. Cu
 
 ## Installation
 
-Add a reference to `Miko.Testing` in your test project:
+Add the package to your test project (it is a preview; the API may change):
 
-```xml
-<ItemGroup>
-  <ProjectReference Include="..\..\src\Miko.Testing\Miko.Testing.csproj" />
-</ItemGroup>
+```bash
+dotnet add package Miko.Testing --prerelease
 ```
 
 ## Quick Start

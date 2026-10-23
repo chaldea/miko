@@ -10,7 +10,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MikoMultiplatformApp\MikoMultiplatformApp.csproj" />
-    <PackageReference Include="Miko.Windowing" Version="1.0.0" />
+    <PackageReference Include="Miko.Windowing" Version="1.0.0-dev" />
+    <!-- DevTools (F12 inspector) is a debugging aid: Release builds do not reference it. -->
+    <PackageReference Include="Miko.DevTools" Version="1.0.0-dev" Condition="'$(Configuration)' == 'Debug'" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 # Miko
 
 [![NuGet](https://img.shields.io/nuget/v/Miko.svg)](https://www.nuget.org/packages/Miko)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/chaldea/miko/blob/main/LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](https://dotnet.microsoft.com/)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-512BD4.svg)](https://chaldea.github.io/miko/)
 
@@ -34,8 +34,7 @@ Razor components  ─►  Miko source generator  ─►  native SkiaSharp render
   and data binding work the way you expect; many existing Blazor components can be
   recompiled to render natively with Miko instead of in a browser.
 
-> ⚠️ Miko is an experimental project under active development. APIs may change between
-> versions.
+> ⚠️ **Miko 1.0.0-preview.1** — This is a preview release. APIs may change before the stable 1.0 release. See [Known Limitations](https://chaldea.github.io/miko/guide/known-limitations) for current boundaries.
 
 ---
 
@@ -74,14 +73,6 @@ Razor components  ─►  Miko source generator  ─►  native SkiaSharp render
   `img`, lists, and tables.
 - 💅 **CSS-like styling** — stylesheets with tag / class / id / pseudo-class / compound
   selectors, specificity-based cascade, and inline styles.
-- 📐 **Box model & layout** — full content/padding/border/margin box model with **block**,
-  **inline**, and **flex** layout algorithms.
-- ⚡ **Incremental rendering** — dirty-region tracking and merging repaint only what changed.
-- ✍️ **Typography** — font registration (TTF/OTF/WOFF/WOFF2), a configurable fallback
-  chain, and text measurement.
-- 🖱️ **Events** — DOM-style event dispatch with capture and bubbling.
-- 🅱️ **Bootstrap-style component library** — ready-made buttons, cards, alerts,
-  accordions, and more.
 - 🛠️ **Dev tools** — inspect the DOM and layout tree at runtime.
 - 🤖 **Agent-first** — ships AI-agent docs and an MCP debug server so assistants like
   Claude Code can read the DOM, inspect styles, and drive a running app (see below).
@@ -121,11 +112,11 @@ Ionic component tree; `blank` is the default, while `tabs`, `sidemenu`, and `lis
 common shells and `full` copies the complete Ionic component showcase:
 
 ```bash
-dotnet new miko-razor --layout blank     -o MyApp   # empty page (default)
-dotnet new miko-razor --layout tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
-dotnet new miko-razor --layout sidemenu  -o MyApp   # Ionic side-menu drawer over a page
-dotnet new miko-razor --layout list      -o MyApp   # Ionic list page
-dotnet new miko-razor --layout full      -o MyApp   # all Ionic component demos
+dotnet new miko-razor --layout=blank     -o MyApp   # empty page (default)
+dotnet new miko-razor --layout=tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
+dotnet new miko-razor --layout=sidemenu  -o MyApp   # Ionic side-menu drawer over a page
+dotnet new miko-razor --layout=list      -o MyApp   # Ionic list page
+dotnet new miko-razor --layout=full      -o MyApp   # all Ionic component demos
 ```
 
 For a cross-platform app (Desktop + Android + iOS), use the multiplatform template instead:
@@ -160,7 +151,7 @@ builder.UseDefaultLayout<MainLayout>();
 builder.EnableHotReload();
 
 var app = builder.Build();
-app.Run();
+app.RunDesktop();
 ```
 
 ### Build and debug with agent-first mode
@@ -169,7 +160,7 @@ Miko is designed to be built **with an AI coding agent**, not just by hand. Scaf
 with the `--agent` option and the agent gets everything it needs to write and debug Miko UI:
 
 ```bash
-dotnet new miko-multiplatform --layout tabs --agent claude -o MyApp
+dotnet new miko-multiplatform --layout=tabs --agent claude -o MyApp
 ```
 
 `--agent` accepts `claude`, `codex`, or `cursor` (default `none`). Each scaffolds two things:
@@ -272,7 +263,7 @@ Miko mirrors a browser's rendering pipeline:
 | ----------- | ------------------------------------------------------------------------- |
 | **Core**    | `Element` tree and `MikoEngine`, which coordinates layout and rendering.  |
 | **Styling** | Stylesheets, selectors, the cascade, and computed styles.                 |
-| **Layout**  | The box model plus block, inline, and flex layout algorithms.             |
+| **Layout**  | The box model plus block, inline, flex, grid (a subset), and table layout algorithms. |
 | **Rendering** | `RenderEngine`, the SkiaSharp `Painter`, and the dirty-region manager.  |
 | **Fonts**   | Font registration, fallback resolution, and text measurement.             |
 | **Events**  | DOM-style event dispatch with capture and bubbling.                       |
@@ -281,7 +272,7 @@ Style cascade order (lowest to highest precedence): **Tag → Class → ID → i
 
 See the [documentation site](https://chaldea.github.io/miko/) for the full guide
 (rendering pipeline, styling, layout, and more) and
-[`DEVELOPMENT.md`](DEVELOPMENT.md) for a developer-oriented walkthrough.
+[`DEVELOPMENT.md`](https://github.com/chaldea/miko/blob/main/DEVELOPMENT.md) for a developer-oriented walkthrough.
 
 ---
 
@@ -299,8 +290,8 @@ dotnet build miko.slnx
 dotnet test
 ```
 
-The repository also contains runnable samples under [`examples/`](examples/), including
-Console, WinUI, and Android launchers.
+The repository also contains runnable samples under [`examples/`](https://github.com/chaldea/miko/tree/main/examples), including
+`examples/App/Anime` (a complete Ionic app with Desktop, Simulator, Android and iOS heads).
 
 ---
 
@@ -317,4 +308,4 @@ sending a pull request. When contributing:
 
 ## License
 
-Miko is released under the [MIT License](LICENSE).
+Miko is released under the [MIT License](https://github.com/chaldea/miko/blob/main/LICENSE).

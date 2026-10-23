@@ -166,7 +166,7 @@ Going back restores the scroll position of the page you return to; a Forward vis
 ## API
 
 <!-- miko:api IonApp IonPage -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonApp
 

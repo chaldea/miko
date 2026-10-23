@@ -72,26 +72,6 @@ public class IonFooterTests : IonicComponentTestBase
     }
 
     [Fact]
-    public void IonFooter_WithCollapseFade_AddsCollapseClass()
-    {
-        // Act
-        var cut = Context.Render<IonFooter>(p => p.Add(nameof(IonFooter.Collapse), "fade"));
-
-        // Assert
-        cut.Root.ShouldHaveClass("footer-collapse-fade");
-    }
-
-    [Fact]
-    public void IonFooter_WithoutCollapse_DoesNotAddCollapseClass()
-    {
-        // Act
-        var cut = Context.Render<IonFooter>();
-
-        // Assert
-        cut.Root.ShouldNotHaveClass("footer-collapse");
-    }
-
-    [Fact]
     public void IonFooter_IosMode_HasCorrectModeClass()
     {
         // Arrange
@@ -125,11 +105,7 @@ public class IonFooterTests : IonicComponentTestBase
         UsePlatform(HostPlatform.Ios);
 
         // Act
-        var cut = Context.Render<IonFooter>(p =>
-        {
-            p.Add(nameof(IonFooter.Translucent), true);
-            p.Add(nameof(IonFooter.Collapse), "fade");
-        });
+        var cut = Context.Render<IonFooter>(p => p.Add(nameof(IonFooter.Translucent), true));
 
         // Assert
         cut.Root.ShouldHaveClass("ios");
@@ -138,6 +114,5 @@ public class IonFooterTests : IonicComponentTestBase
         cut.Root.ShouldHaveClass("footer-translucent");
         cut.Root.ShouldHaveClass("footer-translucent-ios");
         cut.Root.ShouldHaveClass("footer-toolbar-padding");
-        cut.Root.ShouldHaveClass("footer-collapse-fade");
     }
 }

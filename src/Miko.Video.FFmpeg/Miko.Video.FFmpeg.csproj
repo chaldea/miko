@@ -9,7 +9,6 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Video.FFmpeg</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Miko</Authors>
     <Description>Optional FFmpeg video backend for Miko. Use when the system-native backend does not cover a required container or codec; adds ~80MB of native FFmpeg binaries.</Description>
     <PackageTags>miko;video;ffmpeg;skiasharp</PackageTags>

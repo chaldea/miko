@@ -2,7 +2,7 @@
 @inherits IonicComponentBase
 @* Mirrors Ionic's <ion-item-divider> host structure (item-divider.tsx render()): a section header
    row that sits between item groups.
-   <ion-item-divider>                       <!-- host: tinted fill + color / sticky classes -->
+   <ion-item-divider>                       <!-- host: tinted fill + color classes -->
      <slot name="start" />                  <!-- leading content (LTR left) -->
      <div class="item-divider-inner">       <!-- arranges the divider content -->
        <div class="item-divider-wrapper">    <!-- wraps the default slot -->
@@ -37,11 +37,6 @@
     /// as in Ionic.</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>Ionic <c>sticky</c> (pins the divider to the top of the scroll viewport). Stamps the
-    /// <c>item-divider-sticky</c> class only: Miko has no <c>position: sticky</c>, so the divider
-    /// scrolls with the content.</summary>
-    [Parameter] public bool Sticky { get; set; }
-
     /// <summary>Content for Ionic's <c>start</c> slot — placed before the label (left in LTR).</summary>
     [Parameter] public RenderFragment? Start { get; set; }
 
@@ -55,7 +50,6 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-item-divider")
-            .If(Sticky, "item-divider-sticky")
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
             .AddColor(Color);
     }

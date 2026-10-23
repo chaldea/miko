@@ -1,4 +1,3 @@
-using Miko.DevTools;
 using Miko.Hosting;
 //#if (useFull)
 using Microsoft.Extensions.DependencyInjection;
@@ -40,7 +39,6 @@ public static class App
         builder.UseSize(1024, 768);
         //#endif
 
-        builder.AddDevTools();
         //#if (useIonic)
         builder.AddIonic();
         //#endif

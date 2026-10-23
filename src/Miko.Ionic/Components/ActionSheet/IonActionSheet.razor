@@ -2,7 +2,7 @@
 @inherits IonicComponentBase
 @using Miko.Platform
 @* Mirrors Ionic's <ion-action-sheet> (action-sheet.tsx render()):
-   <ion-action-sheet class="{mode} overlay-hidden? action-sheet-translucent?">
+   <ion-action-sheet class="{mode} overlay-hidden?">
      <ion-backdrop />                                   <!-- tappable dim layer -->
      <div class="action-sheet-wrapper ion-overlay-wrapper">
        <div class="action-sheet-container">
@@ -112,11 +112,9 @@
     /// dismisses the sheet.</summary>
     [Parameter] public bool BackdropDismiss { get; set; } = true;
 
-    /// <summary>If true, the ios group uses a translucent (blurred) surface. Marker only in this port.</summary>
-    [Parameter] public bool Translucent { get; set; }
-
-    /// <summary>Id of the element that opens the sheet (Ionic <c>trigger</c>). Kept for API parity;
-    /// the host drives <see cref="IsOpen"/> in this port.</summary>
+    /// <summary>Id of the element that opens the sheet when clicked (Ionic <c>trigger</c>), e.g.
+    /// <c>&lt;IonButton Id="open-sheet"&gt;</c>. Opening sets <see cref="IsOpen"/> and raises
+    /// <see cref="IsOpenChanged"/>. The page must be inside an <see cref="IonApp"/>.</summary>
     [Parameter] public string? Trigger { get; set; }
 
     /// <summary>Raised when the sheet dismisses, with the tapped button's role and data, or role
@@ -129,6 +127,9 @@
     /// the sheet settles to closed on the same frame (no slide-out).
     /// </summary>
     [Inject] protected AnimationManager? Animations { get; set; }
+
+    /// <summary>Supplied by <see cref="IonApp"/>; carries the <see cref="Trigger"/> bindings.</summary>
+    [CascadingParameter] private IonOverlayContext? OverlayContext { get; set; }
 
     private IReadOnlyList<IonActionSheetButton> _optionButtons = Array.Empty<IonActionSheetButton>();
     private IonActionSheetButton? _cancelButton;
@@ -149,6 +150,8 @@
 
         if (IsOpen) _mounted = true;
 
+        OverlayContext?.Triggers.Set(this, Trigger, OpenFromTriggerAsync);
+
         // Claim the system back button while the sheet is open and the user is allowed to dismiss
         // it — same gate as the backdrop tap, since both mean "the user asked to go back". The
         // closed-by-back event is reported with role "back" so a host can tell the two apart.
@@ -161,8 +164,7 @@
             .Clear()
             .Add(Class)
             .Add(Mode)
-            .Add("ion-action-sheet")
-            .If(Translucent, "action-sheet-translucent");
+            .Add("ion-action-sheet");
 
         // Split the buttons: cancel-role buttons render in their own bottom group.
         _cancelButton = Buttons.FirstOrDefault(b => b.IsCancel);
@@ -232,6 +234,15 @@
         return true;
     }
 
+    // The Trigger element was clicked (overlays.ts createTriggerController → present()).
+    private async Task OpenFromTriggerAsync(MouseEventArgs _)
+    {
+        if (IsOpen) return;
+        IsOpen = true;
+        await IsOpenChanged.InvokeAsync(true);
+        StateHasChanged();
+    }
+
     protected override void OnDispose()
     {
         // Runs once, when the instance is finally dropped (a parent re-render reuses it, ISSUE-154):
@@ -241,6 +252,7 @@
             Animations.TransitionCompleted -= OnTransitionCompleted;
             _subscribed = false;
         }
+        OverlayContext?.Triggers.Remove(this);
 
         // Release the back-button slot registered in OnParametersSet (this override shadows the
         // base implementation, so it must clear it explicitly).

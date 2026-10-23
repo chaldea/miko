@@ -39,10 +39,6 @@
     /// <summary>If true, the group is non-interactive but not dimmed.</summary>
     [Parameter] public bool Readonly { get; set; }
 
-    /// <summary>Ionic's <c>animated</c>. Kept for API parity only: accordions never animate in this
-    /// port.</summary>
-    [Parameter] public bool Animated { get; set; } = true;
-
     /// <summary>Expansion behavior: <c>"compact"</c> (default) or <c>"inset"</c>.</summary>
     [Parameter] public string Expand { get; set; } = "compact";
 
@@ -70,7 +66,6 @@
             Multiple = Multiple,
             Disabled = Disabled,
             Readonly = Readonly,
-            Animated = Animated,
             Expand = expand,
             ToggleIconSlot = string.IsNullOrWhiteSpace(ToggleIconSlot) ? "end" : ToggleIconSlot.ToLowerInvariant(),
             RequestToggle = EventCallback.Factory.Create<(string, bool)>(this, RequestToggleAsync),

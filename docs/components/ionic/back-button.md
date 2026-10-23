@@ -72,7 +72,7 @@ While it is visible and enabled, the button also answers the system back button 
 ## API
 
 <!-- miko:api IonBackButton -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonBackButton
 

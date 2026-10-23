@@ -26,10 +26,6 @@
 </div>
 
 @code {
-    /// <summary>Ionic <c>autocapitalize</c>. Kept for API parity; Miko's on-screen keyboard
-    /// does not read it.</summary>
-    [Parameter] public string Autocapitalize { get; set; } = "off";
-
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
     /// Tints the box borders (fully on the focused box) and the caret.</summary>
     [Parameter] public string? Color { get; set; }
@@ -40,8 +36,10 @@
     /// <summary>Box fill (Ionic <c>fill</c>): <c>"outline"</c> (default) or <c>"solid"</c>.</summary>
     [Parameter] public string Fill { get; set; } = "outline";
 
-    /// <summary>Ionic <c>inputmode</c> keyboard hint. Kept for API parity; Miko's on-screen
-    /// keyboard does not read it.</summary>
+    /// <summary>Which on-screen keyboard the boxes ask for (Ionic <c>inputmode</c>):
+    /// <c>"numeric"</c>, <c>"decimal"</c> or <c>"tel"</c> request the number pad, any other value
+    /// the standard keyboard. Null follows <see cref="Type"/>: the number pad for <c>"number"</c>,
+    /// the standard keyboard for <c>"text"</c>.</summary>
     [Parameter] public string? Inputmode { get; set; }
 
     /// <summary>Number of boxes, i.e. the code length (minimum 1).</summary>
@@ -146,7 +144,9 @@
         {
             var input = inputs[index];
             input.Id = $"{_inputId}-{index}";
-            input.Type = InputType.Text;
+            // The input type is what selects the platform keyboard (InputMethodType.Number → the
+            // number pad); it does not filter characters — Pattern does that.
+            input.Type = UsesNumberPad ? InputType.Number : InputType.Text;
             // Unbound (Value null) on the first build there is nothing to declare: leave the boxes
             // undeclared so typed characters carry over from replaced inputs (InputElement.DeclaredValue,
             // ISSUE-121) instead of being wiped (ISSUE-153). Later builds declare the characters
@@ -409,6 +409,12 @@
 
     private List<string> EmptyValues()
         => Enumerable.Repeat(string.Empty, Math.Max(1, Length)).ToList();
+
+    // input-otp.tsx getInputmode(): the explicit inputmode, else "numeric" for type "number" and
+    // "text" otherwise. The numeric modes map to the platform's number pad.
+    private bool UsesNumberPad => Inputmode is { Length: > 0 } mode
+        ? mode.ToLowerInvariant() is "numeric" or "decimal" or "tel"
+        : !string.Equals(Type, "text", StringComparison.OrdinalIgnoreCase);
 
     private bool IsValidCharacter(string character)
     {

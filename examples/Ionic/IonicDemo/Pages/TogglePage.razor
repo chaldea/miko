@@ -11,12 +11,12 @@
             </ChildContent>
         </IonToolbar>
     </IonHeader>
-    <IonContent Fullscreen>
+    <IonContent>
         <IonList>
             @foreach (var fruit in _fruits)
             {
                 <IonItem>
-                    <IonToggle Name="@fruit.Name" Color="@fruit.Color" @bind-Checked="@fruit.Checked">
+                    <IonToggle Color="@fruit.Color" @bind-Checked="@fruit.Checked">
                         @fruit.Label
                     </IonToggle>
                 </IonItem>

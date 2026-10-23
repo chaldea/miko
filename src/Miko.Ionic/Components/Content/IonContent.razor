@@ -1,7 +1,7 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
 @* Mirrors Ionic's <ion-content> (content.tsx render()):
-   <ion-content class="{mode} ion-color? content-fullscreen? overscroll? content-{ltr|rtl}">
+   <ion-content class="{mode} ion-color? overscroll? content-{ltr|rtl}">
      <div id="background-content" part="background" />        <!-- the background layer -->
      [<slot name="fixed" />]                                   <!-- when fixedSlotPlacement="before" -->
      <div class="inner-scroll scroll-x? scroll-y? overscroll?" part="scroll">
@@ -20,8 +20,9 @@
    here: it would become the positioned box and demote the real content (e.g. an IonFab) to a
    child of an inline box, breaking its layout.
    Ionic's scroll API (scrollToTop/getScrollElement/ionScroll…) is driven by the browser's scroll
-   element; Miko scrolls through the engine's own scroll state, so the scroll *events* are not
-   re-emitted here — ScrollEvents is kept as a marker for API parity. *@
+   element; Miko scrolls through the engine's own scroll state and this port has no scroll API or
+   scroll events yet, so `scrollEvents` and `fullscreen` (offsets measured at runtime) are not
+   exposed. *@
 <div class="@ClassMapper.Class" style="@Style">
     <div class="background-content"></div>
     @if (Fixed is not null && _fixedBefore)
@@ -49,14 +50,6 @@
     /// Stamped as <c>ion-color</c> + <c>ion-color-*</c> classes the stylesheet maps to the
     /// scroll container's fill and text color.</summary>
     [Parameter] public string? Color { get; set; }
-
-    /// <summary>
-    /// Ionic's <c>fullscreen</c> (content scrolls behind a translucent header and footer). Kept as
-    /// a marker for API parity: it stamps <c>content-fullscreen</c>, but the layout is unchanged —
-    /// Ionic's runtime offset computation (<c>--offset-top</c> / <c>--offset-bottom</c>) has no
-    /// equivalent here, so the content still sits between the header and the footer.
-    /// </summary>
-    [Parameter] public bool Fullscreen { get; set; }
 
     /// <summary>
     /// Content for Ionic's <c>fixed</c> slot — placed outside the scroll container so it stays put
@@ -89,13 +82,6 @@
     /// </summary>
     [Parameter] public bool? ForceOverscroll { get; set; }
 
-    /// <summary>
-    /// Enables Ionic's <c>ionScroll</c> / <c>ionScrollStart</c> / <c>ionScrollEnd</c> events, which
-    /// are off by default for performance. Kept as a marker for API parity — this port does not
-    /// re-emit scroll events.
-    /// </summary>
-    [Parameter] public bool ScrollEvents { get; set; }
-
     private string _innerScrollClass = "inner-scroll";
     private bool _fixedBefore;
     private bool _showTransitionShadow;
@@ -122,7 +108,6 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-content")
-            .If(Fullscreen, "content-fullscreen")
             .If(forceOverscroll, "overscroll")
             // content.tsx stamps content-ltr / content-rtl unconditionally; this port has no RTL
             // switch yet, so it always reports ltr (the transition-effect rules key off it).

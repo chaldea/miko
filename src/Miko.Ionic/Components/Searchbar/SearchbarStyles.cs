@@ -258,11 +258,11 @@ internal static class SearchbarStyles
                 Height = Length.Percent(100),
             };
 
-            // ios: the cancel button shows on focus, should-show-cancel, or when animated
-            // (searchbar.ios.scss). The port always reveals it under those host classes.
+            // ios: the cancel button shows on focus or should-show-cancel (searchbar.ios.scss). The
+            // port always reveals it under those host classes. Ionic's `animated` slide-in is not
+            // ported (no `Animated` parameter).
             css[$".ion-searchbar.{mode}.searchbar-has-focus .searchbar-cancel-button"] = new() { Display = Display.Block };
             css[$".ion-searchbar.{mode}.searchbar-should-show-cancel .searchbar-cancel-button"] = new() { Display = Display.Block };
-            css[$".ion-searchbar.{mode}.searchbar-animated .searchbar-cancel-button"] = new() { Display = Display.Block };
         }
 
         // --- Named color fills (Ionic --ion-color-* palette) ---------------------------------

@@ -93,18 +93,6 @@ public class IonItemDividerTests : IonicComponentTestBase
     }
 
     [Fact]
-    public void IonItemDivider_StampsStickyClass_WhenSticky()
-    {
-        var cut = Context.Render<IonItemDivider>(parameters =>
-        {
-            parameters.Add(nameof(IonItemDivider.Sticky), true);
-            parameters.Add(nameof(IonItemDivider.ChildContent), MinimalChild);
-        });
-
-        cut.Root.ShouldHaveClass("item-divider-sticky");
-    }
-
-    [Fact]
     public void IonItemDivider_StampsColorClasses_WhenColorProvided()
     {
         var cut = Context.Render<IonItemDivider>(parameters =>

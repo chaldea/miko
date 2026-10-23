@@ -403,7 +403,7 @@ public class BlockLayout
             // 单行文本表单控件（input、select）：以一行文本（行高/字体度量）撑起内容高度。
             // select 的 option 子元素由下拉层叠加渲染，不计入闭合态高度，因此即便存在子元素
             // 也优先采用单行高度，避免被 option 撑高或塌缩为 0（参见 ISSUE-040）。
-            if (GetTextFormControlContentHeight(box) is float formControlHeight)
+            if (GetTextFormControlContentHeight(box, contentWidth) is float formControlHeight)
             {
                 contentHeight = formControlHeight;
             }
@@ -616,18 +616,37 @@ public class BlockLayout
     /// 优先取显式行高（line-height），否则取字体度量高度。
     /// 返回 null 表示该盒子不适用此规则（应回退到常规的内容高度计算）。
     /// </summary>
-    internal static float? GetTextFormControlContentHeight(LayoutBox box)
+    /// <param name="box">表单控件的布局盒。</param>
+    /// <param name="contentWidth">已定型的内容宽度。<see cref="Core.DomElements.TextAreaElement.AutoGrow"/>
+    /// 的 textarea 按它对文本软换行、数出行数；不传时只按 rows 计算。</param>
+    internal static float? GetTextFormControlContentHeight(LayoutBox box, float? contentWidth = null)
     {
         if (!IsTextFormControl(box))
             return null;
 
         float lineHeight = ResolveLineHeight(box.ComputedStyle);
 
-        // textarea 高度由可见行数（rows）撑起。
+        // textarea 高度由可见行数（rows）撑起；AutoGrow 时至少 rows 行，文本更多就随之长高。
         if (box.Element is Miko.Core.DomElements.TextAreaElement textArea)
-            return lineHeight * Math.Max(1, textArea.Rows);
+        {
+            int rows = Math.Max(1, textArea.Rows);
+            if (textArea.AutoGrow && contentWidth is > 0 && !string.IsNullOrEmpty(textArea.Value))
+                rows = Math.Max(rows, CountTextAreaLines(textArea.Value, box.ComputedStyle, contentWidth.Value));
+            return lineHeight * rows;
+        }
 
         return lineHeight;
+    }
+
+    /// <summary>
+    /// textarea 文本在 <paramref name="width"/> 内软换行后的行数，与 <c>RenderEngine.RenderTextAreaElement</c>
+    /// 的绘制完全一致（pre-wrap + 长词逐字符断行），否则长高后的盒子与画出的文字对不上。
+    /// </summary>
+    private static int CountTextAreaLines(string value, Styling.ComputedStyle style, float width)
+    {
+        var text = TextWrapper.ProcessText(value, WhiteSpace.PreWrap);
+        return TextWrapper.WrapText(text, style.FontFamily, style.FontSize.Value, style.FontWeight,
+            width, WhiteSpace.PreWrap, breakLongWords: true).Count;
     }
 
     /// <summary>

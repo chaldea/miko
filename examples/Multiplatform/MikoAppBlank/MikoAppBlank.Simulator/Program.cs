@@ -1,3 +1,4 @@
+using Miko.DevTools;
 using Miko.McpServer;
 using Miko.Simulator;
 using Miko.Simulator.Native;
@@ -20,6 +21,7 @@ public static class Program
         // call chain can be exercised on the desktop instead of failing outright.
         var context = App.CreateContext(builder =>
         {
+            builder.AddDevTools();
             builder.AddMikoMcpServer();
             builder.UseSimulatorNative();
         });

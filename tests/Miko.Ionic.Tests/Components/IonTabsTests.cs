@@ -38,7 +38,6 @@ public class IonTabsTests : IonicComponentTestBase
                 __c1.ChildContent = (RenderFragment)(bb =>
                 {
                     var __c5 = bb.OpenComponent<IonTabButton>();
-                    __c5.Tab = "tab1";
                     if (href is not null)
                         __c5.Href = href;
                     __c5.ChildContent = Text("Favorites");
@@ -91,7 +90,6 @@ public class IonTabsTests : IonicComponentTestBase
 
         var cut = Context.Render<IonTabButton>(p =>
         {
-            p.Add(nameof(IonTabButton.Tab), "tab1");
             p.Add(nameof(IonTabButton.Href), "/tab1");
             p.Add(nameof(IonTabButton.ChildContent), Text("Favorites"));
         });
@@ -113,7 +111,6 @@ public class IonTabsTests : IonicComponentTestBase
             p.Add(nameof(IonTabs.Bottom), (RenderFragment)(bar =>
             {
                 var __c2 = bar.OpenComponent<IonTabButton>();
-                __c2.Tab = "tab1";
                 __c2.Href = "/tab1";
                 __c2.OnClick = 
                     EventCallback.Factory.Create(this, () => clicked = true);

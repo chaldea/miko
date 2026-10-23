@@ -117,18 +117,6 @@ public class IonLoadingTests : IonicComponentTestBase
     }
 
     [Fact]
-    public void IonLoading_Translucent_AppliesTranslucentClass()
-    {
-        var cut = Context.Render<IonLoading>(p =>
-        {
-            p.Add(nameof(IonLoading.IsOpen), true);
-            p.Add(nameof(IonLoading.Translucent), true);
-        });
-
-        cut.Root.Class?.ShouldContain("loading-translucent");
-    }
-
-    [Fact]
     public void IonLoading_SpinnerHasAnimations()
     {
         var cut = Context.Render<IonLoading>(p =>

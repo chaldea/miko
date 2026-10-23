@@ -72,7 +72,8 @@
     /// <summary>Raised (with the new value) as the user types — enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
 
-    /// <summary>Raised each time the user modifies the value (Ionic <c>ionInput</c>).</summary>
+    /// <summary>Raised each time the user modifies the value (Ionic <c>ionInput</c>), or once per
+    /// burst of edits when <see cref="Debounce"/> is set.</summary>
     [Parameter] public EventCallback<string?> OnInput { get; set; }
 
     /// <summary>Raised when the value change is committed (Ionic <c>ionChange</c>): when the field
@@ -100,10 +101,6 @@
 
     /// <summary>When true, the searchbar is dimmed and non-interactive (Ionic <c>disabled</c>).</summary>
     [Parameter] public bool Disabled { get; set; }
-
-    /// <summary>Ionic <c>animated</c>. No animation is implemented; in ios mode it only keeps the cancel
-    /// button visible (like <c>ShowCancelButton="always"</c>), in md mode it has no effect.</summary>
-    [Parameter] public bool Animated { get; set; }
 
     /// <summary>Cancel button behavior (Ionic <c>showCancelButton</c>): <c>"never"</c> (default),
     /// <c>"focus"</c> (shown while the field has focus), or <c>"always"</c>.</summary>
@@ -133,12 +130,21 @@
     /// text field (no password masking or numeric keypad).</summary>
     [Parameter] public string Type { get; set; } = "search";
 
-    /// <summary>Debounce in ms for the input event (Ionic <c>debounce</c>). Kept for API parity;
-    /// the renderer does not debounce.</summary>
+    /// <summary>Milliseconds to wait after the last edit before raising <see cref="OnInput"/> (Ionic
+    /// <c>debounce</c>). Every edit restarts the wait, so a burst of typing raises one
+    /// <see cref="OnInput"/> with the final value — use it to avoid filtering or querying on every
+    /// keystroke. <see cref="ValueChanged"/> (<c>@bind-Value</c>) and <see cref="OnChange"/> are not
+    /// delayed. Null or 0 (default) raises <see cref="OnInput"/> on every edit.</summary>
     [Parameter] public int? Debounce { get; set; }
 
-    /// <summary>Form control name (Ionic <c>name</c>). Kept for API parity.</summary>
-    [Parameter] public string? Name { get; set; }
+    /// <summary>Marshals a debounced <see cref="OnInput"/> back onto the render thread. Null in a
+    /// bare unit test, where <see cref="OnInput"/> is raised without delay.</summary>
+    [Inject] private Platform.MikoDispatcher? Dispatcher { get; set; }
+
+    /// <summary>Clock for <see cref="Debounce"/>; the system clock unless the app registers one.</summary>
+    [Inject] private TimeProvider? Clock { get; set; }
+
+    private CancellationTokenSource? _debounce;
 
     private string _type = "search";
     private string _searchIcon = Ionicons.SearchSharp;
@@ -162,7 +168,6 @@
             .Add(mode)
             .Add("ion-searchbar")
             .Add("searchbar-left-aligned")
-            .If(Animated, "searchbar-animated")
             .If(Disabled, "searchbar-disabled")
             .If(HasValue, "searchbar-has-value")
             .If(ShouldShowClear, "searchbar-should-show-clear")
@@ -219,7 +224,41 @@
             await ValueChanged.InvokeAsync(next);
         }
 
-        await OnInput.InvokeAsync(next);
+        await EmitInputAsync(next);
+    }
+
+    /// <summary>
+    /// Raises <see cref="OnInput"/> — at once, or after <see cref="Debounce"/> ms without another
+    /// edit (searchbar.tsx wraps ionInput in <c>debounceEvent</c>). A pending emission is replaced
+    /// by the next one, so only the last value of a burst is reported.
+    /// </summary>
+    private Task EmitInputAsync(string? value)
+    {
+        _debounce?.Cancel();
+        _debounce = null;
+        if (Debounce is not > 0 || Dispatcher is null)
+            return OnInput.InvokeAsync(value);
+
+        var cancellation = _debounce = new CancellationTokenSource();
+        var token = cancellation.Token;
+        var dispatcher = Dispatcher;
+        _ = Task.Delay(TimeSpan.FromMilliseconds(Debounce.Value), Clock ?? TimeProvider.System, token)
+            .ContinueWith(_ => dispatcher.Post(() =>
+            {
+                // Hop back to the render thread; an edit or dispose since then cancelled this one.
+                if (token.IsCancellationRequested) return;
+                _ = OnInput.InvokeAsync(value);
+            }), CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+        return Task.CompletedTask;
+    }
+
+    protected override void OnDispose()
+    {
+        _debounce?.Cancel();
+        _debounce = null;
+        base.OnDispose();
     }
 
     // 提交语义由引擎承担（ISSUE-153 问题 6）：失焦或回车时，值与获得焦点时不同才派发原生 change，
@@ -303,7 +342,7 @@
         }
 
         await ValueChanged.InvokeAsync(Value);
-        await OnInput.InvokeAsync(Value);
+        await EmitInputAsync(Value);
         StateHasChanged();
     }
 

@@ -154,7 +154,7 @@ Wrap toolbar buttons in `IonButtons` and place the group in the toolbar's `Start
 ## API
 
 <!-- miko:api IonButton IonButtons -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonButton
 
@@ -164,7 +164,8 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Disabled` | `bool` | `false` | When true, the button is dimmed and non-interactive (Ionic `disabled`). |
 | `Expand` | `string?` | `null` | Width expansion (Ionic `expand`): `"block"` (full-width) or `"full"` (full-width, square corners, no side borders). |
 | `Fill` | `string?` | `null` | Fill style (Ionic `fill`): `"solid"` (default), `"outline"`, or `"clear"`. Null defaults to clear inside toolbar button groups and list headers, otherwise solid. |
-| `Href` | `string?` | `null` | Link target (Ionic `href`). Kept as a marker for API parity; the renderer does not perform navigation. |
+| `Href` | `string?` | `null` | Route to navigate to (Ionic `href`). When set, the native surface is an `a`, and a tap raises [`OnClick`](#ionbutton) and then navigates through the app's `NavigationManager` with the mode's page transition, like [`IonItem`](./item.md#ionitem). |
+| `RouterDirection` | `string?` | `null` | Navigation direction when [`Href`](#ionbutton) is clicked (mirrors Ionic's `routerDirection`): `"forward"` (default — push with transition), `"back"` (pop-style reverse transition), or `"root"` (clear the history stack, no transition). |
 | `Shape` | `string?` | `null` | Corner shape (Ionic `shape`): `"round"` for pill corners. |
 | `Size` | `string?` | `null` | Size (Ionic `size`): `"small"`, `"default"`, or `"large"`. |
 | `Strong` | `bool` | `false` | When true, uses a heavier font weight (Ionic `strong`). |

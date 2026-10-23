@@ -1,3 +1,4 @@
+using Miko.DevTools;
 using Miko.McpServer;
 using Miko.Simulator;
 using MikoAppTabs;
@@ -13,7 +14,11 @@ public static class Program
         // endpoint (default http://localhost:5800) once the simulator window is
         // up, exposing DOM/style/screenshot/device tools to MCP clients such as
         // Claude Code. See docs/mcp-server.md.
-        var context = App.CreateContext(builder => builder.AddMikoMcpServer());
+        var context = App.CreateContext(builder =>
+        {
+            builder.AddDevTools();
+            builder.AddMikoMcpServer();
+        });
 
         // Hot reload is wired up inside the shared app assembly, same as the desktop head.
         App.InitializeHotReload(context);

@@ -168,7 +168,7 @@ A column gives the same haptic feedback as Ionic: a selection starts with the fi
 `SlotPrefix` and `SlotSuffix` sit beside the wheel, before and after it, as in Ionic: at most 200px wide, on one line that is cut off with an ellipsis.
 
 <!-- miko:api IonPicker IonPickerColumn IonPickerColumnOption -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonPicker
 

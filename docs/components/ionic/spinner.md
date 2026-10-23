@@ -85,7 +85,7 @@ A spinner in an [`IonItem`](./item.md)'s `Start` slot gets a 16px gap before the
 ## API
 
 <!-- miko:api IonSpinner -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonSpinner
 
@@ -108,7 +108,6 @@ Theme token `IonicTheme.Spinner` (`SpinnerToken`). Assign only the values you wa
 | --- | --- | --- | --- |
 | `Color` | `Color` | `#0054e9` | `#0054e9` |
 | `Size` | `float` | `28` | `28` |
-| `SmallSize` | `float` | `16` | `16` |
 | `TrackColor` | `Color` | `rgba(0, 84, 233, 0.2)` | `rgba(0, 84, 233, 0.2)` |
 <!-- /miko:tokens -->
 

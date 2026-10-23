@@ -12,7 +12,16 @@
   },
   "sourceName": "MikoMultiplatformApp",
   "preferNameDirectory": true,
+  "forms": {
+    "safeName": { "identifier": "safe_namespace" }
+  },
   "symbols": {
+    "safeProjectName": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "safeName",
+      "fileRename": "MikoMultiplatformApp"
+    },
     "layout": {
       "type": "parameter",
       "datatype": "choice",
@@ -42,14 +51,53 @@
       },
       "replaces": "Miko Multiplatform App"
     },
-    "appIdSuffix": {
+    "appId": {
+      "type": "parameter",
+      "datatype": "string",
+      "description": "Application identifier shared by the Android ApplicationId and the iOS CFBundleIdentifier, e.g. com.example.myapp. Defaults to com.miko.<project name with anything but letters and digits removed, lowercased>.",
+      "defaultValue": "",
+      "replaces": ""
+    },
+    "appIdNameLower": {
       "type": "generated",
       "generator": "casing",
       "parameters": {
         "source": "name",
         "toLower": true
+      }
+    },
+    "appIdSegment": {
+      "type": "generated",
+      "generator": "regex",
+      "dataType": "string",
+      "parameters": {
+        "source": "appIdNameLower",
+        "steps": [
+          { "regex": "[^a-z0-9]", "replacement": "" },
+          { "regex": "^$", "replacement": "app" },
+          { "regex": "^([0-9])", "replacement": "app$1" }
+        ]
+      }
+    },
+    "appIdDefault": {
+      "type": "generated",
+      "generator": "join",
+      "parameters": {
+        "symbols": [
+          { "type": "const", "value": "com.miko" },
+          { "type": "ref", "value": "appIdSegment" }
+        ],
+        "separator": "."
+      }
+    },
+    "applicationId": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "appId",
+        "fallbackVariableName": "appIdDefault"
       },
-      "replaces": "multiplatformapp"
+      "replaces": "com.miko.multiplatformapp"
     },
     "useBlank":    { "type": "computed", "value": "(layout == \"blank\")" },
     "useSidemenu": { "type": "computed", "value": "(layout == \"sidemenu\")" },

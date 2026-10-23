@@ -52,6 +52,55 @@ public class MikoViewController : UIViewController
 
         _displayLink = CADisplayLink.Create(OnFrame);
         _displayLink.AddToRunLoop(NSRunLoop.Main, NSRunLoopMode.Default);
+
+        // 应用生命周期（Release-1.0.0 A1）。iOS 禁止后台提交 GPU 命令：进入后台先停掉
+        // CADisplayLink 并让引擎暂停视频，回到前台再恢复；内存告警时清掉 Skia 的 GPU 缓存。
+        // UIApplication 的这几个通知在 Scene 生命周期下照样发出（最后一个场景进入后台时）。
+        _lifecycleObservers =
+        [
+            UIApplication.Notifications.ObserveDidEnterBackground((_, _) => OnDidEnterBackground()),
+            UIApplication.Notifications.ObserveWillEnterForeground((_, _) => OnWillEnterForeground()),
+            UIApplication.Notifications.ObserveDidReceiveMemoryWarning((_, _) => OnMemoryWarning()),
+            // 软键盘（Release-1.0.0 A2）：frame 变化覆盖弹出、收起、切换输入法与悬浮键盘。
+            UIKeyboard.Notifications.ObserveWillChangeFrame((_, e) => OnKeyboardFrameChange(e.FrameEnd)),
+        ];
+    }
+
+    /// <summary>
+    /// 键盘盖住视图底部的高度（逻辑点）推给引擎，布局排到键盘上方。frame 是屏幕坐标，先换算到本视图；
+    /// 收起、悬浮（iPad 浮动键盘）或外接键盘时与视图不相交，高度为 0。
+    /// </summary>
+    private void OnKeyboardFrameChange(CoreGraphics.CGRect keyboardFrameInScreen)
+    {
+        var view = View;
+        if (view is null) return;
+        var frame = view.ConvertRectFromCoordinateSpace(keyboardFrameInScreen, UIScreen.MainScreen.CoordinateSpace);
+        var overlap = frame.IntersectsWith(view.Bounds) && frame.Width >= view.Bounds.Width
+            ? (float)Math.Max(0, view.Bounds.Bottom - frame.Top)
+            : 0f;
+        _context.Controller.SetKeyboardInset(overlap);
+        _metalView?.SetNeedsDisplay();
+    }
+
+    private NSObject[] _lifecycleObservers = [];
+
+    private void OnDidEnterBackground()
+    {
+        if (_displayLink is not null) _displayLink.Paused = true;
+        _context.Controller.Suspend();
+    }
+
+    private void OnWillEnterForeground()
+    {
+        _context.Controller.Resume();
+        if (_displayLink is not null) _displayLink.Paused = false;
+        _metalView?.SetNeedsDisplay();
+    }
+
+    private void OnMemoryWarning()
+    {
+        // 通知在主线程发出，Metal 视图也在主线程绘制，可以直接清理它的 GPU 上下文。
+        _metalView?.TrimGpuResources();
     }
 
     /// <inheritdoc />
@@ -108,6 +157,9 @@ public class MikoViewController : UIViewController
     {
         if (disposing)
         {
+            foreach (var observer in _lifecycleObservers)
+                observer.Dispose();
+            _lifecycleObservers = [];
             _displayLink?.Invalidate();
             _displayLink?.Dispose();
             _displayLink = null;

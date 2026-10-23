@@ -118,13 +118,6 @@ public class IonSearchbarTests : IonicComponentTestBase
         cut.Root.ShouldHaveClass("searchbar-disabled");
     }
 
-    [Fact]
-    public void IonSearchbar_StampsAnimatedClass()
-    {
-        var cut = RenderBar(Context, p => p.Add(nameof(IonSearchbar.Animated), true));
-        cut.Root.ShouldHaveClass("searchbar-animated");
-    }
-
     [Theory]
     [InlineData("always", true)]
     [InlineData("never", false)]

@@ -47,7 +47,8 @@ public class IonInputOtpTests : IonicComponentTestBase
         cut.FindByClass("native-wrapper").Count.ShouldBe(4);
         var inputs = cut.FindByClass("native-input").OfType<InputElement>().ToList();
         inputs.Count.ShouldBe(4);
-        inputs.ShouldAllBe(input => input.Type == InputType.Text);
+        // Type "number" (default) asks for the number pad, as Ionic's inputmode "numeric" default does.
+        inputs.ShouldAllBe(input => input.Type == InputType.Number);
         // Unbound boxes are left undeclared (null) so typed text survives a parent re-render.
         inputs.Select(input => input.Value).ShouldAllBe(value => string.IsNullOrEmpty(value));
         inputs.Select(input => input.Id).Distinct().Count().ShouldBe(4);

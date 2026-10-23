@@ -30,9 +30,6 @@ public sealed class IonAccordionGroupContext
     /// <summary>Whether the whole group is read-only (blocks interaction without dimming).</summary>
     public bool Readonly { get; init; }
 
-    /// <summary>Whether accordions animate on expand/collapse (marker only in this base port).</summary>
-    public bool Animated { get; init; }
-
     /// <summary>Expansion behavior: <c>"compact"</c> (default) or <c>"inset"</c>.</summary>
     public string Expand { get; init; } = "compact";
 

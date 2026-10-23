@@ -1,5 +1,9 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
+@* Overlay triggers (Ionic's `trigger`) are delegated here: IonApp's root listens for clicks and long
+   presses, which bubble up from anywhere in the app, and opens the overlays bound to an id on the
+   pressed element's path (IonOverlayTriggers). The listeners are plain element listeners, not
+   @onclick: an EventCallback would re-render the whole app after every click. *@
 <div class="@ClassMapper.Class" style="@Style">
     <CascadingValue TValue="IonOverlayContext" Value="_overlayContext">
         @ChildContent
@@ -14,10 +18,18 @@
     [Inject] private IonOverlayRegistry? OverlayRegistry { get; set; }
 
     private IonOverlayContext? _overlayContext;
+    private MikoEventHandler<MouseEventArgs>? _onClick;
+    private MikoEventHandler<MouseEventArgs>? _onLongPress;
 
     protected override void OnInitialized()
     {
         _overlayContext = OverlayRegistry is null ? null : new IonOverlayContext(OverlayRegistry);
+        if (_overlayContext is not null)
+        {
+            var triggers = _overlayContext.Triggers;
+            _onClick = args => triggers.Dispatch(args, longPress: false);
+            _onLongPress = args => triggers.Dispatch(args, longPress: true);
+        }
     }
 
     protected override void OnParametersSet()
@@ -27,5 +39,21 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-app");
+    }
+
+    public override Element Build() => ListenForTriggers(base.Build());
+
+    protected override Element BuildNew() => ListenForTriggers(base.BuildNew());
+
+    // Remove first: a component may hand back the same retained root, which must not collect a
+    // second copy of the listener.
+    private Element ListenForTriggers(Element root)
+    {
+        if (_onClick is null || _onLongPress is null) return root;
+        root.RemoveEventListener(EventTypes.Click, _onClick);
+        root.AddEventListener(EventTypes.Click, _onClick);
+        root.RemoveEventListener(EventTypes.LongPress, _onLongPress);
+        root.AddEventListener(EventTypes.LongPress, _onLongPress);
+        return root;
     }
 }

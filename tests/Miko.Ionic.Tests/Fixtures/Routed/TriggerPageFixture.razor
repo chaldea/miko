@@ -1,0 +1,40 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* Each overlay opened by its Trigger (P0-C1), declared as in Ionic's docs: an id on the opener,
+   the overlay without IsOpen. The popover's opener has an icon, so a tap lands on a descendant. *@
+<IonPage>
+    <IonContent>
+        <IonButton Id="open-modal" Class="opener-modal">Modal</IonButton>
+        <IonButton Id="open-alert" Class="opener-alert">Alert</IonButton>
+        <IonButton Id="open-sheet" Class="opener-sheet">Sheet</IonButton>
+        <IonButton Id="open-loading" Class="opener-loading">Loading</IonButton>
+        <IonButton Id="open-toast" Class="opener-toast">Toast</IonButton>
+        <IonButton Id="open-popover" Class="opener-popover">
+            <IconOnly><IonIcon Icon="@Ionicons.EllipsisVertical" /></IconOnly>
+        </IonButton>
+        <IonButton Id="open-context" Class="opener-context">Context</IonButton>
+        <div class="unrelated">Not an opener</div>
+
+        <IonModal Trigger="open-modal" Class="trigger-modal">
+            <div class="trigger-modal-body">Modal</div>
+        </IonModal>
+        <IonAlert Trigger="open-alert" Class="trigger-alert" Header="Alert" Buttons="@_alertButtons" />
+        <IonActionSheet Trigger="open-sheet" Class="trigger-sheet" Header="Sheet" Buttons="@_sheetButtons" />
+        <IonLoading Trigger="open-loading" Class="trigger-loading" Message="Loading" BackdropDismiss="true" />
+        <IonToast Trigger="open-toast" Class="trigger-toast" Message="Saved" />
+        <IonPopover Trigger="open-popover" Class="trigger-popover">
+            <div class="trigger-popover-body">Popover</div>
+        </IonPopover>
+        <IonPopover Trigger="open-context" TriggerAction="context-menu" Class="trigger-context">
+            <div>Context menu</div>
+        </IonPopover>
+    </IonContent>
+</IonPage>
+
+@code {
+    private readonly IReadOnlyList<IonAlertButton> _alertButtons = [new() { Text = "OK" }];
+    private readonly IReadOnlyList<IonActionSheetButton> _sheetButtons =
+        [new() { Text = "Share" }, new() { Text = "Cancel", Role = "cancel" }];
+}

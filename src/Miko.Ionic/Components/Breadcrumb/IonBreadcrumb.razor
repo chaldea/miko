@@ -125,16 +125,6 @@
     {
         if (Disabled) return;
         await OnClick.InvokeAsync();
-
-        if (!string.IsNullOrEmpty(Href) && Navigation is not null)
-        {
-            var (direction, transition) = RouterDirection?.ToLowerInvariant() switch
-            {
-                "back" => (NavigationDirection.Back, IonicPageTransitions.Pop(Mode)),
-                "root" => (NavigationDirection.Root, (NavigationTransition?)null),
-                _ => (NavigationDirection.Forward, IonicPageTransitions.Push(Mode)),
-            };
-            Navigation.NavigateTo(Href, direction, transition);
-        }
+        NavigateHref(Href, RouterDirection);
     }
 }

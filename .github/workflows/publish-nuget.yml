@@ -39,11 +39,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history, so the tag can be checked against main below.
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          # The SDK pinned in global.json (10.0.4xx, latest patch), the band the mobile workloads match.
+          global-json-file: global.json
 
       - name: Install mobile workloads
         run: dotnet workload install android ios
@@ -62,8 +66,32 @@ jobs:
             echo "::error::Could not resolve a package version."
             exit 1
           fi
+          # SemVer 2.0 (MAJOR.MINOR.PATCH[-prerelease][+build]); a typo in the tag would otherwise
+          # publish an unsortable version that cannot be unlisted cleanly.
+          semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
+          if ! printf '%s' "$version" | grep -Eq "$semver"; then
+            echo "::error::'$version' is not a SemVer 2.0 version."
+            exit 1
+          fi
           echo "Publishing version $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check the tag is on main
+        # Releases are cut from main only; a tag pushed on a feature branch must not publish.
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag $GITHUB_REF_NAME points at $GITHUB_SHA, which is not on main."
+            exit 1
+          fi
+
+      # Never publish a build that does not pass: build and test first, with the same version.
+      - name: Build
+        run: dotnet build miko.slnx -c $CONFIGURATION -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Test
+        run: dotnet test miko.slnx -c $CONFIGURATION --no-build
 
       # Pack every packable project in the solution, so adding a new library to miko.slnx
       # publishes it without editing this workflow. Projects that must not ship (test
@@ -71,6 +99,8 @@ jobs:
       # Miko.Video.FFmpeg is deliberately outside the solution because it bundles >80MB of
       # native FFmpeg and is an experiment-only backend.
       - name: Pack library packages
+        # Not --no-build: Miko.Razor.Compiler invokes Build while packing (NETSDK1085). After the
+        # Build step above the projects are up to date, so this is incremental.
         run: dotnet pack miko.slnx -c $CONFIGURATION -p:Version=${{ steps.version.outputs.version }} -o "$ARTIFACTS"
 
       - name: Pin template dependency versions to current build

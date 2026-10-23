@@ -1,0 +1,13 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* One-time-code fields in a verification page: the keyboard each one asks for follows Inputmode,
+   or Type when Inputmode is not set (input-otp.tsx getInputmode()). *@
+<IonPage>
+    <IonContent>
+        <IonInputOtp Class="otp-default" />
+        <IonInputOtp Class="otp-text" Type="text" />
+        <IonInputOtp Class="otp-text-numeric" Type="text" Inputmode="numeric" />
+        <IonInputOtp Class="otp-number-text" Inputmode="text" />
+    </IonContent>
+</IonPage>

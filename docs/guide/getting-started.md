@@ -6,7 +6,12 @@ official templates.
 ## Requirements
 
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/) or later
-- A platform supported by SkiaSharp (Windows, macOS, Linux, Android, or iOS)
+- A platform supported by SkiaSharp:
+  - **Windows** — Windows 10 or 11
+  - **macOS** — Current macOS release
+  - **Linux** — glibc-based distros (Ubuntu, Debian, Fedora, etc.). Desktop apps require a working OpenGL driver; `libSkiaSharp.so` is shipped via `SkiaSharp.NativeAssets.Linux`.
+  - **Android** — API 26 (Android 8.0) or later, targeting API 36
+  - **iOS** — iOS 15.0 or later
 
 For Android / iOS heads you also need the corresponding .NET workloads
 (`dotnet workload install android ios`).
@@ -16,8 +21,8 @@ For Android / iOS heads you also need the corresponding .NET workloads
 The fastest way to start is the Razor app template:
 
 ```bash
-# Install the templates
-dotnet new install Miko.Templates
+# Install the templates (preview version must be specified explicitly)
+dotnet new install Miko.Templates::1.0.0-preview.1
 
 # Scaffold and run a new app
 dotnet new miko-razor -o MyApp
@@ -35,11 +40,11 @@ The template accepts a `--layout` option to scaffold a starting UI. Every layout
 the [Ionic components](../components/ionic/index.md) (`Miko.Ionic`):
 
 ```bash
-dotnet new miko-razor --layout blank     -o MyApp   # empty page (default)
-dotnet new miko-razor --layout tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
-dotnet new miko-razor --layout sidemenu  -o MyApp   # Ionic side-menu drawer over a page
-dotnet new miko-razor --layout list      -o MyApp   # Ionic list page
-dotnet new miko-razor --layout full      -o MyApp   # showcase with a demo page per Ionic component
+dotnet new miko-razor --layout=blank     -o MyApp   # empty page (default)
+dotnet new miko-razor --layout=tabs      -o MyApp   # Ionic bottom tab bar, 3 routed tabs
+dotnet new miko-razor --layout=sidemenu  -o MyApp   # Ionic side-menu drawer over a page
+dotnet new miko-razor --layout=list      -o MyApp   # Ionic list page
+dotnet new miko-razor --layout=full      -o MyApp   # showcase with a demo page per Ionic component
 ```
 
 ## Working with an AI agent

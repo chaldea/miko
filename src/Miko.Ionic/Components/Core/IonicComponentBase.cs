@@ -109,7 +109,33 @@ public abstract class IonicComponentBase : ComponentBase
         if (!string.IsNullOrWhiteSpace(scope) && !root.HasClass(scope))
             root.Class = string.IsNullOrWhiteSpace(root.Class) ? scope : $"{root.Class} {scope}";
 
+        // Ionic 宿主元素上的 id（<ion-button id="open-modal">）是覆盖层 Trigger 的寻址方式。Miko 组件
+        // 没有宿主元素，写在组件上的 id 落到它渲染出的根元素上；未设置时不碰根元素自己的 id。
+        if (!string.IsNullOrEmpty(Id))
+            root.Id = Id;
+
         return root;
+    }
+
+    /// <summary>
+    /// The default click behavior of a component with an <c>href</c> (Ionic's <c>routerLink</c> /
+    /// <c>openURL</c>): navigates to <paramref name="href"/> through the injected
+    /// <see cref="NavigationManager"/>. <paramref name="routerDirection"/> is Ionic's
+    /// <c>routerDirection</c>: <c>"forward"</c> (default, push with the mode's page transition),
+    /// <c>"back"</c> (pop transition) or <c>"root"</c> (clear the history, no transition). Does
+    /// nothing without an <paramref name="href"/> or without a navigation manager (bare tests).
+    /// </summary>
+    protected void NavigateHref(string? href, string? routerDirection)
+    {
+        if (string.IsNullOrEmpty(href) || Navigation is null) return;
+
+        var (direction, transition) = routerDirection?.ToLowerInvariant() switch
+        {
+            "back" => (NavigationDirection.Back, IonicPageTransitions.Pop(Mode)),
+            "root" => (NavigationDirection.Root, (NavigationTransition?)null),
+            _ => (NavigationDirection.Forward, IonicPageTransitions.Push(Mode)),
+        };
+        Navigation.NavigateTo(href, direction, transition);
     }
 
     /// <summary>
@@ -264,6 +290,13 @@ public abstract class IonicComponentBase : ComponentBase
     /// Inline styles to apply to the component's root element.
     /// </summary>
     [Parameter] public Style? Style { get; set; }
+
+    /// <summary>
+    /// The id of the component's root element (Ionic's <c>id</c> attribute on the host element).
+    /// Overlays find their opener by it: <c>&lt;IonButton id="open-modal"&gt;</c> together with
+    /// <c>&lt;IonModal Trigger="open-modal"&gt;</c>.
+    /// </summary>
+    [Parameter] public string? Id { get; set; }
 
     /// <summary>
     /// Utility for building CSS class names dynamically.

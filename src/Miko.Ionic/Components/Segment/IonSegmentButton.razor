@@ -30,12 +30,6 @@
     /// <summary>This button's value; becomes the segment's selected value when tapped.</summary>
     [Parameter] public string Value { get; set; } = string.Empty;
 
-    /// <summary>Id of the <see cref="IonSegmentContent"/> this button activates (Ionic
-    /// <c>content-id</c>). Kept for API parity and not read by this port: to switch an
-    /// <see cref="IonSegmentView"/>, bind the same field to the segment's <c>Value</c> and the view's
-    /// <c>Value</c>.</summary>
-    [Parameter] public string? ContentId { get; set; }
-
     /// <summary>When true this individual button is dimmed and non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
 

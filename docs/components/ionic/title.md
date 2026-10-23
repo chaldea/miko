@@ -42,12 +42,12 @@ The title occupies the width between the `Start` and `End` slots. In ios mode it
 
 ## Long titles
 
-The title stays on one line; text that does not fit is clipped at the edge (no ellipsis, no wrapping). Ionic's `size="large"` and collapsible large titles are not implemented — `IonTitle` has no parameters besides `Class` and `Style`. Several titles in one toolbar stack vertically.
+The title stays on one line; text that does not fit is clipped at the edge (no ellipsis, no wrapping). Ionic's `size="large"` and collapsible large titles are not implemented — `IonTitle` has no parameters besides `Class`, `Style` and `Id`. Several titles in one toolbar stack vertically.
 
 ## API
 
 <!-- miko:api IonTitle -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonTitle
 

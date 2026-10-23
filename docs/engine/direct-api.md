@@ -107,5 +107,6 @@ engine.Update(canvas);            // incremental render of dirty regions only
 | `Update(canvas)` | Incremental render — repaints only dirty regions. |
 | `InvalidateElement(element)` | Mark an element dirty so the next `Update` repaints it. |
 
-See the [Pipeline Overview](./overview.md) for what happens inside each call, and the
-[Bootstrap console example](../examples.md#bootstrap) for a complete render-to-image program.
+See the [Pipeline Overview](./overview.md) for what happens inside each call. For a
+complete render-to-image program, assemble a non-trivial tree, apply styles, and export
+the result with `SKImage.Encode(SKEncodedImageFormat.Png, 100)` as shown above.

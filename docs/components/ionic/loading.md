@@ -101,7 +101,7 @@ More often, the app opens the indicator before an operation and closes it afterw
 ## API
 
 <!-- miko:api IonLoading -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonLoading
 
@@ -114,8 +114,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `OverlayId` | `string?` | `null` | Optional stable identifier used by the root overlay registry. |
 | `ShowBackdrop` | `bool` | `true` | If true (default), a backdrop is shown behind the indicator (loading.tsx `showBackdrop = true`). |
 | `Spinner` | `string?` | `null` | The spinner preset name (see [`IonSpinner`](./spinner.md#ionspinner)). When null it falls back to the per-mode default (`"lines"` on ios, `"crescent"` on md — loading.tsx `componentWillLoad`). Pass an empty string to hide the spinner entirely. |
-| `Translucent` | `bool` | `false` | If true, the surface is translucent (ios blur). Marker only in this port. |
-| `Trigger` | `string?` | `null` | Id of the element that opens the indicator (Ionic `trigger`). Kept for API parity; the host drives [`IsOpen`](#ionloading) in this port. |
+| `Trigger` | `string?` | `null` | Id of the element that opens the indicator when clicked (Ionic `trigger`), e.g. `<IonButton Id="open-loading">`. Opening sets [`IsOpen`](#ionloading) and raises [`IsOpenChanged`](#ionloading). The page must be inside an [`IonApp`](./app.md#ionapp). |
 
 | Event | Type | Description |
 | --- | --- | --- |
@@ -163,7 +162,6 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.loading-wrapper` | The indicator's card. |
 | `.loading-spinner` | The box around the `IonSpinner`. |
 | `.loading-content` | `Message`. |
-| `.loading-translucent` | `Translucent="true"`. Only a marker; no translucent style is applied. |
 
 ```csharp
 // GlobalStyles.cs — <IonLoading Class="brand" …>

@@ -91,6 +91,15 @@ export default defineConfig({
         ]
       },
       {
+        text: 'Publishing',
+        collapsed: false,
+        items: [
+          { text: 'Desktop Apps', link: '/guide/publishing-desktop' },
+          { text: 'Android Apps', link: '/guide/publishing-android' },
+          { text: 'iOS Apps', link: '/guide/publishing-ios' }
+        ]
+      },
+      {
         text: 'Ionic Components',
         collapsed: false,
         items: [
@@ -118,7 +127,8 @@ export default defineConfig({
           { text: 'Examples', link: '/examples' },
           { text: 'Packages', link: '/packages' },
           { text: 'Component Libraries', link: '/components/' },
-          { text: 'MCP Server', link: '/mcp-server' }
+          { text: 'MCP Server', link: '/mcp-server' },
+          { text: 'Known Limitations', link: '/guide/known-limitations' }
         ]
       }
     ],

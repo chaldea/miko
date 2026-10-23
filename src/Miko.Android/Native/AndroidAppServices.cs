@@ -7,6 +7,7 @@ using Miko.Native.App;
 using Miko.Native.Browser;
 using Miko.Native.Keyboard;
 using Miko.Native.SplashScreen;
+using Miko.Platform;
 using AndroidUri = Android.Net.Uri;
 
 namespace Miko.Android.Native;
@@ -15,8 +16,14 @@ namespace Miko.Android.Native;
 internal sealed class AndroidAppService : NativeServiceBase, IAppService
 {
     private readonly INativeHostContext _hostContext;
+    private readonly MikoInteractionController? _controller;
 
-    public AndroidAppService(INativeHostContext hostContext) => _hostContext = hostContext;
+    // 控制器可选：只有完整应用（MikoAppBuilder）才有，单独构造的引擎容器里没有它。
+    public AndroidAppService(INativeHostContext hostContext, MikoInteractionController? controller = null)
+    {
+        _hostContext = hostContext;
+        _controller = controller;
+    }
 
     private AndroidNativeHost Host => _hostContext.RequireHost<AndroidNativeHost>();
 
@@ -98,12 +105,65 @@ internal sealed class AndroidAppService : NativeServiceBase, IAppService
     public Task ToggleBackButtonHandlerAsync(ToggleBackButtonHandlerOptions options) => UnsupportedAsync();
 
     /// <summary>
-    /// 生命周期与返回键事件需要宿主 Activity 主动转发（<c>OnPause</c>/<c>OnResume</c>/
-    /// <c>OnNewIntent</c>/<c>OnBackPressed</c>）；当前宿主未接线，故不触发。
+    /// 前后台切换来自 <see cref="MikoSurfaceView"/>：它监听所属 Activity 的 OnPause/OnResume，
+    /// 经 <see cref="MikoInteractionController.Suspend"/>/<see cref="MikoInteractionController.Resume"/>
+    /// 转到这里，在 UI 线程触发。
     /// </summary>
-    public event Action<AppState>? OnAppStateChange { add { } remove { } }
-    public event Action? OnPause { add { } remove { } }
-    public event Action? OnResume { add { } remove { } }
+    public event Action<AppState>? OnAppStateChange
+    {
+        add { _appStateChange += value; Sync(); }
+        remove { _appStateChange -= value; Sync(); }
+    }
+
+    public event Action? OnPause
+    {
+        add { _pause += value; Sync(); }
+        remove { _pause -= value; Sync(); }
+    }
+
+    public event Action? OnResume
+    {
+        add { _resume += value; Sync(); }
+        remove { _resume -= value; Sync(); }
+    }
+
+    private Action<AppState>? _appStateChange;
+    private Action? _pause;
+    private Action? _resume;
+    private bool _subscribed;
+
+    // 有订阅者才挂到控制器上，最后一个退订时摘掉（Native 层规则 4）。
+    private void Sync()
+    {
+        if (_controller is null) return;
+        var wanted = _appStateChange is not null || _pause is not null || _resume is not null;
+        if (wanted == _subscribed) return;
+        _subscribed = wanted;
+        if (wanted)
+        {
+            _controller.Suspended += RaisePause;
+            _controller.Resumed += RaiseResume;
+        }
+        else
+        {
+            _controller.Suspended -= RaisePause;
+            _controller.Resumed -= RaiseResume;
+        }
+    }
+
+    private void RaisePause()
+    {
+        _pause?.Invoke();
+        _appStateChange?.Invoke(new AppState(false));
+    }
+
+    private void RaiseResume()
+    {
+        _resume?.Invoke();
+        _appStateChange?.Invoke(new AppState(true));
+    }
+
+    /// <summary>深链接与返回键需要宿主 Activity 转发 <c>OnNewIntent</c>/<c>OnBackPressed</c>；未接线，不触发。</summary>
     public event Action<UrlOpenEvent>? OnAppUrlOpen { add { } remove { } }
     public event Action<RestoredResultEvent>? OnAppRestoredResult { add { } remove { } }
     public event Action<BackButtonEvent>? OnBackButton { add { } remove { } }

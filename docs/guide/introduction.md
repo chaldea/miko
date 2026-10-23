@@ -14,8 +14,8 @@ HTML and Razor, you already know how to build a Miko app; there is **no XAML to 
 Razor components  ─►  Miko source generator  ─►  native SkiaSharp rendering
 ```
 
-::: warning Experimental
-Miko is an experimental project under active development. APIs may change between versions.
+::: warning 1.0.0-preview.1
+This is a preview release. APIs may change before the stable 1.0 release. See [Known Limitations](./known-limitations.md) for the current feature boundaries.
 :::
 
 ## Highlights
@@ -66,13 +66,11 @@ Miko is an experimental project under active development. APIs may change betwee
 - 💅 **CSS-like styling** — stylesheets with tag / class / id / pseudo-class / compound
   selectors, specificity-based cascade, and inline styles.
 - 📐 **Box model & layout** — full content/padding/border/margin box model with **block**,
-  **inline**, and **flex** layout algorithms.
+  **inline**, **flex**, **grid**, and **table** layout algorithms.
 - ⚡ **Incremental rendering** — dirty-region tracking and merging repaint only what changed.
 - ✍️ **Typography** — font registration (TTF/OTF/WOFF/WOFF2), a configurable fallback
   chain, and text measurement.
 - 🖱️ **Events** — DOM-style event dispatch with capture and bubbling.
-- 🅱️ **Bootstrap-style component library** — ready-made buttons, cards, alerts,
-  accordions, and more.
 - 🛠️ **Dev tools** — inspect the DOM and layout tree at runtime.
 
 ## Where to next?

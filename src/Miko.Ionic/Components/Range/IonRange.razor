@@ -74,7 +74,8 @@
     /// <summary>Maximum value (default 100).</summary>
     [Parameter] public double Max { get; set; } = 100;
 
-    /// <summary>The quantized step between allowed values (default 1).</summary>
+    /// <summary>The quantized step between allowed values (default 1). The knob always lands on a
+    /// step, as with Ionic's <c>snaps</c> (no tick marks are drawn).</summary>
     [Parameter] public double Step { get; set; } = 1;
 
     /// <summary>If true, the range ignores input. ios dims the whole range; md dims only the label.</summary>
@@ -82,10 +83,6 @@
 
     /// <summary>If true, a pin (value bubble) is shown above the knob.</summary>
     [Parameter] public bool Pin { get; set; }
-
-    /// <summary>Ionic <c>snaps</c>. Kept for API parity: no tick marks are drawn, and the value is always
-    /// rounded to <see cref="Step"/> whether or not this is set.</summary>
-    [Parameter] public bool Snaps { get; set; }
 
     /// <summary>Named palette color (Ionic <c>color</c>). Stamped as an <c>ion-color-*</c> class.</summary>
     [Parameter] public string? Color { get; set; }

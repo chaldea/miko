@@ -26,9 +26,10 @@ registration is needed.
 
 ## Conventions
 
-- **`Class` and `Style`.** Every component accepts `Class` (extra CSS classes, added to the
-  component's root element) and `Style` (an inline `Style` **object**, not a CSS string). These
-  two are not repeated in each component's table.
+- **`Class`, `Style` and `Id`.** Every component accepts `Class` (extra CSS classes, added to the
+  component's root element), `Style` (an inline `Style` **object**, not a CSS string) and `Id`
+  (the root element's id — what an overlay's [`Trigger`](./overlays.md#opening-from-a-trigger)
+  refers to). These are not repeated in each component's table.
 - **`Color`** takes a palette name: `"primary"`, `"secondary"`, `"tertiary"`, `"success"`,
   `"warning"`, `"danger"`, `"light"`, `"medium"`, or `"dark"`. The colors come from the theme's
   [palette](./theming.md#palette).
