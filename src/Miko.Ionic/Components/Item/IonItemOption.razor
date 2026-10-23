@@ -14,7 +14,7 @@
    The fill color is chosen by the `color` attribute (Ionic's named palette: "primary", "danger",
    "success", …), stamped as ion-color / ion-color-* classes the stylesheet maps to a background.
    With no color it falls back to the theme's default (primary) option fill. Ionic renders an <a>
-   when `href` is set; navigation itself is out of scope for the renderer. *@
+   when `href` is set; a tap on it navigates through the NavigationManager (routerLink). *@
 <div class="@ClassMapper.Class" style="@Style">
     @if (string.IsNullOrEmpty(Href))
     {
@@ -47,13 +47,15 @@
     /// options and triggers this one is not implemented.</summary>
     [Parameter] public bool Expandable { get; set; }
 
-    /// <summary>Link target (Ionic <c>href</c>). When set, the native surface is an <c>a</c>.
-    /// The renderer does not perform navigation.</summary>
+    /// <summary>Route to navigate to (Ionic <c>href</c>). When set, the native surface is an
+    /// <c>a</c>, and a tap raises <see cref="OnClick"/> and then navigates through the app's
+    /// <c>NavigationManager</c> with the mode's page transition, like <see cref="IonItem"/>.</summary>
     [Parameter] public string? Href { get; set; }
 
-    /// <summary>Native button type (Ionic <c>type</c>): <c>"button"</c> (default), <c>"submit"</c>,
-    /// or <c>"reset"</c>. Kept as a marker for API parity.</summary>
-    [Parameter] public string Type { get; set; } = "button";
+    /// <summary>Navigation direction for <see cref="Href"/> (Ionic <c>routerDirection</c>):
+    /// <c>"forward"</c> (default — push with the mode's transition), <c>"back"</c> (pop-style
+    /// transition), or <c>"root"</c> (clear the history, no transition).</summary>
+    [Parameter] public string? RouterDirection { get; set; }
 
     /// <summary>Raised when the option is tapped (skipped when disabled).</summary>
     [Parameter] public EventCallback OnClick { get; set; }
@@ -79,5 +81,7 @@
     {
         if (Disabled) return;
         await OnClick.InvokeAsync();
+        // item-option.tsx renders an <a href> (routerLink): navigate after the click handler.
+        NavigateHref(Href, RouterDirection);
     }
 }

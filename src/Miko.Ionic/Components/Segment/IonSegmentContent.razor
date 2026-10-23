@@ -8,11 +8,8 @@
 </div>
 
 @code {
-    /// <summary>
-    /// This content's identifier, matched against the segment view's active value.
-    /// Emitted as the element's <c>id</c> attribute so tests/host can <c>FindById</c>.
-    /// </summary>
-    [Parameter] public string? Id { get; set; }
+    // Id (inherited from IonicComponentBase) is this content's identifier, matched against the
+    // segment view's active value; the base also stamps it as the root element's id.
 
     /// <summary>The active content id supplied by the enclosing <see cref="IonSegmentView"/>.</summary>
     [CascadingParameter(Name = "SegmentViewValue")]

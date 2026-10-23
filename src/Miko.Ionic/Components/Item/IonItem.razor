@@ -122,10 +122,6 @@
     /// <c>"inset"</c>, or <c>"none"</c>. Null uses the theme default hairline.</summary>
     [Parameter] public string? Lines { get; set; }
 
-    /// <summary>Native button type when the item is a button (Ionic <c>type</c>): <c>"button"</c>
-    /// (default), <c>"submit"</c>, or <c>"reset"</c>. Kept as a marker for API parity.</summary>
-    [Parameter] public string Type { get; set; } = "button";
-
     /// <summary>Content for Ionic's <c>start</c> slot — placed before the label (left in LTR).
     /// Typically a leading icon or avatar.</summary>
     [Parameter] public RenderFragment? Start { get; set; }
@@ -191,15 +187,6 @@
         // NavigationManager with the direction chosen by RouterDirection and the mode's page
         // transition. Root switches (tab-style) get no transition; without a NavigationManager
         // (bare tests) only OnClick fires.
-        if (!string.IsNullOrEmpty(Href) && Navigation is not null)
-        {
-            var (direction, transition) = RouterDirection?.ToLowerInvariant() switch
-            {
-                "back" => (NavigationDirection.Back, IonicPageTransitions.Pop(Mode)),
-                "root" => (NavigationDirection.Root, (NavigationTransition?)null),
-                _ => (NavigationDirection.Forward, IonicPageTransitions.Push(Mode)),
-            };
-            Navigation.NavigateTo(Href, direction, transition);
-        }
+        NavigateHref(Href, RouterDirection);
     }
 }

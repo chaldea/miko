@@ -11,7 +11,7 @@
         }
         else
         {
-            <a class="card-native" href="@Href" target="@Target" rel="@Rel" @onclick="HandleClick">
+            <a class="card-native" href="@Href" @onclick="HandleClick">
                 @ChildContent
             </a>
         }
@@ -32,15 +32,15 @@ else
     /// raises <see cref="OnClick"/> (Ionic <c>button</c>).</summary>
     [Parameter] public bool Button { get; set; }
 
-    /// <summary>Link target (Ionic <c>href</c>). When set, the card is clickable and its surface is
-    /// an anchor; the renderer does not navigate — handle <see cref="OnClick"/>.</summary>
+    /// <summary>Route to navigate to (Ionic <c>href</c>). When set, the card is clickable and its
+    /// surface is an <c>a</c>; a tap raises <see cref="OnClick"/> and then navigates through the
+    /// app's <c>NavigationManager</c> with the mode's page transition, like <see cref="IonItem"/>.</summary>
     [Parameter] public string? Href { get; set; }
 
-    /// <summary>Anchor target, used only when <see cref="Href"/> is set.</summary>
-    [Parameter] public string? Target { get; set; }
-
-    /// <summary>Anchor rel, used only when <see cref="Href"/> is set.</summary>
-    [Parameter] public string? Rel { get; set; }
+    /// <summary>Navigation direction for <see cref="Href"/> (Ionic <c>routerDirection</c>):
+    /// <c>"forward"</c> (default — push with the mode's transition), <c>"back"</c> (pop-style
+    /// transition), or <c>"root"</c> (clear the history, no transition).</summary>
+    [Parameter] public string? RouterDirection { get; set; }
 
     /// <summary>When true, the card is dimmed and non-interactive.</summary>
     [Parameter] public bool Disabled { get; set; }
@@ -80,5 +80,7 @@ else
     {
         if (Disabled) return;
         await OnClick.InvokeAsync();
+        // card.tsx: an href card navigates like routerLink (openURL), after the click handler.
+        NavigateHref(Href, RouterDirection);
     }
 }

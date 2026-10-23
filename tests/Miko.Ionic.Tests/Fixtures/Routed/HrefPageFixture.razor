@@ -1,0 +1,32 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* Every component with an Href, nested as an app writes them (P0-C1): a button and a card in the
+   content, an open sliding item's option, and a fab in the content's fixed slot. *@
+<IonPage>
+    <IonContent>
+        <Fixed>
+            <IonFab Vertical="bottom" Horizontal="end">
+                <IonFabButton Class="href-fab" Href="/detail">
+                    <IonIcon Icon="@Ionicons.Add" />
+                </IonFabButton>
+            </IonFab>
+        </Fixed>
+        <ChildContent>
+            <IonButton Class="href-button" Href="/detail">Details</IonButton>
+            <IonButton Class="href-root-button" Href="/detail" RouterDirection="root">Home</IonButton>
+            <IonCard Class="href-card" Href="/detail">
+                <IonCardContent>Open the card</IonCardContent>
+            </IonCard>
+            <IonList>
+                <IonItemSliding Open="true">
+                    <IonItem><IonLabel>Swiped row</IonLabel></IonItem>
+                    <IonItemOptions Side="end">
+                        <IonItemOption Class="href-option" Href="/detail">Open</IonItemOption>
+                    </IonItemOptions>
+                </IonItemSliding>
+            </IonList>
+        </ChildContent>
+    </IonContent>
+</IonPage>
