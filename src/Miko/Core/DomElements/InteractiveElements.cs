@@ -236,7 +236,7 @@ public class TextAreaElement : Element, ITextEditable
         get => _value;
         set
         {
-            _value = value;
+            SetValueCore(value);
             DeclaredValue = value;
         }
     }
@@ -245,7 +245,34 @@ public class TextAreaElement : Element, ITextEditable
     internal string? DeclaredValue { get; private set; }
 
     /// <summary>用户键入路径：只改值，不动声明值。</summary>
-    private void SetUserValue(string? value) => _value = value;
+    private void SetUserValue(string? value) => SetValueCore(value);
+
+    private void SetValueCore(string? value)
+    {
+        if (_value == value) return;
+        _value = value;
+        // 自动长高时文本决定盒子高度：值一变就必须重排。只记内容账——没有选择器读 textarea 的值，
+        // 计算样式不受影响（见 MutationTracker.BumpContent）。不长高时值只影响绘制，照旧不记账。
+        if (AutoGrow) BumpContentVersion();
+    }
+
+    private bool _autoGrow;
+
+    /// <summary>
+    /// When true, the auto height fits the soft-wrapped text — at least <see cref="Rows"/> lines,
+    /// more as the text grows (CSS <c>field-sizing: content</c> for the block axis). The width is
+    /// unchanged.
+    /// </summary>
+    public bool AutoGrow
+    {
+        get => _autoGrow;
+        set
+        {
+            if (_autoGrow == value) return;
+            _autoGrow = value;
+            BumpContentVersion();
+        }
+    }
 
     /// <summary>
     /// textarea 接受键盘文本编辑，禁用时除外（见 InputElement.IsEditable）。
@@ -351,7 +378,8 @@ public class TextAreaElement : Element, ITextEditable
     private protected override void AdoptStateCore(Element source)
     {
         var textArea = (TextAreaElement)source;
-        _value = textArea._value;
+        AutoGrow = textArea.AutoGrow;
+        SetValueCore(textArea._value);
         DeclaredValue = textArea.DeclaredValue;
     }
 }

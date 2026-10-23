@@ -1,0 +1,23 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* A comment form: an auto-growing textarea in an item, bound two-way, next to a fixed one. *@
+<IonPage>
+    <IonContent>
+        <IonList>
+            <IonItem>
+                <IonTextarea Class="growing" Label="Comment" LabelPlacement="stacked" AutoGrow="true" Rows="1" @bind-Value="_comment" />
+            </IonItem>
+            <IonItem>
+                <IonTextarea Class="fixed" Label="Note" LabelPlacement="stacked" Rows="1" />
+            </IonItem>
+            <IonItem>
+                <IonTextarea Class="three-rows" Label="Address" LabelPlacement="stacked" Rows="3" />
+            </IonItem>
+        </IonList>
+    </IonContent>
+</IonPage>
+
+@code {
+    private string? _comment;
+}
