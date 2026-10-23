@@ -202,7 +202,7 @@ With `Multiple="true"` bind `Values` (`IReadOnlyList<string>`) instead of `Value
 ## API
 
 <!-- miko:api IonSelect IonSelectOption -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonSelect
 
@@ -223,10 +223,8 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Label` | `string?` | `null` | Visible label text associated with the select. Takes priority over [`LabelSlot`](#ionselect), matching Ionic's label prop-over-slot rule. |
 | `LabelPlacement` | `string` | `"start"` | Label placement: start, end, floating, stacked, or fixed. |
 | `Multiple` | `bool` | `false` | When true, the select accepts multiple values. |
-| `Name` | `string?` | `null` | Form field name marker. |
 | `OkText` | `string` | `"OK"` | The text on the alert's confirm button. |
 | `Placeholder` | `string?` | `null` | Placeholder text shown when no value is selected. |
-| `Required` | `bool` | `false` | Accessibility marker: announces the field as required. Does not block submission, matching Ionic. |
 | `SelectedText` | `string?` | `null` | Optional selected-text override, shown instead of the selected options' text. |
 | `Shape` | `string?` | `null` | Shape (Ionic `shape`): `"round"` gives the `solid` fill pill-shaped corners. It does not change the corners of the md outline. |
 | `ToggleIcon` | `string?` | `null` | Toggle icon when closed. Defaults to chevron-expand on iOS and caret-down-sharp on md. |
@@ -278,7 +276,6 @@ Theme token `IonicTheme.Select` (`SelectToken`). Assign only the values you want
 | `FontSize` | `float` | `16` | `17` |
 | `HelperColor` | `Color` | `#666666` | `#666666` |
 | `HighlightColor` | `Color` | `#0054e9` | `#0054e9` |
-| `LabelColor` | `Color` | `#666666` | `#666666` |
 | `MinHeight` | `float` | `48` | `44` |
 | `PaddingBottom` | `float` | `0` | `0` |
 | `PaddingEnd` | `float` | `0` | `0` |

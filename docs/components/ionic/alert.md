@@ -190,7 +190,7 @@ Any other `Type` (`"text"`, `"number"`, `"password"`, `"email"`, `"tel"`, …) r
 ## API
 
 <!-- miko:api IonAlert -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonAlert
 
@@ -204,8 +204,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Message` | `string?` | `null` | The body message. |
 | `OverlayId` | `string?` | `null` | Optional stable identifier used by the root overlay registry. |
 | `SubHeader` | `string?` | `null` | The secondary title under the header. |
-| `Translucent` | `bool` | `false` | If true, the surface is translucent (marker only in this port). |
-| `Trigger` | `string?` | `null` | Id of the element that opens the alert (Ionic `trigger`). Kept for API parity; the host drives [`IsOpen`](#ionalert) in this port. |
+| `Trigger` | `string?` | `null` | Id of the element that opens the alert when clicked (Ionic `trigger`), e.g. `<IonButton Id="open-alert">`. Opening sets [`IsOpen`](#ionalert) and raises [`IsOpenChanged`](#ionalert). The page must be inside an [`IonApp`](./app.md#ionapp). |
 
 | Event | Type | Description |
 | --- | --- | --- |
@@ -337,7 +336,6 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.alert-radio-button`, `.alert-checkbox-button` | One radio / checkbox row (also `.alert-tappable`); `-checked` / `-disabled` variants, e.g. `.alert-radio-button-checked`. |
 | `.alert-radio-icon`, `.alert-radio-label`, `.alert-checkbox-icon`, `.alert-checkbox-label` | The parts of a radio / checkbox row. |
 | `.alert-input` | A text field; `.alert-input-disabled` when `Disabled`. |
-| `.alert-translucent` | `Translucent="true"`. Only a marker; no translucent style is applied. |
 
 A button's `CssClass` and the alert's `Class` (or `IonAlertOptions.CssClass`) add your own classes:
 

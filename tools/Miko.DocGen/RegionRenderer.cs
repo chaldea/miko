@@ -55,7 +55,7 @@ public sealed class RegionRenderer
     {
         var builder = new StringBuilder();
         var conventions = Markdown.RelativeLink(document.Path, Path.Combine(_repoRoot, DocsGenerator.ComponentDocsDir, "index.md"));
-        builder.AppendLine($"Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions]({conventions}#conventions).");
+        builder.AppendLine($"Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions]({conventions}#conventions).");
 
         foreach (var name in names)
         {
@@ -71,7 +71,7 @@ public sealed class RegionRenderer
             var parameters = _catalog.Parameters(component);
             if (parameters.Count == 0)
             {
-                builder.AppendLine("No parameters besides `Class` and `Style`.");
+                builder.AppendLine("No parameters besides `Class`, `Style` and `Id`.");
                 continue;
             }
 

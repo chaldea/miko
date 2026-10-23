@@ -100,22 +100,20 @@ In Ionic, `ion-datetime-button` finds its datetime by id, formats its value, and
 ## API
 
 <!-- miko:api IonDatetime IonDatetimeButton -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonDatetime
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `CancelText` | `string` | `"Cancel"` | Cancel button label. |
-| `Color` | `string?` | `null` | Named palette color (Ionic `color`). Stamped as `ion-color-*` classes for app styles to target; the built-in datetime styles do not read it, so on its own it changes nothing. |
+| `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Replaces the primary color of today's marker, the selected day, the action buttons and (md) the header. |
 | `Disabled` | `bool` | `false` | If true, the datetime is dimmed and non-interactive. |
 | `DoneText` | `string` | `"Done"` | Confirm button label. |
 | `FirstDayOfWeek` | `int` | `0` | The first day of the week (0 = Sunday, default). Ionic `firstDayOfWeek`. |
-| `Presentation` | `string` | `"date"` | Which view to show. Only the default `"date"` calendar grid is rendered in this structural port; other values still stamp the presentation class for parity. |
 | `Readonly` | `bool` | `false` | If true, the datetime is non-interactive but not dimmed. |
 | `ShowDefaultButtons` | `bool` | `false` | If true, the footer Cancel / Done buttons are shown. They only raise [`OnCancel`](#iondatetime) / [`OnConfirm`](#iondatetime); the value already changed when the day was tapped. |
 | `ShowDefaultTitle` | `bool` | `true` | If true (default), the header title/selected-date is shown. |
-| `Size` | `string` | `"fixed"` | Sizing: `"fixed"` or `"cover"` (Ionic `size`). Stamped as a class. |
 | `Value` | `string?` | `null` | The selected value as an ISO date string (`yyyy-MM-dd`). Bind two-way with [`ValueChanged`](#iondatetime). Two-way bindable: `@bind-Value`. |
 
 | Event | Type | Description |
@@ -128,9 +126,8 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Color` | `string?` | `null` | Named palette color (Ionic `color`). Stamped as `ion-color-*` classes for app styles to target; the built-in datetime styles do not read it, so on its own it changes nothing. |
+| `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. The text color of the active button (see [`DatetimeActive`](#iondatetimebutton)), primary by default. |
 | `DateText` | `string?` | `null` | The formatted date label; when empty the date button is not rendered. |
-| `Datetime` | `string?` | `null` | The id of the `ion-datetime` this button controls (Ionic `datetime`). Kept for API parity; the host wires the click callbacks in this port. |
 | `DatetimeActive` | `bool` | `false` | Whether the associated datetime is currently open (stamps `{selected}-active`). |
 | `Disabled` | `bool` | `false` | If true, the buttons are dimmed and non-interactive. |
 | `SelectedButton` | `string` | `"date"` | Which button reads as active while the datetime is open: `"date"` or `"time"`. |
@@ -181,7 +178,7 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | Selector | Element |
 | --- | --- |
 | `.ion-datetime` | The host. Also carries the mode (`md` / `ios`) and the classes below. |
-| `.datetime-presentation-{presentation}`, `.datetime-size-{size}` | `Presentation`, `Size` (markers only). |
+| `.datetime-presentation-date`, `.datetime-size-fixed` | Always on the host: the date grid at its fixed size is the one view that is ported. |
 | `.datetime-disabled`, `.datetime-readonly` | `Disabled`, `Readonly`. |
 | `.ion-datetime .datetime-header` | The title area; holds `.datetime-title` and `.datetime-selected-date`. |
 | `.ion-datetime .calendar-action-buttons` | The month/year label (`.calendar-month-year-toggle`) and the paging buttons (`.calendar-nav-button`). |

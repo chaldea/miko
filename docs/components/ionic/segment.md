@@ -115,7 +115,7 @@ By default the buttons share the row's width equally. With `Scrollable="true"` e
 
 ## Segment views
 
-`IonSegmentView` shows the one `IonSegmentContent` whose `Id` equals the view's `Value` and hides the others. The segment and the view are not linked automatically: bind the same field to both, with each button's `Value` matching a content `Id`. `IonSegmentButton.ContentId` is accepted for API parity but not used. Unlike Ionic, the view switches instantly — there is no swipe between contents.
+`IonSegmentView` shows the one `IonSegmentContent` whose `Id` equals the view's `Value` and hides the others. The segment and the view are not linked automatically: bind the same field to both, with each button's `Value` matching a content `Id` (Ionic's `content-id` link is not ported). Unlike Ionic, the view switches instantly — there is no swipe between contents.
 
 <!-- miko:example examples/segment/Views.razor -->
 ```razor
@@ -170,7 +170,7 @@ A segment can be the content of an [`IonToolbar`](./toolbar.md). In md mode it t
 ## API
 
 <!-- miko:api IonSegment IonSegmentButton IonSegmentView IonSegmentContent -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonSegment
 
@@ -193,7 +193,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `ContentId` | `string?` | `null` | Id of the [`IonSegmentContent`](#ionsegmentcontent) this button activates (Ionic `content-id`). Kept for API parity and not read by this port: to switch an [`IonSegmentView`](#ionsegmentview), bind the same field to the segment's `Value` and the view's `Value`. |
 | `Disabled` | `bool` | `false` | When true this individual button is dimmed and non-interactive. |
 | `Layout` | `string?` | `"icon-top"` | Arrangement of an icon and a label in the button (Ionic `layout`): `"icon-top"` (default), `"icon-bottom"`, `"icon-start"`, `"icon-end"`, `"icon-hide"` (hides the icon) or `"label-hide"` (hides the label). |
 | `Value` | `string` | `""` | This button's value; becomes the segment's selected value when tapped. |
@@ -213,10 +212,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `ChildContent` | `RenderFragment?` | Content placed between the component's tags. |
 
 ### IonSegmentContent
-
-| Parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| `Id` | `string?` | `null` | This content's identifier, matched against the segment view's active value. Emitted as the element's `id` attribute so tests/host can `FindById`. |
 
 | Slot | Type | Description |
 | --- | --- | --- |

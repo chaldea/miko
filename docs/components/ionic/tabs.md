@@ -8,7 +8,7 @@ Tabs are a top-level navigation pattern: a tab bar of buttons at the bottom (or 
 
 Put `IonTabs` in the default layout inside [`IonApp`](./app.md), with `@Body` in the `Content` slot and the `IonTabBar` in `Bottom` (or `Top`). The **slot** decides where the bar goes; `IonTabBar`'s `Slot` parameter only picks the border side. A tap on a button performs a root navigation to its `Href`: the history is cleared, no transition plays, and each tab page's scroll position is restored when you switch back to it. `OnClick` runs before the navigation.
 
-`Selected` is not derived from the route — set it yourself, typically by comparing the layout's `NavigationManager.CurrentPath` with each tab's path (as the tabs app template does). Navigation re-renders the layout, so `Selected` follows the current page. `Tab` is only an identifier kept for Ionic parity; nothing reads it.
+`Selected` is not derived from the route — set it yourself, typically by comparing the layout's `NavigationManager.CurrentPath` with each tab's path (as the tabs app template does). Navigation re-renders the layout, so `Selected` follows the current page. A button is identified by its `Href`; Ionic's `tab` attribute, which names an `ion-tab`, has no counterpart.
 
 <!-- miko:example examples/tabs/TabsLayout.razor -->
 ```razor
@@ -21,15 +21,15 @@ Put `IonTabs` in the default layout inside [`IonApp`](./app.md), with `@Body` in
         <Content>@Body</Content>
         <Bottom>
             <IonTabBar Slot="bottom">
-                <IonTabButton Tab="tab1" Href="/tab1" Selected="@IsActive("/tab1", "/")">
+                <IonTabButton Href="/tab1" Selected="@IsActive("/tab1", "/")">
                     <IonIcon Icon="@Ionicons.Triangle" />
                     <IonLabel>Tab 1</IonLabel>
                 </IonTabButton>
-                <IonTabButton Tab="tab2" Href="/tab2" Selected="@IsActive("/tab2")">
+                <IonTabButton Href="/tab2" Selected="@IsActive("/tab2")">
                     <IonIcon Icon="@Ionicons.Ellipse" />
                     <IonLabel>Tab 2</IonLabel>
                 </IonTabButton>
-                <IonTabButton Tab="tab3" Href="/tab3" Selected="@IsActive("/tab3")">
+                <IonTabButton Href="/tab3" Selected="@IsActive("/tab3")">
                     <IonIcon Icon="@Ionicons.Square" />
                     <IonLabel>Tab 3</IonLabel>
                 </IonTabButton>
@@ -81,12 +81,12 @@ An [`IonBadge`](./badge.md) inside a tab button floats over the top-right corner
 @* A badge floats over the top-right of the icon. An empty badge is an 8px dot in md mode and
    hidden in ios mode. *@
 <IonTabBar>
-    <IonTabButton Tab="inbox" Href="/inbox" Selected="true">
+    <IonTabButton Href="/inbox" Selected="true">
         <IonIcon Icon="@Ionicons.MailOutline" />
         <IonLabel>Inbox</IonLabel>
         <IonBadge Color="danger">3</IonBadge>
     </IonTabButton>
-    <IonTabButton Tab="calendar" Href="/calendar">
+    <IonTabButton Href="/calendar">
         <IonIcon Icon="@Ionicons.Calendar" />
         <IonLabel>Calendar</IonLabel>
         <IonBadge Color="primary"></IonBadge>
@@ -105,10 +105,10 @@ Put the bar in the `Top` slot to place it above the content; `Slot="top"` on the
 <IonTabs>
     <Top>
         <IonTabBar Slot="top">
-            <IonTabButton Tab="music" Href="/music" Selected="true">
+            <IonTabButton Href="/music" Selected="true">
                 <IonLabel>Music</IonLabel>
             </IonTabButton>
-            <IonTabButton Tab="movies" Href="/movies">
+            <IonTabButton Href="/movies">
                 <IonLabel>Movies</IonLabel>
             </IonTabButton>
         </IonTabBar>
@@ -135,7 +135,7 @@ Put the bar in the `Top` slot to place it above the content; `Slot="top"` on the
 ## API
 
 <!-- miko:api IonTabs IonTabBar IonTabButton -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonTabs
 
@@ -161,7 +161,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | --- | --- | --- | --- |
 | `Href` | `string?` | `null` | Navigation target for the tab button. When the button sits inside an [`IonTabs`](#iontabs), clicking it performs a root-level navigation to this target (history cleared, no page transition), mirroring Ionic's tab switching. Outside an [`IonTabs`](#iontabs) the button does not navigate. |
 | `Selected` | `bool` | `false` | Whether this tab button is the currently selected one (stamps `tab-selected`). Not derived from the route — the app sets it, e.g. by comparing `NavigationManager.CurrentPath` with [`Href`](#iontabbutton). |
-| `Tab` | `string?` | `null` | Logical tab identifier (e.g. `"tab1"`, Ionic `tab`). Kept for API parity: it is not used for selection or navigation (there is no `ion-tab` component). |
 
 | Event | Type | Description |
 | --- | --- | --- |

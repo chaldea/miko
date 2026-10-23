@@ -16,7 +16,7 @@ Searchbars are rounded search fields with a search icon, a clear button, and an 
 
 ## Filtering a list
 
-Bind the text with `@bind-Value` and filter on it. `ValueChanged` is raised with the whole new value on every edit. There is no debounce — `Debounce` is kept only for API parity — so if the work per keystroke is expensive, debounce it in your own code.
+Bind the text with `@bind-Value` and filter on it. `ValueChanged` is raised with the whole new value on every edit. If the work per keystroke is expensive (a query, a long list), handle `OnInput` and set `Debounce` instead: `OnInput` then fires once the user has paused for that many milliseconds, with the final value.
 
 <!-- miko:example examples/searchbar/Filter.razor -->
 ```razor
@@ -150,20 +150,18 @@ A searchbar placed directly in an `IonToolbar` fills the toolbar's width.
 ## API
 
 <!-- miko:api IonSearchbar -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonSearchbar
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Animated` | `bool` | `false` | Ionic `animated`. No animation is implemented; in ios mode it only keeps the cancel button visible (like `ShowCancelButton="always"`), in md mode it has no effect. |
 | `CancelButtonIcon` | `string?` | `null` | Cancel button icon, shown in md mode (Ionic `cancelButtonIcon`). Defaults to `arrow-back-sharp`. |
 | `CancelButtonText` | `string` | `"Cancel"` | Cancel button text, shown in iOS mode (Ionic `cancelButtonText`). |
 | `ClearIcon` | `string?` | `null` | Clear icon name (Ionic `clearIcon`). Defaults to `close-sharp` (md) / `close-circle` (ios). |
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Stamped as an `ion-color-*` class the stylesheet maps to the input fill. |
-| `Debounce` | `int?` | `null` | Debounce in ms for the input event (Ionic `debounce`). Kept for API parity; the renderer does not debounce. |
+| `Debounce` | `int?` | `null` | Milliseconds to wait after the last edit before raising [`OnInput`](#ionsearchbar) (Ionic `debounce`). Every edit restarts the wait, so a burst of typing raises one [`OnInput`](#ionsearchbar) with the final value — use it to avoid filtering or querying on every keystroke. [`ValueChanged`](#ionsearchbar) (`@bind-Value`) and [`OnChange`](#ionsearchbar) are not delayed. Null or 0 (default) raises [`OnInput`](#ionsearchbar) on every edit. |
 | `Disabled` | `bool` | `false` | When true, the searchbar is dimmed and non-interactive (Ionic `disabled`). |
-| `Name` | `string?` | `null` | Form control name (Ionic `name`). Kept for API parity. |
 | `Placeholder` | `string` | `"Search"` | Placeholder text (Ionic `placeholder`). Defaults to `"Search"`. |
 | `SearchIcon` | `string?` | `null` | Search icon name (Ionic `searchIcon`). Defaults to `search-sharp` (md) / `search-outline` (ios). |
 | `ShowCancelButton` | `string` | `"never"` | Cancel button behavior (Ionic `showCancelButton`): `"never"` (default), `"focus"` (shown while the field has focus), or `"always"`. |
@@ -178,7 +176,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `OnChange` | `EventCallback<string?>` | Raised when the value change is committed (Ionic `ionChange`): when the field loses focus or Enter is pressed with a value different from the one it had on focus — a clear-button tap counts as a change — or when the cancel button clears an unfocused field. Not raised for programmatic value changes, matching Ionic. |
 | `OnClear` | `EventCallback` | Raised when the clear button is clicked (Ionic `ionClear`). Fires before the value is cleared, like the Ionic source. |
 | `OnFocus` | `EventCallback` | Raised when the search field gains focus (Ionic `ionFocus`). |
-| `OnInput` | `EventCallback<string?>` | Raised each time the user modifies the value (Ionic `ionInput`). |
+| `OnInput` | `EventCallback<string?>` | Raised each time the user modifies the value (Ionic `ionInput`), or once per burst of edits when [`Debounce`](#ionsearchbar) is set. |
 | `ValueChanged` | `EventCallback<string?>` | Raised (with the new value) as the user types — enables `@bind-Value`. |
 <!-- /miko:api -->
 

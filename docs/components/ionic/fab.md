@@ -146,7 +146,7 @@ Tapping any button in the fab toggles `Activated` — but only when the fab cont
 ## API
 
 <!-- miko:api IonFab IonFabButton IonFabList -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonFab
 
@@ -173,11 +173,10 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `CloseIcon` | `string` | `"close"` | Icon name shown when the button is the active close button (Ionic `closeIcon`). Defaults to the Ionicons `close` glyph. |
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Stamped as `ion-color` + `ion-color-*`. |
 | `Disabled` | `bool` | `false` | If true, the user cannot interact with the button (Ionic `disabled`). |
-| `Href` | `string?` | `null` | Link target (Ionic `href`). Kept as a marker for API parity; the renderer does not perform navigation. |
+| `Href` | `string?` | `null` | Route to navigate to (Ionic `href`). When set, the native surface is an `a`, and a tap raises [`OnClick`](#ionfabbutton), toggles the enclosing fab and then navigates through the app's `NavigationManager` with the mode's page transition. |
+| `RouterDirection` | `string?` | `null` | Navigation direction when [`Href`](#ionfabbutton) is clicked (mirrors Ionic's `routerDirection`): `"forward"` (default — push with transition), `"back"` (pop-style reverse transition), or `"root"` (clear the history stack, no transition). |
 | `Show` | `bool` | `false` | If true, a list button is shown (Ionic `show`). Normally derived from the enclosing fab-list's activated state. |
 | `Size` | `string?` | `null` | Size (Ionic `size`): `"small"` for a mini fab button. Stamped as `fab-button-small`. |
-| `Translucent` | `bool` | `false` | If true, the button is translucent on iOS (Ionic `translucent`). Kept as a marker class for parity. |
-| `Type` | `string` | `"button"` | Button type (Ionic `type`): `"submit"`, `"reset"`, or `"button"` (default). Kept for API parity; not applied to the rendered button. |
 
 | Event | Type | Description |
 | --- | --- | --- |
@@ -199,7 +198,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `ChildContent` | `RenderFragment?` | Content placed between the component's tags. |
 <!-- /miko:api -->
 
-`IonFabButton.Activated` and `IonFabList.Activated` are normally derived from the enclosing `IonFab`; set them directly only for a standalone button or list. `IonFabButton.Href`, `Type`, and `Translucent` are kept for API parity: no navigation happens, `Type` is not applied to the native button, and the translucent classes have no styles.
+`IonFabButton.Activated` and `IonFabList.Activated` are normally derived from the enclosing `IonFab`; set them directly only for a standalone button or list. With `Href`, a tap on `IonFabButton` navigates like [`IonItem`](./item.md) (after `OnClick` and the fab toggle); `RouterDirection` picks the direction.
 
 ## Styling
 

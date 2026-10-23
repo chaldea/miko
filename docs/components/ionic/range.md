@@ -34,7 +34,7 @@ Ionic's dual knobs (`dualKnobs`), tick marks (`ticks`), `pinFormatter`, and the 
 
 ## Min, max, and step
 
-A value picked by press or drag is rounded to the nearest multiple of `Step` (default 1) counted from `Min`, then clamped to `Min`–`Max`. `Snaps` is accepted for API parity but changes nothing: no tick marks are drawn, and values snap to `Step` either way.
+A value picked by press or drag is rounded to the nearest multiple of `Step` (default 1) counted from `Min`, then clamped to `Min`–`Max`. The knob always lands on a step, as with Ionic's `snaps`; tick marks are not drawn.
 
 <!-- miko:example examples/range/MinMaxStep.razor -->
 ```razor
@@ -139,7 +139,7 @@ Inside an [`IonItem`](./item.md) the range fills the item's content area.
 ## API
 
 <!-- miko:api IonRange -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonRange
 
@@ -152,8 +152,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Max` | `double` | `100` | Maximum value (default 100). |
 | `Min` | `double` | `0` | Minimum value (default 0). |
 | `Pin` | `bool` | `false` | If true, a pin (value bubble) is shown above the knob. |
-| `Snaps` | `bool` | `false` | Ionic `snaps`. Kept for API parity: no tick marks are drawn, and the value is always rounded to [`Step`](#ionrange) whether or not this is set. |
-| `Step` | `double` | `1` | The quantized step between allowed values (default 1). |
+| `Step` | `double` | `1` | The quantized step between allowed values (default 1). The knob always lands on a step, as with Ionic's `snaps` (no tick marks are drawn). |
 | `Value` | `double` | `0` | The current value. Bind two-way with [`ValueChanged`](#ionrange). Two-way bindable: `@bind-Value`. |
 
 | Event | Type | Description |

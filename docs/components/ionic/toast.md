@@ -127,7 +127,7 @@ Each `PresentAsync()` adds another toast to the layer. Toasts are not queued, so
 ## API
 
 <!-- miko:api IonToast -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonToast
 
@@ -142,8 +142,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Message` | `string?` | `null` | The body message. |
 | `OverlayId` | `string?` | `null` | Optional stable identifier used by the root overlay registry. |
 | `Position` | `string` | `"bottom"` | Where the toast sits: `"top"`, `"middle"`, or `"bottom"` (default). |
-| `Translucent` | `bool` | `false` | If true, the surface is translucent (ios blur). Marker only in this port. |
-| `Trigger` | `string?` | `null` | Id of the element that opens the toast (Ionic `trigger`). Kept for API parity; the host drives [`IsOpen`](#iontoast) in this port. |
+| `Trigger` | `string?` | `null` | Id of the element that opens the toast when clicked (Ionic `trigger`), e.g. `<IonButton Id="open-toast">`. Opening sets [`IsOpen`](#iontoast) and raises [`IsOpenChanged`](#iontoast). The page must be inside an [`IonApp`](./app.md#ionapp). |
 
 | Event | Type | Description |
 | --- | --- | --- |
@@ -230,7 +229,6 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.toast-button-icon-only` | A button with an icon and no text. |
 | `.toast-button-{role}` | A button's `Role`, e.g. `.toast-button-cancel`. |
 | `.ion-color`, `.ion-color-{name}` | `Color` (e.g. `.ion-color-success`). |
-| `.toast-translucent` | `Translucent="true"`. Only a marker; no translucent style is applied. |
 
 ```csharp
 // GlobalStyles.cs — <IonToast Class="pill" …>

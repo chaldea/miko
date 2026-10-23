@@ -1,0 +1,15 @@
+@* Trigger names the id of the element whose click opens the sheet: no IsOpen field needed. *@
+<IonButton Id="open-share">Share</IonButton>
+
+<IonActionSheet Trigger="open-share"
+                Header="Share"
+                Buttons="@_buttons" />
+
+@code {
+    private readonly IReadOnlyList<IonActionSheetButton> _buttons =
+    [
+        new() { Text = "Copy link" },
+        new() { Text = "Send by email" },
+        new() { Text = "Cancel", Role = "cancel" },
+    ];
+}

@@ -154,7 +154,7 @@ An [`IonList`](./list.md) inside `IonCardContent` gives the card a list body.
 ## API
 
 <!-- miko:api IonCard IonCardHeader IonCardTitle IonCardSubtitle IonCardContent -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonCard
 
@@ -163,9 +163,8 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Button` | `bool` | `false` | When true, wraps the content in a clickable `button.card-native` surface that raises [`OnClick`](#ioncard) (Ionic `button`). |
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, .... |
 | `Disabled` | `bool` | `false` | When true, the card is dimmed and non-interactive. |
-| `Href` | `string?` | `null` | Link target (Ionic `href`). When set, the card is clickable and its surface is an anchor; the renderer does not navigate — handle [`OnClick`](#ioncard). |
-| `Rel` | `string?` | `null` | Anchor rel, used only when [`Href`](#ioncard) is set. |
-| `Target` | `string?` | `null` | Anchor target, used only when [`Href`](#ioncard) is set. |
+| `Href` | `string?` | `null` | Route to navigate to (Ionic `href`). When set, the card is clickable and its surface is an `a`; a tap raises [`OnClick`](#ioncard) and then navigates through the app's `NavigationManager` with the mode's page transition, like [`IonItem`](./item.md#ionitem). |
+| `RouterDirection` | `string?` | `null` | Navigation direction for [`Href`](#ioncard) (Ionic `routerDirection`): `"forward"` (default — push with the mode's transition), `"back"` (pop-style transition), or `"root"` (clear the history, no transition). |
 
 | Event | Type | Description |
 | --- | --- | --- |
@@ -180,7 +179,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, .... |
-| `Translucent` | `bool` | `false` | When true, stamps the iOS translucent header marker class. |
+| `Translucent` | `bool` | `false` | If true, the ios header gets Ionic's translucent look: a 90% opaque white background (Ionic also blurs what is behind it; Miko does not). md headers look the same either way. |
 
 | Slot | Type | Description |
 | --- | --- | --- |
@@ -255,7 +254,7 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.ion-activatable` | The card is clickable. |
 | `.card-disabled` | `Disabled`. |
 | `.ion-card-header` | The header (a flex column; reversed in `ios`). |
-| `.card-header-translucent` | `IonCardHeader` with `Translucent` (marker only; no rule uses it). |
+| `.card-header-translucent` | `IonCardHeader` with `Translucent` (ios: 90% opaque white background). |
 | `.ion-card-title`, `.ion-card-subtitle` | Title and subtitle (no built-in rules). |
 | `.ion-card-content` | The padded body. Also carries `card-content-md` / `card-content-ios`. |
 | `.ion-color-{name}` | `Color` on any of the card components (e.g. `.ion-color-primary`). |

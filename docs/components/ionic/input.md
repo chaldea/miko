@@ -203,7 +203,7 @@ In md mode, a field that is not inside an `IonItem` and not `Fill="outline"` als
 ## API
 
 <!-- miko:api IonInput -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonInput
 
@@ -220,7 +220,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Label` | `string?` | `null` | The visible plaintext label associated with the input. |
 | `LabelPlacement` | `string` | `"start"` | Where the label sits relative to the input: `"start"` (default), `"end"`, `"fixed"`, `"stacked"`, or `"floating"` (laid out like `"stacked"`; no float animation). |
 | `Maxlength` | `int?` | `null` | The maximum number of characters the user can enter (Ionic `maxlength`), also shown by the counter. Typed or pasted text beyond it is cut off; a [`Value`](#ioninput) set from code is not shortened. |
-| `Name` | `string?` | `null` | Form field name marker. |
 | `Placeholder` | `string?` | `null` | Instructional text shown before the input has a value. |
 | `Readonly` | `bool` | `false` | If true, the user cannot modify the value. The field can still be focused (no on-screen keyboard is shown). |
 | `Shape` | `string?` | `null` | The shape. Use `"round"` for an increased corner radius. |
@@ -262,7 +261,6 @@ Theme token `IonicTheme.Input` (`InputToken`). Assign only the values you want t
 | `MinHeight` | `float` | `44` | `44` |
 | `PaddingEnd` | `float` | `0` | `0` |
 | `PaddingStart` | `float` | `0` | `0` |
-| `PlaceholderColor` | `Color` | `#666666` | `#666666` |
 | `TextColor` | `Color` | `#000000` | `#000000` |
 <!-- /miko:tokens -->
 

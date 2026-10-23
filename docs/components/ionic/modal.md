@@ -36,7 +36,7 @@ Put the modal's content between the tags. The panel fills the screen on both mod
 ```
 <!-- /miko:example -->
 
-Ionic's smaller centered dialog on tablet-sized screens is not ported, and `KeepContentsMounted` has no effect.
+Ionic's smaller centered dialog on tablet-sized screens and its `keepContentsMounted` option are not ported.
 
 ## Sheet modal
 
@@ -198,7 +198,7 @@ Setting `Presenting` (any non-null value, usually `this`) makes it a card modal.
 ## API
 
 <!-- miko:api IonModal -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonModal
 
@@ -209,11 +209,10 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Handle` | `bool?` | `null` | Controls the sheet drag handle. It is shown by default for sheet modals. |
 | `InitialBreakpoint` | `double?` | `null` | Initial visible fraction of a sheet modal. If it is not present in [`Breakpoints`](#ionmodal), the nearest configured breakpoint is used. |
 | `IsOpen` | `bool` | `false` | Whether the modal is presented. Bind two-way with [`IsOpenChanged`](#ionmodal). Two-way bindable: `@bind-IsOpen`. |
-| `KeepContentsMounted` | `bool` | `false` | Ionic's `keepContentsMounted`. Kept for API parity; it has no effect in this port. |
 | `OverlayId` | `string?` | `null` | Optional stable identifier used by the root overlay registry. |
-| `Presenting` | `object?` | `null` | The element the modal is presented from. Any non-null value makes it a card modal (`modal-card`) in ios mode; it has no effect in md mode. The stacked card animation of the presenting page is not implemented. |
+| `Presenting` | `object?` | `null` | The element the modal is presented from (Ionic `presentingElement`). In ios mode any non-null value makes it a card modal (`modal-card`); md modals look the same either way, as in Ionic. The presenting page is not scaled back behind the card. |
 | `ShowBackdrop` | `bool` | `true` | If true (default), the backdrop is rendered behind the modal. |
-| `Trigger` | `string?` | `null` | Id of the element that opens the modal. The host drives [`IsOpen`](#ionmodal) in this port, so this is retained for API parity. |
+| `Trigger` | `string?` | `null` | Id of the element that opens the modal when clicked (Ionic `trigger`), e.g. `<IonButton Id="open-modal">`. Opening sets [`IsOpen`](#ionmodal) and raises [`IsOpenChanged`](#ionmodal). The page must be inside an [`IonApp`](./app.md#ionapp). |
 
 | Event | Type | Description |
 | --- | --- | --- |

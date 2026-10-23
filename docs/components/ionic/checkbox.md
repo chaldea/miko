@@ -157,7 +157,7 @@ The child content is the label; without it only the box is drawn. `Disabled` blo
 ## API
 
 <!-- miko:api IonCheckbox -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonCheckbox
 
@@ -172,8 +172,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Indeterminate` | `bool` | `false` | If true, the checkbox visually appears as indeterminate (a minus mark). A tap clears it and raises [`IndeterminateChanged`](#ioncheckbox); bind it with `@bind-Indeterminate`, or the parent's next render restores the minus mark from the value it still passes in. |
 | `Justify` | `string?` | `null` | How to pack the label and box within a line: `"start"`, `"end"`, or `"space-between"`. Setting this changes the host `display` to block. |
 | `LabelPlacement` | `string` | `"start"` | Where the label sits relative to the box: `"start"` (default), `"end"`, `"fixed"`, or `"stacked"`. |
-| `Name` | `string?` | `null` | Form field name marker. |
-| `Value` | `string` | `"on"` | Ionic `value` (the form value when checked). Kept for API parity; Miko has no form submission. |
 
 | Event | Type | Description |
 | --- | --- | --- |

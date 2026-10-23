@@ -105,13 +105,12 @@ A list is a vertical container of rows, usually [items](./item.md), for content 
 ## API
 
 <!-- miko:api IonList IonListHeader -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonList
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Id` | `string?` | `null` | Optional DOM id for the list (Ionic's `id` attribute, e.g. `"inbox-list"`). |
 | `Inset` | `bool` | `false` | When true, the list gets margin around it and rounded corners, and the last item's divider is removed (Ionic `inset`). |
 | `Lines` | `string?` | `null` | How the bottom border is displayed on all items (Ionic `lines`): `"full"`, `"inset"`, or `"none"`. Applies only to items that do not set their own `lines` — an item-level value takes priority (Ionic targets `.item-lines-default` only). |
 

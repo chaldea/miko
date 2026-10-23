@@ -69,6 +69,30 @@ Declare the component in markup and bind `IsOpen` two-way with `@bind-IsOpen`. W
 ```
 <!-- /miko:example -->
 
+### Opening from a trigger
+
+Instead of handling a click and setting `IsOpen`, give the overlay a `Trigger`: the id of the element whose click opens it, as Ionic's `trigger` does. Any Ionic component takes an `Id` (it becomes the id of the element the component renders), and so does a plain element (`id`); a click anywhere inside that element counts. The overlay then sets `IsOpen` itself and raises `IsOpenChanged(true)`, so `@bind-IsOpen` keeps working alongside it. The click is picked up by [`IonApp`](./app.md), so both the element and the overlay must be inside it. `IonPopover` also anchors itself to the pressed element, and with `TriggerAction="context-menu"` opens on a long press instead of a click.
+
+<!-- miko:example examples/overlays/Trigger.razor -->
+```razor
+@* Trigger names the id of the element whose click opens the sheet: no IsOpen field needed. *@
+<IonButton Id="open-share">Share</IonButton>
+
+<IonActionSheet Trigger="open-share"
+                Header="Share"
+                Buttons="@_buttons" />
+
+@code {
+    private readonly IReadOnlyList<IonActionSheetButton> _buttons =
+    [
+        new() { Text = "Copy link" },
+        new() { Text = "Send by email" },
+        new() { Text = "Cancel", Role = "cancel" },
+    ];
+}
+```
+<!-- /miko:example -->
+
 The public methods some overlays expose (for example `IonModal.DismissAsync`) can be called through `@ref`: declare a field of the component type and write `@ref="_modal"` on the component. The field always refers to the current instance; Miko creates a new one each time the declaring component re-renders. When two overlays declared by the same component are open at once, the one declared later in the markup is on top. The exception is overlays in the layer that each have a stable `OverlayId`: those keep the order in which they were opened.
 
 ## Controllers

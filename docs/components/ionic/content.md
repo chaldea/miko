@@ -119,12 +119,12 @@ With `ForceOverscroll`, dragging past the top or bottom edge stretches the conte
 
 ## Scroll events and methods
 
-`IonContent` raises no scroll events and has no scroll methods: Ionic's `ionScroll` events (`ScrollEvents` is kept only for API parity) and `scrollToTop()` / `scrollToBottom()` are not available. For scroll-driven loading and pull-to-refresh use [`IonInfiniteScroll`](./infinite-scroll.md) and [`IonRefresher`](./refresher.md), which work inside `IonContent`. `Fullscreen` is likewise only a marker class: the content does not scroll behind the header or footer.
+`IonContent` raises no scroll events and has no scroll methods: Ionic's `scrollEvents` / `ionScroll` events and `scrollToTop()` / `scrollToBottom()` are not available. For scroll-driven loading and pull-to-refresh use [`IonInfiniteScroll`](./infinite-scroll.md) and [`IonRefresher`](./refresher.md), which work inside `IonContent`. Ionic's `fullscreen` is not ported either: the content never scrolls behind the header or footer.
 
 ## API
 
 <!-- miko:api IonContent -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonContent
 
@@ -133,8 +133,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Stamped as `ion-color` + `ion-color-*` classes the stylesheet maps to the scroll container's fill and text color. |
 | `FixedSlotPlacement` | `string` | `"after"` | Where the fixed slot sits relative to the scrollable content in the DOM (Ionic `fixedSlotPlacement`): `"after"` (default) or `"before"`. Ionic uses this to control keyboard focus order. |
 | `ForceOverscroll` | `bool?` | `null` | If true, scrolling bounces past the bounds even when the content does not overflow (Ionic `forceOverscroll`). When null, Ionic defaults it to true on iOS. Stamps the `overscroll` marker class, which `ContentStyles` maps to `overscroll-effect: elastic`. The bounce additionally requires an `ElasticScrollBehavior` on the platform host — the Android / iOS / Simulator hosts install one by default, a plain desktop host does not. |
-| `Fullscreen` | `bool` | `false` | Ionic's `fullscreen` (content scrolls behind a translucent header and footer). Kept as a marker for API parity: it stamps `content-fullscreen`, but the layout is unchanged — Ionic's runtime offset computation (`--offset-top` / `--offset-bottom`) has no equivalent here, so the content still sits between the header and the footer. |
-| `ScrollEvents` | `bool` | `false` | Enables Ionic's `ionScroll` / `ionScrollStart` / `ionScrollEnd` events, which are off by default for performance. Kept as a marker for API parity — this port does not re-emit scroll events. |
 | `ScrollX` | `bool` | `false` | If true, the content scrolls on the X axis (Ionic `scrollX`, default false). |
 | `ScrollY` | `bool` | `true` | If false, vertical scrolling is disabled (Ionic `scrollY`, default true). |
 
@@ -169,7 +167,6 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.inner-scroll.scroll-y`, `.inner-scroll.scroll-x` | `ScrollY` / `ScrollX`: the axes that scroll. |
 | `.overscroll` | `ForceOverscroll` in effect (on the host and on `.inner-scroll`). |
 | `.ion-slot-fixed` | Each top-level element of the `Fixed` slot. |
-| `.content-fullscreen` | `Fullscreen`. |
 | `.ion-color`, `.ion-color-{name}` | `Color` (e.g. `.ion-color-light`). |
 
 ```csharp

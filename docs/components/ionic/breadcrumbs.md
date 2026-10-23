@@ -175,7 +175,7 @@ With `ItemsAfterCollapse="0"` the crumb carrying the indicator counts as the las
 ## API
 
 <!-- miko:api IonBreadcrumbs IonBreadcrumb -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonBreadcrumbs
 

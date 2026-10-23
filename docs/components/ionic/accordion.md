@@ -215,7 +215,7 @@ The toggle icon (default `Ionicons.ChevronDown`) sits at the end of the header a
 ## API
 
 <!-- miko:api IonAccordion IonAccordionGroup -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonAccordion
 
@@ -236,7 +236,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Animated` | `bool` | `true` | Ionic's `animated`. Kept for API parity only: accordions never animate in this port. |
 | `Disabled` | `bool` | `false` | If true, the group is dimmed and non-interactive. |
 | `Expand` | `string` | `"compact"` | Expansion behavior: `"compact"` (default) or `"inset"`. |
 | `Multiple` | `bool` | `false` | If true, more than one accordion can be expanded at once. |

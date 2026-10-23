@@ -182,7 +182,7 @@ By default tapping the checked radio does nothing. With `AllowEmptySelection` it
 ## API
 
 <!-- miko:api IonRadioGroup IonRadio -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonRadioGroup
 
@@ -190,7 +190,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | --- | --- | --- | --- |
 | `AllowEmptySelection` | `bool` | `false` | If true, a checked radio can be tapped again to clear the selection. |
 | `Disabled` | `bool` | `false` | If true, the radios in the group are non-interactive. |
-| `Name` | `string?` | `null` | Ionic `name`. Kept for API parity; Miko has no form submission. |
 | `Value` | `string?` | `null` | The selected radio value. Bind two-way with [`ValueChanged`](#ionradiogroup). Two-way bindable: `@bind-Value`. |
 
 | Event | Type | Description |
@@ -210,7 +209,6 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `Disabled` | `bool` | `false` | If true, the user cannot interact with the radio. |
 | `Justify` | `string?` | `null` | How to pack the label and radio within a line: `"start"`, `"end"`, or `"space-between"`. Setting this changes the host `display` to block. |
 | `LabelPlacement` | `string` | `"start"` | Where the label sits relative to the radio: `"start"` (default), `"end"`, `"fixed"`, or `"stacked"`. |
-| `Name` | `string?` | `null` | Ionic `name`. Kept for API parity; Miko has no form submission. |
 | `Value` | `string` | `""` | This radio's value — its identity within a group. Required: the group's selected value is compared against this to derive the checked state. |
 
 | Slot | Type | Description |

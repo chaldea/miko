@@ -126,7 +126,7 @@ Ionic's breakpoint-specific attributes (`size-md`, `offset-lg`, `push-sm`, …) 
 ## API
 
 <!-- miko:api IonGrid IonRow IonCol -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonGrid
 

@@ -117,17 +117,16 @@ An unbound `IonInputOtp` keeps the entered characters when its parent re-renders
 ## API
 
 <!-- miko:api IonInputOtp -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonInputOtp
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `Autocapitalize` | `string` | `"off"` | Ionic `autocapitalize`. Kept for API parity; Miko's on-screen keyboard does not read it. |
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Tints the box borders (fully on the focused box) and the caret. |
 | `Disabled` | `bool` | `false` | When true, every box is dimmed and rejects focus and input. |
 | `Fill` | `string` | `"outline"` | Box fill (Ionic `fill`): `"outline"` (default) or `"solid"`. |
-| `Inputmode` | `string?` | `null` | Ionic `inputmode` keyboard hint. Kept for API parity; Miko's on-screen keyboard does not read it. |
+| `Inputmode` | `string?` | `null` | Which on-screen keyboard the boxes ask for (Ionic `inputmode`): `"numeric"`, `"decimal"` or `"tel"` request the number pad, any other value the standard keyboard. Null follows [`Type`](#ioninputotp): the number pad for `"number"`, the standard keyboard for `"text"`. |
 | `Length` | `int` | `4` | Number of boxes, i.e. the code length (minimum 1). |
 | `Pattern` | `string?` | `null` | Regular expression a single character must match to be accepted. Defaults to digits when [`Type`](#ioninputotp) is `"number"`, letters and digits when it is `"text"`. |
 | `Readonly` | `bool` | `false` | When true, the boxes can be focused but their value cannot be changed. |

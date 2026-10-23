@@ -71,7 +71,7 @@ A badge inside a tab button floats over the top corner of the icon with smaller,
 ## API
 
 <!-- miko:api IonBadge -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonBadge
 

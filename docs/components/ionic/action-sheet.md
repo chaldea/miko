@@ -109,7 +109,7 @@ A button's `Role` also styles it: `destructive` uses the theme's destructive col
 ## API
 
 <!-- miko:api IonActionSheet -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonActionSheet
 
@@ -121,8 +121,7 @@ Every component also accepts `Class` (extra CSS classes) and `Style` (an inline 
 | `IsOpen` | `bool` | `false` | Whether the sheet is presented. Bind two-way with [`IsOpenChanged`](#ionactionsheet). Two-way bindable: `@bind-IsOpen`. |
 | `OverlayId` | `string?` | `null` | Optional stable identifier used by the root overlay registry. |
 | `SubHeader` | `string?` | `null` | The optional sub-title shown under the header. |
-| `Translucent` | `bool` | `false` | If true, the ios group uses a translucent (blurred) surface. Marker only in this port. |
-| `Trigger` | `string?` | `null` | Id of the element that opens the sheet (Ionic `trigger`). Kept for API parity; the host drives [`IsOpen`](#ionactionsheet) in this port. |
+| `Trigger` | `string?` | `null` | Id of the element that opens the sheet when clicked (Ionic `trigger`), e.g. `<IonButton Id="open-sheet">`. Opening sets [`IsOpen`](#ionactionsheet) and raises [`IsOpenChanged`](#ionactionsheet). The page must be inside an [`IonApp`](./app.md#ionapp). |
 
 | Event | Type | Description |
 | --- | --- | --- |
@@ -225,7 +224,6 @@ App stylesheet rules always win over Ionic's own rules (see [Theming](./theming.
 | `.action-sheet-title`, `.action-sheet-sub-title` | `Header` and `SubHeader`. |
 | `.action-sheet-button` | One button; `.action-sheet-button-inner` is its icon + label row, `.action-sheet-icon` the icon. |
 | `.action-sheet-{role}` | A button's `Role`, e.g. `.action-sheet-destructive`, `.action-sheet-cancel`, `.action-sheet-selected`. |
-| `.action-sheet-translucent` | `Translucent="true"`. Only a marker; no translucent style is applied. |
 
 A button's `CssClass` and the sheet's `Class` (or `IonActionSheetOptions.CssClass`) add your own classes:
 

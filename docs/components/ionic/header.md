@@ -47,12 +47,12 @@ Toolbars stack top to bottom — a title toolbar followed by a [searchbar](./sea
 
 ## Differences from Ionic
 
-`IonHeader` has no parameters besides `Class` and `Style`: Ionic's `translucent` and `collapse` (`"condense"` large titles, `"fade"`) are not implemented, and the `ion-no-border` class has no effect on a header — remove the shadow or border with an app style (see [CSS classes](#css-classes)).
+`IonHeader` has no parameters besides `Class`, `Style` and `Id`: Ionic's `translucent` and `collapse` (`"condense"` large titles, `"fade"`) are not implemented, and the `ion-no-border` class has no effect on a header — remove the shadow or border with an app style (see [CSS classes](#css-classes)).
 
 ## API
 
 <!-- miko:api IonHeader -->
-Every component also accepts `Class` (extra CSS classes) and `Style` (an inline `Style` object) — see [Conventions](./index.md#conventions).
+Every component also accepts `Class` (extra CSS classes), `Style` (an inline `Style` object) and `Id` (the root element's id) — see [Conventions](./index.md#conventions).
 
 ### IonHeader
 
