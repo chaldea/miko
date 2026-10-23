@@ -63,26 +63,16 @@ jobs:
         run: dotnet workload install android ios
 
       - name: Scaffold and build templates
-        run: tools/template-e2e.sh
+        run: WORK_DIR="$RUNNER_TEMP/e2e" tools/template-e2e.sh
 
-  linux-desktop:
-    name: Linux desktop publish
-    # A Linux desktop app must carry libSkiaSharp.so; SkiaSharp's own dependency group only
-    # brings the macOS and Windows natives (Release-1.0.0 B3).
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          # The SDK pinned in global.json (10.0.4xx, latest patch), the band the mobile workloads match.
-          global-json-file: global.json
-
-      - name: Scaffold and publish the desktop head for linux-x64
+      # A Linux desktop app must carry libSkiaSharp.so; SkiaSharp's own dependency group only
+      # brings the macOS and Windows natives (Release-1.0.0 B3). NuGet picks runtime assets by
+      # the target RID, not the build host, so this needs no Linux runner — and packing
+      # miko.slnx there fails, since Miko.Android/Miko.iOS need workloads Linux cannot install.
+      - name: Publish the desktop head for linux-x64
         run: |
-          HEADS="Desktop" LAYOUTS="blank" WORK_DIR="$RUNNER_TEMP/e2e" tools/template-e2e.sh
-          app="$RUNNER_TEMP/e2e/apps/multiplatform-blank"
+          # The real path, as template-e2e.sh builds under it: through a symlink the shared
+          # project's reference assembly is looked up in the wrong place (CS0006).
+          app="$(cd "$RUNNER_TEMP/e2e" && pwd -P)/apps/multiplatform-blank"
           dotnet publish "$app"/*.Desktop/*.Desktop.csproj -c Release -r linux-x64 --self-contained false -o "$RUNNER_TEMP/publish"
           test -f "$RUNNER_TEMP/publish/libSkiaSharp.so" || { echo "::error::libSkiaSharp.so missing from the linux-x64 publish output"; exit 1; }
