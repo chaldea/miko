@@ -38,9 +38,17 @@ and later.
 - **Android configuration changes.** Rotation, dark mode, font-scale and display-size changes no
   longer recreate the Activity and rebuild the app (templates and examples declare
   `ConfigurationChanges`; the host refreshes its density).
+- **Android process death.** When the system reclaims a backgrounded app, returning to it restores
+  the current page and its back stack instead of starting over (page-internal state is not kept).
+- **Android touch.** Only the first finger is tracked; a second finger no longer makes the pointer
+  jump.
+- **Linux diagnostics.** GLFW and OpenGL startup failures are reported with their cause (stderr and
+  the exception message) instead of a native crash or a generic error.
 - **Packaging.** Android native libraries are 16 KB page-aligned (Google Play); Linux desktop apps
   carry `libSkiaSharp.so`; DevTools is no longer pulled into Android/iOS packages and desktop heads
-  reference it in Debug builds only. Every package includes `THIRD-PARTY-NOTICES.txt`.
+  reference it in Debug builds only. Every package includes `THIRD-PARTY-NOTICES.txt`, a README and
+  XML documentation; `Miko.Razor.Compiler` shrank from 34.5 MB to 0.8 MB (it no longer carries
+  Roslyn, which the consuming compiler provides).
 - **Templates.**
   - `--appId` sets the Android `ApplicationId` and the iOS `ApplicationId` / `CFBundleIdentifier`;
     the default is derived from the project name and is always a valid identifier.
@@ -50,9 +58,20 @@ and later.
     for the multiplatform template.
   - `--agent claude|codex|cursor` scaffolds the Miko documentation for the app's Miko version into
     `.miko/` plus the assistant's configuration. The Claude preset pre-approves only the Miko MCP
-    server, not shell or file-write access.
+    server, not shell or file-write access. Only these scaffolds start the MCP debug server from
+    the simulator head; with the default `--agent none` it is not referenced.
   - The `full` layout's demo images are generated placeholders, no longer third-party photos and
     logos.
+- **Ionic: every public parameter takes effect.** Parameters that were declared but did nothing
+  are either implemented or removed, and a docs test now rejects summaries that describe a
+  parameter as inert.
+  - New: `Href` (with `RouterDirection`) navigates on `IonButton`, `IonFabButton`, `IonItemOption`
+    and `IonCard`, like `IonItem`; `Trigger` opens `IonActionSheet`, `IonAlert`, `IonLoading`,
+    `IonToast`, `IonModal` and `IonPopover` (plus `TriggerAction` click / context-menu) from the
+    element with that id; every component takes an `Id`; `IonSearchbar.Debounce`,
+    `IonTextarea.AutoGrow`, `IonInputOtp.Inputmode`, and `Color` on `IonDatetime` /
+    `IonDatetimeButton` now work.
+  - `IonTextarea` now renders at its `Rows` height; it used to collapse to its padding.
 
 ### Known limitations
 
@@ -70,3 +89,16 @@ virtualization, and no trimming / Native AOT for desktop apps. See the
 - Write the template layout as `--layout=<value>`: `dotnet new` reads a separate `list` argument
   as its own `list` command.
 - Builds from source produce `1.0.0-dev` packages, which sort below `1.0.0-preview.N`.
+- These Ionic parameters were removed because they had no effect. Code that sets them from C#
+  no longer compiles; in Razor markup the attribute is silently ignored, so search for them:
+  - `Translucent` on the six overlays and `IonFabButton` (and `IonPopoverOptions.Translucent`)
+  - `Name` on `IonCheckbox`, `IonToggle`, `IonRadio`, `IonRadioGroup`, `IonInput`, `IonTextarea`,
+    `IonSelect`, `IonSearchbar`; `Value` on `IonCheckbox` and `IonToggle`; `IonSelect.Required`
+  - `Type` on `IonFabButton`, `IonItem`, `IonItemOption` and `IonMenu`; `IonCard.Target` / `Rel`
+  - `IonContent.Fullscreen` / `ScrollEvents`, `IonFooter.Collapse`, `IonItemDivider.Sticky`
+  - `IonModal.KeepContentsMounted`, `IonAccordionGroup.Animated`, `IonMenu.Animations`,
+    `IonSegmentButton.ContentId`, `IonTabButton.Tab`, `IonDatetimeButton.Datetime`
+  - `IonDatetime.Presentation` / `Size`, `IonRange.Snaps`, `IonInputOtp.Autocapitalize`,
+    `IonPopover.Dismissable` (use `BackdropDismiss`), `IonSearchbar.Animated`
+  - Theme tokens `InputToken.PlaceholderColor`, `SelectToken.LabelColor`,
+    `SpinnerToken.SmallSize`
