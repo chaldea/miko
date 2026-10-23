@@ -260,28 +260,50 @@ public class MikoSurfaceView : SKGLSurfaceView
         return luminance > 0.5f;
     }
 
+    // 引擎只建模一个指针（Release-1.0.0 P1-A1）：跟踪按下的第一根手指，其余手指忽略。
+    // 此前 Move 永远读下标 0、Up 只在最后一根手指抬起时到达：两指按住、先抬第一根，
+    // 坐标会跳到第二根手指上，抬起的位置也是第二根的。-1 = 当前没有在跟踪的手指。
+    private int _primaryPointerId = -1;
+
     public override bool OnTouchEvent(MotionEvent? e)
     {
         if (e == null) return base.OnTouchEvent(e);
 
-        // 原生坐标为物理像素，按密度换算为逻辑坐标。
-        float x = e.GetX() / _density;
-        float y = e.GetY() / _density;
-
         switch (e.ActionMasked)
         {
             case MotionEventActions.Down:
-                _controller.OnPointerDown(x, y, MouseButton.Left, PointerType.Touch, e.GetPointerId(0));
+                _primaryPointerId = e.GetPointerId(0);
+                _controller.OnPointerDown(LogicalX(e, 0), LogicalY(e, 0), MouseButton.Left, PointerType.Touch, _primaryPointerId);
                 break;
             case MotionEventActions.Move:
-                _controller.OnPointerMove(x, y);
+            {
+                var index = _primaryPointerId < 0 ? -1 : e.FindPointerIndex(_primaryPointerId);
+                if (index < 0) return true;
+                _controller.OnPointerMove(LogicalX(e, index), LogicalY(e, index));
+                break;
+            }
+            case MotionEventActions.PointerUp when e.GetPointerId(e.ActionIndex) == _primaryPointerId:
+                // 被跟踪的手指先于其他手指抬起：在它自己的位置结束这次按压。
+                _controller.OnPointerUp(LogicalX(e, e.ActionIndex), LogicalY(e, e.ActionIndex), MouseButton.Left, PointerType.Touch, _primaryPointerId);
+                _primaryPointerId = -1;
                 break;
             case MotionEventActions.Up:
-                _controller.OnPointerUp(x, y, MouseButton.Left, PointerType.Touch, e.GetPointerId(0));
+                if (_primaryPointerId < 0 || e.GetPointerId(0) != _primaryPointerId) { _primaryPointerId = -1; return true; }
+                _controller.OnPointerUp(LogicalX(e, 0), LogicalY(e, 0), MouseButton.Left, PointerType.Touch, _primaryPointerId);
+                _primaryPointerId = -1;
                 break;
             case MotionEventActions.Cancel:
-                _controller.OnPointerCancel(x, y, e.GetPointerId(0));
+                if (_primaryPointerId >= 0)
+                {
+                    var index = System.Math.Max(0, e.FindPointerIndex(_primaryPointerId));
+                    _controller.OnPointerCancel(LogicalX(e, index), LogicalY(e, index), _primaryPointerId);
+                }
+                _primaryPointerId = -1;
                 break;
+            case MotionEventActions.PointerDown:
+            case MotionEventActions.PointerUp:
+                // 其他手指的按下/抬起：不参与。
+                return true;
             default:
                 return base.OnTouchEvent(e);
         }
@@ -291,6 +313,10 @@ public class MikoSurfaceView : SKGLSurfaceView
 
         return true;
     }
+
+    // 原生坐标为物理像素，按密度换算为逻辑坐标。
+    private float LogicalX(MotionEvent e, int index) => e.GetX(index) / _density;
+    private float LogicalY(MotionEvent e, int index) => e.GetY(index) / _density;
 
     /// <summary>
     /// 系统返回键（ISSUE-138），返回是否被某个组件（覆盖层/菜单/返回按钮）消费。
