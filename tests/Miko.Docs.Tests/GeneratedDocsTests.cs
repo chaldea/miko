@@ -28,4 +28,15 @@ public class GeneratedDocsTests
     {
         Result.Value.Problems.ShouldBeEmpty();
     }
+
+    /// <summary>
+    /// 1.0 rule for the Ionic public surface: every public parameter takes effect. A summary that
+    /// says "kept for API parity", "has no effect" and the like documents a parameter that does
+    /// not, so it fails here — implement the parameter or remove it.
+    /// </summary>
+    [Fact]
+    public void Should_not_expose_ionic_parameters_documented_as_inert()
+    {
+        DocsChecks.InertParameters(new ComponentCatalog(RepoPaths.Root)).ShouldBeEmpty();
+    }
 }

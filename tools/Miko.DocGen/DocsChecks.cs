@@ -22,6 +22,8 @@ public static class DocsChecks
                 yield return $"{name} is not documented: add it to a <!-- miko:api --> region of a page in {DocsGenerator.ComponentDocsDir}/.";
         }
 
+        foreach (var problem in InertParameters(catalog))
+            yield return problem;
         foreach (var problem in OrphanExamples(repoRoot))
             yield return problem;
         foreach (var problem in SiteLinks(repoRoot))
@@ -30,6 +32,33 @@ public static class DocsChecks
             yield return problem;
         foreach (var problem in TemplateTokens(repoRoot))
             yield return problem;
+    }
+
+    /// <summary>
+    /// Wording that admits a parameter does nothing. A public parameter must take effect: the 1.0
+    /// rule is to implement it or take it off the public surface, never to keep it "for API
+    /// parity" with Ionic and say so in its summary.
+    /// </summary>
+    public static readonly IReadOnlyList<string> InertParameterPhrases =
+    [
+        "api parity", "for parity", "kept for", "marker only", "has no effect", "is ignored",
+        "not supported", "no-op",
+    ];
+
+    /// <summary>Public component parameters whose <c>///</c> summary uses <see cref="InertParameterPhrases"/>.</summary>
+    public static IEnumerable<string> InertParameters(ComponentCatalog catalog)
+    {
+        foreach (var (name, component) in catalog.Components)
+        {
+            foreach (var parameter in catalog.Parameters(component))
+            {
+                var summary = catalog.Documentation.Summary(parameter.Property, cref => cref);
+                if (summary is null) continue;
+                var phrase = InertParameterPhrases.FirstOrDefault(p => summary.Contains(p, StringComparison.OrdinalIgnoreCase));
+                if (phrase is not null)
+                    yield return $"{name}.{parameter.Property.Name}: its summary says \"{phrase}\". A public parameter must take effect — implement it or remove it from the public surface.";
+            }
+        }
     }
 
     /// <summary>
