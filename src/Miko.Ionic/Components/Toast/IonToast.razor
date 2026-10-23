@@ -1,7 +1,7 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
 @* Mirrors Ionic's <ion-toast> (toast.tsx render()):
-   <ion-toast class="{mode} overlay-hidden? [ion-color ion-color-{color}] toast-translucent?">
+   <ion-toast class="{mode} overlay-hidden? [ion-color ion-color-{color}]">
      <div class="toast-wrapper toast-{position} toast-layout-baseline">
        <div class="toast-container">
          [start button group: <div class="toast-button-group toast-button-group-start"> <button class="toast-button ...">...</button> </div>]
@@ -129,11 +129,9 @@
     /// <summary>Raised with the new open state when the toast opens/closes.</summary>
     [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
 
-    /// <summary>If true, the surface is translucent (ios blur). Marker only in this port.</summary>
-    [Parameter] public bool Translucent { get; set; }
-
-    /// <summary>Id of the element that opens the toast (Ionic <c>trigger</c>). Kept for API parity;
-    /// the host drives <see cref="IsOpen"/> in this port.</summary>
+    /// <summary>Id of the element that opens the toast when clicked (Ionic <c>trigger</c>), e.g.
+    /// <c>&lt;IonButton Id="open-toast"&gt;</c>. Opening sets <see cref="IsOpen"/> and raises
+    /// <see cref="IsOpenChanged"/>. The page must be inside an <see cref="IonApp"/>.</summary>
     [Parameter] public string? Trigger { get; set; }
 
     /// <summary>Raised when the toast dismisses, with the tapped button's role, or
@@ -150,6 +148,9 @@
     /// <summary>Marshals the auto-dismiss timer callback back onto the render thread. Null in a bare
     /// unit test, in which case <see cref="Duration"/> is inert.</summary>
     [Inject] private Platform.MikoDispatcher? Dispatcher { get; set; }
+
+    /// <summary>Supplied by <see cref="IonApp"/>; carries the <see cref="Trigger"/> bindings.</summary>
+    [CascadingParameter] private IonOverlayContext? OverlayContext { get; set; }
 
     private IReadOnlyList<IonToastButton> _startButtons = Array.Empty<IonToastButton>();
     private IReadOnlyList<IonToastButton> _endButtons = Array.Empty<IonToastButton>();
@@ -185,8 +186,9 @@
             .Add(Mode)
             .Add("ion-toast")
             .If(!string.IsNullOrEmpty(Color), "ion-color")
-            .AddColor(Color)
-            .If(Translucent, "toast-translucent");
+            .AddColor(Color);
+
+        OverlayContext?.Triggers.Set(this, Trigger, OpenFromTriggerAsync);
 
         _wrapperClass = $"toast-wrapper ion-overlay-wrapper toast-{position} toast-layout-baseline";
 
@@ -290,8 +292,19 @@
         }
         _timerCancellation?.Cancel();
         _timerCancellation = null;
+        OverlayContext?.Triggers.Remove(this);
         // Also releases the back-button slot an open toast holds.
         base.OnDispose();
+    }
+
+    // The Trigger element was clicked (overlays.ts createTriggerController → present()). The
+    // re-render runs OnParametersSet, which arms the Duration timer as for a host-opened toast.
+    private async Task OpenFromTriggerAsync(MouseEventArgs _)
+    {
+        if (IsOpen) return;
+        IsOpen = true;
+        await IsOpenChanged.InvokeAsync(true);
+        StateHasChanged();
     }
 
     private void OnTransitionCompleted(Element element, string property)

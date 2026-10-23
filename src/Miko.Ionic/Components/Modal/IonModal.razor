@@ -57,13 +57,14 @@
     /// <summary>If true (default), the backdrop is rendered behind the modal.</summary>
     [Parameter] public bool ShowBackdrop { get; set; } = true;
 
-    /// <summary>Id of the element that opens the modal. The host drives <see cref="IsOpen"/> in
-    /// this port, so this is retained for API parity.</summary>
+    /// <summary>Id of the element that opens the modal when clicked (Ionic <c>trigger</c>), e.g.
+    /// <c>&lt;IonButton Id="open-modal"&gt;</c>. Opening sets <see cref="IsOpen"/> and raises
+    /// <see cref="IsOpenChanged"/>. The page must be inside an <see cref="IonApp"/>.</summary>
     [Parameter] public string? Trigger { get; set; }
 
-    /// <summary>The element the modal is presented from. Any non-null value makes it a card modal
-    /// (<c>modal-card</c>) in ios mode; it has no effect in md mode. The stacked card animation of
-    /// the presenting page is not implemented.</summary>
+    /// <summary>The element the modal is presented from (Ionic <c>presentingElement</c>). In ios
+    /// mode any non-null value makes it a card modal (<c>modal-card</c>); md modals look the same
+    /// either way, as in Ionic. The presenting page is not scaled back behind the card.</summary>
     [Parameter] public object? Presenting { get; set; }
 
     /// <summary>Sheet-modal snap points. Values outside the inclusive range 0..1 are ignored.</summary>
@@ -75,10 +76,6 @@
 
     /// <summary>Controls the sheet drag handle. It is shown by default for sheet modals.</summary>
     [Parameter] public bool? Handle { get; set; }
-
-    /// <summary>Ionic's <c>keepContentsMounted</c>. Kept for API parity; it has no effect in this
-    /// port.</summary>
-    [Parameter] public bool KeepContentsMounted { get; set; }
 
     /// <summary>Raised before the modal dismisses, with the same role and data as
     /// <see cref="OnDidDismiss"/>.</summary>
@@ -145,8 +142,27 @@
             .If(isSheet, "modal-sheet");
 
         UpdateBackHandler();
+        OverlayContext?.Triggers.Set(this, Trigger, OpenFromTriggerAsync);
 
         _wasOpen = IsOpen;
+    }
+
+    /// <summary>Supplied by <see cref="IonApp"/>; carries the <see cref="Trigger"/> bindings.</summary>
+    [CascadingParameter] private IonOverlayContext? OverlayContext { get; set; }
+
+    // The Trigger element was clicked (overlays.ts createTriggerController → present()).
+    private async Task OpenFromTriggerAsync(MouseEventArgs _)
+    {
+        if (IsOpen) return;
+        IsOpen = true;
+        await IsOpenChanged.InvokeAsync(true);
+        StateHasChanged();
+    }
+
+    protected override void OnDispose()
+    {
+        OverlayContext?.Triggers.Remove(this);
+        base.OnDispose();
     }
 
     /// <summary>

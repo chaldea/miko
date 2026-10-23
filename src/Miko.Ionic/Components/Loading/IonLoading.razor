@@ -2,7 +2,7 @@
 @inherits IonicComponentBase
 @using Miko.Platform
 @* Mirrors Ionic's <ion-loading> (loading.tsx render()):
-   <ion-loading class="{mode} overlay-hidden? loading-translucent?" role="dialog">
+   <ion-loading class="{mode} overlay-hidden?" role="dialog">
      <ion-backdrop visible=showBackdrop tappable=backdropDismiss />
      <div class="loading-wrapper ion-overlay-wrapper">
        [<div class="loading-spinner"><ion-spinner name=spinner /></div>]   <!-- if a spinner is shown -->
@@ -75,11 +75,9 @@
     /// <c>showBackdrop = true</c>).</summary>
     [Parameter] public bool ShowBackdrop { get; set; } = true;
 
-    /// <summary>If true, the surface is translucent (ios blur). Marker only in this port.</summary>
-    [Parameter] public bool Translucent { get; set; }
-
-    /// <summary>Id of the element that opens the indicator (Ionic <c>trigger</c>). Kept for API
-    /// parity; the host drives <see cref="IsOpen"/> in this port.</summary>
+    /// <summary>Id of the element that opens the indicator when clicked (Ionic <c>trigger</c>), e.g.
+    /// <c>&lt;IonButton Id="open-loading"&gt;</c>. Opening sets <see cref="IsOpen"/> and raises
+    /// <see cref="IsOpenChanged"/>. The page must be inside an <see cref="IonApp"/>.</summary>
     [Parameter] public string? Trigger { get; set; }
 
     /// <summary>Raised when the indicator dismisses (null role on a normal dismiss, <c>"backdrop"</c>
@@ -87,6 +85,9 @@
     [Parameter] public EventCallback<IonOverlayDismissEventArgs> OnDidDismiss { get; set; }
 
     [Inject] private Platform.MikoDispatcher? Dispatcher { get; set; }
+
+    /// <summary>Supplied by <see cref="IonApp"/>; carries the <see cref="Trigger"/> bindings.</summary>
+    [CascadingParameter] private IonOverlayContext? OverlayContext { get; set; }
 
     private string? _spinner;
     private bool _timerScheduled;
@@ -101,8 +102,9 @@
             .Clear()
             .Add(Class)
             .Add(Mode)
-            .Add("ion-loading")
-            .If(Translucent, "loading-translucent");
+            .Add("ion-loading");
+
+        OverlayContext?.Triggers.Set(this, Trigger, OpenFromTriggerAsync);
 
         // Off by default, as in Ionic: a loading indicator's BackdropDismiss defaults to false.
         RegisterBackHandler(IsOpen && BackdropDismiss ? HandleBack : null, BackButtonPriority.Overlay);
@@ -176,7 +178,18 @@
     {
         _timerCancellation?.Cancel();
         _timerCancellation = null;
+        OverlayContext?.Triggers.Remove(this);
         base.OnDispose();
+    }
+
+    // The Trigger element was clicked (overlays.ts createTriggerController → present()). The
+    // re-render runs OnParametersSet, which arms the Duration timer as for a host-opened indicator.
+    private async Task OpenFromTriggerAsync(MouseEventArgs _)
+    {
+        if (IsOpen) return;
+        IsOpen = true;
+        await IsOpenChanged.InvokeAsync(true);
+        StateHasChanged();
     }
 
     // A tap re-renders this component through its EventCallback; the back button does not, so

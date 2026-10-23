@@ -9,4 +9,7 @@ public sealed class IonOverlayContext
     }
 
     internal IonOverlayRegistry Registry { get; }
+
+    /// <summary>The overlays opened by a click on an element id (their <c>Trigger</c>).</summary>
+    internal IonOverlayTriggers Triggers { get; } = new();
 }
