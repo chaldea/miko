@@ -1,5 +1,4 @@
 using Foundation;
-using Miko.iOS;
 using UIKit;
 
 namespace MikoAppSidemenu.iOS;
@@ -7,16 +6,14 @@ namespace MikoAppSidemenu.iOS;
 [Register("AppDelegate")]
 public class AppDelegate : UIApplicationDelegate
 {
-    public override UIWindow? Window { get; set; }
-
     public override bool FinishedLaunching(UIApplication application, NSDictionary? launchOptions)
-    {
-        Window = new UIWindow(UIScreen.MainScreen.Bounds);
+        => true;
 
-        // Reuse the shared app configuration; Miko.iOS drives rendering and touch input.
-        Window.RootViewController = new MikoViewController(MikoAppSidemenu.App.CreateContext());
-        Window.MakeKeyAndVisible();
-
-        return true;
-    }
+    // The window is created per scene (SceneDelegate); Info.plist declares the scene manifest.
+    public override UISceneConfiguration GetConfiguration(
+        UIApplication application, UISceneSession connectingSceneSession, UISceneConnectionOptions options)
+        => new("Default Configuration", connectingSceneSession.Role)
+        {
+            DelegateType = typeof(SceneDelegate)
+        };
 }

@@ -11,6 +11,8 @@ namespace MikoAppTabs.Android;
 [Activity(
     Label = "MikoAppTabs",
     MainLauncher = true,
+    Icon = "@mipmap/appicon",
+    RoundIcon = "@mipmap/appicon_round",
     Theme = "@android:style/Theme.Material.Light.NoActionBar",
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.ScreenLayout
         | ConfigChanges.SmallestScreenSize | ConfigChanges.Density | ConfigChanges.UiMode
