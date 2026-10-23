@@ -1,0 +1,54 @@
+<Project>
+
+  <!--
+    Razor projects under examples/ compile with the in-repo Miko.Razor.Compiler instead of the Razor
+    SDK's generator: the source-tree counterpart of the NuGet package's build/Miko.Razor.Compiler.props.
+
+    Kept here once instead of in every example (Release-1.0.0 P1-D4). The copies looked for the
+    compiler under bin/<config>/$(TargetFramework)/, which is the consuming project's framework, not
+    the compiler's, and most of them had no ProjectReference to the compiler, so a clean checkout
+    could not build them on their own.
+  -->
+  <!--
+    Razor class/app projects only. ASP.NET Core projects (the *.Api samples) also import the Razor
+    SDK but are servers, not Miko UI: they keep the SDK's generator.
+  -->
+  <PropertyGroup>
+    <_MikoUsesRazorCompiler Condition="'$(UsingMicrosoftNETSdkRazor)' == 'true' and '$(UsingMicrosoftNETSdkWeb)' != 'true'">true</_MikoUsesRazorCompiler>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(_MikoUsesRazorCompiler)' == 'true'">
+    <_MikoRazorCompilerProject>$(MSBuildThisFileDirectory)..\src\Miko.Razor.Compiler\Miko.Razor.Compiler.csproj</_MikoRazorCompilerProject>
+    <!-- The compiler's own TargetFramework (see src/Miko.Razor.Compiler/build/Miko.Razor.Compiler.props). -->
+    <_MikoRazorCompilerToolFramework>net10.0</_MikoRazorCompilerToolFramework>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(_MikoUsesRazorCompiler)' == 'true'">
+    <!-- Build order only: the compiler is loaded as an analyzer, never referenced as an assembly. -->
+    <ProjectReference Include="$(_MikoRazorCompilerProject)"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      Private="false" />
+  </ItemGroup>
+
+  <Target Name="_OverrideRazorSourceGenerator"
+          AfterTargets="_PrepareRazorSourceGenerators"
+          Condition="'$(_MikoUsesRazorCompiler)' == 'true'">
+    <PropertyGroup>
+      <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\src\Miko.Razor.Compiler\bin\$(Configuration)\$(_MikoRazorCompilerToolFramework)\</_CustomRazorGeneratorDir>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(_CustomRazorGeneratorDir)Microsoft.CodeAnalysis.Razor.Compiler.dll')"
+           Text="Miko.Razor.Compiler was not found in '$(_CustomRazorGeneratorDir)'. Build src/Miko.Razor.Compiler first (a solution build does it through the ProjectReference above)." />
+    <ItemGroup>
+      <Analyzer Remove="@(_RazorAnalyzer)" />
+      <_RazorAnalyzer Remove="@(_RazorAnalyzer)" />
+    </ItemGroup>
+    <ItemGroup>
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.CodeAnalysis.Razor.Compiler.dll" />
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.AspNetCore.Razor.Utilities.Shared.dll" />
+      <_RazorAnalyzer Include="$(_CustomRazorGeneratorDir)Microsoft.Extensions.ObjectPool.dll" />
+      <Analyzer Include="@(_RazorAnalyzer)" />
+    </ItemGroup>
+  </Target>
+
+</Project>
