@@ -1,7 +1,7 @@
 # Miko
 
 [![NuGet](https://img.shields.io/nuget/v/Miko.svg)](https://www.nuget.org/packages/Miko)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/chaldea/miko/blob/main/LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](https://dotnet.microsoft.com/)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-512BD4.svg)](https://chaldea.github.io/miko/)
 
@@ -272,7 +272,7 @@ Style cascade order (lowest to highest precedence): **Tag → Class → ID → i
 
 See the [documentation site](https://chaldea.github.io/miko/) for the full guide
 (rendering pipeline, styling, layout, and more) and
-[`DEVELOPMENT.md`](DEVELOPMENT.md) for a developer-oriented walkthrough.
+[`DEVELOPMENT.md`](https://github.com/chaldea/miko/blob/main/DEVELOPMENT.md) for a developer-oriented walkthrough.
 
 ---
 
@@ -290,7 +290,7 @@ dotnet build miko.slnx
 dotnet test
 ```
 
-The repository also contains runnable samples under [`examples/`](examples/), including
+The repository also contains runnable samples under [`examples/`](https://github.com/chaldea/miko/tree/main/examples), including
 `examples/App/Anime` (a complete Ionic app with Desktop, Simulator, Android and iOS heads).
 
 ---
@@ -308,4 +308,4 @@ sending a pull request. When contributing:
 
 ## License
 
-Miko is released under the [MIT License](LICENSE).
+Miko is released under the [MIT License](https://github.com/chaldea/miko/blob/main/LICENSE).
