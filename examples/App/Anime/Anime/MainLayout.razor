@@ -8,15 +8,15 @@
             @if (IsTabPage)
             {
                 <IonTabBar Slot="bottom">
-                    <IonTabButton Tab="home" Href="/home" Selected="@IsActive("/home", "/")">
+                    <IonTabButton Href="/home" Selected="@IsActive("/home", "/")">
                         <IonIcon Icon="@Ionicons.PlayCircleOutline" />
                         <IonLabel>首页</IonLabel>
                     </IonTabButton>
-                    <IonTabButton Tab="vip" Href="/vip" Selected="@IsActive("/vip")">
+                    <IonTabButton Href="/vip" Selected="@IsActive("/vip")">
                         <IonIcon Icon="@Ionicons.GiftOutline" />
                         <IonLabel>福利</IonLabel>
                     </IonTabButton>
-                    <IonTabButton Tab="user" Href="/user" Selected="@IsActive("/user")">
+                    <IonTabButton Href="/user" Selected="@IsActive("/user")">
                         <IonIcon Icon="@Ionicons.PersonCircleOutline" />
                         <IonLabel>我的</IonLabel>
                     </IonTabButton>

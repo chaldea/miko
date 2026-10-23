@@ -470,7 +470,6 @@ public partial class IonicTheme
         t.SpinnerColor = t.Primary;
         t.SpinnerTrackColor = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 51);
         t.SpinnerSize = 28f;
-        t.SpinnerSmallSize = 16f;
 
         t.BadgeBackground = t.Primary;
         t.BadgeColor = Color.FromHex("ffffff");
@@ -523,7 +522,6 @@ public partial class IonicTheme
 
         t.SelectTextColor = Color.FromHex("000000");
         t.SelectPlaceholderColor = Color.FromHex("666666");
-        t.SelectLabelColor = Color.FromHex("666666");
         t.SelectBackground = Color.Transparent;
         t.SelectBorderColor = new Color(0, 0, 0, 61);
         t.SelectHighlightColor = t.Primary;
@@ -576,7 +574,6 @@ public partial class IonicTheme
         t.InputFontSize = 16f;
         t.InputMinHeight = 44f;
         t.InputTextColor = Color.FromHex("000000");               // --color → item text
-        t.InputPlaceholderColor = Color.FromHex("666666");        // step-400 neutral placeholder
         t.InputLabelColor = Color.FromHex("666666");              // neutral form-control label
         t.InputBackground = Color.Transparent;                    // --background: transparent
         t.InputBorderColor = new Color(0, 0, 0, 18);              // $item-md-border-color rgba(0,0,0,.07)
@@ -1001,7 +998,6 @@ public partial class IonicTheme
         t.SpinnerColor = t.Primary;
         t.SpinnerTrackColor = new Color(t.Primary.R, t.Primary.G, t.Primary.B, 51);
         t.SpinnerSize = 28f;
-        t.SpinnerSmallSize = 16f;
 
         t.BadgeBackground = t.Primary;
         t.BadgeColor = Color.FromHex("ffffff");
@@ -1052,7 +1048,6 @@ public partial class IonicTheme
 
         t.SelectTextColor = Color.FromHex("000000");
         t.SelectPlaceholderColor = Color.FromHex("666666");
-        t.SelectLabelColor = Color.FromHex("666666");
         t.SelectBackground = Color.Transparent;
         t.SelectBorderColor = new Color(0, 0, 0, 51);
         t.SelectHighlightColor = t.Primary;
@@ -1106,7 +1101,6 @@ public partial class IonicTheme
         t.InputFontSize = 17f;
         t.InputMinHeight = 44f;
         t.InputTextColor = Color.FromHex("000000");               // --color → item text
-        t.InputPlaceholderColor = Color.FromHex("666666");        // step-400 neutral placeholder
         t.InputLabelColor = Color.FromHex("666666");              // neutral form-control label
         t.InputBackground = Color.Transparent;                    // --background: transparent
         t.InputBorderColor = new Color(0, 0, 0, 51);              // $item-ios-border-color rgba(0,0,0,.2)

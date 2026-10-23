@@ -422,22 +422,6 @@ public class IonContentTests : IonicComponentTestBase
     // ---- Class stamping ----------------------------------------------------
 
     [Fact]
-    public void IonContent_Fullscreen_StampsMarkerClass()
-    {
-        var cut = RenderContent(p => p.Add(nameof(IonContent.Fullscreen), true));
-
-        cut.Root.ShouldHaveClass("content-fullscreen");
-    }
-
-    [Fact]
-    public void IonContent_NotFullscreen_OmitsMarkerClass()
-    {
-        var cut = RenderContent(p => p.Add(nameof(IonContent.Fullscreen), false));
-
-        cut.Root.ShouldNotHaveClass("content-fullscreen");
-    }
-
-    [Fact]
     public void IonContent_Color_StampsColorClasses()
     {
         var cut = RenderContent(p => p.Add(nameof(IonContent.Color), "danger"));

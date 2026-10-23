@@ -199,9 +199,6 @@
     /// <summary>When true, the select accepts multiple values.</summary>
     [Parameter] public bool Multiple { get; set; }
 
-    /// <summary>Form field name marker.</summary>
-    [Parameter] public string? Name { get; set; }
-
     /// <summary>Fill marker: solid or outline (outline only styled in md).</summary>
     [Parameter] public string? Fill { get; set; }
 
@@ -242,10 +239,6 @@
 
     /// <summary>The text on the alert's confirm button.</summary>
     [Parameter] public string OkText { get; set; } = "OK";
-
-    /// <summary>Accessibility marker: announces the field as required. Does not block submission,
-    /// matching Ionic.</summary>
-    [Parameter] public bool Required { get; set; }
 
     /// <summary>Raised when the selection is cancelled (Ionic's <c>ionCancel</c>).</summary>
     [Parameter] public EventCallback OnCancel { get; set; }

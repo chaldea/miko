@@ -76,13 +76,6 @@ public sealed class SelectToken : IonicToken
         set { _placeholderColor = value; Mark(nameof(PlaceholderColor)); }
     }
 
-    private Color _labelColor = default;
-    public Color LabelColor
-    {
-        get => _labelColor;
-        set { _labelColor = value; Mark(nameof(LabelColor)); }
-    }
-
     private Color _background = default;
     public Color Background
     {
@@ -131,7 +124,6 @@ public sealed class SelectToken : IonicToken
         if (IsSpecified(nameof(RoundBorderRadius))) token.RoundBorderRadius = RoundBorderRadius;
         if (IsSpecified(nameof(TextColor))) token.TextColor = TextColor;
         if (IsSpecified(nameof(PlaceholderColor))) token.PlaceholderColor = PlaceholderColor;
-        if (IsSpecified(nameof(LabelColor))) token.LabelColor = LabelColor;
         if (IsSpecified(nameof(Background))) token.Background = Background;
         if (IsSpecified(nameof(BorderColor))) token.BorderColor = BorderColor;
         if (IsSpecified(nameof(HighlightColor))) token.HighlightColor = HighlightColor;
@@ -148,7 +140,6 @@ public sealed class SelectToken : IonicToken
         AppendValue(builder, FontSize);
         AppendValue(builder, HelperColor);
         AppendValue(builder, HighlightColor);
-        AppendValue(builder, LabelColor);
         AppendValue(builder, MinHeight);
         AppendValue(builder, PaddingBottom);
         AppendValue(builder, PaddingEnd);

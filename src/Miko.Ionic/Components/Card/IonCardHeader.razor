@@ -8,7 +8,8 @@
     /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, ... .</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>When true, stamps the iOS translucent header marker class.</summary>
+    /// <summary>If true, the ios header gets Ionic's translucent look: a 90% opaque white background
+    /// (Ionic also blurs what is behind it; Miko does not). md headers look the same either way.</summary>
     [Parameter] public bool Translucent { get; set; }
 
     protected override void OnParametersSet()

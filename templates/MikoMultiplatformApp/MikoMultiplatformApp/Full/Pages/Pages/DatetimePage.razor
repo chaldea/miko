@@ -15,7 +15,7 @@
             </ChildContent>
         </IonToolbar>
     </IonHeader>
-    <IonContent Fullscreen>
+    <IonContent>
         <ComponentDetails Name="Datetime">
             Datetime presents a calendar interface and time wheel, making it easy for users to select
             dates and times. Datetimes are similar to the native input elements of datetime-local,
@@ -38,7 +38,7 @@
                     <Header>
                         <IonItem Lines="inset">
                             <End>
-                                <IonDatetimeButton Datetime="start-date" DateText="@FormatDate(_startDate)"></IonDatetimeButton>
+                                <IonDatetimeButton DateText="@FormatDate(_startDate)"></IonDatetimeButton>
                             </End>
                             <ChildContent>
                                 <IonLabel>Starts</IonLabel>
@@ -46,7 +46,7 @@
                         </IonItem>
                     </Header>
                     <Content>
-                        <IonDatetime Presentation="date" @bind-Value="_startDate"></IonDatetime>
+                        <IonDatetime @bind-Value="_startDate"></IonDatetime>
                     </Content>
                 </IonAccordion>
 
@@ -54,7 +54,7 @@
                     <Header>
                         <IonItem Lines="inset">
                             <End>
-                                <IonDatetimeButton Datetime="end-date" DateText="@FormatDate(_endDate)"></IonDatetimeButton>
+                                <IonDatetimeButton DateText="@FormatDate(_endDate)"></IonDatetimeButton>
                             </End>
                             <ChildContent>
                                 <IonLabel>Ends</IonLabel>
@@ -62,7 +62,7 @@
                         </IonItem>
                     </Header>
                     <Content>
-                        <IonDatetime Presentation="date" @bind-Value="_endDate"></IonDatetime>
+                        <IonDatetime @bind-Value="_endDate"></IonDatetime>
                     </Content>
                 </IonAccordion>
             </IonAccordionGroup>

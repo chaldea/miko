@@ -73,13 +73,6 @@ internal static class FooterStyles
             {
                 BorderTopWidth = Length.Px(0),
             };
-
-            // Collapse fade - opacity scale inheritance (placeholder for CSS variable support)
-            // In Ionic this uses --opacity-scale CSS custom property
-            css[$".{mode}.ion-footer.footer-collapse-fade .{mode}.ion-toolbar"] = new()
-            {
-                // Placeholder for future CSS variable --opacity-scale support
-            };
         }
         else if (mode == "md")
         {

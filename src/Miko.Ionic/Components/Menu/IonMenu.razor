@@ -8,7 +8,9 @@
    change IsOpen, which builds a new IonMenu instance: a "backdrop still fading" flag kept on
    the instance was lost, so the fade-out never played (ISSUE-153). When closed the host is
    pointer-events:none, so taps pass through to the page while the backdrop fades out; at
-   opacity 0 the backdrop is not painted. *@
+   opacity 0 the backdrop is not painted. The drawer always slides over the content (Ionic's
+   default "overlay" type); the "reveal" / "push" types, which move the page itself, are not
+   ported, so there is no Type parameter. *@
 @* Backdrop is authored BEFORE the drawer so the engine's reverse-document-order hit-test
    checks the drawer first: a tap on the drawer hits the drawer, a tap on the dim area falls
    through to the backdrop. (Paint order is handled by z-index via OrderedChildren, so the
@@ -28,12 +30,6 @@
     /// (right).</summary>
     [Parameter] public string Side { get; set; } = "start";
 
-    /// <summary>
-    /// Reveal behavior. Only <c>"overlay"</c> (drawer slides over the content with a
-    /// backdrop) is implemented; kept for Ionic API parity.
-    /// </summary>
-    [Parameter] public string Type { get; set; } = "overlay";
-
     /// <summary>Invoked when the backdrop is tapped, or the system back button is pressed while
     /// the menu is open, asking the host to close the menu (set <see cref="IsOpen"/> to false).</summary>
     [Parameter] public EventCallback OnClose { get; set; }
@@ -44,12 +40,6 @@
     /// <see cref="OnClose"/> — with nobody listening there is nothing to close (ISSUE-138).
     /// </summary>
     [Parameter] public bool BackButtonCloses { get; set; } = true;
-
-    /// <summary>
-    /// No longer needed: the backdrop fade runs without it. Kept so existing markup that passes
-    /// the app's <c>AnimationManager</c> still compiles.
-    /// </summary>
-    [Parameter] public AnimationManager? Animations { get; set; }
 
     private string _hostClass = "md ion-menu-host ion-menu-host-start ion-menu-host-idle";
     private string _innerClass = "ion-menu-inner ion-menu-inner-start";

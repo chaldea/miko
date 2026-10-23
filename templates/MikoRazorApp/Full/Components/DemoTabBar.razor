@@ -5,15 +5,15 @@
    no transition), so each tab is a real route rather than an <ion-tab component="..."> slot. *@
 
 <IonTabBar Slot="bottom">
-    <IonTabButton Tab="tabs-music" Href="/tabs-music" Selected="@(Selected == "tabs-music")">
+    <IonTabButton Href="/tabs-music" Selected="@(Selected == "tabs-music")">
         <IonIcon Icon="@Ionicons.MusicalNote"></IonIcon>
         <IonLabel>Music</IonLabel>
     </IonTabButton>
-    <IonTabButton Tab="tabs-movies" Href="/tabs-movies" Selected="@(Selected == "tabs-movies")">
+    <IonTabButton Href="/tabs-movies" Selected="@(Selected == "tabs-movies")">
         <IonIcon Icon="@Ionicons.Videocam"></IonIcon>
         <IonLabel>Movies</IonLabel>
     </IonTabButton>
-    <IonTabButton Tab="tabs-games" Href="/tabs-games" Selected="@(Selected == "tabs-games")">
+    <IonTabButton Href="/tabs-games" Selected="@(Selected == "tabs-games")">
         <IonIcon Icon="@Ionicons.GameController"></IonIcon>
         <IonLabel>Games</IonLabel>
     </IonTabButton>

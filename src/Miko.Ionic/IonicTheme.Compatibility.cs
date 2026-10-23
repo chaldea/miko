@@ -551,11 +551,6 @@ public partial class IonicTheme
         get => Spinner.Size;
         set => Spinner.Size = value;
     }
-    public float SpinnerSmallSize
-    {
-        get => Spinner.SmallSize;
-        set => Spinner.SmallSize = value;
-    }
     public float BadgeBorderRadius
     {
         get => Badge.BorderRadius;
@@ -1674,11 +1669,6 @@ public partial class IonicTheme
         get => Select.PlaceholderColor;
         set => Select.PlaceholderColor = value;
     }
-    public Color SelectLabelColor
-    {
-        get => Select.LabelColor;
-        set => Select.LabelColor = value;
-    }
     public Color SelectBackground
     {
         get => Select.Background;
@@ -1748,11 +1738,6 @@ public partial class IonicTheme
     {
         get => Input.TextColor;
         set => Input.TextColor = value;
-    }
-    public Color InputPlaceholderColor
-    {
-        get => Input.PlaceholderColor;
-        set => Input.PlaceholderColor = value;
     }
     public Color InputLabelColor
     {

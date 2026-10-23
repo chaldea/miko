@@ -364,7 +364,6 @@ public class IonFabLayoutTests : IDisposable
                 page.CloseComponent();
 
                 var __c7 = page.OpenComponent<IonContent>();
-                __c7.Fullscreen = true;
                 __c7.Fixed = (RenderFragment)(slot =>
                 {
                     var __c12 = slot.OpenComponent<IonFab>();
