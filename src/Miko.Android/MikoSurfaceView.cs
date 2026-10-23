@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Android.Content;
+using Android.OS;
+using Android.Runtime;
 using Android.Text;
 using Android.Util;
 using Android.Views;
@@ -105,7 +107,70 @@ public class MikoSurfaceView : SKGLSurfaceView
         SetFitsSystemWindows(false);
         Focusable = true;
         FocusableInTouchMode = true;
+
+        // 固定 id：Android 只为有 id 的视图保存/恢复状态，而且按 id 配对，进程被回收后重建的视图
+        // 必须拿到同一个 id。取值避开 aapt 生成的 0x7fxxxxxx 资源 id。
+        Id = SavedStateViewId;
+        SaveEnabled = true;
     }
+
+    // ---------------------------------------------------------------------
+    // 状态恢复（Release-1.0.0 P1-A3）
+    // ---------------------------------------------------------------------
+
+    private const int SavedStateViewId = 0x4D696B6F; // "Miko"
+    private const string SuperStateKey = "miko:super";
+    private const string HistoryKey = "miko:navigation-history";
+
+    /// <summary>
+    /// 进程在后台被系统回收后，Activity 会带着保存的状态重建，App 却从首页冷启动。这里把导航历史
+    /// 存进视图状态，恢复时按原顺序重放，用户回到离开时的页面（返回栈也在）。页面内部状态
+    /// （表单内容、滚动位置）不保存。
+    /// </summary>
+    protected override IParcelable? OnSaveInstanceState()
+    {
+        var bundle = new Bundle();
+        bundle.PutParcelable(SuperStateKey, base.OnSaveInstanceState());
+        var navigation = _context.Services.GetService<Routing.NavigationManager>();
+        if (navigation is not null)
+            bundle.PutStringArray(HistoryKey, navigation.History.ToArray());
+        return bundle;
+    }
+
+    protected override void OnRestoreInstanceState(IParcelable? state)
+    {
+        if (state is not Bundle bundle)
+        {
+            base.OnRestoreInstanceState(state);
+            return;
+        }
+
+        // GetParcelable 返回的是 Java 对象的代理：转成接口要用 JavaCast，C# 强转会抛 InvalidCastException。
+        var superState = OperatingSystem.IsAndroidVersionAtLeast(33)
+            ? bundle.GetParcelable(SuperStateKey, Java.Lang.Class.FromType(typeof(IParcelable)))
+            : GetSuperStateLegacy(bundle);
+        base.OnRestoreInstanceState(superState?.JavaCast<IParcelable>());
+
+        var history = bundle.GetStringArray(HistoryKey);
+        var navigation = _context.Services.GetService<Routing.NavigationManager>();
+        if (history is null || history.Length == 0 || navigation is null) return;
+
+        // 历史栈第 0 项是根页面（新进程已在那里），其余按前进方向逐个压栈。导航会改组件树，
+        // 交给渲染线程在帧里执行（与其他投递的动作一样）。
+        void Replay()
+        {
+            foreach (var path in history.Skip(1))
+                navigation.NavigateTo(path);
+        }
+
+        if (_dispatcher is not null) _dispatcher.Post(Replay);
+        else Replay();
+        RequestRender();
+    }
+
+#pragma warning disable CA1422 // API 33 以下只有无类型参数的重载
+    private static Java.Lang.Object? GetSuperStateLegacy(Bundle bundle) => bundle.GetParcelable(SuperStateKey);
+#pragma warning restore CA1422
 
     /// <summary>
     /// 系统窗口 inset 变化（首次 attach、旋转、系统栏显隐）时回调。读取状态栏/导航栏
