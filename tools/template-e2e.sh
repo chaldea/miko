@@ -4,8 +4,10 @@
 # Packs every library and the template package into a private feed, installs the templates
 # into a private hive, scaffolds each template/layout and builds every head in Release from
 # the packed packages — the path a user takes, which the unit tests never exercise.
+# Not part of PR validation: the templates change rarely, so run it by hand after changing
+# them or the packaging, and before a release.
 #
-#   tools/template-e2e.sh                 # all layouts, all heads the machine can build
+#   tools/template-e2e.sh                # all layouts, all heads the machine can build
 #   LAYOUTS="blank full" tools/template-e2e.sh
 #   HEADS="Desktop Android" tools/template-e2e.sh
 #
