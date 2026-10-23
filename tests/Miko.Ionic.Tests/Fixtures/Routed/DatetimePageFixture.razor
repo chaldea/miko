@@ -1,0 +1,11 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* A date picker card: a colored datetime next to an uncolored one, and a colored button pair. *@
+<IonPage>
+    <IonContent>
+        <IonDatetimeButton Class="colored-button" Color="danger" DateText="Jul 15, 2026" DatetimeActive="true" />
+        <IonDatetime Class="colored" Color="danger" Value="2026-07-15" ShowDefaultButtons="true" />
+        <IonDatetime Class="plain" Value="2026-07-15" />
+    </IonContent>
+</IonPage>

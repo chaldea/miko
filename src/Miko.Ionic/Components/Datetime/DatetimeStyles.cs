@@ -256,6 +256,35 @@ internal static class DatetimeStyles
             },
         };
 
+        // Named palette colors (datetime.scss / datetime-button.scss :host(.ion-color)): the color
+        // replaces primary wherever the datetime uses it — today, the selected day, the action
+        // buttons, the md header — and the active datetime-button text.
+        foreach (var (name, color) in new[]
+        {
+            ("primary", t.Primary), ("secondary", t.Secondary), ("tertiary", t.Tertiary),
+            ("success", t.Success), ("warning", t.Warning), ("danger", t.Danger),
+            ("light", t.Light), ("medium", t.Medium), ("dark", t.Dark),
+        })
+        {
+            var contrast = ItemStyles.PaletteContrast(name);
+            var host = $".ion-datetime.{mode}.ion-color-{name}";
+            css[$"{host} .calendar-day.calendar-day-today"] = new() { BorderColor = color, Color = color };
+            css[$"{host} .calendar-day.calendar-day-active"] = mode == "ios"
+                ? new() { BackgroundColor = new Color(color.R, color.G, color.B, 51), Color = color }
+                : new() { BackgroundColor = color, Color = contrast };
+            css[$"{host} .datetime-action-button"] = new() { Color = color };
+            if (mode == "md")
+            {
+                css[$"{host} .datetime-header"] = new() { BackgroundColor = color, Color = contrast };
+                css[$"{host} .datetime-title"] = new() { Color = contrast };
+                css[$"{host} .datetime-selected-date"] = new() { Color = contrast };
+            }
+
+            var button = $".ion-datetime-button.{mode}.ion-color-{name}";
+            css[$"{button}.date-active #date-button"] = new() { Color = color };
+            css[$"{button}.time-active #time-button"] = new() { Color = color };
+        }
+
         return css;
     }
 }

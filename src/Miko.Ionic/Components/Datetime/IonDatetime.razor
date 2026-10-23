@@ -3,7 +3,7 @@
 @using System.Globalization
 @* Mirrors Ionic's <ion-datetime> in its default grid/calendar (date) presentation
    (datetime.tsx render() → renderDatetime → renderHeader + renderCalendar + renderFooter):
-   <ion-datetime class="{mode} datetime-presentation-{presentation} datetime-size-{size} ...">
+   <ion-datetime class="{mode} datetime-presentation-date datetime-size-fixed ...">
      [<div class="datetime-header">                         <!-- when ShowDefaultTitle -->
         <div class="datetime-title">Select Date</div>
         <div class="datetime-selected-date">Wed, Jul 15</div>
@@ -94,14 +94,10 @@
 </div>
 
 @code {
-    /// <summary>Named palette color (Ionic <c>color</c>). Stamped as <c>ion-color-*</c> classes for
-    /// app styles to target; the built-in datetime styles do not read it, so on its own it changes
-    /// nothing.</summary>
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
+    /// Replaces the primary color of today's marker, the selected day, the action buttons and (md)
+    /// the header.</summary>
     [Parameter] public string? Color { get; set; }
-
-    /// <summary>Which view to show. Only the default <c>"date"</c> calendar grid is rendered in this
-    /// structural port; other values still stamp the presentation class for parity.</summary>
-    [Parameter] public string Presentation { get; set; } = "date";
 
     /// <summary>The selected value as an ISO date string (<c>yyyy-MM-dd</c>). Bind two-way with
     /// <see cref="ValueChanged"/>.</summary>
@@ -109,9 +105,6 @@
 
     /// <summary>Raised with the new ISO date string when a day is selected.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
-
-    /// <summary>Sizing: <c>"fixed"</c> or <c>"cover"</c> (Ionic <c>size</c>). Stamped as a class.</summary>
-    [Parameter] public string Size { get; set; } = "fixed";
 
     /// <summary>The first day of the week (0 = Sunday, default). Ionic <c>firstDayOfWeek</c>.</summary>
     [Parameter] public int FirstDayOfWeek { get; set; }
@@ -167,16 +160,15 @@
         }
         _renderedValue = Value;
 
-        var presentation = string.IsNullOrWhiteSpace(Presentation) ? "date" : Presentation.ToLowerInvariant();
-        var size = string.IsNullOrWhiteSpace(Size) ? "fixed" : Size.ToLowerInvariant();
-
+        // Only Ionic's default view is ported: the date grid (presentation "date") at its fixed size.
+        // The time wheel, month/year pickers and "cover" sizing are not, so neither is a parameter.
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
             .Add("ion-datetime")
-            .Add($"datetime-presentation-{presentation}")
-            .Add($"datetime-size-{size}")
+            .Add("datetime-presentation-date")
+            .Add("datetime-size-fixed")
             .If(Disabled, "datetime-disabled")
             .If(Readonly, "datetime-readonly")
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")

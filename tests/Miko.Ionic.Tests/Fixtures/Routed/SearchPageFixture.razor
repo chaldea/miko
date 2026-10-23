@@ -1,0 +1,21 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* A filter page as apps write it: the query bound two-way, the expensive search on OnInput — one
+   searchbar debounced, one not. *@
+<IonPage>
+    <IonContent>
+        <IonSearchbar Class="debounced" @bind-Value="_query" Debounce="300" OnInput="@(v => _searches.Add(v))" />
+        <div class="bound-value">@_query</div>
+        <div class="search-log">@string.Join("|", _searches)</div>
+
+        <IonSearchbar Class="immediate" OnInput="@(v => _immediate.Add(v))" />
+        <div class="immediate-log">@string.Join("|", _immediate)</div>
+    </IonContent>
+</IonPage>
+
+@code {
+    private string? _query;
+    private readonly List<string?> _searches = new();
+    private readonly List<string?> _immediate = new();
+}
