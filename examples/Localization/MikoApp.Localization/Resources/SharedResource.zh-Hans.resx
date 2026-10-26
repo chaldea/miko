@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Miko 本地化</value>
+  </data>
+  <data name="NavHome" xml:space="preserve">
+    <value>首页</value>
+  </data>
+  <data name="NavScripts" xml:space="preserve">
+    <value>书写系统</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="HomeTitle" xml:space="preserve">
+    <value>你好！</value>
+  </data>
+  <data name="HomeIntro" xml:space="preserve">
+    <value>本页的每一段文字都来自 IStringLocalizer。在上方选择语言：阿拉伯语和希伯来语会把整个布局镜像为从右到左。</value>
+  </data>
+  <data name="FormattingTitle" xml:space="preserve">
+    <value>区域性格式</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>今天</value>
+  </data>
+  <data name="Price" xml:space="preserve">
+    <value>价格</value>
+  </data>
+  <data name="Number" xml:space="preserve">
+    <value>数字</value>
+  </data>
+  <data name="ItemsInCart" xml:space="preserve">
+    <value>您的购物车中有 {0} 件商品。</value>
+  </data>
+  <data name="Direction" xml:space="preserve">
+    <value>布局方向</value>
+  </data>
+  <data name="DirectionLtr" xml:space="preserve">
+    <value>从左到右</value>
+  </data>
+  <data name="DirectionRtl" xml:space="preserve">
+    <value>从右到左</value>
+  </data>
+  <data name="MixedTitle" xml:space="preserve">
+    <value>混合方向文本</value>
+  </data>
+  <data name="MixedSample" xml:space="preserve">
+    <value>Miko 1.0 在同一行中渲染中文、English 和数字（2026）。</value>
+  </data>
+  <data name="ScriptsTitle" xml:space="preserve">
+    <value>书写系统</value>
+  </data>
+  <data name="ScriptsIntro" xml:space="preserve">
+    <value>由 HarfBuzz 完成字形处理：阿拉伯字母连写、印度系文字的合字、泰文的上下标记和 emoji 序列。从右到左的示例按 Unicode 双向算法排序。</value>
+  </data>
+</root>

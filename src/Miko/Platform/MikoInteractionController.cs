@@ -1498,12 +1498,13 @@ public sealed class MikoInteractionController
             var renderedText = input.Type == InputType.Password
                 ? new string('\u25cf', text.Length)
                 : text;
-            var caretWidth = Utils.TextMeasurer.MeasureTextWidth(
-                renderedText.Substring(0, pos), style.FontFamily, style.FontSize.Value, style.FontWeight);
+            // Caret on the cluster edge in visual order, as the painter draws it (ISSUE-157).
+            var caretWidth = Utils.TextMeasurer.MeasureCaretOffset(
+                renderedText, pos, style.FontFamily, style.FontSize.Value, style.FontWeight, style.Direction);
             var totalWidth = Utils.TextMeasurer.MeasureTextWidth(
                 renderedText, style.FontFamily, style.FontSize.Value, style.FontWeight);
             var scroll = caretWidth > content.Width ? caretWidth - content.Width : 0;
-            var alignmentOffset = scroll > 0 ? 0 : style.TextAlign switch
+            var alignmentOffset = scroll > 0 ? 0 : style.TextAlign.ResolveFor(style.Direction) switch
             {
                 TextAlign.Right => Math.Max(0, content.Width - totalWidth),
                 TextAlign.Center => Math.Max(0, (content.Width - totalWidth) / 2),
@@ -1531,8 +1532,14 @@ public sealed class MikoInteractionController
                 breakLongWords: true);
             var lineIndex = lines.Count > 0 ? lines.Count - 1 : 0;
             var currentLine = lines.Count > 0 ? lines[^1] : string.Empty;
-            var caretWidth = Utils.TextMeasurer.MeasureTextWidth(
-                currentLine, style.FontFamily, style.FontSize.Value, style.FontWeight);
+            var caretWidth = Utils.TextMeasurer.MeasureCaretOffset(
+                currentLine, currentLine.Length, style.FontFamily, style.FontSize.Value, style.FontWeight, style.Direction);
+            // The textarea draws its lines start-aligned (RenderTextAreaElement): right in RTL.
+            if (style.Direction == Direction.Rtl)
+            {
+                caretWidth += Math.Max(0, content.Width - Utils.TextMeasurer.MeasureTextWidth(
+                    currentLine, style.FontFamily, style.FontSize.Value, style.FontWeight));
+            }
             var lineHeight = Layout.LayoutAlgorithms.BlockLayout.ResolveLineHeight(style);
             return new RectF(
                 content.Left - ancestorScroll.x + caretWidth,

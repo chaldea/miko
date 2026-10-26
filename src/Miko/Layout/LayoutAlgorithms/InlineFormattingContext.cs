@@ -1,5 +1,7 @@
 using Miko.Common;
 using Miko.Core.DomElements;
+using Miko.Styling;
+using Miko.Text.Bidi;
 using Miko.Utils;
 
 namespace Miko.Layout.LayoutAlgorithms;
@@ -58,8 +60,21 @@ internal static class InlineFormattingContext
         /// <summary>CJK 单字符单元（或其前一单元为 CJK）时，其前允许断行（UAX#14）。</summary>
         public bool IsCjk;
 
+        /// <summary>
+        /// No line break before this item: a piece split off a word where the bidi level changes
+        /// (ISSUE-157), e.g. the digits of <c>abc123</c> inside right-to-left text.
+        /// </summary>
+        public bool NoBreakBefore;
+
+        /// <summary>Resolved bidi embedding level (ISSUE-157). 0 everywhere when the run needs no reordering.</summary>
+        public byte Level;
+
+        /// <summary>Left edge on the line, set while positioning a reordered line.</summary>
+        public float X;
+
         // TextPiece
         public TextNode? Node;
+        public ComputedStyle? TextStyle;
         public string Text = "";
 
         // AtomicBox / ForcedBreak / InlineBoxStart / InlineBoxEnd
@@ -85,6 +100,7 @@ internal static class InlineFormattingContext
         public float Y;
         public float Width;
         public float Height;
+        public bool IsRtl;
     }
 
     /// <summary>
@@ -99,6 +115,8 @@ internal static class InlineFormattingContext
     /// <param name="containerLineHeight">br 强制换行的最小行高（取行内流容器的行高）。</param>
     /// <param name="allowWrap">容器是否允许软换行（<c>white-space</c> 非 nowrap/pre）。
     /// false 时整段行内流排为单行（横排滚动列表），仅 br 仍强制换行。</param>
+    /// <param name="direction">The container's <c>direction</c>: the paragraph's base bidi level and
+    /// the meaning of <c>text-align: start/end</c> (ISSUE-157).</param>
     public static RunResult Layout(
         IReadOnlyList<LayoutBox> children,
         int startIndex,
@@ -110,19 +128,31 @@ internal static class InlineFormattingContext
         float? atomicHeight,
         TextAlign textAlign,
         float containerLineHeight,
-        bool allowWrap = true)
+        bool allowWrap = true,
+        Direction direction = Direction.Ltr)
     {
         bool definite = availableWidth.HasValue && availableWidth.Value > 0;
         float avail = definite ? availableWidth!.Value : float.MaxValue;
         // 装箱上限：不允许软换行时不设限（整段排为单行），但 definite 仍保留——
         // text-align 与百分比解析基准不受 white-space 影响（浏览器行为）。
         float wrapLimit = allowWrap ? avail : float.MaxValue;
+        textAlign = textAlign.ResolveFor(direction);
 
         // 1. 构建断行单元序列。非替换 inline 盒在此被「透明化」：其子内容递归展开、
         //    与兄弟内容并入同一序列，从而能跨本上下文的多行断开（ISSUE-126）。
         var items = new List<InlineItem>();
         AddItems(children, startIndex, endIndex, items,
             allowWrap && definite ? avail : null, avail, atomicWidth, atomicHeight);
+
+        // 1b. Bidi (ISSUE-157). Lines are broken in logical order and reordered per line when
+        //     positioned. Left-to-right content without right-to-left text skips all of it.
+        byte baseLevel = direction == Direction.Rtl ? (byte)1 : (byte)0;
+        bool needsBidi = direction == Direction.Rtl || ContainsBidiText(items);
+        var startOnRight = needsBidi ? new HashSet<LayoutBox>(ReferenceEqualityComparer.Instance) : null;
+        if (needsBidi)
+        {
+            items = AssignBidiLevels(items, baseLevel, startOnRight!);
+        }
 
         // 2. 贪心装箱成行盒。
         var lines = new List<Line>();
@@ -215,9 +245,20 @@ internal static class InlineFormattingContext
         var openInlineBoxes = new List<(LayoutBox Box, float StartX)>();
         float y = startY;
         float maxLineWidth = 0;
+        // Logical nesting of transparent inline boxes across lines, for reordered lines.
+        var openBoxStack = needsBidi ? new List<LayoutBox>() : null;
 
         foreach (var currentLine in lines)
         {
+            if (needsBidi)
+            {
+                PositionReorderedLine(currentLine, contentX, y, avail, definite, textAlign, atomicWidth, atomicHeight,
+                    baseLevel, fragments, inlineBoxes, openBoxStack!);
+                y += currentLine.Height;
+                maxLineWidth = Math.Max(maxLineWidth, currentLine.Width);
+                continue;
+            }
+
             float x = contentX + AlignOffset(textAlign, avail, currentLine.Width, definite);
             FragmentAcc? open = null;
             TextNode? openNode = null;
@@ -311,7 +352,7 @@ internal static class InlineFormattingContext
         // 写回透明 inline 盒的盒模型：内容盒 = 全部片段的并集（扣除边框/内边距）。
         foreach (var box in inlineBoxes)
         {
-            WriteInlineBoxGeometry(box);
+            WriteInlineBoxGeometry(box, startOnRight?.Contains(box) == true);
         }
 
         // 4. 写回文本节点：内容盒 = 全部片段的并集，片段坐标转为相对内容盒原点。
@@ -338,7 +379,7 @@ internal static class InlineFormattingContext
             var result = new List<TextLineFragment>(nodeFrags.Count);
             foreach (var frag in nodeFrags)
             {
-                result.Add(new TextLineFragment(frag.Text, frag.X - minX, frag.Y - minY, frag.Width, frag.Height));
+                result.Add(new TextLineFragment(frag.Text, frag.X - minX, frag.Y - minY, frag.Width, frag.Height, frag.IsRtl));
             }
             node.LayoutFragments = result;
         }
@@ -373,11 +414,295 @@ internal static class InlineFormattingContext
     }
 
     /// <summary>
+    /// Positions a line whose items carry bidi levels (ISSUE-157): rule L2 gives the visual order,
+    /// items are placed left to right in it, and adjacent pieces of one text node at one level merge
+    /// into a fragment (whose text stays in logical order, so it is shaped as written).
+    /// </summary>
+    private static void PositionReorderedLine(
+        Line line, float contentX, float y, float avail, bool definite, TextAlign textAlign,
+        float? atomicWidth, float? atomicHeight, byte baseLevel,
+        Dictionary<TextNode, List<FragmentAcc>> fragments, List<LayoutBox> inlineBoxes, List<LayoutBox> openBoxStack)
+    {
+        var items = line.Items;
+        var levels = new byte[items.Count];
+        for (int i = 0; i < items.Count; i++) levels[i] = items[i].Level;
+        // L1: what ends the line (a forced break, whitespace a box edge kept) takes the paragraph level.
+        for (int i = items.Count - 1; i >= 0 && (items[i].IsSpace || items[i].Kind == ItemKind.ForcedBreak); i--)
+        {
+            levels[i] = baseLevel;
+        }
+
+        float lineStart = contentX + AlignOffset(textAlign, avail, line.Width, definite);
+        float x = lineStart;
+        FragmentAcc? open = null;
+        InlineItem? previous = null;
+        foreach (int index in BidiParagraph.ComputeReordering(levels))
+        {
+            var item = items[index];
+            item.X = x;
+            switch (item.Kind)
+            {
+                case ItemKind.ForcedBreak:
+                    LayoutDispatcher.Dispatch(item.Box!, new LayoutConstraints(0, null), x, y);
+                    break;
+
+                case ItemKind.AtomicBox:
+                    LayoutDispatcher.Dispatch(item.Box!, new LayoutConstraints(atomicWidth, atomicHeight), x, y);
+                    x = item.Box!.BoxModel.MarginBox.Right;
+                    break;
+
+                case ItemKind.BlockBox:
+                    LayoutDispatcher.Dispatch(
+                        item.Box!,
+                        new LayoutConstraints(definite ? avail : atomicWidth, atomicHeight),
+                        contentX, y);
+                    item.X = contentX;
+                    line.Height = item.Box!.BoxModel.MarginBox.Height;
+                    x = Math.Max(x, item.Box.BoxModel.MarginBox.Right);
+                    line.Width = Math.Max(line.Width, item.Box.BoxModel.MarginBox.Width);
+                    break;
+
+                case ItemKind.InlineBoxStart:
+                case ItemKind.InlineBoxEnd:
+                    x += item.Width;
+                    break;
+
+                case ItemKind.TextPiece:
+                    // Visually adjacent pieces of one node at one level are logically adjacent too;
+                    // at an odd level their visual order is the reverse of the logical one.
+                    if (open == null || previous is not { Kind: ItemKind.TextPiece } p
+                        || !ReferenceEquals(p.Node, item.Node) || p.Level != item.Level)
+                    {
+                        open = new FragmentAcc { X = x, Y = y, Height = line.Height, IsRtl = (item.Level & 1) != 0 };
+                        if (!fragments.TryGetValue(item.Node!, out var nodeFrags))
+                        {
+                            nodeFrags = new List<FragmentAcc>();
+                            fragments[item.Node!] = nodeFrags;
+                        }
+                        nodeFrags.Add(open);
+                    }
+                    open.Text = open.IsRtl ? item.Text + open.Text : open.Text + item.Text;
+                    open.Width += item.Width;
+                    x += item.Width;
+                    break;
+            }
+            previous = item;
+        }
+
+        // Transparent inline box fragments: reordering can put a box's end edge left of its start,
+        // so each box spans the extent of its own edges and content on this line, collected in
+        // logical order with the box nesting carried over from earlier lines.
+        var extents = new Dictionary<LayoutBox, (float Min, float Max)>(ReferenceEqualityComparer.Instance);
+        var touched = new List<LayoutBox>();
+        void Extend(LayoutBox box, float left, float right)
+        {
+            if (extents.TryGetValue(box, out var e))
+            {
+                extents[box] = (Math.Min(e.Min, left), Math.Max(e.Max, right));
+            }
+            else
+            {
+                extents[box] = (left, right);
+                touched.Add(box);
+            }
+        }
+
+        // A box still open from an earlier line contains every item up to its end edge, so it is
+        // extended by them; no seeding at the line start is needed (which would be wrong in RTL).
+        foreach (var item in items)
+        {
+            switch (item.Kind)
+            {
+                case ItemKind.InlineBoxStart:
+                    if (!inlineBoxes.Contains(item.Box!))
+                    {
+                        inlineBoxes.Add(item.Box!);
+                        item.Box!.InlineFragments = new List<RectF>();
+                    }
+                    openBoxStack.Add(item.Box!);
+                    Extend(item.Box!, item.X, item.X + item.Width);
+                    break;
+
+                case ItemKind.InlineBoxEnd:
+                    Extend(item.Box!, item.X, item.X + item.Width);
+                    openBoxStack.Remove(item.Box!);
+                    break;
+
+                default:
+                    float left = item.X, right = item.X + item.Width;
+                    if (item.Kind is ItemKind.AtomicBox or ItemKind.BlockBox)
+                    {
+                        left = item.Box!.BoxModel.MarginBox.Left;
+                        right = item.Box.BoxModel.MarginBox.Right;
+                    }
+                    foreach (var box in openBoxStack) Extend(box, left, right);
+                    break;
+            }
+        }
+
+        foreach (var box in touched)
+        {
+            var (min, max) = extents[box];
+            box.InlineFragments?.Add(new RectF(min, y, Math.Max(0, max - min), line.Height));
+        }
+    }
+
+    /// <summary>Whether any text of the run can resolve to a non-zero level in an LTR paragraph.</summary>
+    private static bool ContainsBidiText(List<InlineItem> items)
+    {
+        foreach (var item in items)
+        {
+            if (item.Kind == ItemKind.TextPiece && UnicodeBidi.MayNeedReordering(item.Text)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Resolves bidi levels over each paragraph of the run — forced breaks and block-in-inline boxes
+    /// separate paragraphs — and splits text pieces whose characters resolve to different levels, so
+    /// every item has one level. Atomic inlines count as U+FFFC (a neutral), as in CSS.
+    /// </summary>
+    private static List<InlineItem> AssignBidiLevels(List<InlineItem> items, byte baseLevel, HashSet<LayoutBox> startOnRight)
+    {
+        var result = new List<InlineItem>(items.Count);
+        int paragraphStart = 0;
+        for (int i = 0; i <= items.Count; i++)
+        {
+            if (i < items.Count && items[i].Kind is not (ItemKind.ForcedBreak or ItemKind.BlockBox)) continue;
+            ResolveParagraphLevels(items, paragraphStart, i, baseLevel, result);
+            if (i < items.Count)
+            {
+                items[i].Level = baseLevel;
+                result.Add(items[i]);
+            }
+            paragraphStart = i + 1;
+        }
+
+        // An inline box's edges sit against its own content in visual order: the start edge takes the
+        // level of the first content inside the box, the end edge that of the last. At an odd level
+        // the start edge is the box's right side, so the edge widths swap.
+        for (int i = 0; i < result.Count; i++)
+        {
+            var item = result[i];
+            if (item.Kind is not (ItemKind.InlineBoxStart or ItemKind.InlineBoxEnd)) continue;
+
+            bool isStart = item.Kind == ItemKind.InlineBoxStart;
+            item.Level = AdjacentContentLevel(result, i, isStart ? 1 : -1, baseLevel);
+            if ((item.Level & 1) == 0) continue;
+
+            var bm = item.Box!.BoxModel;
+            float left = bm.Margin.Left + bm.Border.Left + bm.Padding.Left;
+            float right = bm.Margin.Right + bm.Border.Right + bm.Padding.Right;
+            item.Width = isStart ? right : left;
+            if (isStart) startOnRight.Add(item.Box);
+        }
+        return result;
+    }
+
+    private static void ResolveParagraphLevels(List<InlineItem> items, int start, int end, byte baseLevel, List<InlineItem> result)
+    {
+        if (start >= end) return;
+
+        var sb = new System.Text.StringBuilder();
+        var offsets = new int[end - start];
+        for (int i = start; i < end; i++)
+        {
+            offsets[i - start] = sb.Length;
+            var item = items[i];
+            if (item.Kind == ItemKind.TextPiece) sb.Append(item.Text);
+            else if (item.Kind == ItemKind.AtomicBox) sb.Append('\uFFFC');
+        }
+        var text = sb.ToString();
+        var levels = text.Length > 0
+            ? UnicodeBidi.GetLevels(text, baseLevel, resetTrailingWhitespace: false, out _)
+            : Array.Empty<byte>();
+
+        for (int i = start; i < end; i++)
+        {
+            var item = items[i];
+            int offset = offsets[i - start];
+            switch (item.Kind)
+            {
+                case ItemKind.TextPiece:
+                    SplitByLevel(item, levels, offset, result);
+                    break;
+                case ItemKind.AtomicBox:
+                    item.Level = levels[offset];
+                    result.Add(item);
+                    break;
+                default:
+                    item.Level = baseLevel;
+                    result.Add(item);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Adds <paramref name="item"/>, split where its level changes. The pieces after the first may
+    /// not start a line: a level change inside a word is not a break opportunity.
+    /// </summary>
+    private static void SplitByLevel(InlineItem item, byte[] levels, int offset, List<InlineItem> result)
+    {
+        var text = item.Text;
+        int pieceStart = 0;
+        for (int i = 1; i <= text.Length; i++)
+        {
+            if (i < text.Length && levels[offset + i] == levels[offset + pieceStart]) continue;
+            // Keep a surrogate pair together (both halves share a level, so this is defensive).
+            if (i < text.Length && char.IsLowSurrogate(text[i])) continue;
+
+            if (pieceStart == 0 && i == text.Length)
+            {
+                item.Level = levels[offset];
+                result.Add(item);
+                return;
+            }
+
+            var piece = new InlineItem
+            {
+                Kind = ItemKind.TextPiece,
+                IsSpace = item.IsSpace,
+                IsCjk = pieceStart == 0 && item.IsCjk,
+                NoBreakBefore = pieceStart > 0 || item.NoBreakBefore,
+                Node = item.Node,
+                TextStyle = item.TextStyle,
+                Text = text.Substring(pieceStart, i - pieceStart),
+                Height = item.Height,
+                Level = levels[offset + pieceStart],
+            };
+            piece.Width = MeasureTextPiece(piece.Text, item.TextStyle!);
+            result.Add(piece);
+            pieceStart = i;
+        }
+    }
+
+    private static byte AdjacentContentLevel(List<InlineItem> items, int index, int step, byte fallback)
+    {
+        var box = items[index].Box;
+        for (int i = index + step; i >= 0 && i < items.Count; i += step)
+        {
+            var item = items[i];
+            if (item.Kind is ItemKind.TextPiece or ItemKind.AtomicBox) return item.Level;
+            // Reached the box's other edge (an empty box) or the paragraph's end.
+            if (ReferenceEquals(item.Box, box) || item.Kind is ItemKind.ForcedBreak or ItemKind.BlockBox) break;
+        }
+        return fallback;
+    }
+
+    /// <summary>Width of a text piece, as <see cref="AddTextItems"/> measures it (letter-spacing per UTF-16 unit).</summary>
+    private static float MeasureTextPiece(string text, ComputedStyle style)
+        => TextMeasurer.MeasureTextWidth(text, style.FontFamily, style.FontSize.Value, style.FontWeight)
+           + style.LetterSpacing.ToPixels(0, style.FontSize.Value) * text.Length;
+
+    /// <summary>
     /// 写回透明 inline 盒的盒模型。定位阶段累积的片段是 margin box 矩形，这里就地扣掉
     /// 首/末片段的左右外边距，使 <see cref="LayoutBox.InlineFragments"/> 成为可直接绘制的
     /// border box；内容盒再取这些片段的并集内缩 border+padding。
     /// </summary>
-    private static void WriteInlineBoxGeometry(LayoutBox box)
+    /// <param name="startOnRight">The box's start edge is on its right (its content is right-to-left,
+    /// ISSUE-157): the first fragment then loses its right margin and the last its left margin.</param>
+    private static void WriteInlineBoxGeometry(LayoutBox box, bool startOnRight = false)
     {
         var frags = box.InlineFragments;
         if (frags == null || frags.Count == 0)
@@ -397,8 +722,9 @@ internal static class InlineFormattingContext
         // （CSS 2.1 §10.8——垂直方向由行盒决定），故片段的 Y/Height 直接取行盒几何。
         for (int i = 0; i < frags.Count; i++)
         {
-            float left = frags[i].X + (i == 0 ? margin.Left : 0);
-            float right = frags[i].Right - (i == frags.Count - 1 ? margin.Right : 0);
+            bool first = i == 0, last = i == frags.Count - 1;
+            float left = frags[i].X + ((startOnRight ? last : first) ? margin.Left : 0);
+            float right = frags[i].Right - ((startOnRight ? first : last) ? margin.Right : 0);
             frags[i] = new RectF(left, frags[i].Y, Math.Max(0, right - left), frags[i].Height);
         }
 
@@ -631,18 +957,13 @@ internal static class InlineFormattingContext
         }
 
         float lineHeight = BlockLayout.ResolveLineHeight(style);
-        float letterSpacing = style.LetterSpacing.ToPixels(0, style.FontSize.Value);
-        float spaceWidth = TextMeasurer.MeasureTextWidth(" ", style.FontFamily, style.FontSize.Value, style.FontWeight)
-                         + letterSpacing;
+        float spaceWidth = MeasureTextPiece(" ", style);
 
         // 空白折叠但不修剪首尾：边界空格是否消除取决于行首/行尾位置，由装箱阶段决定。
         var collapsed = TextWrapper.CollapseWhitespacePreservingBoundaries(text);
         foreach (var unit in TextWrapper.SplitBreakUnits(collapsed))
         {
-            float unitWidth = unit.IsSpace
-                ? spaceWidth
-                : TextMeasurer.MeasureTextWidth(unit.Text, style.FontFamily, style.FontSize.Value, style.FontWeight)
-                  + letterSpacing * unit.Text.Length;
+            float unitWidth = unit.IsSpace ? spaceWidth : MeasureTextPiece(unit.Text, style);
 
             items.Add(new InlineItem
             {
@@ -650,6 +971,7 @@ internal static class InlineFormattingContext
                 IsSpace = unit.IsSpace,
                 IsCjk = unit.IsCjk,
                 Node = node,
+                TextStyle = style,
                 Text = unit.Text,
                 Width = unitWidth,
                 Height = lineHeight,
@@ -682,6 +1004,7 @@ internal static class InlineFormattingContext
         // 盒内/盒外的断行机会由内容（空白 / CJK / 原子盒边界）提供，与浏览器一致。
         if (item.Kind == ItemKind.InlineBoxStart || item.Kind == ItemKind.InlineBoxEnd) return false;
         if (previous.Kind == ItemKind.InlineBoxStart) return false;
+        if (item.NoBreakBefore) return false;
 
         var prev = effectivePrevious ?? previous;
         return prev.IsSpace

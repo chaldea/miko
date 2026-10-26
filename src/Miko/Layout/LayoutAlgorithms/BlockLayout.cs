@@ -227,6 +227,19 @@ public class BlockLayout
                 newMarginLeft
             );
         }
+        else if (hasDefiniteWidth && containerWidth > 0 && IsBlockFlowChildOfRtlContainer(box))
+        {
+            // Over-constrained (CSS 2.1 §10.3.3): the margin on the containing block's end side is
+            // ignored, so in an RTL container a block narrower than it sits against the right edge
+            // (ISSUE-157). In LTR the right margin is the ignored one, which is what the layout
+            // already does by placing the box from the left.
+            float usedWidth = contentWidth + box.BoxModel.Border.Horizontal + box.BoxModel.Padding.Horizontal;
+            box.BoxModel.Margin = new EdgeSizes(
+                box.BoxModel.Margin.Top,
+                box.BoxModel.Margin.Right,
+                box.BoxModel.Margin.Bottom,
+                containerWidth - usedWidth - box.BoxModel.Margin.Right);
+        }
 
         // 判断是否需要为滚动条预留空间（只有 Classic 模式占用布局；Overlay/None 不占，见 ISSUE-156）
         bool needsVerticalScrollbar = style.OverflowY == Overflow.Scroll;
@@ -326,7 +339,8 @@ public class BlockLayout
                     childAvailableWidth, childAvailableHeight,
                     box.ComputedStyle.TextAlign,
                     ResolveLineHeight(box.ComputedStyle),
-                    TextWrapper.ShouldWrap(box.ComputedStyle.WhiteSpace));
+                    TextWrapper.ShouldWrap(box.ComputedStyle.WhiteSpace),
+                    box.ComputedStyle.Direction);
 
                 currentY += runResult.TotalHeight;
                 maxChildWidth = Math.Max(maxChildWidth, runResult.MaxLineWidth);
@@ -492,7 +506,8 @@ public class BlockLayout
                     childAvailableWidth, null,
                     box.ComputedStyle.TextAlign,
                     ResolveLineHeight(box.ComputedStyle),
-                    TextWrapper.ShouldWrap(box.ComputedStyle.WhiteSpace));
+                    TextWrapper.ShouldWrap(box.ComputedStyle.WhiteSpace),
+                    box.ComputedStyle.Direction);
 
                 currentY += runResult.TotalHeight;
                 maxChildWidth = Math.Max(maxChildWidth, runResult.MaxLineWidth);
@@ -515,6 +530,19 @@ public class BlockLayout
     private void LayoutChild(LayoutBox child, LayoutConstraints constraints, float x, float y)
     {
         LayoutDispatcher.Dispatch(child, constraints, x, y);
+    }
+
+    /// <summary>
+    /// A block-level, in-flow box whose containing block is a right-to-left block container. Flex
+    /// and grid items are placed by their container, inline-level boxes by the line, and positioned
+    /// boxes by their offsets, so none of them take the over-constrained margin rule.
+    /// </summary>
+    private static bool IsBlockFlowChildOfRtlContainer(LayoutBox box)
+    {
+        if (box.Type != LayoutType.Block || IsOutOfFlow(box)) return false;
+        var parent = box.Element.Parent?.LayoutBox;
+        return parent is { Type: LayoutType.Block or LayoutType.InlineBlock or LayoutType.TableCell }
+            && parent.ComputedStyle.Direction == Direction.Rtl;
     }
 
     /// <summary>

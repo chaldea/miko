@@ -1,0 +1,41 @@
+@page "/scripts"
+@namespace MikoApp.Localization.Pages
+@inject IStringLocalizer<SharedResource> L
+
+<div class="content">
+    <h1 class="title">@L["ScriptsTitle"]</h1>
+    <p class="intro">@L["ScriptsIntro"]</p>
+
+    @foreach (var sample in Samples)
+    {
+        @* Each sample sets its own direction, independent of the page's. *@
+        <div class="card" dir="@(sample.RightToLeft ? "rtl" : "ltr")">
+            <div class="script-name">@sample.Name</div>
+            <p class="sample">@sample.Text</p>
+        </div>
+    }
+</div>
+
+@code {
+    private sealed record Sample(string Name, string Text, bool RightToLeft = false);
+
+    private static readonly Sample[] Samples =
+    [
+        // Joined letters with contextual forms, read right to left.
+        new("Arabic", "اللغة العربية جميلة، وأرقامها 123 تُقرأ من اليسار إلى اليمين.", RightToLeft: true),
+        new("Hebrew", "עברית נכתבת מימין לשמאל, עם מילים כמו Miko באמצע.", RightToLeft: true),
+        // Vowel points (niqqud) are combining marks, positioned on their letter by the shaper.
+        new("Hebrew with vowel points", "\u05E9\u05C1\u05B8\u05DC\u05D5\u05B9\u05DD \u05E2\u05D5\u05B9\u05DC\u05B8\u05DD", RightToLeft: true),
+        // Persian uses ZWNJ (U+200C) to keep letters from joining.
+        new("Persian", "می‌خواهم فارسی بنویسم.", RightToLeft: true),
+        // Conjuncts and vowel signs that reorder around the consonant.
+        new("Hindi (Devanagari)", "हिन्दी में संयुक्ताक्षर जैसे क्ष, त्र और ज्ञ बनते हैं।"),
+        new("Bengali", "আমি বাংলায় গান গাই।"),
+        // Stacked vowel and tone marks; no spaces between words.
+        new("Thai", "ภาษาไทยมีวรรณยุกต์และสระที่ซ้อนกัน"),
+        new("Vietnamese", "Tiếng Việt có nhiều dấu thanh: ả, ẫ, ộ, ữ."),
+        new("Chinese / Japanese / Korean", "中文　日本語のかな　한국어"),
+        // Emoji: a ZWJ family sequence, a flag, and a skin-tone modifier.
+        new("Emoji", "👨‍👩‍👧 🇨🇳 👍🏽 🎉"),
+    ];
+}

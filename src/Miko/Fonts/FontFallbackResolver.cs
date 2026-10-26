@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using Miko.Common;
 using SkiaSharp;
 
@@ -80,10 +81,18 @@ public class FontFallbackResolver
         int runStart = 0;
         SKTypeface? currentTypeface = null;
 
-        for (int i = 0; i < text.Length; i++)
+        // Per code point, not per UTF-16 unit: the two halves of a surrogate pair resolved separately
+        // never match a font (ISSUE-157). A character that continues the previous one (combining
+        // mark, joiner, variation selector, emoji modifier) stays in its font, so a cluster is never
+        // split across fonts — the shaper could not attach the mark to its base otherwise.
+        for (int i = 0; i < text.Length;)
         {
-            char c = text[i];
-            SKTypeface? typeface = ResolveFont(c, fallbackChain, weight);
+            int codePoint = char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text[i], text[i + 1]) : text[i];
+            int width = codePoint > 0xFFFF ? 2 : 1;
+
+            SKTypeface? typeface = currentTypeface != null && IsClusterContinuation(codePoint)
+                ? currentTypeface
+                : ResolveFont(codePoint, fallbackChain, weight);
 
             // If typeface changed, start a new run
             if (currentTypeface != null && typeface != currentTypeface)
@@ -98,6 +107,7 @@ public class FontFallbackResolver
             }
 
             currentTypeface = typeface;
+            i += width;
         }
 
         // Add final run
@@ -115,9 +125,30 @@ public class FontFallbackResolver
     }
 
     /// <summary>
+    /// Whether a code point belongs to the cluster of the character before it, so it must be drawn
+    /// with the same font: combining marks (including variation selectors), ZWJ / ZWNJ, emoji
+    /// modifiers and tag characters.
+    /// </summary>
+    internal static bool IsClusterContinuation(int codePoint)
+    {
+        if (codePoint is 0x200C or 0x200D) return true;
+        if (codePoint is >= 0x1F3FB and <= 0x1F3FF) return true; // emoji skin-tone modifiers
+        if (codePoint is >= 0xE0020 and <= 0xE007F) return true; // tag characters (subdivision flags)
+        var category = CharUnicodeInfo.GetUnicodeCategory(codePoint);
+        return category is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark
+            or UnicodeCategory.EnclosingMark;
+    }
+
+    /// <summary>
     /// Get the best font for a specific character from the fallback chain
     /// </summary>
     public SKTypeface? ResolveFont(char character, List<string> fallbackChain, FontWeight weight)
+        => ResolveFont((int)character, fallbackChain, weight);
+
+    /// <summary>
+    /// Get the best font for a code point (BMP or supplementary) from the fallback chain
+    /// </summary>
+    public SKTypeface? ResolveFont(int character, List<string> fallbackChain, FontWeight weight)
     {
         // Try each font in the fallback chain
         foreach (var familyName in fallbackChain)
@@ -169,10 +200,13 @@ public class FontFallbackResolver
     /// <summary>
     /// Detect the script/language of a character
     /// </summary>
-    public static UnicodeScript GetCharacterScript(char character)
-    {
-        int codePoint = character;
+    public static UnicodeScript GetCharacterScript(char character) => GetCharacterScript((int)character);
 
+    /// <summary>
+    /// Detect the script/language of a code point (BMP or supplementary)
+    /// </summary>
+    public static UnicodeScript GetCharacterScript(int codePoint)
+    {
         // CJK Unified Ideographs
         if (codePoint >= 0x4E00 && codePoint <= 0x9FFF) return UnicodeScript.CJK;
 
@@ -249,7 +283,7 @@ public class FontFallbackResolver
         return UnicodeScript.Unknown;
     }
 
-    private SKTypeface? GetSystemFallbackForScript(UnicodeScript script, char character, FontWeight weight)
+    private SKTypeface? GetSystemFallbackForScript(UnicodeScript script, int character, FontWeight weight)
     {
         var fallbackFonts = script switch
         {

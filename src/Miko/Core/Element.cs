@@ -82,6 +82,20 @@ public abstract class Element
         get => _class;
         set { if (_class != value) { _class = value; IsDirty = true; BumpMutationVersion(); } }
     }
+
+    private string? _dir;
+
+    /// <summary>
+    /// The HTML <c>dir</c> attribute (ISSUE-157): <c>"rtl"</c> or <c>"ltr"</c> sets the element's
+    /// <c>direction</c> like the browser's presentational hint, so author style rules still win and
+    /// descendants inherit it. Other values (including <c>"auto"</c>) are ignored.
+    /// </summary>
+    public string? Dir
+    {
+        get => _dir;
+        set { if (_dir != value) { _dir = value; IsDirty = true; BumpMutationVersion(); } }
+    }
+
     /// <summary>
     /// 子节点集合。所有增删改都会自动设置父引用、下发引擎归属并使布局缓存失效
     /// （见 <see cref="ElementCollection"/>，ISSUE-129）——直接写这个集合与调用
@@ -346,6 +360,7 @@ public abstract class Element
     {
         Id = source.Id;
         Class = source.Class;
+        Dir = source.Dir;
         Style = source.Style;
         PseudoElementStyles = source.PseudoElementStyles;
         if (source.InitialScrollTop is { } scrollTop) InitialScrollTop = scrollTop;

@@ -924,6 +924,7 @@ public class LayoutEngine
         target.FontSize = parent.FontSize;
         target.FontWeight = parent.FontWeight;
         target.TextAlign = parent.TextAlign;
+        target.Direction = parent.Direction;
         target.LineHeight = parent.LineHeight;
         target.WhiteSpace = parent.WhiteSpace;
         target.TextDecoration = parent.TextDecoration;

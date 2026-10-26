@@ -4,6 +4,34 @@ All notable changes to Miko are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Text layout and localization
+
+- **Right-to-left layout.** `Direction` (or the new `dir="rtl"` attribute) now lays text out from
+  the right, orders mixed-direction text with the Unicode Bidirectional Algorithm (UAX #9,
+  Unicode 15.1, conformance-tested), starts flex rows at the right and aligns flex columns and
+  narrower blocks to the right edge. See
+  [Localization & Right-to-Left](docs/guide/localization.md).
+- **Complex-script shaping.** Arabic, Hebrew, the Indic scripts, Thai and other scripts that need
+  contextual forms, ligatures or reordering are shaped with HarfBuzz, as are combining
+  diacritics and emoji sequences. Latin, Greek, Cyrillic and CJK text keeps its existing metrics.
+  Font fallback now resolves whole characters (surrogate pairs) and keeps marks with their base,
+  and line breaking never splits a character cluster.
+- **`TextAlign.Start` and `TextAlign.End`.** `Start` is the new initial value (left in LTR, right in
+  RTL), and `<td>`, `.ion-text-start` / `.ion-text-end` and Bootstrap's `.text-start` /
+  `.text-end` use the logical values.
+- **Localization example.** `examples/Localization` uses `IStringLocalizer` with `.resx` resources
+  and switches the running app between English, Chinese, Arabic, Hebrew and Hindi.
+- **Layouts can re-render themselves.** A layout calling `StateHasChanged` (after its own event
+  handler) used to drop its page; the page now stays and re-renders with the layout.
+
+### Upgrade notes
+
+- `ComputedStyle.TextAlign` is `TextAlign.Start` when nothing sets it (it was `Left`). Code that
+  compares it with `TextAlign.Left` should map it first: in a left-to-right element `Start` is
+  drawn exactly like `Left`.
+
 ## [1.0.0-preview.1]
 
 First public preview. Miko is a native, cross-platform UI engine for .NET: Razor components are

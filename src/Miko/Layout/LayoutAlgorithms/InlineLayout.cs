@@ -364,7 +364,8 @@ public class InlineLayout
                     atomicWidth, atomicHeight,
                     style.TextAlign,
                     lineHeight,
-                    allowWrap);
+                    allowWrap,
+                    style.Direction);
 
                 currentY += run.TotalHeight;
                 maxWidth = Math.Max(maxWidth, run.MaxLineWidth);

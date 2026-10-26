@@ -8,13 +8,21 @@ Miko apps are **not accessible** in this release. Screen readers (TalkBack on An
 
 ## Text and localization
 
-### No RTL or bidi support
+Right-to-left layout, mixed-direction text and complex-script shaping are supported (see
+[Localization & Right-to-Left](./localization.md)). What is not:
 
-Right-to-left languages are not supported. The `Direction` property exists on `Style` but is not read by any layout or rendering code. Text always flows left-to-right.
+### No dictionary line breaking
 
-### No complex text shaping
+Thai, Lao, Khmer and Myanmar text, which does not separate words with spaces, breaks only at
+spaces. A long line in one of these scripts overflows instead of wrapping between words.
 
-Miko does not use HarfBuzz or any advanced shaping engine. Complex scripts (Arabic, Indic languages, Thai, etc.) that require contextual glyph substitution or reordering will not render correctly. Basic Latin, CJK, and simple scripts work.
+### Partial right-to-left mirroring
+
+Text, inline content, flex layout and block placement follow `Direction`. Grid columns, table
+columns, absolutely positioned elements without offsets, scrollbars and multi-line column
+`FlexWrap` do not. In a right-to-left text input, a value longer than the field scrolls as it does
+left-to-right, and clicking puts the caret at the end. `dir="auto"` and `unicode-bidi` are not
+supported.
 
 ## CSS subset
 
@@ -78,4 +86,4 @@ Trimming and Native AOT for desktop apps are not officially supported in 1.0.0-p
 
 ## What's next
 
-These limitations describe the 1.0 preview boundaries. Many of them — accessibility, RTL, complex text shaping, sticky positioning, desktop trimming — are planned for future releases. See the [project repository](https://github.com/chaldea/miko) for the roadmap and issue tracker.
+These limitations describe the 1.0 preview boundaries. Many of them — accessibility, dictionary line breaking, sticky positioning, desktop trimming — are planned for future releases. See the [project repository](https://github.com/chaldea/miko) for the roadmap and issue tracker.

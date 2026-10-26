@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>मिको स्थानीयकरण</value>
+  </data>
+  <data name="NavHome" xml:space="preserve">
+    <value>होम</value>
+  </data>
+  <data name="NavScripts" xml:space="preserve">
+    <value>लेखन प्रणालियाँ</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>भाषा</value>
+  </data>
+  <data name="HomeTitle" xml:space="preserve">
+    <value>नमस्ते!</value>
+  </data>
+  <data name="HomeIntro" xml:space="preserve">
+    <value>इस पृष्ठ का हर पाठ IStringLocalizer से आता है। ऊपर कोई भाषा चुनें: अरबी और हिब्रू पूरे लेआउट को दाएँ से बाएँ कर देती हैं।</value>
+  </data>
+  <data name="FormattingTitle" xml:space="preserve">
+    <value>संस्कृति के अनुसार स्वरूपण</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>आज</value>
+  </data>
+  <data name="Price" xml:space="preserve">
+    <value>मूल्य</value>
+  </data>
+  <data name="Number" xml:space="preserve">
+    <value>संख्या</value>
+  </data>
+  <data name="ItemsInCart" xml:space="preserve">
+    <value>आपकी कार्ट में {0} वस्तुएँ हैं।</value>
+  </data>
+  <data name="Direction" xml:space="preserve">
+    <value>लेआउट की दिशा</value>
+  </data>
+  <data name="DirectionLtr" xml:space="preserve">
+    <value>बाएँ से दाएँ</value>
+  </data>
+  <data name="DirectionRtl" xml:space="preserve">
+    <value>दाएँ से बाएँ</value>
+  </data>
+  <data name="MixedTitle" xml:space="preserve">
+    <value>मिश्रित दिशा वाला पाठ</value>
+  </data>
+  <data name="MixedSample" xml:space="preserve">
+    <value>Miko 1.0 हिन्दी, English और संख्याएँ (2026) एक ही पंक्ति में दिखाता है।</value>
+  </data>
+  <data name="ScriptsTitle" xml:space="preserve">
+    <value>लेखन प्रणालियाँ</value>
+  </data>
+  <data name="ScriptsIntro" xml:space="preserve">
+    <value>HarfBuzz द्वारा पाठ आकार-निर्धारण: जुड़े हुए अरबी अक्षर, भारतीय संयुक्ताक्षर, थाई चिह्न और इमोजी अनुक्रम। दाएँ से बाएँ वाले उदाहरण यूनिकोड द्विदिशात्मक एल्गोरिथ्म से क्रमबद्ध होते हैं।</value>
+  </data>
+</root>

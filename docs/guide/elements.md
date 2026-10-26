@@ -40,6 +40,7 @@ Every element accepts these attributes:
 | --- | --- |
 | `class` | `Class` |
 | `id` | `Id` |
+| `dir` | `Dir` |
 | `style` | `Style` |
 | `disabled` | `Disabled` |
 

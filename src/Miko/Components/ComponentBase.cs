@@ -430,6 +430,12 @@ public abstract class ComponentBase : IComponent
     /// </summary>
     internal int RenderVersion { get; private set; }
 
+    /// <summary>
+    /// The element this component currently renders as (its latest generation), or <c>null</c> before
+    /// its first build. Never a superseded one: a re-render moves this to the new element.
+    /// </summary>
+    internal Element? CurrentRoot => _rootElement;
+
     /// <summary>Performs a <see cref="StateHasChanged"/> render immediately.</summary>
     internal void RenderNow()
     {

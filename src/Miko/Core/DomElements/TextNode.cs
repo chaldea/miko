@@ -102,12 +102,19 @@ internal readonly struct TextLineFragment
     public float Width { get; }
     public float Height { get; }
 
-    public TextLineFragment(string text, float x, float y, float width, float height)
+    /// <summary>
+    /// The fragment's bidi level is odd (ISSUE-157): it is shaped right-to-left and its glyphs end at
+    /// the right edge. <see cref="Text"/> is always in logical order.
+    /// </summary>
+    public bool IsRtl { get; }
+
+    public TextLineFragment(string text, float x, float y, float width, float height, bool isRtl = false)
     {
         Text = text;
         X = x;
         Y = y;
         Width = width;
         Height = height;
+        IsRtl = isRtl;
     }
 }

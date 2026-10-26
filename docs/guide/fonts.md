@@ -1,8 +1,8 @@
 # Fonts & Text
 
 Miko has a font subsystem that supports **multiple font families with fallback**,
-**mixed Latin/CJK text**, and **custom font loading** — including **WOFF2**, which it
-decodes itself because SkiaSharp cannot load WOFF2 directly.
+**mixed-script text**, **complex-script shaping** with HarfBuzz, and **custom font loading** —
+including **WOFF2**, which it decodes itself because SkiaSharp cannot load WOFF2 directly.
 
 ## Specifying fonts in styles
 
@@ -19,9 +19,9 @@ new Style
 ```
 
 This is what makes mixed Latin/CJK text render correctly: a Latin font for the Latin runs
-and a CJK font for the CJK runs, resolved per glyph.
+and a CJK font for the CJK runs, resolved per character.
 
-## The default fallback chain
+## Font fallback
 
 When a requested family (or a glyph within it) is unavailable, Miko falls back through a
 built-in chain that covers Latin and CJK scripts:
@@ -31,6 +31,19 @@ Arial → Segoe UI → Microsoft YaHei → SimSun → MS Gothic → Malgun Gothi
 ```
 
 (Chinese: Microsoft YaHei / SimSun; Japanese: MS Gothic; Korean: Malgun Gothic.)
+
+If none of them has the character, the operating system picks a font that does (on macOS
+PingFang, Geeza Pro, Kohinoor, Apple Color Emoji, …). A character that continues the one before
+it — a combining mark, a variation selector, a joiner in an emoji sequence — always stays in the
+font of its base character, so the cluster is never split across fonts.
+
+## Complex scripts and right-to-left text
+
+Arabic, Hebrew, the Indic scripts, Thai and other scripts that need contextual forms, ligatures or
+reordering are shaped with HarfBuzz, and mixed-direction text is ordered with the Unicode
+Bidirectional Algorithm. Latin, Greek, Cyrillic and CJK text keeps a faster path that draws each
+character with its own glyph. See [Localization & Right-to-Left](./localization.md) for text
+direction, mixed-direction text and the supported scripts.
 
 ## Registering custom fonts
 

@@ -384,8 +384,9 @@ public class TableLayoutTests
     }
 
     [Fact]
-    public void TableLayout_TdElement_ShouldHaveLeftAlignment()
+    public void TableLayout_TdElement_ShouldHaveStartAlignment()
     {
+        // td's UA text-align is the logical `start` (left in LTR, right in RTL — ISSUE-157).
         // Arrange
         var table = new TableElement();
         var row = new TrElement();
@@ -402,7 +403,8 @@ public class TableLayoutTests
         var layoutRow = layoutRoot.Children[0];
         var layoutCell = layoutRow.Children[0];
 
-        layoutCell.ComputedStyle.TextAlign.ShouldBe(TextAlign.Left);
+        layoutCell.ComputedStyle.TextAlign.ShouldBe(TextAlign.Start);
+        layoutCell.ComputedStyle.TextAlign.ResolveFor(layoutCell.ComputedStyle.Direction).ShouldBe(TextAlign.Left);
     }
 
     [Fact]
@@ -842,7 +844,7 @@ public class TableLayoutTests
     public void TableLayout_ThVsTd_ShouldHaveDifferentDefaultAlignment()
     {
         // Arrange
-        // th 默认居中，td 默认左对齐
+        // th 默认居中，td 默认 start（LTR 下即左对齐）
         var table = new TableElement();
         var row = new TrElement();
         var th = new ThElement { TextContent = "Header" };
@@ -862,7 +864,7 @@ public class TableLayoutTests
         var layoutTd = layoutRow.Children[1];
 
         layoutTh.ComputedStyle.TextAlign.ShouldBe(TextAlign.Center);
-        layoutTd.ComputedStyle.TextAlign.ShouldBe(TextAlign.Left);
+        layoutTd.ComputedStyle.TextAlign.ShouldBe(TextAlign.Start);
     }
 
     [Fact]

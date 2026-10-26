@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Miko Localization</value>
+  </data>
+  <data name="NavHome" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="NavScripts" xml:space="preserve">
+    <value>Writing systems</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="HomeTitle" xml:space="preserve">
+    <value>Hello!</value>
+  </data>
+  <data name="HomeIntro" xml:space="preserve">
+    <value>Every string on this page comes from IStringLocalizer. Choose a language above: Arabic and Hebrew mirror the whole layout from right to left.</value>
+  </data>
+  <data name="FormattingTitle" xml:space="preserve">
+    <value>Culture-aware formatting</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Price" xml:space="preserve">
+    <value>Price</value>
+  </data>
+  <data name="Number" xml:space="preserve">
+    <value>Number</value>
+  </data>
+  <data name="ItemsInCart" xml:space="preserve">
+    <value>You have {0} items in your cart.</value>
+  </data>
+  <data name="Direction" xml:space="preserve">
+    <value>Layout direction</value>
+  </data>
+  <data name="DirectionLtr" xml:space="preserve">
+    <value>Left to right</value>
+  </data>
+  <data name="DirectionRtl" xml:space="preserve">
+    <value>Right to left</value>
+  </data>
+  <data name="MixedTitle" xml:space="preserve">
+    <value>Mixed-direction text</value>
+  </data>
+  <data name="MixedSample" xml:space="preserve">
+    <value>Miko 1.0 renders English, numbers (2026) and every other script in one line.</value>
+  </data>
+  <data name="ScriptsTitle" xml:space="preserve">
+    <value>Writing systems</value>
+  </data>
+  <data name="ScriptsIntro" xml:space="preserve">
+    <value>Text shaping by HarfBuzz: joined Arabic letters, Indic conjuncts, Thai marks and emoji sequences. Right-to-left samples are ordered by the Unicode bidirectional algorithm.</value>
+  </data>
+</root>

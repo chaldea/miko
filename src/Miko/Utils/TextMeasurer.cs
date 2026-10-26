@@ -69,6 +69,14 @@ public static class TextMeasurer
         float fontSize,
         FontWeight fontWeight)
     {
+        // Complex scripts, combining marks and emoji sequences: the shaped advance (ISSUE-157). The
+        // paragraph direction comes from the text itself; it decides visual order, not width.
+        if (!Text.TextComplexity.IsSimple(text))
+        {
+            var shaped = Text.TextShaping.Shape(text, fontFamily, fontSize, fontWeight, direction: null);
+            return (shaped.Width, shaped.Height);
+        }
+
         var fontManager = FontManager.Instance;
         var fallbackResolver = new FontFallbackResolver(fontManager);
         var textRuns = fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight);
@@ -223,6 +231,25 @@ public static class TextMeasurer
         float totalHeight = lineCount * effectiveLineHeight;
 
         return (maxActualWidth, totalHeight);
+    }
+
+    /// <summary>
+    /// Horizontal offset of the caret before the UTF-16 offset <paramref name="index"/> from the left
+    /// edge of the text drawn on one line (ISSUE-157). For simple left-to-right text this is the width
+    /// of the text before the caret; shaped and right-to-left text place it on the cluster edge in
+    /// visual order.
+    /// </summary>
+    public static float MeasureCaretOffset(
+        string text, int index, string fontFamily, float fontSize, FontWeight fontWeight,
+        Direction direction = Direction.Ltr)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+        index = Math.Clamp(index, 0, text.Length);
+        if (!Text.TextShaping.NeedsShaping(text, direction))
+        {
+            return MeasureTextWidth(text.Substring(0, index), fontFamily, fontSize, fontWeight);
+        }
+        return Text.TextShaping.Shape(text, fontFamily, fontSize, fontWeight, direction).GetCaretX(index);
     }
 
     /// <summary>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>ميكو للتعريب</value>
+  </data>
+  <data name="NavHome" xml:space="preserve">
+    <value>الرئيسية</value>
+  </data>
+  <data name="NavScripts" xml:space="preserve">
+    <value>أنظمة الكتابة</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>اللغة</value>
+  </data>
+  <data name="HomeTitle" xml:space="preserve">
+    <value>مرحبًا!</value>
+  </data>
+  <data name="HomeIntro" xml:space="preserve">
+    <value>كل نص في هذه الصفحة يأتي من IStringLocalizer. اختر لغة من الأعلى: العربية والعبرية تعكسان التخطيط بالكامل من اليمين إلى اليسار.</value>
+  </data>
+  <data name="FormattingTitle" xml:space="preserve">
+    <value>تنسيق حسب الثقافة</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>اليوم</value>
+  </data>
+  <data name="Price" xml:space="preserve">
+    <value>السعر</value>
+  </data>
+  <data name="Number" xml:space="preserve">
+    <value>رقم</value>
+  </data>
+  <data name="ItemsInCart" xml:space="preserve">
+    <value>لديك {0} عناصر في سلة التسوق.</value>
+  </data>
+  <data name="Direction" xml:space="preserve">
+    <value>اتجاه التخطيط</value>
+  </data>
+  <data name="DirectionLtr" xml:space="preserve">
+    <value>من اليسار إلى اليمين</value>
+  </data>
+  <data name="DirectionRtl" xml:space="preserve">
+    <value>من اليمين إلى اليسار</value>
+  </data>
+  <data name="MixedTitle" xml:space="preserve">
+    <value>نص متعدد الاتجاهات</value>
+  </data>
+  <data name="MixedSample" xml:space="preserve">
+    <value>يعرض Miko 1.0 العربية والإنجليزية (English) والأرقام (2026) في سطر واحد.</value>
+  </data>
+  <data name="ScriptsTitle" xml:space="preserve">
+    <value>أنظمة الكتابة</value>
+  </data>
+  <data name="ScriptsIntro" xml:space="preserve">
+    <value>تشكيل النص بواسطة HarfBuzz: الحروف العربية المتصلة، والحروف المركبة الهندية، وعلامات التايلاندية، وتسلسلات الرموز التعبيرية. تُرتَّب النماذج من اليمين إلى اليسار وفق خوارزمية يونيكود ثنائية الاتجاه.</value>
+  </data>
+</root>

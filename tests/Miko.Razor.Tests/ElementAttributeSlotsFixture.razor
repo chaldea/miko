@@ -27,12 +27,16 @@
         <li class="slot-li" value="9">nine</li>
     </ol>
     <canvas class="slot-canvas"></canvas>
+    @* ISSUE-157: dir on every element, literal or expression. *@
+    <p class="slot-dir" dir="rtl">x</p>
+    <span class="slot-dir-expr" dir="@_direction">y</span>
 </div>
 
 @code {
     private readonly int _max = 50;
     private readonly int _numericValue = 2;
     private readonly int _rows = 3;
+    private readonly string _direction = "ltr";
 
     // Static so the test can read the written-back value; reset before each render.
     internal static string? Choice { get; set; }

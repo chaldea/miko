@@ -43,6 +43,10 @@
     <Project Path="Multiplatform/MikoAppTabs/MikoAppTabs.Simulator/MikoAppTabs.Simulator.csproj" />
     <Project Path="Multiplatform/MikoAppTabs/MikoAppTabs/MikoAppTabs.csproj" />
   </Folder>
+  <Folder Name="/Localization/">
+    <Project Path="Localization/MikoApp.Localization.Desktop/MikoApp.Localization.Desktop.csproj" />
+    <Project Path="Localization/MikoApp.Localization/MikoApp.Localization.csproj" />
+  </Folder>
   <Folder Name="/Media/">
     <Project Path="Media/MikoApp.Media.Api/MikoApp.Media.Api.csproj" />
     <Project Path="Media/MikoApp.Media.Desktop/MikoApp.Media.Desktop.csproj" />

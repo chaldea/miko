@@ -19,8 +19,8 @@ namespace Miko.Ionic.Styles
             // Text Alignment
             styles[".ion-text-center"] = new() { TextAlign = TextAlign.Center };
             styles[".ion-text-justify"] = new() { TextAlign = TextAlign.Justify };
-            styles[".ion-text-start"] = new() { TextAlign = TextAlign.Left }; // Start maps to Left in LTR
-            styles[".ion-text-end"] = new() { TextAlign = TextAlign.Right }; // End maps to Right in LTR
+            styles[".ion-text-start"] = new() { TextAlign = TextAlign.Start };
+            styles[".ion-text-end"] = new() { TextAlign = TextAlign.End };
             styles[".ion-text-left"] = new() { TextAlign = TextAlign.Left };
             styles[".ion-text-right"] = new() { TextAlign = TextAlign.Right };
             styles[".ion-text-nowrap"] = new() { WhiteSpace = WhiteSpace.Nowrap };
