@@ -15,6 +15,13 @@ public class LayoutBox
     public Element Element { get; set; } = null!;
     public ComputedStyle ComputedStyle { get; set; } = null!;
 
+    /// <summary>
+    /// 文本类 input / textarea 的 <c>::placeholder</c> 计算样式（ISSUE-158）；没有规则匹配时为 null，
+    /// 占位符按 UA 默认（灰色、宿主字体）绘制。与 <see cref="ComputedStyle"/> 同在样式阶段产出，
+    /// 沿用计算样式的路径（样式复用、跨代搬运布局盒）必须一并带上它。
+    /// </summary>
+    public ComputedStyle? PlaceholderStyle { get; set; }
+
     // 盒子维度
     public BoxModel BoxModel { get; set; } = new();
 

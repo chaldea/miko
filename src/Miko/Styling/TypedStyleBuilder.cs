@@ -136,6 +136,12 @@ public class TypedStyleBuilder<T> where T : Element
     public PseudoElementStyleBuilder<T> After()
         => new(BuildSelector(), PseudoElementType.After);
 
+    /// <summary>
+    /// ::placeholder 伪元素（文本类 input 与 textarea 的占位符文字）
+    /// </summary>
+    public PseudoElementStyleBuilder<T> Placeholder()
+        => new(BuildSelector(), PseudoElementType.Placeholder);
+
     private Selector BuildSelector()
         => _selectors.Count == 1 ? _selectors[0] : new CompoundSelector(_selectors);
 

@@ -289,6 +289,7 @@ Miko 实现类浏览器的渲染管线：
 - 类选择器/伪类/属性选择器：10
 - ID 选择器：100
 - 内联样式：1000
+- `:is()`/`:not()`/`:has()` 取参数中最具体的一支，`:where()` 恒为 0，`:nth-child(An+B of S)` 为 10 加 S 中最具体的一支
 
 相同特异性时，后定义的规则优先（`StyleResolver` 按索引排序）。
 
@@ -504,13 +505,26 @@ styleSheet.Add(new CssObject
     {
         Padding = new Padding(8, 0)
     },
+
+    // 结构伪类：An+B（odd/even/整数/2n+1/-n+3…），可带 of S
+    [".list > li:nth-child(even)"] = new()
+    {
+        BackgroundColor = Color.FromRgb(248, 249, 250)
+    },
+
+    // 逻辑组合：:is() / :where()（特异性为 0）/ :not(列表) / :has(相对选择器)
+    [":is(h1, h2, .title)"] = new() { FontWeight = FontWeight.Bold },
+    [".card:has(> img)"] = new() { Padding = new Padding(0) },
     
     // 伪元素
     [".icon::before"] = new()
     {
         Content = "\"→\"",
         MarginRight = Length.Px(8)
-    }
+    },
+
+    // 占位符文字（文本类 input 与 textarea），只认 Color/Opacity/FontFamily/FontSize/FontWeight
+    ["input::placeholder"] = new() { Color = Color.FromRgb(108, 117, 125) }
 });
 
 // 媒体查询
@@ -553,7 +567,8 @@ styleSheet.Add(new CssObject
 });
 ```
 
-选择器特异性：**内联样式（1000） > ID（100） > Class/伪类/属性（10） > Tag（1）**
+选择器特异性：**内联样式（1000） > ID（100） > Class/伪类/属性（10） > Tag（1）**；`:where()` 为 0，
+`:is()`/`:not()`/`:has()` 取参数中最具体的一支。
 
 ### Layout（布局）
 
@@ -1056,21 +1071,24 @@ public class GridLayout
 
 **添加新选择器：**
 
-1. 在 `Styling/Selectors/` 创建新类，继承 `Selector`
-2. 实现 `Matches(Element)` 和 `Specificity` 属性
+1. 在 `Styling/Selectors/` 创建新类，伪类继承 `PseudoClassSelector`（特异性 10，`MayReadContentOrInlineStyle` 为 false）
+2. 实现 `Matches(Element)`；用索引循环、零分配（样式解析热路径），文本节点（`TextNode`）不算元素
+3. 在 `CssSelectorParser` 中注册名字（带参数的在 `ParseFunctionalPseudoClass`）
+4. 若它包含子选择器（如 `:is()`/`:has()` 的参数），在 `HoverRelevance` 的 `ContainsHover`/`CollectNested` 中补上分支，
+   否则参数里的 `:hover` 不会触发重算；并让 `MayReadContentOrInlineStyle` 取各部分之或
 
 ```csharp
-public class NthLastChildSelector : Selector
+public class OnlyChildSelector : PseudoClassSelector
 {
-    private readonly int _n;
-    
-    public override int Specificity => 10;  // 伪类特异性
-    
     public override bool Matches(Element element)
     {
-        if (element.Parent == null) return false;
-        var index = element.Parent.Children.Count - element.Parent.Children.IndexOf(element);
-        return index == _n;
+        var siblings = element.Parent?.Children;
+        if (siblings == null || element is TextNode) return false;
+        for (int i = 0; i < siblings.Count; i++)
+        {
+            if (siblings[i] is not TextNode && !ReferenceEquals(siblings[i], element)) return false;
+        }
+        return true;
     }
 }
 ```

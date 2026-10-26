@@ -298,9 +298,22 @@ Cascade order: **cascade layer → selector specificity → source order → inl
 
 Selector specificity within a layer (lowest to highest): **Tag → Class → ID → inline style**
 
-Pseudo-classes: `:hover`, `:focus`, `:focus-within`, `:active`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty`, `:not()` (no `:nth-child()`)
+Pseudo-classes: `:hover`, `:focus`, `:focus-within`, `:active`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty`, `:nth-child()` / `:nth-last-child()` (with `of S`), `:nth-of-type()` / `:nth-last-of-type()`, and the selector-list functions `:is()`, `:where()`, `:not()`, `:has()` (ISSUE-158)
 
-Pseudo-elements: `::before`, `::after`
+Pseudo-elements: `::before`, `::after`, `::placeholder`, `::range-thumb` / `::range-track` / `::range-progress`
+
+Selector invariants (ISSUE-158):
+- `:has()` arguments are `RelativeSelector`s matched **left to right** from the anchor (`MatchesFrom`), so
+  selectors hold no mutable "current scope" state and one sheet is safe across engines on many threads.
+- `HoverRelevance` must look inside functional arguments: `.card:has(.btn:hover)` hovers `.btn`, not
+  `.card`; `:is(.a:hover .b)` hovers ancestor `.a`. A new functional pseudo-class needs a case in
+  `ContainsHover` / `CollectNested`, or hover changes on the real target are skipped (ISSUE-104 gating).
+  `:not(:hover)` must stay scoped to its compound (no universal pattern).
+- `::placeholder` has no box: `StyleResolver.ResolvePseudoElement` cascades it (layer → specificity → order,
+  UA gray below author rules, inherits from the field) into `LayoutBox.PlaceholderStyle`. Paths that carry a
+  `ComputedStyle` to a new box (`TryReuseStyles`, `ComponentBase.TransferLayoutBox`) must carry it too.
+- Pseudo-elements inside functional arguments, empty arguments, and stray characters throw `ArgumentException`
+  (an unknown character used to spin `ParseCompound` forever).
 
 Combinators: descendant (` `), child (`>`), adjacent sibling (`+`), general sibling (`~`)
 

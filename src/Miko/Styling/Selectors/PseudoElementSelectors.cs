@@ -53,3 +53,11 @@ public class RangeTrackPseudoElement : PseudoElementSelector
 public class RangeProgressPseudoElement : PseudoElementSelector
 {
 }
+
+/// <summary>
+/// ::placeholder 伪元素选择器（文本类 input 与 textarea 的占位符文字，ISSUE-158）。
+/// 不生成盒子：布局引擎为宿主算出 <c>LayoutBox.PlaceholderStyle</c>，绘制占位符时读取其颜色、不透明度与字体。
+/// </summary>
+public class PlaceholderPseudoElement : PseudoElementSelector
+{
+}

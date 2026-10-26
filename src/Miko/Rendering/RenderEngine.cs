@@ -1478,6 +1478,27 @@ public class RenderEngine
     }
 
     /// <summary>
+    /// 占位符的绘制参数（ISSUE-158）：有 <c>::placeholder</c> 规则匹配时取其计算样式（颜色乘以其不透明度，
+    /// 字体未声明时已从宿主继承），否则为 UA 默认——灰色、宿主字体。
+    /// </summary>
+    private readonly record struct PlaceholderPaint(Color Color, string FontFamily, float FontSize, FontWeight FontWeight)
+    {
+        public static PlaceholderPaint Of(LayoutBox box)
+        {
+            if (box.PlaceholderStyle is not { } placeholder)
+            {
+                var host = box.ComputedStyle;
+                return new(Color.Gray, host.FontFamily, host.FontSize.Value, host.FontWeight);
+            }
+
+            var color = placeholder.Color;
+            if (placeholder.Opacity < 1f)
+                color = new Color(color.R, color.G, color.B, (byte)Math.Round(color.A * Math.Clamp(placeholder.Opacity, 0f, 1f)));
+            return new(color, placeholder.FontFamily, placeholder.FontSize.Value, placeholder.FontWeight);
+        }
+    }
+
+    /// <summary>
     /// 渲染输入框元素
     /// </summary>
     private void RenderInputElement(LayoutBox box, InputElement inputElement)
@@ -1548,13 +1569,14 @@ public class RenderEngine
                 }
                 else if (!string.IsNullOrEmpty(inputElement.Placeholder) && !isFocused)
                 {
+                    var placeholder = PlaceholderPaint.Of(box);
                     _painter.DrawText(
                         inputElement.Placeholder,
                         contentRect,
-                        Color.Gray,
-                        style.FontFamily,
-                        style.FontSize.Value,
-                        style.FontWeight,
+                        placeholder.Color,
+                        placeholder.FontFamily,
+                        placeholder.FontSize,
+                        placeholder.FontWeight,
                         TextAlign.Start,
                         VerticalAlign.Middle,
                         direction: style.Direction
@@ -1609,13 +1631,14 @@ public class RenderEngine
                 {
                     if (!string.IsNullOrEmpty(inputElement.Placeholder) && !isFocused)
                     {
+                        var placeholder = PlaceholderPaint.Of(box);
                         _painter.DrawText(
                             inputElement.Placeholder,
                             contentRect,
-                            Color.Gray,
-                            style.FontFamily,
-                            style.FontSize.Value,
-                            style.FontWeight,
+                            placeholder.Color,
+                            placeholder.FontFamily,
+                            placeholder.FontSize,
+                            placeholder.FontWeight,
                             TextAlign.Start,
                             VerticalAlign.Middle,
                             direction: style.Direction
@@ -1663,7 +1686,7 @@ public class RenderEngine
     /// 渲染多行文本框元素 (textarea)。
     ///
     /// 文本在内容盒内按行盒自顶向下多行绘制（white-space: pre-wrap），过长的行在内容宽度内换行。
-    /// 无内容且未聚焦时绘制灰色占位符。聚焦时在光标所在行/列绘制文本光标。
+    /// 无内容且未聚焦时绘制占位符（默认灰色，<c>::placeholder</c> 可改写）。聚焦时在光标所在行/列绘制文本光标。
     /// </summary>
     private void RenderTextAreaElement(LayoutBox box, TextAreaElement textArea)
     {
@@ -1697,13 +1720,14 @@ public class RenderEngine
         }
         else if (!string.IsNullOrEmpty(textArea.Placeholder) && !isFocused)
         {
+            var placeholder = PlaceholderPaint.Of(box);
             _painter.DrawMultilineText(
                 textArea.Placeholder,
                 contentRect,
-                Color.Gray,
-                style.FontFamily,
-                style.FontSize.Value,
-                style.FontWeight,
+                placeholder.Color,
+                placeholder.FontFamily,
+                placeholder.FontSize,
+                placeholder.FontWeight,
                 TextAlign.Start,
                 lineHeight,
                 Common.WhiteSpace.PreWrap,
