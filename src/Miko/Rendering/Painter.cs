@@ -1622,6 +1622,71 @@ public class Painter
     }
 
     /// <summary>
+    /// 绘制垂直 overlay 滚动条（ISSUE-156）：没有轨道，只有盖在内容上的半透明滑块。
+    /// 滑块几何与 <c>MikoEngine.HitTestScrollbar</c> 一致：<paramref name="viewportHeight"/> 是
+    /// padding box 高度，轨道长度取 <paramref name="trackRect"/>。
+    /// </summary>
+    public void DrawOverlayVerticalScrollbar(RectF trackRect, float scrollTop, float contentHeight, float viewportHeight, float opacity)
+    {
+        if (viewportHeight <= 0 || contentHeight <= viewportHeight || opacity <= 0f) return;
+
+        float thumbHeight = Math.Max(trackRect.Height * (viewportHeight / contentHeight), 20f);
+        float scrollableTrack = trackRect.Height - thumbHeight;
+        float maxScroll = contentHeight - viewportHeight;
+        float thumbY = trackRect.Top + (maxScroll > 0 ? (scrollTop / maxScroll) * scrollableTrack : 0);
+
+        DrawOverlayThumb(new SKRect(
+            trackRect.Left + 2,
+            thumbY + 2,
+            trackRect.Right - 2,
+            thumbY + thumbHeight - 2), opacity);
+    }
+
+    /// <summary>绘制水平 overlay 滚动条（ISSUE-156），见 <see cref="DrawOverlayVerticalScrollbar"/>。</summary>
+    public void DrawOverlayHorizontalScrollbar(RectF trackRect, float scrollLeft, float contentWidth, float viewportWidth, float opacity)
+    {
+        if (viewportWidth <= 0 || contentWidth <= viewportWidth || opacity <= 0f) return;
+
+        float thumbWidth = Math.Max(trackRect.Width * (viewportWidth / contentWidth), 20f);
+        float scrollableTrack = trackRect.Width - thumbWidth;
+        float maxScroll = contentWidth - viewportWidth;
+        float thumbX = trackRect.Left + (maxScroll > 0 ? (scrollLeft / maxScroll) * scrollableTrack : 0);
+
+        DrawOverlayThumb(new SKRect(
+            thumbX + 2,
+            trackRect.Top + 2,
+            thumbX + thumbWidth - 2,
+            trackRect.Bottom - 2), opacity);
+    }
+
+    /// <summary>
+    /// macOS 默认样式的 overlay 滑块：深色填充 + 浅色描边，深浅背景上都看得见。
+    /// </summary>
+    private void DrawOverlayThumb(SKRect thumbRect, float opacity)
+    {
+        if (thumbRect.Width <= 0 || thumbRect.Height <= 0) return;
+        float radius = Math.Min(thumbRect.Width, thumbRect.Height) / 2;
+        float alpha = Math.Clamp(opacity, 0f, 1f);
+
+        using var fill = new SKPaint
+        {
+            Color = new SKColor(0, 0, 0, (byte)(0x80 * alpha)),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+        _canvas.DrawRoundRect(thumbRect, radius, radius, fill);
+
+        using var stroke = new SKPaint
+        {
+            Color = new SKColor(0xFF, 0xFF, 0xFF, (byte)(0x60 * alpha)),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 1f,
+            IsAntialias = true
+        };
+        _canvas.DrawRoundRect(thumbRect, radius, radius, stroke);
+    }
+
+    /// <summary>
     /// 绘制文本光标。<paramref name="caretColor"/> 为 <c>caret-color</c> 的解析结果
     /// （调用方传入 <see cref="Styling.ComputedStyle.ResolvedCaretColor"/>，即显式颜色或回落到 color）。
     /// </summary>

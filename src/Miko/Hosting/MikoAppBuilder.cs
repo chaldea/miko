@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Miko.Animation;
+using Miko.Common;
 using Miko.Core;
 using Miko.Events;
 using Miko.Layout;
@@ -136,6 +137,32 @@ public class MikoAppBuilder
     public MikoAppBuilder EnableHotReload()
     {
         Services.Configure<MikoAppOptions>(o => o.EnableHotReload = true);
+        return this;
+    }
+
+    /// <summary>
+    /// Uses <paramref name="style"/> for scrollbars on every platform, replacing the platform
+    /// defaults (classic on Windows/Linux, overlay on macOS, none on iOS/Android — ISSUE-156).
+    /// A later <see cref="UseScrollbarStyle(HostPlatform, ScrollbarStyle)"/> refines one platform.
+    /// </summary>
+    public MikoAppBuilder UseScrollbarStyle(ScrollbarStyle style)
+    {
+        Services.Configure<MikoAppOptions>(o =>
+        {
+            foreach (var platform in Enum.GetValues<HostPlatform>())
+                o.ScrollbarStyles[platform] = style;
+        });
+        return this;
+    }
+
+    /// <summary>
+    /// Uses <paramref name="style"/> for scrollbars on <paramref name="platform"/> (ISSUE-156); other
+    /// platforms keep their defaults. Applies to <c>scrollbar-width: auto</c> and <c>thin</c>;
+    /// <c>scrollbar-width: none</c> still hides a container's scrollbars everywhere.
+    /// </summary>
+    public MikoAppBuilder UseScrollbarStyle(HostPlatform platform, ScrollbarStyle style)
+    {
+        Services.Configure<MikoAppOptions>(o => o.ScrollbarStyles[platform] = style);
         return this;
     }
 

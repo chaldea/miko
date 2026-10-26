@@ -64,12 +64,24 @@ public class LayoutBox
     public bool HasHorizontalScrollbar => ComputedStyle.OverflowX == Overflow.Scroll ||
         (ComputedStyle.OverflowX == Overflow.Auto && ScrollableContentWidth > BoxModel.PaddingBox.Width + 0.01f);
 
-    // scrollbar-width controls presentation only. A hidden scrollbar remains a scroll container.
-    public bool ShowsVerticalScrollbar => HasVerticalScrollbar && ComputedStyle.ScrollbarWidth != ScrollbarWidth.None;
-    public bool ShowsHorizontalScrollbar => HasHorizontalScrollbar && ComputedStyle.ScrollbarWidth != ScrollbarWidth.None;
+    // scrollbar-width and the platform's ScrollbarStyle control presentation only. A hidden
+    // scrollbar remains a scroll container. An overlay scrollbar "shows" even while faded out:
+    // whether it is visible right now is engine runtime state (OverlayScrollbarActivity).
+    public bool ShowsVerticalScrollbar => HasVerticalScrollbar && GetScrollbarThickness(ComputedStyle) > 0f;
+    public bool ShowsHorizontalScrollbar => HasHorizontalScrollbar && GetScrollbarThickness(ComputedStyle) > 0f;
 
+    /// <summary>Whether this box's scrollbars are overlay scrollbars (ISSUE-156).</summary>
+    public bool UsesOverlayScrollbars => ComputedStyle.ScrollbarStyle == ScrollbarStyle.Overlay;
+
+    // 滚动条轨道的绘制/命中厚度。
     public float VerticalScrollbarThickness => ShowsVerticalScrollbar ? GetScrollbarThickness(ComputedStyle) : 0f;
     public float HorizontalScrollbarThickness => ShowsHorizontalScrollbar ? GetScrollbarThickness(ComputedStyle) : 0f;
+
+    // 滚动条从可视区里占走的宽度（ISSUE-156）：只有 Classic 滚动条占位；overlay 盖在内容之上，
+    // 不缩小裁剪区，也不改变最大滚动量。内容裁剪、最大滚动量与 scroll-into-view 用它，
+    // 轨道几何（绘制、命中、拖拽）用上面的 *Thickness。
+    public float VerticalScrollbarGutter => ShowsVerticalScrollbar ? GetScrollbarGutter(ComputedStyle) : 0f;
+    public float HorizontalScrollbarGutter => ShowsHorizontalScrollbar ? GetScrollbarGutter(ComputedStyle) : 0f;
 
     // Prevent scroll-state restoration from overwriting a component's explicit initial position.
     internal bool InitialScrollTopApplied { get; set; }
@@ -99,12 +111,26 @@ public class LayoutBox
     public const float ScrollbarThickness = 12f;
     public const float ThinScrollbarThickness = 6f;
 
-    public static float GetScrollbarThickness(ComputedStyle style) => style.ScrollbarWidth switch
+    // Overlay 滚动条轨道宽度（不占布局空间；滑块在轨道内各留 2px，即 7px / 3px 宽）。
+    public const float OverlayScrollbarThickness = 11f;
+    public const float ThinOverlayScrollbarThickness = 7f;
+
+    /// <summary>轨道厚度：<c>scrollbar-width</c> 选粗细，平台的 <see cref="ScrollbarStyle"/> 选样式。</summary>
+    public static float GetScrollbarThickness(ComputedStyle style)
     {
-        ScrollbarWidth.None => 0f,
-        ScrollbarWidth.Thin => ThinScrollbarThickness,
-        _ => ScrollbarThickness,
-    };
+        if (style.ScrollbarWidth == ScrollbarWidth.None) return 0f;
+        bool thin = style.ScrollbarWidth == ScrollbarWidth.Thin;
+        return style.ScrollbarStyle switch
+        {
+            ScrollbarStyle.None => 0f,
+            ScrollbarStyle.Overlay => thin ? ThinOverlayScrollbarThickness : OverlayScrollbarThickness,
+            _ => thin ? ThinScrollbarThickness : ScrollbarThickness,
+        };
+    }
+
+    /// <summary>布局要为滚动条预留的宽度：只有 Classic 滚动条占位（ISSUE-156）。</summary>
+    public static float GetScrollbarGutter(ComputedStyle style)
+        => style.ScrollbarStyle == ScrollbarStyle.Classic ? GetScrollbarThickness(style) : 0f;
 
     public override string ToString() => $"LayoutBox({Element.TagName}, Type: {Type})";
 }

@@ -14,6 +14,13 @@ namespace Miko.Rendering;
 public class RenderEngine
 {
     public AnimatedStyleOverlay? AnimatedStyles { get; set; }
+
+    /// <summary>
+    /// Overlay 滚动条的显隐时钟（ISSUE-156），由所属 <see cref="Core.MikoEngine"/> 在构造时接上。
+    /// 为 null（不经引擎单独使用渲染引擎）时 overlay 滚动条按空闲态处理，即不绘制。
+    /// </summary>
+    public OverlayScrollbarActivity? OverlayScrollbars { get; set; }
+
     /// <summary>
     /// 增量渲染脏区域数量阈值。脏区域超过该数量时，多次全树遍历的成本会超过一次全量渲染
     /// （见基准报告 §2 拐点 30–50），此时应回退到全量渲染。
@@ -695,17 +702,9 @@ public class RenderEngine
         if (_painter == null) return;
 
         var paddingBox = box.BoxModel.PaddingBox;
-        float clipWidth = paddingBox.Width;
-        float clipHeight = paddingBox.Height;
-
-        if (box.ShowsVerticalScrollbar)
-        {
-            clipWidth -= box.VerticalScrollbarThickness;
-        }
-        if (box.ShowsHorizontalScrollbar)
-        {
-            clipHeight -= box.HorizontalScrollbarThickness;
-        }
+        // 只扣掉 Classic 滚动条占的位；overlay 滚动条盖在内容之上，内容照常画到边缘（ISSUE-156）。
+        float clipWidth = paddingBox.Width - box.VerticalScrollbarGutter;
+        float clipHeight = paddingBox.Height - box.HorizontalScrollbarGutter;
 
         var clipRect = new RectF(paddingBox.X, paddingBox.Y, clipWidth, clipHeight);
 
@@ -761,6 +760,12 @@ public class RenderEngine
         var paddingBox = box.BoxModel.PaddingBox;
         bool hasVScrollbar = box.ShowsVerticalScrollbar;
         bool hasHScrollbar = box.ShowsHorizontalScrollbar;
+        if (!hasVScrollbar && !hasHScrollbar) return;
+
+        // Overlay 滚动条只在滚动后的一小段时间里可见（ISSUE-156）：淡出后完全不画。
+        bool overlay = box.UsesOverlayScrollbars;
+        float opacity = overlay ? OverlayScrollbars?.GetOpacity(box.Element) ?? 0f : 1f;
+        if (opacity <= 0f) return;
 
         if (hasVScrollbar)
         {
@@ -769,11 +774,23 @@ public class RenderEngine
             float trackHeight = paddingBox.Height - box.HorizontalScrollbarThickness;
             var trackRect = new RectF(trackX, paddingBox.Y, thickness, trackHeight);
 
-            _painter.DrawVerticalScrollbar(
-                trackRect,
-                box.ScrollTop,
-                box.ScrollableContentHeight,
-                trackHeight);
+            if (overlay)
+            {
+                _painter.DrawOverlayVerticalScrollbar(
+                    trackRect,
+                    box.ScrollTop,
+                    box.ScrollableContentHeight,
+                    paddingBox.Height,
+                    opacity);
+            }
+            else
+            {
+                _painter.DrawVerticalScrollbar(
+                    trackRect,
+                    box.ScrollTop,
+                    box.ScrollableContentHeight,
+                    trackHeight);
+            }
         }
 
         if (hasHScrollbar)
@@ -783,11 +800,23 @@ public class RenderEngine
             float trackWidth = paddingBox.Width - box.VerticalScrollbarThickness;
             var trackRect = new RectF(paddingBox.X, trackY, trackWidth, thickness);
 
-            _painter.DrawHorizontalScrollbar(
-                trackRect,
-                box.ScrollLeft,
-                box.ScrollableContentWidth,
-                trackWidth);
+            if (overlay)
+            {
+                _painter.DrawOverlayHorizontalScrollbar(
+                    trackRect,
+                    box.ScrollLeft,
+                    box.ScrollableContentWidth,
+                    paddingBox.Width,
+                    opacity);
+            }
+            else
+            {
+                _painter.DrawHorizontalScrollbar(
+                    trackRect,
+                    box.ScrollLeft,
+                    box.ScrollableContentWidth,
+                    trackWidth);
+            }
         }
     }
 

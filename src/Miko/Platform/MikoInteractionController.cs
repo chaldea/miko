@@ -305,7 +305,22 @@ public sealed class MikoInteractionController
         Element root;
         try { root = BuildRoot(); }
         finally { SynchronizationContext.SetSynchronizationContext(prevCtx); }
+        // 首次布局就用上平台的滚动条样式，免得第一帧按 Classic 排完、下一帧再整树重排。
+        SyncScrollbarStyle();
         _engine.Initialize(root, _options.StyleSheets, canvas, width, height);
+    }
+
+    /// <summary>
+    /// 把当前平台的滚动条呈现方式交给引擎（ISSUE-156）：平台默认值
+    /// （<see cref="PlatformScrollbars"/>）叠加应用经 <c>UseScrollbarStyle</c> 做的调整。
+    /// <para>每帧读一次平台而不是只在启动时读：模拟器换设备会改写 <see cref="PlatformInfo.Platform"/>，
+    /// 滚动条要随之变化——与 Ionic 的 md/ios 模式同一个来源。值不变时引擎侧是空操作。
+    /// 没有平台服务（不经 <c>MikoAppBuilder</c> 构造）时不动引擎自己的设置。</para>
+    /// </summary>
+    private void SyncScrollbarStyle()
+    {
+        if (_platformService == null) return;
+        _engine.ScrollbarStyle = _options.ResolveScrollbarStyle(_platformService.Platform);
     }
 
     /// <summary>执行所有 PostInit 钩子（如 DevTools 桥接初始化）。</summary>
@@ -417,6 +432,8 @@ public sealed class MikoInteractionController
                 // changes it with no separate resize call, and without this the layout kept the
                 // portrait width. A no-op when the size is unchanged.
                 _engine.SetViewportSize(width, height);
+                // Same for the scrollbar presentation: the simulator switches the platform live.
+                SyncScrollbarStyle();
 
                 if (_needsRebuild)
                     Rebuild(canvas, width, height, paint: false);

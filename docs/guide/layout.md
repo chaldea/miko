@@ -164,6 +164,32 @@ The `Position` property controls how an element is placed relative to the normal
 `Overflow` (`Visible`, `Hidden`, `Scroll`, `Auto`) controls clipping and scrolling of
 content that exceeds the box.
 
+## Scrollbars
+
+How a scroll container's scrollbars look follows the platform, as `scrollbar-width: auto` does in
+a browser:
+
+| Platform | Default `ScrollbarStyle` | Behavior |
+| --- | --- | --- |
+| Windows, Linux | `Classic` | Track and thumb are always visible and take layout space. |
+| macOS | `Overlay` | A thin thumb is drawn over the content without taking space. It appears while the container scrolls and fades out about a second after scrolling stops. |
+| iOS, Android | `None` | No scrollbar is drawn. |
+
+Whatever the style, an `Overflow.Auto` / `Overflow.Scroll` container still scrolls by wheel and
+touch. `ScrollbarWidth` (`Auto`, `Thin`, `None`) still sets the thickness per container, and
+`ScrollbarWidth.None` hides its scrollbars on every platform.
+
+To change the defaults, configure the app builder:
+
+```csharp
+builder.UseScrollbarStyle(HostPlatform.MacOS, ScrollbarStyle.Classic); // one platform
+builder.UseScrollbarStyle(ScrollbarStyle.None);                        // every platform
+```
+
+The style follows the platform the app currently runs as, so the device simulator switches
+scrollbars together with the selected device. An engine built directly with `MikoEngineBuilder`
+(no app builder) always uses `Classic`; set `MikoEngine.ScrollbarStyle` to change it.
+
 ## Sizing
 
 `Width`, `Height`, `MinWidth`, `MaxWidth`, `MinHeight`, and `MaxHeight` take a `Length`
