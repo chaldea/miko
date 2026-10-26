@@ -248,6 +248,14 @@ public class StyleResolver
             }
         }
 
+        // The dir attribute is a presentational hint (ISSUE-157): it sits with the UA defaults, below
+        // every author rule, and descendants inherit the resulting direction.
+        if (element.Dir is { } dir)
+        {
+            if (dir.Equals("rtl", StringComparison.OrdinalIgnoreCase)) style.Direction ??= Common.Direction.Rtl;
+            else if (dir.Equals("ltr", StringComparison.OrdinalIgnoreCase)) style.Direction ??= Common.Direction.Ltr;
+        }
+
         // 根据标签名应用默认样式
         switch (tagName)
         {
@@ -569,7 +577,8 @@ public class StyleResolver
 
             case "td":
                 style.Display ??= Common.Display.TableCell;
-                style.TextAlign ??= Common.TextAlign.Left;
+                // `start`, not `left`: a right-to-left table aligns its cells to the right (ISSUE-157).
+                style.TextAlign ??= Common.TextAlign.Start;
                 style.PaddingTop ??= Common.Length.Px(1);
                 style.PaddingRight ??= Common.Length.Px(1);
                 style.PaddingBottom ??= Common.Length.Px(1);

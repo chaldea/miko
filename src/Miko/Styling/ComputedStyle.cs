@@ -440,7 +440,8 @@ public partial class ComputedStyle : Style
     public new string FontFamily { get; set; } = "Arial";
     public new Length FontSize { get; set; } = Length.Px(16);
     public new FontWeight FontWeight { get; set; } = Common.FontWeight.Normal;
-    public new TextAlign TextAlign { get; set; } = Common.TextAlign.Left;
+    // CSS initial value `start`: left in ltr, right in rtl (resolved where text is laid out, ISSUE-157).
+    public new TextAlign TextAlign { get; set; } = Common.TextAlign.Start;
     public new Length LineHeight { get; set; } = Length.Px(0);  // 0 = auto/normal
 
     public new Position Position { get; set; } = Common.Position.Static;

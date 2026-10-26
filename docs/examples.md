@@ -10,6 +10,7 @@ the framework — from cross-platform Razor apps to async HTTP communication and
 | [Windows](#windows) | The same starter templates as single Windows desktop projects. |
 | [Async](#async) | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls. |
 | [Media](#media) | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
+| [Localization](#localization) | `IStringLocalizer` + `.resx`, live language switching, right-to-left layout, complex scripts. |
 
 ## Multiplatform
 
@@ -76,6 +77,21 @@ dotnet run --project examples/Media/MikoApp.Media.Api        # http://localhost:
 > The client carries **no FFmpeg binaries** — `UseSystemVideo()` dispatches to Media Foundation
 > (Windows), GStreamer (Linux) or AVFoundation (macOS). Only the API project references FFmpeg,
 > and only to pre-generate the sample clip offline.
+
+## Localization
+
+`MikoApp.Localization` reads its strings through `IStringLocalizer<T>` from `.resx` files and
+switches the running app between English, Simplified Chinese, Arabic, Hebrew and Hindi. In Arabic
+and Hebrew the layout is mirrored with `dir="rtl"`; a second page shows complex scripts and
+mixed-direction text.
+
+```bash
+dotnet run --project examples/Localization/MikoApp.Localization.Desktop
+# start in a given language:
+dotnet run --project examples/Localization/MikoApp.Localization.Desktop -- ar-EG
+```
+
+See [Localization & Right-to-Left](./guide/localization.md) for the concepts.
 
 ---
 

@@ -13,6 +13,7 @@ the framework — from a static render-to-PNG console app to full cross-platform
 | [`Windows/`](#windows)              | The same starter templates as single Windows desktop projects.                 |
 | [`Async/`](#async)                  | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls.  |
 | [`Media/`](#media)                  | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
+| [`Localization/`](#localization)    | `IStringLocalizer` + `.resx`, live language switching, right-to-left layout, complex scripts. |
 | [`App/Anime/`](#anime)              | Multiplatform Ionic three-tab anime demo with interface-backed mock services.  |
 
 ---
@@ -212,6 +213,43 @@ dotnet run --project examples/Media/MikoApp.Media.Api        # http://localhost:
 > The client carries **no FFmpeg binaries**: video uses Media Foundation (Windows),
 > GStreamer (Linux) or AVFoundation (macOS). Only `MikoApp.Media.Api` references FFmpeg,
 > and only to pre-generate the sample clip.
+
+---
+
+## Localization
+
+`Localization/` — A localized app built the way an ASP.NET Core / Blazor app is: strings in
+`.resx` files read through `IStringLocalizer<T>`, and a language picker that switches the
+running app between English, Simplified Chinese, Arabic, Hebrew and Hindi (ISSUE-157).
+
+| Project                          | Role                                                         |
+| -------------------------------- | ------------------------------------------------------------ |
+| `MikoApp.Localization`           | Shared Razor UI, `Resources/SharedResource.*.resx`, `AppLanguage`. |
+| `MikoApp.Localization.Desktop`   | Desktop startup project.                                     |
+
+**Run:**
+
+```bash
+dotnet run --project examples/Localization/MikoApp.Localization.Desktop
+# start in a given language:
+dotnet run --project examples/Localization/MikoApp.Localization.Desktop -- ar-EG
+```
+
+**What it demonstrates:**
+
+- `builder.Services.AddLocalization(...)` and `@inject IStringLocalizer<SharedResource>`; a
+  formatted string (`L["ItemsInCart", 3]`) and culture-aware dates, currency and numbers
+- Switching language at run time: `AppLanguage` sets the process-wide default cultures and raises
+  an event; the layout re-renders, and its page with it
+- `dir="rtl"` on the layout root for Arabic and Hebrew — text aligns to the right, flex rows and
+  the toolbar mirror, and the logical `BorderInlineStart*` accent bar moves to the right edge,
+  with no right-to-left specific styles
+- The *Writing systems* page: Arabic and Persian joining, Hebrew, Devanagari and Bengali
+  conjuncts, Thai marks, Vietnamese diacritics, CJK and emoji sequences, shaped by HarfBuzz and
+  ordered by the Unicode bidirectional algorithm — mixed-direction lines included
+
+The samples use the operating system's fonts. Windows and macOS cover every script on the page;
+on Linux install Noto fonts (`fonts-noto-core`, `fonts-noto-cjk`, `fonts-noto-color-emoji`).
 
 ---
 

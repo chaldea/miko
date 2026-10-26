@@ -1,0 +1,37 @@
+@inherits Miko.Components.LayoutComponentBase
+@namespace MikoApp.Localization
+@inject AppLanguage Language
+@inject IStringLocalizer<SharedResource> L
+
+@* dir follows the language: under "rtl" the inline flow, text-align: start and the flex rows
+   below are all mirrored, with no right-to-left specific styles. *@
+<div class="app" dir="@(Language.IsRightToLeft ? "rtl" : "ltr")">
+    <div class="toolbar">
+        <span class="app-title">@L["AppTitle"]</span>
+        <div class="nav">
+            <button class="nav-btn" @onclick="@(_ => Go("/"))">@L["NavHome"]</button>
+            <button class="nav-btn" @onclick="@(_ => Go("/scripts"))">@L["NavScripts"]</button>
+        </div>
+        <div class="languages">
+            @foreach (var option in AppLanguage.Options)
+            {
+                <button class="@(option.CultureName == Language.Culture.Name ? "lang-btn lang-btn-active" : "lang-btn")"
+                        @onclick="@(_ => Language.Set(option.CultureName))">@option.NativeName</button>
+            }
+        </div>
+    </div>
+
+    @* The layout re-renders on a language switch, and the page with it, so every string is
+       looked up again in the new culture. *@
+    <div class="page">
+        @Body
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => Language.Changed += StateHasChanged;
+
+    protected override void OnDispose() => Language.Changed -= StateHasChanged;
+
+    private void Go(string path) => NavigationManager?.NavigateTo(path);
+}

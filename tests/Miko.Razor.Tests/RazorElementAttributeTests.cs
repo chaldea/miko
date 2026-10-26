@@ -24,6 +24,13 @@ public class RazorElementAttributeTests : IDisposable
         => _ctx.Render<ElementAttributeSlotsFixture>().FindByClass(className).ShouldHaveSingleItem().ShouldBeOfType<T>();
 
     [Fact]
+    public void Dir_ReachesTheElement_AndSetsItsDirection()
+    {
+        Single<ParagraphElement>("slot-dir").Dir.ShouldBe("rtl");
+        Single<SpanElement>("slot-dir-expr").Dir.ShouldBe("ltr");
+    }
+
+    [Fact]
     public void InputPlaceholder_AndLabelFor_ReachTheElements()
     {
         Single<InputElement>("slot-input").Placeholder.ShouldBe("Your name");

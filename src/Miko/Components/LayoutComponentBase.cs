@@ -33,6 +33,9 @@ public abstract class LayoutComponentBase : ComponentBase
     {
         get
         {
+            // After the routed build, the page's current root (the latest generation, so nothing
+            // older is pinned). Reading the property never re-renders the page.
+            if (_pageBuilt && _bodyElement is null) return _page?.CurrentRoot;
             if (ResolveBody() is null) return null;
             _bodyElement = _bodyElement!.ResolveSuperseded();
             return _bodyElement;
@@ -41,7 +44,8 @@ public abstract class LayoutComponentBase : ComponentBase
     }
 
     private Element? _bodyElement;
-    private Func<Element>? _buildBody;
+    private ComponentBase? _page;
+    private bool _pageBuilt;
 
     /// <summary>
     /// 交给布局一个「按需构建页面」的入口（由 <see cref="Routing.RouteView"/> 在构建布局前调用）。
@@ -51,19 +55,33 @@ public abstract class LayoutComponentBase : ComponentBase
     /// 页面因此能拿到布局级联下来的值。先建页面再建布局时，页面永远拿不到布局里
     /// <c>IonApp</c> 级联的弹层上下文，声明的弹层全部内联渲染（ISSUE-153 问题 1）。</para>
     /// </summary>
-    internal void SetBody(Func<Element> buildBody)
+    internal void SetBody(ComponentBase page)
     {
         _bodyElement = null;
-        _buildBody = buildBody;
+        _page = page;
+        _pageBuilt = false;
         Body = builder => builder.AttachElement(ResolveBody()!);
     }
 
     private Element? ResolveBody()
     {
-        if (_bodyElement is null && _buildBody is not null)
+        if (_bodyElement is null && _page is not null)
         {
-            _bodyElement = _buildBody();
-            _buildBody = null;
+            if (!_pageBuilt)
+            {
+                _bodyElement = _page.Build();
+                _pageBuilt = true;
+            }
+            else
+            {
+                // The layout re-renders itself (StateHasChanged after its own handler, e.g. a
+                // language switch, ISSUE-157). Its page re-renders with it, as a nested component
+                // does with its parent, and the new layout tree takes the page's current root —
+                // which moves out of the old tree, so discarding that tree leaves the page alone.
+                // Before, Body was gone by now and the page vanished from the layout.
+                _page.RenderNow();
+                return _page.CurrentRoot;
+            }
         }
         return _bodyElement;
     }
@@ -71,21 +89,17 @@ public abstract class LayoutComponentBase : ComponentBase
     /// <summary>
     /// 主动放开对页面内容的引用（由 <see cref="Routing.RouteView"/> 在装配完布局后调用）。
     ///
-    /// <para>三个字段都要放：<see cref="BodyElement"/> 直接持有第 0 代内容根，按需构建的入口
-    /// 捕获着页面组件，<see cref="Body"/> 闭包又经布局自身读回它们，留着任何一个都等于攥住第 0 代。
-    /// 它的 <c>SupersededBy</c> <b>前向</b>链会让此后每一代——连同每个元素约 6&#160;KB 的
-    /// <c>ComputedStyle</c>——全部可达（ISSUE-142 复审：反复点 <c>IonSegmentButton</c>
+    /// <para>放开的是<b>元素</b>：<see cref="BodyElement"/> 直接持有第 0 代内容根，留着它就等于
+    /// 攥住第 0 代，它的 <c>SupersededBy</c> <b>前向</b>链会让此后每一代——连同每个元素约
+    /// 6&#160;KB 的 <c>ComputedStyle</c>——全部可达（ISSUE-142 复审：反复点 <c>IonSegmentButton</c>
     /// 每次泄漏约 730&#160;KB，600 次后 21&#160;MB → 457&#160;MB，强制压缩回收也放不掉）。</para>
     ///
-    /// <para>放开是安全的：两者都只在布局的 <c>Build()</c> 期间被读到一次
-    /// ——Razor 布局写 <c>@Body</c>，手写布局读 <see cref="BodyElement"/>——
-    /// 此后页面内容由已经建成的元素树自己持有，重渲染走的是 <c>StateHasChanged</c>
-    /// 就地替换，不会再回头问布局要内容。</para>
+    /// <para>页面<b>组件</b>则保留：它只指向自己当前这一代根（<see cref="ComponentBase.CurrentRoot"/>），
+    /// 不攥任何旧代；而且它本就经由内容树上的拆解回调可达，多一个引用不延长任何生命周期。
+    /// 留着它，布局之后自己重渲染时 <see cref="Body"/> 仍能交出页面（ISSUE-157）。</para>
     /// </summary>
     internal void ReleaseBody()
     {
         _bodyElement = null;
-        _buildBody = null;
-        Body = null;
     }
 }

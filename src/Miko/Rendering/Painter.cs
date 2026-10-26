@@ -512,9 +512,17 @@ public class Painter
     /// </summary>
     /// <param name="letterSpacing">CSS letter-spacing（像素），每个字符后追加的额外间距。</param>
     /// <param name="textOverflow">单行溢出呈现方式；<c>Ellipsis</c> 时超出 rect 宽度的文本以省略号收尾。</param>
-    public void DrawText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, VerticalAlign verticalAlign = VerticalAlign.Top, float letterSpacing = 0, TextOverflow textOverflow = TextOverflow.Clip)
+    /// <param name="direction">Paragraph direction: resolves <c>start</c>/<c>end</c> alignment and orders bidi text.</param>
+    public void DrawText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, VerticalAlign verticalAlign = VerticalAlign.Top, float letterSpacing = 0, TextOverflow textOverflow = TextOverflow.Clip, Direction direction = Direction.Ltr)
     {
         if (string.IsNullOrEmpty(text) || color.A == 0) return;
+
+        textAlign = textAlign.ResolveFor(direction);
+        if (Text.TextShaping.NeedsShaping(text, direction))
+        {
+            DrawShapedText(text, rect, color, fontFamily, fontSize, fontWeight, textAlign, verticalAlign, letterSpacing, textOverflow, direction);
+            return;
+        }
 
         var fontManager = FontManager.Instance;
         var fallbackResolver = new FontFallbackResolver(fontManager);
@@ -567,6 +575,74 @@ public class Painter
             var font = CreateHighQualityFont(run.Typeface, fontSize);
             x = DrawRun(run.Text, x, y, font, paint, letterSpacing);
         }
+    }
+
+    /// <summary>
+    /// Single-line text that needs bidi reordering or shaping (ISSUE-157). Same geometry as the simple
+    /// path of <see cref="DrawText"/>: aligned within <paramref name="rect"/>, baseline from the first
+    /// run's font, ellipsis when it overflows.
+    /// </summary>
+    private void DrawShapedText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight,
+        TextAlign textAlign, VerticalAlign verticalAlign, float letterSpacing, TextOverflow textOverflow, Direction direction)
+    {
+        var shaped = Text.TextShaping.Shape(text, fontFamily, fontSize, fontWeight, direction, letterSpacing);
+        if (textOverflow == TextOverflow.Ellipsis && rect.Width > 0 && shaped.Width > rect.Width + 0.5f)
+        {
+            shaped = TruncateWithEllipsis(text, rect.Width, fontFamily, fontSize, fontWeight, direction, letterSpacing);
+        }
+
+        float x = textAlign switch
+        {
+            TextAlign.Right => rect.Right - shaped.Width,
+            TextAlign.Center => rect.Left + (rect.Width - shaped.Width) / 2,
+            _ => rect.Left,
+        };
+        DrawShaped(shaped, x, BaselineFor(shaped, fontSize, rect, verticalAlign), color);
+    }
+
+    /// <summary>
+    /// The longest prefix of whole grapheme clusters that fits <paramref name="width"/> together with
+    /// an ellipsis, shaped. Binary search over cluster boundaries: each probe shapes the prefix, so a
+    /// long overflowing string costs O(log n) shapes rather than one per character.
+    /// </summary>
+    internal static Text.ShapedText TruncateWithEllipsis(string text, float width, string fontFamily, float fontSize,
+        FontWeight fontWeight, Direction direction, float letterSpacing)
+    {
+        const string ellipsis = "…";
+        var boundaries = System.Globalization.StringInfo.ParseCombiningCharacters(text);
+        int low = 0, high = boundaries.Length - 1;
+        while (low < high)
+        {
+            int mid = (low + high + 1) / 2;
+            var probe = Text.TextShaping.Shape(text.Substring(0, boundaries[mid]) + ellipsis, fontFamily, fontSize, fontWeight, direction, letterSpacing);
+            if (probe.Width <= width) low = mid;
+            else high = mid - 1;
+        }
+        // At least one cluster stays, as on the simple path.
+        int keep = boundaries.Length > 1 ? boundaries[Math.Max(1, low)] : text.Length;
+        return Text.TextShaping.Shape(text.Substring(0, keep) + ellipsis, fontFamily, fontSize, fontWeight, direction, letterSpacing);
+    }
+
+    /// <summary>Baseline of shaped text in a box, matching the simple path (first run's font metrics).</summary>
+    private static float BaselineFor(Text.ShapedText shaped, float fontSize, RectF rect, VerticalAlign verticalAlign)
+    {
+        var metrics = CreateHighQualityFont(shaped.BaselineTypeface ?? SKTypeface.Default, fontSize).Metrics;
+        if (verticalAlign == VerticalAlign.Middle)
+        {
+            float textHeight = metrics.Descent - metrics.Ascent;
+            return rect.Top + (rect.Height - textHeight) / 2 - metrics.Ascent;
+        }
+        return rect.Top - metrics.Ascent;
+    }
+
+    /// <summary>Draws a shaped line with its left edge at <paramref name="x"/> and baseline at <paramref name="baseline"/>.</summary>
+    private void DrawShaped(Text.ShapedText shaped, float x, float baseline, Color color)
+    {
+        if (color.A == 0) return;
+        var blob = shaped.GetBlob(CreateHighQualityFont);
+        if (blob == null) return;
+        _textPaint.Color = color.ToSKColor();
+        _canvas.DrawText(blob, x, baseline, _textPaint);
     }
 
     /// <summary>
@@ -666,9 +742,21 @@ public class Painter
     /// 基线按 VerticalAlign.Middle 语义取行盒垂直中心（半行距上下均分，
     /// 与 CSS 行盒模型一致；单行场景与 <see cref="DrawText"/> 的 Middle 路径逐像素一致）。
     /// </summary>
-    public void DrawTextLine(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, float letterSpacing = 0)
+    /// <param name="direction">
+    /// Direction of the fragment's bidi level (ISSUE-157). An RTL fragment is shaped right-to-left
+    /// and anchored to the right edge of <paramref name="rect"/>, where the line layout placed it.
+    /// </param>
+    public void DrawTextLine(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, float letterSpacing = 0, Direction direction = Direction.Ltr)
     {
         if (string.IsNullOrEmpty(text) || color.A == 0) return;
+
+        if (Text.TextShaping.NeedsShaping(text, direction))
+        {
+            var shaped = Text.TextShaping.Shape(text, fontFamily, fontSize, fontWeight, direction, letterSpacing);
+            float left = direction == Direction.Rtl ? rect.Right - shaped.Width : rect.Left;
+            DrawShaped(shaped, left, BaselineFor(shaped, fontSize, rect, VerticalAlign.Middle), color);
+            return;
+        }
 
         var fontManager = FontManager.Instance;
         var fallbackResolver = new FontFallbackResolver(fontManager);
@@ -695,9 +783,11 @@ public class Painter
     /// <summary>
     /// 绘制多行文本（支持换行）
     /// </summary>
-    public void DrawMultilineText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, float lineHeight, WhiteSpace whiteSpace, VerticalAlign verticalAlign = VerticalAlign.Top, bool breakLongWords = false, float letterSpacing = 0)
+    public void DrawMultilineText(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, float lineHeight, WhiteSpace whiteSpace, VerticalAlign verticalAlign = VerticalAlign.Top, bool breakLongWords = false, float letterSpacing = 0, Direction direction = Direction.Ltr)
     {
         if (string.IsNullOrEmpty(text) || color.A == 0) return;
+
+        textAlign = textAlign.ResolveFor(direction);
 
         // 预处理文本
         var processedText = Utils.TextWrapper.ProcessText(text, whiteSpace);
@@ -724,7 +814,20 @@ public class Painter
         float currentY = startY;
         foreach (var line in lines)
         {
-            if (!string.IsNullOrEmpty(line))
+            if (!string.IsNullOrEmpty(line) && Text.TextShaping.NeedsShaping(line, direction))
+            {
+                // Each line is its own bidi paragraph here (the wrapper breaks before reordering).
+                var shaped = Text.TextShaping.Shape(line, fontFamily, fontSize, fontWeight, direction, letterSpacing);
+                float shapedX = textAlign switch
+                {
+                    TextAlign.Right => rect.Right - shaped.Width,
+                    TextAlign.Center => rect.Left + (rect.Width - shaped.Width) / 2,
+                    _ => rect.Left,
+                };
+                var lineRect = new RectF(rect.Left, currentY, rect.Width, lineHeight);
+                DrawShaped(shaped, shapedX, BaselineFor(shaped, fontSize, lineRect, VerticalAlign.Top), color);
+            }
+            else if (!string.IsNullOrEmpty(line))
             {
                 var fallbackResolver = new FontFallbackResolver(fontManager);
                 var textRuns = fallbackResolver.ResolveTextRuns(line, fontFamily, fontWeight);
@@ -878,6 +981,15 @@ public class Painter
         float letterSpacing)
     {
         if (segment.Length == 0 || color.A == 0) return x;
+
+        // Code is laid out left-to-right; a segment with complex script (an Arabic string literal,
+        // an emoji in a comment) is still shaped so its glyphs join (ISSUE-157).
+        if (Text.TextShaping.NeedsShaping(segment))
+        {
+            var shaped = Text.TextShaping.Shape(segment, fontFamily, fontSize, fontWeight, Direction.Ltr, letterSpacing);
+            DrawShaped(shaped, x, BaselineFor(shaped, fontSize, new RectF(x, lineTop, 0, 0), VerticalAlign.Top), color);
+            return x + shaped.Width;
+        }
 
         var resolver = new FontFallbackResolver(FontManager.Instance);
         var runs = resolver.ResolveTextRuns(segment, fontFamily, fontWeight);
@@ -1698,28 +1810,42 @@ public class Painter
         float fontSize,
         FontWeight fontWeight,
         Color caretColor,
-        TextAlign textAlign = TextAlign.Left)
+        TextAlign textAlign = TextAlign.Left,
+        Direction direction = Direction.Ltr)
     {
-        var fontManager = FontManager.Instance;
         var clampedPosition = Math.Clamp(cursorPosition, 0, text.Length);
-        var textBeforeCursor = text.Substring(0, clampedPosition);
+        textAlign = textAlign.ResolveFor(direction);
 
-        var fallbackResolver = new FontFallbackResolver(fontManager);
-        var textRuns = fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight);
-        var prefixRuns = fallbackResolver.ResolveTextRuns(textBeforeCursor, fontFamily, fontWeight);
-
-        float textWidth = 0;
-        foreach (var run in textRuns)
+        float textWidth;
+        float prefixWidth;
+        if (Text.TextShaping.NeedsShaping(text, direction))
         {
-            var font = CreateHighQualityFont(run.Typeface, fontSize);
-            textWidth += font.MeasureText(run.Text, _textPaint);
+            // Bidi / shaped text: the caret sits on the cluster edge in visual order (ISSUE-157).
+            var shaped = Text.TextShaping.Shape(text, fontFamily, fontSize, fontWeight, direction);
+            textWidth = shaped.Width;
+            prefixWidth = shaped.GetCaretX(clampedPosition);
         }
-
-        float prefixWidth = 0;
-        foreach (var run in prefixRuns)
+        else
         {
-            var font = CreateHighQualityFont(run.Typeface, fontSize);
-            prefixWidth += font.MeasureText(run.Text, _textPaint);
+            var fontManager = FontManager.Instance;
+            var textBeforeCursor = text.Substring(0, clampedPosition);
+            var fallbackResolver = new FontFallbackResolver(fontManager);
+            var textRuns = fallbackResolver.ResolveTextRuns(text, fontFamily, fontWeight);
+            var prefixRuns = fallbackResolver.ResolveTextRuns(textBeforeCursor, fontFamily, fontWeight);
+
+            textWidth = 0;
+            foreach (var run in textRuns)
+            {
+                var font = CreateHighQualityFont(run.Typeface, fontSize);
+                textWidth += font.MeasureText(run.Text, _textPaint);
+            }
+
+            prefixWidth = 0;
+            foreach (var run in prefixRuns)
+            {
+                var font = CreateHighQualityFont(run.Typeface, fontSize);
+                prefixWidth += font.MeasureText(run.Text, _textPaint);
+            }
         }
 
         float alignedTextStart = textAlign switch
@@ -1746,9 +1872,11 @@ public class Painter
     /// <summary>
     /// 绘制文本装饰（下划线、上划线、删除线）
     /// </summary>
-    public void DrawTextDecoration(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, TextDecoration decoration, VerticalAlign verticalAlign = VerticalAlign.Top)
+    public void DrawTextDecoration(string text, RectF rect, Color color, string fontFamily, float fontSize, FontWeight fontWeight, TextAlign textAlign, TextDecoration decoration, VerticalAlign verticalAlign = VerticalAlign.Top, Direction direction = Direction.Ltr)
     {
         if (decoration == TextDecoration.None || string.IsNullOrEmpty(text) || color.A == 0) return;
+
+        textAlign = textAlign.ResolveFor(direction);
 
         var fontManager = FontManager.Instance;
         var fallbackResolver = new FontFallbackResolver(fontManager);
@@ -1759,10 +1887,18 @@ public class Painter
         var measurePaint = _textPaint;
 
         float totalWidth = 0;
-        foreach (var run in textRuns)
+        if (Text.TextShaping.NeedsShaping(text, direction))
         {
-            var font = CreateHighQualityFont(run.Typeface, fontSize);
-            totalWidth += font.MeasureText(run.Text, measurePaint);
+            // The line spans the shaped text, which is what DrawText drew (ISSUE-157).
+            totalWidth = Text.TextShaping.Shape(text, fontFamily, fontSize, fontWeight, direction).Width;
+        }
+        else
+        {
+            foreach (var run in textRuns)
+            {
+                var font = CreateHighQualityFont(run.Typeface, fontSize);
+                totalWidth += font.MeasureText(run.Text, measurePaint);
+            }
         }
 
         float x = textAlign switch

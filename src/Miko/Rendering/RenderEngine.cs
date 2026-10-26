@@ -1285,7 +1285,7 @@ public class RenderEngine
                 var hlRect = new RectF(MathF.Round(alignX), MathF.Round(content.Y), alignWidth, content.Height);
                 _painter.DrawHighlightedText(
                     processed, tokens, SyntaxHighlighter.Theme, hlRect, style.Color, style.FontFamily,
-                    style.FontSize.Value, style.FontWeight, style.TextAlign, hlLineHeight, letterSpacing);
+                    style.FontSize.Value, style.FontWeight, style.TextAlign.ResolveFor(style.Direction), hlLineHeight, letterSpacing);
                 return;
             }
         }
@@ -1303,15 +1303,19 @@ public class RenderEngine
                     MathF.Round(content.Y + frag.Y),
                     frag.Width,
                     frag.Height);
+                // A right-to-left fragment (odd bidi level, ISSUE-157) is shaped RTL and drawn
+                // against the right edge of its box, where the line layout put its glyphs.
+                var fragDirection = frag.IsRtl ? Common.Direction.Rtl : Common.Direction.Ltr;
                 _painter.DrawTextLine(
                     frag.Text, fragRect, style.Color, style.FontFamily, style.FontSize.Value,
-                    style.FontWeight, letterSpacing);
+                    style.FontWeight, letterSpacing, fragDirection);
 
                 if (style.TextDecoration != Common.TextDecoration.None)
                 {
                     _painter.DrawTextDecoration(frag.Text, fragRect, style.Color, style.FontFamily,
-                        style.FontSize.Value, style.FontWeight, Common.TextAlign.Left,
-                        style.TextDecoration, VerticalAlign.Middle);
+                        style.FontSize.Value, style.FontWeight,
+                        frag.IsRtl ? Common.TextAlign.Right : Common.TextAlign.Left,
+                        style.TextDecoration, VerticalAlign.Middle, fragDirection);
                 }
             }
             return;
@@ -1324,12 +1328,14 @@ public class RenderEngine
             var wrapRect = new RectF(MathF.Round(alignX), MathF.Round(content.Y), alignWidth, content.Height);
             _painter.DrawMultilineText(
                 text, wrapRect, style.Color, style.FontFamily, style.FontSize.Value, style.FontWeight,
-                style.TextAlign, lineHeight, style.WhiteSpace, VerticalAlign.Top, breakLongWords, letterSpacing);
+                style.TextAlign, lineHeight, style.WhiteSpace, VerticalAlign.Top, breakLongWords, letterSpacing,
+                style.Direction);
 
             if (style.TextDecoration != Common.TextDecoration.None)
             {
                 _painter.DrawTextDecoration(text, wrapRect, style.Color, style.FontFamily,
-                    style.FontSize.Value, style.FontWeight, style.TextAlign, style.TextDecoration, VerticalAlign.Top);
+                    style.FontSize.Value, style.FontWeight, style.TextAlign, style.TextDecoration, VerticalAlign.Top,
+                    style.Direction);
             }
             return;
         }
@@ -1342,12 +1348,13 @@ public class RenderEngine
         var textRect = new RectF(MathF.Round(alignX), MathF.Round(content.Y), alignWidth, content.Height);
         _painter.DrawText(
             text, textRect, style.Color, style.FontFamily, style.FontSize.Value, style.FontWeight,
-            style.TextAlign, VerticalAlign.Middle, letterSpacing, textOverflow);
+            style.TextAlign, VerticalAlign.Middle, letterSpacing, textOverflow, style.Direction);
 
         if (style.TextDecoration != Common.TextDecoration.None)
         {
             _painter.DrawTextDecoration(text, textRect, style.Color, style.FontFamily,
-                style.FontSize.Value, style.FontWeight, style.TextAlign, style.TextDecoration, VerticalAlign.Middle);
+                style.FontSize.Value, style.FontWeight, style.TextAlign, style.TextDecoration, VerticalAlign.Middle,
+                style.Direction);
         }
     }
 
@@ -1548,8 +1555,9 @@ public class RenderEngine
                         style.FontFamily,
                         style.FontSize.Value,
                         style.FontWeight,
-                        TextAlign.Left,
-                        VerticalAlign.Middle
+                        TextAlign.Start,
+                        VerticalAlign.Middle,
+                        direction: style.Direction
                     );
                 }
                 if (isFocused)
@@ -1569,7 +1577,7 @@ public class RenderEngine
                 {
                     float scrollX = ComputeInputScrollOffset(
                         inputElement.Value, inputElement.CursorPosition, contentRect.Width,
-                        style.FontFamily, style.FontSize.Value, style.FontWeight, isFocused);
+                        style.FontFamily, style.FontSize.Value, style.FontWeight, isFocused, style.Direction);
                     var scrolledRect = new RectF(
                         contentRect.X - scrollX, contentRect.Y, contentRect.Width + scrollX, contentRect.Height);
                     _painter.DrawText(
@@ -1580,7 +1588,8 @@ public class RenderEngine
                         style.FontSize.Value,
                         style.FontWeight,
                         scrollX > 0 ? TextAlign.Left : style.TextAlign,
-                        VerticalAlign.Middle
+                        VerticalAlign.Middle,
+                        direction: style.Direction
                     );
                     if (isFocused)
                     {
@@ -1592,7 +1601,8 @@ public class RenderEngine
                             style.FontSize.Value,
                             style.FontWeight,
                             style.ResolvedCaretColor,
-                            scrollX > 0 ? TextAlign.Left : style.TextAlign);
+                            scrollX > 0 ? TextAlign.Left : style.TextAlign,
+                            style.Direction);
                     }
                 }
                 else
@@ -1606,8 +1616,9 @@ public class RenderEngine
                             style.FontFamily,
                             style.FontSize.Value,
                             style.FontWeight,
-                            TextAlign.Left,
-                            VerticalAlign.Middle
+                            TextAlign.Start,
+                            VerticalAlign.Middle,
+                            direction: style.Direction
                         );
                     }
                     if (isFocused)
@@ -1620,7 +1631,8 @@ public class RenderEngine
                             style.FontSize.Value,
                             style.FontWeight,
                             style.ResolvedCaretColor,
-                            style.TextAlign);
+                            style.TextAlign,
+                            style.Direction);
                     }
                 }
                 _painter.Restore();
@@ -1635,13 +1647,14 @@ public class RenderEngine
     /// </summary>
     private static float ComputeInputScrollOffset(
         string text, int cursorPosition, float contentWidth,
-        string fontFamily, float fontSize, FontWeight fontWeight, bool isFocused)
+        string fontFamily, float fontSize, FontWeight fontWeight, bool isFocused, Direction direction = Direction.Ltr)
     {
         if (!isFocused || contentWidth <= 0) return 0;
 
+        // The caret's offset from the left edge of the drawn text, in the same visual order the
+        // caret is drawn in (ISSUE-157); for LTR simple text this is the width before the caret.
         int pos = Math.Clamp(cursorPosition, 0, text.Length);
-        float caretX = Utils.TextMeasurer.MeasureTextWidth(
-            text.Substring(0, pos), fontFamily, fontSize, fontWeight);
+        float caretX = Utils.TextMeasurer.MeasureCaretOffset(text, pos, fontFamily, fontSize, fontWeight, direction);
 
         return caretX > contentWidth ? caretX - contentWidth : 0;
     }
@@ -1675,11 +1688,12 @@ public class RenderEngine
                 style.FontFamily,
                 style.FontSize.Value,
                 style.FontWeight,
-                TextAlign.Left,
+                TextAlign.Start,
                 lineHeight,
                 Common.WhiteSpace.PreWrap,
                 VerticalAlign.Top,
-                breakLongWords: true);
+                breakLongWords: true,
+                direction: style.Direction);
         }
         else if (!string.IsNullOrEmpty(textArea.Placeholder) && !isFocused)
         {
@@ -1690,11 +1704,12 @@ public class RenderEngine
                 style.FontFamily,
                 style.FontSize.Value,
                 style.FontWeight,
-                TextAlign.Left,
+                TextAlign.Start,
                 lineHeight,
                 Common.WhiteSpace.PreWrap,
                 VerticalAlign.Top,
-                breakLongWords: true);
+                breakLongWords: true,
+                direction: style.Direction);
         }
 
         if (isFocused)
@@ -1736,7 +1751,8 @@ public class RenderEngine
         var cursorRect = new RectF(contentRect.X, lineTop, contentRect.Width, lineHeight);
         _painter.DrawTextCursor(
             cursorRect, currentLine, currentLine.Length,
-            style.FontFamily, style.FontSize.Value, style.FontWeight, style.ResolvedCaretColor);
+            style.FontFamily, style.FontSize.Value, style.FontWeight, style.ResolvedCaretColor,
+            TextAlign.Start, style.Direction);
     }
 
     /// <summary>

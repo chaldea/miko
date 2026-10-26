@@ -588,12 +588,25 @@ public class FlexLayout
         // row-reverse：主轴方向反转。分行仍按文档序（CSS 按 order-modified document order 分行），
         // 随后逐行反转项目顺序，并把 justify-content 的 start/end 互换——这与"先按 row 布局再
         // 沿主轴镜像每个项目"完全等价（对 shrink-to-fit、auto margin、多行 wrap 同样成立）。
-        bool isReverse = style.FlexDirection == FlexDirection.RowReverse;
+        // direction: rtl puts main-start on the right (ISSUE-157), so `row` there is laid out like
+        // `row-reverse` in LTR and vice versa. The absolute keywords start/end follow the direction
+        // and so flip with rtl alone.
+        bool rtl = style.Direction == Direction.Rtl;
+        bool isReverse = (style.FlexDirection == FlexDirection.RowReverse) != rtl;
         var justifyContent = style.JustifyContent;
         if (isReverse)
         {
             foreach (var line in lines) line.Reverse();
             justifyContent = FlipJustifyForReverse(justifyContent);
+        }
+        if (rtl)
+        {
+            justifyContent = justifyContent switch
+            {
+                JustifyContent.Start => JustifyContent.End,
+                JustifyContent.End => JustifyContent.Start,
+                _ => justifyContent,
+            };
         }
 
         // wrap-reverse：交叉轴上行序反转（第一行排在交叉轴末端）。
@@ -846,7 +859,8 @@ public class FlexLayout
             float lineCrossSize = 0;
             lineStarts.Add(currentX);
             LayoutFlexLine(box, line, currentX, contentY, contentHeight, contentWidth, rowGap, false, heightIsIndefinite,
-                justifyContent, style.AlignItems, isMultiLine, ref lineCrossSize, crossWidthIsDefinite);
+                justifyContent, style.AlignItems, isMultiLine, ref lineCrossSize, crossWidthIsDefinite,
+                crossReversed: style.Direction == Direction.Rtl);
             lineCrossSizes.Add(lineCrossSize);
             maxCrossSize = Math.Max(maxCrossSize, lineCrossSize);
             currentX += lineCrossSize + columnGap;
@@ -1266,7 +1280,7 @@ public class FlexLayout
     private void LayoutFlexLine(LayoutBox box, List<LayoutBox> lineChildren, float lineX, float lineY,
         float lineMainSize, float lineCrossSize, float gap, bool isRow, bool mainSizeIsIndefinite,
         JustifyContent justifyContent, AlignItems alignItems, bool isMultiLine, ref float resultCrossSize,
-        bool crossSizeIsDefinite = true)
+        bool crossSizeIsDefinite = true, bool crossReversed = false)
     {
         // 第一遍：计算 flex-basis。文本节点（TextNode）作为普通 flex 项参与（见 ISSUE-086）。
         var childInfos = new List<FlexChildInfo>();
@@ -1527,7 +1541,7 @@ public class FlexLayout
         //  align-items:center 的首行距容器顶部多出 (containerCross - lineCross)/2 的大间距，
         //  且 stretch 项会被拉到容器交叉尺寸而侵入相邻行）。
         float crossExtent = !isMultiLine && lineCrossSize > 0 ? Math.Max(lineCrossSize, maxCross) : maxCross;
-        ApplyLineAlignItems(childInfos, lineCross, crossExtent, isRow, alignItems);
+        ApplyLineAlignItems(childInfos, lineCross, crossExtent, isRow, alignItems, crossReversed);
 
         resultCrossSize = maxCross;
     }
@@ -1602,7 +1616,10 @@ public class FlexLayout
         };
 
     /// <summary>对一行/列的子元素应用 align-items（交叉轴对齐），并允许每个子项用 align-self 覆盖。</summary>
-    private void ApplyLineAlignItems(List<FlexChildInfo> line, float crossStart, float crossSize, bool isRow, AlignItems alignItems)
+    /// <param name="crossReversed">Cross-start is at the far edge: a column in <c>direction: rtl</c>,
+    /// whose cross axis starts at the right (ISSUE-157).</param>
+    private void ApplyLineAlignItems(List<FlexChildInfo> line, float crossStart, float crossSize, bool isRow, AlignItems alignItems,
+        bool crossReversed = false)
     {
         foreach (var info in line)
         {
@@ -1614,14 +1631,23 @@ public class FlexLayout
 
             switch (effectiveAlign)
             {
-                case Common.AlignItems.FlexEnd: offset = crossSize - childCrossSize; break;
+                case Common.AlignItems.FlexEnd: offset = crossReversed ? 0 : crossSize - childCrossSize; break;
                 case Common.AlignItems.Center: offset = (crossSize - childCrossSize) / 2; break;
                 case Common.AlignItems.Stretch:
                     // 文本节点不可拉伸（其尺寸由文本决定），锚定起点。
                     // 强制换行元素（br）不产生可见盒，交叉轴保持 0 尺寸不拉伸（见 ISSUE-093 问题2）。
-                    if (child.Type == LayoutType.Text || BlockLayout.IsForcedLineBreak(child)) break;
                     bool crossIsAuto = isRow ? child.ComputedStyle.Height.IsAuto : child.ComputedStyle.Width.IsAuto;
-                    if (crossIsAuto) RelayoutStretchedItem(child, info.MainResolvedSize, crossSize, isRow);
+                    if (child.Type == LayoutType.Text || BlockLayout.IsForcedLineBreak(child) || !crossIsAuto)
+                    {
+                        // Not stretched: sits at cross-start, like flex-start.
+                        if (crossReversed) offset = crossSize - childCrossSize;
+                        break;
+                    }
+                    RelayoutStretchedItem(child, info.MainResolvedSize, crossSize, isRow);
+                    break;
+                default:
+                    // flex-start and baseline: cross-start.
+                    if (crossReversed) offset = crossSize - childCrossSize;
                     break;
             }
 

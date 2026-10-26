@@ -141,7 +141,11 @@ public enum TextAlign
     Left,
     Right,
     Center,
-    Justify
+    Justify,
+    /// <summary>The start edge of the line: left in <c>ltr</c>, right in <c>rtl</c> (CSS initial value).</summary>
+    Start,
+    /// <summary>The end edge of the line: right in <c>ltr</c>, left in <c>rtl</c>.</summary>
+    End
 }
 
 /// <summary>
@@ -340,7 +344,8 @@ public enum BoxSizing { ContentBox, BorderBox }
 
 /// <summary>
 /// 书写方向（CSS direction）。影响逻辑属性 inline 轴的起始/结束边映射
-/// （margin-inline-start 等，见 ISSUE-103），以及后续的文本双向排版。
+/// （margin-inline-start 等，见 ISSUE-103），段落的双向文本排序与 <c>text-align: start/end</c>，
+/// 以及 flex 行方向的主轴起点（ISSUE-157）。
 /// </summary>
 public enum Direction
 {

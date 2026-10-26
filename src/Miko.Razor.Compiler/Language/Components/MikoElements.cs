@@ -123,6 +123,8 @@ internal static class MikoElements
     {
         ["class"] = new Slot("Class", SlotKind.Property),
         ["id"] = new Slot("Id", SlotKind.Property),
+        // Text direction (ISSUE-157): "rtl" / "ltr", applied as the element's direction.
+        ["dir"] = new Slot("Dir", SlotKind.Converted, converter: FormatValue),
         // `style` normally carries a Miko.Styling.Style object (style="@SomeStyle"), but a few
         // components pass a CSS string. The legacy switch matched only Style and silently ignored
         // everything else; SetStyle's overloads reproduce that rather than breaking the build.

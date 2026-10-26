@@ -49,6 +49,7 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
 - [Styling](docs/guide/styling.md): `Style`, `Length`, `Color`, `StyleSheet` + `CssObject`, selectors, cascade, inheritance.
 - [Layout](docs/guide/layout.md): box model, block / inline / flex / grid, positioning, overflow, sizing.
 - [Fonts & Text](docs/guide/fonts.md): font families, fallback, custom fonts.
+- [Localization & Right-to-Left](docs/guide/localization.md): `IStringLocalizer` + `.resx`, switching language at run time, `dir` / `Direction`, mixed-direction text, complex scripts.
 - [Events](docs/guide/events.md): event directives, handler properties, capture / bubbling.
 - [Async & Lifecycle](docs/guide/async.md): `OnInitializedAsync`, async handlers, `EventCallback`, `StateHasChanged`.
 - [Native Capabilities](docs/guide/native.md): camera, clipboard, filesystem, geolocation, … through `Miko.Native`.

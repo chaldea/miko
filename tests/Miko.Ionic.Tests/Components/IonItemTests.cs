@@ -559,11 +559,12 @@ public class IonItemTests : IonicComponentTestBase
         native.TagName.ShouldBe("button");
         var style = cut.GetComputedStyle(native);
         style.ShouldNotBeNull();
-        style.TextAlign.ShouldBe(Miko.Common.TextAlign.Left);
+        // The inherited initial value `start` (left in LTR), not the UA button's `center`.
+        style.TextAlign.ShouldBe(Miko.Common.TextAlign.Start);
     }
 
     [Fact]
-    public void IonItem_ButtonNativeContent_InheritsLeftTextAlign()
+    public void IonItem_ButtonNativeContent_InheritsStartTextAlign()
     {
         Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
 
@@ -577,7 +578,8 @@ public class IonItemTests : IonicComponentTestBase
         var label = cut.FindByClass("ion-label").Single();
         var style = cut.GetComputedStyle(label);
         style.ShouldNotBeNull();
-        style.TextAlign.ShouldBe(Miko.Common.TextAlign.Left);
+        // The inherited initial value `start` (left in LTR), not the UA button's `center`.
+        style.TextAlign.ShouldBe(Miko.Common.TextAlign.Start);
     }
 
     [Fact]

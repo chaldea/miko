@@ -537,6 +537,7 @@ public class RenderTreeBuilder
         {
             case "class": element.Class = value; break;
             case "id": element.Id = value; break;
+            case "dir": element.Dir = value; break;
             case "href" when element is AnchorElement anchor:
                 anchor.Href = value; break;
             case "target" when element is AnchorElement anchor:

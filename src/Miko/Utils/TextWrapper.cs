@@ -205,8 +205,9 @@ public static class TextWrapper
             }
 
             // CJK 字符两侧都是断行点：当前字符是 CJK（在其前断开）、
-            // 或前一字符是 CJK（在其后断开）。
-            if (IsCjkBreakChar(c) || IsCjkBreakChar(text[i - 1]))
+            // 或前一字符是 CJK（在其后断开）。A grapheme cluster is never split: no break before a
+            // combining mark (か + ゙), a joiner or the low half of a surrogate pair (ISSUE-157).
+            if ((IsCjkBreakChar(c) || IsCjkBreakChar(text[i - 1])) && !ContinuesCluster(text, i))
             {
                 units.Add(new BreakUnit(text.Substring(runStart, i - runStart), false));
                 runStart = i;
@@ -219,6 +220,17 @@ public static class TextWrapper
         }
 
         return units;
+    }
+
+    /// <summary>Whether the character at <paramref name="index"/> continues the cluster before it.</summary>
+    private static bool ContinuesCluster(string text, int index)
+    {
+        char c = text[index];
+        if (char.IsLowSurrogate(c)) return true;
+        int codePoint = char.IsHighSurrogate(c) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])
+            ? char.ConvertToUtf32(c, text[index + 1])
+            : c;
+        return FontFallbackResolver.IsClusterContinuation(codePoint) || text[index - 1] == '\u200D';
     }
 
     /// <summary>
@@ -478,6 +490,8 @@ public static class TextWrapper
     /// <summary>
     /// 逐字符断开一个超过整行宽度的长单词，填满每一行。最后一段（未满一行）不落盘，
     /// 而是留在 <paramref name="currentLine"/> 中，以便后续单词能继续拼接在同一行。
+    /// "Character" means grapheme cluster (ISSUE-157): a surrogate pair, a base with its marks or an
+    /// Indic conjunct stays on one line.
     /// </summary>
     private static void BreakLongWord(
         string word,
@@ -489,9 +503,11 @@ public static class TextWrapper
         System.Text.StringBuilder currentLine,
         ref float currentWidth)
     {
-        foreach (var ch in word)
+        var clusters = System.Globalization.StringInfo.GetTextElementEnumerator(word);
+        while (clusters.MoveNext())
         {
-            float charWidth = TextMeasurer.MeasureTextWidth(ch.ToString(), fontFamily, fontSize, fontWeight);
+            var ch = clusters.GetTextElement();
+            float charWidth = TextMeasurer.MeasureTextWidth(ch, fontFamily, fontSize, fontWeight);
 
             // 当前行放不下这个字符（且行内已有内容）：换行。
             if (currentLine.Length > 0 && currentWidth + charWidth > availableWidth)

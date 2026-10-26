@@ -259,6 +259,7 @@ public class FontManager : IDisposable
         // 字体变化使旧的文本测量结果、分段结果与绘制字体对象一并失效
         TextMeasurer.ClearCache();
         FontFallbackResolver.ClearCache();
+        Text.TextShaping.ClearCache();
         Rendering.Painter.ClearFontCache();
     }
 
@@ -321,6 +322,7 @@ public class FontManager : IDisposable
         _glyphCache.Clear();
         TextMeasurer.ClearCache();
         FontFallbackResolver.ClearCache();
+        Text.TextShaping.ClearCache();
         Rendering.Painter.ClearFontCache();
     }
 
@@ -532,6 +534,7 @@ public class FontManager : IDisposable
             // 上面刚 Dispose 掉的 typeface 仍被分段缓存的 TextRun 与绘制字体缓存按引用
             // 持有；不清空，后续绘制就会用到已释放的 native 对象。
             FontFallbackResolver.ClearCache();
+            Text.TextShaping.ClearCache();
             Rendering.Painter.ClearFontCache();
             _disposed = true;
         }

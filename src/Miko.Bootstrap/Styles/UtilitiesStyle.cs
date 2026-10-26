@@ -175,8 +175,8 @@ internal static class UtilitiesStyle
             [".min-vh-100"] = new() { MinHeight = Length.Percent(100) },
 
             // Text
-            [".text-start"] = new() { TextAlign = TextAlign.Left },
-            [".text-end"] = new() { TextAlign = TextAlign.Right },
+            [".text-start"] = new() { TextAlign = TextAlign.Start },
+            [".text-end"] = new() { TextAlign = TextAlign.End },
             [".text-center"] = new() { TextAlign = TextAlign.Center },
             [".text-decoration-none"] = new() { TextDecoration = TextDecoration.None },
             [".text-decoration-underline"] = new() { TextDecoration = TextDecoration.Underline },

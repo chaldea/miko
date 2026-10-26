@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RazorLangVersion>Latest</RazorLangVersion>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
+
+    <!--
+      Miko renders with SkiaSharp, not the browser, so the Razor SDK's web-asset
+      pipeline is not used.
+    -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Miko\Miko.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- IStringLocalizer<T> over .resx resources, exactly as in an ASP.NET Core / Blazor app. -->
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

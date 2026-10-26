@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>מיקו לוקליזציה</value>
+  </data>
+  <data name="NavHome" xml:space="preserve">
+    <value>בית</value>
+  </data>
+  <data name="NavScripts" xml:space="preserve">
+    <value>מערכות כתב</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>שפה</value>
+  </data>
+  <data name="HomeTitle" xml:space="preserve">
+    <value>שלום!</value>
+  </data>
+  <data name="HomeIntro" xml:space="preserve">
+    <value>כל טקסט בדף הזה מגיע מ-IStringLocalizer. בחרו שפה למעלה: ערבית ועברית משקפות את כל הפריסה מימין לשמאל.</value>
+  </data>
+  <data name="FormattingTitle" xml:space="preserve">
+    <value>עיצוב לפי תרבות</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>היום</value>
+  </data>
+  <data name="Price" xml:space="preserve">
+    <value>מחיר</value>
+  </data>
+  <data name="Number" xml:space="preserve">
+    <value>מספר</value>
+  </data>
+  <data name="ItemsInCart" xml:space="preserve">
+    <value>יש לך {0} פריטים בעגלה.</value>
+  </data>
+  <data name="Direction" xml:space="preserve">
+    <value>כיוון הפריסה</value>
+  </data>
+  <data name="DirectionLtr" xml:space="preserve">
+    <value>משמאל לימין</value>
+  </data>
+  <data name="DirectionRtl" xml:space="preserve">
+    <value>מימין לשמאל</value>
+  </data>
+  <data name="MixedTitle" xml:space="preserve">
+    <value>טקסט דו-כיווני</value>
+  </data>
+  <data name="MixedSample" xml:space="preserve">
+    <value>Miko 1.0 מציג עברית, English ומספרים (2026) באותה שורה.</value>
+  </data>
+  <data name="ScriptsTitle" xml:space="preserve">
+    <value>מערכות כתב</value>
+  </data>
+  <data name="ScriptsIntro" xml:space="preserve">
+    <value>עיצוב גליפים באמצעות HarfBuzz: אותיות ערביות מחוברות, צירופים בכתבים הודיים, סימנים בתאית ורצפי אמוג'י. הדוגמאות מימין לשמאל מסודרות לפי האלגוריתם הדו-כיווני של יוניקוד.</value>
+  </data>
+</root>
