@@ -118,6 +118,10 @@ public class IonInfiniteScrollEndToEndTests : IDisposable
     {
         var builder = MikoAppBuilder.CreateDefault();
         builder.AddIonic(c => c.Platform = HostPlatform.Android);
+        // The page stands in for the Android device it is forwarded from, so use its scrollbars too.
+        // Left to the machine running the tests, macOS would show overlay scrollbars, whose fade
+        // after a scroll is real (timed) host work the idle assertions here are not about (ISSUE-156).
+        builder.UseScrollbarStyle(Miko.Common.ScrollbarStyle.None);
         builder.AddResourceAssembly(typeof(IonInfiniteScrollEndToEndTests).Assembly);
         builder.Services.AddSingleton<InfiniteScrollProbe>();
         builder.UseRouter(router => router.MapRoute("/", typeof(InfiniteScrollPageFixture)));

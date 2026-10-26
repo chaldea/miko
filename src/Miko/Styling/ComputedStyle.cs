@@ -510,6 +510,14 @@ public partial class ComputedStyle : Style
     public new Overflow OverflowY { get; set; } = Overflow.Visible;
     public new ScrollbarWidth ScrollbarWidth { get; set; } = Common.ScrollbarWidth.Auto;
 
+    /// <summary>
+    /// 平台的滚动条呈现方式（ISSUE-156）。不是 CSS 属性、不参与级联：与 env(safe-area-inset-*)
+    /// 一样是环境输入，由 <see cref="Layout.LayoutEngine"/> 在样式阶段按引擎的
+    /// <see cref="Layout.LayoutEngine.ScrollbarStyle"/> 写入每个计算样式。
+    /// 默认 <c>Classic</c>：不经引擎直接构造的样式（布局单元测试等）保持原有表现。
+    /// </summary>
+    public ScrollbarStyle ScrollbarStyle { get; set; } = Common.ScrollbarStyle.Classic;
+
     // 边界越界表现（ISSUE-135）。初始值 None：不开启就完全保持既有的「硬停」语义。
     public new OverscrollEffect OverscrollEffect { get; set; } = Common.OverscrollEffect.None;
 
@@ -639,6 +647,9 @@ public partial class ComputedStyle : Style
         // 于是复位后的实例会谎称「显式声明过 z-index」，让所有定位元素都建立层叠上下文。
         // 这类派生状态生成器看不见（HasZIndex 是私有 setter，不在属性清单里），只能在此显式收尾。
         HasZIndex = false;
+
+        // 不在 Style 的属性清单里（它不是 CSS 属性），生成的复位覆盖不到。
+        ScrollbarStyle = Common.ScrollbarStyle.Classic;
 
         // 变量作用域是每个元素各自的，绝不能跨实例残留。
         Vars = null;

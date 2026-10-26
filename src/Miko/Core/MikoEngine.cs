@@ -36,7 +36,8 @@ public class MikoEngine
         IVideoBackend videoBackend,
         Platform.Resources.IImageLoader imageLoader,
         Highlight.ISyntaxHighlighter syntaxHighlighter,
-        ILogger<MikoEngine>? logger = null)
+        ILogger<MikoEngine>? logger = null,
+        TimeProvider? timeProvider = null)
     {
         _layoutEngine = layoutEngine;
         _renderEngine = renderEngine;
@@ -46,6 +47,10 @@ public class MikoEngine
         _dispatcher = dispatcher;
         _mutations = mutations;
         _renderEngine.AnimatedStyles = animationManager.Overlay;
+        // Overlay 滚动条保持期不出帧，到点向调度器投递一个空动作唤醒宿主开始淡出（ISSUE-156）：
+        // 按需绘制的宿主（Android）只在 Posted 时才会出帧。
+        _overlayScrollbars = new OverlayScrollbarActivity(timeProvider, () => dispatcher.Post(s_wakeHost));
+        _renderEngine.OverlayScrollbars = _overlayScrollbars;
         _animationManager.PaintInvalidated = InvalidatePaintOnly;
         // 三个可选服务在核心库里都有默认实现（NullVideoBackend / ResourceManager /
         // SyntaxHighlighter），因此可以直接构造器注入，无需引擎依赖 IServiceProvider
@@ -69,6 +74,40 @@ public class MikoEngine
     /// 从 DI 另行解析在多引擎场景下不再保证是同一个（ISSUE-129）。</para>
     /// </summary>
     public RenderEngine RenderEngine => _renderEngine;
+
+    // Overlay 滚动条的显隐时钟（ISSUE-156），绘制与命中测试共用。
+    private readonly OverlayScrollbarActivity _overlayScrollbars;
+    private static readonly Action s_wakeHost = static () => { };
+
+    /// <summary>
+    /// 平台的滚动条呈现方式（ISSUE-156）：<c>scrollbar-width: auto/thin</c> 的滚动条画成
+    /// Classic（占位、常显）、Overlay（不占位、滚动时显现后淡出）还是 None（不画）。
+    ///
+    /// <para>默认 <c>Classic</c>——独立构造的引擎（DevTools、模拟器设置面板、单元测试）保持原有表现。
+    /// 应用由 <see cref="Platform.MikoInteractionController"/> 每帧按当前平台设置
+    /// （<see cref="Platform.PlatformScrollbars"/>，可经 <c>MikoAppBuilder.UseScrollbarStyle</c> 调整）。</para>
+    ///
+    /// <para>改变它会重排：Classic 滚动条要占用布局空间。值不变时赋值是空操作，可以每帧调用。</para>
+    /// </summary>
+    public ScrollbarStyle ScrollbarStyle
+    {
+        get => _layoutEngine.ScrollbarStyle;
+        set
+        {
+            if (_layoutEngine.ScrollbarStyle == value) return;
+            _layoutEngine.ScrollbarStyle = value;
+            _overlayScrollbars.Clear();
+            if (_root != null)
+                InvalidateElement(_root);
+        }
+    }
+
+    /// <summary>
+    /// 当前是否有 overlay 滚动条可见（含保持期与淡出中，ISSUE-156）。
+    /// 保持期按真实时钟计（DI 中注册的 <see cref="TimeProvider"/>，默认系统时钟），期间不需要出帧；
+    /// 只有淡出期计入 <see cref="HasPendingRenderWork"/>。
+    /// </summary>
+    public bool HasVisibleOverlayScrollbars => _overlayScrollbars.HasVisible;
 
     public void SetLogger(ILogger logger)
     {
@@ -211,6 +250,11 @@ public class MikoEngine
         // 逐个调用其中组件的清理回调，否则这些组件对应用级服务的订阅永不退订，一个订阅就
         // 把整棵旧树钉在 DI 单例上（ISSUE-141）。以同一棵树重新初始化时它仍然在场，不能拆。
         var discardedRoot = startTransition || ReferenceEquals(_root, root) ? null : _root;
+
+        // 换了一棵根树：旧树上滚动容器的 overlay 滚动条随之消失，也不再引用旧元素（ISSUE-156）。
+        if (!ReferenceEquals(_root, root))
+            _overlayScrollbars.Clear();
+        _overlayScrollbars.BeginFrame();
 
         _root = root;
         _styleSheets = styleSheets;
@@ -444,6 +488,7 @@ public class MikoEngine
         // 排空跨线程失效请求（视频解码线程投递的新帧/加载完成）。
         _dispatcher.Drain();
         DrainPendingInvalidations();
+        _overlayScrollbars.BeginFrame();
         // 认领本帧树上的新子树（ISSUE-129，与 Render 同理）。
         EnsureOwnersAssigned();
         SyncVideoSessions(_root);
@@ -496,6 +541,7 @@ public class MikoEngine
         // 本帧就要画出来，重绘请求到此消费掉。放在最前面：两条出口（快速路径与完整重排）
         // 最终都会调用 RenderCurrentFrame，因此这里清一次即可覆盖全部路径。
         _repaintRequested = false;
+        _overlayScrollbars.BeginFrame();
 
         // 排空跨线程失效请求（如视频解码线程投递的新帧/加载完成）。
         _dispatcher.Drain();
@@ -673,6 +719,7 @@ public class MikoEngine
             if (_dirtyManager.HasDirtyRegions()) return true;           // 已标脏未绘制
             if (_animationManager.HasAnimationsToPresent(IsDisplayed)) return true; // 动画/过渡逐帧推进（不含隐藏的关键帧动画）
             if (_navContext != null) return true;                       // 页面转场逐帧推进（ISSUE-108）
+            if (_overlayScrollbars.IsFading) return true;               // overlay 滚动条淡出中（保持期不出帧，ISSUE-156）
             // 加载中/播放中的视频会持续投递新帧
             foreach (var session in _videoSessions.Values)
             {
@@ -742,7 +789,8 @@ public class MikoEngine
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
-        if (!_animationManager.HasActiveAnimations && !_dirtyManager.HasDirtyRegions() && _navContext == null)
+        if (!_animationManager.HasActiveAnimations && !_dirtyManager.HasDirtyRegions() && _navContext == null
+            && !_overlayScrollbars.IsFading)
         {
             _logger.LogTrace("Tick: no active animations or dirty regions, skipping");
             return;
@@ -827,7 +875,7 @@ public class MikoEngine
             float elementBottom = elementTop + box.BoxModel.BorderBox.Height;
             var padding = scroller.BoxModel.PaddingBox;
             float viewTop = padding.Top - AccumulatedScrollTop(current);
-            float viewBottom = viewTop + padding.Height - scroller.HorizontalScrollbarThickness;
+            float viewBottom = viewTop + padding.Height - scroller.HorizontalScrollbarGutter;
 
             float delta = 0f;
             if (elementBottom + margin > viewBottom)
@@ -838,7 +886,7 @@ public class MikoEngine
 
             float oldLeft = scroller.ScrollLeft, oldTop = scroller.ScrollTop;
             float maxScrollTop = Math.Max(0f, scroller.ScrollableContentHeight - padding.Height
-                + scroller.HorizontalScrollbarThickness);
+                + scroller.HorizontalScrollbarGutter);
             scroller.ScrollTop = Math.Clamp(oldTop + delta, 0f, maxScrollTop);
             if (Math.Abs(scroller.ScrollTop - oldTop) < 0.01f) return false;
 
@@ -2188,11 +2236,12 @@ public class MikoEngine
         float oldScrollLeft = scrollableBox.ScrollLeft;
         float oldScrollTop = scrollableBox.ScrollTop;
 
-        // 更新垂直滚动
+        // 更新垂直滚动。Classic 横向滚动条盖住视口底边，要多滚它的厚度才看得到内容末尾；
+        // overlay 滚动条不占位，不计（ISSUE-156）。
         if (Math.Abs(deltaY) > 0.01f && scrollableBox.HasVerticalScrollbar)
         {
             float maxScrollTop = scrollableBox.ScrollableContentHeight - scrollableBox.BoxModel.PaddingBox.Height
-                + scrollableBox.HorizontalScrollbarThickness;
+                + scrollableBox.HorizontalScrollbarGutter;
             maxScrollTop = Math.Max(0, maxScrollTop);
             scrollableBox.ScrollTop = Math.Clamp(scrollableBox.ScrollTop + deltaY, 0, maxScrollTop);
             _logger.LogTrace("ScrollBy: vertical scroll {Old} -> {New} (max={Max})", oldScrollTop, scrollableBox.ScrollTop, maxScrollTop);
@@ -2202,7 +2251,7 @@ public class MikoEngine
         if (Math.Abs(deltaX) > 0.01f && scrollableBox.HasHorizontalScrollbar)
         {
             float maxScrollLeft = scrollableBox.ScrollableContentWidth - scrollableBox.BoxModel.PaddingBox.Width
-                + scrollableBox.VerticalScrollbarThickness;
+                + scrollableBox.VerticalScrollbarGutter;
             maxScrollLeft = Math.Max(0, maxScrollLeft);
             scrollableBox.ScrollLeft = Math.Clamp(scrollableBox.ScrollLeft + deltaX, 0, maxScrollLeft);
             _logger.LogTrace("ScrollBy: horizontal scroll {Old} -> {New} (max={Max})", oldScrollLeft, scrollableBox.ScrollLeft, maxScrollLeft);
@@ -2249,6 +2298,10 @@ public class MikoEngine
 
     private void DispatchScrollEvent(LayoutBox box, float oldScrollLeft, float oldScrollTop)
     {
+        // 所有由引擎执行的滚动（滚轮/手势、拖滑块、点轨道、scroll-into-view）都经过这里：
+        // 让该容器的 overlay 滚动条显现并重新计时（ISSUE-156）。
+        NoteOverlayScrollbarActivity(box);
+
         var scrollArgs = new ScrollEventArgs
         {
             Target = box.Element,
@@ -2356,7 +2409,9 @@ public class MikoEngine
     public record ScrollbarHitResult(LayoutBox Box, ScrollbarHitType HitType, float ThumbOffset);
 
     /// <summary>
-    /// 检测鼠标是否点击在某个滚动条上
+    /// 检测鼠标是否点击在某个滚动条上。
+    /// <para>Overlay 滚动条只在可见时可点（ISSUE-156）：淡出后那条边上的点击属于下面的内容。
+    /// 纯查询，不改变显隐；拖动滑块（<see cref="DragVerticalThumb"/>）与点轨道翻页才让它重新计时。</para>
     /// </summary>
     public ScrollbarHitResult? HitTestScrollbar(float x, float y)
     {
@@ -2364,7 +2419,14 @@ public class MikoEngine
         return HitTestScrollbarBox(_currentLayout, x, y, 0, 0);
     }
 
-    private static ScrollbarHitResult? HitTestScrollbarBox(LayoutBox box, float x, float y, float scrollOffsetX, float scrollOffsetY)
+    /// <summary>容器若用 overlay 滚动条，让它显现并重新计时（ISSUE-156）。</summary>
+    private void NoteOverlayScrollbarActivity(LayoutBox box)
+    {
+        if (box.UsesOverlayScrollbars && (box.ShowsVerticalScrollbar || box.ShowsHorizontalScrollbar))
+            _overlayScrollbars.NoteActivity(box.Element);
+    }
+
+    private ScrollbarHitResult? HitTestScrollbarBox(LayoutBox box, float x, float y, float scrollOffsetX, float scrollOffsetY)
     {
         var borderBox = box.BoxModel.BorderBox;
         float adjustedLeft = borderBox.Left - scrollOffsetX;
@@ -2381,7 +2443,10 @@ public class MikoEngine
         float pRight = pLeft + paddingBox.Width;
         float pBottom = pTop + paddingBox.Height;
 
-        if (box.ShowsVerticalScrollbar)
+        // 淡出的 overlay 滚动条既不画也不拦截点击。
+        bool barsVisible = !box.UsesOverlayScrollbars || _overlayScrollbars.GetOpacity(box.Element) > 0f;
+
+        if (barsVisible && box.ShowsVerticalScrollbar)
         {
             float trackX = pRight - box.VerticalScrollbarThickness;
             float trackHeight = paddingBox.Height - box.HorizontalScrollbarThickness;
@@ -2397,7 +2462,7 @@ public class MikoEngine
             }
         }
 
-        if (box.ShowsHorizontalScrollbar)
+        if (barsVisible && box.ShowsHorizontalScrollbar)
         {
             float trackY = pBottom - box.HorizontalScrollbarThickness;
             float trackWidth = paddingBox.Width - box.VerticalScrollbarThickness;
@@ -2456,6 +2521,8 @@ public class MikoEngine
     {
         var current = FindLayoutBoxForElement(_currentLayout!, box.Element);
         if (current == null) return false;
+        // 拖着不动（或已顶到头）也算在用：overlay 滚动条不能在手底下淡出（ISSUE-156）。
+        NoteOverlayScrollbarActivity(current);
 
         float trackHeight = current.BoxModel.PaddingBox.Height - current.HorizontalScrollbarThickness;
         var (_, thumbHeight) = GetVerticalThumbGeometry(current, trackHeight);
@@ -2480,6 +2547,7 @@ public class MikoEngine
     {
         var current = FindLayoutBoxForElement(_currentLayout!, box.Element);
         if (current == null) return false;
+        NoteOverlayScrollbarActivity(current);
 
         float trackWidth = current.BoxModel.PaddingBox.Width - current.VerticalScrollbarThickness;
         var (_, thumbWidth) = GetHorizontalThumbGeometry(current, trackWidth);

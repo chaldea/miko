@@ -551,6 +551,16 @@ null-check or catch. One `PlatformInfo` instance backs `PlatformInfo`, `IPlatfor
   it updates the engine viewport, so rotation needs no separate resize call.
 - `IonPickerColumn` follows a touch drag freely and commits `ValueChanged` on release (as Ionic sets the
   value once scrolling settles); wheel and fling input still snap per scroll event.
+- Scrollbar presentation follows the platform (ISSUE-156): `PlatformScrollbars.GetDefault` gives Classic
+  (Windows/Linux), Overlay (macOS), None (iOS/Android); apps adjust it with `UseScrollbarStyle`. The
+  controller pushes the style for the current `PlatformInfo.Platform` into `MikoEngine.ScrollbarStyle`
+  every frame (a no-op when unchanged); standalone engines stay Classic, so tests are OS-independent
+  unless they go through `MikoAppBuilder` — pin the style there if a test depends on it. `LayoutEngine`
+  stamps it on `ComputedStyle.ScrollbarStyle`. Only Classic takes space: clip, max scroll and
+  scroll-into-view use `*ScrollbarGutter`; track geometry (paint, hit test, drag) uses `*ScrollbarThickness`.
+  Overlay visibility lives in `OverlayScrollbarActivity`: the 1s hold is timed with the DI `TimeProvider`
+  and renders no frames, a timer posts to `MikoDispatcher` to wake the host, and only the 0.3s fade
+  counts as pending render work.
 
 ### Image Loading
 

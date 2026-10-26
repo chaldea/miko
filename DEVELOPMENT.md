@@ -1343,6 +1343,11 @@ public class App
   放在 `OperatingSystem.IsAndroidVersionAtLeast` 分支里（`Miko.Android` 把 CA1416 视为错误）
 - **文本编辑单位**：`CursorPosition`、输入法选区与 `MaxLength` 按 UTF-16 码元计（与浏览器一致），插入、
   退格、删除与左右移动按字素簇进行，emoji、组合重音、ZWJ 序列不会被拆开（ISSUE-154）
+- **滚动条样式**：`scrollbar-width: auto` 跟随平台（ISSUE-156）——Windows/Linux 为 `Classic`（常显、占位），
+  macOS 为 `Overlay`（不占位，滚动时显现、停下约 1 秒后淡出），iOS/Android 为 `None`（不画，照样可滚动）。
+  默认值见 `PlatformScrollbars`，应用用 `builder.UseScrollbarStyle(...)` 按平台调整；交互控制器每帧按当前平台
+  交给 `MikoEngine.ScrollbarStyle`，模拟器换设备随之切换。独立构造的引擎（DevTools、测试）恒为 `Classic`。
+  Overlay 的保持期按 DI 中的 `TimeProvider` 计时且不出帧，只有淡出期逐帧绘制；测试注入手动时钟
 - **屏幕旋转**：Android 上需要锁定方向的应用（如播放器全屏）要在 Activity 上声明
   `ConfigurationChanges = Orientation | ScreenSize | …`，否则旋转会销毁重建 Activity、整个应用回到首页
 

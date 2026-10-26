@@ -57,6 +57,26 @@ public class LayoutEngine
     // 当前布局的视口尺寸。用于折算各元素（含伪元素）的 vw/vh 视窗单位（见 ISSUE-091）。
     private ViewportInfo _viewport = new(0, 0);
 
+    private ScrollbarStyle _scrollbarStyle = ScrollbarStyle.Classic;
+
+    /// <summary>
+    /// 平台的滚动条呈现方式（ISSUE-156），在样式阶段写入每个计算样式的
+    /// <see cref="ComputedStyle.ScrollbarStyle"/>。默认 <c>Classic</c>；应用由交互控制器按平台设置
+    /// （见 <see cref="Platform.PlatformScrollbars"/>）。
+    /// <para>它决定 Classic 滚动条的占位，是布局输入：改变时作废布局与样式缓存，下一次
+    /// <see cref="Layout"/> 整树重新级联、重排。</para>
+    /// </summary>
+    public ScrollbarStyle ScrollbarStyle
+    {
+        get => _scrollbarStyle;
+        set
+        {
+            if (_scrollbarStyle == value) return;
+            _scrollbarStyle = value;
+            InvalidateCache();
+        }
+    }
+
     // ---- 布局结果缓存（ISSUE-096）----
     // 一次完整布局的输入为：根元素、样式表列表、视口尺寸、安全区、以及本引擎的变更版本号
     // （MutationTracker 覆盖结构/文本/class/行内样式/状态/图片尺寸等所有布局输入）。
@@ -661,6 +681,7 @@ public class LayoutEngine
 
         // 折算该元素声明的 env(safe-area-inset-*) 长度为像素（桌面/零安全区时为空操作）。
         computedStyle.ResolveSafeArea(_safeArea);
+        computedStyle.ScrollbarStyle = _scrollbarStyle;
 
         // 创建布局盒子并关联
         element.LayoutBox = new LayoutBox
@@ -845,6 +866,7 @@ public class LayoutEngine
         // 折算伪元素声明的 vw/vh 视窗分量与 env() 安全区分量（与普通元素一致）。
         computedStyle.ResolveViewport(_viewport);
         computedStyle.ResolveSafeArea(_safeArea);
+        computedStyle.ScrollbarStyle = _scrollbarStyle;
 
         pseudoElement.LayoutBox = new LayoutBox
         {

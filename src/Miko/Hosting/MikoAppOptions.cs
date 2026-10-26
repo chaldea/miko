@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Miko.Common;
 using Miko.Core;
 using Miko.Platform;
 using Miko.Routing;
@@ -24,6 +25,16 @@ public class MikoAppOptions
     public List<Func<MikoKey, bool>> GlobalKeyDownHandlers { get; set; } = new();
     public List<Action<IServiceProvider>> PostInitHooks { get; set; } = new();
     public bool EnableHotReload { get; set; } = false;
+
+    /// <summary>
+    /// Per-platform overrides of the scrollbar presentation (ISSUE-156). Platforms not listed use
+    /// <see cref="PlatformScrollbars.GetDefault"/>. Set through <c>MikoAppBuilder.UseScrollbarStyle</c>.
+    /// </summary>
+    public Dictionary<HostPlatform, ScrollbarStyle> ScrollbarStyles { get; set; } = new();
+
+    /// <summary>The scrollbar presentation this app uses on <paramref name="platform"/>.</summary>
+    public ScrollbarStyle ResolveScrollbarStyle(HostPlatform platform)
+        => ScrollbarStyles.TryGetValue(platform, out var style) ? style : PlatformScrollbars.GetDefault(platform);
 }
 
 public class FontRegistration

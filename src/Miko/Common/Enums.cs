@@ -226,6 +226,27 @@ public enum ScrollbarWidth
 }
 
 /// <summary>
+/// How the platform presents scrollbars whose <c>scrollbar-width</c> is <c>auto</c> or <c>thin</c>
+/// (ISSUE-156). Not a CSS property: browsers leave this to the operating system, and so does Miko —
+/// each host picks it from the platform (see <c>Miko.Platform.PlatformScrollbars</c>).
+/// Whatever the presentation, an <c>overflow: auto/scroll</c> container still scrolls.
+/// </summary>
+public enum ScrollbarStyle
+{
+    /// <summary>Always-visible track and thumb that take layout space (Windows, Linux).</summary>
+    Classic,
+
+    /// <summary>
+    /// A thumb drawn over the content without taking layout space; shown while the container
+    /// scrolls, then faded out (macOS).
+    /// </summary>
+    Overlay,
+
+    /// <summary>Never drawn and takes no space (iOS, Android).</summary>
+    None
+}
+
+/// <summary>
 /// 滚动容器到达边界后，继续被推的增量如何呈现（ISSUE-135）。
 /// </summary>
 public enum OverscrollEffect
