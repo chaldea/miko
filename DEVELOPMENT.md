@@ -248,6 +248,12 @@ dotnet clean
 # 仓库内模板的 nuget.config 从这里还原 Miko* 包；重新打包后先删除 ~/.nuget/packages/miko* 旧缓存
 dotnet pack miko.slnx
 dotnet pack templates/Miko.Templates.csproj
+
+# 模板端到端验证：打包全部库与模板到私有源，为每个模板/布局生成应用并以 Release 并行构建每个 head
+# 不在 PR 验证中运行；修改模板或打包配置后、发布前手动运行。缺少工作负载的 head 会跳过而不是失败，
+# 每个构建的日志在 <工作目录>/logs/ 下
+dotnet run --project tools/Miko.TemplateE2E
+dotnet run --project tools/Miko.TemplateE2E -- --layouts blank,full --heads Desktop,Android --parallel 4
 ```
 
 ## 核心依赖项

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- A repo tool: it packs the solution and scaffolds apps from the templates, so it must
+         never ship. The publish workflow packs every packable project in miko.slnx. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

@@ -72,6 +72,18 @@ and rewrites the template references to the released version. NuGet caches by ve
 re-packing delete the stale copies (`rm -rf ~/.nuget/packages/miko*`) before restoring again.
 CI passes `-o`, which overrides the default output path.
 
+### Template end-to-end check
+```bash
+# Packs everything into a private feed, scaffolds every template/layout and builds every head in Release
+dotnet run --project tools/Miko.TemplateE2E
+dotnet run --project tools/Miko.TemplateE2E -- --layouts blank,full --heads Desktop,Android --parallel 4
+```
+Not part of PR validation: run it after changing the templates or the packaging, and before a release.
+Builds run in parallel, each in a scaffold of its own (the heads of one app share its library project),
+with one log per build under `<work dir>/logs/`; heads whose workload is missing are skipped. The
+default parallelism is min(cores / 2, GB of RAM / 3), at most 6: a mobile Release build takes 2.5–3 GB.
+Passing apps are deleted as they finish (a full run is ~7 GB) unless `--keep`.
+
 ## Architecture Overview
 
 Miko follows a layered architecture similar to browser rendering engines:
