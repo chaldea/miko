@@ -1,0 +1,7 @@
+<IonDatetime Presentation="date" Multiple="true" ShowDefaultTitle="true" @bind-Values="_dates" />
+
+<p>@(_dates is null ? "No dates" : string.Join(", ", _dates))</p>
+
+@code {
+    private IReadOnlyList<string>? _dates = ["2026-07-03", "2026-07-15"];
+}

@@ -452,6 +452,13 @@ Ionic components use a platform-aware mode system:
 - Mode flows from platform to components: iOS devices → `"ios"` mode, others → `"md"` (Material Design)
 - Components use `ClassMapper` utility to build CSS classes: `.AddIf("ion-color-primary", () => Color == "primary")`
 - Segment buttons use an indicator overlay (MD: underline bar, iOS: pill) for checked state
+- `IonDatetime` ports Ionic's datetime utils one to one (`DatetimeUtils` / `DatetimeData`, values
+  as partial `DatetimeParts`, never `DateTime`). Its texts come from `DatetimeLocale`, which derives
+  `Intl`-style field sets from each culture's .NET patterns (no skeleton API exists in .NET).
+- Content that must close its overlay (Ionic `el.closest('ion-modal, ion-popover')`) looks it up
+  with `IonOverlayHosts.FindEnclosing(root)`; `IonModal` / `IonPopover` register their host element
+  through `@ref`. Do not cascade a context from an overlay instead: a `CascadingValue` inserts a
+  `FragmentElement` between the wrapper and its content, which breaks the overlay DOM contract.
 
 See memory files for mode scoping and segment indicator patterns.
 

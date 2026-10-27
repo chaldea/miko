@@ -72,9 +72,9 @@ The iOS text input implementation supports IME composition (Japanese kana, Chine
 
 The `Miko.Native` package (camera, filesystem, clipboard, notifications, etc.) is a **preview API**. Interfaces and behavior may change between preview releases.
 
-### IonDatetime is calendar-only
+### IonDatetime differences
 
-`IonDatetime` shows only the calendar view. Time pickers, min/max date constraints, and multi-date selection are not implemented. Localization support is limited to the invariant culture.
+`IonDatetime` covers every presentation (calendar and wheels), min/max and value constraints, multiple dates and locales. Its calendar shows one month at a time and pages without Ionic's sliding strip, arrow keys do not move between days, and the date texts come from .NET culture data instead of the browser's `Intl`, so some differ in detail (see [Datetime](../components/ionic/datetime.md#locale-and-time)). `IonDatetimeButton` does not find its datetime by id: the app passes the texts and opens the datetime.
 
 ### No list virtualization
 

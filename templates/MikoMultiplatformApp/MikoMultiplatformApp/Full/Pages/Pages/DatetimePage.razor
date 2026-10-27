@@ -2,7 +2,7 @@
 
 @* NOTE: In Ionic, <ion-datetime-button datetime="start-date"> resolves the associated
    <ion-datetime> by id and formats its value automatically. Miko has no live datetime
-   registry, so the host supplies DateText itself (formatted from the bound value). *@
+   registry, so the host supplies DateText / TimeText itself (formatted from the bound value). *@
 
 <IonPage>
     <IonHeader>
@@ -38,7 +38,7 @@
                     <Header>
                         <IonItem Lines="inset">
                             <End>
-                                <IonDatetimeButton DateText="@FormatDate(_startDate)"></IonDatetimeButton>
+                                <IonDatetimeButton DateText="@FormatDate(_startDate)" TimeText="@FormatTime(_startDate)"></IonDatetimeButton>
                             </End>
                             <ChildContent>
                                 <IonLabel>Starts</IonLabel>
@@ -54,7 +54,7 @@
                     <Header>
                         <IonItem Lines="inset">
                             <End>
-                                <IonDatetimeButton DateText="@FormatDate(_endDate)"></IonDatetimeButton>
+                                <IonDatetimeButton DateText="@FormatDate(_endDate)" TimeText="@FormatTime(_endDate)"></IonDatetimeButton>
                             </End>
                             <ChildContent>
                                 <IonLabel>Ends</IonLabel>
@@ -103,5 +103,10 @@
         return DateTime.TryParse(value, out var parsed)
             ? parsed.ToString("MMM d, yyyy")
             : "Select Date";
+    }
+
+    private static string? FormatTime(string? value)
+    {
+        return DateTime.TryParse(value, out var parsed) ? parsed.ToString("h:mm tt") : null;
     }
 }

@@ -1,0 +1,23 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* A parent that re-renders an IonDatetime with new parameters, as a page does when its state
+   changes: the datetime instance is reused and must follow the new values. *@
+<div class="datetime-host">
+    <IonDatetime @ref="Datetime" Locale="en-US" Presentation="@Presentation" Value="@Value" />
+</div>
+
+@code {
+    public IonDatetime? Datetime;
+
+    [Parameter] public string Presentation { get; set; } = "date";
+
+    [Parameter] public string? Value { get; set; }
+
+    public void Update(string presentation, string? value)
+    {
+        Presentation = presentation;
+        Value = value;
+        StateHasChanged();
+    }
+}

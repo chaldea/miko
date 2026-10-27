@@ -1,0 +1,10 @@
+@* Spanish month and day names, weeks starting on Monday, a 24-hour clock. *@
+<IonDatetime Locale="es-ES"
+             FirstDayOfWeek="1"
+             HourCycle="h23"
+             ShowDefaultTitle="true"
+             @bind-Value="_value" />
+
+@code {
+    private string? _value = "2026-07-15T18:30:00";
+}
