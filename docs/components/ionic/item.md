@@ -228,7 +228,7 @@ Put a form control in the default slot; it renders its own label (`Label` on [`I
 
 ## Item groups and dividers
 
-`IonItemGroup` is a plain block that groups one section's rows. `IonItemDivider` is the section header: a tinted row with its own minimum height, `Start`/`End` slots, and a bottom hairline. `Color` fills the divider with the palette color. Ionic's `sticky` is not ported (Miko has no `position: sticky`), so the divider scrolls with the content.
+`IonItemGroup` is a plain block that groups one section's rows. `IonItemDivider` is the section header: a tinted row with its own minimum height, `Start`/`End` slots, and a bottom hairline. `Color` fills the divider with the palette color. `Sticky` keeps the divider at the top of the scrolling content while its section scrolls by; put each section in its own `IonItemGroup` so the next section's divider pushes it out.
 
 <!-- miko:example examples/item/Groups.razor -->
 ```razor
@@ -340,6 +340,7 @@ Every component also accepts `Class` (extra CSS classes), `Style` (an inline `St
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Color` | `string?` | `null` | Named palette color (Ionic `color`): `"primary"`, `"danger"`, …. Fills the divider with the palette color and switches its text to the color's contrast color, as in Ionic. |
+| `Sticky` | `bool` | `false` | Keeps the divider visible at the top of the scrolling content while its section scrolls by (Ionic `sticky`, CSS `position: sticky`). The next section pushes it out when the divider's container ends — wrap each section in an `IonItemGroup`. |
 
 | Slot | Type | Description |
 | --- | --- | --- |

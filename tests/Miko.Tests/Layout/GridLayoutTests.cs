@@ -308,7 +308,7 @@ public class GridLayoutTests
                 GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(50) },
                 GridAutoColumns = GridTrackSize.Px(70)
             }),
-            ("a", new Style { GridColumnStart = 2, Height = Length.Px(20) }),
+            ("a", new Style { GridColumnStart = GridLine.Line(2), Height = Length.Px(20) }),
             ("b", new Style { Height = Length.Px(20) })), 800, 600);
 
         root.Children[0].BoxModel.Content.X.ShouldBe(50);
@@ -366,7 +366,7 @@ public class GridLayoutTests
                     GridTrackSize.Px(100), GridTrackSize.Px(100), GridTrackSize.Px(100)
                 }
             }),
-            ("a", new Style { GridColumnStart = 2, GridColumnEnd = 4, Height = Length.Px(20) }),
+            ("a", new Style { GridColumnStart = GridLine.Line(2), GridColumnEnd = GridLine.Line(4), Height = Length.Px(20) }),
             ("b", new Style { Height = Length.Px(20) })), 800, 600);
 
         // a 占第 2..3 列（线 2/4）；b 自动放置到剩余的第一个空格（行 0 列 0）。
@@ -393,7 +393,7 @@ public class GridLayoutTests
                     GridTrackSize.Px(100), GridTrackSize.Px(100), GridTrackSize.Px(100)
                 }
             }),
-            ("a", new Style { GridColumnStart = 1, GridColumnEnd = 3, Height = Length.Px(20) }),
+            ("a", new Style { GridColumnStart = GridLine.Line(1), GridColumnEnd = GridLine.Line(3), Height = Length.Px(20) }),
             ("b", new Style { Height = Length.Px(20) })), 800, 600);
 
         // 跨两列的 area 包含内部 gap：100 + 10 + 100 = 210。
@@ -416,7 +416,7 @@ public class GridLayoutTests
                     GridTrackSize.Px(100), GridTrackSize.Px(100), GridTrackSize.Px(100)
                 }
             }),
-            ("a", new Style { GridColumnStart = 1, GridColumnEnd = -1, Height = Length.Px(20) })), 800, 600);
+            ("a", new Style { GridColumnStart = GridLine.Line(1), GridColumnEnd = GridLine.Line(-1), Height = Length.Px(20) })), 800, 600);
 
         // 1 / -1：横跨全部 3 个显式列。
         root.Children[0].BoxModel.Content.X.ShouldBe(0);
@@ -437,7 +437,7 @@ public class GridLayoutTests
                 Display = Display.Grid,
                 GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(100), GridTrackSize.Px(100) }
             }),
-            ("a", new Style { GridRowStart = 2, GridColumnStart = 1, Height = Length.Px(30) }),
+            ("a", new Style { GridRowStart = GridLine.Line(2), GridColumnStart = GridLine.Line(1), Height = Length.Px(30) }),
             ("b", new Style { Height = Length.Px(20) }),
             ("c", new Style { Height = Length.Px(20) })), 800, 600);
 
@@ -467,7 +467,7 @@ public class GridLayoutTests
                 Width = Length.Px(90),
                 GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(50) }
             }),
-            ("a", new Style { GridColumnStart = 3, Width = Length.Px(40), Height = Length.Px(30) }),
+            ("a", new Style { GridColumnStart = GridLine.Line(3), Width = Length.Px(40), Height = Length.Px(30) }),
             ("b", new Style { Height = Length.Px(20) })), 800, 600);
 
         // 列轨道：[50, auto(空→0), auto(内容 40)] → a 的 X = 50 + 0 = 50。
@@ -494,7 +494,8 @@ public class GridLayoutTests
                 Width = Length.Px(200),
                 GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(100), GridTrackSize.Px(100) }
             }),
-            ("a", new Style { GridColumnEnd = 4, Height = Length.Px(20) }),
+            // 起始线自动、结束侧 span 3：自动放置、跨 3 列（CSS：只写结束线 4 则是确定放置在第 3 列）。
+            ("a", new Style { GridColumnEnd = GridLine.Span(3), Height = Length.Px(20) }),
             ("b", new Style { Height = Length.Px(20) })), 800, 600);
 
         // a 跨 3 列（第 3 列为隐式 auto，无 span-1 子项贡献 → 0）：宽 = 100 + 100 + 0 = 200。
@@ -519,7 +520,7 @@ public class GridLayoutTests
                 Display = Display.Grid,
                 GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(100), GridTrackSize.Px(100) }
             }),
-            ("a", new Style { GridRowStart = 1, GridColumnStart = 2, Height = Length.Px(20) }),
+            ("a", new Style { GridRowStart = GridLine.Line(1), GridColumnStart = GridLine.Line(2), Height = Length.Px(20) }),
             ("b", new Style { Height = Length.Px(20) }),
             ("c", new Style { Height = Length.Px(20) }),
             ("d", new Style { Height = Length.Px(20) })), 800, 600);

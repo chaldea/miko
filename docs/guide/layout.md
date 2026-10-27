@@ -132,23 +132,85 @@ space:
 
 ### Grid layout
 
-`Display.Grid` places children on explicit tracks. Tracks are `GridTrackSize` values:
-`GridTrackSize.Px(120)`, `GridTrackSize.Percent(25)`, `GridTrackSize.Fr(1)`, `GridTrackSize.Auto`
-(a bare number means pixels).
+`Display.Grid` places children on rows and columns. `GridTemplateColumns` / `GridTemplateRows` are
+lists of `GridTrackSize` entries, written like CSS track lists (a bare number means pixels):
+
+| Entry | CSS |
+| --- | --- |
+| `GridTrackSize.Px(120)`, `GridTrackSize.Percent(25)`, `(GridTrackSize)Length.Em(10)` | `120px`, `25%`, `10em` |
+| `GridTrackSize.Fr(1)` | `1fr` — a share of the remaining space |
+| `GridTrackSize.Auto`, `GridTrackSize.MinContent`, `GridTrackSize.MaxContent` | `auto`, `min-content`, `max-content` |
+| `GridTrackSize.MinMax(120, GridTrackSize.Fr(1))` | `minmax(120px, 1fr)` |
+| `GridTrackSize.FitContent(Length.Px(300))` | `fit-content(300px)` |
+| `GridTrackSize.Repeat(3, GridTrackSize.Fr(1))` | `repeat(3, 1fr)` |
+| `GridTrackSize.Repeat(GridAutoRepeat.AutoFill, …)` / `GridAutoRepeat.AutoFit` | `repeat(auto-fill, …)` / `repeat(auto-fit, …)` |
+| `GridTrackSize.LineNames("content-start")` | `[content-start]` — names the line at that position |
 
 ```csharp
+// A responsive card grid: as many 160px-or-wider columns as fit.
 new Style
 {
     Display = Display.Grid,
-    GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(200), GridTrackSize.Fr(1) },
+    GridTemplateColumns = new List<GridTrackSize>
+    {
+        GridTrackSize.Repeat(GridAutoRepeat.AutoFill, GridTrackSize.MinMax(160, GridTrackSize.Fr(1))),
+    },
     Gap = Length.Px(12),
 }
 ```
 
-Children are placed automatically, or explicitly with `GridColumnStart` / `GridColumnEnd` /
-`GridRowStart` / `GridRowEnd` (1-based line numbers; `-1` is the last line). `JustifyItems` /
-`JustifySelf` and `AlignItems` / `AlignSelf` align items inside their cells. `repeat()`,
-`minmax()` and named areas are not supported.
+- Tracks are sized like a browser does: `auto` and `fr` tracks never shrink below the narrowest
+  their content can be (`1fr` is `minmax(auto, 1fr)`, so a long word or a wide image widens its
+  column). Use `GridTrackSize.MinMax(0, GridTrackSize.Fr(1))` for columns that always split the
+  space evenly. Items spanning several tracks grow the `auto` tracks they cross.
+- `auto-fill` repeats the tracks as many times as fit the container (by its `Width`/`Height`, else
+  `MaxWidth`/`MaxHeight`, else just enough to reach `MinWidth`/`MinHeight`, else once). Each repeated
+  track needs a fixed length on at least one end. `auto-fit` does the same, then collapses the
+  repeated tracks that stay empty, so the occupied ones take the space.
+- `GridAutoRows` / `GridAutoColumns` size the tracks created outside the template, e.g.
+  `GridAutoRows = GridTrackSize.MinMax(48, GridTrackSize.Auto)`.
+
+`GridTemplateAreas` names regions of the grid, one string per row; `.` marks an empty cell, and the
+cells of one name must form a rectangle. Children go into an area with `GridArea`:
+
+```csharp
+[".page"] = new()
+{
+    Display = Display.Grid,
+    GridTemplateAreas = new GridTemplateAreas(
+        "header header",
+        "nav    main",
+        "footer footer"),
+    GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Px(200), GridTrackSize.Fr(1) },
+},
+[".page-header"] = new() { GridArea = "header" },
+[".page-main"]   = new() { GridArea = "main" },
+```
+
+Children without a placement are placed automatically, row by row. Otherwise
+`GridColumnStart` / `GridColumnEnd` / `GridRowStart` / `GridRowEnd` take a `GridLine`, and the
+`GridColumn` / `GridRow` shorthands set both ends:
+
+| Value | CSS | Meaning |
+| --- | --- | --- |
+| `GridLine.Line(2)`, `GridLine.Line(-1)` | `2`, `-1` | A line number, 1-based; negative numbers count from the end of the explicit grid. |
+| `GridLine.Named("content-start")` | `content-start` | The first line with that name. An area name (`"main"`) means the area's start line on the start side and its end line on the end side. |
+| `GridLine.Named("col", 2)` | `2 col` | The second line named `col`. |
+| `GridLine.Span(2)`, `GridLine.Span("col")` | `span 2`, `span col` | Span two tracks, or up to the next line named `col`. |
+
+```csharp
+GridColumn = new GridPlacement(1, GridLine.Span(2)),          // grid-column: 1 / span 2
+GridColumn = new GridPlacement("content-start", "content-end"),
+GridRow = 3,                                                  // grid-row: 3
+```
+
+Lines outside the explicit grid add implicit tracks, sized by `GridAutoRows` / `GridAutoColumns`.
+`JustifyItems` / `JustifySelf` and `AlignItems` / `AlignSelf` align items inside their cells;
+`JustifyContent` / `AlignContent` distribute the tracks when the grid is smaller than its container.
+Not supported: `grid-auto-flow: column` / `dense`, `subgrid`, and track lists in
+`GridAutoRows` / `GridAutoColumns`. Because `MinWidth` / `MinHeight` default to `0` rather than
+`auto`, setting them to `0` does not opt an item out of the content-based minimum — use
+`MinMax(0, …)` tracks instead.
 
 ## Positioning
 
@@ -160,6 +222,21 @@ The `Position` property controls how an element is placed relative to the normal
 | `Relative` | Offset from its normal position by `Top` / `Right` / `Bottom` / `Left`. |
 | `Absolute` | Positioned relative to the nearest positioned ancestor; removed from flow. |
 | `Fixed` | Positioned relative to the viewport. |
+| `Sticky` | Laid out in normal flow, then kept inside the visible area of its nearest scroll container while it scrolls. |
+
+A `Sticky` element sticks once it would scroll past the edge given by `Top` / `Bottom` / `Left` /
+`Right` (percentages refer to the scroll container's visible area; an element with none of them set
+behaves like `Static`). It never leaves its parent's content box, so a section header is pushed out
+when its section scrolls away and the next section's header takes over:
+
+```csharp
+[".section-title"] = new() { Position = Position.Sticky, Top = Length.Px(0) },
+```
+
+- The scroll container is the nearest ancestor with `Overflow` other than `Visible` — `Hidden`
+  counts, as in CSS. Without one, the viewport is used.
+- A stuck element paints above its sibling content and receives taps on top of it, and it is the
+  containing block of its absolutely positioned descendants.
 
 `Overflow` (`Visible`, `Hidden`, `Scroll`, `Auto`) controls clipping and scrolling of
 content that exceeds the box.

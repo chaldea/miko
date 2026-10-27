@@ -322,7 +322,32 @@ Combinators: descendant (` `), child (`>`), adjacent sibling (`+`), general sibl
 - **BlockLayout**: Vertical stacking, width fills parent, height fits content
 - **InlineLayout**: Horizontal flow with automatic line wrapping
 - **FlexLayout**: Flexbox with `flex-direction`, `justify-content`, `align-items`, `flex-grow`, `flex-shrink`
+- **GridLayout**: CSS Grid — track lists (`GridTrackSize`: fixed / fr / auto / min- & max-content /
+  `minmax` / `fit-content` / `repeat` incl. auto-fill & auto-fit / line names), `GridTemplateAreas`,
+  `GridLine` placement (numbers, names, areas, spans)
 - **TableLayout**: Table rows and cells with column width distribution
+
+### Sticky positioning and grid templates (ISSUE-159)
+
+- **Sticky is applied at paint time, not layout time.** Scrolling never relayouts (the layout cache
+  stays hot), so `LayoutEngine.ApplyPositioning` only registers sticky boxes — with their nearest
+  scroll container (any `Overflow` other than `Visible`) and containing block — on the root's
+  `LayoutBox.StickyBoxes`. `StickyPositioning.Update(root)` re-applies the offsets from the current
+  scroll position before every `RenderEngine.Render` / `RenderLayer` / `RenderDirty` and every
+  `MikoEngine.HitTest`. Offsets are incremental (`LayoutBox.StickyOffsetX/Y`), so one cached tree
+  can be updated every frame; fixed descendants are not moved.
+- Sticky children paint after all their siblings (`RenderEngine.RenderChildren`) and are hit-tested
+  first (`HitTestBox`) — twins. Sticky always establishes a stacking context (both
+  `EstablishesStackingContext` twins). A containing block that *is* the scroll container constrains
+  by its whole scrollable area, not its one-screen content box.
+- `GridLine` must stay 8 bytes with no references (four slots on both `Style` and `ComputedStyle`,
+  see `StyleStorageSizeTests`): line names are interned in `GridLineNames` (process-wide,
+  content-addressed).
+- Track sizing follows CSS Grid §11 (`GridLayout.TrackSizer`); `1fr` is `minmax(auto, 1fr)`, so it
+  needs min-content contributions, measured by laying the item out at `MinContentProbeWidth` (an
+  available width of 0 means "indefinite"). `MinWidth` / `MinHeight` compute to 0 (no `auto`), so
+  only a positive min-size counts as explicit. Placement follows §8.3: an end line alone is a
+  definite placement, and lines outside the explicit grid add implicit tracks on either side.
 
 ### Dirty Marking and Incremental Rendering
 

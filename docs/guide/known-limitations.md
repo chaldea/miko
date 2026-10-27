@@ -36,8 +36,10 @@ the missing ones are `:only-child`, `:only-of-type`, `:root`, `:focus-visible`, 
 
 ### Positioning and layout
 
-- `position: sticky`
-- Grid layout does not support `repeat()`, `minmax()`, or named grid areas / lines
+- Grid layout does not support `grid-auto-flow: column` / `dense`, `subgrid`, or track lists in
+  `grid-auto-rows` / `grid-auto-columns` (a single track size only)
+- A `position: sticky` element with `z-index: auto` paints above its siblings, not in a page-wide
+  layer of positioned elements
 
 ### Visual effects
 
@@ -86,4 +88,4 @@ Trimming and Native AOT for desktop apps are not officially supported in 1.0.0-p
 
 ## What's next
 
-These limitations describe the 1.0 preview boundaries. Many of them — accessibility, dictionary line breaking, sticky positioning, desktop trimming — are planned for future releases. See the [project repository](https://github.com/chaldea/miko) for the roadmap and issue tracker.
+These limitations describe the 1.0 preview boundaries. Many of them — accessibility, dictionary line breaking, desktop trimming — are planned for future releases. See the [project repository](https://github.com/chaldea/miko) for the roadmap and issue tracker.

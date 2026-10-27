@@ -520,22 +520,63 @@ public partial class Style
     public StyleProperty<Length>? RowGap { get; set; }
     public StyleProperty<Length>? ColumnGap { get; set; }
 
-    // Grid 容器属性（仅对 Display.Grid 生效，见 ISSUE-097）
-    /// <summary>显式列轨道列表（grid-template-columns）。null = 无显式列模板（单列 auto 流）。</summary>
+    // Grid 容器属性（仅对 Display.Grid 生效，见 ISSUE-097 / ISSUE-159）
+    /// <summary>
+    /// 显式列轨道列表（grid-template-columns）：轨道尺寸、<c>repeat()</c> 与线名，见 <see cref="GridTrackSize"/>。
+    /// null = 无显式列模板（单列 auto 流）。
+    /// </summary>
     public StyleProperty<List<GridTrackSize>>? GridTemplateColumns { get; set; }
-    /// <summary>显式行轨道列表（grid-template-rows）。null = 无显式行模板（行按需隐式创建）。</summary>
+    /// <summary>显式行轨道列表（grid-template-rows），写法同 <see cref="GridTemplateColumns"/>。null = 无显式行模板（行按需隐式创建）。</summary>
     public StyleProperty<List<GridTrackSize>>? GridTemplateRows { get; set; }
-    /// <summary>隐式行轨道尺寸（grid-auto-rows），默认 auto。</summary>
+    /// <summary>命名区域（grid-template-areas），见 <see cref="Common.GridTemplateAreas"/>。null = 无命名区域。</summary>
+    public StyleProperty<GridTemplateAreas>? GridTemplateAreas { get; set; }
+    /// <summary>隐式行轨道尺寸（grid-auto-rows），默认 auto；可为 <c>minmax()</c> 等单个轨道尺寸。</summary>
     public StyleProperty<GridTrackSize>? GridAutoRows { get; set; }
-    /// <summary>隐式列轨道尺寸（grid-auto-columns），默认 auto。仅显式越界放置会产生隐式列。</summary>
+    /// <summary>隐式列轨道尺寸（grid-auto-columns），默认 auto。仅越界放置会产生隐式列。</summary>
     public StyleProperty<GridTrackSize>? GridAutoColumns { get; set; }
 
-    // Grid 子项放置属性（grid-column-start/end、grid-row-start/end）。
-    // 1 起始的网格线编号；0（默认）= 自动放置；负的结束线相对显式轨道数解析（-1 = 最后一条线）。
-    public StyleProperty<int>? GridColumnStart { get; set; }
-    public StyleProperty<int>? GridColumnEnd { get; set; }
-    public StyleProperty<int>? GridRowStart { get; set; }
-    public StyleProperty<int>? GridRowEnd { get; set; }
+    // Grid 子项放置属性（grid-column-start/end、grid-row-start/end）：线编号、线名/区域名或跨度，
+    // 见 GridLine。默认 auto = 自动放置。
+    public StyleProperty<GridLine>? GridColumnStart { get; set; }
+    public StyleProperty<GridLine>? GridColumnEnd { get; set; }
+    public StyleProperty<GridLine>? GridRowStart { get; set; }
+    public StyleProperty<GridLine>? GridRowEnd { get; set; }
+
+    /// <summary>grid-column 简写（同时设置 grid-column-start/end），如 <c>GridColumn = new(1, GridLine.Span(2))</c>。</summary>
+    public GridPlacement GridColumn
+    {
+        set
+        {
+            GridColumnStart = value.Start;
+            GridColumnEnd = value.End;
+        }
+    }
+
+    /// <summary>grid-row 简写（同时设置 grid-row-start/end）。</summary>
+    public GridPlacement GridRow
+    {
+        set
+        {
+            GridRowStart = value.Start;
+            GridRowEnd = value.End;
+        }
+    }
+
+    /// <summary>
+    /// grid-area 简写：把子项放进所给名字的区域（四条放置线都设为该名字，
+    /// 分别解析为区域的 <c>-start</c> / <c>-end</c> 边线，见 <see cref="Common.GridTemplateAreas"/>）。
+    /// </summary>
+    public string GridArea
+    {
+        set
+        {
+            var line = GridLine.Named(value);
+            GridRowStart = line;
+            GridColumnStart = line;
+            GridRowEnd = line;
+            GridColumnEnd = line;
+        }
+    }
 
     // Grid inline（行内/水平）轴对齐（仅对 Display.Grid 生效，见 ISSUE-101）。
     /// <summary>所有 grid 子项在各自 area 内的 inline 轴对齐（justify-items），默认 normal（表现为 stretch）。</summary>
