@@ -32,8 +32,8 @@ public sealed class IonDatetimeColorTests : IDisposable
     {
         _app.ComputedStyleOf(_app.Single("colored").FindByClass("datetime-header").Single())
             .BackgroundColor.ShouldBe(_theme.Danger);
-        var buttons = _app.Single("colored").FindByClass("datetime-action-button");
-        buttons.ShouldNotBeEmpty();
+        var buttons = _app.Single("colored").FindByClass("datetime-action-buttons").Single().FindByClass("button-native");
+        buttons.Count.ShouldBe(2);
         foreach (var button in buttons)
             _app.ComputedStyleOf(button).Color.ShouldBe(_theme.Danger);
     }

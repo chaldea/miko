@@ -1,0 +1,13 @@
+@using System.Globalization
+@* The next two weeks only, weekdays only, every quarter of an hour. *@
+<IonDatetime Min="2026-07-10" Max="2026-07-24T18:00"
+             MinuteValues="0,15,30,45"
+             IsDateEnabled="IsWeekday"
+             @bind-Value="_value" />
+
+@code {
+    private string? _value = "2026-07-15T10:30:00";
+
+    private static bool IsWeekday(string date) =>
+        DateTime.Parse(date, CultureInfo.InvariantCulture).DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday);
+}

@@ -1,0 +1,10 @@
+@* A calendar only, the time wheels only, and month / year wheels. *@
+<IonDatetime Presentation="date" @bind-Value="_date" />
+<IonDatetime Presentation="time" @bind-Value="_time" />
+<IonDatetime Presentation="month-year" @bind-Value="_month" />
+
+@code {
+    private string? _date = "2026-07-15";
+    private string? _time = "10:30";
+    private string? _month = "2026-07";
+}

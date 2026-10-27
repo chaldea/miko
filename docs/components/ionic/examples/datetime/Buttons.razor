@@ -1,18 +1,14 @@
-@* The value changes as soon as a day is tapped; Done / Cancel only raise events. *@
-<IonDatetime @bind-Value="_draft"
-             ShowDefaultTitle="false"
+@* With buttons a pick shows in the calendar, but the value only changes on Done (here "Save").
+   Cancel leaves it as it was; Clear empties it. *@
+<IonDatetime Presentation="date"
+             @bind-Value="_value"
+             ShowDefaultTitle="true"
              ShowDefaultButtons="true"
-             DoneText="Save"
-             OnConfirm="Save"
-             OnCancel="Revert" />
+             ShowClearButton="true"
+             DoneText="Save" />
 
-<p>Saved: @(_saved ?? "nothing yet")</p>
+<p>Saved: @(_value ?? "nothing yet")</p>
 
 @code {
-    private string? _saved;
-    private string? _draft;
-
-    private void Save(string? value) => _saved = value;
-
-    private void Revert() => _draft = _saved;
+    private string? _value;
 }

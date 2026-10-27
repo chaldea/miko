@@ -75,7 +75,7 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
 - [Checkbox](docs/components/ionic/checkbox.md): `IonCheckbox` — Checkboxes let the user select any number of options from a set, or switch a single option on or off.
 - [Chip](docs/components/ionic/chip.md): `IonChip` — A chip is a compact, pill-shaped element for a tag, a filter, or a contact, holding text plus an optional icon or avatar.
 - [Content](docs/components/ionic/content.md): `IonContent` — Content is the scrollable main area of a page, between the header and the footer.
-- [Datetime](docs/components/ionic/datetime.md): `IonDatetime`, `IonDatetimeButton` — Datetime is an inline month calendar for picking a single date.
+- [Datetime](docs/components/ionic/datetime.md): `IonDatetime`, `IonDatetimeButton` — Datetime lets the user pick a date, a time, or both, from a calendar or from scrolling wheels.
 - [Floating Action Button](docs/components/ionic/fab.md): `IonFab`, `IonFabButton`, `IonFabList` — A floating action button (FAB) is a circular button that floats above the content at a corner, edge, or the center of the screen, for the screen's primary action; it can also open lists of related actions.
 - [Footer](docs/components/ionic/footer.md): `IonFooter` — A footer is the bottom region of a page: a wrapper for one or more toolbars that stays below the scrolling content.
 - [Grid](docs/components/ionic/grid.md): `IonCol`, `IonGrid`, `IonRow` — The grid is a 12-column flexbox layout system for arranging content in rows and columns.

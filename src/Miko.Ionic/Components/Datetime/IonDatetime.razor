@@ -1,245 +1,1183 @@
 @namespace Miko.Ionic.Components
 @inherits IonicComponentBase
 @using System.Globalization
-@* Mirrors Ionic's <ion-datetime> in its default grid/calendar (date) presentation
-   (datetime.tsx render() → renderDatetime → renderHeader + renderCalendar + renderFooter):
-   <ion-datetime class="{mode} datetime-presentation-date datetime-size-fixed ...">
-     [<div class="datetime-header">                         <!-- when ShowDefaultTitle -->
-        <div class="datetime-title">Select Date</div>
-        <div class="datetime-selected-date">Wed, Jul 15</div>
-      </div>]
-     <div class="datetime-calendar">
-       <div class="calendar-header">
-         <div class="calendar-action-buttons">
-           <div class="calendar-month-year"><button class="calendar-month-year-toggle">July 2026 ▾</button></div>
-           <div class="calendar-next-prev"> prev / next buttons </div>
-         </div>
-         <div class="calendar-days-of-week"> <div class="day-of-week">S</div> ... </div>
-       </div>
-       <div class="calendar-body">
-         <div class="calendar-month"><div class="calendar-month-grid">
-           <div class="calendar-day-wrapper"><button class="calendar-day calendar-day-active? calendar-day-today?">n</button></div> ...
-         </div></div>
-       </div>
-     </div>
-     [<div class="datetime-footer"> Cancel / OK buttons </div>]   <!-- when ShowDefaultButtons -->
-   </ion-datetime>
-   The wheel/time views are out of scope for this structural port; the calendar (date) view is the
-   default and what <IonDatetime /> renders. Day selection updates Value and raises ValueChanged. *@
-<div class="@ClassMapper.Class" style="@Style">
-    @if (ShowDefaultTitle)
+@using static Miko.Ionic.Components.DatetimeUtils
+@* Mirrors Ionic's <ion-datetime> (datetime.tsx render() → renderDatetime()). The host carries
+   {mode} ion-datetime datetime-presentation-{p} datetime-size-{fixed|cover} [datetime-grid]
+   [datetime-prefer-wheel] [show-month-and-year] [month-year-picker-open] [datetime-disabled]
+   [datetime-readonly] [ion-color ion-color-{c}], and holds the parts each presentation renders:
+
+     date        header · calendar · month/year picker · footer          (grid)
+     date-time   header · calendar · month/year picker · time · footer  (grid)
+     time-date   header · time · calendar · month/year picker · footer  (grid)
+     time        header(title only) · time wheel · footer
+     month, month-year, year   header(title only) · wheel view · footer
+     date, date-time, time-date with PreferWheel   header(title only) · wheel view · footer
+
+   header      <div class="datetime-header"><div class="datetime-title">{Title | Select Date}</div>
+                 <div class="datetime-selected-date">Wed, Jul 15</div></div>
+   calendar    <div class="datetime-calendar"><div class="calendar-header">
+                 <div class="calendar-action-buttons">
+                   <div class="calendar-month-year"><button class="calendar-month-year-toggle">
+                     <span id="toggle-wrapper">July 2026 <ion-icon/></span></button></div>
+                   <div class="calendar-next-prev"><ion-buttons> prev / next <ion-button/> </ion-buttons></div>
+                 </div>
+                 <div class="calendar-days-of-week"><div class="day-of-week">S</div> ×7</div></div>
+               <div class="calendar-body"><div class="calendar-month"><div class="calendar-month-grid">
+                 <div class="calendar-day-wrapper"><button class="calendar-day …">15</button></div> …
+   month/year  <div class="datetime-year"><div class="wheel-order-…"><ion-picker> month · year </ion-picker></div></div>
+   time        <div class="datetime-time"><div class="time-header">{TimeLabel | Time}</div>
+                 <button class="time-body">1:30 PM</button><ion-popover> time wheel </ion-popover></div>
+   wheel view  <div class="wheel-order-{month-first|year-first}"><ion-picker> columns </ion-picker></div>
+   footer      <div class="datetime-footer"><div class="datetime-buttons"><div class="datetime-action-buttons">
+                 {Buttons | <ion-buttons> #cancel-button <div class="datetime-action-buttons-container">
+                 #clear-button #confirm-button </div></ion-buttons>}</div></div></div>
+
+   Differences from the browser component, each forced by the engine: the calendar body shows the
+   working month only (Ionic keeps the previous and next months beside it in a scroll-snapping
+   strip); a horizontal swipe on it pages like Ionic's snap does, the arrows animate nothing. Day
+   buttons carry no data-* / aria attributes (Miko elements have none). Arrow-key navigation is not
+   ported: the engine sends key events to text fields only. *@
+@{
+    RefreshDerivedState();
+}
+<div class="@ClassMapper.Class" style="@Style" @ref="_root">
+    @foreach (var section in Sections())
     {
-        <div class="datetime-header">
-            <div class="datetime-title">Select Date</div>
-            <div class="datetime-selected-date">@SelectedDateText()</div>
-        </div>
-    }
-    <div class="datetime-calendar">
-        <div class="calendar-header">
-            <div class="calendar-action-buttons">
-                <div class="calendar-month-year">
-                    <button class="calendar-month-year-toggle ion-activatable ion-focusable">
-                        <span>@MonthYearLabel()</span>
-                    </button>
-                </div>
-                <div class="calendar-next-prev">
-                    <button class="calendar-nav-button" @onclick="PrevMonth">
-                        <IonIcon Icon="@Ionicons.ChevronBack" />
-                    </button>
-                    <button class="calendar-nav-button" @onclick="NextMonth">
-                        <IonIcon Icon="@Ionicons.ChevronForward" />
-                    </button>
-                </div>
-            </div>
-            <div class="calendar-days-of-week">
-                @foreach (var dow in IonCalendarDay.DaysOfWeek(FirstDayOfWeek))
+        switch (section)
+        {
+            case DatetimeSection.Header:
+            case DatetimeSection.TitleOnlyHeader:
+                if (Title is not null || ShowDefaultTitle)
                 {
-                    <div class="day-of-week">@dow</div>
-                }
-            </div>
-        </div>
-        <div class="calendar-body">
-            <div class="calendar-month">
-                <div class="calendar-month-grid">
-                    @foreach (var day in _monthDays)
-                    {
-                        <div class="calendar-day-wrapper">
-                            @if (day.IsPadding)
+                    <div class="datetime-header">
+                        <div class="datetime-title">
+                            @if (Title is not null)
                             {
-                                <button class="calendar-day calendar-day-padding"></button>
+                                @Title
                             }
                             else
                             {
-                                <button class="@DayClass(day)" @onclick="@(() => SelectDayAsync(day.Day!.Value))">@day.Day</button>
+                                @("Select Date")
                             }
                         </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-    @if (ShowDefaultButtons)
-    {
-        <div class="datetime-footer">
-            <div class="datetime-buttons">
-                <div class="datetime-action-buttons">
-                    <button class="datetime-action-button" @onclick="CancelAsync">@CancelText</button>
-                    <div class="datetime-action-buttons-container">
-                        <button class="datetime-action-button" @onclick="ConfirmAsync">@DoneText</button>
+                        @if (section == DatetimeSection.Header)
+                        {
+                            <div class="datetime-selected-date">@GetHeaderSelectedDateText()</div>
+                        }
+                    </div>
+                }
+                break;
+
+            case DatetimeSection.Calendar:
+                <div class="datetime-calendar">
+                    <div class="calendar-header">
+                        <div class="calendar-action-buttons">
+                            <div class="calendar-month-year">
+                                <button class="calendar-month-year-toggle ion-activatable ion-focusable"
+                                        disabled="@Disabled"
+                                        @onclick="ToggleMonthAndYearView">
+                                    <span id="toggle-wrapper">
+                                        @_locale.GetMonthAndYear(DisplayedMonth)
+                                        <IonIcon Icon="@MonthYearToggleIcon" />
+                                    </span>
+                                </button>
+                            </div>
+                            <div class="calendar-next-prev">
+                                <IonButtons>
+                                    <IonButton Disabled="@(Disabled || IsPrevMonthDisabled(DisplayedMonth, _minParts, _maxParts))"
+                                               OnClick="PrevMonth">
+                                        <IconOnly><IonIcon Icon="@Ionicons.ChevronBack" /></IconOnly>
+                                    </IonButton>
+                                    <IonButton Disabled="@(Disabled || IsNextMonthDisabled(DisplayedMonth, _maxParts))"
+                                               OnClick="NextMonth">
+                                        <IconOnly><IonIcon Icon="@Ionicons.ChevronForward" /></IconOnly>
+                                    </IonButton>
+                                </IonButtons>
+                            </div>
+                        </div>
+                        <div class="calendar-days-of-week">
+                            @foreach (var dayOfWeek in _locale.GetDaysOfWeek(Mode, NormalizedFirstDayOfWeek))
+                            {
+                                <div class="day-of-week">@dayOfWeek</div>
+                            }
+                        </div>
+                    </div>
+                    <div class="calendar-body ion-focusable">
+                        <div class="calendar-month">
+                            <div class="calendar-month-grid">
+                                @foreach (var day in BuildMonth(DisplayedMonth.Month!.Value, DisplayedMonth.Year!.Value))
+                                {
+                                    <div class="calendar-day-wrapper">
+                                        <button class="@day.Class" style="@day.Style" disabled="@day.Disabled"
+                                                @onclick="@(() => SelectDayAsync(day))">@day.Text</button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+                break;
+
+            case DatetimeSection.MonthYearPicker:
+                <div class="datetime-year">
+                    @* Built only while shown: a wheel laid out inside display:none could not be
+                       scrolled to its value when it appears. *@
+                    @if (_showMonthAndYear)
+                    {
+                        @WheelView("month-year")
+                    }
+                </div>
+                break;
+
+            case DatetimeSection.Time:
+                <div class="datetime-time">
+                    @if (Presentation == "time")
+                    {
+                        @WheelPicker("time")
+                    }
+                    else
+                    {
+                        @if (TimeLabel is not null || ShowDefaultTimeLabel)
+                        {
+                            <div class="time-header">
+                                @if (TimeLabel is not null)
+                                {
+                                    @TimeLabel
+                                }
+                                else
+                                {
+                                    @("Time")
+                                }
+                            </div>
+                        }
+                        <button class="@(_isTimePopoverOpen ? "time-body time-body-active" : "time-body")"
+                                disabled="@Disabled"
+                                @onclick="OpenTimePopover">@GetTimeButtonText()</button>
+                        <IonPopover IsOpen="_isTimePopoverOpen"
+                                    IsOpenChanged="@((bool open) => _isTimePopoverOpen = open)"
+                                    Event="_timePopoverEvent"
+                                    Alignment="center"
+                                    Arrow="false"
+                                    Class="datetime-time-popover"
+                                    OnDidDismiss="@(() => _isTimePopoverOpen = false)">
+                            @if (_isTimePopoverOpen)
+                            {
+                                @WheelPicker("time")
+                            }
+                        </IonPopover>
+                    }
+                </div>
+                break;
+
+            case DatetimeSection.WheelView:
+                @WheelView(null)
+                break;
+
+            case DatetimeSection.Footer:
+                if (Buttons is not null || ShowDefaultButtons || ShowClearButton)
+                {
+                    <div class="datetime-footer">
+                        <div class="datetime-buttons">
+                            <div class="@(ShowClearButton ? "datetime-action-buttons has-clear-button" : "datetime-action-buttons")">
+                                @if (Buttons is not null)
+                                {
+                                    @Buttons
+                                }
+                                else
+                                {
+                                    <IonButtons>
+                                        @if (ShowDefaultButtons)
+                                        {
+                                            <IonButton Id="cancel-button" Color="@ColorOrPrimary"
+                                                       Disabled="@(Disabled || Readonly)"
+                                                       OnClick="@(() => CancelAsync(true))">@CancelText</IonButton>
+                                        }
+                                        <div class="datetime-action-buttons-container">
+                                            @if (ShowClearButton)
+                                            {
+                                                <IonButton Id="clear-button" Color="@ColorOrPrimary"
+                                                           Disabled="@(Disabled || Readonly)"
+                                                           OnClick="ClearAsync">@ClearText</IonButton>
+                                            }
+                                            @if (ShowDefaultButtons)
+                                            {
+                                                <IonButton Id="confirm-button" Color="@ColorOrPrimary"
+                                                           Disabled="@(Disabled || Readonly)"
+                                                           OnClick="@(() => ConfirmAsync(true))">@DoneText</IonButton>
+                                            }
+                                        </div>
+                                    </IonButtons>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                break;
+        }
     }
 </div>
 
 @code {
-    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c>, <c>"danger"</c>, … .
-    /// Replaces the primary color of today's marker, the selected day, the action buttons and (md)
-    /// the header.</summary>
+    private const string CancelRole = "datetime-cancel";
+    private const string ConfirmRole = "datetime-confirm";
+
+    // ---- parameters --------------------------------------------------------------------------
+
+    /// <summary>Named palette color (Ionic <c>color</c>): <c>"primary"</c> (the look when unset),
+    /// <c>"danger"</c>, … . Tints today, the selected day, the md header, the footer buttons and the
+    /// selected wheel options.</summary>
     [Parameter] public string? Color { get; set; }
 
-    /// <summary>The selected value as an ISO date string (<c>yyyy-MM-dd</c>). Bind two-way with
-    /// <see cref="ValueChanged"/>.</summary>
-    [Parameter] public string? Value { get; set; }
-
-    /// <summary>Raised with the new ISO date string when a day is selected.</summary>
-    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
-
-    /// <summary>The first day of the week (0 = Sunday, default). Ionic <c>firstDayOfWeek</c>.</summary>
-    [Parameter] public int FirstDayOfWeek { get; set; }
-
-    /// <summary>If true, the datetime is dimmed and non-interactive.</summary>
+    /// <summary>If true, the datetime cannot be interacted with: the weekdays and time are dimmed,
+    /// every button is disabled and the wheels are locked.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>If true, the datetime is non-interactive but not dimmed.</summary>
+    /// <summary>If true, the datetime looks normal but its value cannot change. The calendar can
+    /// still be browsed month by month.</summary>
     [Parameter] public bool Readonly { get; set; }
 
-    /// <summary>If true (default), the header title/selected-date is shown.</summary>
-    [Parameter] public bool ShowDefaultTitle { get; set; } = true;
+    /// <summary>The value as an ISO 8601 string: <c>"2026-07-15"</c>, <c>"2026-07-15T13:30:00"</c>,
+    /// <c>"2026-07"</c>, <c>"13:30"</c> … . Picking writes back the same form Ionic does: the date
+    /// plus the time of the current value (or of now, when there is none). No time zone conversion
+    /// happens. Bind two-way with <see cref="ValueChanged"/>; with <see cref="Multiple"/> use
+    /// <see cref="Values"/>.</summary>
+    [Parameter] public string? Value { get; set; }
 
-    /// <summary>If true, the footer Cancel / Done buttons are shown. They only raise
-    /// <see cref="OnCancel"/> / <see cref="OnConfirm"/>; the value already changed when the day was
-    /// tapped.</summary>
+    /// <summary>Raised with the new value when the user changes it (Ionic <c>ionChange</c>): right
+    /// away, or on Done when there are buttons. Null when the value was cleared.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>The selected dates when <see cref="Multiple"/> is true (Ionic's array
+    /// <c>value</c>), each an ISO date string. Bind two-way with <see cref="ValuesChanged"/>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Raised with the new dates when <see cref="Multiple"/> is true; null when none is left.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>?> ValuesChanged { get; set; }
+
+    /// <summary>What to pick: <c>"date-time"</c> (default) a calendar plus a time button,
+    /// <c>"time-date"</c> the same with the time first, <c>"date"</c> a calendar, <c>"time"</c>
+    /// hour / minute / AM-PM wheels, <c>"month-year"</c>, <c>"month"</c> or <c>"year"</c> wheels.</summary>
+    [Parameter] public string Presentation { get; set; } = "date-time";
+
+    /// <summary>If true, <c>"date"</c>, <c>"date-time"</c> and <c>"time-date"</c> show wheels instead
+    /// of a calendar. The other presentations always use wheels.</summary>
+    [Parameter] public bool PreferWheel { get; set; }
+
+    /// <summary>The earliest selectable value, as an ISO string that may be partial: <c>"2026"</c>
+    /// means January 1, 2026. Defaults to 100 years before the current year for the year wheel.</summary>
+    [Parameter] public string? Min { get; set; }
+
+    /// <summary>The latest selectable value, as an ISO string that may be partial: <c>"2026"</c>
+    /// means December 31, 2026 at 23:59. Defaults to the end of the current year for the year wheel.</summary>
+    [Parameter] public string? Max { get; set; }
+
+    /// <summary>Only these years can be picked, comma separated: <c>"2024,2028,2032"</c>.</summary>
+    [Parameter] public string? YearValues { get; set; }
+
+    /// <summary>Only these months can be picked (1 = January), comma separated: <c>"6,7,8"</c>.</summary>
+    [Parameter] public string? MonthValues { get; set; }
+
+    /// <summary>Only these days of the month can be picked, comma separated: <c>"1,15"</c>. Days a
+    /// month does not have are skipped.</summary>
+    [Parameter] public string? DayValues { get; set; }
+
+    /// <summary>Only these hours can be picked, in the hour cycle's numbering (0 – 23 for 24-hour,
+    /// 0 – 11 for 12-hour where 0 is 12), comma separated.</summary>
+    [Parameter] public string? HourValues { get; set; }
+
+    /// <summary>Only these minutes can be picked, comma separated: <c>"0,15,30,45"</c>.</summary>
+    [Parameter] public string? MinuteValues { get; set; }
+
+    /// <summary>The locale used for month and day names, number order and the hour cycle: a culture
+    /// name such as <c>"es-ES"</c> or <c>"zh-CN"</c> (Unicode extensions like <c>"en-GB-u-hc-h12"</c>
+    /// work), or <c>"default"</c> for the current culture.</summary>
+    [Parameter] public string Locale { get; set; } = "default";
+
+    /// <summary>The first column of the calendar: 0 = Sunday (default), 1 = Monday, … .</summary>
+    [Parameter] public int FirstDayOfWeek { get; set; }
+
+    /// <summary>The hour cycle: <c>"h12"</c> (1 – 12 with AM/PM), <c>"h23"</c> (0 – 23),
+    /// <c>"h11"</c> (0 – 11 with AM/PM) or <c>"h24"</c> (1 – 24). Null follows <see cref="Locale"/>.</summary>
+    [Parameter] public string? HourCycle { get; set; }
+
+    /// <summary>If true, several dates can be picked (only with <c>Presentation="date"</c> and a
+    /// calendar). Bind <see cref="Values"/>.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>Header text when <see cref="Multiple"/> has zero or several dates selected; receives
+    /// the selected ISO dates. Defaults to <c>"{count} days"</c>.</summary>
+    [Parameter] public Func<IReadOnlyList<string>, string>? TitleSelectedDatesFormatter { get; set; }
+
+    /// <summary>Decides which calendar days can be picked: receives each day as an ISO date
+    /// (<c>"2026-07-15"</c>) and returns false to disable it. Called for every rendered day, so keep
+    /// it cheap; an exception counts as enabled.</summary>
+    [Parameter] public Func<string, bool>? IsDateEnabled { get; set; }
+
+    /// <summary>Custom colors for given calendar days. A selected day keeps its own style.</summary>
+    [Parameter] public IReadOnlyList<DatetimeHighlight>? HighlightedDates { get; set; }
+
+    /// <summary>Custom colors per calendar day, computed: receives the day as an ISO date and returns
+    /// its colors, or null for the normal style. Used when <see cref="HighlightedDates"/> is null.</summary>
+    [Parameter] public Func<string, DatetimeHighlightStyle?>? HighlightedDatesCallback { get; set; }
+
+    /// <summary>If true, the calendar always shows six weeks, filled with the end of the previous
+    /// month and the start of the next; those days can be picked too.</summary>
+    [Parameter] public bool ShowAdjacentDays { get; set; }
+
+    /// <summary>Formats of the header date and the time button (Ionic <c>formatOptions</c>).</summary>
+    [Parameter] public DatetimeFormatOptions? FormatOptions { get; set; }
+
+    /// <summary>If true, a header with the title ("Select Date") and the selected date is shown
+    /// above the calendar. A <see cref="Title"/> shows it too.</summary>
+    [Parameter] public bool ShowDefaultTitle { get; set; }
+
+    /// <summary>If true, Cancel and Done buttons are shown. A pick then changes <see cref="Value"/>
+    /// only on Done; Cancel raises <see cref="OnCancel"/>. Both close an enclosing
+    /// <see cref="IonModal"/> or <see cref="IonPopover"/>.</summary>
     [Parameter] public bool ShowDefaultButtons { get; set; }
+
+    /// <summary>If true, a Clear button is shown in the footer; it empties the value.</summary>
+    [Parameter] public bool ShowClearButton { get; set; }
+
+    /// <summary>If true (default), the time row of <c>"date-time"</c> / <c>"time-date"</c> is
+    /// labelled "Time". A <see cref="TimeLabel"/> replaces it.</summary>
+    [Parameter] public bool ShowDefaultTimeLabel { get; set; } = true;
+
+    /// <summary><c>"fixed"</c> (default): at most 350px wide. <c>"cover"</c>: fills the width of its
+    /// container.</summary>
+    [Parameter] public string Size { get; set; } = "fixed";
 
     /// <summary>Cancel button label.</summary>
     [Parameter] public string CancelText { get; set; } = "Cancel";
 
-    /// <summary>Confirm button label.</summary>
+    /// <summary>Done button label.</summary>
     [Parameter] public string DoneText { get; set; } = "Done";
 
-    /// <summary>Raised when the confirm button is tapped, with the selected ISO date.</summary>
-    [Parameter] public EventCallback<string?> OnConfirm { get; set; }
+    /// <summary>Clear button label.</summary>
+    [Parameter] public string ClearText { get; set; } = "Clear";
 
-    /// <summary>Raised when the cancel button is tapped.</summary>
+    /// <summary>The header title (Ionic <c>slot="title"</c>), replacing "Select Date". Shows the
+    /// header even without <see cref="ShowDefaultTitle"/>.</summary>
+    [Parameter] public RenderFragment? Title { get; set; }
+
+    /// <summary>Footer content replacing the default buttons (Ionic <c>slot="buttons"</c>). As with
+    /// the default buttons, a pick then waits for <see cref="ConfirmAsync"/>, which these buttons
+    /// call through an <c>@ref</c>.</summary>
+    [Parameter] public RenderFragment? Buttons { get; set; }
+
+    /// <summary>The label of the time row (Ionic <c>slot="time-label"</c>), replacing "Time".</summary>
+    [Parameter] public RenderFragment? TimeLabel { get; set; }
+
+    /// <summary>Raised when the selection is cancelled — the Cancel button or
+    /// <see cref="CancelAsync"/> (Ionic <c>ionCancel</c>).</summary>
     [Parameter] public EventCallback OnCancel { get; set; }
 
-    private DateTime _working;            // the month currently displayed
-    private DateTime? _active;            // the selected date
-    private DateTime _today = DateTime.Today;
-    private string? _renderedValue;       // the Value the displayed month last followed
-    private IReadOnlyList<IonCalendarDay> _monthDays = Array.Empty<IonCalendarDay>();
+    /// <summary>Raised after <see cref="ConfirmAsync"/> committed the value — the Done button, or a
+    /// pick without buttons — with the confirmed value (the first date with <see cref="Multiple"/>).</summary>
+    [Parameter] public EventCallback<string?> OnConfirm { get; set; }
+
+    /// <summary>The clock used for today; the system clock unless the app registers one.</summary>
+    [Inject] private TimeProvider? Clock { get; set; }
+
+    // The live root, to find the modal or popover the datetime is presented in.
+    private Element? _root;
+
+    // ---- state -------------------------------------------------------------------------------
+
+    private DatetimeLocale _locale = DatetimeLocale.Get(null);
+    private bool _initialized;
+    private TimeProvider? _initializedClock;
+
+    private DatetimeParts _todayParts;
+    private DatetimeParts _defaultParts;
+    private DatetimeParts? _minParts;
+    private DatetimeParts? _maxParts;
+    private List<int>? _parsedYearValues;
+    private List<int>? _parsedMonthValues;
+    private List<int>? _parsedDayValues;
+    private List<int>? _parsedHourValues;
+    private List<int>? _parsedMinuteValues;
+
+    // The month shown / wheel positions (Ionic workingParts) and the selection (activeParts). Ionic
+    // keeps the selection either as one object or as an array; an array means "nothing selected
+    // yet" when empty and is what Multiple uses.
+    private DatetimeParts _workingParts;
+    private List<DatetimeParts> _activeParts = [];
+    private bool _activePartsIsArray = true;
+
+    private bool _showMonthAndYear;
+    private bool _isTimePopoverOpen;
+    private MouseEventArgs? _timePopoverEvent;
+    private string? _previousPresentation;
+
+    // The inputs last processed, to tell a parent's change from a re-render.
+    private string? _processedValue;
+    private string[]? _processedValues;
+    private string? _processedMin;
+    private string? _processedMax;
+    private (string? Year, string? Month, string? Day, string? Hour, string? Minute) _processedValueLists;
+
+    // Swipe on the calendar body (Ionic pages months with a scroll-snapping strip).
+    private const float SwipeThreshold = 50f;
+    private (float X, float Y)? _swipeStart;
+
+    private enum DatetimeSection { Header, TitleOnlyHeader, Calendar, MonthYearPicker, Time, WheelView, Footer }
+
+    private bool HasDatePresentation => Presentation is "date" or "date-time" or "time-date";
+
+    private bool IsGridStyle => HasDatePresentation && !PreferWheel;
+
+    private string ColorOrPrimary => string.IsNullOrWhiteSpace(Color) ? "primary" : Color;
+
+    private int NormalizedFirstDayOfWeek => (FirstDayOfWeek % 7 + 7) % 7;
+
+    private string MonthYearToggleIcon => Mode == "ios"
+        ? (_showMonthAndYear ? Ionicons.ChevronDown : Ionicons.ChevronForward)
+        : (_showMonthAndYear ? Ionicons.CaretUpSharp : Ionicons.CaretDownSharp);
+
+    /// <summary>
+    /// The working month for the calendar and the date wheels. A time-only value ("13:30") leaves
+    /// the working parts without a date; Ionic would render an invalid month, this port falls back
+    /// to the default date.
+    /// </summary>
+    private DatetimeParts DisplayedMonth => _workingParts with
+    {
+        Year = _workingParts.Year ?? _defaultParts.Year,
+        Month = _workingParts.Month ?? _defaultParts.Month,
+        Day = _workingParts.Year is null || _workingParts.Month is null ? _defaultParts.Day : _workingParts.Day,
+    };
+
+    private IEnumerable<DatetimeSection> Sections()
+    {
+        if (PreferWheel && HasDatePresentation)
+            return [DatetimeSection.TitleOnlyHeader, DatetimeSection.WheelView, DatetimeSection.Footer];
+
+        return Presentation switch
+        {
+            "date-time" => [DatetimeSection.Header, DatetimeSection.Calendar, DatetimeSection.MonthYearPicker, DatetimeSection.Time, DatetimeSection.Footer],
+            "time-date" => [DatetimeSection.Header, DatetimeSection.Time, DatetimeSection.Calendar, DatetimeSection.MonthYearPicker, DatetimeSection.Footer],
+            "time" => [DatetimeSection.TitleOnlyHeader, DatetimeSection.Time, DatetimeSection.Footer],
+            "month" or "month-year" or "year" => [DatetimeSection.TitleOnlyHeader, DatetimeSection.WheelView, DatetimeSection.Footer],
+            _ => [DatetimeSection.Header, DatetimeSection.Calendar, DatetimeSection.MonthYearPicker, DatetimeSection.Footer],
+        };
+    }
+
+    // ---- lifecycle ---------------------------------------------------------------------------
 
     protected override void OnParametersSet()
     {
-        // The instance outlives parent re-renders (ISSUE-154), so "today" is read per render.
-        _today = DateTime.Today;
-        _active = ParseValue(Value);
-        // The displayed month defaults to the selected date, else today, and follows a Value set
-        // from outside to another month (Ionic's value watcher). Month navigation by the user stays
-        // until then.
-        if (_working == default)
-        {
-            _working = _active ?? _today;
-        }
-        else if (Value != _renderedValue && _active is { } active &&
-                 (active.Year != _working.Year || active.Month != _working.Month))
-        {
-            _working = active;
-        }
-        _renderedValue = Value;
+        _locale = DatetimeLocale.Get(Locale);
 
-        // Only Ionic's default view is ported: the date grid (presentation "date") at its fixed size.
-        // The time wheel, month/year pickers and "cover" sizing are not, so neither is a parameter.
+        // Initialize once — again if the clock arrives late: a parameter set applied before the
+        // services are injected must not leave "today" on the system clock.
+        if (!_initialized || !ReferenceEquals(Clock, _initializedClock))
+        {
+            _initialized = true;
+            _initializedClock = Clock;
+            ComponentWillLoad();
+        }
+        else
+        {
+            var listsChanged = UpdateValueLists();
+            var minMaxChanged = !string.Equals(Min, _processedMin, StringComparison.Ordinal)
+                                || !string.Equals(Max, _processedMax, StringComparison.Ordinal);
+            if (minMaxChanged) ProcessMinMax();
+            if (listsChanged || minMaxChanged) ComputeDefaultParts();
+
+            if (ValueChangedOutside()) ProcessValue(Value, Values);
+        }
+
+        // componentDidRender: a new presentation recreates the content, and the month/year picker
+        // of the calendar does not exist in the others.
+        if (_previousPresentation is not null && _previousPresentation != Presentation)
+        {
+            _showMonthAndYear = false;
+            _isTimePopoverOpen = false;
+        }
+        _previousPresentation = Presentation;
+    }
+
+    private void ComponentWillLoad()
+    {
+        if (Multiple)
+        {
+            if (Presentation != "date")
+                DatetimeLog.Warning("Multiple date selection is only supported for presentation=\"date\".");
+            if (PreferWheel)
+                DatetimeLog.Warning("Multiple date selection is not supported with preferWheel=\"true\".");
+        }
+        if (HighlightedDates is not null || HighlightedDatesCallback is not null)
+        {
+            if (!HasDatePresentation)
+                DatetimeLog.Warning("The highlightedDates property is only supported with the date, date-time, and time-date presentations.");
+            if (PreferWheel)
+                DatetimeLog.Warning("The highlightedDates property is not supported with preferWheel=\"true\".");
+        }
+        CheckForPresentationFormatMismatch();
+
+        UpdateValueLists();
+        _todayParts = DatetimeData.GetToday(Clock ?? TimeProvider.System);
+        ProcessMinMax();
+        ComputeDefaultParts();
+        ProcessValue(Value, Values);
+    }
+
+    private bool UpdateValueLists()
+    {
+        var lists = (YearValues, MonthValues, DayValues, HourValues, MinuteValues);
+        if (lists == _processedValueLists) return false;
+        _processedValueLists = lists;
+        _parsedYearValues = ConvertToArrayOfNumbers(YearValues);
+        _parsedMonthValues = ConvertToArrayOfNumbers(MonthValues);
+        _parsedDayValues = ConvertToArrayOfNumbers(DayValues);
+        _parsedHourValues = ConvertToArrayOfNumbers(HourValues);
+        _parsedMinuteValues = ConvertToArrayOfNumbers(MinuteValues);
+        return true;
+    }
+
+    private void ProcessMinMax()
+    {
+        _processedMin = Min;
+        _processedMax = Max;
+        // Ionic fills a partial min/max from defaultParts, which is computed from them; the first
+        // time round it does not exist yet, so today stands in.
+        var reference = _defaultParts.Year is null ? _todayParts : _defaultParts;
+        _minParts = Min is null ? null : ParseMinParts(Min, reference);
+        _maxParts = Max is null ? null : ParseMaxParts(Max, reference);
+    }
+
+    private void ComputeDefaultParts()
+    {
+        _defaultParts = GetClosestValidDate(
+            _todayParts,
+            _parsedMonthValues,
+            _parsedDayValues,
+            _parsedYearValues,
+            _parsedHourValues,
+            _parsedMinuteValues,
+            _minParts,
+            _maxParts);
+    }
+
+    private bool ValueChangedOutside()
+    {
+        if (!string.Equals(Value, _processedValue, StringComparison.Ordinal)) return true;
+        if (Values is null || _processedValues is null) return Values is not null || _processedValues is not null;
+        return !Values.SequenceEqual(_processedValues);
+    }
+
+    private void CheckForPresentationFormatMismatch()
+    {
+        if (FormatOptions is null) return;
+        switch (Presentation)
+        {
+            case "date" or "month-year" or "month" or "year" when FormatOptions.Date is null:
+                DatetimeLog.Warning($"The '{Presentation}' presentation requires a date object in formatOptions.");
+                break;
+            case "time" when FormatOptions.Time is null:
+                DatetimeLog.Warning("The 'time' presentation requires a time object in formatOptions.");
+                break;
+            case "date-time" or "time-date" when FormatOptions.Date is null && FormatOptions.Time is null:
+                DatetimeLog.Warning($"The '{Presentation}' presentation requires either a date or time object (or both) in formatOptions.");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Takes over a value (Ionic <c>processValue</c>): selects it, or nothing when there is no value,
+    /// and moves the working month there — clamped into min/max, the last of several dates.
+    /// </summary>
+    private void ProcessValue(string? value, IReadOnlyList<string>? values)
+    {
+        _processedValue = value;
+        _processedValues = values?.ToArray();
+
+        var isArray = values is not null;
+        var hasValue = isArray ? values!.Count > 0 : !string.IsNullOrEmpty(value);
+
+        if (!Multiple && isArray)
+            DatetimeLog.Warning($"An array of values was passed, but multiple is \"false\". Value Passed: [{string.Join(", ", values!.Select(v => $"'{v}'"))}]");
+
+        List<DatetimeParts>? parsed;
+        if (!hasValue) parsed = [_defaultParts];
+        else if (isArray) parsed = ParseDates(values!);
+        else parsed = ParseDate(value) is { } single ? [single] : null;
+
+        if (parsed is null)
+        {
+            DatetimeLog.Warning($"Unable to parse date string: {value ?? string.Join(",", values ?? [])}. Please provide a valid ISO 8601 datetime string.");
+            return;
+        }
+
+        if (hasValue && parsed.Any(p => (_minParts is { } min && IsBefore(p, min)) || (_maxParts is { } max && IsAfter(p, max))))
+            DatetimeLog.Warning("The value provided to ion-datetime is out of bounds.");
+
+        var target = ClampDate(parsed[^1], _minParts, _maxParts);
+        var ampm = ParseAmPm(target.Hour);
+        var parts = new DatetimeParts(target.Year, target.Month, target.Day, target.Hour, target.Minute, ampm);
+
+        if (hasValue)
+        {
+            _activeParts = isArray ? [.. parsed] : [parts];
+            _activePartsIsArray = isArray;
+        }
+        else
+        {
+            _activeParts = [];
+            _activePartsIsArray = true;
+        }
+
+        _workingParts = parts;
+    }
+
+    // ---- selection ---------------------------------------------------------------------------
+
+    private DatetimeParts? GetActivePart() => _activeParts.Count > 0 ? _activeParts[0] : null;
+
+    /// <summary>The selection, else the default (now, adjusted to the constraints).</summary>
+    private DatetimeParts GetActivePartsWithFallback() => GetActivePart() ?? _defaultParts;
+
+    /// <summary>
+    /// Selects <paramref name="parts"/> (Ionic <c>setActiveParts</c>): made valid against the month
+    /// length and min/max, added to or removed from the dates with <see cref="Multiple"/>, and
+    /// confirmed right away unless there are buttons to confirm with.
+    /// </summary>
+    private async Task SetActivePartsAsync(DatetimeParts parts, bool removeDate = false)
+    {
+        // Readonly still lets the user browse the calendar, but never selects.
+        if (Readonly) return;
+
+        var validated = ValidateParts(parts, _minParts, _maxParts);
+        _workingParts = validated;
+
+        if (Multiple)
+        {
+            _activeParts = removeDate
+                ? _activeParts.Where(p => !IsSameDay(p, validated)).ToList()
+                : [.. _activeParts, validated];
+            _activePartsIsArray = true;
+        }
+        else
+        {
+            _activeParts = [validated];
+            _activePartsIsArray = false;
+        }
+
+        if (Buttons is not null || ShowDefaultButtons) return;
+        await ConfirmAsync();
+    }
+
+    /// <summary>
+    /// Commits the selection to <see cref="Value"/> (or <see cref="Values"/>), raising
+    /// <see cref="ValueChanged"/> and <see cref="OnConfirm"/> — what the Done button does. With
+    /// nothing selected the value is cleared, except with <see cref="PreferWheel"/>, where the
+    /// wheels' initial position is confirmed. <paramref name="closeOverlay"/> also dismisses the
+    /// enclosing <see cref="IonModal"/> or <see cref="IonPopover"/> with role <c>datetime-confirm</c>.
+    /// </summary>
+    public async Task ConfirmAsync(bool closeOverlay = false)
+    {
+        string? confirmed;
+        if (_activePartsIsArray && _activeParts.Count == 0)
+        {
+            confirmed = PreferWheel ? ConvertDataToIso(_workingParts) : null;
+            await SetValueAsync(confirmed, null);
+        }
+        else if (_activePartsIsArray)
+        {
+            var values = _activeParts.Select(ConvertDataToIso).ToList();
+            confirmed = values[0];
+            await SetValueAsync(null, values);
+        }
+        else
+        {
+            confirmed = ConvertDataToIso(_activeParts[0]);
+            await SetValueAsync(confirmed, null);
+        }
+
+        await OnConfirm.InvokeAsync(confirmed);
+        if (closeOverlay && IonOverlayHosts.FindEnclosing(_root) is { } dismiss) await dismiss(ConfirmRole, null);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Resets what the datetime shows without changing <see cref="Value"/>: to
+    /// <paramref name="startDate"/> (an ISO string) when given, else to nothing selected and the
+    /// default month.
+    /// </summary>
+    public Task ResetAsync(string? startDate = null)
+    {
+        ProcessValue(startDate, null);
+        _processedValue = Value;
+        _processedValues = Values?.ToArray();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Raises <see cref="OnCancel"/> — what the Cancel button does. <paramref name="closeOverlay"/>
+    /// also dismisses the enclosing <see cref="IonModal"/> or <see cref="IonPopover"/> with role
+    /// <c>datetime-cancel</c>. The value is left as it is.
+    /// </summary>
+    public async Task CancelAsync(bool closeOverlay = false)
+    {
+        await OnCancel.InvokeAsync();
+        if (closeOverlay && IonOverlayHosts.FindEnclosing(_root) is { } dismiss) await dismiss(CancelRole, null);
+    }
+
+    private async Task ClearAsync()
+    {
+        await ResetAsync();
+        await SetValueAsync(null, Multiple ? Array.Empty<string>() : null);
+    }
+
+    /// <summary>
+    /// Writes the value and raises the change (Ionic <c>setValue</c>), then takes the value over
+    /// as Ionic's value watcher does. A list goes to <see cref="Values"/>; an empty one clears it.
+    /// </summary>
+    private async Task SetValueAsync(string? value, IReadOnlyList<string>? values)
+    {
+        if (values is not null || Multiple)
+        {
+            var list = values is { Count: > 0 } ? values : null;
+            Values = list;
+            if (list is not null) ProcessValue(null, list);
+            _processedValue = Value;
+            _processedValues = list?.ToArray();
+            await ValuesChanged.InvokeAsync(list);
+            return;
+        }
+
+        Value = value;
+        if (!string.IsNullOrEmpty(value)) ProcessValue(value, null);
+        _processedValue = value;
+        _processedValues = Values?.ToArray();
+        await ValueChanged.InvokeAsync(value);
+    }
+
+    // ---- calendar ----------------------------------------------------------------------------
+
+    private sealed record CalendarDayView(string Class, string? Text, bool Disabled, Miko.Styling.Style? Style,
+        DatetimeParts Parts, bool IsActive, bool IsPadding);
+
+    /// <summary>The day buttons of a month (Ionic <c>renderMonth</c>).</summary>
+    private List<CalendarDayView> BuildMonth(int month, int year)
+    {
+        var yearAllowed = _parsedYearValues is null || _parsedYearValues.Contains(year);
+        var monthAllowed = _parsedMonthValues is null || _parsedMonthValues.Contains(month);
+        var isCalMonthDisabled = !yearAllowed || !monthAllowed;
+        var isDatetimeDisabled = Disabled || Readonly;
+        var hasHighlights = HighlightedDates is not null || HighlightedDatesCallback is not null;
+
+        var days = new List<CalendarDayView>(42);
+        foreach (var cell in DatetimeData.GetDaysOfMonth(month, year, NormalizedFirstDayOfWeek, ShowAdjacentDays))
+        {
+            var (dayMonth, dayYear) = (month, year);
+            if (ShowAdjacentDays && cell.IsAdjacentDay && cell.Day is { } adjacent)
+            {
+                // Adjacent days past the 20th lead the grid (previous month); before the 15th they
+                // trail it (next month).
+                if (adjacent > 20) (dayMonth, dayYear) = month == 1 ? (12, year - 1) : (month - 1, year);
+                else if (adjacent < 15) (dayMonth, dayYear) = month == 12 ? (1, year + 1) : (month + 1, year);
+            }
+
+            var referenceParts = new DatetimeParts(dayYear, dayMonth, cell.Day) { IsAdjacentDay = cell.IsAdjacentDay };
+            var isPadding = cell.Day is null;
+            var state = DatetimeData.GetCalendarDayState(_locale, referenceParts, _activeParts, _todayParts, _minParts, _maxParts, _parsedDayValues);
+            var dateIso = ConvertDataToIso(referenceParts);
+
+            var isDayDisabled = isCalMonthDisabled || state.Disabled;
+            if (!isDayDisabled && IsDateEnabled is not null)
+            {
+                try
+                {
+                    isDayDisabled = !IsDateEnabled(dateIso);
+                }
+                catch (Exception e)
+                {
+                    DatetimeLog.Error("Exception thrown from provided `IsDateEnabled` function. Please check your function and try again.", e);
+                }
+            }
+
+            // Constrained days are disabled by min/max/values and by Disabled/Readonly; readonly
+            // shows the other disabled days at full opacity.
+            var isConstrained = isDayDisabled && isDatetimeDisabled;
+
+            Miko.Styling.Style? style = null;
+            if (hasHighlights && !state.IsActive && !isPadding && !cell.IsAdjacentDay
+                && GetHighlightStyles(HighlightedDates, HighlightedDatesCallback, dateIso) is { } highlight)
+            {
+                style = new Miko.Styling.Style();
+                if (highlight.TextColor is { } text) style.Color = text;
+                if (highlight.BackgroundColor is { } background) style.BackgroundColor = background;
+                if (highlight.Border is { } border) style.Border = border;
+            }
+
+            var cls = "calendar-day";
+            if (isPadding) cls = "calendar-day-padding " + cls;
+            if (state.IsActive) cls += " calendar-day-active";
+            if (isConstrained) cls += " calendar-day-constrained";
+            if (state.IsToday) cls += " calendar-day-today";
+            if (cell.IsAdjacentDay) cls += " calendar-day-adjacent-day";
+
+            days.Add(new CalendarDayView(cls, state.Text, isDayDisabled || isDatetimeDisabled, style, referenceParts, state.IsActive, isPadding));
+        }
+        return days;
+    }
+
+    private async Task SelectDayAsync(CalendarDayView day)
+    {
+        if (day.IsPadding || day.Disabled) return;
+
+        // An adjacent day moves the calendar to its month. Ionic selects and confirms it at once,
+        // even with buttons; here it is picked like any other day.
+        var reference = day.Parts with { IsAdjacentDay = false };
+        _workingParts = _workingParts with { Year = reference.Year, Month = reference.Month, Day = reference.Day };
+
+        if (Multiple)
+        {
+            // Multiple only keeps dates, so the time is dropped.
+            await SetActivePartsAsync(reference, day.IsActive);
+        }
+        else
+        {
+            await SetActivePartsAsync(GetActivePartsWithFallback() with
+            {
+                Year = reference.Year,
+                Month = reference.Month,
+                Day = reference.Day,
+                IsAdjacentDay = false,
+            });
+        }
+    }
+
+    private void PrevMonth()
+    {
+        if (Disabled || IsPrevMonthDisabled(DisplayedMonth, _minParts, _maxParts)) return;
+        ChangeMonth(GetPreviousMonth(DisplayedMonth));
+    }
+
+    private void NextMonth()
+    {
+        if (Disabled || IsNextMonthDisabled(DisplayedMonth, _maxParts)) return;
+        ChangeMonth(GetNextMonth(DisplayedMonth));
+    }
+
+    private void ChangeMonth(DatetimeParts month)
+    {
+        // Paging only moves the working month (Ionic's updateActiveMonth); the value stays.
+        if (IsMonthDisabled(month with { Day = null }, _minParts is { } min ? min with { Day = null } : null,
+                _maxParts is { } max ? max with { Day = null } : null))
+            return;
+        _workingParts = _workingParts with { Year = month.Year, Month = month.Month, Day = month.Day };
+    }
+
+    private void ToggleMonthAndYearView()
+    {
+        if (Disabled) return;
+        _showMonthAndYear = !_showMonthAndYear;
+    }
+
+    private string GetHeaderSelectedDateText()
+    {
+        if (Multiple && _activePartsIsArray && _activeParts.Count != 1)
+        {
+            var text = $"{_activeParts.Count} days";
+            if (TitleSelectedDatesFormatter is not null)
+            {
+                try
+                {
+                    text = TitleSelectedDatesFormatter(_activeParts.Select(ConvertDataToIso).ToList());
+                }
+                catch (Exception e)
+                {
+                    DatetimeLog.Error("Exception in provided `TitleSelectedDatesFormatter`:", e);
+                }
+            }
+            return text;
+        }
+
+        var parts = GetActivePartsWithFallback();
+        return _locale.Format(parts.Year is null ? DisplayedMonth : parts, FormatOptions?.Date ?? DatetimeLocale.HeaderDateFormat);
+    }
+
+    // ---- time --------------------------------------------------------------------------------
+
+    private string GetTimeButtonText()
+        => _locale.GetLocalizedTime(GetActivePartsWithFallback(), _locale.GetHourCycle(HourCycle), FormatOptions?.Time);
+
+    private void OpenTimePopover(MouseEventArgs args)
+    {
+        if (Disabled) return;
+        _timePopoverEvent = args;
+        _isTimePopoverOpen = true;
+    }
+
+    // ---- wheels ------------------------------------------------------------------------------
+
+    private sealed record WheelColumn(
+        string Key, string? Class, string? Value, IReadOnlyList<WheelColumnOption> Options,
+        Func<string, Task> OnChange, Miko.Styling.Style? Style = null);
+
+    private RenderFragment WheelView(string? presentation) =>
+        @<div class="@(_locale.IsMonthFirst() ? "wheel-order-month-first" : "wheel-order-year-first")">
+            @WheelPicker(presentation ?? Presentation)
+        </div>;
+
+    private RenderFragment WheelPicker(string presentation) =>
+        @<IonPicker>
+            @foreach (var column in BuildWheelColumns(presentation))
+            {
+                <IonPickerColumn @key="column.Key"
+                                 Class="@column.Class"
+                                 Style="@column.Style"
+                                 Color="@ColorOrPrimary"
+                                 Disabled="Disabled"
+                                 Value="@column.Value"
+                                 ValueChanged="@(EventCallback.Factory.Create<string>(this, column.OnChange))">
+                    @foreach (var option in column.Options)
+                    {
+                        <IonPickerColumnOption @key="option.Value" Value="@option.Value" Disabled="option.Disabled"
+                                               Color="@ColorOrPrimary">@option.Text</IonPickerColumnOption>
+                    }
+                </IonPickerColumn>
+            }
+        </IonPicker>;
+
+    /// <summary>The columns of a wheel picker (Ionic <c>renderWheelPicker</c>): the date columns,
+    /// then the time columns — the other way round for <c>time-date</c>.</summary>
+    private List<WheelColumn> BuildWheelColumns(string presentation)
+    {
+        var date = presentation is "date-time" or "time-date"
+            ? CombinedDateColumn()
+            : IndividualDateColumns(presentation);
+        var time = TimeColumns(presentation);
+        return presentation == "time-date" ? [.. time, .. date] : [.. date, .. time];
+    }
+
+    private List<WheelColumn> CombinedDateColumn()
+    {
+        var working = DisplayedMonth;
+
+        // A sliding window of three months around the working month, narrowed to min / max.
+        var months = DatetimeData.GenerateMonths(working);
+        var first = months[0] with { Day = 1 };
+        var last = months[^1] with { Day = GetNumDaysInMonth(months[^1].Month!.Value, months[^1].Year!.Value) };
+        var min = _minParts is { } minParts && IsAfter(minParts, first) ? minParts : first;
+        var max = _maxParts is { } maxParts && IsBefore(maxParts, last) ? maxParts : last;
+
+        var (parts, items) = DatetimeData.GetCombinedDateColumnData(_locale, _todayParts, min, max, _parsedDayValues, _parsedMonthValues);
+        if (IsDateEnabled is not null)
+            items = items.Select((item, i) => item with { Disabled = !SafeIsDateEnabled(ConvertDataToIso(parts[i])) }).ToList();
+
+        var value = working.Day is not null
+            ? $"{working.Year}-{working.Month}-{working.Day}"
+            : $"{_defaultParts.Year}-{_defaultParts.Month}-{_defaultParts.Day}";
+
+        return
+        [
+            new WheelColumn("date", "date-column", value, items, async selected =>
+            {
+                var index = items.FindIndex(item => item.Value == selected);
+                if (index < 0) return;
+                var part = parts[index];
+                _workingParts = _workingParts with { Year = part.Year, Month = part.Month, Day = part.Day };
+                await SetActivePartsAsync(GetActivePartsWithFallback() with { Year = part.Year, Month = part.Month, Day = part.Day });
+            }),
+        ];
+    }
+
+    private List<WheelColumn> IndividualDateColumns(string presentation)
+    {
+        var working = DisplayedMonth;
+        var columns = new List<WheelColumn>();
+
+        var months = presentation is not ("year" or "time")
+            ? DatetimeData.GetMonthColumnData(_locale, working, _minParts, _maxParts, _parsedMonthValues)
+            : [];
+
+        var days = presentation == "date"
+            ? DatetimeData.GetDayColumnData(_locale, working, _minParts, _maxParts, _parsedDayValues)
+            : [];
+        if (IsDateEnabled is not null)
+        {
+            days = days.Select(day => day with
+            {
+                Disabled = !SafeIsDateEnabled(ConvertDataToIso(new DatetimeParts(working.Year, working.Month, int.Parse(day.Value, CultureInfo.InvariantCulture)))),
+            }).ToList();
+        }
+
+        var years = presentation is not ("month" or "time")
+            ? DatetimeData.GetYearColumnData(_locale, _defaultParts, _minParts, _maxParts, _parsedYearValues)
+            : [];
+
+        WheelColumn? monthColumn = months.Count == 0 ? null : new("month", "month-column", Invariant(working.Month), months,
+            async selected =>
+            {
+                var month = int.Parse(selected, CultureInfo.InvariantCulture);
+                _workingParts = _workingParts with { Year = working.Year, Month = month, Day = working.Day };
+                await SetActivePartsAsync(GetActivePartsWithFallback() with { Month = month });
+            });
+        WheelColumn? dayColumn = days.Count == 0 ? null : new("day", "day-column",
+            Invariant(_workingParts.Day is not null ? _workingParts.Day : _defaultParts.Day), days,
+            async selected =>
+            {
+                var day = int.Parse(selected, CultureInfo.InvariantCulture);
+                _workingParts = _workingParts with { Year = working.Year, Month = working.Month, Day = day };
+                await SetActivePartsAsync(GetActivePartsWithFallback() with { Day = day });
+            });
+        WheelColumn? yearColumn = years.Count == 0 ? null : new("year", "year-column", Invariant(working.Year), years,
+            async selected =>
+            {
+                var year = int.Parse(selected, CultureInfo.InvariantCulture);
+                _workingParts = _workingParts with { Year = year, Month = working.Month, Day = working.Day };
+                await SetActivePartsAsync(GetActivePartsWithFallback() with { Year = year });
+            });
+
+        // Some locales write the day before the month (15/07).
+        var ordered = _locale.IsMonthFirst(beforeDay: true)
+            ? new[] { monthColumn, dayColumn, yearColumn }
+            : new[] { dayColumn, monthColumn, yearColumn };
+        foreach (var column in ordered)
+            if (column is not null) columns.Add(column);
+        return columns;
+    }
+
+    private List<WheelColumn> TimeColumns(string presentation)
+    {
+        if (presentation is "date" or "month" or "month-year" or "year") return [];
+
+        // Before a date is picked every time is offered; after, min / max apply to that date.
+        var userHasSelectedDate = GetActivePart() is not null;
+        var data = DatetimeData.GetTimeColumnsData(
+            _locale,
+            _workingParts,
+            HourCycle,
+            userHasSelectedDate ? _minParts : null,
+            userHasSelectedDate ? _maxParts : null,
+            _parsedHourValues,
+            _parsedMinuteValues);
+        var active = GetActivePartsWithFallback();
+        var columns = new List<WheelColumn>();
+
+        if (data.HoursData.Count > 0)
+        {
+            columns.Add(new WheelColumn("hour", null, Invariant(active.Hour), data.HoursData, async selected =>
+            {
+                var hour = int.Parse(selected, CultureInfo.InvariantCulture);
+                _workingParts = _workingParts with { Hour = hour };
+                await SetActivePartsAsync(GetActivePartsWithFallback() with { Hour = hour });
+            }));
+        }
+
+        if (data.MinutesData.Count > 0)
+        {
+            columns.Add(new WheelColumn("minute", null, Invariant(active.Minute), data.MinutesData, async selected =>
+            {
+                var minute = int.Parse(selected, CultureInfo.InvariantCulture);
+                _workingParts = _workingParts with { Minute = minute };
+                await SetActivePartsAsync(GetActivePartsWithFallback() with { Minute = minute });
+            }));
+        }
+
+        if (data.DayPeriodData.Count > 0)
+        {
+            // Locales that write the day period first (오전 10:30) show its wheel first.
+            var style = _locale.IsDayPeriodFirst() ? new Miko.Styling.Style { Order = -1 } : null;
+            columns.Add(new WheelColumn("day-period", null, active.Ampm, data.DayPeriodData, async selected =>
+            {
+                var hour = CalculateHourFromAmPm(_workingParts, selected);
+                _workingParts = _workingParts with { Ampm = selected, Hour = hour };
+                await SetActivePartsAsync(GetActivePartsWithFallback() with { Ampm = selected, Hour = hour });
+            }, style));
+        }
+
+        return columns;
+    }
+
+    private bool SafeIsDateEnabled(string dateIso)
+    {
+        try
+        {
+            return IsDateEnabled!(dateIso);
+        }
+        catch (Exception e)
+        {
+            DatetimeLog.Error("Exception thrown from provided `IsDateEnabled` function. Please check your function and try again.", e);
+            return true;
+        }
+    }
+
+    private static string? Invariant(int? value) => value?.ToString(CultureInfo.InvariantCulture);
+
+    // ---- host --------------------------------------------------------------------------------
+
+    /// <summary>
+    /// The host classes, evaluated while rendering: a self re-render (month paging, the month/year
+    /// toggle) skips <see cref="OnParametersSet"/> but must still update them.
+    /// </summary>
+    private void RefreshDerivedState()
+    {
+        var isMonthAndYearPresentation = Presentation is "year" or "month" or "month-year";
+        var size = string.Equals(Size, "cover", StringComparison.OrdinalIgnoreCase) ? "cover" : "fixed";
+
         ClassMapper
             .Clear()
             .Add(Class)
             .Add(Mode)
             .Add("ion-datetime")
-            .Add("datetime-presentation-date")
-            .Add("datetime-size-fixed")
-            .If(Disabled, "datetime-disabled")
             .If(Readonly, "datetime-readonly")
+            .If(Disabled, "datetime-disabled")
+            .If(_showMonthAndYear || isMonthAndYearPresentation, "show-month-and-year")
+            .If(_showMonthAndYear && !isMonthAndYearPresentation, "month-year-picker-open")
+            .Add($"datetime-presentation-{Presentation}")
+            .Add($"datetime-size-{size}")
+            .If(HasDatePresentation && PreferWheel, "datetime-prefer-wheel")
+            .If(IsGridStyle, "datetime-grid")
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
             .AddColor(Color);
-
-        RebuildMonth();
     }
 
-    private void RebuildMonth()
+    public override Element Build() => AttachSwipe(base.Build());
+
+    protected override Element BuildNew() => AttachSwipe(base.BuildNew());
+
+    // Raw handlers rather than @onpointerdown: an EventCallback re-renders the datetime on every
+    // press, which would swap the day button out from under a tap.
+    private Element AttachSwipe(Element root)
     {
-        _monthDays = IonCalendarDay.BuildMonth(_working.Year, _working.Month, FirstDayOfWeek % 7, _active, _today);
+        root.OnPointerDown = OnSwipeStart;
+        root.OnPointerUp = OnSwipeEnd;
+        root.OnPointerCancel = _ => _swipeStart = null;
+        return root;
     }
 
-    private string DayClass(IonCalendarDay day)
+    private void OnSwipeStart(PointerEventArgs args)
     {
-        var cls = "calendar-day";
-        if (day.IsActive) cls += " calendar-day-active";
-        if (day.IsToday) cls += " calendar-day-today";
-        return cls;
+        _swipeStart = null;
+        if (args.PointerType == PointerType.Mouse || !IsGridStyle || _showMonthAndYear) return;
+        for (var node = args.Target; node is not null; node = node.Parent)
+        {
+            if (node.HasClass("calendar-body"))
+            {
+                _swipeStart = (args.X, args.Y);
+                return;
+            }
+        }
     }
 
-    private string MonthYearLabel() =>
-        _working.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
-
-    private string SelectedDateText() =>
-        (_active ?? _today).ToString("ddd, MMM d", CultureInfo.InvariantCulture);
-
-    private void PrevMonth(MouseEventArgs _)
+    private void OnSwipeEnd(PointerEventArgs args)
     {
-        if (Disabled || Readonly) return;
-        _working = _working.AddMonths(-1);
-        RebuildMonth();
+        if (_swipeStart is not { } start) return;
+        _swipeStart = null;
+
+        var dx = args.X - start.X;
+        var dy = args.Y - start.Y;
+        if (Math.Abs(dx) < SwipeThreshold || Math.Abs(dx) < Math.Abs(dy) * 1.5f) return;
+
+        // Dragging the content left reveals the next month.
+        if (dx < 0) NextMonth();
+        else PrevMonth();
         StateHasChanged();
-    }
-
-    private void NextMonth(MouseEventArgs _)
-    {
-        if (Disabled || Readonly) return;
-        _working = _working.AddMonths(1);
-        RebuildMonth();
-        StateHasChanged();
-    }
-
-    private async Task SelectDayAsync(int day)
-    {
-        if (Disabled || Readonly) return;
-        _active = new DateTime(_working.Year, _working.Month, day);
-        Value = _active.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        RebuildMonth();
-        await ValueChanged.InvokeAsync(Value);
-        StateHasChanged();
-    }
-
-    private async Task ConfirmAsync(MouseEventArgs _)
-    {
-        if (Disabled || Readonly) return;
-        await OnConfirm.InvokeAsync(Value);
-    }
-
-    private async Task CancelAsync(MouseEventArgs _)
-    {
-        if (Disabled || Readonly) return;
-        await OnCancel.InvokeAsync();
-    }
-
-    private static DateTime? ParseValue(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return null;
-        // Accept a full ISO datetime or a bare date; only the date part matters for the calendar.
-        return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt)
-            ? dt.Date
-            : null;
     }
 }

@@ -26,11 +26,30 @@ All notable changes to Miko are documented in this file. The format is based on
 - **Layouts can re-render themselves.** A layout calling `StateHasChanged` (after its own event
   handler) used to drop its page; the page now stays and re-renders with the layout.
 
+### Date and time picker
+
+- **`IonDatetime` covers Ionic's whole component.** All presentations — `date`, `date-time`,
+  `time-date` (calendar, or wheels with `PreferWheel`) and `time`, `month`, `month-year`, `year`
+  (wheels) — the month/year wheels behind the calendar's month label, the time popover, `Min` /
+  `Max`, `YearValues` … `MinuteValues`, `HourCycle`, `IsDateEnabled`, `Multiple` (`@bind-Values`),
+  `HighlightedDates`, `ShowAdjacentDays`, the Clear button, the `Title` / `TimeLabel` / `Buttons`
+  fragments, `Size`, `FormatOptions`, and `ConfirmAsync` / `CancelAsync` / `ResetAsync`. Done and
+  Cancel close the modal or popover the datetime is in. A swipe on the calendar pages months.
+- **Localized.** `Locale` (default: the current culture) drives month and day names, the order of
+  the date wheels, the hour cycle and the day period, from .NET culture data.
+
 ### Upgrade notes
 
 - `ComputedStyle.TextAlign` is `TextAlign.Start` when nothing sets it (it was `Left`). Code that
   compares it with `TextAlign.Left` should map it first: in a left-to-right element `Start` is
   drawn exactly like `Left`.
+- `IonDatetime` now follows Ionic's defaults and value model. `Presentation` defaults to
+  `"date-time"` (set `Presentation="date"` for the former calendar-only picker); the header is
+  shown only with `ShowDefaultTitle="true"`; with `ShowDefaultButtons` a pick changes the value on
+  Done instead of right away; and a pick keeps the time part of the value (`2026-07-20T10:30:00`)
+  where it used to write `yyyy-MM-dd`. The footer buttons are `IonButton`s (`#cancel-button`,
+  `#confirm-button`) instead of `.datetime-action-button`, and the calendar labels follow the
+  current culture rather than the invariant one. `IonCalendarDay` is gone.
 
 ## [1.0.0-preview.1]
 

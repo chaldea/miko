@@ -1,0 +1,25 @@
+@namespace Miko.Ionic.Tests.Fixtures.Routed
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@* A page with an inline date-time picker bound to a field, and a date picker with Done / Cancel
+   presented in a modal, as the Ionic docs show them. *@
+<IonPage>
+    <IonContent>
+        <IonDatetime Class="inline-picker" Locale="en-US" @bind-Value="Value" />
+        <div class="bound-value">@Value</div>
+        <IonButton Class="open-modal" OnClick="@(() => Open = true)">Open</IonButton>
+        <div class="modal-role">@Role</div>
+        <div class="modal-value">@ModalValue</div>
+        <IonModal @bind-IsOpen="Open" OnDidDismiss="@(e => Role = e.Role)">
+            <IonDatetime Class="modal-picker" Locale="en-US" Presentation="date"
+                         ShowDefaultButtons="true" @bind-Value="ModalValue" />
+        </IonModal>
+    </IonContent>
+</IonPage>
+
+@code {
+    private string? Value = "2026-07-15T13:30:00";
+    private string? ModalValue = "2026-07-15";
+    private bool Open;
+    private string? Role;
+}

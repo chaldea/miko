@@ -1,19 +1,30 @@
-@* IonDatetimeButton only renders the formatted value and raises OnDateClick; the app opens its
-   own IonDatetime, here in a modal, and closes it again. *@
-<IonDatetimeButton DateText="@FormatDate(_date)" DatetimeActive="_isOpen"
-                   OnDateClick="@(() => _isOpen = true)" />
+@* IonDatetimeButton shows the value; tapping it opens the app's IonDatetime, here in a modal,
+   as a date or a time picker. Done and Cancel close the modal the datetime is in. *@
+<IonDatetimeButton DateText="@FormatDate(_value)"
+                   TimeText="@FormatTime(_value)"
+                   SelectedButton="@_presentation"
+                   DatetimeActive="_isOpen"
+                   OnDateClick="@(() => Open("date"))"
+                   OnTimeClick="@(() => Open("time"))" />
 
 <IonModal @bind-IsOpen="_isOpen">
-    <IonDatetime @bind-Value="_date"
-                 ShowDefaultButtons="true"
-                 OnConfirm="@(_ => _isOpen = false)"
-                 OnCancel="@(() => _isOpen = false)" />
+    <IonDatetime Presentation="@_presentation" ShowDefaultButtons="true" @bind-Value="_value" />
 </IonModal>
 
 @code {
-    private string? _date = "2026-07-15";
+    private string? _value = "2026-07-15T10:30:00";
+    private string _presentation = "date";
     private bool _isOpen;
+
+    private void Open(string presentation)
+    {
+        _presentation = presentation;
+        _isOpen = true;
+    }
 
     private static string FormatDate(string? value) =>
         DateTime.TryParse(value, out var date) ? date.ToString("MMM d, yyyy") : "Select date";
+
+    private static string FormatTime(string? value) =>
+        DateTime.TryParse(value, out var date) ? date.ToString("h:mm tt") : "Select time";
 }

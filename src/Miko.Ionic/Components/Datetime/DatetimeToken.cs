@@ -153,6 +153,34 @@ public sealed class DatetimeToken : IonicToken
         set { _buttonActiveColor = value; Mark(nameof(ButtonActiveColor)); }
     }
 
+    private Color _titleColor = default;
+    public Color TitleColor
+    {
+        get => _titleColor;
+        set { _titleColor = value; Mark(nameof(TitleColor)); }
+    }
+
+    private Color _adjacentDayColor = default;
+    public Color AdjacentDayColor
+    {
+        get => _adjacentDayColor;
+        set { _adjacentDayColor = value; Mark(nameof(AdjacentDayColor)); }
+    }
+
+    private Color _borderColor = default;
+    public Color BorderColor
+    {
+        get => _borderColor;
+        set { _borderColor = value; Mark(nameof(BorderColor)); }
+    }
+
+    private Color _timeHeaderColor = default;
+    public Color TimeHeaderColor
+    {
+        get => _timeHeaderColor;
+        set { _timeHeaderColor = value; Mark(nameof(TimeHeaderColor)); }
+    }
+
     internal override void CopySpecifiedValuesTo(IonicToken target)
     {
         var token = (DatetimeToken)target;
@@ -177,11 +205,17 @@ public sealed class DatetimeToken : IonicToken
         if (IsSpecified(nameof(DayActiveColor))) token.DayActiveColor = DayActiveColor;
         if (IsSpecified(nameof(TodayColor))) token.TodayColor = TodayColor;
         if (IsSpecified(nameof(ButtonActiveColor))) token.ButtonActiveColor = ButtonActiveColor;
+        if (IsSpecified(nameof(TitleColor))) token.TitleColor = TitleColor;
+        if (IsSpecified(nameof(AdjacentDayColor))) token.AdjacentDayColor = AdjacentDayColor;
+        if (IsSpecified(nameof(BorderColor))) token.BorderColor = BorderColor;
+        if (IsSpecified(nameof(TimeHeaderColor))) token.TimeHeaderColor = TimeHeaderColor;
     }
 
     internal override void AppendFingerprint(System.Text.StringBuilder builder)
     {
+        AppendValue(builder, AdjacentDayColor);
         AppendValue(builder, Background);
+        AppendValue(builder, BorderColor);
         AppendValue(builder, ButtonActiveColor);
         AppendValue(builder, ButtonBackground);
         AppendValue(builder, ButtonBorderRadius);
@@ -200,6 +234,8 @@ public sealed class DatetimeToken : IonicToken
         AppendValue(builder, HeaderColor);
         AppendValue(builder, MonthYearColor);
         AppendValue(builder, SelectedDateFontSize);
+        AppendValue(builder, TimeHeaderColor);
+        AppendValue(builder, TitleColor);
         AppendValue(builder, TitleFontSize);
         AppendValue(builder, TodayColor);
     }

@@ -1,8 +1,8 @@
-<IonDatetime @bind-Value="_date" />
+<IonDatetime @bind-Value="_value" />
 
-<p>Selected: @(_date ?? "nothing yet")</p>
+<p>Selected: @(_value ?? "nothing yet")</p>
 
 @code {
-    // ISO date string, "yyyy-MM-dd".
-    private string? _date = "2026-07-15";
+    // An ISO 8601 string. A pick writes back the same form: here "yyyy-MM-ddTHH:mm:ss".
+    private string? _value = "2026-07-15T10:30:00";
 }

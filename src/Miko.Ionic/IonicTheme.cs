@@ -703,7 +703,11 @@ public partial class IonicTheme
         // the active day is a solid primary circle with white text; today shows a primary border/text.
         t.DatetimeBackground = Color.FromHex("ffffff");           // step-100 → white
         t.DatetimeHeaderBackground = t.Primary;                   // md header is the brand color
-        t.DatetimeHeaderColor = Color.FromHex("ffffff");          // primary contrast
+        t.DatetimeHeaderColor = Color.FromHex("ffffff");          // --title-color: primary contrast
+        t.DatetimeTitleColor = Color.FromHex("ffffff");           // --title-color: primary contrast
+        t.DatetimeAdjacentDayColor = Color.FromHex("808080");     // $text-color-step-500
+        t.DatetimeBorderColor = Color.Transparent;                // md draws no dividers
+        t.DatetimeTimeHeaderColor = Color.FromHex("595959");      // $text-color-step-350
         t.DatetimeTitleFontSize = 12f;
         t.DatetimeSelectedDateFontSize = 34f;
         t.DatetimeDayOfWeekColor = Color.FromHex("808080");       // $text-color-step-500
@@ -1220,10 +1224,14 @@ public partial class IonicTheme
         // the active day is a translucent-primary circle with primary text; today shows primary text.
         t.DatetimeBackground = t.Light;                          // ion-color(light) surface
         t.DatetimeHeaderBackground = t.Light;                    // ios header matches the surface
-        t.DatetimeHeaderColor = Color.FromHex("000000");         // dark title on the light header
+        t.DatetimeHeaderColor = Color.FromHex("000000");         // the selected date: $text-color
+        t.DatetimeTitleColor = Color.FromHex("666666");          // --title-color: $text-color-step-400
         t.DatetimeTitleFontSize = 14f;
-        t.DatetimeSelectedDateFontSize = 16f;
-        t.DatetimeDayOfWeekColor = Color.FromHex("808080");      // neutral gray
+        t.DatetimeSelectedDateFontSize = 14f;                    // the header's 14px
+        t.DatetimeDayOfWeekColor = Color.FromHex("b3b3b3");      // $text-color-step-700
+        t.DatetimeAdjacentDayColor = Color.FromHex("b3b3b3");    // $text-color-step-700
+        t.DatetimeBorderColor = Color.FromHex("cccccc");         // $background-color-step-200 dividers
+        t.DatetimeTimeHeaderColor = Color.FromHex("000000");     // $text-color
         t.DatetimeDayOfWeekFontSize = 12f;
         t.DatetimeMonthYearColor = Color.FromHex("000000");
         t.DatetimeDayColor = Color.FromHex("000000");

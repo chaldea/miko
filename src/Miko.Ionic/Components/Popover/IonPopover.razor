@@ -17,7 +17,7 @@
    position to the wrapper; without an event it keeps the centered fallback. The host is always
    mounted; when closed it carries `overlay-hidden` (display:none). *@
 <IonPortal Id="@(OverlayId ?? _overlayId)" Active="IsOpen">
-    <div class="@HostClass" style="@Style" role="dialog">
+    <div class="@HostClass" style="@Style" role="dialog" @ref="OverlayHostElement">
         @if (ShowBackdrop)
         {
             <div class="ion-backdrop popover-backdrop" @onclick="OnBackdropTapAsync"></div>
@@ -45,6 +45,16 @@
     private string HostClass => Join(ClassMapper.Class, ThemeScopeClass, IsOpen ? null : "overlay-hidden");
 
     private readonly string _overlayId = $"popover-{Guid.NewGuid():N}";
+
+    // Lets content close the popover it is presented in (ion-datetime's Done / Cancel), wherever
+    // the host is built: inline, in IonApp's overlay layer, or from a controller.
+    private Element? OverlayHostElement
+    {
+        set
+        {
+            if (value is not null) IonOverlayHosts.Register(value, DismissAsync);
+        }
+    }
     /// <summary>Optional stable identifier used by the root overlay registry.</summary>
     [Parameter] public string? OverlayId { get; set; }
 

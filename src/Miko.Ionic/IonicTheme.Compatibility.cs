@@ -1954,6 +1954,26 @@ public partial class IonicTheme
         get => Datetime.ButtonActiveColor;
         set => Datetime.ButtonActiveColor = value;
     }
+    public Color DatetimeTitleColor
+    {
+        get => Datetime.TitleColor;
+        set => Datetime.TitleColor = value;
+    }
+    public Color DatetimeAdjacentDayColor
+    {
+        get => Datetime.AdjacentDayColor;
+        set => Datetime.AdjacentDayColor = value;
+    }
+    public Color DatetimeBorderColor
+    {
+        get => Datetime.BorderColor;
+        set => Datetime.BorderColor = value;
+    }
+    public Color DatetimeTimeHeaderColor
+    {
+        get => Datetime.TimeHeaderColor;
+        set => Datetime.TimeHeaderColor = value;
+    }
     public float LabelStackedMarginBottom
     {
         get => Label.StackedMarginBottom;

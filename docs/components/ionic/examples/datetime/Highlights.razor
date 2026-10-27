@@ -1,0 +1,13 @@
+@* Two highlighted days, and the end / start of the neighbouring months in the grid. *@
+<IonDatetime Presentation="date"
+             Value="2026-07-15"
+             ShowAdjacentDays="true"
+             HighlightedDates="_highlights" />
+
+@code {
+    private readonly DatetimeHighlight[] _highlights =
+    [
+        new() { Date = "2026-07-03", TextColor = Color.FromHex("800080"), BackgroundColor = Color.FromHex("ffc0cb") },
+        new() { Date = "2026-07-22", TextColor = Color.FromHex("09721b"), BackgroundColor = Color.FromHex("c8e5d0") },
+    ];
+}

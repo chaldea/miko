@@ -1,0 +1,9 @@
+@* PreferWheel swaps the calendar for wheels: month / day / year for "date", one date wheel
+   next to the time wheels for "date-time". *@
+<IonDatetime Presentation="date" PreferWheel="true" @bind-Value="_date" />
+<IonDatetime PreferWheel="true" @bind-Value="_dateTime" />
+
+@code {
+    private string? _date = "2026-07-15";
+    private string? _dateTime = "2026-07-15T10:30:00";
+}
