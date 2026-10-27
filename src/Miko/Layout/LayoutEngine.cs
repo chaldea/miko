@@ -321,7 +321,8 @@ public class LayoutEngine
             element.LayoutBox = new LayoutBox
             {
                 Element = element,
-                ComputedStyle = element.LayoutBox!.ComputedStyle
+                ComputedStyle = element.LayoutBox!.ComputedStyle,
+                PlaceholderStyle = element.LayoutBox.PlaceholderStyle,
             };
             if (restyle == null)
             {
@@ -671,6 +672,8 @@ public class LayoutEngine
         // 因此只收集，回收推迟到 Layout() 里整树 ComputeStyles 返回之后。
         if (element.LayoutBox?.ComputedStyle is { } stale)
             _recyclableStyles.Add(stale);
+        if (element.LayoutBox?.PlaceholderStyle is { } stalePlaceholder)
+            _recyclableStyles.Add(stalePlaceholder);
 
         var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport, _ancestorFilter);
 
@@ -692,6 +695,14 @@ public class LayoutEngine
 
         // 应用伪元素样式（::range-thumb, ::range-track, ::range-progress 等）
         ApplyPseudoElementStyles(element, styleSheets);
+
+        // ::placeholder 不生成盒子，按完整级联解析后挂在宿主盒上供绘制读取（ISSUE-158）。
+        // 不看 Placeholder 文本是否为空：它的 setter 不记账，文本后来才设置时样式也得已经就位。
+        if (element is InputElement or TextAreaElement)
+        {
+            element.LayoutBox.PlaceholderStyle = _styleResolver.ResolvePseudoElement(
+                element, computedStyle, styleSheets, PseudoElementType.Placeholder, viewport);
+        }
 
         // 递归处理子元素，传递当前元素的自定义属性作用域。
         // 本元素入栈祖先过滤器，使子树里要求「某祖先带某类名」的规则能先被快速否决（ISSUE-146）。
@@ -718,6 +729,9 @@ public class LayoutEngine
         {
             foreach (var rule in sheet.PseudoElementRules)
             {
+                // ::placeholder 走完整级联（见 ComputeStyles），不进这张逐帧累积的表。
+                if (rule.Type == PseudoElementType.Placeholder) continue;
+
                 // 检查选择器是否匹配元素
                 if (rule.Selector.Matches(element))
                 {

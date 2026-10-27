@@ -100,4 +100,74 @@ public class HoverRelevanceTests
         sheet.UsesHoverPseudo.ShouldBeTrue();
         sheet.IsHoverRelevant(new DivElement { Class = "x" }).ShouldBeTrue();
     }
+
+    // ISSUE-158：函数式伪类的参数可能把 :hover 放在主体之外的元素上，被悬停的那个元素必须判为相关。
+
+    [Fact]
+    public void Has_RelevantForTheHoveredDescendant()
+    {
+        // .card:has(.btn:hover)：被悬停的是 .card 里的 .btn；只剥离外层会得到 .card，漏掉 .btn。
+        var sheet = SheetWith(".card:has(.btn:hover)");
+        sheet.UsesHoverPseudo.ShouldBeTrue();
+        sheet.IsHoverRelevant(new ButtonElement { Class = "btn" }).ShouldBeTrue();
+        sheet.IsHoverRelevant(new ParagraphElement()).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Has_BareHoverStep_MatchesEverything()
+    {
+        var sheet = SheetWith(".card:has(> :hover)");
+        sheet.IsHoverRelevant(new ParagraphElement()).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Is_RelevantForSubjectAndForHoveredAncestorInsideArgument()
+    {
+        var subject = SheetWith("li:is(.a:hover, .b)");
+        subject.IsHoverRelevant(new LiElement { Class = "a" }).ShouldBeTrue();
+        subject.IsHoverRelevant(new ParagraphElement()).ShouldBeFalse();
+
+        // .x :is(.menu:hover .item)：被悬停的是祖先 .menu。
+        var ancestor = SheetWith(".x :is(.menu:hover .item)");
+        ancestor.IsHoverRelevant(new DivElement { Class = "menu" }).ShouldBeTrue();
+        ancestor.IsHoverRelevant(new ParagraphElement()).ShouldBeFalse();
+
+        var where = SheetWith(".y:where(.menu:hover > .item)");
+        where.IsHoverRelevant(new DivElement { Class = "menu" }).ShouldBeTrue();
+        where.IsHoverRelevant(new ParagraphElement()).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Not_WithComplexArgument_RelevantForHoveredAncestor()
+    {
+        var sheet = SheetWith(".y:not(.menu:hover .item)");
+        sheet.IsHoverRelevant(new DivElement { Class = "menu" }).ShouldBeTrue();
+        sheet.IsHoverRelevant(new ParagraphElement()).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void NotHoverList_StaysScopedToTheCompound()
+    {
+        // :not() 现在接受选择器列表；深入参数不能把主体自身的 :hover 变成通用模式。
+        var sheet = SheetWith(".btn:not(:hover, .active)");
+        sheet.IsHoverRelevant(new ButtonElement { Class = "btn" }).ShouldBeTrue();
+        sheet.IsHoverRelevant(new ParagraphElement()).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void NthChildOf_RelevantForHoveredSiblings()
+    {
+        // :nth-child(1 of .tab:hover) 数的是被悬停的兄弟 .tab。
+        var sheet = SheetWith(".panel:nth-child(1 of .tab:hover)");
+        sheet.IsHoverRelevant(new DivElement { Class = "tab" }).ShouldBeTrue();
+        sheet.IsHoverRelevant(new ParagraphElement()).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void FunctionalPseudoClassesWithoutHover_AreNotRelevant()
+    {
+        var sheet = SheetWith(".card:has(img)", ":is(.a, .b) .c", "li:nth-child(odd of .x)", ":where(.a):not(.b)");
+        sheet.UsesHoverPseudo.ShouldBeFalse();
+        sheet.IsHoverRelevant(new DivElement { Class = "card a b c x" }).ShouldBeFalse();
+    }
 }

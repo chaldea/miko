@@ -30,9 +30,9 @@ Miko implements a subset of CSS. The following features are **not supported**:
 
 ### Selectors
 
-- `:nth-child()`, `:nth-of-type()`, `:nth-last-child()`, `:nth-last-of-type()`
-- `:has()`, `:is()`, `:where()`
-- `::placeholder`
+Only the pseudo-classes and pseudo-elements listed in [Styling](./styling.md) are supported. Among
+the missing ones are `:only-child`, `:only-of-type`, `:root`, `:focus-visible`, `::selection`,
+`::marker` and `::first-line`.
 
 ### Positioning and layout
 

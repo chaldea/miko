@@ -4,6 +4,7 @@ using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Ionic.Components;
+using Miko.Styling;
 using Miko.Testing;
 using Shouldly;
 
@@ -157,6 +158,21 @@ public class IonTextareaTests : IonicComponentTestBase
 
         cut.FindByClass("native-textarea").Single()
             .ShouldBeOfType<TextAreaElement>().Placeholder.ShouldBe("Enter your comments");
+    }
+
+    [Fact]
+    public void IonTextarea_AppPlaceholderRule_RestylesTheNativePlaceholder()
+    {
+        // ISSUE-158: an app ::placeholder rule on the native textarea restyles its placeholder.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var app = new StyleSheet();
+        app.Add(new CssObject { [".ion-textarea .native-textarea::placeholder"] = new() { Color = Color.Red } });
+        Context.AddStyleSheet(app);
+
+        var cut = RenderTextarea(Context, p => p.Add(nameof(IonTextarea.Placeholder), "Enter your comments"));
+        var textarea = cut.FindByClass("native-textarea").Single();
+
+        cut.FindLayoutBox(textarea)!.PlaceholderStyle!.Color.ShouldBe(Color.Red);
     }
 
     [Fact]

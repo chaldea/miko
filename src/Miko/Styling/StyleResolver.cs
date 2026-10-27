@@ -169,6 +169,55 @@ public class StyleResolver
         }
     }
 
+    private static readonly Comparison<(Style style, int layer, int specificity, int index)> PseudoRuleOrder =
+        static (a, b) =>
+        {
+            int c = b.layer.CompareTo(a.layer);
+            if (c != 0) return c;
+            c = b.specificity.CompareTo(a.specificity);
+            return c != 0 ? c : b.index.CompareTo(a.index);
+        };
+
+    /// <summary>
+    /// 解析宿主 <paramref name="host"/> 上不生成盒子的伪元素（<c>::placeholder</c>，ISSUE-158）的计算样式；
+    /// 没有任何规则匹配时返回 null，调用方按 UA 默认绘制。
+    /// <para>与普通元素同一套级联：层 → 特异性 → 定义顺序，然后从宿主继承可继承属性（字体、颜色……）、
+    /// 沿用宿主的变量作用域。<c>::placeholder</c> 的 UA 默认色（灰）位于作者规则之下、继承之上，
+    /// 所以只写了 <c>font-weight</c> 的规则不会把占位符变成宿主的文字颜色。</para>
+    /// </summary>
+    internal ComputedStyle? ResolvePseudoElement(Element host, ComputedStyle hostStyle, List<StyleSheet> styleSheets,
+        PseudoElementType type, ViewportInfo? viewport)
+    {
+        List<(Style style, int layer, int specificity, int index)>? matched = null;
+        int order = 0;
+        foreach (var sheet in styleSheets)
+        {
+            var rules = sheet.PseudoElementRules;
+            for (int i = 0; i < rules.Count; i++)
+            {
+                var rule = rules[i];
+                if (rule.Type == type && rule.Selector.Matches(host))
+                    (matched ??= new()).Add((rule.Style, sheet.Layer, rule.Selector.Specificity, order + i));
+            }
+            order += rules.Count;
+        }
+
+        if (matched == null) return null;
+        if (matched.Count > 1)
+            matched.Sort(PseudoRuleOrder);
+
+        var style = new Style();
+        foreach (var (ruleStyle, _, _, _) in matched)
+            style.Merge(ruleStyle);
+
+        if (type == PseudoElementType.Placeholder)
+            style.Color ??= Color.Gray;
+
+        InheritFromParent(style, hostStyle);
+        var varScope = BuildVarScope(hostStyle.Vars, style.Vars);
+        return ComputedStyle.FromStyle(style, hostStyle.FontSize.Value, varScope, hostStyle, viewport);
+    }
+
     /// <summary>
     /// 构建元素生效的自定义变量作用域：先继承父作用域，再叠加本元素定义（同名覆盖）。
     /// 无任何变量时返回 null，避免为每个元素分配空字典。

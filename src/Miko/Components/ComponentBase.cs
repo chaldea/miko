@@ -728,6 +728,7 @@ public abstract class ComponentBase : IComponent
             {
                 Element = newElement,
                 ComputedStyle = oldElement.LayoutBox.ComputedStyle,
+                PlaceholderStyle = oldElement.LayoutBox.PlaceholderStyle,
             };
             newElement.LayoutBox = transferred;
         }

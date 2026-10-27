@@ -52,16 +52,8 @@ internal static class CssObjectResolver
     private static (Selector parentSelector, PseudoElementType type)? ExtractPseudoElement(Selector selector, string fullSelector)
     {
         // Case 1: selector is directly a PseudoElementSelector (e.g., "::after" alone — unlikely but handle)
-        if (selector is BeforePseudoElement)
-            return (new UniversalSelector(), PseudoElementType.Before);
-        if (selector is AfterPseudoElement)
-            return (new UniversalSelector(), PseudoElementType.After);
-        if (selector is RangeThumbPseudoElement)
-            return (new UniversalSelector(), PseudoElementType.RangeThumb);
-        if (selector is RangeTrackPseudoElement)
-            return (new UniversalSelector(), PseudoElementType.RangeTrack);
-        if (selector is RangeProgressPseudoElement)
-            return (new UniversalSelector(), PseudoElementType.RangeProgress);
+        if (selector is PseudoElementSelector pseudo)
+            return (new UniversalSelector(), TypeOf(pseudo));
 
         // Case 2: CompoundSelector containing a PseudoElementSelector (e.g., ".btn::after")
         if (selector is CompoundSelector compound)
@@ -69,15 +61,7 @@ internal static class CssObjectResolver
             var pseudoPart = compound.Selectors.OfType<PseudoElementSelector>().FirstOrDefault();
             if (pseudoPart != null)
             {
-                var type = pseudoPart switch
-                {
-                    BeforePseudoElement => PseudoElementType.Before,
-                    AfterPseudoElement => PseudoElementType.After,
-                    RangeThumbPseudoElement => PseudoElementType.RangeThumb,
-                    RangeTrackPseudoElement => PseudoElementType.RangeTrack,
-                    RangeProgressPseudoElement => PseudoElementType.RangeProgress,
-                    _ => throw new InvalidOperationException($"Unknown pseudo-element type: {pseudoPart.GetType().Name}")
-                };
+                var type = TypeOf(pseudoPart);
                 var remaining = compound.Selectors.Where(s => s is not PseudoElementSelector).ToList();
                 var parentSelector = remaining.Count == 1 ? remaining[0] : new CompoundSelector(remaining);
                 return (parentSelector, type);
@@ -101,6 +85,17 @@ internal static class CssObjectResolver
 
         return null;
     }
+
+    private static PseudoElementType TypeOf(PseudoElementSelector pseudo) => pseudo switch
+    {
+        BeforePseudoElement => PseudoElementType.Before,
+        AfterPseudoElement => PseudoElementType.After,
+        RangeThumbPseudoElement => PseudoElementType.RangeThumb,
+        RangeTrackPseudoElement => PseudoElementType.RangeTrack,
+        RangeProgressPseudoElement => PseudoElementType.RangeProgress,
+        PlaceholderPseudoElement => PseudoElementType.Placeholder,
+        _ => throw new InvalidOperationException($"Unknown pseudo-element type: {pseudo.GetType().Name}")
+    };
 
     private static (Selector left, Selector right, char combinator) DecomposeCombinator(Selector selector)
     {

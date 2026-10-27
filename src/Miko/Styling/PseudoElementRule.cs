@@ -8,7 +8,8 @@ public enum PseudoElementType
     After,
     RangeThumb,
     RangeTrack,
-    RangeProgress
+    RangeProgress,
+    Placeholder
 }
 
 public class PseudoElementRule

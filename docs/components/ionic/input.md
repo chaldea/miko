@@ -264,7 +264,7 @@ Theme token `IonicTheme.Input` (`InputToken`). Assign only the values you want t
 | `TextColor` | `Color` | `#000000` | `#000000` |
 <!-- /miko:tokens -->
 
-[`IonTextarea`](./textarea.md) uses the same tokens, and [`IonInputOtp`](./input-otp.md) reads `HelperColor` (and `BorderColor` in ios mode). `PlaceholderColor` currently has no effect: placeholders are always painted gray.
+[`IonTextarea`](./textarea.md) uses the same tokens, and [`IonInputOtp`](./input-otp.md) reads `HelperColor` (and `BorderColor` in ios mode). There is no placeholder token: placeholders are painted gray unless an app rule restyles them with `::placeholder`, for example `.ion-input .native-input::placeholder` (`.ion-textarea .native-textarea::placeholder` for textareas). See [Styling placeholders](../../guide/styling.md).
 
 ### CSS classes
 

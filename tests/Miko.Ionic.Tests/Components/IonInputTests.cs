@@ -4,6 +4,7 @@ using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Ionic.Components;
+using Miko.Styling;
 using Miko.Testing;
 using Shouldly;
 
@@ -334,6 +335,34 @@ public class IonInputTests : IonicComponentTestBase
         var cut = RenderInput(Context);
 
         cut.GetComputedStyle(cut.Root)!.FontSize.ShouldBe(Length.Px(17));
+    }
+
+    [Fact]
+    public void IonInput_Placeholder_IsGrayWithoutAnAppRule()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = RenderInput(Context, p => p.Add(nameof(IonInput.Placeholder), "Enter company name"));
+
+        cut.FindLayoutBox(cut.FindByClass("native-input").Single())!.PlaceholderStyle.ShouldBeNull();
+    }
+
+    [Fact]
+    public void IonInput_AppPlaceholderRule_RestylesTheNativePlaceholder()
+    {
+        // ISSUE-158: there is no placeholder token; an app ::placeholder rule on the native field
+        // (above Ionic's layer -1) restyles it and inherits the field's Ionic font size.
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+        var app = new StyleSheet();
+        app.Add(new CssObject { [".ion-input .native-input::placeholder"] = new() { Color = Color.Red } });
+        Context.AddStyleSheet(app);
+
+        var cut = RenderInput(Context, p => p.Add(nameof(IonInput.Placeholder), "Enter company name"));
+        var input = cut.FindByClass("native-input").Single();
+        var placeholder = cut.FindLayoutBox(input)!.PlaceholderStyle!;
+
+        placeholder.Color.ShouldBe(Color.Red);
+        placeholder.FontSize.ShouldBe(cut.GetComputedStyle(input)!.FontSize);
     }
 
     [Fact]

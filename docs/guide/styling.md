@@ -228,10 +228,69 @@ Selector strings support:
 | Simple | `div`, `.class`, `#id`, compound `.a.b` / `button.primary` |
 | Combinators | descendant (`.a .b`), child (`>`), adjacent sibling (`+`), general sibling (`~`) |
 | Attributes | `[href]`, `[type="checkbox"]`, `~=`, `^=`, `$=`, `*=`, … |
-| Pseudo-classes | `:hover`, `:active`, `:focus`, `:focus-within`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty`, `:not(…)` |
-| Pseudo-elements | `::before`, `::after`; `::range-thumb`, `::range-track`, `::range-progress` on `<input type="range">` |
+| Pseudo-classes | `:hover`, `:active`, `:focus`, `:focus-within`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty` |
+| Structural | `:nth-child(An+B)`, `:nth-last-child(An+B)` (both also `An+B of S`), `:nth-of-type(An+B)`, `:nth-last-of-type(An+B)` |
+| Logical | `:is(…)`, `:where(…)`, `:not(…)`, `:has(…)`, each taking a comma-separated list |
+| Pseudo-elements | `::before`, `::after`; `::placeholder` on text `<input>` and `<textarea>`; `::range-thumb`, `::range-track`, `::range-progress` on `<input type="range">` |
 
-An unsupported pseudo-class (for example `:nth-child()`) throws when the stylesheet is built.
+An unsupported pseudo-class (for example `:visited`) throws when the stylesheet is built. So does an
+invalid selector inside `:is()` or `:where()`: browsers skip it, but a Miko stylesheet is code, so a
+typo should fail rather than silently drop a branch.
+
+### Structural pseudo-classes
+
+`:nth-child(An+B)` matches an element whose position among its siblings (counting from 1) is
+`A×n + B` for some `n ≥ 0`. `odd` means `2n+1`, `even` means `2n`, and a plain number picks one
+position. Text between elements is not counted.
+
+```csharp
+sheet.Add(new CssObject
+{
+    [".list > .row:nth-child(even)"] = new() { BackgroundColor = Color.FromRgb(245, 245, 245) },
+    [".list > .row:nth-child(-n+3)"] = new() { FontWeight = FontWeight.Bold },   // first three
+    [".list > .row:nth-last-child(1)"] = new() { BorderBottomWidth = Length.Px(0) }, // last one
+    ["td:nth-of-type(2)"] = new() { TextAlign = TextAlign.End },                  // second cell
+    [".tab:nth-child(1 of .visible)"] = new() { MarginLeft = Length.Px(0) },       // first visible tab
+});
+```
+
+`:nth-last-child()` and `:nth-last-of-type()` count from the end. The `-of-type` variants count only
+siblings with the same tag. `An+B of S` counts only the siblings that match `S`, and the element itself
+must match `S`: `:nth-child(2 of .item)` is the second `.item`, not an `.item` in second place.
+
+### `:is()`, `:where()`, `:not()` and `:has()`
+
+- `:is(…)` matches when any selector in the list matches, so `:is(h1, h2, .title)` replaces three
+  rules. The arguments may contain combinators (`:is(.toolbar .title, h1)`).
+- `:where(…)` matches exactly like `:is(…)` but adds nothing to specificity, which makes it the way to
+  write defaults that any other rule overrides: `:where(.card) .title` weighs as much as `.title`.
+- `:not(…)` matches when no selector in the list matches: `.btn:not(.primary, .danger)`.
+- `:has(…)` matches an element when a *relative* selector, starting from it, finds an element:
+  `.card:has(img)` (any descendant), `.card:has(> img)` (a child), `label:has(+ input)` (the next
+  sibling), `h2:has(~ p)` (any later sibling), `.list:has(> .item .badge)` (several steps).
+
+`:has()` walks the element's subtree, or its later siblings, each time it is evaluated. Put it in a
+compound with a class, as in `.card:has(…)`, so only `.card` elements pay for the walk. A bare
+`:has(…)` is evaluated against every element.
+
+Pseudo-elements are not allowed inside any of these arguments.
+
+### Styling placeholders
+
+`::placeholder` styles the placeholder text of a text `<input>` or a `<textarea>`. It inherits from
+the field, so it uses the field's font unless the rule sets one. Placeholders are gray by default,
+and a rule that does not set `Color` keeps the gray.
+
+```csharp
+sheet.Add(new CssObject
+{
+    [".search::placeholder"] = new() { Color = Color.FromRgb(120, 120, 140), FontWeight = FontWeight.Light },
+    [".search:disabled::placeholder"] = new() { Opacity = 0.5f },
+});
+```
+
+The placeholder honours `Color`, `Opacity`, `FontFamily`, `FontSize` and `FontWeight`. Its rules
+cascade like any other rule (layer, then specificity, then order).
 
 ## The cascade
 
@@ -246,6 +305,10 @@ Inline styles (the element's own `Style`) always win, then id selectors, then cl
 selectors, then tag selectors. Between rules of equal specificity, the one added later wins. The
 result is a `ComputedStyle` with every property resolved (including inherited values such as
 `Color` and `FontFamily`).
+
+Pseudo-classes and attribute selectors weigh as much as a class. `:is()`, `:not()` and `:has()` weigh
+as much as their most specific argument, `:where()` weighs nothing, and `:nth-child(An+B of S)` weighs
+a class plus the most specific selector in `S`.
 
 ### Cascade layers
 
