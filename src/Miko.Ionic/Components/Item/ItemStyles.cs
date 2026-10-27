@@ -48,6 +48,15 @@ internal static class ItemStyles
                 BorderBottom = new BorderSide(Length.Px(1), BorderStyle.Solid, t.ItemBorderColor),
             },
 
+            // sticky dividers (item-divider.scss :host(.item-divider-sticky)). Ionic sets
+            // z-index: $z-index-item-divider (100) on :host; it only takes effect once positioned.
+            [$".ion-item-divider.{mode}.item-divider-sticky"] = new()
+            {
+                Position = Position.Sticky,
+                Top = Length.Px(0),
+                ZIndex = 100,
+            },
+
             // .item-divider-inner — arranges the divider content; grows to fill the host.
             [$".ion-item-divider.{mode} .item-divider-inner"] = new()
             {

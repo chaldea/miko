@@ -89,6 +89,8 @@ public class RenderEngine
         _currentScrollOffsetY = 0;
         // 分段探针（ISSUE-136）：默认关闭，关闭时只是一次布尔判断。
         var paintStart = FrameTimingDiagnostics.GetTimestamp();
+        // 粘性盒按此刻的滚动量就位（ISSUE-159）：滚动不重排，偏移只能在绘制前重算。
+        StickyPositioning.Update(layoutRoot);
         RenderBox(layoutRoot, null, isStackingRoot: true);
         FlushFixed();
         FlushDropdowns();
@@ -120,6 +122,7 @@ public class RenderEngine
         if (offsetX != 0 || offsetY != 0)
             _painter.Translate(offsetX, offsetY);
 
+        StickyPositioning.Update(layoutRoot);
         RenderBox(layoutRoot, null, isStackingRoot: true);
         // 转场图层的整体偏移与不透明度对覆盖层同样生效，故在本层的 Save 之内 flush：
         // 页面切换时 fixed 覆盖层应随页面一起滑动/淡出，而不是钉在屏幕上不动。
@@ -147,6 +150,7 @@ public class RenderEngine
         _pendingDropdowns.Clear();
         _currentScrollOffsetX = 0;
         _currentScrollOffsetY = 0;
+        StickyPositioning.Update(layoutRoot);
 
         foreach (var region in dirtyRegions)
         {
@@ -361,15 +365,7 @@ public class RenderEngine
         }
         else
         {
-            if (deferred == null)
-            {
-                foreach (var child in box.Children) RenderBox(child, null);
-            }
-            else
-            {
-                foreach (var child in box.Children)
-                    if (!deferred.Contains(child)) RenderBox(child, deferred);
-            }
+            RenderChildren(box, deferred);
         }
 
         // 提取出的定位后代：按 z-index 升序绘制在本层内容之上（负 z-index 的 CSS 细分层级
@@ -391,11 +387,43 @@ public class RenderEngine
     }
 
     /// <summary>
+    /// 按文档序绘制子盒（跳过已被祖先层叠上下文提出的 <paramref name="deferred"/>），
+    /// <c>position: sticky</c> 的子盒排在全部兄弟之后（ISSUE-159）。
+    /// <para>粘性盒是定位元素，CSS 把 z-index:auto 的定位元素画在常规流内容之上；本引擎没有通用的
+    /// 「定位层」，若照文档序绘制，粘住的标题会被后面滚上来的兄弟盖住。粘性盒被约束在包含块
+    /// （通常就是父盒）之内，能与它重叠的常规内容就是这些兄弟，所以在兄弟层面后置即可。
+    /// 命中测试（<c>MikoEngine.HitTestBox</c>）按相反顺序先测粘性子盒，两处必须同步。</para>
+    /// </summary>
+    private void RenderChildren(LayoutBox box, HashSet<LayoutBox>? deferred)
+    {
+        bool hasSticky = false;
+        foreach (var child in box.Children)
+        {
+            if (deferred != null && deferred.Contains(child)) continue;
+            if (child.ComputedStyle.Position == Common.Position.Sticky)
+            {
+                hasSticky = true;
+                continue;
+            }
+            RenderBox(child, deferred);
+        }
+
+        if (!hasSticky) return;
+        foreach (var child in box.Children)
+        {
+            if (child.ComputedStyle.Position != Common.Position.Sticky) continue;
+            if (deferred != null && deferred.Contains(child)) continue;
+            RenderBox(child, deferred);
+        }
+    }
+
+    /// <summary>
     /// 某个盒子是否建立层叠上下文（CSS "stacking context"）。
     /// <para>
-    /// 这里只实现与本引擎相关的两条触发条件：<c>position</c> 非 static 且显式声明了
-    /// <c>z-index</c>（非 auto）；以及 <c>opacity &lt; 1</c>（它同样建立层叠上下文，且本引擎
-    /// 会为其 SaveLayer，后代无论如何都被关在那一层里）。transform / filter / will-change 等
+    /// 这里只实现与本引擎相关的几条触发条件：<c>position</c> 非 static 且显式声明了
+    /// <c>z-index</c>（非 auto）；<c>position: sticky</c>（无论 z-index，与 fixed 一样恒建立，
+    /// ISSUE-159）；以及 <c>opacity &lt; 1</c>（它同样建立层叠上下文，且本引擎
+    /// 会为其 SaveLayer，后代无论如何都被关在那一层里）。filter / will-change 等
     /// 其余触发条件尚未纳入。
     /// </para>
     /// </summary>
@@ -406,6 +434,7 @@ public class RenderEngine
         // 后代无论如何都被关在那一层里，提取出去绘制会丢掉这些效果。
         if (style.Opacity < 1f) return true;
         if (style.Transform.Functions.Count > 0) return true;
+        if (style.Position == Common.Position.Sticky) return true;
         return style.Position != Common.Position.Static && style.HasZIndex;
     }
 
@@ -734,15 +763,7 @@ public class RenderEngine
 
         // 裁剪盒的后代不会被提取（CollectZOrderedDescendants 在会裁剪的祖先处停止下探），
         // 故这里一般 deferred 为空；仍传递以保持与非裁剪分支同一语义。
-        if (deferred == null)
-        {
-            foreach (var child in box.Children) RenderBox(child, null);
-        }
-        else
-        {
-            foreach (var child in box.Children)
-                if (!deferred.Contains(child)) RenderBox(child, deferred);
-        }
+        RenderChildren(box, deferred);
 
         _painter.Restore();
 

@@ -43,6 +43,11 @@
     /// <summary>Content for Ionic's <c>end</c> slot — placed after the label (right in LTR).</summary>
     [Parameter] public RenderFragment? End { get; set; }
 
+    /// <summary>Keeps the divider visible at the top of the scrolling content while its section
+    /// scrolls by (Ionic <c>sticky</c>, CSS <c>position: sticky</c>). The next section pushes it out
+    /// when the divider's container ends — wrap each section in an <c>IonItemGroup</c>.</summary>
+    [Parameter] public bool Sticky { get; set; }
+
     protected override void OnParametersSet()
     {
         ClassMapper
@@ -50,6 +55,7 @@
             .Add(Class)
             .Add(Mode)
             .Add("ion-item-divider")
+            .If(Sticky, "item-divider-sticky")
             .If(!string.IsNullOrWhiteSpace(Color), "ion-color")
             .AddColor(Color);
     }

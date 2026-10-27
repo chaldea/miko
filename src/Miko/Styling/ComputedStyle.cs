@@ -472,16 +472,17 @@ public partial class ComputedStyle : Style
     public new Length RowGap { get; set; } = Length.Auto;
     public new Length ColumnGap { get; set; } = Length.Auto;
 
-    // Grid 容器属性（见 ISSUE-097）。模板列表默认 null = 无显式模板；
-    // 隐式轨道默认 auto；放置线默认 0 = 自动放置。
+    // Grid 容器属性（见 ISSUE-097 / ISSUE-159）。模板列表与命名区域默认 null = 无；
+    // 隐式轨道默认 auto；放置线默认 auto = 自动放置。
     public new List<GridTrackSize>? GridTemplateColumns { get; set; }
     public new List<GridTrackSize>? GridTemplateRows { get; set; }
+    public new GridTemplateAreas? GridTemplateAreas { get; set; }
     public new GridTrackSize GridAutoRows { get; set; } = GridTrackSize.Auto;
     public new GridTrackSize GridAutoColumns { get; set; } = GridTrackSize.Auto;
-    public new int GridColumnStart { get; set; }
-    public new int GridColumnEnd { get; set; }
-    public new int GridRowStart { get; set; }
-    public new int GridRowEnd { get; set; }
+    public new GridLine GridColumnStart { get; set; }
+    public new GridLine GridColumnEnd { get; set; }
+    public new GridLine GridRowStart { get; set; }
+    public new GridLine GridRowEnd { get; set; }
 
     public new float Opacity { get; set; } = 1.0f;
 
@@ -974,7 +975,10 @@ public partial class ComputedStyle : Style
         return resolved;
     }
 
-    /// <summary>折算轨道列表中各固定长度轨道的 env() 分量；无安全区分量时原样返回（不分配新列表）。</summary>
+    /// <summary>
+    /// 折算轨道列表中各长度（含 minmax/fit-content/repeat 内部）的 env() 分量；
+    /// 无安全区分量时原样返回（不分配新列表）。
+    /// </summary>
     private static List<GridTrackSize>? ResolveTracksSafeArea(List<GridTrackSize>? tracks, SafeAreaInsets insets)
     {
         if (tracks == null) return null;
@@ -982,17 +986,19 @@ public partial class ComputedStyle : Style
         for (int i = 0; i < tracks.Count; i++)
         {
             var t = tracks[i];
-            if (!t.IsFixed || !t.Fixed.HasSafeAreaComponent) continue;
+            if (!t.AnyLength(static l => l.HasSafeAreaComponent)) continue;
             resolved ??= new List<GridTrackSize>(tracks);
-            resolved[i] = GridTrackSize.FromLength(t.Fixed.ResolveSafeArea(insets));
+            resolved[i] = MapTrackSafeArea(t, insets);
         }
         return resolved ?? tracks;
     }
 
     private static GridTrackSize ResolveTrackSafeArea(GridTrackSize track, SafeAreaInsets insets)
-        => track.IsFixed && track.Fixed.HasSafeAreaComponent
-            ? GridTrackSize.FromLength(track.Fixed.ResolveSafeArea(insets))
-            : track;
+        => track.AnyLength(static l => l.HasSafeAreaComponent) ? MapTrackSafeArea(track, insets) : track;
+
+    // 捕获参数的 lambda 在所在方法入口就分配闭包；单独成方法，使每个元素都会走的探测路径零分配。
+    private static GridTrackSize MapTrackSafeArea(GridTrackSize track, SafeAreaInsets insets)
+        => track.MapLengths(l => l.ResolveSafeArea(insets));
 
     /// <summary>
     /// 折算所有长度属性中的视窗单位（vw/vh）分量为像素。由布局引擎在样式计算阶段、
@@ -1061,7 +1067,10 @@ public partial class ComputedStyle : Style
         GridAutoColumns = ResolveTrackViewport(GridAutoColumns, vw, vh);
     }
 
-    /// <summary>折算轨道列表中各固定长度轨道的 vw/vh 分量；无视窗分量时原样返回（不分配新列表）。</summary>
+    /// <summary>
+    /// 折算轨道列表中各长度（含 minmax/fit-content/repeat 内部）的 vw/vh 分量；
+    /// 无视窗分量时原样返回（不分配新列表）。
+    /// </summary>
     private static List<GridTrackSize>? ResolveTracksViewport(List<GridTrackSize>? tracks, float vw, float vh)
     {
         if (tracks == null) return null;
@@ -1069,15 +1078,17 @@ public partial class ComputedStyle : Style
         for (int i = 0; i < tracks.Count; i++)
         {
             var t = tracks[i];
-            if (!t.IsFixed || !t.Fixed.HasViewportComponent) continue;
+            if (!t.AnyLength(static l => l.HasViewportComponent)) continue;
             resolved ??= new List<GridTrackSize>(tracks);
-            resolved[i] = GridTrackSize.FromLength(t.Fixed.ResolveViewport(vw, vh));
+            resolved[i] = MapTrackViewport(t, vw, vh);
         }
         return resolved ?? tracks;
     }
 
     private static GridTrackSize ResolveTrackViewport(GridTrackSize track, float vw, float vh)
-        => track.IsFixed && track.Fixed.HasViewportComponent
-            ? GridTrackSize.FromLength(track.Fixed.ResolveViewport(vw, vh))
-            : track;
+        => track.AnyLength(static l => l.HasViewportComponent) ? MapTrackViewport(track, vw, vh) : track;
+
+    // 同 MapTrackSafeArea：闭包只在确有视窗分量时分配。
+    private static GridTrackSize MapTrackViewport(GridTrackSize track, float vw, float vh)
+        => track.MapLengths(l => l.ResolveViewport(vw, vh));
 }

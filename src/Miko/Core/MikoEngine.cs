@@ -984,6 +984,10 @@ public class MikoEngine
     {
         if (_currentLayout == null) return null;
 
+        // 粘性盒按此刻的滚动量就位（ISSUE-159）：两帧之间发生的滚动已改了 ScrollTop，
+        // 不重算的话命中测试会对着上一帧的粘性位置测。没有粘性盒时只是一次 null 判断。
+        Layout.StickyPositioning.Update(_currentLayout);
+
         // position: fixed 的盒子由渲染器的顶层 pass（RenderEngine.FlushFixed）最后绘制，因此在
         // 命中测试里也必须最先被测——否则会「看得见但点不到」：正常递归会在裁剪型祖先处被
         // `!insideSelf && clipsChildren` 剪枝掉，而 fixed 覆盖层恰恰总是溢出到祖先之外。
@@ -1127,32 +1131,22 @@ public class MikoEngine
         }
 
         // Test remaining children (non-positioned or positioned without z-index, or deferred by clipping)
-        // in reverse DOM order
+        // in reverse paint order: sticky children are painted after all their siblings
+        // (RenderEngine.RenderChildren, ISSUE-159), so they are tested first.
         var deferred = zOrdered?.ToHashSet();
+        bool hasSticky = false;
+        for (int i = box.Children.Count - 1; i >= 0; i--)
+        {
+            if (box.Children[i].ComputedStyle.Position != Common.Position.Sticky) continue;
+            hasSticky = true;
+            var hit = HitTestChild(box.Children[i]);
+            if (hit != null) return hit;
+        }
         for (int i = box.Children.Count - 1; i >= 0; i--)
         {
             var child = box.Children[i];
-            // Skip children already tested above
-            if (deferred?.Contains(child) == true)
-                continue;
-
-            // fixed 后代已在 HitTest 入口的顶层 pass 中测过（且不受本盒裁剪影响），跳过。
-            if (child.ComputedStyle.Position == Common.Position.Fixed)
-                continue;
-
-            var childRect = child.BoxModel.BorderBox;
-            float childScreenTop = childRect.Top - childScrollOffsetY;
-            float childScreenBottom = childRect.Bottom - childScrollOffsetY;
-            float childScreenLeft = childRect.Left - childScrollOffsetX;
-            float childScreenRight = childRect.Right - childScrollOffsetX;
-
-            bool isClipped = clipsChildren &&
-                             (childScreenBottom < adjustedTop || childScreenTop > adjustedBottom ||
-                              childScreenRight < adjustedLeft || childScreenLeft > adjustedRight);
-
-            if (isClipped) continue;
-
-            var hit = HitTestBox(child, x, y, childScrollOffsetX, childScrollOffsetY);
+            if (hasSticky && child.ComputedStyle.Position == Common.Position.Sticky) continue;
+            var hit = HitTestChild(child);
             if (hit != null) return hit;
         }
 
@@ -1168,6 +1162,31 @@ public class MikoEngine
             return null;
 
         return box.Element;
+
+        Element? HitTestChild(LayoutBox child)
+        {
+            // Skip children already tested above
+            if (deferred?.Contains(child) == true)
+                return null;
+
+            // fixed 后代已在 HitTest 入口的顶层 pass 中测过（且不受本盒裁剪影响），跳过。
+            if (child.ComputedStyle.Position == Common.Position.Fixed)
+                return null;
+
+            var childRect = child.BoxModel.BorderBox;
+            float childScreenTop = childRect.Top - childScrollOffsetY;
+            float childScreenBottom = childRect.Bottom - childScrollOffsetY;
+            float childScreenLeft = childRect.Left - childScrollOffsetX;
+            float childScreenRight = childRect.Right - childScrollOffsetX;
+
+            bool isClipped = clipsChildren &&
+                             (childScreenBottom < adjustedTop || childScreenTop > adjustedBottom ||
+                              childScreenRight < adjustedLeft || childScreenLeft > adjustedRight);
+
+            if (isClipped) return null;
+
+            return HitTestBox(child, x, y, childScrollOffsetX, childScrollOffsetY);
+        }
     }
 
     /// <summary>
@@ -1220,6 +1239,10 @@ public class MikoEngine
         {
             // Positioned elements with z-index establish a stacking context
             if (box.ComputedStyle.Position != Common.Position.Static && box.ComputedStyle.HasZIndex)
+                return true;
+
+            // Sticky always does, whatever its z-index (ISSUE-159; RenderEngine twin)
+            if (box.ComputedStyle.Position == Common.Position.Sticky)
                 return true;
 
             // Opacity < 1 establishes a stacking context

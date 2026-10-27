@@ -191,11 +191,19 @@ internal static class StyleInspector
                 Add("grid-template-columns", string.Join(' ', cs.GridTemplateColumns));
             if (cs.GridTemplateRows != null)
                 Add("grid-template-rows", string.Join(' ', cs.GridTemplateRows));
+            if (cs.GridTemplateAreas != null)
+                Add("grid-template-areas", cs.GridTemplateAreas.ToString());
             Add("justify-content", ToCssKeyword(cs.JustifyContent.ToString()));
             Add("justify-items", ToCssKeyword(cs.JustifyItems.ToString()));
             Add("align-items", ToCssKeyword(cs.AlignItems.ToString()));
             Add("align-content", ToCssKeyword(cs.AlignContent.ToString()));
         }
+
+        // grid 子项的放置线（ISSUE-159）：任一侧非 auto 时显示（由父容器决定是否生效，这里不判断父级）。
+        if (!cs.GridColumnStart.IsAuto || !cs.GridColumnEnd.IsAuto)
+            Add("grid-column", $"{cs.GridColumnStart} / {cs.GridColumnEnd}");
+        if (!cs.GridRowStart.IsAuto || !cs.GridRowEnd.IsAuto)
+            Add("grid-row", $"{cs.GridRowStart} / {cs.GridRowEnd}");
 
         // gap 对 flex 与 grid 容器都生效。
         if (cs.Display is Common.Display.Flex or Common.Display.InlineFlex or Common.Display.Grid)

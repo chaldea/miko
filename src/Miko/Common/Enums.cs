@@ -27,7 +27,12 @@ public enum Position
     Static,
     Relative,
     Absolute,
-    Fixed
+    Fixed,
+    /// <summary>
+    /// 粘性定位（ISSUE-159）：在常规流中占位，随最近的滚动容器滚动时被 top/right/bottom/left
+    /// 限定在其可视区（无滚动容器时为视口）之内，且不越出包含块。
+    /// </summary>
+    Sticky
 }
 
 /// <summary>

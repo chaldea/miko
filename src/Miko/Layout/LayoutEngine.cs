@@ -101,6 +101,9 @@ public class LayoutEngine
     // 却会改变级联结果（RuleIndex 也是按条数判定重建的），沿用样式前必须一并核对。
     private int _styledRuleCount = -1;
 
+    // 定位 pass 收集到的粘性盒（ISSUE-159），文档先序；pass 结束后移交给布局根。
+    private List<StickyPositioning.Entry>? _stickyEntries;
+
     // 上一帧的计算样式，等本帧整棵树算完后统一归还给池（ISSUE-132）。
     // 见 ComputeStyles 中的说明：回收必须晚于整树解析，否则会回收掉正在被继承读取的实例。
     private readonly List<ComputedStyle> _recyclableStyles = new();
@@ -206,8 +209,15 @@ public class LayoutEngine
         // 4. 定位调整：处理 relative/absolute/fixed 定位的偏移。根包含块为整个视口；
         // fixed 的包含块恒为视口（不随定位祖先改变），故单独传递。
         var viewportBlock = new RectF(0f, 0f, viewportWidth, viewportHeight);
-        ApplyPositioning(layoutRoot, viewportBlock, viewportBlock);
+        _stickyEntries = null;
+        ApplyPositioning(layoutRoot, viewportBlock, viewportBlock, scrollContainer: null, blockContainer: null);
         ApplyInitialScrollOffsets(layoutRoot);
+
+        // 粘性盒（ISSUE-159）挂到布局根上，按当前（含初始）滚动量施加一次偏移；此后每次绘制与
+        // 命中测试前再按届时的滚动量重算（滚动不重排，见 StickyPositioning）。
+        layoutRoot.StickyBoxes = _stickyEntries == null ? null : new StickyPositioning.BoxSet(_stickyEntries, viewportBlock);
+        _stickyEntries = null;
+        StickyPositioning.Update(layoutRoot);
 
         // 布局阶段计时到此为止（样式阶段已单独记账，不重复计入）。
         FrameTimingDiagnostics.RecordLayout(layoutStart);
@@ -365,7 +375,10 @@ public class LayoutEngine
     /// <param name="box">当前盒子</param>
     /// <param name="containingBlock">最近的定位包含块（绝对定位参照的 padding box）</param>
     /// <param name="viewportBlock">视口矩形，fixed 定位的包含块（不随定位祖先改变）</param>
-    private void ApplyPositioning(LayoutBox box, RectF containingBlock, RectF viewportBlock)
+    /// <param name="scrollContainer">最近的滚动容器祖先（粘性盒的可视区来源）；null 表示视口。</param>
+    /// <param name="blockContainer">最近的块容器祖先（粘性盒的包含块）；根盒为 null。</param>
+    private void ApplyPositioning(LayoutBox box, RectF containingBlock, RectF viewportBlock,
+        LayoutBox? scrollContainer, LayoutBox? blockContainer)
     {
         var style = box.ComputedStyle;
         var position = style.Position;
@@ -450,16 +463,35 @@ public class LayoutEngine
 
             childContainingBlock = box.BoxModel.PaddingBox;
         }
+        else if (position == Position.Sticky)
+        {
+            // sticky：在常规流中占位、不做 relative 式的 inset 偏移——它的偏移随滚动变化，
+            // 由 StickyPositioning 在绘制/命中前按当前滚动量施加（ISSUE-159）。这里只登记它的
+            // 可视区来源与包含块。它是定位元素，照常成为绝对定位后代的包含块（偏移施加时
+            // 整棵子树随之平移）。
+            if (blockContainer != null)
+                (_stickyEntries ??= new()).Add(new StickyPositioning.Entry(box, scrollContainer, blockContainer));
+
+            childContainingBlock = box.BoxModel.PaddingBox;
+        }
         else if (position == Position.Static)
         {
             // static 元素不建立包含块，沿用祖先的包含块
             childContainingBlock = containingBlock;
         }
 
+        // 子元素的粘性参照：fixed 盒脱离了祖先的滚动（相对视口固定），其内部的粘性盒以视口
+        // 或 fixed 盒内部的滚动容器为准；滚动容器（任一轴 overflow 非 visible，hidden 也算——
+        // 它能被程序滚动，与 CSS 一致）是其后代的可视区来源。行内盒不是块容器，不作包含块。
+        var childScrollContainer = position == Position.Fixed ? null : scrollContainer;
+        if (style.OverflowX != Overflow.Visible || style.OverflowY != Overflow.Visible)
+            childScrollContainer = box;
+        var childBlockContainer = box.Type is LayoutType.Inline or LayoutType.Text ? blockContainer : box;
+
         // 递归处理子元素
         foreach (var child in box.Children)
         {
-            ApplyPositioning(child, childContainingBlock, viewportBlock);
+            ApplyPositioning(child, childContainingBlock, viewportBlock, childScrollContainer, childBlockContainer);
         }
     }
 

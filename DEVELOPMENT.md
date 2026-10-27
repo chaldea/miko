@@ -276,7 +276,7 @@ Miko 实现类浏览器的渲染管线：
 2. 样式计算        → StyleResolver 匹配选择器并按特异性级联
 3. 布局树构建      → 根据 display 属性过滤元素（display: none 不参与布局）
 4. 布局计算        → 约束向下传递（父→子），尺寸向上回传（子→父）
-5. 定位调整        → 处理 relative/absolute 定位偏移
+5. 定位调整        → 处理 relative/absolute/fixed 定位偏移，登记 sticky 盒（偏移在每次绘制/命中测试前按滚动量施加）
 6. 绘制            → RenderEngine 通过 Painter 绘制到 SKCanvas（支持增量渲染）
 ```
 
@@ -310,6 +310,11 @@ Miko 实现类浏览器的渲染管线：
 - 支持 `justify-content`（主轴对齐）
 - 支持 `align-items`（交叉轴对齐）
 - 支持 `flex-grow` 和 `flex-shrink`
+
+**GridLayout（网格布局）**
+- 轨道：固定长度、`fr`、`auto`、`min-content`、`max-content`、`minmax()`、`fit-content()`、`repeat()`（含 `auto-fill` / `auto-fit`）与命名线
+- `grid-template-areas` 命名区域；子项按线号、线名、区域名或 `span` 放置（`GridLine`）
+- 轨道尺寸遵循 CSS Grid §11 的轨道尺寸算法（`1fr` 不小于子项的最小内容尺寸）
 
 **TableLayout（表格布局）**
 - 自动列宽分配
@@ -572,11 +577,12 @@ styleSheet.Add(new CssObject
 
 ### Layout（布局）
 
-支持四种布局算法：
+支持五种布局算法：
 
 - **BlockLayout**：块级布局，子元素垂直排列
 - **InlineLayout**：行内布局，子元素水平排列并自动换行
 - **FlexLayout**：弹性布局，支持 flex-direction、justify-content、align-items、flex-grow/shrink
+- **GridLayout**：网格布局，支持 repeat()/minmax()/fr 轨道、命名线与 grid-template-areas
 - **TableLayout**：表格布局，支持自动列宽分配
 
 **盒模型（BoxModel）：**
@@ -602,8 +608,9 @@ styleSheet.Add(new CssObject
 **定位（Position）：**
 - `Static`（默认）：常规流
 - `Relative`：相对于自身在常规流中的位置偏移
-- `Absolute`：相对于最近的定位祖先（relative/absolute）定位
-- `Fixed`：相对于视口定位（尚未完全实现）
+- `Absolute`：相对于最近的定位祖先（relative/absolute/sticky）定位
+- `Fixed`：相对于视口定位（不被祖先的 overflow 裁剪、不随祖先滚动）
+- `Sticky`：在常规流中占位，滚动时被 top/right/bottom/left 限定在最近滚动容器（无则视口）的可视区内，且不越出包含块
 
 ### 字体管理
 

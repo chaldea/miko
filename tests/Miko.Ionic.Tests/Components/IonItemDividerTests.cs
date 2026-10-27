@@ -106,6 +106,37 @@ public class IonItemDividerTests : IonicComponentTestBase
     }
 
     [Fact]
+    public void IonItemDivider_Sticky_AddsTheStickyClassAndPosition()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItemDivider>(parameters =>
+        {
+            parameters.Add(nameof(IonItemDivider.Sticky), true);
+            parameters.Add(nameof(IonItemDivider.ChildContent), MinimalChild);
+        });
+
+        // item-divider.tsx: 'item-divider-sticky': this.sticky；item-divider.scss: position sticky, top 0.
+        cut.Root.ShouldHaveClass("item-divider-sticky");
+        var style = cut.GetComputedStyle(cut.Root)!;
+        style.Position.ShouldBe(Miko.Common.Position.Sticky);
+        style.Top.ShouldBe(Miko.Common.Length.Px(0));
+        style.ZIndex.ShouldBe(100);
+    }
+
+    [Fact]
+    public void IonItemDivider_NotSticky_StaysStatic()
+    {
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        var cut = Context.Render<IonItemDivider>(parameters =>
+            parameters.Add(nameof(IonItemDivider.ChildContent), MinimalChild));
+
+        cut.Root.ShouldNotHaveClass("item-divider-sticky");
+        cut.GetComputedStyle(cut.Root)!.Position.ShouldBe(Miko.Common.Position.Static);
+    }
+
+    [Fact]
     public void IonItemDivider_RendersStartAndEndSlots_AsMarkerSpans()
     {
         var cut = Context.Render<IonItemDivider>(parameters =>

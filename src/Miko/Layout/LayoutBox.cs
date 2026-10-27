@@ -93,6 +93,15 @@ public class LayoutBox
     // Prevent scroll-state restoration from overwriting a component's explicit initial position.
     internal bool InitialScrollTopApplied { get; set; }
 
+    // ---- position: sticky（ISSUE-159）----
+    // 当前已施加到本盒几何上的粘性偏移。偏移随滚动逐帧重算并增量平移（见 StickyPositioning），
+    // 布局缓存复用同一棵盒树时靠它还原常规流位置；新建的盒子为 0。
+    internal float StickyOffsetX;
+    internal float StickyOffsetY;
+
+    // 仅布局根持有：整棵树的粘性盒及其参照（文档先序）。没有粘性盒时为 null。
+    internal StickyPositioning.BoxSet? StickyBoxes;
+
     // ---- 内在尺寸测量缓存（ISSUE-132）----
     //
     // Flex 布局要知道每个子项的「内容自然尺寸」（flex-basis: auto / width: auto），做法是以
