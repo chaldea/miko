@@ -6,6 +6,27 @@ All notable changes to Miko are documented in this file. The format is based on
 
 ## [Unreleased]
 
+### Long lists
+
+- **`Virtualize<TItem>`** (`Miko.Components.Virtualization`) renders only the items of a list that
+  can be seen, plus a few on either side, with Blazor's API (`Items` or `ItemsProvider`,
+  `ItemContent` / `Context`, `ItemSize`, `OverscanCount`, `MaxItemCount`, `Placeholder`,
+  `EmptyContent`, `SpacerElement`, `RefreshDataAsync`) and an `ItemKey` that keeps items and what is on
+  screen in place when items are inserted above. Items may have any height: they are measured as they
+  are rendered, and the scroll offset is adjusted so measured heights never move what is on screen.
+  Opening, loading more and scrolling a list cost the same at 100,000 items as at 100 — the Infinite
+  Scroll demo now uses it. See [Razor Components](docs/guide/razor-components.md#long-lists-virtualize).
+  While the list scrolls, the overscan goes mostly ahead of the scroll, so the window moves about a
+  third less often; the computed styles of the rows that scroll out are reused for the rows that scroll
+  in, instead of being left to the garbage collector.
+- **Relayouts are cheaper on pages with an absolutely positioned scroller.** A box sized by its insets
+  (`position: absolute; inset: 0`, Ionic's `IonContent` scroller) is laid out once, against its
+  containing block, instead of first shrink-to-fit inside its parent and then again: the layout phase
+  of an Ionic page costs about half as much. Percentage margins and padding on such a box now resolve
+  against the containing block's width, as in CSS.
+- **`RenderFragment<TValue>`.** Templated components (`<ItemContent Context="row">`) compile, and a
+  component that redeclares a base parameter with `new` receives it.
+
 ### Text layout and localization
 
 - **Right-to-left layout.** `Direction` (or the new `dir="rtl"` attribute) now lays text out from

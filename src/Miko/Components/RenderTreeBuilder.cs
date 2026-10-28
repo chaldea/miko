@@ -977,6 +977,9 @@ public class RenderTreeBuilder
                         "which includes PublicProperties, the exact binding this lookup uses. The " +
                         "caller passes GetType() of that instance, which is merely statically " +
                         "unannotated (ISSUE-140).")]
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "PublicProperties on the component type keeps the public properties its base " +
+                        "types declare, so walking BaseType finds the same members the lookup above saw.")]
     private static PropertyInfo? FindParameterProperty(Type componentType, string name)
     {
         const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
@@ -987,6 +990,15 @@ public class RenderTreeBuilder
         }
         catch (AmbiguousMatchException)
         {
+            // 派生组件用 new 重新声明了基类的参数（Virtualize<TItem> 把 ChildContent 声明为
+            // RenderFragment<TItem>，与 Blazor 相同）：取最派生的那一个，与 C# 名字查找一致。
+            // 此前直接返回 null，参数被静默丢弃。
+            for (var type = componentType; type != null; type = type.BaseType)
+            {
+                var declared = type.GetProperty(name, flags | BindingFlags.DeclaredOnly)
+                    ?? type.GetProperty(name, flags | BindingFlags.DeclaredOnly | BindingFlags.IgnoreCase);
+                if (declared != null) return declared;
+            }
             return null;
         }
     }

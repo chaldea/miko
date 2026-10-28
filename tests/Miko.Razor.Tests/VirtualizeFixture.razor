@@ -1,0 +1,46 @@
+@namespace Miko.Razor.Tests
+@using Miko.Components.Virtualization
+@* ISSUE-151: the three ways a list is written — TItem inferred from Items with the template between the
+   tags (Context names its parameter), the template in <ItemContent>, and an ItemsProvider with a
+   <Placeholder>. Each list sits in its own scroller so the engine can show it. *@
+<div class="lists">
+    <div class="scroller inferred">
+        <Virtualize Items="@People" ItemKey="@(p => p.Id)" ItemSize="30" Context="person">
+            <div class="person">@person.Name</div>
+        </Virtualize>
+    </div>
+    <div class="scroller explicit">
+        <Virtualize TItem="Person" Items="@People" OverscanCount="1">
+            <ItemContent Context="p">
+                <div class="item-content">@p.Name</div>
+            </ItemContent>
+            <EmptyContent>
+                <div class="empty">Nothing</div>
+            </EmptyContent>
+        </Virtualize>
+    </div>
+    <div class="scroller provided">
+        <Virtualize TItem="Person" ItemsProvider="@Load" ItemSize="30">
+            <ItemContent>
+                <div class="loaded">@context.Name</div>
+            </ItemContent>
+            <Placeholder>
+                <div class="placeholder">#@context.Index</div>
+            </Placeholder>
+        </Virtualize>
+    </div>
+</div>
+
+@code {
+    public record Person(int Id, string Name);
+
+    public List<Person> People { get; set; } = Enumerable.Range(0, 1000).Select(i => new Person(i, $"Person {i}")).ToList();
+
+    public TaskCompletionSource<ItemsProviderResult<Person>>? PendingLoad { get; private set; }
+
+    private ValueTask<ItemsProviderResult<Person>> Load(ItemsProviderRequest request)
+    {
+        PendingLoad = new TaskCompletionSource<ItemsProviderResult<Person>>();
+        return new ValueTask<ItemsProviderResult<Person>>(PendingLoad.Task);
+    }
+}

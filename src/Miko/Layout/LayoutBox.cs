@@ -102,6 +102,9 @@ public class LayoutBox
     // 仅布局根持有：整棵树的粘性盒及其参照（文档先序）。没有粘性盒时为 null。
     internal StickyPositioning.BoxSet? StickyBoxes;
 
+    // 仅布局根持有：整棵树的视口观察者（ISSUE-151，文档先序）。没有观察者时为 null。
+    internal ViewportObservers.Set? ViewportObserverSet;
+
     // ---- 内在尺寸测量缓存（ISSUE-132）----
     //
     // Flex 布局要知道每个子项的「内容自然尺寸」（flex-basis: auto / width: auto），做法是以
@@ -122,6 +125,11 @@ public class LayoutBox
     internal long IntrinsicMeasureStamp = -1;
     internal float IntrinsicContentWidth;
     internal float IntrinsicContentHeight;
+
+    // 两轴都由对边偏移定型的脱离流盒子，其常规流布局被推迟到定位阶段（ISSUE-151，见
+    // LayoutDispatcher.IsSizedByInsets）：此时盒子只是静态位置上的空矩形，边距尚未求值，
+    // 由 LayoutEngine.ResolveOutOfFlowSize 按真实包含块求出边距并排布整棵子树。
+    internal bool OutOfFlowLayoutDeferred;
 
     // Classic 滚动条宽度（占用布局空间）
     public const float ScrollbarThickness = 12f;

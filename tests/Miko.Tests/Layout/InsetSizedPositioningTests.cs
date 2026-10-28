@@ -30,6 +30,14 @@ public class InsetSizedPositioningTests
         Style = style,
     };
 
+    private static void AssertRect(RectF rect, float x, float y, float width, float height)
+    {
+        rect.X.ShouldBe(x, 0.01f);
+        rect.Y.ShouldBe(y, 0.01f);
+        rect.Width.ShouldBe(width, 0.01f);
+        rect.Height.ShouldBe(height, 0.01f);
+    }
+
     private static LayoutBox? FindByClass(LayoutBox box, string cls)
     {
         if (box.Element.Class == cls) return box;
@@ -797,5 +805,83 @@ public class InsetSizedPositioningTests
         box.BoxModel.Content.Height.ShouldBe(240f, 0.5f);
         box.BoxModel.BorderBox.Left.ShouldBe(40f, 0.5f);
         box.BoxModel.BorderBox.Top.ShouldBe(30f, 0.5f);
+    }
+
+    // ---- the in-flow pass is skipped for inset-sized boxes (ISSUE-151) ----
+    // Their size and position depend on the containing block alone, which the positioning stage
+    // knows; the parent's in-flow pass used to lay them out shrink-to-fit first (measuring the whole
+    // subtree's intrinsic width), and the positioning stage then laid the subtree out again.
+
+    [Fact]
+    public void InsetSizedBox_IsLaidOutOnce_WithoutMeasuringItsContent()
+    {
+        // Ionic's page structure: a flex column host whose scroller is `position: absolute; inset: 0`.
+        var text = new ParagraphElement { Class = "text", TextContent = "Some words that wrap in the scroller" };
+        var scroller = new DivElement { Class = "scroller" };
+        scroller.AddChild(text);
+        var host = new DivElement { Class = "host" };
+        host.AddChild(scroller);
+
+        var sheet = Sheet(
+            Rule("host", new Style
+            {
+                Display = Display.Flex,
+                FlexDirection = FlexDirection.Column,
+                Position = Position.Relative,
+                Width = Length.Px(300),
+                Height = Length.Px(200),
+            }),
+            Rule("scroller", new Style
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(0), Right = Length.Px(0),
+                Bottom = Length.Px(0), Left = Length.Px(0),
+                OverflowY = Overflow.Auto,
+            }));
+
+        var layoutRoot = _layoutEngine.Layout(host, new List<StyleSheet> { sheet }, ViewportW, ViewportH);
+
+        var textBox = FindByClass(layoutRoot, "text")!;
+        textBox.IntrinsicMeasureStamp.ShouldBe(-1,
+            "the scroller fills its containing block; nothing needs its content's shrink-to-fit width");
+        textBox.BoxModel.Content.Width.ShouldBe(300f, 0.5f);
+        var scrollerBox = FindByClass(layoutRoot, "scroller")!;
+        AssertRect(scrollerBox.BoxModel.BorderBox, 0, 0, 300, 200);
+        scrollerBox.OutOfFlowLayoutDeferred.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void InsetSizedBox_PercentEdges_ResolveAgainstTheContainingBlock()
+    {
+        // Percentage margins, borders and padding resolve against the containing block's width (CSS 2
+        // §10.3.7); the box then fills what is left of it. They used to be read off the in-flow pass,
+        // which resolved them against an indefinite width (0), so the inset equation subtracted no
+        // padding and the border box overflowed the containing block by the padding.
+        var abs = new DivElement { Class = "abs" };
+        var root = new DivElement { Class = "root" };
+        root.AddChild(abs);
+
+        var sheet = Sheet(
+            Rule("root", new Style { Position = Position.Relative, Width = Length.Px(400), Height = Length.Px(300) }),
+            Rule("abs", new Style
+            {
+                Position = Position.Absolute,
+                Top = Length.Px(0), Right = Length.Px(0),
+                Bottom = Length.Px(0), Left = Length.Px(0),
+                PaddingLeft = Length.Percent(5),
+                PaddingRight = Length.Percent(5),
+                PaddingTop = Length.Percent(5),
+                MarginLeft = Length.Percent(5),
+            }));
+
+        var layoutRoot = _layoutEngine.Layout(root, new List<StyleSheet> { sheet }, ViewportW, ViewportH);
+
+        var box = FindByClass(layoutRoot, "abs")!;
+        box.BoxModel.Padding.Left.ShouldBe(20f, 0.01f);
+        box.BoxModel.Padding.Top.ShouldBe(20f, 0.01f, "vertical percentages resolve against the width too");
+        box.BoxModel.Margin.Left.ShouldBe(20f, 0.01f);
+        AssertRect(box.BoxModel.MarginBox, 0, 0, 400, 300);
+        box.BoxModel.Content.Width.ShouldBe(400f - 20f - 40f, 0.01f);
+        box.BoxModel.Content.Height.ShouldBe(300f - 20f, 0.01f);
     }
 }

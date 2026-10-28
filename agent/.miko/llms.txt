@@ -44,7 +44,7 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
 
 - [Getting Started](docs/guide/getting-started.md): templates, layouts, running the app.
 - [Project Structure](docs/guide/project-structure.md): the files of a generated app and the platform heads.
-- [Razor Components](docs/guide/razor-components.md): components, parameters, child content, component identity and `@key`, `@bind`, routing, layouts, `MikoAppBuilder`.
+- [Razor Components](docs/guide/razor-components.md): components, parameters, child content, component identity and `@key`, long lists (`Virtualize`), `@bind`, routing, layouts, `MikoAppBuilder`.
 - [Elements](docs/guide/elements.md): every markup tag and the attributes it accepts. **Check before using a tag or attribute.**
 - [Styling](docs/guide/styling.md): `Style`, `Length`, `Color`, `StyleSheet` + `CssObject`, selectors, cascade, inheritance.
 - [Layout](docs/guide/layout.md): box model, block / inline / flex / grid, positioning, overflow, sizing.

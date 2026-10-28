@@ -76,9 +76,13 @@ The `Miko.Native` package (camera, filesystem, clipboard, notifications, etc.) i
 
 `IonDatetime` covers every presentation (calendar and wheels), min/max and value constraints, multiple dates and locales. Its calendar shows one month at a time and pages without Ionic's sliding strip, arrow keys do not move between days, and the date texts come from .NET culture data instead of the browser's `Intl`, so some differ in detail (see [Datetime](../components/ionic/datetime.md#locale-and-time)). `IonDatetimeButton` does not find its datetime by id: the app passes the texts and opens the datetime.
 
-### No list virtualization
+### Virtualized lists are vertical
 
-There is no built-in list virtualization. Long lists rendered with `IonInfiniteScroll` keep all loaded items in the DOM. Very long lists (thousands of items) will consume memory and slow down rendering.
+`Virtualize` (see [Razor Components](./razor-components.md#long-lists-virtualize)) renders only the visible
+items of a vertical list. Horizontal lists and grids that wrap several items per row are not
+virtualized, and selectors that depend on an item's position among its siblings (`:first-child`,
+`:last-child`, `:nth-child()`) see only the rendered items. A list inside an `IonList` with `Inset`
+does not know which rendered item is the last of the whole list.
 
 ## Publishing
 

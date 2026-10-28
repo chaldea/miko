@@ -6,6 +6,7 @@
 *.user
 *.userosscache
 *.sln.docstates
+*.DS_Store
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -252,14 +253,12 @@ paket-files/
 *.sln.iml
 
 
-# BookStore
-Acme.BookStore/Logs/*
-
+# Database files
 *.db
 *.db-shm
 *.db-wal
 
-# Use abp install-libs to restore.
+# Web assets
 **/wwwroot/libs/*
 **/dist
 

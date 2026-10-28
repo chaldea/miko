@@ -1,0 +1,85 @@
+@namespace Miko.Ionic.Benchmarks.Pages
+@using Miko.Components.Virtualization
+
+@*
+    ISSUE-151: the Infinite Scroll demo's page (examples/Ionic/IonicDemo/Pages/InfiniteScrollPage.razor)
+    holding Users — IonContent > IonList > IonItem(avatar + two-line label) + IonInfiniteScroll —
+    rendered either as the demo does (every row in the DOM) or through Virtualize. The avatar is empty
+    (the demo shows an embedded SVG; image decoding is not what is measured). The benchmark grows
+    Users and checks which frames grow with it.
+*@
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <IonTitle>Infinite Scroll</IonTitle>
+        </IonToolbar>
+    </IonHeader>
+    <IonContent>
+        <IonList>
+            @if (Virtualized)
+            {
+                <Virtualize Items="@Users" ItemKey="@(user => user.Id)" ItemSize="72" Context="user">
+                    <IonItem>
+                        <Start>
+                            <IonAvatar />
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h2>@user.Name</h2>
+                                <p>Created @user.Created</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                </Virtualize>
+            }
+            else
+            {
+                @foreach (var user in Users)
+                {
+                    <IonItem>
+                        <Start>
+                            <IonAvatar />
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h2>@user.Name</h2>
+                                <p>Created @user.Created</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                }
+            }
+        </IonList>
+
+        <IonInfiniteScroll Threshold="100px">
+            <IonInfiniteScrollContent LoadingSpinner="bubbles" LoadingText="Loading more data..." />
+        </IonInfiniteScroll>
+    </IonContent>
+</IonPage>
+
+@code {
+    public sealed record User(int Id, string Name, string Created);
+
+    [Parameter] public bool Virtualized { get; set; }
+
+    [Parameter] public List<User> Users { get; set; } = new();
+
+    public static List<User> MakeUsers(int count)
+        => Enumerable.Range(0, count).Select(i => new User(i, $"User {i}", "November 28, 2012")).ToList();
+
+    /// <summary>What the demo's load handler does: append a batch and re-render the page.</summary>
+    public void Append(int count)
+    {
+        int start = Users.Count;
+        for (int i = 0; i < count; i++) Users.Add(new User(start + i, $"User {start + i}", "November 28, 2012"));
+        StateHasChanged();
+    }
+
+    /// <summary>Undoes <see cref="Append"/>, so a benchmark iteration starts from the same list.</summary>
+    public void Trim(int count)
+    {
+        Users.RemoveRange(count, Users.Count - count);
+        StateHasChanged();
+    }
+}

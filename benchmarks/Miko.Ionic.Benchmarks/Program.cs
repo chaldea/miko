@@ -34,6 +34,14 @@ if (args.Contains("--stages"))
     return;
 }
 
+// "--long-list" times the long-list frames for every row count, plain and virtualized, as one table
+// (ISSUE-151): a quick check that the virtualized frames do not grow with the list.
+if (args.Contains("--long-list"))
+{
+    LongListReport.Run();
+    return;
+}
+
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 
 /// <summary>Entry point marker for <see cref="BenchmarkSwitcher.FromAssembly"/>.</summary>

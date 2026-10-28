@@ -104,9 +104,20 @@ public class LayoutEngine
     // 定位 pass 收集到的粘性盒（ISSUE-159），文档先序；pass 结束后移交给布局根。
     private List<StickyPositioning.Entry>? _stickyEntries;
 
+    // 构建布局树时遇到的视口观察者（ISSUE-151），文档先序；布局结束后移交给布局根。
+    // display:none 子树不会被构建，其中的观察者因此不登记、也就不会被通知。
+    private List<(Element Element, IViewportObserver Observer)>? _viewportObservers;
+
     // 上一帧的计算样式，等本帧整棵树算完后统一归还给池（ISSUE-132）。
     // 见 ComputeStyles 中的说明：回收必须晚于整树解析，否则会回收掉正在被继承读取的实例。
     private readonly List<ComputedStyle> _recyclableStyles = new();
+
+    // 上一次与本次样式阶段给元素挂上的布局盒（ISSUE-151），及上一次的根。上一次的盒子若在本次
+    // 样式阶段之后仍是其元素的当前盒，说明那个元素本次没被访问——它已离开这棵树（虚拟化列表移出窗口
+    // 的行、被删掉的子树），其计算样式不会再经上面的常规路径回到池里，见 RecycleDetachedStyles。
+    private List<LayoutBox> _styledBoxes = new();
+    private List<LayoutBox> _previousStyledBoxes = new();
+    private Element? _previousStyledRoot;
 
     /// <summary>
     /// 使缓存的布局结果失效。一般无需调用——所有常规变更都会递增本引擎的
@@ -167,10 +178,13 @@ public class LayoutEngine
         var styleVersion = _mutations.StyleVersion;
         var inlineStyleChanged = _mutations.TakeInlineStyleChanges();
         _ancestorFilter.Clear();
+        (_previousStyledBoxes, _styledBoxes) = (_styledBoxes, _previousStyledBoxes);
+        _styledBoxes.Clear();
         if (!CanReuseStyles(root, styleSheets, viewportWidth, viewportHeight, safeArea, styleVersion)
             || !TryReuseStyles(root, styleSheets, viewport, inlineStyleChanged))
         {
             _ancestorFilter.Clear();
+            _styledBoxes.Clear();
             ComputeStyles(root, styleSheets, viewport);
         }
         FrameTimingDiagnostics.RecordStyle(styleStart);
@@ -186,9 +200,11 @@ public class LayoutEngine
         for (int i = 0; i < _recyclableStyles.Count; i++)
             ComputedStyle.Return(_recyclableStyles[i]);
         _recyclableStyles.Clear();
+        RecycleDetachedStyles(root);
 
         // 2. 构建布局树：根据 display 属性过滤和组织
         var layoutStart = FrameTimingDiagnostics.GetTimestamp();
+        _viewportObservers = null;
         var layoutRoot = BuildLayoutTree(root, styleSheets);
 
         if (layoutRoot == null)
@@ -203,14 +219,25 @@ public class LayoutEngine
         // 3. 布局计算：从视口原点 (0,0) 开始，覆盖整个视口。
         // 根元素的 AvailableHeight 是填充指令：height:auto + overflow 的根盒子撑满视口高度
         // （Miko 的根滚动模型——文档无独立视口滚动，根元素 overflow 即页面滚动容器）。
+        //
+        // 两轴都由对边偏移定型的脱离流盒子推迟到第 4 步才布局（ISSUE-151）：第 4 步必然按真实包含块
+        // 重排它们，常规流阶段先排的那一遍（及其内在尺寸测量）整个被覆盖。
         var constraints = new LayoutConstraints(viewportWidth, viewportHeight) { FillAvailableHeight = true };
-        CalculateLayout(layoutRoot, constraints, 0f, 0f);
-
-        // 4. 定位调整：处理 relative/absolute/fixed 定位的偏移。根包含块为整个视口；
-        // fixed 的包含块恒为视口（不随定位祖先改变），故单独传递。
         var viewportBlock = new RectF(0f, 0f, viewportWidth, viewportHeight);
-        _stickyEntries = null;
-        ApplyPositioning(layoutRoot, viewportBlock, viewportBlock, scrollContainer: null, blockContainer: null);
+        bool deferOutOfFlow = LayoutDispatcher.SetDeferInsetSizedOutOfFlow(true);
+        try
+        {
+            CalculateLayout(layoutRoot, constraints, 0f, 0f);
+
+            // 4. 定位调整：处理 relative/absolute/fixed 定位的偏移。根包含块为整个视口；
+            // fixed 的包含块恒为视口（不随定位祖先改变），故单独传递。
+            _stickyEntries = null;
+            ApplyPositioning(layoutRoot, viewportBlock, viewportBlock, scrollContainer: null, blockContainer: null);
+        }
+        finally
+        {
+            LayoutDispatcher.SetDeferInsetSizedOutOfFlow(deferOutOfFlow);
+        }
         ApplyInitialScrollOffsets(layoutRoot);
 
         // 粘性盒（ISSUE-159）挂到布局根上，按当前（含初始）滚动量施加一次偏移；此后每次绘制与
@@ -218,6 +245,10 @@ public class LayoutEngine
         layoutRoot.StickyBoxes = _stickyEntries == null ? null : new StickyPositioning.BoxSet(_stickyEntries, viewportBlock);
         _stickyEntries = null;
         StickyPositioning.Update(layoutRoot);
+
+        // 视口观察者（ISSUE-151）同样挂到布局根上，由引擎在绘制前按当前滚动量通知。
+        layoutRoot.ViewportObserverSet = _viewportObservers == null ? null : new ViewportObservers.Set(_viewportObservers, viewportBlock);
+        _viewportObservers = null;
 
         // 布局阶段计时到此为止（样式阶段已单独记账，不重复计入）。
         FrameTimingDiagnostics.RecordLayout(layoutStart);
@@ -310,7 +341,8 @@ public class LayoutEngine
         static bool HasComputedStyles(Element element, HashSet<Element>? restyle)
         {
             if (restyle != null && restyle.Contains(element)) return true;
-            if (element.LayoutBox?.ComputedStyle == null) return false;
+            // 离开过 DOM、样式已被回收的元素（见 RecycleDetachedStyles）没有可沿用的样式。
+            if (element.LayoutBox?.ComputedStyle is not { } style || ReferenceEquals(style, ComputedStyle.Detached)) return false;
             foreach (var child in element.Children)
             {
                 if (!HasComputedStyles(child, restyle)) return false;
@@ -328,12 +360,16 @@ public class LayoutEngine
                 return;
             }
 
-            element.LayoutBox = new LayoutBox
+            var box = new LayoutBox
             {
                 Element = element,
                 ComputedStyle = element.LayoutBox!.ComputedStyle,
                 PlaceholderStyle = element.LayoutBox.PlaceholderStyle,
             };
+            box.ComputedStyle.SetOwner(box);
+            box.PlaceholderStyle?.SetOwner(box);
+            element.LayoutBox = box;
+            _styledBoxes.Add(box);
             if (restyle == null)
             {
                 foreach (var child in element.Children)
@@ -532,6 +568,15 @@ public class LayoutEngine
         if (!widthFromInsets && !heightFromInsets)
             return;
 
+        // 常规流阶段推迟了它的布局（两轴都由偏移定型，见 LayoutDispatcher.IsSizedByInsets）：
+        // 盒子还只是静态位置上的空矩形，下面的方程要用的边距在这里按真实包含块求出，与随后的重排
+        // （它以包含块宽度为百分比基准）同一基准。
+        if (box.OutOfFlowLayoutDeferred)
+        {
+            box.OutOfFlowLayoutDeferred = false;
+            ResolveDeferredEdges(box, containingBlock.Width);
+        }
+
         // 未被偏移定型的轴必须保持常规流阶段的语义：width:auto 的脱离流盒子按 CSS 收缩到内容，
         // 所以此处传 null 宽度触发 shrink-to-fit 分支，而不是把包含块宽度当作「可用宽度」让它撑满
         // （否则只有 top/bottom 被定型时，宽度会平白从内容宽变成包含块宽——ion-fab
@@ -566,6 +611,42 @@ public class LayoutEngine
         // 就地重排：起点沿用常规流阶段的 margin box 原点，随后由调用方按偏移整体平移子树。
         var marginBox = box.BoxModel.MarginBox;
         CalculateLayout(box, constraints, marginBox.Left, marginBox.Top);
+    }
+
+    /// <summary>
+    /// 给推迟布局的脱离流盒子求 margin / border / padding（与各布局算法第 1 步同一写法），
+    /// 保持其 margin box 左上角仍在常规流记下的静态位置。auto 外边距按 0 计，随后由
+    /// <see cref="ResolveOutOfFlowAutoMargins"/> 按包含块重新求解。
+    /// </summary>
+    private static void ResolveDeferredEdges(LayoutBox box, float containerWidth)
+    {
+        var style = box.ComputedStyle;
+        float fs = style.FontSize.Value;
+        var origin = box.BoxModel.Content;
+
+        var margin = new EdgeSizes(
+            style.MarginTop.ToPixels(containerWidth, fs),
+            style.MarginRight.ToPixels(containerWidth, fs),
+            style.MarginBottom.ToPixels(containerWidth, fs),
+            style.MarginLeft.ToPixels(containerWidth, fs));
+        var border = new EdgeSizes(
+            style.BorderTopWidth.ToPixels(containerWidth, fs),
+            style.BorderRightWidth.ToPixels(containerWidth, fs),
+            style.BorderBottomWidth.ToPixels(containerWidth, fs),
+            style.BorderLeftWidth.ToPixels(containerWidth, fs));
+        var padding = new EdgeSizes(
+            style.PaddingTop.ToPixels(containerWidth, fs),
+            style.PaddingRight.ToPixels(containerWidth, fs),
+            style.PaddingBottom.ToPixels(containerWidth, fs),
+            style.PaddingLeft.ToPixels(containerWidth, fs));
+
+        box.BoxModel.Margin = margin;
+        box.BoxModel.Border = border;
+        box.BoxModel.Padding = padding;
+        box.BoxModel.Content = new RectF(
+            origin.X + margin.Left + border.Left + padding.Left,
+            origin.Y + margin.Top + border.Top + padding.Top,
+            0, 0);
     }
 
     /// <summary>
@@ -692,6 +773,57 @@ public class LayoutEngine
     }
 
     /// <summary>
+    /// 把上一次样式阶段挂上、本次却没被替换的盒子的计算样式还回池里（ISSUE-151）。
+    ///
+    /// <para>本次样式阶段给树上每个元素都挂了新盒子（完整级联与沿用路径都是），上一次的盒子若仍是
+    /// 其元素的当前盒，那个元素就没被访问——它不在这棵树上了。它的计算样式不会再经
+    /// <see cref="ComputeStyles"/> 开头的常规路径回到池里：虚拟化列表每次移动窗口移出的那几行、
+    /// 每次重渲染删掉的子树，计算样式都只能交给 GC，而移入的行又得新建同样多的实例。实测虚拟化
+    /// 列表每次移窗约 80 个、480 KB，约四成窗口移动帧因此多一次 GC（Android 上每次约 3 ms）。</para>
+    ///
+    /// <para>安全性：只归还盒子<b>持有</b>的实例（<see cref="ComputedStyle.OwnerBox"/>），跨代搬运过的
+    /// 旧盒子不碰；盒子改指 <see cref="ComputedStyle.Detached"/>，此后还读它的地方（指针仍握着移出窗口的
+    /// 行时的光标判断）得到初始值，而不是池中下一位使用者的样式；这样的元素若再被挂回树上，它的盒子
+    /// 不持有任何池中实例，会按新元素完整级联。只在两次样式阶段的根相同时进行：换了根（导航）时，
+    /// 上一棵树还要作为转场的离场图层原样绘制。</para>
+    /// </summary>
+    private void RecycleDetachedStyles(Element root)
+    {
+        var previous = _previousStyledBoxes;
+        if (ReferenceEquals(root, _previousStyledRoot))
+        {
+            for (int i = 0; i < previous.Count; i++)
+            {
+                var box = previous[i];
+                if (!ReferenceEquals(box.Element.LayoutBox, box)) continue;
+
+                // 已在池里的（新一代的盒子刚经常规路径归还了它）不再归还，盒子同样改指 Detached：
+                // 那个实例下一帧就会被别的元素取走。
+                if (box.ComputedStyle is { } style && OwnedBy(style, box))
+                {
+                    if (!style.IsPooled) ComputedStyle.Return(style);
+                    box.ComputedStyle = ComputedStyle.Detached;
+                }
+                if (box.PlaceholderStyle is { } placeholder && OwnedBy(placeholder, box))
+                {
+                    if (!placeholder.IsPooled) ComputedStyle.Return(placeholder);
+                    box.PlaceholderStyle = null;
+                }
+            }
+        }
+        previous.Clear();
+        _previousStyledRoot = root;
+    }
+
+    /// <summary>
+    /// <paramref name="box"/> 是否持有 <paramref name="style"/>，可以把它还回池里。没有登记持有者的
+    /// 实例（不经本引擎挂上的盒子）沿用原来的做法，由当前盒子归还。
+    /// </summary>
+    private static bool OwnedBy(ComputedStyle style, LayoutBox box)
+        => !ReferenceEquals(style, ComputedStyle.Detached)
+           && (style.OwnerBox is not { } owner || ReferenceEquals(owner, box));
+
+    /// <summary>
     /// 计算所有元素的样式
     /// </summary>
     private void ComputeStyles(Element element, List<StyleSheet> styleSheets, ViewportInfo viewport)
@@ -702,10 +834,16 @@ public class LayoutEngine
         // 不能在这里就归还：本元素的样式解析要读**父元素**的计算样式做继承，而后代的解析
         // 还要读本元素的——一边算一边回收，会把正在被读的实例发给池、随即被别的元素取走覆写。
         // 因此只收集，回收推迟到 Layout() 里整树 ComputeStyles 返回之后。
-        if (element.LayoutBox?.ComputedStyle is { } stale)
-            _recyclableStyles.Add(stale);
-        if (element.LayoutBox?.PlaceholderStyle is { } stalePlaceholder)
-            _recyclableStyles.Add(stalePlaceholder);
+        //
+        // 只收本元素的盒子**持有**的实例（ISSUE-151）：跨代搬运过的旧盒子仍指着已交给新一代的实例，
+        // 那个实例可能已被归还、又被别的元素取走在用。
+        if (element.LayoutBox is { } previous)
+        {
+            if (previous.ComputedStyle is { } stale && OwnedBy(stale, previous))
+                _recyclableStyles.Add(stale);
+            if (previous.PlaceholderStyle is { } stalePlaceholder && OwnedBy(stalePlaceholder, previous))
+                _recyclableStyles.Add(stalePlaceholder);
+        }
 
         var computedStyle = _styleResolver.Resolve(element, styleSheets, viewport, _ancestorFilter);
 
@@ -719,11 +857,14 @@ public class LayoutEngine
         computedStyle.ScrollbarStyle = _scrollbarStyle;
 
         // 创建布局盒子并关联
-        element.LayoutBox = new LayoutBox
+        var box = new LayoutBox
         {
             Element = element,
             ComputedStyle = computedStyle
         };
+        computedStyle.SetOwner(box);
+        element.LayoutBox = box;
+        _styledBoxes.Add(box);
 
         // 应用伪元素样式（::range-thumb, ::range-track, ::range-progress 等）
         ApplyPseudoElementStyles(element, styleSheets);
@@ -732,8 +873,9 @@ public class LayoutEngine
         // 不看 Placeholder 文本是否为空：它的 setter 不记账，文本后来才设置时样式也得已经就位。
         if (element is InputElement or TextAreaElement)
         {
-            element.LayoutBox.PlaceholderStyle = _styleResolver.ResolvePseudoElement(
+            box.PlaceholderStyle = _styleResolver.ResolvePseudoElement(
                 element, computedStyle, styleSheets, PseudoElementType.Placeholder, viewport);
+            box.PlaceholderStyle?.SetOwner(box);
         }
 
         // 递归处理子元素，传递当前元素的自定义属性作用域。
@@ -795,6 +937,9 @@ public class LayoutEngine
         }
 
         var layoutBox = element.LayoutBox;
+
+        if (element is IViewportObserver observer)
+            (_viewportObservers ??= new()).Add((element, observer));
 
         // 文本节点：始终使用 Text 布局（匿名行内文本盒），不受 display 影响。
         if (element is TextNode)
@@ -860,6 +1005,8 @@ public class LayoutEngine
     {
         if (child is FragmentElement)
         {
+            if (child is IViewportObserver observer)
+                (_viewportObservers ??= new()).Add((child, observer));
             foreach (var grandChild in child.Children)
             {
                 AppendChildLayoutBoxes(parentBox, grandChild, styleSheets);

@@ -730,6 +730,10 @@ public abstract class ComponentBase : IComponent
                 ComputedStyle = oldElement.LayoutBox.ComputedStyle,
                 PlaceholderStyle = oldElement.LayoutBox.PlaceholderStyle,
             };
+            // 计算样式随盒子交给新一代：下一次样式阶段由新盒子把它还回池里，旧盒子（仍挂在
+            // 已出局的旧元素上）不再有权归还（ISSUE-151，见 ComputedStyle.OwnerBox）。
+            transferred.ComputedStyle?.SetOwner(transferred);
+            transferred.PlaceholderStyle?.SetOwner(transferred);
             newElement.LayoutBox = transferred;
         }
 

@@ -111,6 +111,96 @@ removed item moves to the item that took its position:
 and caret with the item. Keys must be unique among the items of one list; a duplicate key throws
 `InvalidOperationException`.
 
+## Long lists: `Virtualize`
+
+A list renders every item it holds, and every rendered item is styled, laid out and kept in memory.
+For a list that can grow to hundreds or thousands of items, use `Virtualize` (namespace
+`Miko.Components.Virtualization`): it renders only the items that can be seen plus a few on either
+side, and stands in for the rest with two empty elements of their height. Building, styling, laying
+out and scrolling the list then cost the same for ten thousand items as for twenty.
+
+```razor
+@using Miko.Components.Virtualization
+
+<IonContent>
+    <IonList>
+        <Virtualize Items="@_users" ItemKey="@(user => user.Id)" ItemSize="72" Context="user">
+            <IonItem>
+                <IonLabel>
+                    <h2>@user.Name</h2>
+                    <p>@user.Email</p>
+                </IonLabel>
+            </IonItem>
+        </Virtualize>
+    </IonList>
+</IonContent>
+```
+
+The API is Blazor's `Virtualize<TItem>`, plus `ItemKey`:
+
+| Parameter | Default | |
+|---|---|---|
+| `Items` | | The items, an `ICollection<TItem>` in memory. Use this or `ItemsProvider`. |
+| `ItemsProvider` | | Loads the items on demand (see below). Use this or `Items`. |
+| template | | Written between the tags (`Context="name"` names the item, otherwise `context`), or in an `<ItemContent>` element. |
+| `ItemSize` | `50` | The estimated height of an item in pixels, used until items have been measured. |
+| `ItemKey` | index | A unique, stable key per item (Miko). See below. |
+| `OverscanCount` | `3` | Items rendered above and below the visible ones. While the list scrolls, the 2 × `OverscanCount` extra items go mostly ahead of the scroll. |
+| `MaxItemCount` | `100` | The most items rendered at once. |
+| `Placeholder` | empty block | Shown for an item an `ItemsProvider` is still loading; `context` is a `PlaceholderContext` (`Index`, `Size`). |
+| `EmptyContent` | | Shown when there are no items. |
+| `SpacerElement` | `"div"` | Tag of the two spacer elements; `"tr"` when the items are table rows. |
+
+`RefreshDataAsync()` (through `@ref`) runs the template again for the rendered items and, with an
+`ItemsProvider`, asks it again for them.
+
+- **Items can have any height.** `ItemSize` is only the starting estimate: every rendered item is
+  measured, and items not rendered yet count as the average of the measured ones. When an item turns
+  out taller or shorter than estimated above what is on screen — scrolling up through items never seen
+  before — the list adjusts the scroll offset by the difference, so what is on screen stays where it is.
+  The scrollbar's size can change slightly as estimates are replaced by measurements.
+- **Put it inside the element that scrolls** — `IonContent`, or any box with `overflow-y: auto`. It can
+  sit in an `IonList`: the items lay out as the list's children, as they would without `Virtualize`.
+  Without a scrolling ancestor all of the list counts as visible and up to `MaxItemCount` items render.
+- **Give `ItemKey` when items are inserted or removed anywhere but the end.** With a key, an item keeps
+  its component instances and its measured height when other items are inserted before it, and
+  inserting items above the visible ones (older messages at the top of a chat) does not move what is on
+  screen. Without one, items are matched by index. Keys must be unique.
+- **Items that stay on screen keep their elements while the list scrolls**: only the items scrolling in
+  are built. After changing the data, re-render the component that holds the list (handlers do that by
+  themselves) or call `RefreshDataAsync()` — the template then runs again for every rendered item.
+- Selectors that depend on an item's position among its siblings (`:first-child`, `:last-child`,
+  `:nth-child()`, `+`) see only the rendered items and the spacers around them. The list is vertical.
+
+### Loading items on demand
+
+With `ItemsProvider` the list asks for the range it is about to show and renders `Placeholder` for
+items that are still loading:
+
+```razor
+<Virtualize TItem="Order" ItemsProvider="LoadOrders" ItemSize="56">
+    <ItemContent Context="order">
+        <IonItem><IonLabel>@order.Number</IonLabel></IonItem>
+    </ItemContent>
+    <Placeholder>
+        <IonItem><IonSkeletonText Animated="true" /></IonItem>
+    </Placeholder>
+</Virtualize>
+
+@code {
+    private async ValueTask<ItemsProviderResult<Order>> LoadOrders(ItemsProviderRequest request)
+    {
+        var page = await _api.GetOrdersAsync(request.StartIndex, request.Count, request.CancellationToken);
+        return new ItemsProviderResult<Order>(page.Items, page.TotalCount);
+    }
+}
+```
+
+The request's `CancellationToken` is cancelled when the user has scrolled on and a later request
+replaced it. The list keeps the items of the last range it received and asks again when it scrolls
+outside it, so cache in the provider if fetching is expensive; call `RefreshDataAsync()` when the
+data behind it changes.
+
 ## Data binding
 
 `@bind` keeps a field and an input in sync; `@bind-{Parameter}` does the same for a component

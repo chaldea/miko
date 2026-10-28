@@ -1,7 +1,13 @@
 @page "/infinite-scroll"
+@using Miko.Components.Virtualization
 
 @* NOTE: the original demo loads gravatar images over the network for each row. Miko's demo
-   resources are embedded, so the bundled avatar asset is used instead. *@
+   resources are embedded, so the bundled avatar asset is used instead.
+
+   The rows are virtualized (ISSUE-151): only the rows on screen, plus a few on either side, are in the
+   DOM, so every load and every scrolled frame costs the same however many rows have been loaded.
+   Virtualize sits inside IonList and renders the IonItems as the list's children, so they are styled as
+   before; ItemSize is the estimated row height, used until rows have been measured. *@
 
 <IonPage>
     <IonHeader>
@@ -16,8 +22,7 @@
     </IonHeader>
     <IonContent>
         <IonList>
-            @foreach (var user in _items)
-            {
+            <Virtualize Items="@_items" ItemKey="@(user => user.Id)" ItemSize="72" Context="user">
                 <IonItem>
                     <Start>
                         <IonAvatar>
@@ -31,7 +36,7 @@
                         </IonLabel>
                     </ChildContent>
                 </IonItem>
-            }
+            </Virtualize>
         </IonList>
 
         <IonInfiniteScroll Threshold="100px" OnInfinite="@HandleInfinite">
@@ -41,7 +46,11 @@
     </IonContent>
 </IonPage>
 @code {
-    private record User(string Name, string Created);
+    private record User(string Name, string Created)
+    {
+        // The demo repeats names at random, so each row gets its own id for ItemKey.
+        public int Id { get; init; }
+    }
 
     private readonly Random _random = new(42);
 
@@ -89,7 +98,7 @@
         new("Richard Aaron", "April 27, 2016"),
     };
 
-    private readonly List<User> _items = Users.Take(15).ToList();
+    private readonly List<User> _items = Users.Take(15).Select((user, i) => user with { Id = i }).ToList();
 
     private async Task HandleInfinite(IonInfiniteScrollCustomEvent e)
     {
@@ -98,7 +107,7 @@
 
         for (var i = 0; i < 5; i++)
         {
-            _items.Add(Users[_random.Next(Users.Length)]);
+            _items.Add(Users[_random.Next(Users.Length)] with { Id = _items.Count });
         }
 
         // Render the new rows first, then clear the loading state — completing before the list has

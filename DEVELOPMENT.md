@@ -283,7 +283,8 @@ Miko 实现类浏览器的渲染管线：
 3. 布局树构建      → 根据 display 属性过滤元素（display: none 不参与布局）
 4. 布局计算        → 约束向下传递（父→子），尺寸向上回传（子→父）
 5. 定位调整        → 处理 relative/absolute/fixed 定位偏移，登记 sticky 盒（偏移在每次绘制/命中测试前按滚动量施加）
-6. 绘制            → RenderEngine 通过 Painter 绘制到 SKCanvas（支持增量渲染）
+6. 视口观察        → 通知 IViewportObserver（虚拟化列表）此刻可见的区域；它们改了 DOM 就重排再通知，直到稳定
+7. 绘制            → RenderEngine 通过 Painter 绘制到 SKCanvas（支持增量渲染）
 ```
 
 ### 样式级联
@@ -1358,6 +1359,8 @@ public class App
 - **增量渲染阈值**：脏区域超过 30 个时自动回退到全量渲染（可通过 `RenderEngine.MaxIncrementalDirtyRegions` 调整）
 - **事件处理**：避免在高频事件（如 `OnMouseMove`）中执行耗时操作
 - **样式解析缓存**：`ComputedStyle` 在布局时计算并缓存，避免重复解析
+- **长列表**：成百上千行的列表用 `Virtualize<TItem>`（`Miko.Components.Virtualization`）只渲染可见的行，
+  打开、加载更多、滚动的成本与行数无关（ISSUE-151，见 `docs/guide/razor-components.md`）
 
 ### 平台差异
 
