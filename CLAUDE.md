@@ -217,6 +217,7 @@ The repository uses a single solution file:
 - `EventCallback.cs`: Async event handlers
 - Attributes: `[Parameter]`, `[CascadingParameter]`, `[Route]`, `[Layout]`, `[Inject]`
 - `CompilerServices/RuntimeHelpers.cs`: Runtime support for generated code
+- `Virtualization/`: `Virtualize<TItem>` (ISSUE-151), its slots, size index and items-provider types
 
 **Routing** (`src/Miko/Routing/`)
 - `Router.cs`: Client-side routing with pattern matching
@@ -360,6 +361,34 @@ Combinators: descendant (` `), child (`>`), adjacent sibling (`+`), general sibl
   available width of 0 means "indefinite"). `MinWidth` / `MinHeight` compute to 0 (no `auto`), so
   only a positive min-size counts as explicit. Placement follows §8.3: an end line alone is a
   definite placement, and lines outside the explicit grid add implicit tracks on either side.
+
+### Viewport observers and `Virtualize` (ISSUE-151)
+
+- **Settle pass before paint.** `LayoutEngine.BuildLayoutTree` collects `IViewportObserver` elements
+  (also when they are layout-transparent `FragmentElement`s; never under `display: none`) onto
+  `LayoutBox.ViewportObserverSet`. `MikoEngine.Render` = `PrepareFrameLayout()` (the old fast/slow
+  layout path) + `SettleViewportObservers(relayout)` + paint: observers get
+  `ViewportObservers.Observe()` (viewport ∩ every clipping ancestor, in unscrolled layout coordinates,
+  stopping at a `fixed` ancestor); one that mutates the DOM makes the engine relayout and notify again,
+  up to 8 passes (then `_repaintRequested`). `Update` and `Initialize` settle too. A new paint entry
+  point must settle before painting, or a scrolled frame shows blank spacer.
+- **Structural scroll restore treats two observers as the same content** (`IsSamePresentedContent`):
+  their children change with every window move; without it a row changing shape reset the scroller.
+- **`Virtualize` renders** a `VirtualizeHostElement` (fragment) = spacer + one `VirtualizeSlot` per item
+  + spacer, keyed (`VirtualizeSpacerKey`, `VirtualizeSlotKey`). A slot returns its `CurrentRoot` while
+  the list's generation is unchanged, so items that stay in the window keep elements and instances;
+  the generation bumps on every parent render and `RefreshDataAsync`. Self renders call `RenderNow`
+  with `_selfRender` set (`OnParametersSet` then skips data sync).
+- **Measurement**: slot starts are the leading spacer's margin-box bottom, then each later slot's first
+  laid-out element's margin-box top, then the trailing spacer's margin-box top; height = next start −
+  start (`ItemSizeIndex`: Fenwick trees, unmeasured = mean). After measuring, spacer heights are
+  rewritten in place (`SyncSpacers`) — otherwise the scroll range is off by the estimate change × the
+  unrendered count.
+- **Scroll anchoring**: the first *rendered* item on screen (else the model position of the first
+  visible index) is recorded every notification; after a new layout the scroller moves by how far it
+  moved, starting from the *previous* layout box's offset (the engine clamped the new one).
+  `ItemKey` re-keys on parent render (tail-only when items were appended/removed at the end) and
+  shifts the window with the anchor on inserts above.
 
 ### Dirty Marking and Incremental Rendering
 

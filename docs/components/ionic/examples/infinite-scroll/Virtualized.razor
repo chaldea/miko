@@ -1,0 +1,32 @@
+@using Miko.Components.Virtualization
+@* Only the rows on screen are rendered, so loading page after page stays as cheap as the first. *@
+<IonContent>
+    <IonList>
+        <Virtualize Items="@_items" ItemKey="@(item => item.Id)" ItemSize="48" Context="item">
+            <IonItem>
+                <IonLabel>@item.Title</IonLabel>
+            </IonItem>
+        </Virtualize>
+    </IonList>
+
+    <IonInfiniteScroll OnInfinite="LoadMore">
+        <IonInfiniteScrollContent LoadingSpinner="circular" />
+    </IonInfiniteScroll>
+</IonContent>
+
+@code {
+    private record Item(int Id, string Title);
+
+    private readonly List<Item> _items = Enumerable.Range(1, 30).Select(i => new Item(i, $"Item {i}")).ToList();
+
+    private async Task LoadMore(IonInfiniteScrollCustomEvent e)
+    {
+        await Task.Delay(500); // stand-in for a network request
+
+        var start = _items.Count;
+        _items.AddRange(Enumerable.Range(start + 1, 20).Select(i => new Item(i, $"Item {i}")));
+
+        StateHasChanged();
+        await e.Complete();
+    }
+}

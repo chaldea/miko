@@ -312,6 +312,19 @@ public class MikoEngine
             }
         }
 
+        // 视口观察者（ISSUE-151）在首帧绘制前定下要渲染的内容。重排是同一棵树内的，按同页规则
+        // 带滚动偏移。
+        //
+        // 返回导航的快照之后再回放一次：第一次回放时虚拟化列表只有估计高度，偏移可能被夹小了；
+        // 列表量出真实行高后可滚动范围随之修正，再回放（快照回放不消费条目，见 ScrollSnapshotStore.Apply）
+        // 并让观察者按回放后的位置再定一次内容。不放进每一遍重排里：那会和列表的滚动锚定来回拉扯。
+        if (SettleViewportObservers(PrepareFrameLayout)
+            && transition is { Direction: NavigationDirection.Back or NavigationDirection.Root })
+        {
+            RestoreScrollSnapshot(transition, _currentLayout);
+            SettleViewportObservers(PrepareFrameLayout);
+        }
+
         // 同步视频会话（创建新元素的会话、回收已移除元素的会话）。
         SyncVideoSessions(root);
 
@@ -505,6 +518,7 @@ public class MikoEngine
                 var oldLayout = _currentLayout;
                 _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
                 RestoreScrollState(oldLayout, _currentLayout);
+                SettleViewportObservers(RelayoutForUpdate);
             }
             RenderTransitionFrame();
             _dirtyManager.Clear();
@@ -517,6 +531,14 @@ public class MikoEngine
             var oldLayout = _currentLayout;
             _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
             RestoreScrollState(oldLayout, _currentLayout);
+
+            // 视口观察者换了内容或调整了滚动偏移（ISSUE-151）：变化不在原来的脏区域里，整帧重画。
+            if (SettleViewportObservers(RelayoutForUpdate))
+            {
+                _renderEngine.Render(_currentLayout);
+                _dirtyManager.Clear();
+                return;
+            }
 
             // 脏区域过多时，增量渲染会退化为多次全树遍历，成本超过一次全量渲染，
             // 此时回退到全量渲染（见基准报告 §2 拐点）。
@@ -534,6 +556,15 @@ public class MikoEngine
         }
     }
 
+    /// <summary><see cref="Update"/> 的重排：认领观察者重渲染出的新子树，再重排并带上滚动偏移。</summary>
+    private void RelayoutForUpdate()
+    {
+        EnsureOwnersAssigned();
+        var oldLayout = _currentLayout;
+        _currentLayout = _layoutEngine.Layout(_root!, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
+        RestoreScrollState(oldLayout, _currentLayout);
+    }
+
     public void Render(SKCanvas canvas)
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
@@ -549,6 +580,25 @@ public class MikoEngine
 
         _renderEngine.SetCanvas(canvas);
 
+        PrepareFrameLayout();
+
+        // 视口观察者（ISSUE-151，虚拟化列表）在绘制前按本帧的布局与滚动量决定要不要换一批内容。
+        // 换了就就地重排再问一遍，本帧画出的始终是换好的内容，不会先露一帧空白。
+        SettleViewportObservers(PrepareFrameLayout);
+
+        RenderCurrentFrame();
+        _dirtyManager.Clear();
+    }
+
+    /// <summary>
+    /// 让 <see cref="_currentLayout"/> 与当前 DOM、样式与视口一致：布局输入未变时复用缓存的布局树
+    /// （ISSUE-096 快速路径），否则重新级联、重排，触发过渡并把滚动偏移带到新树上。
+    /// <see cref="Render"/> 每帧调用一次；视口观察者让 DOM 变了时再调用（见 <see cref="SettleViewportObservers"/>）。
+    /// </summary>
+    private void PrepareFrameLayout()
+    {
+        var root = _root!;
+
         // 认领本帧树上的新子树（ISSUE-129）。Razor 重渲染每次产出全新实例的整棵子树再挂接，
         // 其中经 ComponentBase.ReplaceElementContent 等路径直接写 Children 的部分不会继承归属。
         // 必须早于 IsLayoutCurrent：新子树没有归属就不会记账，其变更会被快速路径当作「无事发生」。
@@ -559,48 +609,124 @@ public class MikoEngine
         // 先判定就会用上一帧的结论走快速路径，把改动漏到下一帧。
         if (_lastAnimationReconciledVersion != _mutations.Version)
         {
-            ReconcileAnimationTargets(_root);
+            ReconcileAnimationTargets(root);
             _lastAnimationReconciledVersion = _mutations.Version;
         }
 
         // New declarations must be started before IsLayoutCurrent/layout so their first keyframe
         // participates in this same frame instead of appearing one frame late.
-        ScanAnimationsIfNeeded(_root);
+        ScanAnimationsIfNeeded(root);
 
         // 快速路径（ISSUE-096）：布局输入（DOM/样式/视口/安全区）自上次布局后未变，
         // 直接复用现有布局树。此时不可能有新的 transition 触发（transition 由样式变化引起，
         // 而任何样式变化都会递增变更版本号），故一并跳过 transition 检测的整树扫描。
         if (_currentLayout != null
-            && _layoutEngine.IsLayoutCurrent(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea))
+            && _layoutEngine.IsLayoutCurrent(root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea))
         {
             // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
-            SyncVideoSessions(_root);
+            SyncVideoSessions(root);
             // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
-            SyncImageSources(_root);
-            RenderCurrentFrame();
-            _dirtyManager.Clear();
+            SyncImageSources(root);
             return;
         }
 
-        var oldStyles = CaptureTransitionableStyles(_root);
+        var oldStyles = CaptureTransitionableStyles(root);
         var oldLayout = _currentLayout;
         // 同 Initialize：先同步图片源再布局，缓存命中的图片同步写入的内禀尺寸就能赶上本次布局，
         // 而不是让它立刻过期、下一帧再排一遍（ISSUE-146）。
-        SyncImageSources(_root);
-        _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
+        SyncImageSources(root);
+        _currentLayout = _layoutEngine.Layout(root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
 
-        bool transitionsTriggered = DetectAndTriggerTransitions(_root, oldStyles);
+        bool transitionsTriggered = DetectAndTriggerTransitions(root, oldStyles);
         if (transitionsTriggered)
         {
             // 重新布局，使用 transition 起始值（已写入 inline style）
-            _currentLayout = _layoutEngine.Layout(_root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
+            _currentLayout = _layoutEngine.Layout(root, _styleSheets, _viewportWidth, LayoutViewportHeight, LayoutSafeArea);
         }
 
         // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
-        SyncVideoSessions(_root);
+        SyncVideoSessions(root);
         RestoreScrollState(oldLayout, _currentLayout);
-        RenderCurrentFrame();
-        _dirtyManager.Clear();
+    }
+
+    // ---------------------------------------------------------------------
+    // 视口观察者（ISSUE-151）
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// 一帧之内最多为视口观察者重排几遍。虚拟化列表第一次出现时要两三遍才收敛（先按估计行高
+    /// 排出可见的行，量出真实行高后补齐或收窄）；上限只防止互相影响的观察者来回振荡。
+    /// 到上限仍未收敛时照常绘制，并请求下一帧继续。
+    /// </summary>
+    private const int MaxViewportObserverPasses = 8;
+
+    /// <summary>
+    /// 把本帧的布局与滚动量通知给布局树上的视口观察者（<see cref="IViewportObserver"/>），
+    /// 直到没有观察者再改动 DOM 或滚动偏移。观察者改了 DOM（重渲染）就调用
+    /// <paramref name="relayout"/> 重排，再通知一遍——所以本帧绘制的内容已经是观察者要的那一批。
+    /// </summary>
+    /// <returns>是否有观察者改动了 DOM 或滚动偏移（增量绘制的调用方据此改为整帧绘制）。</returns>
+    private bool SettleViewportObservers(Action relayout)
+    {
+        bool changed = false;
+        for (int pass = 0; pass < MaxViewportObserverPasses; pass++)
+        {
+            var outcome = NotifyViewportObservers();
+            if (outcome == ViewportNotifyOutcome.None) return changed;
+
+            changed = true;
+            if (outcome == ViewportNotifyOutcome.Mutated) relayout();
+        }
+
+        // 没收敛：本帧照常画出当前结果（布局与 DOM 一致——最后一遍若改了 DOM 已经重排过），
+        // 下一帧接着通知。
+        _repaintRequested = true;
+        return changed;
+    }
+
+    private enum ViewportNotifyOutcome { None, Scrolled, Mutated }
+
+    /// <summary>
+    /// 通知一遍视口观察者。有观察者改了 DOM 就立即停下：后面的观察者此刻拿到的几何已经过期，
+    /// 重排后的下一遍再通知它们。
+    /// </summary>
+    private ViewportNotifyOutcome NotifyViewportObservers()
+    {
+        var layout = _currentLayout;
+        var set = layout?.ViewportObserverSet;
+        if (layout == null || set == null) return ViewportNotifyOutcome.None;
+
+        // 观察者读的是盒子此刻的几何，粘性祖先的偏移要先就位（与绘制、命中测试同一时机，ISSUE-159）。
+        StickyPositioning.Update(layout);
+
+        var outcome = ViewportNotifyOutcome.None;
+        var version = _mutations.Version;
+
+        // 观察者里的异步工作（虚拟化列表向数据源要数据）在渲染线程上继续，与事件处理器同一约定。
+        var prevContext = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new Platform.MikoSynchronizationContext(_dispatcher));
+        try
+        {
+            var observers = set.Observers;
+            for (int i = 0; i < observers.Count; i++)
+            {
+                var (element, observer) = observers[i];
+                // 前一个观察者的重渲染可能把它摘出了树（嵌套的虚拟化列表）。
+                if (element.Owner == null) continue;
+
+                var observation = ViewportObservers.Observe(element, layout, set.Viewport);
+                if (observer.OnViewportChanged(observation))
+                    outcome = ViewportNotifyOutcome.Scrolled;
+                if (_mutations.Version != version)
+                    return ViewportNotifyOutcome.Mutated;
+            }
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(prevContext);
+        }
+
+        return outcome;
     }
 
     /// <summary>
@@ -2169,6 +2295,11 @@ public class MikoEngine
     private static bool IsSamePresentedContent(Element oldElement, Element newElement)
     {
         if (!IsSameElementIdentity(oldElement, newElement)) return false;
+
+        // 视口观察者（虚拟化列表，ISSUE-151）的子节点本来就随滚动整批更换——那正是滚动的结果，
+        // 不是「换了一批内容」。按子序列比较的话，模板里带条件分支的行（有的行多一个徽标）在窗口
+        // 移动后可能对不上，滚动条就会在滚动途中被弹回顶部。观察者在场即视为同一批内容。
+        if (oldElement is IViewportObserver && newElement is IViewportObserver) return true;
 
         // 较长的一侧是"全集"，较短的一侧必须是它的有序子序列。
         var (subset, superset) = oldElement.Children.Count <= newElement.Children.Count

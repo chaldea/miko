@@ -1,0 +1,74 @@
+@namespace Miko.Ionic.Tests.Fixtures
+@using Miko.Components
+@using Miko.Components.Virtualization
+@using Miko.Ionic.Components
+@inherits Miko.Components.ComponentBase
+@*
+    InfiniteScrollPageFixture with the rows virtualized (ISSUE-151): the same component nesting as the
+    Infinite Scroll demo — IonApp > IonPage > IonHeader + IonContent > IonList > IonItem(avatar + label)
+    + IonInfiniteScroll — with Virtualize between IonList and the items. The load handler waits on
+    InfiniteScrollProbe, so a test decides when a load finishes.
+*@
+<IonApp>
+    <IonPage>
+        <IonHeader>
+            <IonToolbar>
+                <Start>
+                    <IonBackButton DefaultHref="/"></IonBackButton>
+                </Start>
+                <ChildContent>
+                    <IonTitle>Infinite Scroll</IonTitle>
+                </ChildContent>
+            </IonToolbar>
+        </IonHeader>
+        <IonContent>
+            <IonList>
+                <Virtualize Items="@_items" ItemKey="@(user => user.Id)" ItemSize="72" Context="user">
+                    <IonItem>
+                        <Start>
+                            <IonAvatar>
+                                <img src="res://Resources/test-icon.svg" />
+                            </IonAvatar>
+                        </Start>
+                        <ChildContent>
+                            <IonLabel>
+                                <h2>@user.Name</h2>
+                                <p>Created November 28, 2012</p>
+                            </IonLabel>
+                        </ChildContent>
+                    </IonItem>
+                </Virtualize>
+            </IonList>
+
+            <IonInfiniteScroll Threshold="100px" OnInfinite="@HandleInfinite">
+                <IonInfiniteScrollContent LoadingSpinner="bubbles" LoadingText="Loading more data...">
+                </IonInfiniteScrollContent>
+            </IonInfiniteScroll>
+        </IonContent>
+    </IonPage>
+</IonApp>
+
+@code {
+    public sealed record User(int Id, string Name);
+
+    [Inject] public InfiniteScrollProbe Probe { get; set; } = null!;
+
+    private List<User> _items = new();
+
+    public int ItemCount => _items.Count;
+
+    protected override void OnInitialized()
+        => _items = Enumerable.Range(1, Probe.InitialRows).Select(i => new User(i, $"User {i}")).ToList();
+
+    private async Task HandleInfinite(IonInfiniteScrollCustomEvent e)
+    {
+        Probe.Loads++;
+        await Probe.WaitForRelease();
+
+        var start = _items.Count;
+        for (var i = 1; i <= Probe.BatchSize; i++) _items.Add(new User(start + i, $"User {start + i}"));
+
+        StateHasChanged();
+        await e.Complete();
+    }
+}

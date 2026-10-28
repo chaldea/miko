@@ -104,6 +104,10 @@ public class LayoutEngine
     // 定位 pass 收集到的粘性盒（ISSUE-159），文档先序；pass 结束后移交给布局根。
     private List<StickyPositioning.Entry>? _stickyEntries;
 
+    // 构建布局树时遇到的视口观察者（ISSUE-151），文档先序；布局结束后移交给布局根。
+    // display:none 子树不会被构建，其中的观察者因此不登记、也就不会被通知。
+    private List<(Element Element, IViewportObserver Observer)>? _viewportObservers;
+
     // 上一帧的计算样式，等本帧整棵树算完后统一归还给池（ISSUE-132）。
     // 见 ComputeStyles 中的说明：回收必须晚于整树解析，否则会回收掉正在被继承读取的实例。
     private readonly List<ComputedStyle> _recyclableStyles = new();
@@ -189,6 +193,7 @@ public class LayoutEngine
 
         // 2. 构建布局树：根据 display 属性过滤和组织
         var layoutStart = FrameTimingDiagnostics.GetTimestamp();
+        _viewportObservers = null;
         var layoutRoot = BuildLayoutTree(root, styleSheets);
 
         if (layoutRoot == null)
@@ -218,6 +223,10 @@ public class LayoutEngine
         layoutRoot.StickyBoxes = _stickyEntries == null ? null : new StickyPositioning.BoxSet(_stickyEntries, viewportBlock);
         _stickyEntries = null;
         StickyPositioning.Update(layoutRoot);
+
+        // 视口观察者（ISSUE-151）同样挂到布局根上，由引擎在绘制前按当前滚动量通知。
+        layoutRoot.ViewportObserverSet = _viewportObservers == null ? null : new ViewportObservers.Set(_viewportObservers, viewportBlock);
+        _viewportObservers = null;
 
         // 布局阶段计时到此为止（样式阶段已单独记账，不重复计入）。
         FrameTimingDiagnostics.RecordLayout(layoutStart);
@@ -796,6 +805,9 @@ public class LayoutEngine
 
         var layoutBox = element.LayoutBox;
 
+        if (element is IViewportObserver observer)
+            (_viewportObservers ??= new()).Add((element, observer));
+
         // 文本节点：始终使用 Text 布局（匿名行内文本盒），不受 display 影响。
         if (element is TextNode)
         {
@@ -860,6 +872,8 @@ public class LayoutEngine
     {
         if (child is FragmentElement)
         {
+            if (child is IViewportObserver observer)
+                (_viewportObservers ??= new()).Add((child, observer));
             foreach (var grandChild in child.Children)
             {
                 AppendChildLayoutBoxes(parentBox, grandChild, styleSheets);

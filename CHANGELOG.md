@@ -6,6 +6,19 @@ All notable changes to Miko are documented in this file. The format is based on
 
 ## [Unreleased]
 
+### Long lists
+
+- **`Virtualize<TItem>`** (`Miko.Components.Virtualization`) renders only the items of a list that
+  can be seen, plus a few on either side, with Blazor's API (`Items` or `ItemsProvider`,
+  `ItemContent` / `Context`, `ItemSize`, `OverscanCount`, `MaxItemCount`, `Placeholder`,
+  `EmptyContent`, `SpacerElement`, `RefreshDataAsync`) and an `ItemKey` that keeps items and what is on
+  screen in place when items are inserted above. Items may have any height: they are measured as they
+  are rendered, and the scroll offset is adjusted so measured heights never move what is on screen.
+  Opening, loading more and scrolling a list cost the same at 100,000 items as at 100 — the Infinite
+  Scroll demo now uses it. See [Razor Components](docs/guide/razor-components.md#long-lists-virtualize).
+- **`RenderFragment<TValue>`.** Templated components (`<ItemContent Context="row">`) compile, and a
+  component that redeclares a base parameter with `new` receives it.
+
 ### Text layout and localization
 
 - **Right-to-left layout.** `Direction` (or the new `dir="rtl"` attribute) now lays text out from

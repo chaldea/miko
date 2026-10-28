@@ -102,6 +102,9 @@ public class LayoutBox
     // 仅布局根持有：整棵树的粘性盒及其参照（文档先序）。没有粘性盒时为 null。
     internal StickyPositioning.BoxSet? StickyBoxes;
 
+    // 仅布局根持有：整棵树的视口观察者（ISSUE-151，文档先序）。没有观察者时为 null。
+    internal ViewportObservers.Set? ViewportObserverSet;
+
     // ---- 内在尺寸测量缓存（ISSUE-132）----
     //
     // Flex 布局要知道每个子项的「内容自然尺寸」（flex-basis: auto / width: auto），做法是以

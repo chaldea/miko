@@ -125,6 +125,51 @@ With `Position="top"`, place the infinite scroll before the content; it fires wh
 ```
 <!-- /miko:example -->
 
+## Long lists
+
+Every loaded row stays in the page, so a list that keeps growing gets slower to load and to scroll: a
+thousand rows of avatars and two-line labels are some 11,000 elements to style and lay out on every
+load. Put the rows in a [`Virtualize`](../../guide/razor-components.md#long-lists-virtualize) inside the
+`IonList`: only the rows on screen (plus a few) are rendered, and the infinite scroll keeps working,
+because the list still takes the height of all its rows.
+
+<!-- miko:example examples/infinite-scroll/Virtualized.razor -->
+```razor
+@using Miko.Components.Virtualization
+@* Only the rows on screen are rendered, so loading page after page stays as cheap as the first. *@
+<IonContent>
+    <IonList>
+        <Virtualize Items="@_items" ItemKey="@(item => item.Id)" ItemSize="48" Context="item">
+            <IonItem>
+                <IonLabel>@item.Title</IonLabel>
+            </IonItem>
+        </Virtualize>
+    </IonList>
+
+    <IonInfiniteScroll OnInfinite="LoadMore">
+        <IonInfiniteScrollContent LoadingSpinner="circular" />
+    </IonInfiniteScroll>
+</IonContent>
+
+@code {
+    private record Item(int Id, string Title);
+
+    private readonly List<Item> _items = Enumerable.Range(1, 30).Select(i => new Item(i, $"Item {i}")).ToList();
+
+    private async Task LoadMore(IonInfiniteScrollCustomEvent e)
+    {
+        await Task.Delay(500); // stand-in for a network request
+
+        var start = _items.Count;
+        _items.AddRange(Enumerable.Range(start + 1, 20).Select(i => new Item(i, $"Item {i}")));
+
+        StateHasChanged();
+        await e.Complete();
+    }
+}
+```
+<!-- /miko:example -->
+
 ## Loading state from code
 
 `Loading="true"` puts the infinite scroll into its loading state (indicator shown, `OnInfinite` blocked), and re-applies it on every render while it stays true. To end it, set `Loading` back to `false` and call `Complete()` on the component (`e.Target` in an `OnInfinite` handler).
