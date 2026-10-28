@@ -293,20 +293,23 @@ public class AnimationManager
     /// 进度一起丢弃，等价于没修。过渡不参与「声明消失」这一支——过渡是一次性的属性插值，
     /// 跑完自然结束，其存续不取决于样式里是否仍声明 <c>transition</c>。</para>
     /// </summary>
-    /// <param name="declaredAnimations">
-    /// 本帧扫描到的、仍在 DOM 树中的元素 → 其 <c>Style.Animations</c> 声明的动画名集合。
-    /// 不在字典中的元素即已脱离 DOM。
-    /// </param>
-    internal void PruneDetachedTargets(Dictionary<Element, HashSet<string>> declaredAnimations)
+    /// <param name="root">本帧的 DOM 根。条目的元素沿 <c>Parent</c> 链到不了它，即已脱离 DOM。</param>
+    /// <remarks>
+    /// 按条目逐个沿祖先链判定，成本是「条目数 × 树深」，与 DOM 大小无关。此前每帧先为整棵树建
+    /// 一张「元素 → 声明的动画名」字典再查表，结构变更的每一帧都要为每个元素做一次字典写入
+    /// （虚拟化列表移动窗口时约占整帧的一成，ISSUE-151）。<c>Parent</c> 与 <c>Children</c> 由
+    /// <see cref="ElementCollection"/> 同步维护，被摘下的子树根的 <c>Parent</c> 为 null，两种判定等价。
+    /// </remarks>
+    internal void PruneDetachedTargets(Element root)
     {
         for (int i = _animations.Count - 1; i >= 0; i--)
         {
             var anim = _animations[i];
-            bool attached = declaredAnimations.TryGetValue(anim.Element, out var names);
+            bool attached = IsAttachedTo(anim.Element, root);
 
             // 命令式动画（MikoEngine.StartAnimation）从不出现在样式里，只在元素脱离 DOM 时回收；
             // 声明式动画还要求样式中仍然声明着它。
-            if (attached && (!anim.IsDeclarative || names!.Contains(anim.Definition.Name)))
+            if (attached && (!anim.IsDeclarative || DeclaresAnimation(anim.Element, anim.Definition.Name)))
                 continue;
 
             Overlay.Remove(anim.Element);
@@ -327,13 +330,35 @@ public class AnimationManager
         for (int i = _transitions.Count - 1; i >= 0; i--)
         {
             var transition = _transitions[i];
-            if (declaredAnimations.ContainsKey(transition.Element)) continue;
+            if (IsAttachedTo(transition.Element, root)) continue;
 
             Overlay.Remove(transition.Element);
             _transitions.RemoveAt(i);
             _logger.LogDebug("Transition \"{Property}\" removed: <{Tag} id=\"{Id}\"> left the DOM",
                 transition.Property.PropertyName, transition.Element.TagName, transition.Element.Id ?? "");
         }
+    }
+
+    /// <summary><paramref name="element"/> 是否在以 <paramref name="root"/> 为根的树上（含根自身）。</summary>
+    private static bool IsAttachedTo(Element element, Element root)
+    {
+        for (var current = element; current != null; current = current.Parent)
+        {
+            if (ReferenceEquals(current, root)) return true;
+        }
+        return false;
+    }
+
+    /// <summary><paramref name="element"/> 的 <c>Style.Animations</c> 是否声明了名为 <paramref name="name"/> 的动画。</summary>
+    private static bool DeclaresAnimation(Element element, string name)
+    {
+        var animations = element.Style?.Animations.RefValueOrNull();
+        if (animations == null) return false;
+        foreach (var animation in animations)
+        {
+            if (string.Equals(animation.Name, name, StringComparison.Ordinal)) return true;
+        }
+        return false;
     }
 
     /// <summary>

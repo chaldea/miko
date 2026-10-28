@@ -231,4 +231,181 @@ public class ComputedStylePoolingTests
                     $"row {i} position diverged after pooled relayouts");
         }
     }
+
+    // ---- elements that leave the tree (ISSUE-151) ----
+    // A virtualized list removes the rows that scroll out and adds as many new ones on every window
+    // move. The removed rows are never styled again, so their computed styles used to go to the GC
+    // while the new rows rented fresh ones: about 80 per move (480 KB) on the Infinite Scroll page.
+
+    private static (Miko.Core.MikoEngine Engine, DivElement Page, SKSurface Surface, StyleSheet Sheet) StartRows(int rows)
+    {
+        var sheet = new StyleSheet
+        {
+            Rules =
+            {
+                new StyleRule { Selector = new ClassSelector("row"), Style = new Style { Height = Length.Px(30) } },
+                new StyleRule { Selector = new ClassSelector("tall"), Style = new Style { Height = Length.Px(90) } },
+            }
+        };
+        var page = new DivElement { Class = "page" };
+        for (int i = 0; i < rows; i++)
+            page.AddChild(Row(i));
+        var engine = new MikoEngineBuilder().Build();
+        var surface = SKSurface.Create(new SKImageInfo(400, 800));
+        engine.Initialize(page, new List<StyleSheet> { sheet }, surface.Canvas, 400, 800);
+        engine.Render(surface.Canvas);
+        return (engine, page, surface, sheet);
+    }
+
+    private static DivElement Row(int i)
+        => new() { Class = "row", Children = { new SpanElement { TextContent = $"row {i}" } } };
+
+    [Fact]
+    public void ReplacingRows_ShouldRecycleTheRemovedRowsStyles()
+    {
+        var (engine, page, surface, _) = StartRows(20);
+        using var _ = surface;
+
+        // What a window move does: rows leave at one end, as many new ones arrive at the other.
+        void Move(int frame)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                page.RemoveChild(page.Children[0]);
+                page.AddChild(Row(1000 + frame * 4 + k));
+            }
+            engine.Render(surface.Canvas);
+        }
+
+        for (int frame = 0; frame < 3; frame++) Move(frame);
+
+        Miko.Diagnostics.LayoutAllocationDiagnostics.Begin();
+        for (int frame = 3; frame < 23; frame++) Move(frame);
+        var metrics = Miko.Diagnostics.LayoutAllocationDiagnostics.End();
+
+        metrics.ComputedStyleRentNew.ShouldBe(0,
+            "the styles of the rows that left are reused for the rows that arrive");
+        metrics.ComputedStyleReturnAlreadyPooled.ShouldBe(0);
+    }
+
+    [Fact]
+    public void ARemovedElement_ShouldNotKeepAStyleThatIsInUseAgain()
+    {
+        var (engine, page, surface, _) = StartRows(10);
+        using var _ = surface;
+
+        var removed = page.Children[0];
+        var removedStyle = removed.LayoutBox!.ComputedStyle;
+        page.RemoveChild(removed);
+        engine.Render(surface.Canvas);
+
+        // Its style went back to the pool, and the next new element takes it.
+        var replacement = Row(99);
+        replacement.Class = "row tall";
+        page.AddChild(replacement);
+        engine.Render(surface.Canvas);
+
+        removed.LayoutBox!.ComputedStyle.ShouldNotBeSameAs(removedStyle,
+            "a style returned to the pool must not stay reachable from the element that left");
+        removed.LayoutBox.ComputedStyle.Height.ShouldBe(Length.Auto,
+            "the element that left reads initial values, not another element's style");
+        page.Children.Any(e => ReferenceEquals(e.LayoutBox!.ComputedStyle, removed.LayoutBox.ComputedStyle))
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AnElementAddedBackAfterLeaving_ShouldBeStyledAgain()
+    {
+        var (engine, page, surface, sheet) = StartRows(10);
+        using var _ = surface;
+
+        var row = page.Children[3];
+        row.Class = "row tall";
+        engine.Render(surface.Canvas);
+        row.LayoutBox!.BoxModel.BorderBox.Height.ShouldBe(90f, 0.01f);
+
+        page.RemoveChild(row);
+        engine.Render(surface.Canvas);
+        // Another element takes the style the removed one had.
+        page.AddChild(Row(42));
+        engine.Render(surface.Canvas);
+
+        page.Children.Insert(3, row);
+        engine.Render(surface.Canvas);
+
+        row.LayoutBox!.ComputedStyle.ShouldNotBeSameAs(ComputedStyle.Detached);
+        row.LayoutBox.BoxModel.BorderBox.Height.ShouldBe(90f, 0.01f, "it is styled from its own classes again");
+        page.Children[^1].LayoutBox!.BoxModel.BorderBox.Height.ShouldBe(30f, 0.01f,
+            "and the element that took its old style keeps its own");
+        page.Children.Select(e => e.LayoutBox!.ComputedStyle).Distinct().Count().ShouldBe(page.Children.Count,
+            "no two elements share a computed style");
+    }
+
+    /// <summary>A component listing <see cref="Ids"/>, keyed, under a host it re-renders as a whole.</summary>
+    private sealed class KeyedRows : Miko.Components.ComponentBase
+    {
+        public List<int> Ids { get; } = new();
+        public void Rerender() => NotifyStateChanged();
+
+        protected override void BuildRenderTree(Miko.Components.RenderTreeBuilder builder)
+        {
+            var host = builder.OpenElement<DivElement>();
+            host.Class = "page";
+            foreach (var id in Ids)
+            {
+                builder.OpenElement(0, "div");
+                var row = builder.CurrentElement!;
+                row.Key = id;
+                row.Class = id % 3 == 0 ? "row tall" : "row";
+                builder.AddContent(1, $"row {id}");
+                builder.CloseElement();
+            }
+            builder.CloseElement();
+        }
+    }
+
+    [Fact]
+    public void ComponentRerenders_ThatCarryStylesAcrossGenerations_ShouldNeverShareAStyle()
+    {
+        // A re-render hands each kept row's computed style to the row's new element (TransferLayoutBox),
+        // while the old element keeps pointing at it; rows that are dropped leave the tree. Recycling the
+        // styles of elements that left must never return an instance some element in the tree is using:
+        // two elements would then share one computed style and overwrite each other's.
+        var sheet = new StyleSheet
+        {
+            Rules =
+            {
+                new StyleRule { Selector = new ClassSelector("row"), Style = new Style { Height = Length.Px(30) } },
+                new StyleRule { Selector = new ClassSelector("tall"), Style = new Style { Height = Length.Px(90) } },
+            }
+        };
+        var component = new KeyedRows();
+        component.Ids.AddRange(Enumerable.Range(0, 12));
+        var root = component.Build();
+        var engine = new MikoEngineBuilder().Build();
+        using var surface = SKSurface.Create(new SKImageInfo(400, 800));
+        engine.Initialize(root, new List<StyleSheet> { sheet }, surface.Canvas, 400, 800);
+        engine.Render(surface.Canvas);
+
+        int next = 12;
+        for (int frame = 0; frame < 40; frame++)
+        {
+            // Drop two at the front, add two at the back; every few frames re-render twice in a row.
+            component.Ids.RemoveRange(0, 2);
+            component.Ids.Add(next++);
+            component.Ids.Add(next++);
+            component.Rerender();
+            if (frame % 4 == 0) component.Rerender();
+            engine.Render(surface.Canvas);
+
+            var page = engine.GetRoot()!;
+            var styles = page.Children.Select(e => e.LayoutBox!.ComputedStyle).ToList();
+            styles.Distinct().Count().ShouldBe(styles.Count, $"frame {frame}: two rows share a computed style");
+            foreach (var row in page.Children)
+            {
+                float expected = (int)row.Key! % 3 == 0 ? 90f : 30f;
+                row.LayoutBox!.BoxModel.BorderBox.Height.ShouldBe(expected, 0.01f, $"frame {frame}, row {row.Key}");
+            }
+        }
+    }
 }

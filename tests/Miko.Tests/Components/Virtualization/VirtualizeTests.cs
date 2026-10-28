@@ -180,6 +180,51 @@ public class VirtualizeTests : IDisposable
     }
 
     [Fact]
+    public void Should_RenderMostOfTheOverscanAhead_InTheDirectionOfTheScroll()
+    {
+        var (engine, _, root) = Start(new ListPage { Rows = MakeRows(1000) });
+
+        // Rendered rows wholly above / below the screen.
+        (int Above, int Below) Overscan()
+        {
+            var box = ScrollerBox(root);
+            float viewTop = box.ScrollTop;
+            float viewBottom = viewTop + box.BoxModel.PaddingBox.Height;
+            var rows = RenderedRows(root);
+            return (rows.Count(r => r.LayoutBox!.BoxModel.BorderBox.Bottom <= viewTop),
+                    rows.Count(r => r.LayoutBox!.BoxModel.BorderBox.Top >= viewBottom));
+        }
+
+        Scroll(engine, 2000);
+        var down = Overscan();
+        down.Below.ShouldBe(5, "2 × 3 overscan rows: 5 ahead of a downward scroll");
+        down.Above.ShouldBe(1, "and 1 behind");
+
+        // A steady scroll moves the window once per 5 rows, not once per 3.
+        int moves = 0;
+        for (int i = 0; i < 40; i++)
+        {
+            var version = engine.Mutations.Version;
+            Scroll(engine, 20);
+            if (engine.Mutations.Version != version) moves++;
+            AssertNoGap(root, 1000, $"down, step {i}");
+        }
+        moves.ShouldBeInRange(3, 4, "800px of 40px rows past 5 rows of overscan ahead");
+
+        // Reversing: the rows rendered ahead of the downward scroll are scrolled back through first; once
+        // the window has to move, the overscan follows the new direction.
+        var before = RenderedRows(root)[0];
+        while (ReferenceEquals(RenderedRows(root)[0], before))
+        {
+            Scroll(engine, -40);
+            AssertNoGap(root, 1000, "up");
+        }
+        var up = Overscan();
+        up.Above.ShouldBe(5, "most of the overscan is ahead of an upward scroll");
+        up.Below.ShouldBeLessThanOrEqualTo(2, "the rest behind (plus the row the step left partly visible)");
+    }
+
+    [Fact]
     public void Should_KeepTheElementsOfRowsThatStayInTheWindow()
     {
         var (engine, _, root) = Start(new ListPage { Rows = MakeRows(1000) });
@@ -188,9 +233,9 @@ public class VirtualizeTests : IDisposable
         var kept = window[^2];
         var version = engine.Mutations.Version;
 
-        // Far enough to move the window (past the 3 rows of overscan), not far enough to scroll the
-        // second-to-last rendered row out of it.
-        Scroll(engine, 160);
+        // Far enough to move the window (past the 5 rows of overscan ahead of a downward scroll), not far
+        // enough to scroll the second-to-last rendered row out of it.
+        Scroll(engine, 240);
 
         engine.Mutations.Version.ShouldNotBe(version, "the window must have moved for this to prove anything");
         RowById(root, int.Parse(kept.Id!["row-".Length..])).ShouldBeSameAs(kept,

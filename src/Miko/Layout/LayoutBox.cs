@@ -126,6 +126,11 @@ public class LayoutBox
     internal float IntrinsicContentWidth;
     internal float IntrinsicContentHeight;
 
+    // 两轴都由对边偏移定型的脱离流盒子，其常规流布局被推迟到定位阶段（ISSUE-151，见
+    // LayoutDispatcher.IsSizedByInsets）：此时盒子只是静态位置上的空矩形，边距尚未求值，
+    // 由 LayoutEngine.ResolveOutOfFlowSize 按真实包含块求出边距并排布整棵子树。
+    internal bool OutOfFlowLayoutDeferred;
+
     // Classic 滚动条宽度（占用布局空间）
     public const float ScrollbarThickness = 12f;
     public const float ThinScrollbarThickness = 6f;

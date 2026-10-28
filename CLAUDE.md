@@ -374,6 +374,24 @@ Combinators: descendant (` `), child (`>`), adjacent sibling (`+`), general sibl
   point must settle before painting, or a scrolled frame shows blank spacer.
 - **Structural scroll restore treats two observers as the same content** (`IsSamePresentedContent`):
   their children change with every window move; without it a row changing shape reset the scroller.
+- **A window move restyles and relayouts the whole page** (the structural change bumps `StyleVersion`),
+  so its cost is set by what is rendered, not by what moved. `SplitOverscan` puts most of the
+  2 × `OverscanCount` extra items ahead of the scroll direction (tracked from the first visible index,
+  not the offset — anchoring moves the offset) so the window moves about a third less often.
+- **Inset-sized out-of-flow boxes are laid out once, in the positioning stage.** During
+  `LayoutEngine.Layout`, `LayoutDispatcher.Dispatch` skips a box whose width *and* height come from
+  its insets (`IsSizedByInsets`, same test as `ResolveOutOfFlowSize`), leaving an empty rect at the static
+  position (`OutOfFlowLayoutDeferred`); `ResolveOutOfFlowSize` resolves its edges against the containing
+  block and lays it out. Every layout algorithm reaches out-of-flow children through `Dispatch`, and
+  none reads their geometry. Ionic's `.inner-scroll` used to be laid out three times per relayout.
+- **Computed styles of elements that leave the tree are recycled.** `LayoutEngine` keeps the boxes of
+  the previous style pass; one still being its element's `LayoutBox` after this pass belongs to an
+  element no longer in the tree, and `RecycleDetachedStyles` returns its style to the pool and points it
+  at the shared `ComputedStyle.Detached` (initial values, never pooled). Only the box that holds a style
+  (`ComputedStyle.OwnerBox`, set where a style is attached to a box — `ComputeStyles`,
+  `TryReuseStyles`, `ComponentBase.TransferLayoutBox`) returns it. Skipped when the root changed
+  (navigation: the old tree is still the leaving layer). Without it every window move allocated ~80
+  styles (480 KB) and ~40% of window-move frames on Android paid a GC.
 - **`Virtualize` renders** a `VirtualizeHostElement` (fragment) = spacer + one `VirtualizeSlot` per item
   + spacer, keyed (`VirtualizeSpacerKey`, `VirtualizeSlotKey`). A slot returns its `CurrentRoot` while
   the list's generation is unchanged, so items that stay in the window keep elements and instances;

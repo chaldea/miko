@@ -2016,21 +2016,21 @@ public class MikoEngine
     /// </summary>
     private void ScanAndStartAnimations(Element root)
     {
-        foreach (var (element, names) in CollectDeclaredAnimations(root))
+        // 文档先序逐个启动。StartAnimationIfNotRunning 只登记条目、不改树，边走边启动是安全的。
+        var animations = root.Style?.Animations.RefValueOrNull();
+        if (animations is { Count: > 0 })
         {
-            if (names.Count == 0) continue;
-
-            var animations = element.Style?.Animations.RefValueOrNull();
-            if (animations == null) continue;
-
             foreach (var animation in animations)
             {
                 _logger.LogDebug("ScanAndStartAnimations: found animation \"{Name}\" on <{Tag} id=\"{Id}\">",
-                    animation.Name, element.TagName, element.Id ?? "");
+                    animation.Name, root.TagName, root.Id ?? "");
                 // 已在运行者不重启，只刷新定义；未运行者从 0 起播。
-                _animationManager.StartAnimationIfNotRunning(element, animation);
+                _animationManager.StartAnimationIfNotRunning(root, animation);
             }
         }
+
+        foreach (var child in root.Children)
+            ScanAndStartAnimations(child);
     }
 
     /// <summary>
@@ -2053,44 +2053,9 @@ public class MikoEngine
     private void ReconcileAnimationTargets(Element root)
     {
         _animationManager.MigrateSupersededTargets();
-        _animationManager.PruneDetachedTargets(CollectDeclaredAnimations(root));
+        _animationManager.PruneDetachedTargets(root);
         _animationManager.ReapplyCurrentValues();
     }
-
-    /// <summary>
-    /// 收集树中每个元素及其 <c>Style.Animations</c> 声明的动画名。<c>Element</c> 未重写
-    /// <c>Equals</c>/<c>GetHashCode</c>，字典天然按引用做键——正是这里要的身份语义。
-    /// </summary>
-    private static Dictionary<Element, HashSet<string>> CollectDeclaredAnimations(Element root)
-    {
-        var sink = new Dictionary<Element, HashSet<string>>();
-        CollectDeclaredAnimations(root, sink);
-        return sink;
-    }
-
-    private static void CollectDeclaredAnimations(Element element, Dictionary<Element, HashSet<string>> sink)
-    {
-        // 绝大多数元素没有动画：共用一个空集合，避免每帧为每个元素各分配一个 HashSet
-        // （整树扫描每帧都跑，包括 ISSUE-096 的快速路径）。
-        var animations = element.Style?.Animations.RefValueOrNull();
-        if (animations == null || animations.Count == 0)
-        {
-            sink[element] = s_noDeclaredAnimations;
-        }
-        else
-        {
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var animation in animations)
-                names.Add(animation.Name);
-            sink[element] = names;
-        }
-
-        foreach (var child in element.Children)
-            CollectDeclaredAnimations(child, sink);
-    }
-
-    /// <summary>无动画声明的元素共用的空集合。只读使用，绝不写入。</summary>
-    private static readonly HashSet<string> s_noDeclaredAnimations = new(StringComparer.Ordinal);
 
     /// <summary>
     /// 将旧布局树的滚动状态恢复到新布局树。

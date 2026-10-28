@@ -45,7 +45,7 @@ public abstract class Element
     /// <para>刻意<b>不</b>在「本节点归属已正确」时剪枝：正因为上面那些路径能把新子节点直接
     /// 塞进一个归属已正确的父节点的 <see cref="Children"/> 里，剪枝会让这些新子树永远拿不到
     /// 归属，其后所有变更都静默丢失（布局缓存不失效 → 界面不更新）。遍历成本可以接受——
-    /// 引擎每帧本来就要为动画对齐整树扫描一遍（<c>CollectDeclaredAnimations</c>），
+    /// DOM 变了的帧引擎本来就要整树扫描一遍动画声明（<c>ScanAndStartAnimations</c>），
     /// 本方法不增加渐近成本。</para>
     /// </summary>
     internal void AssignOwner(MutationTracker tracker)

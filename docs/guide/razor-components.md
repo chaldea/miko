@@ -145,7 +145,7 @@ The API is Blazor's `Virtualize<TItem>`, plus `ItemKey`:
 | template | | Written between the tags (`Context="name"` names the item, otherwise `context`), or in an `<ItemContent>` element. |
 | `ItemSize` | `50` | The estimated height of an item in pixels, used until items have been measured. |
 | `ItemKey` | index | A unique, stable key per item (Miko). See below. |
-| `OverscanCount` | `3` | Items rendered above and below the visible ones. |
+| `OverscanCount` | `3` | Items rendered above and below the visible ones. While the list scrolls, the 2 × `OverscanCount` extra items go mostly ahead of the scroll. |
 | `MaxItemCount` | `100` | The most items rendered at once. |
 | `Placeholder` | empty block | Shown for an item an `ItemsProvider` is still loading; `context` is a `PlaceholderContext` (`Index`, `Size`). |
 | `EmptyContent` | | Shown when there are no items. |

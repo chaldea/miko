@@ -632,12 +632,41 @@ public partial class ComputedStyle : Style
         // 断开对父计算样式与变量作用域的引用，避免池子把整条旧的样式链一直留在内存里。
         style._keywordResolutionParent = null;
         style.Vars = null;
+        style.OwnerBox = null;
         pool.Push(style);
         LayoutAllocationDiagnostics.RecordComputedStyleReturnAccepted();
     }
 
     // 本实例当前是否躺在池里（防重复归还，见 Return）。
     private bool _pooled;
+
+    /// <summary>本实例此刻是否在池里（已归还、尚未被取走）。</summary>
+    internal bool IsPooled => _pooled;
+
+    /// <summary>
+    /// 当前持有本实例的布局盒（ISSUE-151）。同一个实例可能被两个盒子引用——组件的
+    /// <c>TransferLayoutBox</c> 把它带到新一代元素的盒上，旧一代元素的盒仍指着它——只有持有者
+    /// 可以把它还回池里：另一个盒子此刻可能正被一个在场的元素使用（见 LayoutEngine 的回收）。
+    /// 由给盒子挂上计算样式的地方设置；归还时清空，免得池子经它钉住旧的盒子与元素。
+    /// </summary>
+    internal Layout.LayoutBox? OwnerBox { get; private set; }
+
+    /// <summary>
+    /// 登记 <paramref name="box"/> 为本实例的持有者（挂上盒子、或随盒子跨代搬运时调用）。
+    /// 对 <see cref="Detached"/> 无效：它是共享的，不属于任何盒子。
+    /// </summary>
+    internal void SetOwner(Layout.LayoutBox? box)
+    {
+        if (!ReferenceEquals(this, Detached)) OwnerBox = box;
+    }
+
+    /// <summary>
+    /// 离开 DOM 的元素的计算样式被回收后，其布局盒改指向的共享实例（ISSUE-151）：初始值、
+    /// 不在池中（标为已入池，<see cref="Return"/> 忽略它，<see cref="Rent"/> 也拿不到它）、
+    /// 永不写入。读到它的只有可能仍握着离场元素的地方（光标、可选性、可见性判断），
+    /// 它们得到的是确定的初始值，而不是池里某个在场元素的样式。
+    /// </summary>
+    internal static readonly ComputedStyle Detached = new() { _pooled = true };
 
     /// <summary>把本实例的所有字段复位为「刚构造」的状态（见池化说明）。</summary>
     private void ResetToPristine()

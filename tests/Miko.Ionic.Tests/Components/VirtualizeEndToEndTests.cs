@@ -1,3 +1,4 @@
+using Miko.Common;
 using Miko.Core;
 using Miko.Events;
 using Miko.Hosting;
@@ -137,18 +138,42 @@ public class VirtualizeEndToEndTests : IDisposable
             // Pixels: the plain list reaches the same offset by adding row heights one float at a time,
             // the virtualized one through a double prefix sum — at 9,000px they differ by about 0.015px
             // (the virtualized one being the exact multiple), which moves anti-aliased text edges by a
-            // shade. Anything structural — a missing divider, other padding, a blank row — differs by
-            // far more than a shade.
+            // shade. Bitmaps are snapped to whole device pixels, so where that drift straddles a .5
+            // boundary (an avatar at 271.499 in one list, 271.502 in the other) the image is drawn a whole
+            // pixel apart: the avatars are left out of the pixel compare — AssertSame has already checked
+            // that each sits at the same place in its row, to a hundredth of a pixel. Anything structural —
+            // a missing divider, other padding, a blank row — differs by far more than a shade.
+            var snapped = SnappedImageMask(virtualized);
             int differing = 0, worst = 0;
             for (int i = 0; i < expected.Length; i++)
             {
-                if (expected[i] == actual[i]) continue;
+                if (expected[i] == actual[i] || snapped[i]) continue;
                 differing++;
                 worst = Math.Max(worst, ChannelDelta(expected[i], actual[i]));
             }
             worst.ShouldBeLessThan(64, when);
             differing.ShouldBeLessThan(expected.Length / 50, when);
         }
+    }
+
+    /// <summary>The screen pixels of the rows' images, grown by a pixel for their anti-aliased edges.</summary>
+    private static bool[] SnappedImageMask(MikoAppContext app)
+    {
+        var mask = new bool[W * H];
+        float scrollTop = Scroller(app).LayoutBox!.ScrollTop;
+        foreach (var row in Items(app))
+        {
+            foreach (var image in row.FindByTagName("img"))
+            {
+                var rect = image.LayoutBox!.BoxModel.BorderBox;
+                int x0 = Math.Max(0, (int)MathF.Floor(rect.Left) - 1), x1 = Math.Min(W - 1, (int)MathF.Ceiling(rect.Right) + 1);
+                int y0 = Math.Max(0, (int)MathF.Floor(rect.Top - scrollTop) - 1), y1 = Math.Min(H - 1, (int)MathF.Ceiling(rect.Bottom - scrollTop) + 1);
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++)
+                        mask[y * W + x] = true;
+            }
+        }
+        return mask;
     }
 
     private static int ChannelDelta(uint a, uint b)
@@ -161,6 +186,9 @@ public class VirtualizeEndToEndTests : IDisposable
 
     /// <summary>The same element tree, laid out at the same place relative to the row, with the same styles.</summary>
     private void AssertSame(Element expected, Element actual, string where)
+        => AssertSame(expected, actual, expected.LayoutBox!.BoxModel.BorderBox, actual.LayoutBox!.BoxModel.BorderBox, where);
+
+    private void AssertSame(Element expected, Element actual, RectF expectedRow, RectF actualRow, string where)
     {
         actual.TagName.ShouldBe(expected.TagName, where);
         actual.Class.ShouldBe(expected.Class, where);
@@ -168,6 +196,8 @@ public class VirtualizeEndToEndTests : IDisposable
         var a = actual.LayoutBox!;
         a.BoxModel.BorderBox.Height.ShouldBe(e.BoxModel.BorderBox.Height, 0.01f, where);
         a.BoxModel.BorderBox.Width.ShouldBe(e.BoxModel.BorderBox.Width, 0.01f, where);
+        (a.BoxModel.BorderBox.Left - actualRow.Left).ShouldBe(e.BoxModel.BorderBox.Left - expectedRow.Left, 0.01f, where);
+        (a.BoxModel.BorderBox.Top - actualRow.Top).ShouldBe(e.BoxModel.BorderBox.Top - expectedRow.Top, 0.01f, where);
         var es = e.ComputedStyle;
         var s = a.ComputedStyle;
         s.BorderBottomWidth.ShouldBe(es.BorderBottomWidth, where);
@@ -179,7 +209,7 @@ public class VirtualizeEndToEndTests : IDisposable
         for (int i = 0; i < expected.Children.Count; i++)
         {
             if (expected.Children[i].LayoutBox is null) continue;
-            AssertSame(expected.Children[i], actual.Children[i], where);
+            AssertSame(expected.Children[i], actual.Children[i], expectedRow, actualRow, where);
         }
     }
 

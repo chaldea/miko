@@ -78,7 +78,11 @@ public class Virtualize<TItem> : ComponentBase
     /// </summary>
     [Parameter] public ItemsProviderDelegate<TItem>? ItemsProvider { get; set; }
 
-    /// <summary>How many items to render above and below the visible ones (default 3).</summary>
+    /// <summary>
+    /// How many items to render above and below the visible ones (default 3). While the list is being
+    /// scrolled, the 2 × <c>OverscanCount</c> extra items are rendered mostly ahead, in the direction it
+    /// is scrolled: the window then moves less often, for the same number of items rendered.
+    /// </summary>
     [Parameter] public int OverscanCount { get; set; } = 3;
 
     /// <summary>
@@ -149,6 +153,13 @@ public class Virtualize<TItem> : ComponentBase
     // The scroll container's box when the anchor was recorded. After a layout it is the previous
     // layout's box, which still holds the offset before the engine clamped it to the new range.
     private LayoutBox? _anchorScroller;
+
+    // Which way the list was last scrolled (+1 down, -1 up, 0 not yet), from the index of the item at the
+    // top of the screen between notifications: the window puts most of its overscan that way (see
+    // SplitOverscan). An index, not an offset: anchoring corrects the offset when items above are
+    // measured, and that correction must not read as scrolling the other way.
+    private int _scrollDirection;
+    private int _lastFirst = -1;
 
     private int ItemCount => ItemsProvider is null ? _itemCount : (_countKnown ? _itemCount : 0);
 
@@ -410,6 +421,8 @@ public class Virtualize<TItem> : ComponentBase
         _loadedStart = 0;
         _itemCount = 0;
         _windowStart = _windowEnd = 0;
+        _lastFirst = -1;
+        _scrollDirection = 0;
         ClearAnchor();
         _anchorKey = null;
         _sizes.Resize(0);
@@ -773,6 +786,9 @@ public class Virtualize<TItem> : ComponentBase
         // then follows the top of the screen.
         lastExclusive = Math.Min(lastExclusive, first + MaxItemCount);
 
+        if (_lastFirst >= 0 && first != _lastFirst) _scrollDirection = first > _lastFirst ? 1 : -1;
+        _lastFirst = first;
+
         RecordAnchor(first, top, baseY, observation);
 
         bool covered = _windowStart <= first && _windowEnd >= lastExclusive;
@@ -788,8 +804,9 @@ public class Virtualize<TItem> : ComponentBase
             return false;
         }
 
-        int start = Math.Max(0, first - OverscanCount);
-        int end = Math.Min(count, lastExclusive + OverscanCount);
+        var (before, after) = SplitOverscan();
+        int start = Math.Max(0, first - before);
+        int end = Math.Min(count, lastExclusive + after);
         int excess = end - start - MaxItemCount;
         if (excess > 0)
         {
@@ -808,6 +825,24 @@ public class Virtualize<TItem> : ComponentBase
 
     private bool WindowLoaded()
         => _windowEnd <= _windowStart || (IsLoaded(_windowStart) && IsLoaded(Math.Min(_windowEnd, ItemCount) - 1));
+
+    /// <summary>
+    /// How many items to render before and after the visible ones when the window moves. Until the list
+    /// has been scrolled it is <see cref="OverscanCount"/> on either side; after that the same total is
+    /// split towards the direction of travel, keeping about a third of <see cref="OverscanCount"/>
+    /// (at least one item) behind. Moving the window costs a restyle and relayout of everything
+    /// rendered, so the further the user can scroll before the next move, the fewer of those frames
+    /// a scroll has — rendering the extra items behind saves none, the user is moving away from them.
+    /// A reversal moves the window once, early, and the overscan follows the new direction.
+    /// </summary>
+    private (int Before, int After) SplitOverscan()
+    {
+        int overscan = OverscanCount;
+        if (_scrollDirection == 0 || overscan < 2) return (overscan, overscan);
+        int behind = Math.Max(1, overscan / 3);
+        int ahead = 2 * overscan - behind;
+        return _scrollDirection > 0 ? (behind, ahead) : (ahead, behind);
+    }
 
     /// <summary>
     /// Records where each slot of the layout the last render produced starts — slot 0 where the leading
