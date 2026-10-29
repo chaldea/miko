@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Miko.Animation;
+using Miko.Components;
 using Miko.Core;
 using Miko.Events;
 using Miko.Highlight;
@@ -60,6 +61,9 @@ public static class EngineExtensions
         services.AddSyntaxHighlighter();
 
         services.TryAddSingleton<MikoEngine>();
+
+        // 组件 <style> / .razor.css 编译出的样式规则（ISSUE-161），按容器（应用）一份。
+        services.TryAddSingleton<ComponentStyleRegistry>();
 
         return services;
     }

@@ -11,11 +11,23 @@ internal static class CssObjectResolver
     {
         foreach (var (selectorStr, child) in css.Children)
         {
-            Flatten(selectorStr, child, "", sheet);
+            Flatten(selectorStr, child, "", sheet, media: null);
         }
     }
 
-    private static void Flatten(string selectorStr, CssObject css, string parentSelector, StyleSheet sheet)
+    /// <summary>
+    /// 把 <paramref name="css"/> 展开为 <paramref name="media"/> 下的媒体规则（CSS <c>@media</c> 块，ISSUE-161）。
+    /// 样式解析不在媒体规则里查伪元素规则，所以带伪元素的选择器在这里被拒绝。
+    /// </summary>
+    internal static void Resolve(CssObject css, StyleSheet sheet, MediaCondition media)
+    {
+        foreach (var (selectorStr, child) in css.Children)
+        {
+            Flatten(selectorStr, child, "", sheet, media);
+        }
+    }
+
+    private static void Flatten(string selectorStr, CssObject css, string parentSelector, StyleSheet sheet, MediaCondition? media)
     {
         var fullSelector = BuildFullSelector(selectorStr, parentSelector);
 
@@ -29,12 +41,19 @@ internal static class CssObjectResolver
             var pseudoInfo = ExtractPseudoElement(selector, fullSelector);
             if (pseudoInfo != null)
             {
+                if (media != null)
+                    throw new NotSupportedException($"Pseudo-element rules are not supported inside a media condition: '{fullSelector}'.");
+
                 sheet.PseudoElementRules.Add(new PseudoElementRule
                 {
                     Selector = pseudoInfo.Value.parentSelector,
                     Type = pseudoInfo.Value.type,
                     Style = style
                 });
+            }
+            else if (media != null)
+            {
+                sheet.AddMediaRule(media, selector, style);
             }
             else
             {
@@ -45,7 +64,7 @@ internal static class CssObjectResolver
         // 递归处理子选择器
         foreach (var (childSelectorStr, child) in css.Children)
         {
-            Flatten(childSelectorStr, child, fullSelector, sheet);
+            Flatten(childSelectorStr, child, fullSelector, sheet, media);
         }
     }
 

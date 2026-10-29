@@ -1,0 +1,20 @@
+@namespace Miko.Razor.Tests.Css
+@using Miko.Common
+@* ISSUE-161 scenario 1: CSS in style="…" is translated into a Style object at compile time. *@
+<div class="inline-host">
+    <div class="inline-margin" style="margin: 15px"></div>
+    <div class="inline-box" style="width: 50%; height: 2em; padding: 4px 8px; background-color: #0054e9; color: rgb(255 0 0 / 50%)"></div>
+    <div class="inline-flex" style="display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 8px 4px"></div>
+    <div class="inline-border" style="border: 2px dashed red; border-radius: 6px 12px; opacity: .5; z-index: 3"></div>
+    <div class="inline-dynamic" style="width: @(Width)px; opacity: @Opacity; background-color: @Background; height: calc(100% - @(Gap)px)"></div>
+    <div class="inline-var" style="--accent: #112233; color: var(--accent); margin-left: var(--gap, 10px)"></div>
+    <div class="inline-object" style="@ObjectStyle"></div>
+</div>
+
+@code {
+    public static float Width { get; set; } = 120;
+    public static double Opacity { get; set; } = 0.25;
+    public static string Background { get; set; } = "#00ff00";
+    public static int Gap { get; set; } = 10;
+    public static Miko.Styling.Style ObjectStyle { get; } = new() { MarginTop = Length.Px(7) };
+}

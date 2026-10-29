@@ -451,4 +451,49 @@ internal static class ComponentDiagnosticFactory
 
     public static RazorDiagnostic Create_UnknownElementTag(SourceSpan? source, string tagName)
         => RazorDiagnostic.Create(UnknownElementTag, source, tagName);
+
+    // Miko CSS diagnostics (ISSUE-161). CSS in style="…", <style> elements and .razor.css files is
+    // translated into typed C# when the component compiles. What has no Miko equivalent is dropped
+    // and reported here; the rest of the stylesheet still applies, as a browser skips what it does
+    // not understand.
+    public static readonly RazorDiagnosticDescriptor UnsupportedCssProperty =
+        new($"{DiagnosticPrefix}10102",
+            "The CSS property '{0}' is not supported by Miko and is ignored. See docs/guide/css.md.",
+            RazorDiagnosticSeverity.Warning);
+
+    public static readonly RazorDiagnosticDescriptor UnsupportedCssValue =
+        new($"{DiagnosticPrefix}10103",
+            "The value of the CSS property '{0}' cannot be translated and the declaration is ignored: {1}",
+            RazorDiagnosticSeverity.Warning);
+
+    public static readonly RazorDiagnosticDescriptor UnsupportedCssSelector =
+        new($"{DiagnosticPrefix}10104",
+            "The CSS selector '{0}' is not supported and its rule is ignored: {1}",
+            RazorDiagnosticSeverity.Warning);
+
+    public static readonly RazorDiagnosticDescriptor UnsupportedCssAtRule =
+        new($"{DiagnosticPrefix}10105",
+            "The CSS at-rule '@{0}' is not supported and is ignored{1}",
+            RazorDiagnosticSeverity.Warning);
+
+    public static readonly RazorDiagnosticDescriptor InvalidCss =
+        new($"{DiagnosticPrefix}10106",
+            "Invalid CSS: {0}",
+            RazorDiagnosticSeverity.Warning);
+
+    public static readonly RazorDiagnosticDescriptor DynamicCss =
+        new($"{DiagnosticPrefix}10107",
+            "A C# expression cannot be used here and the declaration is ignored: {0}",
+            RazorDiagnosticSeverity.Warning);
+
+    public static readonly RazorDiagnosticDescriptor ScopedCssNotReceived =
+        new($"{DiagnosticPrefix}10109",
+            "This component has a .razor.css file, but the Miko compiler did not receive it, so its rules do not apply. " +
+            "A project that overrides the Razor generator by hand must also import Miko.Razor.Compiler.targets (see docs/guide/css.md).",
+            RazorDiagnosticSeverity.Warning);
+
+    public static readonly RazorDiagnosticDescriptor ApproximatedCss =
+        new($"{DiagnosticPrefix}10108",
+            "'{0}' is applied approximately: {1}",
+            RazorDiagnosticSeverity.Warning);
 }

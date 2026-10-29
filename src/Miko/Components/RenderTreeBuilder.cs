@@ -408,9 +408,74 @@ public class RenderTreeBuilder
     }
 
     /// <summary>
+    /// Registers the style rules the compiler generated from a component's <c>&lt;style&gt;</c>
+    /// elements and <c>.razor.css</c> file (ISSUE-161). Emitted at the top of the component's
+    /// <c>BuildRenderTree</c>, so the rules are in the app's <see cref="ComponentStyleRegistry"/>
+    /// before the first layout that sees the component. Cheap after the first call: one lookup.
+    /// </summary>
+    public void AddComponentStyles(Type componentType, string hash, Func<Styling.StyleSheet> build)
+    {
+        if (ComponentServiceScope.Current?.GetService(typeof(ComponentStyleRegistry)) is ComponentStyleRegistry registry)
+            registry.Register(componentType, hash, build);
+    }
+
+    /// <summary>
+    /// A number in a dynamic CSS value, such as <c>style="width: @(w)px"</c> (ISSUE-161). The CSS
+    /// is translated when the component compiles; only the number is supplied at run time.
+    /// </summary>
+    public static float CssNumber(float value) => value;
+
+    /// <inheritdoc cref="CssNumber(float)"/>
+    public static float CssNumber(double value) => (float)value;
+
+    /// <inheritdoc cref="CssNumber(float)"/>
+    public static float CssNumber(decimal value) => (float)value;
+
+    /// <inheritdoc cref="CssNumber(float)"/>
+    /// <remarks>Exact overload: an <c>int</c> converts to float, double and decimal alike, which would be ambiguous.</remarks>
+    public static float CssNumber(int value) => value;
+
+    /// <inheritdoc cref="CssNumber(int)"/>
+    public static float CssNumber(long value) => value;
+
+    /// <summary>
+    /// String overload of <see cref="CssNumber(float)"/>: Razor authors often format the number
+    /// into a string first. A value that is not a number is 0.
+    /// </summary>
+    public static float CssNumber(string? value)
+        => float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && float.IsFinite(number)
+            ? number
+            : 0f;
+
+    /// <summary>
+    /// A color in a dynamic CSS value, such as <c>style="color: @_color"</c> (ISSUE-161): a
+    /// <see cref="Color"/> as it is.
+    /// </summary>
+    public static Color CssColor(Color value) => value;
+
+    /// <summary>
+    /// String overload of <see cref="CssColor(Color)"/> for hex colors (<c>#rgb</c>, <c>#rrggbb</c>,
+    /// <c>#rrggbbaa</c>). Named and functional colors are only understood in literal CSS, which the
+    /// compiler translates; any other string here is transparent.
+    /// </summary>
+    public static Color CssColor(string? value)
+    {
+        var text = value?.Trim();
+        if (string.IsNullOrEmpty(text) || text[0] != '#') return Color.Transparent;
+        var hex = text.AsSpan(1);
+        if (hex.Length is not (3 or 4 or 6 or 8)) return Color.Transparent;
+        foreach (var c in hex)
+        {
+            if (!char.IsAsciiHexDigit(c)) return Color.Transparent;
+        }
+        return Color.FromHex(text);
+    }
+
+    /// <summary>
     /// Overload for a <c>style</c> expression whose value is not a <see cref="Styling.Style"/>
-    /// (most often a CSS string). Miko has no CSS-string parser for inline styles, so such a
-    /// value is ignored — exactly as the legacy attribute switch did, where only a
+    /// (most often a CSS string built at run time). CSS text in markup is translated by the
+    /// compiler (ISSUE-161); a string that only exists at run time is not parsed, so such a value
+    /// is ignored — exactly as the legacy attribute switch did, where only a
     /// <see cref="Styling.Style"/> matched and anything else fell through unhandled.
     /// Kept as an overload rather than a compile error so existing components keep building.
     /// </summary>

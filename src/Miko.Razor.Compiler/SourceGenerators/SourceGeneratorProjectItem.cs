@@ -20,7 +20,8 @@ namespace Microsoft.NET.Sdk.Razor.SourceGenerators
             string relativePhysicalPath,
             RazorFileKind fileKind, 
             AdditionalText additionalText, 
-            string? cssScope)
+            string? cssScope,
+            ScopedCssSource? scopedCss = null)
         {
             BasePath = basePath;
             FilePath = filePath;
@@ -28,6 +29,7 @@ namespace Microsoft.NET.Sdk.Razor.SourceGenerators
             _fileKind = fileKind;
             AdditionalText = additionalText;
             CssScope = cssScope;
+            ScopedCss = scopedCss;
 
             var text = AdditionalText.GetText();
             if (text is not null)
@@ -52,6 +54,15 @@ namespace Microsoft.NET.Sdk.Razor.SourceGenerators
 
         public override string? CssScope { get; }
 
+        /// <summary>The component's <c>.razor.css</c> file (ISSUE-161).</summary>
+        public override ScopedCssSource? ScopedCss { get; }
+
+        /// <summary>This item with its <c>.razor.css</c> file attached.</summary>
+        public SourceGeneratorProjectItem WithScopedCss(ScopedCssSource? scopedCss)
+            => scopedCss == ScopedCss
+                ? this
+                : new SourceGeneratorProjectItem(BasePath, FilePath, RelativePhysicalPath, _fileKind, AdditionalText, CssScope, scopedCss);
+
         public override Stream Read()
             => throw new NotSupportedException("This API should not be invoked. We should instead be relying on " +
                 "the RazorSourceDocument associated with this item instead.");
@@ -62,6 +73,7 @@ namespace Microsoft.NET.Sdk.Razor.SourceGenerators
         {
             if (other is null ||
                 CssScope != other.CssScope ||
+                ScopedCss != other.ScopedCss ||
                 PhysicalPath != other.PhysicalPath)
             {
                 return false;

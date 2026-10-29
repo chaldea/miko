@@ -10,8 +10,10 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
 1. **Pages.** A `.razor` file under `Pages/` with `@page "/route"` is a route; routes are
    discovered at build time. Layouts inherit `LayoutComponentBase` and render `@Body`.
 2. **Styles are typed C#.** Put rules in `GlobalStyles.cs` (`StyleSheet` + `CssObject` with
-   selector-string keys) or bind a `Style` object: `style="@_box"`. There is no CSS text:
-   `style="color:red"` does nothing. See [Styling](./docs/guide/styling.md).
+   selector-string keys) or bind a `Style` object: `style="@_box"`. CSS in `style="…"`,
+   `<style>` and `.razor.css` is translated by the compiler, and what Miko cannot do is a build
+   warning (RZ10102–RZ10109) — fix those. See [Styling](./docs/guide/styling.md) and
+   [CSS](./docs/guide/css.md).
 3. **Elements and attributes are a fixed set.** Attribute names are lowercase, and any attribute
    not listed in [Elements](./docs/guide/elements.md) is dropped **silently** — e.g. `placeholder`
    on `<input>`, `disabled`, `<option value>`. `<select @bind>` does not show the bound value.
@@ -47,6 +49,7 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
 - [Razor Components](docs/guide/razor-components.md): components, parameters, child content, component identity and `@key`, long lists (`Virtualize`), `@bind`, routing, layouts, `MikoAppBuilder`.
 - [Elements](docs/guide/elements.md): every markup tag and the attributes it accepts. **Check before using a tag or attribute.**
 - [Styling](docs/guide/styling.md): `Style`, `Length`, `Color`, `StyleSheet` + `CssObject`, selectors, cascade, inheritance.
+- [CSS in Razor Components](docs/guide/css.md): `style="…"`, `<style>` and `.razor.css`, compiled to C#; what is translated and the RZ101xx warnings.
 - [Layout](docs/guide/layout.md): box model, block / inline / flex / grid, positioning, overflow, sizing.
 - [Fonts & Text](docs/guide/fonts.md): font families, fallback, custom fonts.
 - [Localization & Right-to-Left](docs/guide/localization.md): `IStringLocalizer` + `.resx`, switching language at run time, `dir` / `Direction`, mixed-direction text, complex scripts.

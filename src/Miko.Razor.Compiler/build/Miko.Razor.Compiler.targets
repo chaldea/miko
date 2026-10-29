@@ -1,0 +1,21 @@
+<Project>
+
+  <!--
+    Component CSS isolation (ISSUE-161). The Razor SDK finds each component's `.razor.css` file
+    (ScopedCssInput) and gives the component a scope id (`b-xxxxxxxxxx`, the CssScope metadata the
+    generator already reads). Miko compiles the CSS into the component instead of bundling it for a
+    browser, so the generator needs the file itself: pass it as an AdditionalFile. The generator
+    pairs it with its component by the SDK's convention (the component's path + `.css`).
+
+    NuGet imports this file for package consumers; the in-repo projects import it directly
+    (examples/Directory.Build.targets, tests/Miko.Razor.Tests).
+  -->
+  <Target Name="_MikoAddScopedCssToRazorGenerator"
+          AfterTargets="_PrepareRazorSourceGenerators"
+          Condition="'$(ScopedCssEnabled)' != 'false'">
+    <ItemGroup>
+      <AdditionalFiles Include="@(ScopedCssInput)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

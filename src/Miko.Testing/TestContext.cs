@@ -47,8 +47,9 @@ public class TestContext : IDisposable
     /// Services made available to rendered components via <c>[Inject]</c>. Register services
     /// here before calling <see cref="Render{TComponent}"/>; the container is built lazily on the
     /// first render and pushed as the ambient component service scope (mirroring how the app's
-    /// <c>RouteView</c> supplies services). Empty by default — components with no registered
-    /// dependency resolve <c>[Inject]</c> to null, matching a bare build.
+    /// <c>RouteView</c> supplies services). It starts with only the
+    /// <see cref="ComponentStyleRegistry"/> — components with no registered dependency resolve
+    /// <c>[Inject]</c> to null, matching a bare build.
     /// </summary>
     public IServiceCollection Services { get; } = new ServiceCollection();
 
@@ -56,6 +57,9 @@ public class TestContext : IDisposable
     {
         ViewportWidth = _defaultViewportWidth;
         ViewportHeight = _defaultViewportHeight;
+        // Rules compiled from components' <style> elements and .razor.css files register here as
+        // the components render, as in an app (ISSUE-161); RenderElement lays out with them.
+        Services.AddSingleton<ComponentStyleRegistry>();
     }
 
     /// <summary>
@@ -103,7 +107,7 @@ public class TestContext : IDisposable
         // Perform layout (this computes styles, builds layout tree, and calculates layout)
         var layoutTree = layoutEngine.Layout(
             rootElement,
-            _styleSheets,
+            EffectiveStyleSheets(),
             ViewportWidth,
             ViewportHeight,
             SafeArea);
@@ -135,6 +139,23 @@ public class TestContext : IDisposable
     public void AddStyleSheet(StyleSheet styleSheet)
     {
         _styleSheets.Add(styleSheet);
+    }
+
+    /// <summary>
+    /// The rules compiled from the CSS of the components rendered so far (their <c>&lt;style&gt;</c>
+    /// elements and <c>.razor.css</c> files, ISSUE-161). Applied after <see cref="StyleSheets"/>.
+    /// </summary>
+    public ComponentStyleRegistry ComponentStyles
+        => GetServiceProvider()?.GetService<ComponentStyleRegistry>()
+           ?? throw new InvalidOperationException("No ComponentStyleRegistry is registered in Services.");
+
+    // The test's sheets, then the component CSS — the order an app uses (see MikoAppBuilder).
+    private List<StyleSheet> EffectiveStyleSheets()
+    {
+        var registry = GetServiceProvider()?.GetService<ComponentStyleRegistry>();
+        if (registry is null || _styleSheets.Contains(registry.StyleSheet))
+            return _styleSheets;
+        return [.. _styleSheets, registry.StyleSheet];
     }
 
     // Builds (once) the service provider from registered Services. Returns null when nothing was

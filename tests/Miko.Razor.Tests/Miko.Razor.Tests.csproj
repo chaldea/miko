@@ -53,4 +53,7 @@
     </ItemGroup>
   </Target>
 
+  <!-- .razor.css files reach the compiler (ISSUE-161). -->
+  <Import Project="..\..\src\Miko.Razor.Compiler\build\Miko.Razor.Compiler.targets" />
+
 </Project>

@@ -1,0 +1,14 @@
+/* Scoped to ScopedCssFixture (Blazor CSS isolation). */
+.scoped-host {
+    padding: 4px;
+}
+
+.scoped-text {
+    margin: 15px;
+    color: #ff0000;
+}
+
+/* ::deep reaches into child components. */
+.scoped-host ::deep .deep-target {
+    margin-top: 9px;
+}

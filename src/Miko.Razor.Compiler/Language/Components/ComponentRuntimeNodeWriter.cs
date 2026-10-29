@@ -6,8 +6,11 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using Microsoft.AspNetCore.Razor.Language.CodeGeneration;
+using Microsoft.AspNetCore.Razor.Language.Components.Css;
 using Microsoft.AspNetCore.Razor.Language.Extensions;
 using Microsoft.AspNetCore.Razor.Language.Intermediate;
 using Microsoft.AspNetCore.Razor.PooledObjects;
@@ -368,7 +371,9 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
         }
 
         var stringContent = ((IntermediateToken)node.Children.Single()).Content;
-        _currentAttributeValues.Add(IntermediateNodeFactory.HtmlToken(node.Prefix + stringContent));
+        // The source span covers the prefix and the value, as the token does: inline CSS
+        // diagnostics (ISSUE-161) point into the attribute with it.
+        _currentAttributeValues.Add(IntermediateNodeFactory.HtmlToken(node.Prefix + stringContent, node.Source));
     }
 
     public override void WriteHtmlContent(CodeRenderingContext context, HtmlContentIntermediateNode node)
@@ -1293,6 +1298,28 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
     private void WriteAttribute(
         CodeRenderingContext context, string key, ImmutableArray<IntermediateToken> value, SourceSpan? source = null)
     {
+        // .razor.css 作用域（ISSUE-161）：ComponentCssScopePass 给每个元素加了一个名为作用域 id 的无值属性。
+        // 它不是 HTML 属性，写到元素的 CssScope 上，供改写后的 [b-xxxxxxxxxx] 选择器匹配。
+        if (context.Options.CssScope is { Length: > 0 } scope && key == scope && value.Length == 0)
+        {
+            if (_currentElement.IsTyped)
+            {
+                context.CodeWriter.Write(_currentElement.VariableName);
+                context.CodeWriter.Write(".CssScope = ");
+                context.CodeWriter.WriteStringLiteral(scope);
+                context.CodeWriter.WriteLine(";");
+            }
+
+            return;
+        }
+
+        // style="margin: 15px"：CSS 文本在编译期翻译成 Style 对象（ISSUE-161）。
+        if (_currentElement.IsTyped && key is "style" or "Style" && HasCssText(value))
+        {
+            WriteInlineCss(context, value, source);
+            return;
+        }
+
         // 强类型路径（ISSUE-136）：已知标签上的已知属性直接写到元素实例上，
         // 不再经运行时的名字 switch。
         if (TryWriteTypedElementAttribute(context, key, value))
@@ -1325,6 +1352,97 @@ internal class ComponentRuntimeNodeWriter : ComponentNodeWriter
 
         context.CodeWriter.WriteEndMethodInvocation();
     }
+
+    /// <summary>Whether a <c>style</c> value has CSS text, not just a C# expression (<c>style="@_style"</c>).</summary>
+    private static bool HasCssText(ImmutableArray<IntermediateToken> value)
+        => value.Any(static t => t is HtmlIntermediateToken && !string.IsNullOrWhiteSpace(t.Content));
+
+    /// <summary>
+    /// <c>style="width: @(w)px; color: red"</c> → <c>SetStyle(__e0, new Style { Width = Length.Px(CssNumber((w))), Color = … })</c>
+    /// (ISSUE-161). The CSS is translated here; a C# expression supplies a length, number or color
+    /// only, so nothing is parsed at run time.
+    /// </summary>
+    private void WriteInlineCss(CodeRenderingContext context, ImmutableArray<IntermediateToken> value, SourceSpan? source)
+    {
+        var css = new StringBuilder();
+        var map = new CssSourceMap();
+        var expressions = new List<List<CSharpIntermediateToken>>();
+        var previousWasCSharp = false;
+        foreach (var token in value)
+        {
+            if (token is CSharpIntermediateToken csharp)
+            {
+                // Contiguous C# tokens are one expression (see WriteAttributeValue).
+                if (!previousWasCSharp)
+                {
+                    expressions.Add(new List<CSharpIntermediateToken>());
+                    var placeholder = CssPlaceholder.Encode(expressions.Count - 1);
+                    map.Add(css.Length, placeholder, csharp.Source, exact: false);
+                    css.Append(placeholder);
+                }
+
+                expressions[expressions.Count - 1].Add(csharp);
+                previousWasCSharp = true;
+            }
+            else
+            {
+                map.Add(css.Length, token.Content, token.Source, exact: true);
+                css.Append(token.Content);
+                previousWasCSharp = false;
+            }
+        }
+
+        var text = css.ToString();
+        var diagnostics = new List<CssDiagnostic>();
+        var declarations = CssParser.ParseDeclarationList(text, diagnostics);
+        var block = CssPropertyTranslator.TranslateBlock(new CssTranslationContext(text, diagnostics, allowDynamic: true), declarations);
+        foreach (var diagnostic in diagnostics)
+        {
+            var razorDiagnostic = diagnostic.ToRazorDiagnostic(map);
+            context.AddDiagnostic(razorDiagnostic.Span == SourceSpan.Undefined && source != null
+                ? RazorDiagnostic.Create(diagnostic.Descriptor, source, (object[])diagnostic.Args)
+                : razorDiagnostic);
+        }
+
+        if (block.IsEmpty)
+        {
+            return;
+        }
+
+        // RenderTreeBuilder.SetStyle(__e0, new Style { … });
+        var writer = context.CodeWriter;
+        writer.Write("global::");
+        writer.Write(ComponentsApi.RenderTreeBuilder.FullTypeName);
+        writer.Write(".SetStyle(");
+        writer.Write(_currentElement.VariableName!);
+        writer.Write(", ");
+        var initializer = block.ToInitializer("global::Miko.Styling.Style", "            ");
+        var start = 0;
+        while (true)
+        {
+            var open = initializer.IndexOf(CssPlaceholder.Open, start);
+            if (open < 0)
+            {
+                writer.Write(initializer.Substring(start));
+                break;
+            }
+
+            writer.Write(initializer.Substring(start, open - start));
+            var close = initializer.IndexOf(CssPlaceholder.Close, open);
+            var index = int.Parse(initializer.Substring(open + 1, close - open - 1), CultureInfo.InvariantCulture);
+            writer.Write("(");
+            foreach (var token in expressions[index])
+            {
+                WriteCSharpToken(context, token);
+            }
+
+            writer.Write(")");
+            start = close + 1;
+        }
+
+        writer.WriteLine(");");
+    }
+
 
     /// <summary>
     /// Emits an element attribute as a direct assignment on the open element's local, e.g.

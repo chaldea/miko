@@ -1,0 +1,6 @@
+@namespace Miko.Razor.Tests.Css
+@* ISSUE-161 scenario 3: ScopedCssFixture.razor.css applies to this component's own elements only. *@
+<div class="scoped-host">
+    <p class="scoped-text">Mine</p>
+    <ScopedCssChild />
+</div>
