@@ -43,6 +43,12 @@ public abstract class RazorProjectItem
     public virtual string CssScope { get; }
 
     /// <summary>
+    /// The component's <c>.razor.css</c> file, which Miko compiles into the component (ISSUE-161),
+    /// or null. Only set together with <see cref="CssScope"/>.
+    /// </summary>
+    public virtual ScopedCssSource ScopedCss => null;
+
+    /// <summary>
     /// Gets the document kind that should be used for the generated document. If possible this will be inferred from the file path. May be null.
     /// </summary>
     public virtual RazorFileKind FileKind

@@ -462,6 +462,33 @@ Components inherit from `MikoComponent` or `LayoutComponentBase` and use standar
 `$(TargetFramework)`, so platform projects (`net10.0-android`, `net10.0-ios`) with `.razor` files
 build from the package (ISSUE-154). The compiler csproj fails `pack` if the two drift apart.
 
+### CSS in components (ISSUE-161)
+
+CSS in `style="…"`, `<style>` elements and `.razor.css` files is translated into typed C# by the
+compiler (`Language/Components/Css/`); nothing parses CSS text at run time (selector *strings* are
+still parsed by `CssSelectorParser`, once, when a component first renders). User docs: `docs/guide/css.md`.
+
+- **What runs where.** `ComponentStylePass` (directive classifier, before `ComponentWhitespacePass`
+  so CSS offsets are still source offsets) lifts `<style>` and the `.razor.css` text into
+  `private static StyleSheet __MikoBuildComponentStyles()` and a
+  `__builder.AddComponentStyles(typeof(T), hash, …)` call at the top of `BuildRenderTree`.
+  `ComponentRuntimeNodeWriter.WriteInlineCss` handles `style="…"`. The rules register in the
+  per-container `ComponentStyleRegistry` (`AddMikoEngine`; `MikoAppBuilder` appends its sheet after
+  all app sheets; `TestContext` lays out with it), reached through `ComponentServiceScope.Current`.
+- **Generated code never throws.** `CssSelectorTranslator` accepts only what the runtime parser
+  accepts; grid tracks / areas / lines are validated as their constructors would. A new runtime
+  pseudo-class or `Style` property needs its entry in the translator (`s_pseudoClasses`,
+  `CssPropertyTranslator.Properties.cs`, a keyword map in `.Maps.cs`); `Miko.Razor.Compiler.Tests`
+  compiles a sample of every supported property against `Miko.dll` and checks the maps against the enums.
+- **Isolation.** The Razor SDK computes the scope (`CssScope`, `b-xxxxxxxxxx`) and
+  `ComponentCssScopePass` stamps every element; Miko writes it to `Element.CssScope`, and
+  `AttributeSelector` matches `[b-…]` against it. The `.razor.css` text reaches the generator only as
+  an AdditionalFile, added by `build/Miko.Razor.Compiler.targets` — a hand-written
+  `_OverrideRazorSourceGenerator` must import it (RZ10109 otherwise).
+- **Diagnostics** RZ10102–RZ10109; positions map back through `CssSourceMap` (attribute value
+  tokens carry their source span for it). C# in a `style` attribute supplies lengths (with a unit),
+  numbers and colors only (`RenderTreeBuilder.CssNumber` / `CssColor`).
+
 ### Component identity, reuse and render batching (ISSUE-154)
 
 A parent re-render **reuses** each nested component whose identity is unchanged instead of

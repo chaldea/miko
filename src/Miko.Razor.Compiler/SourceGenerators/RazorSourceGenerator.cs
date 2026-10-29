@@ -36,6 +36,34 @@ namespace Microsoft.NET.Sdk.Razor.SourceGenerators
             _testSuppressUniqueIds = testUniqueIds;
         }
 
+        /// <summary>
+        /// The <c>.razor.css</c> file of a component the Razor SDK gave a CSS scope: by the SDK's
+        /// convention, the component's path with <c>.css</c> appended.
+        /// </summary>
+        private static ScopedCssSource? FindScopedCss(SourceGeneratorProjectItem item, System.Collections.Immutable.ImmutableArray<ScopedCssSource> files)
+        {
+            if (string.IsNullOrEmpty(item.CssScope) || files.IsDefaultOrEmpty)
+            {
+                return null;
+            }
+
+            var expected = Normalize(item.PhysicalPath + ".css");
+            var relative = Normalize(item.RelativePhysicalPath + ".css");
+            foreach (var file in files)
+            {
+                var path = Normalize(file.FilePath);
+                if (string.Equals(path, expected, StringComparison.OrdinalIgnoreCase) ||
+                    path.EndsWith("/" + relative.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+                {
+                    return file;
+                }
+            }
+
+            return null;
+
+            static string Normalize(string path) => path.Replace('\\', '/');
+        }
+
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             var analyzerConfigOptions = context.AnalyzerConfigOptionsProvider;
@@ -57,11 +85,20 @@ namespace Microsoft.NET.Sdk.Razor.SourceGenerators
                 .Select(ComputeRazorSourceGeneratorOptions)
                 .ReportDiagnostics(context);
 
+            // A component's .razor.css file (ISSUE-161), passed as an AdditionalFile by
+            // build/Miko.Razor.Compiler.targets, is compiled into the component.
+            var scopedCssFiles = additionalTexts
+                .Where(static file => file.Path.EndsWith(".razor.css", StringComparison.OrdinalIgnoreCase))
+                .Select(static (file, ct) => new ScopedCssSource(file.Path, file.GetText(ct)?.ToString() ?? string.Empty))
+                .Collect();
+
             var sourceItems = additionalTexts
                 .Where(static (file) => FileUtilities.IsAnyRazorFilePath(file.Path, StringComparison.OrdinalIgnoreCase))
                 .Combine(analyzerConfigOptions)
                 .Select(ComputeProjectItems)
-                .ReportDiagnostics(context);
+                .ReportDiagnostics(context)
+                .Combine(scopedCssFiles)
+                .Select(static (pair, _) => pair.Left.WithScopedCss(FindScopedCss(pair.Left, pair.Right)));
 
             var hasRazorFiles = sourceItems.Collect()
                 .Select(static (sourceItems, _) => sourceItems.Any());

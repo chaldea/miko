@@ -27,7 +27,15 @@ public class MikoAppBuilder
         // 与 MikoEngineBuilder 共用同一套定义（ISSUE-129）。
         builder.Services.AddMikoEngine();
 
-        builder.Services.AddOptions<MikoAppOptions>();
+        // Component CSS compiled from <style> elements and .razor.css files (ISSUE-161) goes after
+        // every sheet the app and its libraries register, as Blazor links the bundled component
+        // CSS after the app's own. PostConfigure runs after all Configure calls, whatever their order.
+        builder.Services.AddOptions<MikoAppOptions>()
+            .PostConfigure<Components.ComponentStyleRegistry>((options, registry) =>
+            {
+                if (!options.StyleSheets.Contains(registry.StyleSheet))
+                    options.StyleSheets.Add(registry.StyleSheet);
+            });
         builder.Services.AddSingleton<NavigationManager>();
         // Host platform info + component-facing platform service (auto-detected from the OS).
         // One shared instance backs both interfaces: platform hosts / the device simulator mutate

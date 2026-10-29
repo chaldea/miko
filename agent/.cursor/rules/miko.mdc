@@ -24,8 +24,10 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
 1. **Pages.** A `.razor` file under `Pages/` with `@page "/route"` is a route; routes are
    discovered at build time. Layouts inherit `LayoutComponentBase` and render `@Body`.
 2. **Styles are typed C#.** Put rules in `GlobalStyles.cs` (`StyleSheet` + `CssObject` with
-   selector-string keys) or bind a `Style` object: `style="@_box"`. There is no CSS text:
-   `style="color:red"` does nothing. See [Styling](../../.miko/docs/guide/styling.md).
+   selector-string keys) or bind a `Style` object: `style="@_box"`. CSS in `style="…"`,
+   `<style>` and `.razor.css` is translated by the compiler, and what Miko cannot do is a build
+   warning (RZ10102–RZ10109) — fix those. See [Styling](../../.miko/docs/guide/styling.md) and
+   [CSS](../../.miko/docs/guide/css.md).
 3. **Elements and attributes are a fixed set.** Attribute names are lowercase, and any attribute
    not listed in [Elements](../../.miko/docs/guide/elements.md) is dropped **silently** — e.g. `placeholder`
    on `<input>`, `disabled`, `<option value>`. `<select @bind>` does not show the bound value.

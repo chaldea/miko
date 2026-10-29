@@ -131,6 +131,27 @@ public class LastChildSelector : PseudoClassSelector
 }
 
 /// <summary>
+/// :only-child 伪类选择器：既是第一个也是最后一个元素子节点（ISSUE-161）。单个伪类的特异性，
+/// 不能写成 <c>:first-child:last-child</c>（那是两个伪类的特异性）。
+/// </summary>
+public class OnlyChildSelector : PseudoClassSelector
+{
+    private static readonly FirstChildSelector s_first = new();
+    private static readonly LastChildSelector s_last = new();
+
+    public override bool Matches(Element element) => s_first.Matches(element) && s_last.Matches(element);
+}
+
+/// <summary>:only-of-type 伪类选择器：同标签兄弟中唯一的一个（ISSUE-161）。</summary>
+public class OnlyOfTypeSelector : PseudoClassSelector
+{
+    private static readonly FirstOfTypeSelector s_first = new();
+    private static readonly LastOfTypeSelector s_last = new();
+
+    public override bool Matches(Element element) => s_first.Matches(element) && s_last.Matches(element);
+}
+
+/// <summary>
 /// :first-of-type 伪类选择器
 /// </summary>
 public class FirstOfTypeSelector : PseudoClassSelector
@@ -207,6 +228,16 @@ public class EmptySelector : PseudoClassSelector
         }
         return true;
     }
+}
+
+/// <summary>
+/// :root 伪类选择器：匹配没有父元素的元素，即所在树的根（ISSUE-161）。CSS 里它常用来声明全局变量
+/// （<c>:root { --brand: #0054e9; }</c>），变量沿树继承，因此根上的定义对整棵树可见。
+/// Miko 没有 <c>html</c> 元素，应用的根组件产出的元素就是根；转场期间两棵页面树各有一个根。
+/// </summary>
+public class RootSelector : PseudoClassSelector
+{
+    public override bool Matches(Element element) => element.Parent == null;
 }
 
 /// <summary>

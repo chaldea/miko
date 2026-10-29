@@ -41,6 +41,12 @@ public class AttributeSelector : Selector
 
     public override bool Matches(Element element)
     {
+        // [b-xxxxxxxxxx]：组件 CSS 隔离作用域（ISSUE-161）。作用域不是 CLR 属性，直接比对元素的 CssScope；
+        // 含连字符的名字也不可能是 C# 属性名，不会与下面的属性查表冲突。
+        if (Operator == AttributeMatchOperator.Exists && element.CssScope is { } scope
+            && string.Equals(scope, AttributeName, StringComparison.Ordinal))
+            return true;
+
         // Miko 元素把 HTML 属性作为 C# 属性暴露；查表由源生成器产出，不用反射
         // （反射版在 Native AOT 下被裁剪后恒失配，见 Element.TryGetAttributeValue，ISSUE-140）。
         if (!element.TryGetAttributeValue(AttributeName, out var attrValue))

@@ -26,8 +26,9 @@ Buttons with variants, text fields with labels, toggles, lists, cards, tabs and 
 - To reach an element from C#, capture it with `@ref`: the field can be the element class itself
   (`CanvasElement? _canvas;`), `Element`, or `ElementReference`. A `<canvas>` is painted by
   assigning its `Paint` callback this way.
-- `style` takes a `Style` **object** (`style="@_boxStyle"`), not a CSS string. See
-  [Styling](./styling.md#inline-styles).
+- `style` takes a `Style` object (`style="@_boxStyle"`) or CSS, which the compiler translates
+  (`style="margin: 15px"`, see [CSS in Razor Components](./css.md)). A `<style>` element is not
+  rendered: its rules are compiled into the component.
 - Whitespace between tags is insignificant; `<pre>` preserves it verbatim (see
   [Razor Components](./razor-components.md#preformatted-text-code-blocks)).
 

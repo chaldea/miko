@@ -63,6 +63,13 @@ public sealed partial class RazorCodeDocument
         return new RazorCodeDocument(source, imports, parserOptions, codeGenerationOptions);
     }
 
+    /// <summary>The component's <c>.razor.css</c> file, compiled into the component (ISSUE-161).</summary>
+    internal ScopedCssSource? GetScopedCss()
+        => _properties.ScopedCss.Value;
+
+    internal void SetScopedCss(ScopedCssSource? value)
+        => _properties.ScopedCss.SetValue(value);
+
     internal bool TryGetTagHelpers([NotNullWhen(true)] out IReadOnlyList<TagHelperDescriptor>? result)
         => _properties.TagHelpers.TryGetValue(out result);
 

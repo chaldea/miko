@@ -31,8 +31,7 @@ Miko implements a subset of CSS. The following features are **not supported**:
 ### Selectors
 
 Only the pseudo-classes and pseudo-elements listed in [Styling](./styling.md) are supported. Among
-the missing ones are `:only-child`, `:only-of-type`, `:root`, `:focus-visible`, `::selection`,
-`::marker` and `::first-line`.
+the missing ones are `:focus-visible`, `:visited`, `::selection`, `::marker` and `::first-line`.
 
 ### Positioning and layout
 
@@ -48,9 +47,11 @@ the missing ones are `:only-child`, `:only-of-type`, `:root`, `:focus-visible`, 
 - `clip-path`
 - `text-shadow`
 
-### Styles are C# only
+### CSS is compiled, not loaded
 
-Stylesheets must be built in C# as `StyleSheet` objects. There is no `.css` file parsing or loading.
+CSS in components (`style="…"`, `<style>`, `.razor.css`) is translated into C# when they compile —
+see [CSS in Razor Components](./css.md). There is no loading of `.css` files at run time, no
+`@import`, and a CSS string built at run time is not parsed.
 
 ## Input and interaction
 

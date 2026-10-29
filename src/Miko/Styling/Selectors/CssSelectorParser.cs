@@ -145,6 +145,9 @@ public static class CssSelectorParser
         "last-of-type" => new LastOfTypeSelector(),
         "empty" => new EmptySelector(),
         "checked" => new CheckedSelector(),
+        "root" => new RootSelector(),
+        "only-child" => new OnlyChildSelector(),
+        "only-of-type" => new OnlyOfTypeSelector(),
         _ => throw new ArgumentException($"Unknown pseudo-class: :{name}")
     };
 

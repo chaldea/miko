@@ -20,6 +20,7 @@
     <Project Path="tests/Miko.Ionic.Tests/Miko.Ionic.Tests.csproj" />
     <Project Path="tests/Miko.McpServer.Tests/Miko.McpServer.Tests.csproj" />
     <Project Path="tests/Miko.Native.Tests/Miko.Native.Tests.csproj" />
+    <Project Path="tests/Miko.Razor.Compiler.Tests/Miko.Razor.Compiler.Tests.csproj" />
     <Project Path="tests/Miko.Razor.Tests/Miko.Razor.Tests.csproj" />
     <Project Path="tests/Miko.Tests/Miko.Tests.csproj" />
   </Folder>

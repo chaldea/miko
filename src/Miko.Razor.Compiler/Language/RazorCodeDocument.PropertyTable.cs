@@ -21,7 +21,7 @@ public sealed partial class RazorCodeDocument
         // To add a mutable value, increase Size by 1 and add a new property below.
         // Use a Property<T> for reference types or a BoxedProperty<T> for value types.
 
-        private const int Size = 10;
+        private const int Size = 11;
 
         private readonly object?[] _values = new object?[Size];
 
@@ -35,6 +35,7 @@ public sealed partial class RazorCodeDocument
         public Property<RazorCSharpDocument> CSharpDocument => new(_values, 7);
         public Property<RazorHtmlDocument> HtmlDocument => new(_values, 8);
         public BoxedProperty<(string name, SourceSpan? span)> NamespaceInfo => new(_values, 9);
+        public Property<ScopedCssSource> ScopedCss => new(_values, 10);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("Do not use. Present to support the legacy editor", error: false)]

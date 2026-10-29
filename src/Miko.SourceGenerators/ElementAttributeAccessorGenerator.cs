@@ -36,6 +36,8 @@ public class ElementAttributeAccessorGenerator : IIncrementalGenerator
         "Style", "Children", "Parent", "TagName", "IsDirty", "LayoutBox",
         "TextContent", "Owner", "SupersededBy", "DisposeCallback", "IsSelectable", "State",
         "ScrollTop", "InitialScrollTop", "OffsetWidth", "OffsetHeight", "Bitmap",
+        // 组件的 CSS 隔离作用域（ISSUE-161）不是 HTML 属性，由 AttributeSelector 以 [b-xxxxxxxxxx] 的形式单独匹配。
+        "CssScope",
     };
 
     public void Initialize(IncrementalGeneratorInitializationContext context)

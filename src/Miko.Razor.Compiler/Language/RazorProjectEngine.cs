@@ -178,8 +178,14 @@ public sealed class RazorProjectEngine
         var source = projectItem.GetSource();
         var importSources = GetImportSources(projectItem, designTime: false);
 
-        return CreateCodeDocumentCore(
+        var codeDocument = CreateCodeDocumentCore(
             source, projectItem.FileKind, importSources, tagHelpers: null, cssScope: projectItem.CssScope, configureParser, configureCodeGeneration);
+        if (projectItem.CssScope is { Length: > 0 })
+        {
+            codeDocument.SetScopedCss(projectItem.ScopedCss);
+        }
+
+        return codeDocument;
     }
 
     private RazorCodeDocument CreateCodeDocumentCore(
@@ -438,6 +444,7 @@ public sealed class RazorProjectEngine
         builder.Features.Add(new ComponentDocumentClassifierPass());
 
         // Directive Classifier
+        builder.Features.Add(new ComponentStylePass());
         builder.Features.Add(new ComponentWhitespacePass());
 
         // Optimization

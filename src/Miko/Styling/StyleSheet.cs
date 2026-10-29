@@ -46,6 +46,52 @@ public class StyleSheet
         Version++;
     }
 
+    /// <summary>
+    /// Adds the rules of <paramref name="css"/> as media rules that apply while
+    /// <paramref name="condition"/> matches the viewport — the counterpart of a CSS <c>@media</c>
+    /// block. Rules added with the same <paramref name="condition"/> instance share one media rule.
+    /// Pseudo-element selectors are not supported here (the cascade does not look for them in media
+    /// rules) and throw <see cref="NotSupportedException"/>.
+    /// </summary>
+    public void Add(CssObject css, MediaCondition condition)
+    {
+        ArgumentNullException.ThrowIfNull(css);
+        ArgumentNullException.ThrowIfNull(condition);
+        InvalidateAnalyses();
+        CssObjectResolver.Resolve(css, this, condition);
+        Version++;
+    }
+
+    /// <summary>
+    /// Replaces this sheet's rules with those of <paramref name="sources"/>, in order (used by
+    /// <see cref="Components.ComponentStyleRegistry"/>, ISSUE-161). The sheet keeps its identity, so an
+    /// engine that holds it sees the new rules on its next frame through <see cref="Version"/>.
+    /// </summary>
+    internal void ReplaceRules(IEnumerable<StyleSheet> sources)
+    {
+        InvalidateAnalyses();
+        Rules.Clear();
+        PseudoElementRules.Clear();
+        MediaRules.Clear();
+        foreach (var source in sources)
+        {
+            Rules.AddRange(source.Rules);
+            PseudoElementRules.AddRange(source.PseudoElementRules);
+            MediaRules.AddRange(source.MediaRules);
+        }
+        Version++;
+    }
+
+    /// <summary>Appends the rules of <paramref name="source"/> (see <see cref="ReplaceRules"/>).</summary>
+    internal void AppendRules(StyleSheet source)
+    {
+        InvalidateAnalyses();
+        Rules.AddRange(source.Rules);
+        PseudoElementRules.AddRange(source.PseudoElementRules);
+        MediaRules.AddRange(source.MediaRules);
+        Version++;
+    }
+
     public void AddRule(Selector selector, Style style)
     {
         InvalidateAnalyses();

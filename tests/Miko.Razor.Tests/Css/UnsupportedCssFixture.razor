@@ -1,0 +1,18 @@
+@namespace Miko.Razor.Tests.Css
+@* ISSUE-161: CSS the compiler must report (RZ10102–RZ10108). Never rendered; building this test
+   project prints these warnings on purpose. RazorCssDiagnosticsTests reads them back from the
+   SARIF log, by line — keep the lines where they are. *@
+<div class="css-unsupported" style="float: left; margin: 4px"></div>
+<div class="css-dynamic" style="display: @Mode; width: @Width"></div>
+<style>
+    a:visited { color: red; }
+    .css-important { margin: 1px !important; }
+    .css-units { width: 10vmin; }
+    @@font-face { font-family: X; }
+    .css-bad { color: ; }
+</style>
+
+@code {
+    private string Mode { get; set; } = "flex";
+    private int Width { get; set; } = 10;
+}

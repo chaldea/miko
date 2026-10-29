@@ -51,4 +51,8 @@
     </ItemGroup>
   </Target>
 
+  <!-- .razor.css files reach the compiler (ISSUE-161), as the NuGet package's build/Miko.Razor.Compiler.targets does. -->
+  <Import Project="$(MSBuildThisFileDirectory)..\src\Miko.Razor.Compiler\build\Miko.Razor.Compiler.targets"
+          Condition="'$(_MikoUsesRazorCompiler)' == 'true'" />
+
 </Project>

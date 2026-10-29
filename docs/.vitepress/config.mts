@@ -83,6 +83,7 @@ export default defineConfig({
           { text: 'Razor Components', link: '/guide/razor-components' },
           { text: 'Elements', link: '/guide/elements' },
           { text: 'Styling', link: '/guide/styling' },
+          { text: 'CSS in Components', link: '/guide/css' },
           { text: 'Layout', link: '/guide/layout' },
           { text: 'Fonts & Text', link: '/guide/fonts' },
           { text: 'Localization & RTL', link: '/guide/localization' },

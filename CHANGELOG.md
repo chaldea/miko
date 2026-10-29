@@ -6,6 +6,17 @@ All notable changes to Miko are documented in this file. The format is based on
 
 ## [Unreleased]
 
+### CSS in components
+
+- **Components can be styled with CSS** — in `style="…"`, in `<style>` elements, and in
+  `Component.razor.css` files with Blazor's CSS isolation (`::deep` included). The compiler
+  translates the CSS into typed `Style` code when the component compiles; nothing is parsed at run
+  time. `style="width: @(w)px"` takes lengths, numbers and colors from C#. CSS that Miko cannot
+  represent is a build warning (RZ10102–RZ10109) pointing at the CSS, and the rest of the stylesheet
+  still applies. See [CSS in Razor Components](docs/guide/css.md).
+- New selectors `:root`, `:only-child` and `:only-of-type`; `StyleSheet.Add(CssObject, MediaCondition)`
+  adds rules under a media query.
+
 ### Long lists
 
 - **`Virtualize<TItem>`** (`Miko.Components.Virtualization`) renders only the items of a list that

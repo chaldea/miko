@@ -1,8 +1,9 @@
 # Styling
 
 Miko styles elements with a **CSS-like model**: stylesheets made of selector → style
-rules, a specificity-based cascade, and inline styles. There is no CSS text to parse —
-you build styles with strongly typed C# objects.
+rules, a specificity-based cascade, and inline styles. You build styles with strongly typed C#
+objects; CSS written in components is translated into the same objects when they compile (see
+[CSS in Razor Components](./css.md)).
 
 ## The `Style` object
 
@@ -228,14 +229,15 @@ Selector strings support:
 | Simple | `div`, `.class`, `#id`, compound `.a.b` / `button.primary` |
 | Combinators | descendant (`.a .b`), child (`>`), adjacent sibling (`+`), general sibling (`~`) |
 | Attributes | `[href]`, `[type="checkbox"]`, `~=`, `^=`, `$=`, `*=`, … |
-| Pseudo-classes | `:hover`, `:active`, `:focus`, `:focus-within`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:first-of-type`, `:last-of-type`, `:empty` |
+| Pseudo-classes | `:hover`, `:active`, `:focus`, `:focus-within`, `:disabled`, `:enabled`, `:checked`, `:first-child`, `:last-child`, `:only-child`, `:first-of-type`, `:last-of-type`, `:only-of-type`, `:empty`, `:root` (an element without a parent: the root of the tree) |
 | Structural | `:nth-child(An+B)`, `:nth-last-child(An+B)` (both also `An+B of S`), `:nth-of-type(An+B)`, `:nth-last-of-type(An+B)` |
 | Logical | `:is(…)`, `:where(…)`, `:not(…)`, `:has(…)`, each taking a comma-separated list |
 | Pseudo-elements | `::before`, `::after`; `::placeholder` on text `<input>` and `<textarea>`; `::range-thumb`, `::range-track`, `::range-progress` on `<input type="range">` |
 
 An unsupported pseudo-class (for example `:visited`) throws when the stylesheet is built. So does an
 invalid selector inside `:is()` or `:where()`: browsers skip it, but a Miko stylesheet is code, so a
-typo should fail rather than silently drop a branch.
+typo should fail rather than silently drop a branch. (CSS written in components is checked when it
+compiles instead, see [CSS in Razor Components](./css.md).)
 
 ### Structural pseudo-classes
 
@@ -356,8 +358,9 @@ var box = new DivElement
 
 ## Inline styles
 
-In `.razor` markup, `style` binds a `Style` **object**, not a CSS string — there is no CSS text
-parser. Component libraries take the same object through their `Style` parameter.
+In `.razor` markup, `style` binds a `Style` object, or takes CSS that the compiler translates into
+one (`style="margin: 15px"`, see [CSS in Razor Components](./css.md#inline-styles)). Component
+libraries take a `Style` object through their `Style` parameter.
 
 ```razor
 <div class="container" style="@_boxStyle">…</div>

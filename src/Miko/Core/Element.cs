@@ -96,6 +96,22 @@ public abstract class Element
         set { if (_dir != value) { _dir = value; IsDirty = true; BumpMutationVersion(); } }
     }
 
+    private string? _cssScope;
+
+    /// <summary>
+    /// The CSS isolation scope of the component that rendered this element (ISSUE-161): the
+    /// <c>b-xxxxxxxxxx</c> identifier the Razor SDK assigns to a component with a
+    /// <c>.razor.css</c> file. The compiler rewrites that file's selectors to require
+    /// <c>[b-xxxxxxxxxx]</c>, which <see cref="Styling.Selectors.AttributeSelector"/> matches
+    /// against this value, so the rules apply only to the component's own markup — Blazor's
+    /// CSS isolation. Set by generated code; null for elements outside a scoped component.
+    /// </summary>
+    public string? CssScope
+    {
+        get => _cssScope;
+        set { if (_cssScope != value) { _cssScope = value; IsDirty = true; BumpMutationVersion(); } }
+    }
+
     /// <summary>
     /// 子节点集合。所有增删改都会自动设置父引用、下发引擎归属并使布局缓存失效
     /// （见 <see cref="ElementCollection"/>，ISSUE-129）——直接写这个集合与调用
@@ -361,6 +377,7 @@ public abstract class Element
         Id = source.Id;
         Class = source.Class;
         Dir = source.Dir;
+        CssScope = source.CssScope;
         Style = source.Style;
         PseudoElementStyles = source.PseudoElementStyles;
         if (source.InitialScrollTop is { } scrollTop) InitialScrollTop = scrollTop;

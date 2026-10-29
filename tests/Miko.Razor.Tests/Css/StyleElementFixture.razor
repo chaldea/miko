@@ -1,0 +1,36 @@
+@namespace Miko.Razor.Tests.Css
+@* ISSUE-161 scenario 2: a <style> element is compiled into the component and applies app-wide. *@
+<div class="style-host">
+    <p class="style-text">Hello</p>
+    <span class="style-badge">1</span>
+    <div class="style-list">
+        <div class="style-item first"></div>
+        <div class="style-item"></div>
+    </div>
+</div>
+<style>
+    :root { --brand: #0054e9; }
+    .style-text {
+        margin: 15px;
+        color: var(--brand);
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    .style-host > .style-badge, .style-text::before {
+        content: "*";
+        border-radius: 50%;
+    }
+    .style-item:first-child { width: 10px; }
+    .style-item { width: 20px; transition: opacity .2s ease-in-out; animation: pulse 1s infinite; }
+    @@media (min-width: 600px) {
+        .style-text { font-size: 20px; }
+    }
+    @@media (max-width: 599px) {
+        .style-text { font-size: 12px; }
+    }
+    @@keyframes pulse {
+        from { opacity: 1; }
+        50% { opacity: .5; }
+        to { opacity: 1; }
+    }
+</style>
