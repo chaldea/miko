@@ -1,10 +1,10 @@
 using Miko.Common;
 using Miko.Core;
 using Miko.DevTools.Logging;
+using Miko.Graphics;
 using Miko.Layout;
 using Miko.Platform.Resources;
 using Miko.Rendering;
-using SkiaSharp;
 
 namespace Miko.DevTools;
 
@@ -194,32 +194,27 @@ public class DevToolsBridge
         return null;
     }
 
-    private static void DrawHighlight(SKCanvas canvas, LayoutBox box, float scrollX, float scrollY)
+    // 盒模型四层的高亮色（Chrome DevTools 的配色），半透明叠在页面上。
+    private static readonly Color MarginColor = new(246, 178, 107, 60);
+    private static readonly Color BorderColor = new(253, 216, 53, 60);
+    private static readonly Color PaddingColor = new(129, 199, 132, 60);
+    private static readonly Color ContentColor = new(100, 150, 255, 60);
+    private static readonly Color OutlineColor = new(66, 133, 244, 200);
+
+    private static void DrawHighlight(IDrawingContext canvas, LayoutBox box, float scrollX, float scrollY)
     {
         var margin = box.BoxModel.MarginBox;
         var border = box.BoxModel.BorderBox;
         var padding = box.BoxModel.PaddingBox;
         var content = box.BoxModel.Content;
 
-        using var marginPaint = new SKPaint { Color = new SKColor(246, 178, 107, 60), Style = SKPaintStyle.Fill };
-        canvas.DrawRect(margin.X - scrollX, margin.Y - scrollY, margin.Width, margin.Height, marginPaint);
-
-        using var borderPaint = new SKPaint { Color = new SKColor(253, 216, 53, 60), Style = SKPaintStyle.Fill };
-        canvas.DrawRect(border.X - scrollX, border.Y - scrollY, border.Width, border.Height, borderPaint);
-
-        using var paddingPaint = new SKPaint { Color = new SKColor(129, 199, 132, 60), Style = SKPaintStyle.Fill };
-        canvas.DrawRect(padding.X - scrollX, padding.Y - scrollY, padding.Width, padding.Height, paddingPaint);
-
-        using var contentPaint = new SKPaint { Color = new SKColor(100, 150, 255, 60), Style = SKPaintStyle.Fill };
-        canvas.DrawRect(content.X - scrollX, content.Y - scrollY, content.Width, content.Height, contentPaint);
-
-        using var outlinePaint = new SKPaint
-        {
-            Color = new SKColor(66, 133, 244, 200),
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = 1.5f,
-            IsAntialias = true
-        };
-        canvas.DrawRect(border.X - scrollX, border.Y - scrollY, border.Width, border.Height, outlinePaint);
+        canvas.FillRect(Offset(margin, scrollX, scrollY), MarginColor);
+        canvas.FillRect(Offset(border, scrollX, scrollY), BorderColor);
+        canvas.FillRect(Offset(padding, scrollX, scrollY), PaddingColor);
+        canvas.FillRect(Offset(content, scrollX, scrollY), ContentColor);
+        canvas.StrokeRect(Offset(border, scrollX, scrollY), OutlineColor, 1.5f);
     }
+
+    private static RectF Offset(RectF rect, float scrollX, float scrollY)
+        => new(rect.X - scrollX, rect.Y - scrollY, rect.Width, rect.Height);
 }

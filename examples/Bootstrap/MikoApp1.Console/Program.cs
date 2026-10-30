@@ -2,11 +2,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Miko.Core;
 using Miko.Examples.Bootstrap;
 using Miko.Examples.Bootstrap.Examples;
+using Miko.Common;
 using Miko.Fonts;
 using Miko.Hosting;
 using Miko.Routing;
 using MikoApp1;
-using SkiaSharp;
 
 int width = 1024;
 int height = 700;
@@ -31,17 +31,14 @@ var styleSheets = new List<Miko.Styling.StyleSheet>
 };
 
 var engine = new MikoEngineBuilder().Build();
-using var surface = SKSurface.Create(new SKImageInfo(width, height));
-var canvas = surface.Canvas;
-canvas.Clear(SKColors.White);
+using var surface = engine.Graphics.CreateSurface(width, height);
+var canvas = surface.Context;
+canvas.Clear(Color.White);
 
 engine.Initialize(root, styleSheets, canvas, width, height);
 engine.Render(canvas);
 
 var outputPath = Path.Combine(AppContext.BaseDirectory, "output.png");
-using var image = surface.Snapshot();
-using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-using var stream = File.OpenWrite(outputPath);
-data.SaveTo(stream);
+File.WriteAllBytes(outputPath, surface.EncodePng());
 
 Console.WriteLine($"Rendered to: {outputPath}");

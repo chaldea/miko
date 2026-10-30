@@ -1,5 +1,6 @@
 using System.Reflection;
 using Miko.Common;
+using Miko.Graphics.Skia;
 using Miko.Platform.Resources;
 using Shouldly;
 using SkiaSharp;
@@ -259,7 +260,7 @@ public class ResourceManagerTests
         entry.Scheme.ShouldBe(MediaSourceScheme.Resource);
         entry.State.ShouldBe(CachedResourceState.Loaded);
         entry.PixelWidth.ShouldBe(bmp!.Width);
-        entry.ByteCount.ShouldBe(bmp.ByteCount);
+        entry.ByteCount.ShouldBe(((SkiaImage)bmp).Bitmap!.ByteCount);
     }
 
     [Fact]

@@ -25,8 +25,8 @@ public enum VideoPixelFormat
 }
 
 /// <summary>
-/// 一个 GPU 纹理平面的后端句柄。字段直接对应
-/// <c>GRGlTextureInfo(target, id, format)</c>，由帧源在渲染线程包装为 Skia 图像。
+/// 一个 GL 纹理平面的句柄，由帧源在渲染线程经 <see cref="Graphics.GraphicsDevice.WrapGlTexture"/>
+/// 包装为图像。
 /// </summary>
 /// <param name="Target">GL 纹理目标，如 <c>GL_TEXTURE_2D</c> / <c>GL_TEXTURE_EXTERNAL_OES</c>。</param>
 /// <param name="Id">GL 纹理对象 id。</param>
@@ -45,7 +45,7 @@ public readonly record struct VideoTexturePlane(
 /// <para>
 /// 解码线程构造本类型并入队；渲染线程在 <see cref="IVideoFrameSource.AcquireCurrentFrame"/>
 /// 中据形态选择包装方式（详见 <c>VideoFrameSourceBase</c>）。这样「后端如何拿到帧」
-/// 与「如何把帧变成 <c>SKImage</c>」彻底解耦：五个平台各自只负责填充本类型。
+/// 与「如何把帧变成可绘制的图像」彻底解耦：五个平台各自只负责填充本类型。
 /// </para>
 /// </summary>
 public sealed class VideoFrameBuffer

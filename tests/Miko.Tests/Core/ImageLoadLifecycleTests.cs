@@ -1,5 +1,7 @@
 using Miko.Common;
 using Miko.Core;
+using Miko.Graphics;
+using Miko.Graphics.Skia;
 using Miko.Core.DomElements;
 using Miko.Hosting;
 using Miko.Layout;
@@ -88,7 +90,7 @@ public class ImageLoadLifecycleTests : IDisposable
         // 跨线程失效在下一次 Render 时排空并重排。
         engine.Render(_canvas);
 
-        img.Bitmap.ShouldNotBeNull();
+        img.Image.ShouldNotBeNull();
         img.IntrinsicWidth.ShouldBe(80);
         img.IntrinsicHeight.ShouldBe(40);
         FindBox(engine.GetCurrentLayout()!, img)!.BoxModel.Content.Width.ShouldBe(80);
@@ -174,14 +176,14 @@ public class ImageLoadLifecycleTests : IDisposable
 
     private sealed class FakeImageLoader : IImageLoader, IImageIntrinsicSizeProvider
     {
-        private TaskCompletionSource<SKBitmap?> _tcs = new();
+        private TaskCompletionSource<Image?> _tcs = new();
         public int Calls { get; private set; }
         public MediaSource Last { get; private set; }
 
         /// <summary>过采样矢量源报告的 viewBox 逻辑尺寸；null = 用位图像素尺寸（ISSUE-137）。</summary>
         public (int Width, int Height)? IntrinsicSize { get; init; }
 
-        public Task<SKBitmap?> LoadAsync(MediaSource source, CancellationToken ct = default)
+        public Task<Image?> LoadAsync(MediaSource source, CancellationToken ct = default)
         {
             Calls++;
             Last = source;
@@ -190,12 +192,12 @@ public class ImageLoadLifecycleTests : IDisposable
 
         public (int Width, int Height)? GetIntrinsicSize(MediaSource source) => IntrinsicSize;
 
-        public void Complete(SKBitmap? bitmap) => _tcs.TrySetResult(bitmap);
+        public void Complete(SKBitmap? bitmap) => _tcs.TrySetResult(bitmap == null ? null : new SkiaImage(bitmap));
 
         public void Reset()
         {
             Calls = 0;
-            _tcs = new TaskCompletionSource<SKBitmap?>();
+            _tcs = new TaskCompletionSource<Image?>();
         }
     }
 }

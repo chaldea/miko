@@ -1,6 +1,5 @@
 using Miko.Common;
 using Miko.Platform;
-using SkiaSharp;
 
 namespace Miko.Simulator;
 
@@ -76,12 +75,7 @@ public sealed class SimulatorService : ISimulatorService
         // 快照读取 GPU 表面，须在持有 GL 上下文的渲染线程执行。
         return _host.InvokeOnRenderThread(() =>
         {
-            var surface = _host.AppSurface;
-            if (surface == null) return null;
-
-            using var image = surface.Snapshot();
-            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-            return data?.ToArray();
+            return _host.AppSurface?.EncodePng();
         });
     }
 }

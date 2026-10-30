@@ -8,7 +8,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>Miko</PackageId>
     <Authors>Miko</Authors>
-    <Description>Miko is a lightweight DOM rendering engine written in C# that uses SkiaSharp for graphics rendering.</Description>
+    <Description>Miko is a lightweight DOM rendering engine written in C#. It renders with SkiaSharp, sealed behind its own drawing abstractions.</Description>
     <!-- IntelliSense for package consumers. CS1591: not every public member is documented yet;
          CS1573/CS1574: param tags and crefs in existing comments still to clean up (Release-1.0.0 P1-B1). -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -36,7 +36,14 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
-    <PackageReference Include="SkiaSharp" Version="3.119.1" />
+    <!--
+      The rendering backend is sealed inside this assembly (ISSUE-162): its packages flow to consumers
+      for their runtime and native assets only, never for compile. Code outside Miko cannot name an
+      SKCanvas or a GRContext; it draws through Miko.Graphics (IDrawingContext, IGraphicsFactory,
+      GraphicsDevice). A project that genuinely needs Skia itself (a test reaching the internal
+      SKCanvas overloads, a diagnostics probe) references the package explicitly.
+    -->
+    <PackageReference Include="SkiaSharp" Version="3.119.1" PrivateAssets="compile;contentfiles;analyzers;build" />
     <!--
       Svg.Skia 2.0.0.4 declares SkiaSharp.HarfBuzz 2.88.8, which drags in HarfBuzzSharp 7.3.0.2 —
       its Android libHarfBuzzSharp.so is 4 KB page-aligned (XA0141, rejected by Google Play).
@@ -44,8 +51,8 @@
       consumer of this package and brings HarfBuzzSharp 8.3.1.2, which is 16 KB aligned.
       Svg.Skia's assemblies never call HarfBuzz, so this only fixes the dependency graph.
     -->
-    <PackageReference Include="SkiaSharp.HarfBuzz" Version="3.119.1" />
-    <PackageReference Include="Svg.Skia" Version="2.0.0.4" />
+    <PackageReference Include="SkiaSharp.HarfBuzz" Version="3.119.1" PrivateAssets="compile;contentfiles;analyzers;build" />
+    <PackageReference Include="Svg.Skia" Version="2.0.0.4" PrivateAssets="compile;contentfiles;analyzers;build" />
   </ItemGroup>
 
   <ItemGroup>

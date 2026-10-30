@@ -4,10 +4,9 @@ using Foundation;
 using Metal;
 using MetalKit;
 using Miko.Events;
+using Miko.Graphics;
 using Miko.Hosting;
 using Miko.Platform;
-using Miko.Rendering;
-using SkiaSharp;
 using UIKit;
 
 namespace Miko.iOS;
@@ -17,13 +16,13 @@ namespace Miko.iOS;
 /// 引擎初始化、按屏幕缩放系数缩放的渲染、动画/热重载帧推进，以及触摸输入转发。
 /// </summary>
 /// <remarks>
-/// <para>基于 Metal（<see cref="MTKView"/> + Skia 的 Metal 后端）。此前的 OpenGL ES 宿主在 iOS
+/// <para>基于 Metal（<see cref="MTKView"/> + 引擎的 Metal 后端，<see cref="GraphicsDevice.CreateMetal"/>）。此前的 OpenGL ES 宿主在 iOS
 /// 模拟器里只能跑在软件渲染器（<c>Apple Software Renderer</c>）上，帧率只有 1–6 FPS；Metal 在模拟器里
 /// 直接使用宿主 Mac 的 GPU，在真机上也是 Apple 唯一仍在维护的图形 API（ISSUE-147）。</para>
 ///
-/// <para>没有继承 SkiaSharp 的 <c>SKMetalView</c>：它在模拟器上强制 4× MSAA、为 Skia 用不到的深度/模板
+/// <para>没有继承 SkiaSharp 的 <c>SKMetalView</c>：它在模拟器上强制 4× MSAA、为渲染器用不到的深度/模板
 /// 缓冲分配整屏纹理，而且不暴露命令队列——视频帧的原生纹理必须等本帧命令缓冲执行完才能释放
-/// （见 <see cref="MetalFrameResources"/>）。因此设备、命令队列与 <see cref="GRContext"/> 都由本类持有。</para>
+/// （见 <see cref="MetalFrameResources"/>）。因此 Metal 设备、命令队列与 <see cref="GraphicsDevice"/> 都由本类持有。</para>
 ///
 /// <para>按需出帧：视图保持暂停，只在 <see cref="UIView.SetNeedsDisplay"/> 之后的显示周期绘制一次
 /// （由 <see cref="MikoViewController"/> 的 CADisplayLink 与触摸事件请求），静止页面不占用 GPU。</para>
@@ -33,8 +32,8 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
     private readonly MikoAppContext _context;
     private readonly MikoInteractionController _controller;
     private readonly IMTLCommandQueue _queue;
-    private readonly GRContext _grContext;
-    private readonly Action<SKCanvas> _paint;
+    private readonly GraphicsDevice _gpu;
+    private readonly Action<IDrawingContext> _paint;
     private readonly Stopwatch _frameTimer = new();
     private float _scale;
     private float _lastFrameTime;
@@ -60,15 +59,13 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         var device = Device!;
         _queue = device.CreateCommandQueue()
             ?? throw new InvalidOperationException("Failed to create a Metal command queue.");
-        using var backend = new GRMtlBackendContext { Device = device, Queue = _queue };
-        _grContext = GRContext.CreateMetal(backend)
-            ?? throw new InvalidOperationException("Failed to create a Skia Metal context.");
-        GpuResourceCache.Configure(_grContext);
-        // 上下文随视图存活、不会重建，交给引擎一次即可（供视频帧源零拷贝包装解码纹理）。
-        _controller.Engine.GraphicsContext = _grContext;
+        _gpu = GraphicsDevice.CreateMetal(device.Handle, _queue.Handle);
+        _gpu.ResourceCacheLimit = GraphicsDevice.DefaultResourceCacheLimit;
+        // 设备随视图存活、不会重建，交给引擎一次即可（供视频帧源零拷贝包装解码纹理）。
+        _controller.Engine.GraphicsDevice = _gpu;
 
-        // Skia 直接画进可绘制纹理：单采样（抗锯齿由 Skia 完成，模拟器与真机一致），不要深度/模板缓冲
-        // （Skia 需要时自行分配）。FramebufferOnly=false 让 Skia 在需要读回目标的混合模式下仍可采样它。
+        // 渲染器直接画进可绘制纹理：单采样（抗锯齿由渲染器完成，模拟器与真机一致），不要深度/模板缓冲
+        // （渲染器需要时自行分配）。FramebufferOnly=false 让它在需要读回目标的混合模式下仍可采样。
         ColorPixelFormat = MTLPixelFormat.BGRA8Unorm;
         DepthStencilPixelFormat = MTLPixelFormat.Invalid;
         SampleCount = 1;
@@ -102,8 +99,8 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         SetNeedsDisplay();
     }
 
-    /// <summary>内存告警：清掉 Skia 缓存里未被引用的 GPU 资源。在主线程调用（与绘制同一线程）。</summary>
-    internal void TrimGpuResources() => _controller.TrimGpuResources(_grContext);
+    /// <summary>内存告警：清掉 GPU 资源缓存里未被引用的资源。在主线程调用（与绘制同一线程）。</summary>
+    internal void TrimGpuResources() => _controller.TrimGpuResources(_gpu);
 
     void IMTKViewDelegate.Draw(MTKView view)
     {
@@ -121,19 +118,18 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         if (width <= 0 || height <= 0) return;
 
         // CAMetalLayer 每帧轮换可绘制纹理，包装对象随帧新建、随帧释放。
-        using var target = new GRBackendRenderTarget(width, height, new GRMtlTextureInfo(texture));
-        using var surface = SKSurface.Create(_grContext, target, GRSurfaceOrigin.TopLeft, SKColorType.Bgra8888);
+        using var surface = _gpu.CreateMetalSurface(texture.Handle, width, height);
         if (surface == null) return;
 
-        RenderFrame(surface.Canvas, width, height);
+        RenderFrame(surface.Context, width, height);
 
-        // 先提交 Skia 本帧的命令，再在同一队列上用一个命令缓冲呈现。
-        _grContext.Flush();
+        // 先提交本帧的绘制命令，再在同一队列上用一个命令缓冲呈现。
+        _gpu.Flush();
         var commandBuffer = _queue.CommandBuffer();
         if (commandBuffer == null) return;
         using (commandBuffer)
         {
-            // 本帧登记的视频纹理在呈现缓冲完成（即 Skia 本帧命令已执行完）后释放。
+            // 本帧登记的视频纹理在呈现缓冲完成（即本帧绘制命令已执行完）后释放。
             var retained = MetalFrameResources.TakePending();
             if (retained != null)
             {
@@ -149,7 +145,7 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         }
     }
 
-    private void RenderFrame(SKCanvas canvas, int pixelWidth, int pixelHeight)
+    private void RenderFrame(IDrawingContext canvas, int pixelWidth, int pixelHeight)
     {
         // 可绘制纹理为物理像素，逻辑尺寸 = 物理像素 / 缩放系数。
         _scale = (float)ContentScaleFactor;
@@ -174,13 +170,13 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         _controller.RenderFrame(canvas, logicalWidth, logicalHeight, deltaTime, _paint);
     }
 
-    private void PaintFrame(SKCanvas canvas)
+    private void PaintFrame(IDrawingContext canvas)
     {
         // 用根背景色填充整个 surface，使安全区内的系统栏带与内容背景一致（而非白边）。
         var rootBg = _controller.Engine.GetRootBackgroundColor();
-        canvas.Clear(rootBg?.ToSKColor() ?? SKColors.White);
+        canvas.Clear(rootBg ?? Common.Color.White);
         canvas.Save();
-        canvas.Scale(_scale);
+        canvas.Scale(_scale, _scale);
         _controller.Engine.Render(canvas);
         canvas.Restore();
     }
@@ -280,11 +276,10 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
     {
         if (disposing)
         {
-            // 视频帧源持有本上下文上的 GPU 图像，须先于上下文释放（与桌面宿主关闭时的顺序一致）。
+            // 视频帧源持有本设备上的 GPU 图像，须先于设备释放（与桌面宿主关闭时的顺序一致）。
             _controller.Engine.DisposeVideoSessions();
-            _controller.Engine.GraphicsContext = null;
-            GpuResourceCache.PurgeAllResources(_grContext);
-            _grContext.Dispose();
+            _controller.Engine.GraphicsDevice = null;
+            _gpu.Dispose();
             _queue.Dispose();
         }
         base.Dispose(disposing);

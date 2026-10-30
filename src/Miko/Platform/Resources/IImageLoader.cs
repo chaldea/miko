@@ -1,10 +1,11 @@
 using Miko.Common;
-using SkiaSharp;
+using Miko.Graphics;
 
 namespace Miko.Platform.Resources;
 
 /// <summary>
-/// 图片资源加载器：把 <see cref="MediaSource"/>（统一协议）解析并解码为 <see cref="SKBitmap"/>。
+/// 图片资源加载器：把 <see cref="MediaSource"/>（统一协议）解析并解码为 <see cref="Image"/>。
+/// 自定义实现用 <see cref="IGraphicsFactory.DecodeImage(Stream)"/> 等创建图像。
 /// 由渲染引擎在 <c>&lt;img&gt;</c> 首次进入树时调用，加载在渲染线程之外进行，完成后引擎触发重绘。
 /// <para>
 /// 实现者必须保证 <see cref="LoadAsync"/> 不抛异常（失败返回 <c>null</c>，上层回退到占位图/背景），
@@ -19,8 +20,9 @@ public interface IImageLoader
 {
     /// <summary>
     /// 异步加载并解码图片。失败返回 <c>null</c>，不得抛异常；<paramref name="ct"/> 被取消时返回已取消的任务。
+    /// <para>返回的图像归加载器所有（可被多个元素共享），引擎不会释放它。</para>
     /// </summary>
-    Task<SKBitmap?> LoadAsync(MediaSource source, CancellationToken ct = default);
+    Task<Image?> LoadAsync(MediaSource source, CancellationToken ct = default);
 }
 
 /// <summary>

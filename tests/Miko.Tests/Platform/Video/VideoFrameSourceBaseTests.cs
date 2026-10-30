@@ -1,3 +1,5 @@
+using Miko.Graphics;
+using Miko.Graphics.Skia;
 using Miko.Platform.Video;
 using Shouldly;
 using SkiaSharp;
@@ -28,17 +30,17 @@ public class VideoFrameSourceBaseTests
     {
         using var source = new TestFrameSource();
 
-        source.AcquireCurrentFrame(null).ShouldBeNull();
+        source.AcquireCurrentFrame(GraphicsDevice.Software).ShouldBeNull();
     }
 
     [Fact]
-    public void AcquireCurrentFrame_AfterCpuPush_WrapsWithoutGpuContext()
+    public void AcquireCurrentFrame_AfterCpuPush_WrapsOnSoftwareDevice()
     {
         using var source = new TestFrameSource();
         source.PushFrame(RgbaFrame(8, 6));
 
-        // grContext == null 是离屏/软件渲染路径：CPU 帧仍须成像。
-        var image = source.AcquireCurrentFrame(null);
+        // 软件设备是离屏/软件渲染路径：CPU 帧仍须成像。
+        var image = source.AcquireCurrentFrame(GraphicsDevice.Software);
 
         image.ShouldNotBeNull();
         image.Width.ShouldBe(8);
@@ -52,8 +54,8 @@ public class VideoFrameSourceBaseTests
         using var source = new TestFrameSource();
         source.PushFrame(RgbaFrame());
 
-        var first = source.AcquireCurrentFrame(null);
-        var second = source.AcquireCurrentFrame(null);
+        var first = source.AcquireCurrentFrame(GraphicsDevice.Software);
+        var second = source.AcquireCurrentFrame(GraphicsDevice.Software);
 
         // 无新帧时应继续返回同一张图像，而不是闪回 null（否则画面会闪黑）。
         first.ShouldNotBeNull();
@@ -80,7 +82,7 @@ public class VideoFrameSourceBaseTests
         bool released = false;
         source.PushFrame(RgbaFrame(onReleased: () => released = true));
 
-        source.AcquireCurrentFrame(null);
+        source.AcquireCurrentFrame(GraphicsDevice.Software);
 
         released.ShouldBeTrue();
     }
@@ -95,7 +97,7 @@ public class VideoFrameSourceBaseTests
         source.PushFrame(RgbaFrame(onReleased: () => released = true));
 
         released.ShouldBeTrue();
-        source.AcquireCurrentFrame(null).ShouldBeNull();
+        source.AcquireCurrentFrame(GraphicsDevice.Software).ShouldBeNull();
     }
 
     [Fact]
@@ -115,14 +117,14 @@ public class VideoFrameSourceBaseTests
     {
         var source = new TestFrameSource();
         source.PushFrame(RgbaFrame());
-        source.AcquireCurrentFrame(null);
+        source.AcquireCurrentFrame(GraphicsDevice.Software);
 
         source.Dispose();
         Should.NotThrow(source.Dispose);
     }
 
     [Fact]
-    public void AcquireCurrentFrame_GpuFrameWithoutContext_ReturnsNullAndReleases()
+    public void AcquireCurrentFrame_GpuFrameOnSoftwareDevice_ReturnsNullAndReleases()
     {
         using var source = new TestFrameSource();
         bool released = false;
@@ -133,8 +135,8 @@ public class VideoFrameSourceBaseTests
 
         source.PushFrame(gpuFrame);
 
-        // 无 GPU 上下文时纹理句柄无从采样：放弃该帧，但资源仍须归还。
-        source.AcquireCurrentFrame(null).ShouldBeNull();
+        // 软件设备上纹理句柄无从采样：放弃该帧，但资源仍须归还。
+        source.AcquireCurrentFrame(GraphicsDevice.Software).ShouldBeNull();
         released.ShouldBeTrue();
     }
 
@@ -152,7 +154,7 @@ public class VideoFrameSourceBaseTests
             width, height, VideoPixelFormat.Rgba8888, TimeSpan.Zero,
             [pixels], [paddedStride]));
 
-        var image = source.AcquireCurrentFrame(null);
+        var image = source.AcquireCurrentFrame(GraphicsDevice.Software);
 
         // stride 未被正确处理时画面会斜切；尺寸正确是必要条件。
         image.ShouldNotBeNull();
@@ -178,7 +180,7 @@ public class VideoFrameSourceBaseTests
             width, height, VideoPixelFormat.Nv12, TimeSpan.Zero,
             [yPixels, uvPixels], [yInfo.RowBytes, uvInfo.RowBytes]));
 
-        var image = source.AcquireCurrentFrame(null);
+        var image = source.AcquireCurrentFrame(GraphicsDevice.Software);
 
         image.ShouldNotBeNull();
         image.Width.ShouldBe(width);
@@ -207,12 +209,12 @@ public class VideoFrameSourceBaseTests
             width, height, VideoPixelFormat.Nv12, TimeSpan.Zero,
             [yPixels, uvPixels], [yInfo.RowBytes, uvInfo.RowBytes]));
 
-        var image = source.AcquireCurrentFrame(null);
+        var image = source.AcquireCurrentFrame(GraphicsDevice.Software);
         image.ShouldNotBeNull();
 
         var outInfo = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
         using var bitmap = new SKBitmap(outInfo);
-        image.ReadPixels(bitmap.PeekPixels()).ShouldBeTrue();
+        ((SkiaImage)image).SkImage!.ReadPixels(bitmap.PeekPixels()).ShouldBeTrue();
 
         // 中性色度 → R/G/B 应彼此接近；绿色偏移会让 G 远高于 R 与 B。
         for (int y = 0; y < 4; y++)
@@ -239,7 +241,7 @@ public class VideoFrameSourceBaseTests
         var consumer = Task.Run(() =>
         {
             while (!cts.IsCancellationRequested)
-                source.AcquireCurrentFrame(null);
+                source.AcquireCurrentFrame(GraphicsDevice.Software);
         });
 
         await Should.NotThrowAsync(Task.WhenAll(producer, consumer));

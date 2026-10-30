@@ -3,11 +3,11 @@ using Miko.Components.Player;
 using Miko.Components.Player.Danmaku;
 using Miko.Core;
 using Miko.Core.DomElements;
+using Miko.Graphics;
 using Miko.Hosting;
 using Miko.Platform.Video;
 using Miko.Styling;
 using Miko.Windowing.Video;
-using SkiaSharp;
 
 namespace MikoApp.Player;
 
@@ -31,8 +31,8 @@ internal static class PlayerVerification
         {
             if (value is VideoSessionEvent.Error error) Console.WriteLine(error.Cause?.ToString() ?? error.Message);
         };
-        using var bitmap = new SKBitmap(960, 680);
-        using var canvas = new SKCanvas(bitmap);
+        using var surface = engine.Graphics.CreateSurface(960, 680);
+        var canvas = surface.Context;
         engine.Initialize(root, new List<StyleSheet>(), canvas, 960, 680);
         var timeout = Stopwatch.StartNew();
         bool hasFrame = false;
@@ -41,7 +41,7 @@ internal static class PlayerVerification
             engine.Render(canvas);
             var video = (VideoElement)root.FindByTagName("video").Single();
             if (video.Session?.State == VideoSessionState.Error) break;
-            if (video.Session?.FrameSource.AcquireCurrentFrame(null) != null)
+            if (video.Session?.FrameSource.AcquireCurrentFrame(GraphicsDevice.Software) != null)
             {
                 video.Session.FrameSource.ReleaseCurrentFrame();
                 hasFrame = true;
@@ -52,11 +52,11 @@ internal static class PlayerVerification
         Console.WriteLine($"state={player.Controller.State}, position={player.Controller.Position}, duration={player.Controller.Duration}, frame={hasFrame}, error={player.Controller.Error}");
         string output = Path.Combine(Path.GetTempPath(), "miko-player-verification");
         Directory.CreateDirectory(output);
-        Save(bitmap, Path.Combine(output, "desktop.png"));
+        Save(surface, Path.Combine(output, "desktop.png"));
         player.ToggleSettings();
         engine.SetViewportSize(360, 740);
-        using var phone = new SKBitmap(360, 740);
-        using var phoneCanvas = new SKCanvas(phone);
+        using var phone = engine.Graphics.CreateSurface(360, 740);
+        var phoneCanvas = phone.Context;
         for (int i = 0; i < 4; i++) engine.Render(phoneCanvas);
         Save(phone, Path.Combine(output, "mobile-settings.png"));
         player.ToggleSettings();
@@ -70,10 +70,5 @@ internal static class PlayerVerification
         return hasFrame && player.Controller.Error == null ? 0 : 1;
     }
 
-    private static void Save(SKBitmap bitmap, string path)
-    {
-        using var data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
-        using var stream = File.Create(path);
-        data.SaveTo(stream);
-    }
+    private static void Save(RenderSurface surface, string path) => File.WriteAllBytes(path, surface.EncodePng());
 }

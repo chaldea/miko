@@ -1,3 +1,5 @@
+using Miko.Graphics;
+using Miko.Graphics.Skia;
 using SkiaSharp;
 
 namespace Miko.Platform.Video;
@@ -75,14 +77,34 @@ public static class Nv12FrameComposer
     /// 用 Y / UV 两张图像合成一张 RGB 图像。两张输入图像可以是 GPU 纹理包装（零拷贝）
     /// 或 CPU 光栅图像（回退），本方法不关心其来源。
     /// </summary>
-    /// <param name="yImage">全分辨率亮度平面，单通道。</param>
-    /// <param name="uvImage">半分辨率交错色度平面，双通道。</param>
+    /// <param name="yImage">全分辨率亮度平面，单通道（<see cref="ImagePixelFormat.R8"/>）。</param>
+    /// <param name="uvImage">半分辨率交错色度平面，双通道（<see cref="ImagePixelFormat.Rg88"/>）。</param>
     /// <param name="width">输出宽（亮度平面尺寸）。</param>
     /// <param name="height">输出高。</param>
-    /// <param name="grContext">GPU 上下文；<c>null</c> 时在 CPU surface 上合成。</param>
+    /// <param name="device">在其上合成的设备；<see cref="GraphicsDevice.Software"/> 时在 CPU 表面上合成。</param>
     /// <param name="colorSpace">色彩矩阵，按分辨率选择（见 <see cref="SelectColorSpace"/>）。</param>
     /// <returns>合成后的图像；shader 不可用时返回 <c>null</c>。调用方拥有返回值并负责释放。</returns>
-    public static SKImage? Compose(
+    public static Image? Compose(
+        Image yImage,
+        Image uvImage,
+        int width,
+        int height,
+        GraphicsDevice device,
+        VideoColorSpace colorSpace = VideoColorSpace.Bt709)
+    {
+        var y = SkiaImage.Require(yImage).ToSKImage();
+        var uv = SkiaImage.Require(uvImage).ToSKImage();
+        if (y == null || uv == null) return null;
+
+        var composed = Compose(y, uv, width, height, (device ?? GraphicsDevice.Software).Context, colorSpace);
+        return composed == null ? null : new SkiaImage(composed);
+    }
+
+    /// <summary>
+    /// <see cref="Compose(Image, Image, int, int, GraphicsDevice, VideoColorSpace)"/> 的后端实现。
+    /// </summary>
+    /// <param name="grContext">GPU 上下文；<c>null</c> 时在 CPU surface 上合成。</param>
+    internal static SKImage? Compose(
         SKImage yImage,
         SKImage uvImage,
         int width,

@@ -1,3 +1,4 @@
+using Miko.Graphics;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
@@ -213,7 +214,7 @@ public class VideoSessionLifecycleTests : IDisposable
 
     private sealed class FakeFrameSource : IVideoFrameSource
     {
-        public SKImage? AcquireCurrentFrame(GRContext? grContext) => null;
+        public Image? AcquireCurrentFrame(GraphicsDevice device) => null;
         public void ReleaseCurrentFrame() { }
     }
 }

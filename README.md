@@ -205,7 +205,7 @@ using Miko.Core.DomElements;
 using Miko.Styling;
 using Miko.Styling.Selectors;
 using Miko.Common;
-using SkiaSharp;
+using Miko.Hosting;
 
 // 1. Define a stylesheet
 var styleSheet = new StyleSheet();
@@ -222,19 +222,16 @@ var root = new DivElement { Class = "container" };
 root.AddChild(new H1Element { TextContent = "Hello Miko" });
 root.AddChild(new ParagraphElement { TextContent = "A lightweight rendering engine." });
 
-// 3. Render to a Skia canvas
-using var surface = SKSurface.Create(new SKImageInfo(800, 600));
-var canvas = surface.Canvas;
-canvas.Clear(SKColors.White);
-
+// 3. Render to an offscreen surface
 var engine = new MikoEngineBuilder().Build();
+using var surface = engine.Graphics.CreateSurface(800, 600);
+var canvas = surface.Context;
+canvas.Clear(Color.White);
+
 engine.Initialize(root, new List<StyleSheet> { styleSheet }, canvas, 800, 600);
 
 // 4. Export the frame
-using var image = surface.Snapshot();
-using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-using var stream = File.OpenWrite("output.png");
-data.SaveTo(stream);
+File.WriteAllBytes("output.png", surface.EncodePng());
 ```
 
 For interactive scenes, mutate the DOM and repaint only what changed:
@@ -256,7 +253,7 @@ Miko mirrors a browser's rendering pipeline:
 2. Style computation  →  StyleResolver matches selectors and cascades styles
 3. Layout tree build  →  filter elements by their display property
 4. Layout             →  constraints flow down, sizes flow up
-5. Paint              →  RenderEngine draws to an SKCanvas (dirty-region optimized)
+5. Paint              →  RenderEngine draws to an IDrawingContext (dirty-region optimized)
 ```
 
 | Layer       | Responsibility                                                            |
@@ -264,7 +261,8 @@ Miko mirrors a browser's rendering pipeline:
 | **Core**    | `Element` tree and `MikoEngine`, which coordinates layout and rendering.  |
 | **Styling** | Stylesheets, selectors, the cascade, and computed styles.                 |
 | **Layout**  | The box model plus block, inline, flex, grid (a subset), and table layout algorithms. |
-| **Rendering** | `RenderEngine`, the SkiaSharp `Painter`, and the dirty-region manager.  |
+| **Rendering** | `RenderEngine`, its SkiaSharp painter, and the dirty-region manager.    |
+| **Graphics** | `IDrawingContext` / `IGraphicsFactory`: the drawing API outside code uses; SkiaSharp stays inside. |
 | **Fonts**   | Font registration, fallback resolution, and text measurement.             |
 | **Events**  | DOM-style event dispatch with capture and bubbling.                       |
 

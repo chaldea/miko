@@ -14,7 +14,7 @@ using Miko.Core.DomElements;
 using Miko.Styling;
 using Miko.Styling.Selectors;
 using Miko.Common;
-using SkiaSharp;
+using Miko.Hosting;
 
 // 1. Define a stylesheet
 var styleSheet = new StyleSheet();
@@ -31,20 +31,17 @@ var root = new DivElement { Class = "container" };
 root.AddChild(new H1Element { TextContent = "Hello Miko" });
 root.AddChild(new ParagraphElement { TextContent = "A lightweight rendering engine." });
 
-// 3. Render to a Skia canvas
-using var surface = SKSurface.Create(new SKImageInfo(800, 600));
-var canvas = surface.Canvas;
-canvas.Clear(SKColors.White);
-
+// 3. Render to an offscreen surface
 var engine = new MikoEngineBuilder().Build();
+using var surface = engine.Graphics.CreateSurface(800, 600);
+var canvas = surface.Context;
+canvas.Clear(Color.White);
+
 engine.Initialize(root, new List<StyleSheet> { styleSheet }, canvas, 800, 600);
 engine.Render(canvas);
 
 // 4. Export the frame
-using var image = surface.Snapshot();
-using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-using var stream = File.OpenWrite("output.png");
-data.SaveTo(stream);
+File.WriteAllBytes("output.png", surface.EncodePng());
 ```
 
 ## Building the DOM
@@ -75,7 +72,7 @@ var root = new DivElement
 Each markup tag has an element class — the full list is in [Elements](../guide/elements.md).
 In code every public property can be set, including those markup cannot reach
 (`InputElement.Placeholder`, `Min` / `Max`, `OptionElement.Value`, `TdElement.ColSpan`, …), and
-`CanvasElement` paints custom content through its `Paint` callback.
+`CanvasElement` paints custom content through its `Paint` callback (see [Custom Drawing](./drawing.md)).
 
 Members every element shares:
 
@@ -102,11 +99,12 @@ engine.Update(canvas);            // incremental render of dirty regions only
 
 | Method | Purpose |
 | --- | --- |
-| `Initialize(root, styleSheets, canvas, width, height)` | Set up the engine with a DOM root, stylesheets, target canvas, and viewport size. |
+| `Initialize(root, styleSheets, context, width, height)` | Set up the engine with a DOM root, stylesheets, drawing context (`IDrawingContext`), and viewport size. |
 | `Render(canvas)` | Full render of the whole tree. |
 | `Update(canvas)` | Incremental render — repaints only dirty regions. |
 | `InvalidateElement(element)` | Mark an element dirty so the next `Update` repaints it. |
 
 See the [Pipeline Overview](./overview.md) for what happens inside each call. For a
 complete render-to-image program, assemble a non-trivial tree, apply styles, and export
-the result with `SKImage.Encode(SKEncodedImageFormat.Png, 100)` as shown above.
+the result with `RenderSurface.EncodePng()` as shown above. Drawing contexts, surfaces and
+graphics devices are described in [Custom Drawing](./drawing.md).

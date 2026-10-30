@@ -1,6 +1,5 @@
 @namespace Anime.Components
 @using Miko.Components.Player.Danmaku
-@using SkiaSharp
 @inject ICommunityService Community
 
 <div class="danmaku-composer">
@@ -72,7 +71,7 @@
     private async Task Send()
     {
         var item = new DanmakuItem(Position() + TimeSpan.FromMilliseconds(250), _text ?? "",
-            Enum.Parse<DanmakuMode>(_mode), SKColor.Parse(_color));
+            Enum.Parse<DanmakuMode>(_mode), Color.FromHex(_color));
         if (!Community.SendDanmaku(AnimeId, item))
         {
             _notice = "请输入1至60字的弹幕。";

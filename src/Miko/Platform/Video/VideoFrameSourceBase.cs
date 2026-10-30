@@ -1,10 +1,10 @@
-using SkiaSharp;
+using Miko.Graphics;
 
 namespace Miko.Platform.Video;
 
 /// <summary>
 /// 所有平台后端共用的帧源骨架：解码线程只入队 <see cref="VideoFrameBuffer"/>，
-/// 渲染线程在 <see cref="AcquireCurrentFrame"/> 里把它包装成 <see cref="SKImage"/>。
+/// 渲染线程在 <see cref="AcquireCurrentFrame"/> 里把它包装成可绘制的 <see cref="Image"/>。
 ///
 /// <para>
 /// **分层策略**（本类的核心价值）：一帧可能是 GPU 纹理句柄（零拷贝）或 CPU 缓冲（回退）。
@@ -24,7 +24,7 @@ public abstract class VideoFrameSourceBase : IVideoFrameSource, IDisposable
     private readonly object _lock = new();
 
     private VideoFrameBuffer? _pendingFrame;
-    private SKImage? _currentImage;
+    private Image? _currentImage;
     private bool _disposed;
 
     /// <summary>
@@ -60,7 +60,7 @@ public abstract class VideoFrameSourceBase : IVideoFrameSource, IDisposable
     }
 
     /// <inheritdoc />
-    public SKImage? AcquireCurrentFrame(GRContext? grContext)
+    public Image? AcquireCurrentFrame(GraphicsDevice device)
     {
         VideoFrameBuffer? frame;
         lock (_lock)
@@ -73,10 +73,10 @@ public abstract class VideoFrameSourceBase : IVideoFrameSource, IDisposable
         if (frame == null)
             return Volatile.Read(ref _currentImage);   // 无新帧：继续显示上一帧
 
-        SKImage? image = null;
+        Image? image = null;
         try
         {
-            image = WrapFrame(frame, grContext);
+            image = WrapFrame(frame, device ?? GraphicsDevice.Software);
         }
         catch (Exception)
         {
@@ -118,24 +118,24 @@ public abstract class VideoFrameSourceBase : IVideoFrameSource, IDisposable
     /// 把一帧包装为图像：GPU 帧走纹理包装（零拷贝），CPU 帧走像素上传（回退）。
     /// NV12 两种形态都要额外经 shader 转 RGB。
     /// </summary>
-    private static SKImage? WrapFrame(VideoFrameBuffer frame, GRContext? grContext)
+    private static Image? WrapFrame(VideoFrameBuffer frame, GraphicsDevice device)
     {
-        // 无 GPU 上下文（离屏/软件渲染）时纹理句柄无从采样，只能放弃该帧。
-        if (frame.IsGpuFrame && grContext == null)
+        // 软件渲染（没有 GL 上下文）时纹理句柄无从采样，只能放弃该帧。
+        if (frame.IsGpuFrame && device.Backend != GraphicsBackend.OpenGl)
             return null;
 
         return frame.Format switch
         {
-            VideoPixelFormat.Nv12 => WrapNv12(frame, grContext),
-            _ => WrapSinglePlane(frame, grContext),
+            VideoPixelFormat.Nv12 => WrapNv12(frame, device),
+            _ => WrapSinglePlane(frame, device),
         };
     }
 
     /// <summary>NV12：Y/UV 各包一张单通道图像，再由 shader 合成 RGB。</summary>
-    private static SKImage? WrapNv12(VideoFrameBuffer frame, GRContext? grContext)
+    private static Image? WrapNv12(VideoFrameBuffer frame, GraphicsDevice device)
     {
-        SKImage? yImage = null;
-        SKImage? uvImage = null;
+        Image? yImage = null;
+        Image? uvImage = null;
         try
         {
             if (frame.IsGpuFrame)
@@ -143,8 +143,8 @@ public abstract class VideoFrameSourceBase : IVideoFrameSource, IDisposable
                 var planes = frame.TexturePlanes!;
                 if (planes.Count < 2) return null;
 
-                yImage = WrapTexture(planes[0], grContext!, SKColorType.R8Unorm);
-                uvImage = WrapTexture(planes[1], grContext!, SKColorType.Rg88);
+                yImage = WrapTexture(planes[0], device, ImagePixelFormat.R8);
+                uvImage = WrapTexture(planes[1], device, ImagePixelFormat.Rg88);
             }
             else
             {
@@ -156,14 +156,14 @@ public abstract class VideoFrameSourceBase : IVideoFrameSource, IDisposable
                 int uvWidth = (frame.Width + 1) / 2;
                 int uvHeight = (frame.Height + 1) / 2;
 
-                yImage = UploadPixels(planes[0], strides[0], frame.Width, frame.Height, SKColorType.R8Unorm);
-                uvImage = UploadPixels(planes[1], strides[1], uvWidth, uvHeight, SKColorType.Rg88);
+                yImage = UploadPixels(planes[0], strides[0], frame.Width, frame.Height, ImagePixelFormat.R8, device);
+                uvImage = UploadPixels(planes[1], strides[1], uvWidth, uvHeight, ImagePixelFormat.Rg88, device);
             }
 
             if (yImage == null || uvImage == null) return null;
 
             return Nv12FrameComposer.Compose(
-                yImage, uvImage, frame.Width, frame.Height, grContext,
+                yImage, uvImage, frame.Width, frame.Height, device,
                 Nv12FrameComposer.SelectColorSpace(frame.Height));
         }
         finally
@@ -175,56 +175,44 @@ public abstract class VideoFrameSourceBase : IVideoFrameSource, IDisposable
     }
 
     /// <summary>RGBA/BGRA/外部纹理：单平面直接成像，无需色彩转换。</summary>
-    private static SKImage? WrapSinglePlane(VideoFrameBuffer frame, GRContext? grContext)
+    private static Image? WrapSinglePlane(VideoFrameBuffer frame, GraphicsDevice device)
     {
-        var colorType = frame.Format switch
+        // 视频帧不透明：第四个字节常是未定义的填充（BGRX），不能当 alpha。
+        var format = frame.Format switch
         {
-            VideoPixelFormat.Bgra8888 => SKColorType.Bgra8888,
+            VideoPixelFormat.Bgra8888 => ImagePixelFormat.Bgrx8888,
             // 外部纹理采样即得 RGB，按 RGBA 解释。
-            _ => SKColorType.Rgba8888,
+            _ => ImagePixelFormat.Rgbx8888,
         };
 
         if (frame.IsGpuFrame)
-            return WrapTexture(frame.TexturePlanes![0], grContext!, colorType);
+            return WrapTexture(frame.TexturePlanes![0], device, format);
 
         return UploadPixels(
-            frame.CpuPlanes![0], frame.CpuStrides![0], frame.Width, frame.Height, colorType);
+            frame.CpuPlanes![0], frame.CpuStrides![0], frame.Width, frame.Height, format, device);
     }
 
     /// <summary>
-    /// 把平台 GPU 纹理句柄包装为 Skia 图像 —— 零拷贝路径的落点。
-    /// 用 <c>FromTexture</c>（非 <c>FromAdoptedTexture</c>）：纹理所有权仍属解码器，
-    /// Skia 不得在图像释放时销毁它。
+    /// 把平台 GPU 纹理句柄包装为图像 —— 零拷贝路径的落点。纹理所有权仍属解码器，
+    /// 图像释放时不销毁它。
     /// </summary>
-    private static SKImage? WrapTexture(VideoTexturePlane plane, GRContext grContext, SKColorType colorType)
-    {
-        var glInfo = new GRGlTextureInfo(plane.Target, plane.Id, plane.Format);
-        var backendTexture = new GRBackendTexture(plane.Width, plane.Height, mipmapped: false, glInfo);
-
-        return SKImage.FromTexture(
-            grContext,
-            backendTexture,
-            GRSurfaceOrigin.TopLeft,
-            colorType,
-            SKAlphaType.Opaque);
-    }
+    private static Image? WrapTexture(VideoTexturePlane plane, GraphicsDevice device, ImagePixelFormat format)
+        => device.WrapGlTexture(plane.Target, plane.Id, plane.Format, plane.Width, plane.Height, format);
 
     /// <summary>
     /// CPU 回退：把（可能带行填充的）像素缓冲上传为图像。
-    /// stride 与紧凑宽度不等时必须按 stride 逐行寻址，否则画面斜切。
+    /// stride 与紧凑宽度不等时必须按 stride 逐行寻址，否则画面斜切；
+    /// 缓冲比声明的尺寸短（截断的帧）时只上传完整的行，其余留黑。
     /// </summary>
-    private static SKImage? UploadPixels(byte[] pixels, int stride, int width, int height, SKColorType colorType)
+    private static Image? UploadPixels(byte[] pixels, int stride, int width, int height, ImagePixelFormat format, GraphicsDevice device)
     {
         if (width <= 0 || height <= 0) return null;
 
-        var info = new SKImageInfo(width, height, colorType, SKAlphaType.Opaque);
-        int rowBytes = info.RowBytes;
+        int rowBytes = width * BytesPerPixel(format);
+        if (stride >= rowBytes && pixels.Length >= (long)stride * (height - 1) + rowBytes)
+            return device.CreateImage(width, height, format, pixels, stride);
 
-        // 紧凑排列：直接成像，省一次拷贝。
-        if (stride == rowBytes && pixels.Length >= rowBytes * height)
-            return SKImage.FromPixelCopy(info, pixels);
-
-        // 有行填充：逐行紧凑化。
+        // 截断的缓冲：逐行拷贝能拿到的部分。
         var compact = new byte[rowBytes * height];
         for (int y = 0; y < height; y++)
         {
@@ -233,8 +221,15 @@ public abstract class VideoFrameSourceBase : IVideoFrameSource, IDisposable
             Buffer.BlockCopy(pixels, srcOffset, compact, y * rowBytes, rowBytes);
         }
 
-        return SKImage.FromPixelCopy(info, compact);
+        return device.CreateImage(width, height, format, compact);
     }
+
+    private static int BytesPerPixel(ImagePixelFormat format) => format switch
+    {
+        ImagePixelFormat.R8 => 1,
+        ImagePixelFormat.Rg88 => 2,
+        _ => 4,
+    };
 
     /// <summary>释放当前帧图像与未消费的待显示帧。</summary>
     public virtual void Dispose()

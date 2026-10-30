@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Android.Content;
+using Android.Opengl;
 using Android.OS;
 using Android.Runtime;
 using Android.Text;
@@ -11,19 +12,19 @@ using Microsoft.Extensions.DependencyInjection;
 using Miko.Android.Native;
 using Miko.Common;
 using Miko.Events;
+using Miko.Graphics;
 using Miko.Hosting;
 using Miko.Native;
 using Miko.Platform;
-using SkiaSharp;
-using SkiaSharp.Views.Android;
 
 namespace Miko.Android;
 
 /// <summary>
 /// 承载 Miko 渲染引擎的 Android GL 视图。负责：
 /// 引擎初始化、按像素密度缩放的渲染、动画/热重载帧推进，以及触摸输入转发。
+/// GL 上下文与帧缓冲由 <see cref="MikoGLRenderer"/> 管理（GLES 2，RGBA8888 + 8 位模板）。
 /// </summary>
-public class MikoSurfaceView : SKGLSurfaceView
+public class MikoSurfaceView : GLSurfaceView
 {
     private readonly MikoAppContext _context;
     private readonly MikoInteractionController _controller;
@@ -60,6 +61,11 @@ public class MikoSurfaceView : SKGLSurfaceView
 
     public MikoSurfaceView(Context context, MikoAppContext appContext) : base(context)
     {
+        // EGL 配置必须在设置渲染器之前给出，渲染模式（下方）必须在之后。
+        SetEGLContextClientVersion(2);
+        SetEGLConfigChooser(8, 8, 8, 8, 0, 8);
+        SetRenderer(new MikoGLRenderer(OnPaintSurface, OnGraphicsDeviceChanged));
+
         _context = appContext;
         _controller = appContext.Controller;
         _inputMethod = new AndroidInputMethod(this, _controller);
@@ -100,7 +106,7 @@ public class MikoSurfaceView : SKGLSurfaceView
 
         // 切后台时（OnPause，见 LifecycleCallbacks）尽量保住 EGL 上下文：视频的 OES 纹理与
         // SurfaceTexture 都属于它，丢了回来就是黑屏。系统仍可能在内存紧张时销毁上下文，
-        // 那时 SKGLSurfaceView 在 OnSurfaceCreated 重建 GRContext，引擎每帧同步 GraphicsContext。
+        // 那时渲染器在新上下文上重建 GPU 设备并交给引擎（见 MikoGLRenderer.OnSurfaceCreated）。
         PreserveEGLContextOnPause = true;
 
         // 接收系统窗口 inset 以便计算安全区（edge-to-edge 下系统栏会覆盖内容）。
@@ -218,15 +224,18 @@ public class MikoSurfaceView : SKGLSurfaceView
         return base.OnApplyWindowInsets(insets);
     }
 
-    protected override void OnPaintSurface(SKPaintGLSurfaceEventArgs e)
+    /// <summary>GL 线程：渲染器创建了 GPU 设备，或因 EGL 上下文丢失而作废了它。</summary>
+    private void OnGraphicsDeviceChanged(GraphicsDevice? device)
     {
-        var canvas = e.Surface.Canvas;
-        float logicalWidth = e.BackendRenderTarget.Width / _density;
-        float logicalHeight = e.BackendRenderTarget.Height / _density;
+        // 交给引擎，供视频帧源零拷贝包装解码纹理（对齐桌面宿主）。
+        _controller.Engine.GraphicsDevice = device;
+    }
 
-        // 把 GPU 上下文交给引擎，供视频帧源零拷贝包装解码纹理（对齐桌面宿主）。
-        // SKGLSurfaceView 每帧提供 surface，其 Context 在上下文重建后可能变化，故每帧同步。
-        _controller.Engine.GraphicsContext = e.Surface.Context as GRContext;
+    private void OnPaintSurface(RenderSurface surface, GraphicsDevice device)
+    {
+        var canvas = surface.Context;
+        float logicalWidth = surface.Width / _density;
+        float logicalHeight = surface.Height / _density;
 
         if (!_initialized)
         {
@@ -247,9 +256,9 @@ public class MikoSurfaceView : SKGLSurfaceView
         {
             // 用根背景色填充整个 surface，使安全区内的系统栏带与内容背景一致（而非白边）。
             var rootBg = _controller.Engine.GetRootBackgroundColor();
-            c.Clear(rootBg?.ToSKColor() ?? SKColors.White);
+            c.Clear(rootBg ?? Color.White);
             c.Save();
-            c.Scale(_density);
+            c.Scale(_density, _density);
             _controller.Engine.Render(c);
             c.Restore();
 
@@ -483,7 +492,7 @@ public class MikoSurfaceView : SKGLSurfaceView
         {
             if (a != activity) return;
             Log.Info("MikoSurfaceView", "Activity paused: suspending rendering");
-            // 先停引擎侧（视频等），再停 GL 线程；SKGLSurfaceView 的 OnPause 会等渲染线程空闲。
+            // 先停引擎侧（视频等），再停 GL 线程；GLSurfaceView 的 OnPause 会等渲染线程空闲。
             view._controller.Suspend();
             view.OnPause();
         }

@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using Miko.Common;
+using Miko.Graphics;
+using Miko.Graphics.Skia;
 using SkiaSharp;
 using Svg.Skia;
 
@@ -8,7 +10,7 @@ namespace Miko.Platform.Resources;
 /// <summary>
 /// 统一资源管理器：默认的 <see cref="IImageLoader"/> 实现，处理 file:// / res:// / http(s):// / data: 四类协议。
 /// <list type="bullet">
-///   <item><c>file</c>：本地文件（含裸路径），<see cref="SKBitmap.Decode(string)"/> 或 SVG 渲染。</item>
+///   <item><c>file</c>：本地文件（含裸路径），按位图解码或把 SVG 栅格化。</item>
 ///   <item><c>res</c>：嵌入资源，逻辑路径经 <see cref="EmbeddedResources"/> 换算为清单资源名后按注册程序集顺序查找。</item>
 ///   <item><c>http(s)</c>：经 <see cref="HttpClient"/> 拉取字节后解码。</item>
 ///   <item><c>data</c>：内联 base64 解码。</item>
@@ -86,12 +88,12 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider,
     /// 失败返回 <c>null</c>，且不会被永久缓存：之后的同一路径请求会重新加载。<paramref name="ct"/>
     /// 只作用于本次调用——取消时本次调用得到已取消的任务，同一路径上其它调用方共享的加载不受影响。
     /// </remarks>
-    public Task<SKBitmap?> LoadAsync(MediaSource source, CancellationToken ct = default)
+    public Task<Image?> LoadAsync(MediaSource source, CancellationToken ct = default)
     {
         if (source.IsEmpty)
-            return Task.FromResult<SKBitmap?>(null);
+            return Task.FromResult<Image?>(null);
         if (ct.IsCancellationRequested)
-            return Task.FromCanceled<SKBitmap?>(ct);
+            return Task.FromCanceled<Image?>(ct);
 
         // 记录源本身（协议在 _cache 的键里丢失了），供 DevTools 的缓存列表展示。
         _cachedSources[source.Raw] = source;
@@ -120,7 +122,7 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider,
     /// <summary>
     /// 开始 <paramref name="entry"/>（已发布进缓存）的共享加载，并把本次调用登记为它的第一个等待者。
     /// </summary>
-    private Task<SKBitmap?> StartLoad(MediaSource source, LoadEntry entry, CancellationToken ct)
+    private Task<Image?> StartLoad(MediaSource source, LoadEntry entry, CancellationToken ct)
     {
         // 新条目进缓存，以及它随后完成（Loading → Loaded/Failed）都是调试界面的可见变化。
         Interlocked.Increment(ref _diagnosticsVersion);
@@ -151,7 +153,7 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider,
     /// </summary>
     private sealed class LoadEntry
     {
-        private readonly TaskCompletionSource<SKBitmap?> _completion = new();
+        private readonly TaskCompletionSource<Image?> _completion = new();
         private readonly CancellationTokenSource _cancellation = new();
         private readonly object _gate = new();
 
@@ -164,20 +166,20 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider,
         /// <summary>所有等待者都已取消，共享加载被放弃（随后取消）。</summary>
         private volatile bool _abandoned;
 
-        /// <summary>共享加载的结果：成功为位图，失败或被取消为 null。从不出错、从不取消。</summary>
-        public Task<SKBitmap?> Task => _completion.Task;
+        /// <summary>共享加载的结果：成功为图像，失败或被取消为 null。从不出错、从不取消。</summary>
+        public Task<Image?> Task => _completion.Task;
 
-        /// <summary>加载已结束但没有得到位图（失败或被取消）。这样的条目由下一次请求替换。</summary>
+        /// <summary>加载已结束但没有得到图像（失败或被取消）。这样的条目由下一次请求替换。</summary>
         public bool IsFailed => Task.IsCompleted && Task.Result is null;
 
         /// <summary>共享加载已因所有等待者取消而被放弃。</summary>
         public bool IsCanceled => _abandoned;
 
-        public void Run(Func<CancellationToken, Task<SKBitmap?>> load) => _ = RunAsync(load);
+        public void Run(Func<CancellationToken, Task<Image?>> load) => _ = RunAsync(load);
 
-        private async Task RunAsync(Func<CancellationToken, Task<SKBitmap?>> load)
+        private async Task RunAsync(Func<CancellationToken, Task<Image?>> load)
         {
-            SKBitmap? result = null;
+            Image? result = null;
             try
             {
                 result = await load(_cancellation.Token).ConfigureAwait(false);
@@ -192,7 +194,7 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider,
         /// <summary>
         /// 登记一个等待者。返回 false 表示本条目已经作废（所有等待者都取消了），调用方应换一个新条目。
         /// </summary>
-        public bool TryJoin(CancellationToken ct, out Task<SKBitmap?> waiter)
+        public bool TryJoin(CancellationToken ct, out Task<Image?> waiter)
         {
             lock (_gate)
             {
@@ -240,13 +242,13 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider,
         return _logicalSizes.TryGetValue(source.Raw, out var size) ? size : null;
     }
 
-    private async Task<SKBitmap?> LoadCoreAsync(MediaSource source, CancellationToken ct)
+    private async Task<Image?> LoadCoreAsync(MediaSource source, CancellationToken ct)
     {
         try
         {
             // 矢量源的过采样尺寸要记录到 source.Raw 名下（GetIntrinsicSize 的键）。
             var key = source.Raw;
-            return source.Scheme switch
+            var bitmap = source.Scheme switch
             {
                 MediaSourceScheme.File => await Task.Run(() => DecodeFile(source.Value, key), ct),
                 MediaSourceScheme.Resource => DecodeResource(source.Value, key),
@@ -254,6 +256,8 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider,
                 MediaSourceScheme.Data => DecodeData(source.Value),
                 _ => null,
             };
+            // 每个缓存条目一个图像实例：共享同一路径的元素拿到同一个对象，绘制侧按实例缓存的包装随之共享。
+            return bitmap == null ? null : new SkiaImage(bitmap);
         }
         catch
         {
@@ -440,8 +444,8 @@ public sealed class ResourceManager : IImageLoader, IImageIntrinsicSizeProvider,
                 continue;
             }
 
-            var bitmap = task.Status == TaskStatus.RanToCompletion ? task.Result : null;
-            if (bitmap == null)
+            var image = task.Status == TaskStatus.RanToCompletion ? task.Result as SkiaImage : null;
+            if (image?.Bitmap is not { } bitmap)
             {
                 result.Add(new CachedResourceInfo(key, source.Scheme, 0, 0, 0, CachedResourceState.Failed));
                 continue;

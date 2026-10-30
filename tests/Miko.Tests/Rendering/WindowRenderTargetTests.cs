@@ -1,4 +1,4 @@
-using Miko.Rendering;
+using Miko.Graphics;
 using Shouldly;
 using Xunit;
 

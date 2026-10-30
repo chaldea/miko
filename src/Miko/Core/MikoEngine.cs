@@ -4,6 +4,8 @@ using Miko.Animation;
 using Miko.Common;
 using Miko.Core.DomElements;
 using Miko.Events;
+using Miko.Graphics;
+using Miko.Graphics.Skia;
 using Miko.Layout;
 using Miko.Platform.Video;
 using Miko.Rendering;
@@ -36,6 +38,7 @@ public class MikoEngine
         IVideoBackend videoBackend,
         Platform.Resources.IImageLoader imageLoader,
         Highlight.ISyntaxHighlighter syntaxHighlighter,
+        IGraphicsFactory graphics,
         ILogger<MikoEngine>? logger = null,
         TimeProvider? timeProvider = null)
     {
@@ -58,6 +61,7 @@ public class MikoEngine
         VideoBackend = videoBackend;
         ImageLoader = imageLoader;
         SyntaxHighlighter = syntaxHighlighter;
+        Graphics = graphics;
         if (logger != null) _logger = logger;
     }
 
@@ -156,14 +160,19 @@ public class MikoEngine
     public Platform.Resources.IImageLoader? ImageLoader { get; set; }
 
     /// <summary>
-    /// 当前 GPU 上下文。GPU 宿主（桌面 OpenGL / 移动 GLES/Metal）每帧设置，
+    /// 当前 GPU 设备。GPU 宿主（桌面 OpenGL / Metal、Android GLES、iOS Metal）设置，
     /// 供视频帧源把解码 GPU 资源零拷贝包装为图像；转发给底层渲染引擎。
     /// </summary>
-    public GRContext? GraphicsContext
+    public GraphicsDevice? GraphicsDevice
     {
-        get => _renderEngine.GraphicsContext;
-        set => _renderEngine.GraphicsContext = value;
+        get => _renderEngine.GraphicsDevice;
+        set => _renderEngine.GraphicsDevice = value;
     }
+
+    /// <summary>
+    /// 创建可绘制资源（文本、图像、离屏表面）的服务，与容器中注册的 <see cref="IGraphicsFactory"/> 相同（ISSUE-162）。
+    /// </summary>
+    public IGraphicsFactory Graphics { get; }
 
     /// <summary>
     /// 语法高亮器（<c>&lt;code language="..."&gt;</c>）。默认内置实现；
@@ -200,11 +209,11 @@ public class MikoEngine
     /// 方向与路径都用于维护按路径的滚动快照，使返回上一页时能恢复其滚动位置（ISSUE-118）。
     /// 为 null 表示非导航重建（如热重载），不触碰快照。</para>
     /// </summary>
-    public void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight, NavigationTransitionInfo? transition = null)
-        => Initialize(root, styleSheets, canvas, viewportWidth, viewportHeight, transition, paint: true);
+    public void Initialize(Element root, List<StyleSheet> styleSheets, IDrawingContext context, float viewportWidth, float viewportHeight, NavigationTransitionInfo? transition = null)
+        => Initialize(root, styleSheets, context, viewportWidth, viewportHeight, transition, paint: true);
 
     /// <summary>
-    /// 同 <see cref="Initialize(Element, List{StyleSheet}, SKCanvas, float, float, NavigationTransitionInfo?)"/>，
+    /// 同 <see cref="Initialize(Element, List{StyleSheet}, IDrawingContext, float, float, NavigationTransitionInfo?)"/>，
     /// 但可以不绘制（ISSUE-146）。
     ///
     /// <para><paramref name="paint"/> 为 false 供「同一帧内紧接着就会再调用 <see cref="Render"/>」
@@ -212,8 +221,10 @@ public class MikoEngine
     /// 回调先清屏、缩放、再 <see cref="Render"/>，这里画的那一遍会被整个清掉。布局已在此完成并
     /// 进入缓存，随后的 <see cref="Render"/> 走快速路径直接绘制，重建帧从两遍整树绘制变成一遍。</para>
     /// </summary>
-    internal void Initialize(Element root, List<StyleSheet> styleSheets, SKCanvas canvas, float viewportWidth, float viewportHeight, NavigationTransitionInfo? transition, bool paint)
+    internal void Initialize(Element root, List<StyleSheet> styleSheets, IDrawingContext context, float viewportWidth, float viewportHeight, NavigationTransitionInfo? transition, bool paint)
     {
+        // 绘制目标先验证：只接受 Miko 创建的上下文，免得树已换掉才发现画不出来。
+        var canvas = SkiaDrawingContext.Require(context, nameof(context));
         // Capture old layout for scroll position restoration (ISSUE-092)
         var oldLayout = _currentLayout;
 
@@ -494,7 +505,8 @@ public class MikoEngine
             _renderEngine.Render(_currentLayout!);
     }
 
-    public void Update(SKCanvas canvas)
+    /// <summary>增量绘制：只重绘脏区域（无脏区域时什么也不画）。</summary>
+    public void Update(IDrawingContext canvas)
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
@@ -565,7 +577,8 @@ public class MikoEngine
         RestoreScrollState(oldLayout, _currentLayout);
     }
 
-    public void Render(SKCanvas canvas)
+    /// <summary>整帧绘制：按需重排后绘制整棵树（布局未变时走缓存的快速路径）。</summary>
+    public void Render(IDrawingContext canvas)
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
@@ -911,7 +924,7 @@ public class MikoEngine
         _animationManager.StopAnimation(element, animationName);
     }
 
-    public void Tick(float deltaTime, SKCanvas canvas)
+    public void Tick(float deltaTime, IDrawingContext canvas)
     {
         if (_root == null) throw new InvalidOperationException("Engine not initialized. Call Initialize first.");
 
@@ -1920,7 +1933,7 @@ public class MikoEngine
         {
             EnsurePlaceholderDecoded(img);
 
-            if (img.Bitmap != null) continue;
+            if (img.Image != null) continue;
             if (img.Source.IsEmpty) continue;
             if (_imageLoads.ContainsKey(img)) continue;
 
@@ -1946,12 +1959,12 @@ public class MikoEngine
     /// </summary>
     private void EnsurePlaceholderDecoded(ImageElement img)
     {
-        if (img.PlaceholderBitmap != null) return;
+        if (img.PlaceholderImage != null) return;
         if (string.IsNullOrEmpty(img.Placeholder)) return;
         if (ImageLoader == null) return;
 
         // 标记已请求：用 _imageLoads 之外的小技巧——占位图加载也可能在途，避免重复请求。
-        // 这里用 PlaceholderBitmap 的赋值作为完成标记，进行中状态由下方任务捕获保证幂等。
+        // 这里用 PlaceholderImage 的赋值作为完成标记，进行中状态由下方任务捕获保证幂等。
         if (_placeholderLoads.Contains(img)) return;
         _placeholderLoads.Add(img);
 
@@ -1960,7 +1973,7 @@ public class MikoEngine
         {
             if (t.Status == TaskStatus.RanToCompletion && t.Result != null)
             {
-                img.PlaceholderBitmap = t.Result;
+                img.PlaceholderImage = t.Result;
                 PostInvalidate(img);
             }
         }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -1976,17 +1989,17 @@ public class MikoEngine
         // 否则在后台线程完成。无论哪种情形都通过 PostInvalidate 把失效安全转交主循环。
         var task = ImageLoader!.LoadAsync(img.Source).ContinueWith(t =>
         {
-            var bmp = t.Status == TaskStatus.RanToCompletion ? t.Result : null;
-            if (bmp != null)
+            var image = t.Status == TaskStatus.RanToCompletion ? t.Result : null;
+            if (image != null)
             {
-                img.Bitmap = bmp;
+                img.Image = image;
                 // 内禀尺寸默认取位图像素尺寸；矢量源（SVG）会被加载器过采样栅格化以在高密度屏上
                 // 保持清晰（ISSUE-137），其位图尺寸不再等于 CSS 内禀尺寸，故优先问加载器要
                 // viewBox 逻辑尺寸——否则一张 24×24 的 SVG 会按 528×528 参与布局。
                 var logical = (ImageLoader as Platform.Resources.IImageIntrinsicSizeProvider)
                     ?.GetIntrinsicSize(img.Source);
-                img.IntrinsicWidth = logical?.Width ?? bmp.Width;
-                img.IntrinsicHeight = logical?.Height ?? bmp.Height;
+                img.IntrinsicWidth = logical?.Width ?? image.Width;
+                img.IntrinsicHeight = logical?.Height ?? image.Height;
                 // 内禀尺寸是布局输入（auto 尺寸的 img 按真实尺寸布局）：递增版本号触发重排。
                 // 选择器读不到位图与内禀尺寸，故只重排、不重算样式（ISSUE-146）。
                 _mutations.BumpContent();

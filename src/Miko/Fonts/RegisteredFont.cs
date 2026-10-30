@@ -10,9 +10,9 @@ public class RegisteredFont : IDisposable
 {
     public string FamilyName { get; }
     public FontFormat Format { get; }
-    public SKTypeface Typeface { get; }
+    internal SKTypeface Typeface { get; }
     public FontWeight Weight { get; }
-    public SKFontStyleSlant Slant { get; }
+    internal SKFontStyleSlant Slant { get; }
 
     private readonly byte[] _fontData;
     private bool _disposed;

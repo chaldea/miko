@@ -7,12 +7,12 @@ using Miko.Components;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
+using Miko.Graphics;
 using Miko.Hosting;
 using Miko.Layout;
 using Miko.Platform.Resources;
 using Miko.Platform.Video;
 using Miko.Routing;
-using SkiaSharp;
 
 namespace Miko.Platform;
 
@@ -296,7 +296,7 @@ public sealed class MikoInteractionController
     }
 
     /// <summary>初始化引擎并构建首帧 DOM 树。</summary>
-    public void Initialize(SKCanvas canvas, float width, float height)
+    public void Initialize(IDrawingContext canvas, float width, float height)
     {
         // Install the sync context before BuildRoot so that OnInitializedAsync
         // continuations are captured and posted back to the dispatcher (render thread).
@@ -331,13 +331,13 @@ public sealed class MikoInteractionController
     }
 
     /// <summary>当 <see cref="NeedsRebuild"/> 为真时重建 DOM 树。</summary>
-    public void Rebuild(SKCanvas canvas, float width, float height) => Rebuild(canvas, width, height, paint: true);
+    public void Rebuild(IDrawingContext canvas, float width, float height) => Rebuild(canvas, width, height, paint: true);
 
     /// <param name="paint">
     /// 是否由引擎在重建后立即绘制一遍。<see cref="RenderFrame"/> 传 false：它紧接着就调用宿主的
     /// 绘制回调，那一遍会先清屏再整树绘制，引擎在这里画的会被原样覆盖（ISSUE-146）。
     /// </param>
-    private void Rebuild(SKCanvas canvas, float width, float height, bool paint)
+    private void Rebuild(IDrawingContext canvas, float width, float height, bool paint)
     {
         _logger.LogInformation("[HotReload] Render loop detected _needsRebuild flag, rebuilding DOM tree");
         _needsRebuild = false;
@@ -412,7 +412,7 @@ public sealed class MikoInteractionController
     /// <para><paramref name="render"/> 必须整帧绘制（调用 <c>Engine.Render</c>）：重建帧里引擎
     /// 不再自行预绘一遍，画面完全由它产出（ISSUE-146）。</para>
     /// </summary>
-    public void RenderFrame(SKCanvas canvas, float width, float height, float deltaTime, Action<SKCanvas> render)
+    public void RenderFrame(IDrawingContext canvas, float width, float height, float deltaTime, Action<IDrawingContext> render)
     {
         lock (_sync)
         {
@@ -425,7 +425,7 @@ public sealed class MikoInteractionController
             {
                 // 内存告警（TrimMemory）记下的清理请求在渲染线程上执行，GPU 上下文属于这里。
                 if (_trimMemoryRequested)
-                    TrimGpuResources(_engine.GraphicsContext);
+                    TrimGpuResources(_engine.GraphicsDevice);
 
                 // The frame's size is the viewport's size. The mobile hosts report it only here,
                 // every frame — rotating the device (e.g. the player locking landscape, ISSUE-149)
@@ -572,13 +572,13 @@ public sealed class MikoInteractionController
     }
 
     /// <summary>
-    /// 立即清掉 <paramref name="context"/> 中未被引用的 GPU 资源。必须在拥有该上下文的线程调用；
+    /// 立即清掉 <paramref name="device"/> 中未被引用的 GPU 资源。必须在拥有该设备的线程调用；
     /// 不确定时用 <see cref="TrimMemory"/>。
     /// </summary>
-    public void TrimGpuResources(GRContext? context)
+    public void TrimGpuResources(GraphicsDevice? device)
     {
         _trimMemoryRequested = false;
-        Rendering.GpuResourceCache.PurgeUnlockedResources(context);
+        device?.PurgeUnlockedResources();
     }
 
     // ---------------------------------------------------------------------

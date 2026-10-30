@@ -2,6 +2,8 @@ using Miko.Animation;
 using Miko.Common;
 using Miko.Core.DomElements;
 using Miko.Diagnostics;
+using Miko.Graphics;
+using Miko.Graphics.Skia;
 using Miko.Layout;
 using Miko.Styling;
 using SkiaSharp;
@@ -28,14 +30,14 @@ public class RenderEngine
     public int MaxIncrementalDirtyRegions { get; set; } = 30;
 
     private SKCanvas? _canvas;
+    private SkiaDrawingContext? _context;
     private Painter? _painter;
 
     /// <summary>
-    /// 当前渲染所用的 GPU 上下文。GPU 宿主在拥有 <see cref="GRContext"/> 时设置，
-    /// 供视频帧源把解码 GPU 资源零拷贝包装为 <see cref="SKImage"/>。
-    /// 离屏/软件渲染下为 null，视频帧源应回退到 CPU 光栅图像。
+    /// 当前渲染所用的 GPU 设备。GPU 宿主设置，供视频帧源把解码 GPU 资源零拷贝包装为图像。
+    /// 离屏/软件渲染下为 null，帧源拿到 <see cref="Graphics.GraphicsDevice.Software"/>，回退到 CPU 光栅图像。
     /// </summary>
-    public GRContext? GraphicsContext { get; set; }
+    public GraphicsDevice? GraphicsDevice { get; set; }
 
     /// <summary>
     /// 语法高亮器（<c>&lt;code language="..."&gt;</c> 的 token 着色）。默认内置
@@ -63,15 +65,21 @@ public class RenderEngine
     private float _currentScrollOffsetX;
     private float _currentScrollOffsetY;
 
-    public Action<SKCanvas>? OverlayCallback { get; set; }
+    /// <summary>
+    /// 整帧绘制完后在最上层绘制的覆盖内容（DevTools 的元素高亮），坐标同页面。
+    /// </summary>
+    public Action<IDrawingContext>? OverlayCallback { get; set; }
 
     /// <summary>
-    /// 设置画布
+    /// 设置本帧的绘制目标。只接受 Miko 创建的上下文（<see cref="RenderSurface.Context"/> 等）。
     /// </summary>
-    public void SetCanvas(SKCanvas canvas)
+    public void SetCanvas(IDrawingContext context)
     {
-        _canvas = canvas;
-        _painter = new Painter(canvas);
+        var skia = SkiaDrawingContext.Require(context, nameof(context));
+        _context = skia;
+        _canvas = skia.Canvas;
+        // 绘制器随上下文复用：复用同一张表面的宿主不必每帧新建（及其原生画笔）。
+        _painter = skia.Painter;
     }
 
     /// <summary>
@@ -94,7 +102,7 @@ public class RenderEngine
         RenderBox(layoutRoot, null, isStackingRoot: true);
         FlushFixed();
         FlushDropdowns();
-        OverlayCallback?.Invoke(_canvas!);
+        OverlayCallback?.Invoke(_context!);
         FrameTimingDiagnostics.RecordPaint(paintStart);
     }
 
@@ -136,9 +144,9 @@ public class RenderEngine
     /// <summary>触发 <see cref="OverlayCallback"/>（页面转场多层绘制结束后统一绘制一次覆盖层）。</summary>
     public void RenderOverlay()
     {
-        if (_canvas == null)
+        if (_context == null)
             throw new InvalidOperationException("Canvas not set. Call SetCanvas first.");
-        OverlayCallback?.Invoke(_canvas);
+        OverlayCallback?.Invoke(_context);
     }
 
     public void RenderDirty(LayoutBox layoutRoot, List<RectF> dirtyRegions)
@@ -1202,7 +1210,7 @@ public class RenderEngine
             try
             {
                 _canvas.ClipRect(new SKRect(content.X, content.Y, content.Right, content.Bottom));
-                paint(_canvas, content);
+                paint(_context!, content);
             }
             finally
             {
@@ -1433,16 +1441,16 @@ public class RenderEngine
         var content = box.BoxModel.Content;
         if (content.Width <= 0 || content.Height <= 0) return;
 
-        if (img.Bitmap != null)
+        if (img.Image != null)
         {
-            _painter.DrawImage(img.Bitmap, content);
+            _painter.DrawImage(img.Image, content);
             return;
         }
 
-        if (img.PlaceholderBitmap != null)
+        if (img.PlaceholderImage != null)
         {
-            var dst = FitContain(img.PlaceholderBitmap.Width, img.PlaceholderBitmap.Height, content);
-            _painter.DrawImage(img.PlaceholderBitmap, dst);
+            var dst = FitContain(img.PlaceholderImage.Width, img.PlaceholderImage.Height, content);
+            _painter.DrawImage(img.PlaceholderImage, dst);
         }
     }
 
@@ -1458,7 +1466,7 @@ public class RenderEngine
         var content = box.BoxModel.Content;
         if (content.Width <= 0 || content.Height <= 0) return;
 
-        var frame = video.Session?.FrameSource.AcquireCurrentFrame(GraphicsContext);
+        var frame = video.Session?.FrameSource.AcquireCurrentFrame(GraphicsDevice ?? Graphics.GraphicsDevice.Software);
         if (frame != null)
         {
             try

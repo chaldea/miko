@@ -30,7 +30,7 @@ public class BackgroundImage
     /// </summary>
     private const int RasterCacheCapacity = 8;
 
-    public SKBitmap? Bitmap
+    internal SKBitmap? Bitmap
     {
         get
         {
@@ -114,7 +114,7 @@ public class BackgroundImage
         return image;
     }
 
-    public static BackgroundImage FromBitmap(SKBitmap bitmap)
+    internal static BackgroundImage FromBitmap(SKBitmap bitmap)
     {
         return new BackgroundImage { _bitmap = bitmap };
     }
@@ -133,7 +133,7 @@ public class BackgroundImage
     /// <para>调用方传入的应当是<b>设备像素</b>尺寸（逻辑尺寸 × <c>Painter.DeviceScale</c>），
     /// 见 ISSUE-137。</para>
     /// </summary>
-    public SKBitmap? RenderAtSize(int width, int height)
+    internal SKBitmap? RenderAtSize(int width, int height)
     {
         if (_picture == null)
             return _bitmap;

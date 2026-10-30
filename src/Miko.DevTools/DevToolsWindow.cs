@@ -6,6 +6,7 @@ using Miko.Core.DomElements;
 using Miko.DevTools.Panels;
 using Miko.DevTools.Styles;
 using Miko.Events;
+using Miko.Graphics;
 using Miko.Hosting;
 using Miko.Layout;
 using Miko.Platform;
@@ -13,7 +14,6 @@ using Miko.Windowing.Common;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
-using SkiaSharp;
 using SilkMouseButton = Silk.NET.Input.MouseButton;
 
 namespace Miko.DevTools;
@@ -73,8 +73,8 @@ internal class DevToolsWindow : ISilkEventLoopWindow
     private readonly List<Styling.StyleSheet> _styleSheets = new() { DevToolsStyleSheet.Create() };
 
     // 重建时用于 Initialize 的临时 surface。按尺寸缓存，避免每次重建都新建一张
-    // 全窗口大小的 SKSurface（非托管内存）。
-    private SKSurface? _initSurface;
+    // 全窗口大小的离屏表面（非托管内存）。
+    private RenderSurface? _initSurface;
     private int _initSurfaceWidth;
     private int _initSurfaceHeight;
 
@@ -237,16 +237,16 @@ internal class DevToolsWindow : ISilkEventLoopWindow
     /// <see cref="MikoEngine.Initialize"/> 需要一个 canvas，但重建时真正的帧 canvas 尚未创建。
     /// 复用一张按窗口尺寸缓存的离屏 surface，避免每次重建都分配非托管内存。
     /// </summary>
-    private SKCanvas GetInitCanvas()
+    private IDrawingContext GetInitCanvas()
     {
         if (_initSurface == null || _initSurfaceWidth != _width || _initSurfaceHeight != _height)
         {
             _initSurface?.Dispose();
-            _initSurface = SKSurface.Create(new SKImageInfo(Math.Max(1, _width), Math.Max(1, _height)));
+            _initSurface = _engine.Graphics.CreateSurface(Math.Max(1, _width), Math.Max(1, _height));
             _initSurfaceWidth = _width;
             _initSurfaceHeight = _height;
         }
-        return _initSurface.Canvas;
+        return _initSurface.Context;
     }
 
     /// <summary>
@@ -295,14 +295,14 @@ internal class DevToolsWindow : ISilkEventLoopWindow
         var surface = _graphics!.BeginFrame(_width, _height);
         if (surface == null) return false;
 
-        var canvas = surface.Canvas;
-        canvas.Clear(new SKColor(36, 36, 36));
+        var canvas = surface.Context;
+        canvas.Clear(new Color(36, 36, 36));
         // 引擎按窗口坐标绘制；Retina 屏上表面是物理像素。
         canvas.Save();
-        canvas.Scale(_graphics.Scale);
+        canvas.Scale(_graphics.Scale, _graphics.Scale);
         _engine.Render(canvas);
         canvas.Restore();
-        canvas.Flush();
+        surface.Flush();
 
         // 我们接管了呈现（ShouldSwapAutomatically = false）：只有真正画了一帧才呈现。
         _graphics.Present();

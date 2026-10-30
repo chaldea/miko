@@ -140,7 +140,7 @@ public class FontManager : IDisposable
     /// <summary>
     /// Get typeface for a font family with specified weight and style
     /// </summary>
-    public SKTypeface? GetTypeface(string fontFamily, FontWeight weight, SKFontStyleSlant slant = SKFontStyleSlant.Upright)
+    internal SKTypeface? GetTypeface(string fontFamily, FontWeight weight, SKFontStyleSlant slant = SKFontStyleSlant.Upright)
     {
         var cacheKey = $"{fontFamily}|{(int)weight}|{slant}";
 
@@ -183,7 +183,7 @@ public class FontManager : IDisposable
     /// <summary>
     /// Get typeface for rendering a specific character with fallback support
     /// </summary>
-    public SKTypeface? GetTypefaceForCharacter(char character, string fontFamily, FontWeight weight)
+    internal SKTypeface? GetTypefaceForCharacter(char character, string fontFamily, FontWeight weight)
     {
         var families = ParseFontFamilyChain(fontFamily);
 
@@ -284,7 +284,7 @@ public class FontManager : IDisposable
     /// <summary>
     /// Check if a typeface contains a glyph for the specified character
     /// </summary>
-    public static bool ContainsGlyph(SKTypeface typeface, char character)
+    internal static bool ContainsGlyph(SKTypeface typeface, char character)
     {
         return ContainsGlyph(typeface, (int)character);
     }
@@ -292,7 +292,7 @@ public class FontManager : IDisposable
     /// <summary>
     /// Check if a typeface contains a glyph for the specified codepoint
     /// </summary>
-    public static bool ContainsGlyph(SKTypeface typeface, int codepoint)
+    internal static bool ContainsGlyph(SKTypeface typeface, int codepoint)
     {
         var key = (typeface, codepoint);
         if (_glyphCache.TryGetValue(key, out var cached))

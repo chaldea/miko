@@ -189,8 +189,14 @@ The repository uses a single solution file:
 
 **Rendering** (`src/Miko/Rendering/`)
 - `RenderEngine.cs`: Manages rendering with dirty region optimization
-- `Painter.cs`: SkiaSharp drawing primitives
+- `Painter.cs`: SkiaSharp drawing primitives (internal)
 - `DirtyRegionManager.cs`: Tracks and merges dirty regions for incremental rendering
+
+**Graphics** (`src/Miko/Graphics/`, ISSUE-162) — the only drawing API outside the core
+- `IDrawingContext.cs`, `IGraphicsFactory.cs`: drawing target and resource factory (text, images, surfaces)
+- `TextBlock.cs`, `Image.cs`, `RenderSurface.cs`: opaque resources; `GraphicsDevice.cs`: GPU context from native handles
+- `WindowRenderTarget.cs`: GL window framebuffer surface, reused per (size, FBO) (ISSUE-143)
+- `Skia/`: the internal Skia implementation (`SkiaDrawingContext`, `SkiaGraphicsFactory`, `SkiaImage`)
 
 **Fonts** (`src/Miko/Fonts/`)
 - `FontManager.cs`: Singleton font registry with TTF/OTF/WOFF/WOFF2 support
@@ -289,7 +295,7 @@ App.CreateContext().RunSimulator();
 
 Platform hosts provide:
 - Window/view management
-- OpenGL/Metal context creation
+- OpenGL/Metal context creation (as a `GraphicsDevice` from native handles, see "Drawing abstraction")
 - Native input event translation to `MikoKey`/pointer events
 - Forwarding events to `MikoInteractionController`
 
@@ -300,8 +306,37 @@ Platform hosts provide:
 2. Style Computation  →  StyleResolver matches selectors, computes cascade
 3. Layout Tree Build  →  Filter elements by display property
 4. Layout Calculation →  Constraints flow down (parent→child), sizes flow up (child→parent)
-5. Painting           →  RenderEngine draws to SKCanvas (dirty region optimized)
+5. Painting           →  RenderEngine draws to an IDrawingContext (dirty region optimized)
 ```
+
+### Drawing abstraction — SkiaSharp is sealed in the core (ISSUE-162)
+
+No SkiaSharp / HarfBuzzSharp / Svg.Skia type may appear in the core's public surface, and no other
+assembly may use one. Code outside `src/Miko` draws through `Miko.Graphics` (user docs: `docs/engine/drawing.md`).
+
+- **Enforced, not by convention.** `Miko.csproj` references the backend packages with
+  `PrivateAssets="compile;…"`: consumers get the runtime and native assets but cannot compile against
+  them, so a leak in another project is a build error. `BackendSealTests` reflects over the core's
+  exported types and fails on any public/protected member that exposes a backend type.
+- **Entry points take `IDrawingContext`.** `MikoEngine.Initialize/Render/Update/Tick`,
+  `MikoInteractionController.Initialize/Rebuild/RenderFrame`, `RenderEngine.SetCanvas/OverlayCallback`,
+  `CanvasElement.Paint`. The engine only renders into contexts it created (`SkiaDrawingContext.Require`);
+  the `Painter` lives with the context and is reused across frames.
+- **Hosts pass native handles.** `GraphicsDevice.CreateOpenGl(getProc)` / `CreateMetal(device, queue)`;
+  frame surfaces come from `CreateWindowRenderTarget().Acquire(...)` or `CreateMetalSurface(texture, …)`.
+  The engine gets the device through `MikoEngine.GraphicsDevice` (was `GraphicsContext: GRContext`).
+  Android no longer derives from SkiaSharp.Views' `SKGLSurfaceView`: `MikoSurfaceView : GLSurfaceView`
+  with `MikoGLRenderer` (same EGL config and frame steps; recreates the device after EGL context loss).
+- **Resources are opaque.** `Image` (bitmap / SVG vector / GPU texture), `TextBlock` (laid out by the
+  engine's text pipeline, so fallback fonts work), `RenderSurface` (`EncodePng`, `GetPixel`).
+  `ImageElement.Image`, `IImageLoader.LoadAsync → Task<Image?>`,
+  `IVideoFrameSource.AcquireCurrentFrame(GraphicsDevice) → Image?`, `DanmakuItem.Color : Color?`.
+- **White-box tests and benchmarks** (internals access) reference SkiaSharp themselves and drive the engine
+  with an `SKCanvas` through `tests/Shared/SkiaCanvasExtensions.cs` (wraps via `SkiaDrawingContext.For`).
+  Components / Razor / McpServer tests use the public API. A probe that measures Skia itself
+  (`ResizeMemoryProbe`) references the package explicitly.
+- A new drawing need is met by extending `IDrawingContext` / `IGraphicsFactory` / `GraphicsDevice`, never
+  by exposing a backend type or adding `InternalsVisibleTo` for a host or component library.
 
 ### Style Cascade
 
@@ -616,6 +651,7 @@ Video is implemented via platform-injected `IVideoBackend`:
   The core default is `NullVideoBackend`, which creates no sessions — `<video>` then renders
   background/poster only.
 - Frame sources provide `IVideoFrameSource` for zero-copy GPU texture wrapping
+  (`GraphicsDevice.WrapGlTexture` / `WrapMetalTexture`, CPU fallback via `GraphicsDevice.CreateImage`)
 
 **Backends use the OS decoder, never a bundled one.** Each platform registers a system-native
 backend; none of them ship third-party native binaries:
@@ -637,7 +673,8 @@ built by CI nor published as a package. Build it explicitly
 Shared plumbing in `src/Miko/Platform/Video/`:
 - `VideoFrameBuffer` — one frame as either GPU texture handles (zero-copy) or CPU planes (fallback)
 - `VideoFrameSourceBase` — the wrap logic both paths share; backends only fill `VideoFrameBuffer`
-- `Nv12FrameComposer` — NV12→RGB via an `SKRuntimeEffect` (SkSL) shader. **Required** because
+- `Nv12FrameComposer` — NV12→RGB via an `SKRuntimeEffect` (SkSL) shader, over `Image` planes
+  (`ImagePixelFormat.R8` / `Rg88`). **Required** because
   SkiaSharp 3.119.1 exports no `SKYUVAInfo` / multi-plane `SKImage.FromTextures`, so Skia cannot
   convert YUV itself; Y is wrapped as `R8Unorm`, UV as `Rg88`, and the shader does the matrix.
 - `VideoSourceDescriptor.ResolveForBackend()` — normalizes relative paths against
@@ -731,9 +768,9 @@ null-check or catch. One `PlatformInfo` instance backs `PlatformInfo`, `IPlatfor
 
 Images are loaded asynchronously via `IImageLoader`:
 - Default implementation: `ResourceManager` (embedded resources and file paths)
-- Platform hosts inject via `MikoEngine.ImageLoader`
+- Platform hosts inject via `MikoEngine.ImageLoader`; custom loaders decode with `IGraphicsFactory.DecodeImage`
 - `ImageElement` tracks loading state and supports placeholder images
-- Loaded bitmaps are cached in element's `Bitmap` property
+- Loaded images are stored in the element's `Image` property (`Miko.Graphics.Image`, owned by the loader)
 
 `ResourceManager` caches successful decodes only: a failed entry stays listed (Failed) for DevTools
 but the next request for that path loads again, and a consumer's `CancellationToken` cancels only its
@@ -789,11 +826,12 @@ var root = new DivElement { Class = "container" };
 root.AddChild(new H1Element { TextContent = "Hello Miko" });
 root.AddChild(new ParagraphElement { TextContent = "Lightweight rendering" });
 
-using var surface = SKSurface.Create(new SKImageInfo(800, 600));
-var canvas = surface.Canvas;
-
 var engine = new MikoEngineBuilder().Build();
+using var surface = engine.Graphics.CreateSurface(800, 600);
+var canvas = surface.Context;
+
 engine.Initialize(root, new List<StyleSheet> { styleSheet }, canvas, 800, 600);
+File.WriteAllBytes("frame.png", surface.EncodePng());
 ```
 
 ### Multiple engine instances and isolation
@@ -903,7 +941,8 @@ animationManager.PlayAnimation(element, animation);
 ## Important Notes
 
 - This is a .NET 10.0 project (requires appropriate SDK)
-- SkiaSharp resources should be properly disposed (use `using` statements)
+- Graphics resources (`RenderSurface`, decoded `Image`s, `GraphicsDevice`) should be disposed (use `using`);
+  inside the core, SkiaSharp objects are native and must be disposed too
 - The project uses nullable reference types — respect null annotations
 - Layout calculations use floats — be aware of floating-point precision
 - Style cascade: null means "not set", not a default value

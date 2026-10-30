@@ -4,8 +4,8 @@
 using Anime.Services;
 using Miko.Components.Player.Danmaku;
 using Miko.Core.DomElements;
+using Miko.Common;
 using Miko.Platform.Video;
-using SkiaSharp;
 using static Anime.Verification.AppHarness;
 
 using var app = new Anime.Verification.AppHarness(args.FirstOrDefault(a => a != "--ios"), args.Contains("--ios"));
@@ -119,7 +119,7 @@ app.ClickText("ion-segment-button", "顶部弹幕");
 app.Click(app.Find("danmaku-color")[1]);
 app.ClickClass("send-danmaku");
 var danmaku = community.Danmaku(13).Single();
-Require(danmaku.Mode == DanmakuMode.Top && danmaku.Color == SKColor.Parse("#ff4545") && danmaku.Time > TimeSpan.Zero,
+Require(danmaku.Mode == DanmakuMode.Top && danmaku.Color.Equals(Color.FromHex("#ff4545")) && danmaku.Time > TimeSpan.Zero,
     "Danmaku lost its selected mode, color or playback timestamp.");
 Require(!app.Find("danmaku-modal").Any(e => !e.HasClass("overlay-hidden")), "Danmaku panel did not close.");
 app.ClickText("ion-segment-button", "简介");

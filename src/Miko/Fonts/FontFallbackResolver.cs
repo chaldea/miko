@@ -142,13 +142,13 @@ public class FontFallbackResolver
     /// <summary>
     /// Get the best font for a specific character from the fallback chain
     /// </summary>
-    public SKTypeface? ResolveFont(char character, List<string> fallbackChain, FontWeight weight)
+    internal SKTypeface? ResolveFont(char character, List<string> fallbackChain, FontWeight weight)
         => ResolveFont((int)character, fallbackChain, weight);
 
     /// <summary>
     /// Get the best font for a code point (BMP or supplementary) from the fallback chain
     /// </summary>
-    public SKTypeface? ResolveFont(int character, List<string> fallbackChain, FontWeight weight)
+    internal SKTypeface? ResolveFont(int character, List<string> fallbackChain, FontWeight weight)
     {
         // Try each font in the fallback chain
         foreach (var familyName in fallbackChain)

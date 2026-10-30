@@ -121,5 +121,6 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
 
 - [Pipeline Overview](docs/engine/overview.md): DOM → style → layout → paint.
 - [Using the Engine Directly](docs/engine/direct-api.md): building the element tree in C# without Razor.
+- [Custom Drawing](docs/engine/drawing.md): `IDrawingContext`, `<canvas>` painting, offscreen surfaces and graphics devices.
 - [Packages](docs/packages.md): the NuGet packages and platform hosts.
 - [Examples](docs/examples.md): the sample apps in the Miko repository.

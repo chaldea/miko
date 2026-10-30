@@ -1,11 +1,12 @@
 using Miko.Common;
+using Miko.Graphics;
 using Miko.Platform.Video;
 using SkiaSharp;
 
 namespace Miko.Core.DomElements;
 
 /// <summary>
-/// 图片元素。<see cref="Source"/> 经统一资源管理器异步加载并解码为 <see cref="Bitmap"/>，
+/// 图片元素。<see cref="Source"/> 经统一资源管理器异步加载并解码为 <see cref="Image"/>，
 /// 加载完成前可渲染 <see cref="Placeholder"/> 占位内容。
 /// </summary>
 public class ImageElement : Element
@@ -18,11 +19,11 @@ public class ImageElement : Element
     /// <summary>占位图源（本地文件 / res://）。真实图片就绪前渲染，标准浏览器无此属性，为引擎扩展。</summary>
     public string? Placeholder { get; set; }
 
-    /// <summary>已解码的位图（由引擎异步加载后写入）。</summary>
-    public SKBitmap? Bitmap { get; internal set; }
+    /// <summary>已解码的图像（由引擎异步加载后写入）。归图片加载器所有，不得释放。</summary>
+    public Image? Image { get; internal set; }
 
-    /// <summary>占位图已解码的位图（首张真实图前绘制）。</summary>
-    internal SKBitmap? PlaceholderBitmap { get; set; }
+    /// <summary>占位图已解码的图像（首张真实图前绘制）。</summary>
+    internal Image? PlaceholderImage { get; set; }
 
     /// <summary>
     /// replaced 元素内禀尺寸（CSS 像素），加载完成后由引擎写入并触发重排。未知时为 null。

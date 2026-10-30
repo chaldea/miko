@@ -284,7 +284,7 @@ Miko 实现类浏览器的渲染管线：
 4. 布局计算        → 约束向下传递（父→子），尺寸向上回传（子→父）
 5. 定位调整        → 处理 relative/absolute/fixed 定位偏移，登记 sticky 盒（偏移在每次绘制/命中测试前按滚动量施加）
 6. 视口观察        → 通知 IViewportObserver（虚拟化列表）此刻可见的区域；它们改了 DOM 就重排再通知，直到稳定
-7. 绘制            → RenderEngine 通过 Painter 绘制到 SKCanvas（支持增量渲染）
+7. 绘制            → RenderEngine 通过 Painter 绘制到宿主给的 IDrawingContext（支持增量渲染；Skia 封闭在核心库内，见 docs/engine/drawing.md）
 ```
 
 ### 样式级联
@@ -747,7 +747,7 @@ using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Styling;
 using Miko.Common;
-using SkiaSharp;
+using Miko.Hosting;
 
 // 1. 创建样式表
 var styleSheet = new StyleSheet();
@@ -784,19 +784,16 @@ button.OnClick = (sender, args) =>
 };
 root.AddChild(button);
 
-// 3. 创建画布并渲染
-using var surface = SKSurface.Create(new SKImageInfo(800, 600));
-var canvas = surface.Canvas;
-canvas.Clear(SKColors.White);
-
+// 3. 创建离屏表面并渲染
 var engine = new MikoEngineBuilder().Build();
+using var surface = engine.Graphics.CreateSurface(800, 600);
+var canvas = surface.Context;
+canvas.Clear(Color.White);
+
 engine.Initialize(root, new List<StyleSheet> { styleSheet }, canvas, 800, 600);
 
 // 4. 导出图片
-using var image = surface.Snapshot();
-using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-using var stream = File.OpenWrite("output.png");
-data.SaveTo(stream);
+File.WriteAllBytes("output.png", surface.EncodePng());
 ```
 
 ### 增量更新与事件处理
@@ -1166,7 +1163,7 @@ using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Styling;
 using Miko.Common;
-using SkiaSharp;
+using Miko.Hosting;
 
 var styleSheet = new StyleSheet();
 styleSheet.Add(new CssObject
@@ -1184,17 +1181,14 @@ var root = new DivElement { Class = "container" };
 root.AddChild(new H1Element { TextContent = "Hello Miko" });
 root.AddChild(new ParagraphElement { TextContent = "A lightweight rendering engine." });
 
-using var surface = SKSurface.Create(new SKImageInfo(800, 600));
-var canvas = surface.Canvas;
-canvas.Clear(SKColors.White);
-
 var engine = new MikoEngineBuilder().Build();
+using var surface = engine.Graphics.CreateSurface(800, 600);
+var canvas = surface.Context;
+canvas.Clear(Color.White);
+
 engine.Initialize(root, new List<StyleSheet> { styleSheet }, canvas, 800, 600);
 
-using var image = surface.Snapshot();
-using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-using var stream = File.OpenWrite("output.png");
-data.SaveTo(stream);
+File.WriteAllBytes("output.png", surface.EncodePng());
 ```
 
 ### 响应式布局与媒体查询
@@ -1343,7 +1337,8 @@ public class App
 
 ### 资源管理
 
-- **SkiaSharp 资源必须正确释放**：使用 `using` 语句管理 `SKSurface`、`SKImage`、`SKBitmap` 等资源
+- **绘制资源必须正确释放**：使用 `using` 语句管理 `RenderSurface`、自行解码的 `Image`、`GraphicsDevice` 等资源（核心库内部的 SkiaSharp 对象同理）
+- **不要在核心库之外使用 SkiaSharp**：绘制走 `Miko.Graphics`（`IDrawingContext` / `IGraphicsFactory`），核心库的 Skia 包对外只提供运行时资产，外部无法编译引用（ISSUE-162）
 - **字体文件加载**：`FontManager.RegisterFont()` 会立即加载字体到内存，避免重复注册
 - **视频会话**：`MikoEngine` 自动管理视频会话生命周期，无需手动释放
 

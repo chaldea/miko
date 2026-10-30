@@ -67,7 +67,7 @@ internal sealed class DesktopFrameProbe
             if (!_reportedBackend)
             {
                 _reportedBackend = true;
-                Log($"[desktop-renderer] backend={_context.Engine.GraphicsContext?.Backend} os={Environment.OSVersion}");
+                Log($"[desktop-renderer] backend={_context.Engine.GraphicsDevice?.Backend} os={Environment.OSVersion}");
             }
 
             var interval = _lastFrame == 0 ? 0 : Stopwatch.GetElapsedTime(_lastFrame, now).TotalMilliseconds;

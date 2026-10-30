@@ -21,7 +21,7 @@ public struct Color
         A = a;
     }
 
-    public SKColor ToSKColor() => new SKColor(R, G, B, A);
+    internal SKColor ToSKColor() => new SKColor(R, G, B, A);
 
     public static Color FromRgb(byte r, byte g, byte b) => new Color(r, g, b);
     public static Color FromRgba(byte r, byte g, byte b, byte a) => new Color(r, g, b, a);

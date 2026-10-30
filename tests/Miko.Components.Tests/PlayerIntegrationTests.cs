@@ -3,30 +3,33 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Miko.Common;
 using Miko.Components.Player;
+using Miko.Components.Player.Danmaku;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
 using Miko.Hosting;
+using Miko.Layout;
 using Miko.Platform;
 using Miko.Platform.Video;
 using Miko.Styling;
+using Miko.Graphics;
 using Shouldly;
-using SkiaSharp;
 
 namespace Miko.Components.Tests;
 
 public class PlayerIntegrationTests : IDisposable
 {
-    private readonly SKBitmap _bitmap = new(960, 760);
-    private readonly SKCanvas _canvas;
+    private readonly RenderSurface _surface;
+    private readonly IDrawingContext _canvas;
     private readonly MikoEngine _engine;
     private readonly Backend _backend = new();
     private readonly MikoPlayer _player;
     private readonly DivElement _root;
     public PlayerIntegrationTests()
     {
-        _canvas = new SKCanvas(_bitmap);
         _engine = new MikoEngineBuilder().Build();
+        _surface = _engine.Graphics.CreateSurface(960, 760);
+        _canvas = _surface.Context;
         _engine.VideoBackend = _backend;
         _player = new MikoPlayer { Engine = _engine, Source = "movie.mp4" };
         _root = new DivElement { Style = new Style { Display = Display.Block, Width = Length.Percent(100), Height = Length.Percent(100) } };
@@ -35,7 +38,7 @@ public class PlayerIntegrationTests : IDisposable
         Render();
     }
     private void Render() { for (int i = 0; i < 4; i++) _engine.Render(_canvas); }
-    public void Dispose() { _player.Dispose(); _engine.DisposeVideoSessions(); _canvas.Dispose(); _bitmap.Dispose(); }
+    public void Dispose() { _player.Dispose(); _engine.DisposeVideoSessions(); _surface.Dispose(); }
 
     [Fact]
     public void Should_Retain_Session_While_Using_Controls_And_Settings()
@@ -70,15 +73,14 @@ public class PlayerIntegrationTests : IDisposable
     {
         // The height used to be written back as pixels once a frame had measured the width, so the first
         // layout used a 240px placeholder and the page laid out a second time (ISSUE-146 §5.3, ISSUE-150).
-        using var bitmap = new SKBitmap(640, 480);
-        using var canvas = new SKCanvas(bitmap);
         var engine = new MikoEngineBuilder().Build();
+        using var surface = engine.Graphics.CreateSurface(640, 480);
         engine.VideoBackend = new Backend();
         using var player = new MikoPlayer { Engine = engine, Source = "movie.mp4" };
         var root = new DivElement { Style = new Style { Display = Display.Block, Width = Length.Percent(100) } };
         root.Children.Add(player.Build());
 
-        engine.Initialize(root, [], canvas, 640, 480);
+        engine.Initialize(root, [], surface.Context, 640, 480);
 
         root.FindByClass("miko-player-viewport").Single().OffsetHeight.ShouldBe(360, .5f);
         engine.DisposeVideoSessions();
@@ -273,6 +275,64 @@ public class PlayerIntegrationTests : IDisposable
         provider.GetRequiredService<MikoPlayerOptions>().MaxVisibleDanmaku.ShouldBe(40);
         provider.GetService<IVideoBackend>().ShouldBeNull();
     }
+    [Fact]
+    public void Should_Draw_Without_Referencing_The_Rendering_Backend()
+    {
+        // ISSUE-162: the player draws through Miko.Graphics; the backend stays inside the core library.
+        typeof(MikoPlayer).Assembly.GetReferencedAssemblies().Select(a => a.Name)
+            .ShouldNotContain(name => name!.StartsWith("SkiaSharp") || name.StartsWith("Svg.Skia") || name.StartsWith("HarfBuzzSharp"));
+    }
+
+    [Fact]
+    public void Should_Paint_Progress_Icons_And_Danmaku()
+    {
+        _player.Danmaku = [new(TimeSpan.FromSeconds(29.5), "日本語のコメント", DanmakuMode.Top, Color.FromHex("#ffe066"))];
+        _player.Build();
+        _backend.Sessions[0].State = VideoSessionState.Playing;
+        _backend.Sessions[0].Position = TimeSpan.FromSeconds(30);
+        _backend.Sessions[0].Raise(new VideoSessionEvent.Loaded(640, 360, TimeSpan.FromSeconds(60)));
+        Render();
+
+        var progress = _root.FindByClass("miko-player-progress").Single();
+        var bar = BorderBox(progress);
+        float y = bar.Y + bar.Height / 2;
+        // Played half (accent), the rest (track): the thumb sits at 50%.
+        _surface.GetPixel((int)(bar.X + bar.Width * .25f), (int)y).ShouldBe(Color.FromHex("#38cfa1"));
+        _surface.GetPixel((int)(bar.X + bar.Width * .75f), (int)y).ShouldBe(Color.FromHex("#494d53"));
+
+        // Each control button has a white icon painted in its center.
+        foreach (var button in _root.FindByClass("miko-player-controls").Single().FindByTagName("button"))
+        {
+            var box = BorderBox(button);
+            CountNear(box, Color.White).ShouldBeGreaterThan(10, "icon missing");
+        }
+
+        // The pinned comment is drawn in its color (at the danmaku opacity, over black) at the top of the viewport.
+        var viewport = _root.FindByClass("miko-player-viewport").Single();
+        var viewportBox = BorderBox(viewport);
+        var top = new RectF(viewportBox.X, viewportBox.Y, viewportBox.Width, 40);
+        CountNear(top, new Color(230, 202, 92)).ShouldBeGreaterThan(50, "danmaku missing");
+    }
+
+    private RectF BorderBox(Element element)
+    {
+        static LayoutBox? Find(LayoutBox box, Element element)
+            => box.Element == element ? box : box.Children.Select(c => Find(c, element)).FirstOrDefault(b => b != null);
+        return Find(_engine.GetCurrentLayout()!, element)!.BoxModel.BorderBox;
+    }
+
+    private int CountNear(RectF area, Color color)
+    {
+        int count = 0;
+        for (int y = (int)area.Top; y < (int)area.Bottom; y++)
+        for (int x = (int)area.Left; x < (int)area.Right; x++)
+        {
+            var c = _surface.GetPixel(x, y);
+            if (Math.Abs(c.R - color.R) < 24 && Math.Abs(c.G - color.G) < 24 && Math.Abs(c.B - color.B) < 24) count++;
+        }
+        return count;
+    }
+
     private sealed class Backend : IVideoBackend
     {
         public List<TestVideoSession> Sessions { get; } = [];

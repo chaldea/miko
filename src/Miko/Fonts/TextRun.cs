@@ -25,9 +25,9 @@ public class TextRun
     /// <summary>
     /// The typeface to use for rendering this run
     /// </summary>
-    public SKTypeface Typeface { get; }
+    internal SKTypeface Typeface { get; }
 
-    public TextRun(string text, int startIndex, int length, SKTypeface typeface)
+    internal TextRun(string text, int startIndex, int length, SKTypeface typeface)
     {
         Text = text;
         StartIndex = startIndex;
