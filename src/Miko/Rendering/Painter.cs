@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Miko.Common;
 using Miko.Fonts;
+using Miko.Graphics;
 using Miko.Highlight;
 using Miko.Styling;
 using SkiaSharp;
@@ -10,7 +11,7 @@ namespace Miko.Rendering;
 /// <summary>
 /// 绘制工具
 /// </summary>
-public class Painter
+internal class Painter
 {
     /// <summary>绘制字体缓存键（见 <see cref="CreateHighQualityFont"/>）。</summary>
     private readonly record struct FontKey(SKTypeface Typeface, float FontSize);
@@ -39,10 +40,10 @@ public class Painter
     /// 一个；每帧几十个文本节点下这笔开销可观（ISSUE-144）。paint 只承载颜色与抗锯齿，
     /// 每次绘制前重设即可。
     ///
-    /// <para>按 <see cref="Painter"/> 实例持有而非静态：Painter 每帧随
-    /// <c>RenderEngine.SetCanvas</c> 新建，生命周期与一帧绘制一致，因此这份 paint 天然
-    /// 不跨线程共享——与静态的字体/分段缓存（内容寻址、只读命中）不同，paint 是会被
-    /// 写入的可变状态。</para>
+    /// <para>按 <see cref="Painter"/> 实例持有而非静态：Painter 随绘制上下文
+    /// （<see cref="Graphics.Skia.SkiaDrawingContext"/>）一同创建、跨帧复用，而一个上下文只属于
+    /// 一张表面、只在它的渲染线程上绘制，因此这份 paint 天然不跨线程共享——与静态的字体/分段缓存
+    /// （内容寻址、只读命中）不同，paint 是会被写入的可变状态。</para>
     /// </summary>
     private readonly SKPaint _textPaint = new() { IsAntialias = true };
 
@@ -64,17 +65,17 @@ public class Painter
     /// 倾斜、非等比缩放一并并入同一个矩阵，此时 <c>ScaleX</c> 已不是缩放系数
     /// （旋转 90° 时它是 0，会把目标尺寸算成 0）。</para>
     /// </summary>
-    public float DeviceScale
+    public float DeviceScale => DeviceScaleOf(_canvas);
+
+    /// <summary><see cref="DeviceScale"/> 的计算，供绘制上下文共用。</summary>
+    internal static float DeviceScaleOf(SKCanvas canvas)
     {
-        get
-        {
-            var m = _canvas.TotalMatrix;
-            // 矩阵线性部分两个列向量的长度 = 各轴向的实际放大倍数（含旋转/倾斜贡献）。
-            float xAxis = MathF.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY);
-            float yAxis = MathF.Sqrt(m.SkewX * m.SkewX + m.ScaleY * m.ScaleY);
-            float scale = MathF.Max(xAxis, yAxis);
-            return float.IsFinite(scale) && scale > 0 ? scale : 1f;
-        }
+        var m = canvas.TotalMatrix;
+        // 矩阵线性部分两个列向量的长度 = 各轴向的实际放大倍数（含旋转/倾斜贡献）。
+        float xAxis = MathF.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY);
+        float yAxis = MathF.Sqrt(m.SkewX * m.SkewX + m.ScaleY * m.ScaleY);
+        float scale = MathF.Max(xAxis, yAxis);
+        return float.IsFinite(scale) && scale > 0 ? scale : 1f;
     }
 
     /// <summary>
@@ -1065,7 +1066,7 @@ public class Painter
     /// <para>视频帧走 <see cref="DrawImage(SKImage, RectF, RectF?)"/> 重载，本就已是
     /// <see cref="SKImage"/>（GPU 纹理零拷贝包装）且每帧都是新的一张，不经过这里。</para>
     /// </summary>
-    private static SKImage? ImageFor(SKBitmap bitmap)
+    internal static SKImage? ImageFor(SKBitmap bitmap)
     {
         if (_imageCache.TryGetValue(bitmap, out var cached)) return cached;
 
@@ -1185,6 +1186,29 @@ public class Painter
         float dy = (MathF.Round(deviceTop) - deviceTop) / scaleY;
 
         return new SKRect(r.Left + dx, r.Top + dy, r.Right + dx, r.Bottom + dy);
+    }
+
+    /// <summary>
+    /// 绘制一张 <see cref="Image"/>（<c>&lt;img&gt;</c> 的图像、占位图、视频帧）。
+    /// 解码出的位图走 <see cref="DrawImage(SKBitmap, RectF, Color?, bool)"/>（像素吸附 + 按缩放比采样），
+    /// 后端图像（视频帧、像素上传）走 <see cref="DrawImage(SKImage, RectF, RectF?)"/>，
+    /// 矢量图按目标尺寸直接绘制。
+    /// </summary>
+    public void DrawImage(Image image, RectF rect, Color? tint = null, bool snapToPixels = true)
+    {
+        var source = Graphics.Skia.SkiaImage.Require(image);
+        if (source.Bitmap is { } bitmap)
+        {
+            DrawImage(bitmap, rect, tint, snapToPixels);
+        }
+        else if (source.SkImage is { } skImage)
+        {
+            DrawImage(skImage, rect);
+        }
+        else if (source.Picture != null)
+        {
+            Graphics.Skia.SkiaDrawingContext.For(_canvas).DrawImage(image, rect, ImageSampling.Auto, tint);
+        }
     }
 
     /// <summary>
@@ -1986,7 +2010,7 @@ public class Painter
     /// 字形/度量缓存的同一处调用）——缓存按 typeface 引用索引，而那些 typeface 会在
     /// <c>FontManager.Dispose</c> 中被释放。</para>
     /// </summary>
-    private static SKFont CreateHighQualityFont(SKTypeface typeface, float fontSize)
+    internal static SKFont CreateHighQualityFont(SKTypeface typeface, float fontSize)
     {
         var key = new FontKey(typeface, fontSize);
         if (_fontCache.TryGetValue(key, out var cached))

@@ -1,8 +1,7 @@
-using Miko.Rendering;
+using Miko.Graphics;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
-using SkiaSharp;
 
 namespace Miko.Windowing.Common;
 
@@ -27,16 +26,17 @@ internal sealed class GlWindowGraphics(IWindow window) : SilkWindowGraphics
             (GlfwDiagnostics.LastError is { } glfw ? $" Last GLFW error: {glfw}" : ""));
         _gl = window.CreateOpenGL();
 
-        var grInterface = GRGlInterface.Create(name =>
-            glContext.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero)
-            ?? throw new InvalidOperationException(
-                $"Skia could not load the OpenGL entry points ({DescribeGl()}).");
-
-        Context = GRContext.CreateGl(grInterface)
-            ?? throw new InvalidOperationException(
-                $"Skia could not create an OpenGL context ({DescribeGl()}). Miko needs OpenGL 3.3 or later.");
-        GpuResourceCache.Configure(Context);
-        _renderTarget = new WindowRenderTarget(Context);
+        try
+        {
+            Device = GraphicsDevice.CreateOpenGl(name => glContext.TryGetProcAddress(name, out var addr) ? addr : IntPtr.Zero);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new InvalidOperationException(
+                $"{ex.Message} ({DescribeGl()}). Miko needs OpenGL 3.3 or later.", ex);
+        }
+        Device.ResourceCacheLimit = GraphicsDevice.DefaultResourceCacheLimit;
+        _renderTarget = Device.CreateWindowRenderTarget();
     }
 
     private string DescribeGl()
@@ -53,11 +53,11 @@ internal sealed class GlWindowGraphics(IWindow window) : SilkWindowGraphics
         return GlfwDiagnostics.LastError is { } glfw ? $"{gl}; last GLFW error: {glfw}" : gl;
     }
 
-    public override SKSurface? BeginFrame(int width, int height)
+    public override RenderSurface? BeginFrame(int width, int height)
     {
         if (_gl == null || _renderTarget == null) return null;
 
-        // 窗口默认帧缓冲的绑定必须在任何离屏渲染之前读取：Skia 渲染离屏 SKSurface 时会绑定离屏 FBO
+        // 窗口默认帧缓冲的绑定必须在任何离屏渲染之前读取：渲染离屏表面时后端会绑定离屏 FBO
         // 并保持绑定，之后再读就会把窗口内容画进用户看不到的离屏画布，窗口保持黑屏（ISSUE-067）。
         int fboId = _gl.GetInteger(GLEnum.FramebufferBinding);
         return _renderTarget.Acquire(width, height, (uint)fboId);
@@ -65,7 +65,7 @@ internal sealed class GlWindowGraphics(IWindow window) : SilkWindowGraphics
 
     public override void Present()
     {
-        Context.Flush();
+        Device.Flush();
         window.GLContext?.SwapBuffers();
     }
 
@@ -74,10 +74,10 @@ internal sealed class GlWindowGraphics(IWindow window) : SilkWindowGraphics
 
     public override void Dispose()
     {
-        // 表面引用 GRContext，必须先于它释放。
+        // 表面引用 GPU 设备，必须先于它释放。
         _renderTarget?.Dispose();
         _renderTarget = null;
-        DisposeContext();
+        DisposeDevice();
         _gl?.Dispose();
         _gl = null;
     }

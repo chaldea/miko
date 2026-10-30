@@ -1,13 +1,12 @@
-using Miko.Rendering;
+using Miko.Graphics;
 using Miko.Windowing.MacOS;
 using Silk.NET.Windowing;
-using SkiaSharp;
 
 namespace Miko.Windowing.Common;
 
 /// <summary>
-/// 把 Skia 的 GPU 上下文接到 Silk.NET 窗口上的呈现后端：Windows/Linux 用 OpenGL，macOS 用 Metal
-/// （与 iOS 宿主同一条 Skia Metal 渲染路径，见 ISSUE-147）。桌面宿主与模拟器共用它，
+/// 把引擎的 GPU 设备（<see cref="GraphicsDevice"/>）接到 Silk.NET 窗口上的呈现后端：Windows/Linux 用 OpenGL，
+/// macOS 用 Metal（与 iOS 宿主同一条 Metal 渲染路径，见 ISSUE-147）。桌面宿主与模拟器共用它，
 /// 自身不再直接接触 GL 或 Metal。
 ///
 /// <para><b>为什么 macOS 不再用 OpenGL</b>：macOS 的 OpenGL 自 10.14 起已弃用、停在 4.1，
@@ -17,7 +16,7 @@ namespace Miko.Windowing.Common;
 ///
 /// <para><b>线程约定</b>：<see cref="Create"/> 在窗口线程（macOS 上即主线程）的 <c>Load</c> 回调里调用——
 /// Metal 后端要在这里把 <c>CAMetalLayer</c> 挂到窗口视图上，AppKit 只允许主线程这样做。
-/// 其余成员只由渲染线程调用：<see cref="Initialize"/> 创建 <see cref="GRContext"/>，
+/// 其余成员只由渲染线程调用：<see cref="Initialize"/> 创建 <see cref="GraphicsDevice"/>，
 /// 每帧 <see cref="BeginFrame"/> 取一张窗口表面、画完后 <see cref="Present"/>。</para>
 ///
 /// <para>诊断用：环境变量 <c>MIKO_GRAPHICS_BACKEND=opengl</c> 让 macOS 退回 OpenGL，
@@ -26,7 +25,7 @@ namespace Miko.Windowing.Common;
 public abstract class SilkWindowGraphics : IDisposable
 {
     private static readonly Lazy<bool> s_useMetal = new(ResolveUseMetal);
-    private GRContext? _context;
+    private GraphicsDevice? _device;
 
     /// <summary>
     /// 创建窗口时应请求的图形 API：Metal 后端需要一个不带 GL 上下文的窗口（<see cref="GraphicsAPI.None"/>），
@@ -43,11 +42,11 @@ public abstract class SilkWindowGraphics : IDisposable
         return new GlWindowGraphics(window);
     }
 
-    /// <summary>当前后端的 GPU 上下文。<see cref="Initialize"/> 之后可用。</summary>
-    public GRContext Context
+    /// <summary>当前后端的 GPU 设备。<see cref="Initialize"/> 之后可用。</summary>
+    public GraphicsDevice Device
     {
-        get => _context ?? throw new InvalidOperationException("Window graphics have not been initialized.");
-        protected set => _context = value;
+        get => _device ?? throw new InvalidOperationException("Window graphics have not been initialized.");
+        protected set => _device = value;
     }
 
     /// <summary>后端与设备的简短描述，用于日志。</summary>
@@ -59,7 +58,7 @@ public abstract class SilkWindowGraphics : IDisposable
     /// </summary>
     public virtual float Scale => 1f;
 
-    /// <summary>渲染线程：创建 GPU 上下文。</summary>
+    /// <summary>渲染线程：创建 GPU 设备。</summary>
     public abstract void Initialize();
 
     /// <summary>
@@ -69,7 +68,7 @@ public abstract class SilkWindowGraphics : IDisposable
     /// <param name="width">窗口宽度（窗口坐标）。</param>
     /// <param name="height">窗口高度（窗口坐标）。</param>
     /// <returns>本帧表面；窗口尺寸为 0（最小化）或暂时拿不到可绘制对象时为 <c>null</c>，跳过本帧即可。</returns>
-    public abstract SKSurface? BeginFrame(int width, int height);
+    public abstract RenderSurface? BeginFrame(int width, int height);
 
     /// <summary>渲染线程：提交本帧的 GPU 命令并呈现到窗口。</summary>
     public abstract void Present();
@@ -79,16 +78,14 @@ public abstract class SilkWindowGraphics : IDisposable
     {
     }
 
-    /// <summary>渲染线程：释放 GPU 上下文与后端资源。之前应先释放引用该上下文的表面与图像。</summary>
+    /// <summary>渲染线程：释放 GPU 设备与后端资源。之前应先释放引用该设备的表面与图像。</summary>
     public abstract void Dispose();
 
-    /// <summary>清空资源缓存后释放 GPU 上下文（未创建时什么都不做）。</summary>
-    protected void DisposeContext()
+    /// <summary>清空资源缓存后释放 GPU 设备（未创建时什么都不做）。</summary>
+    protected void DisposeDevice()
     {
-        if (_context == null) return;
-        GpuResourceCache.PurgeAllResources(_context);
-        _context.Dispose();
-        _context = null;
+        _device?.Dispose();
+        _device = null;
     }
 
     private static bool ResolveUseMetal()

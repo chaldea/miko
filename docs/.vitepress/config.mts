@@ -119,7 +119,8 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Pipeline Overview', link: '/engine/overview' },
-          { text: 'Using the Engine Directly', link: '/engine/direct-api' }
+          { text: 'Using the Engine Directly', link: '/engine/direct-api' },
+          { text: 'Custom Drawing', link: '/engine/drawing' }
         ]
       },
       {

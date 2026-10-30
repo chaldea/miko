@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Miko.Graphics;
 using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
@@ -190,7 +191,7 @@ public class AppLifecycleTests
 
     private sealed class NullFrameSource : IVideoFrameSource
     {
-        public SKImage? AcquireCurrentFrame(GRContext? grContext) => null;
+        public Image? AcquireCurrentFrame(GraphicsDevice device) => null;
         public void ReleaseCurrentFrame() { }
     }
 }

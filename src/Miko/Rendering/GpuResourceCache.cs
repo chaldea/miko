@@ -3,9 +3,10 @@ using SkiaSharp;
 namespace Miko.Rendering;
 
 /// <summary>
-/// Applies the resource-cache policy used by Miko-owned GPU contexts.
+/// Applies the resource-cache policy used by Miko-owned GPU contexts. Hosts reach it through
+/// <see cref="Graphics.GraphicsDevice"/>.
 /// </summary>
-public static class GpuResourceCache
+internal static class GpuResourceCache
 {
     /// <summary>Default maximum number of bytes retained by Skia's GPU resource cache.</summary>
     public const long DefaultLimitBytes = 64L * 1024 * 1024;
@@ -39,5 +40,5 @@ public static class GpuResourceCache
     }
 }
 
-/// <summary>A snapshot of Skia GPU resource-cache usage.</summary>
+/// <summary>A snapshot of the GPU resource-cache usage of a <see cref="Graphics.GraphicsDevice"/>.</summary>
 public readonly record struct GpuResourceCacheUsage(int ResourceCount, long ResourceBytes);

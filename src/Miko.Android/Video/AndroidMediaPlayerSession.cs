@@ -4,7 +4,7 @@ using Miko.Platform.Video;
 
 namespace Miko.Android.Video;
 
-/// <summary>Android's system A/V and HLS player feeding the existing Skia SurfaceTexture.</summary>
+/// <summary>Android's system A/V and HLS player feeding the renderer's SurfaceTexture.</summary>
 internal sealed class AndroidMediaPlayerSession : IVideoSession
 {
     private readonly VideoSourceDescriptor _source;

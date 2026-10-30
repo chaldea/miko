@@ -15,7 +15,7 @@ namespace Miko.Android.Video;
 /// **零拷贝**：<c>MediaCodec.ReleaseOutputBuffer(index, render: true)</c> 让解码器把帧
 /// 写进 Surface，CPU 完全不接触 YUV 数据。渲染线程调用
 /// <c>SurfaceTexture.UpdateTexImage()</c> 后，该 OES 纹理即为最新帧，
-/// 经 <c>GRGlTextureInfo(GL_TEXTURE_EXTERNAL_OES, ...)</c> 包成 <c>SKImage</c>。
+/// 经 <c>GraphicsDevice.WrapGlTexture(GL_TEXTURE_EXTERNAL_OES, ...)</c> 包成可绘制的图像。
 /// </para>
 ///
 /// <para>

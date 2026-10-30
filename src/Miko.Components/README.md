@@ -48,8 +48,10 @@ The control bar includes play/pause, seeking, elapsed/total time, mute, danmaku,
 
 ## Danmaku
 
-`Scroll`, `Top`, and `Bottom` comments use media time, so pause, rate changes, seeks and loops stay synchronized. Supply a new immutable list when replacing comments. Rendering uses one canvas element, an indexed timeline, bounded visible entries and a 512-entry text cache. Default density is 80, configurable with `AddMikoPlayer(o => o.MaxVisibleDanmaku = 120)`. Congested comments are dropped rather than queued indefinitely. Seeking scans at most 2,048 recent candidates. The steady-state timeline loop allocates no managed memory per frame.
+`Scroll`, `Top`, and `Bottom` comments use media time, so pause, rate changes, seeks and loops stay synchronized. Supply a new immutable list when replacing comments; `DanmakuItem.Color` is a `Miko.Common.Color` (its alpha is replaced by the opacity setting). Rendering uses one canvas element, an indexed timeline, bounded visible entries and a 512-entry text cache. Comments are laid out with the engine's text pipeline, so mixed scripts (CJK with kana or Latin) get their fallback fonts. Default density is 80, configurable with `AddMikoPlayer(o => o.MaxVisibleDanmaku = 120)`. Congested comments are dropped rather than queued indefinitely. Seeking scans at most 2,048 recent candidates. The steady-state timeline loop allocates no managed memory per frame.
 
 Icons are selected Ionicons assets already present in the repository (MIT); they are embedded at build time without a runtime dependency on `Miko.Ionic`.
+
+The player draws through `Miko.Graphics` (`IDrawingContext`, `IGraphicsFactory`) and does not reference SkiaSharp; see [Custom Drawing](../../docs/engine/drawing.md).
 
 See [design](Player/DESIGN.md) and [examples](../../examples/Components/README.md).

@@ -4,7 +4,6 @@ using Miko.Components;
 using Miko.Core;
 using Miko.Layout;
 using Miko.Styling;
-using SkiaSharp;
 
 namespace Miko.Testing;
 
@@ -17,8 +16,6 @@ public class TestContext : IDisposable
     private readonly List<StyleSheet> _styleSheets = new();
     private readonly float _defaultViewportWidth = 800f;
     private readonly float _defaultViewportHeight = 600f;
-    private SKBitmap? _testBitmap;
-    private SKCanvas? _testCanvas;
     private IServiceProvider? _serviceProvider;
 
     /// <summary>
@@ -98,9 +95,6 @@ public class TestContext : IDisposable
     /// </summary>
     public ComponentUnderTest RenderElement(Element rootElement)
     {
-        // Create a test canvas if needed
-        EnsureTestCanvas();
-
         // Create layout engine
         var layoutEngine = new LayoutEngine();
 
@@ -166,18 +160,8 @@ public class TestContext : IDisposable
         return _serviceProvider ??= Services.BuildServiceProvider();
     }
 
-    private void EnsureTestCanvas()
-    {
-        if (_testCanvas == null)
-        {
-            _testBitmap = new SKBitmap((int)ViewportWidth, (int)ViewportHeight);
-            _testCanvas = new SKCanvas(_testBitmap);
-        }
-    }
-
+    /// <summary>Nothing to release: layout needs no drawing surface. Kept so callers can use <c>using</c>.</summary>
     public void Dispose()
     {
-        _testCanvas?.Dispose();
-        _testBitmap?.Dispose();
     }
 }

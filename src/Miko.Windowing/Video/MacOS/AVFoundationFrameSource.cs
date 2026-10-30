@@ -1,7 +1,7 @@
 using System.Runtime.Versioning;
+using Miko.Graphics;
 using Miko.Platform.Video;
 using Miko.Windowing.MacOS;
-using SkiaSharp;
 using static Miko.Windowing.MacOS.ObjC;
 using static Miko.Windowing.Video.MacOS.AVFoundationInterop;
 
@@ -43,7 +43,7 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
     private IntPtr _textureCache;
     private bool _textureCacheUnavailable;
 
-    private SKImage? _currentImage;
+    private Image? _currentImage;
     private bool _disposed;
 
     /// <summary>上一帧是否走了零拷贝纹理路径（供诊断）。</summary>
@@ -73,7 +73,7 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
     }
 
     /// <inheritdoc />
-    public SKImage? AcquireCurrentFrame(GRContext? grContext)
+    public Image? AcquireCurrentFrame(GraphicsDevice device)
     {
         IntPtr buffer;
         lock (_lock)
@@ -89,7 +89,7 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
         bool bufferRetained = false;
         try
         {
-            SKImage? image = WrapBuffer(buffer, grContext, out bufferRetained);
+            Image? image = WrapBuffer(buffer, device, out bufferRetained);
             if (image != null)
             {
                 _currentImage?.Dispose();
@@ -120,16 +120,16 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
     /// <param name="bufferRetained">
     /// 为 <c>true</c> 时像素缓冲已由 <see cref="MetalFrameResources"/> 接管，调用方不得再释放。
     /// </param>
-    private SKImage? WrapBuffer(IntPtr buffer, GRContext? grContext, out bool bufferRetained)
+    private Image? WrapBuffer(IntPtr buffer, GraphicsDevice device, out bool bufferRetained)
     {
         bufferRetained = false;
         int width = (int)CVPixelBufferGetWidth(buffer);
         int height = (int)CVPixelBufferGetHeight(buffer);
         if (width <= 0 || height <= 0) return null;
 
-        if (grContext?.Backend == GRBackend.Metal && CVPixelBufferGetPlaneCount(buffer) >= 2)
+        if (device.Backend == GraphicsBackend.Metal && CVPixelBufferGetPlaneCount(buffer) >= 2)
         {
-            SKImage? zeroCopy = TryWrapZeroCopy(buffer, grContext, width, height);
+            Image? zeroCopy = TryWrapZeroCopy(buffer, device, width, height);
             if (zeroCopy != null)
             {
                 LastFrameWasZeroCopy = true;
@@ -139,14 +139,14 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
         }
 
         LastFrameWasZeroCopy = false;
-        return WrapViaCpu(buffer, grContext, width, height);
+        return WrapViaCpu(buffer, device, width, height);
     }
 
     /// <summary>
     /// 用 <c>CVMetalTextureCache</c> 把两个平面映射为 Metal 纹理并 shader 合成。
     /// 成功时像素缓冲与两张纹理一并交给 <see cref="MetalFrameResources"/>。
     /// </summary>
-    private SKImage? TryWrapZeroCopy(IntPtr buffer, GRContext grContext, int width, int height)
+    private Image? TryWrapZeroCopy(IntPtr buffer, GraphicsDevice device, int width, int height)
     {
         IntPtr cache = EnsureTextureCache();
         if (cache == IntPtr.Zero) return null;
@@ -156,9 +156,9 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
 
         IntPtr yTexture = IntPtr.Zero;
         IntPtr uvTexture = IntPtr.Zero;
-        SKImage? yImage = null;
-        SKImage? uvImage = null;
-        SKImage? composed = null;
+        Image? yImage = null;
+        Image? uvImage = null;
+        Image? composed = null;
 
         try
         {
@@ -183,12 +183,12 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
             IntPtr uvMetal = uvTexture == IntPtr.Zero ? IntPtr.Zero : CVMetalTextureGetTexture(uvTexture);
             if (uvMetal == IntPtr.Zero) return null;
 
-            yImage = WrapTexture(grContext, yMetal, width, height, SKColorType.R8Unorm);
-            uvImage = WrapTexture(grContext, uvMetal, uvWidth, uvHeight, SKColorType.Rg88);
+            yImage = device.WrapMetalTexture(yMetal, width, height, ImagePixelFormat.R8);
+            uvImage = device.WrapMetalTexture(uvMetal, uvWidth, uvHeight, ImagePixelFormat.Rg88);
             if (yImage == null || uvImage == null) return null;
 
             composed = Nv12FrameComposer.Compose(
-                yImage, uvImage, width, height, grContext,
+                yImage, uvImage, width, height, device,
                 Nv12FrameComposer.SelectColorSpace(height));
             if (composed != null)
                 MetalFrameResources.RetainUntilFrameCompletes(new MappedFrame(buffer, yTexture, uvTexture));
@@ -197,7 +197,7 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
         }
         finally
         {
-            // 平面图像只是包装，Skia 自己持有底层纹理直到命令执行完；CoreVideo 对象的去留见上。
+            // 平面图像只是包装，渲染后端自己持有底层纹理直到命令执行完；CoreVideo 对象的去留见上。
             yImage?.Dispose();
             uvImage?.Dispose();
             if (composed == null)
@@ -208,21 +208,11 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
         }
     }
 
-    private static SKImage? WrapTexture(
-        GRContext grContext, IntPtr texture, int width, int height, SKColorType colorType)
-    {
-        using var backendTexture = new GRBackendTexture(
-            width, height, mipmapped: false, new GRMtlTextureInfo(texture));
-
-        return SKImage.FromTexture(
-            grContext, backendTexture, GRSurfaceOrigin.TopLeft, colorType, SKAlphaType.Opaque);
-    }
-
     /// <summary>
     /// CPU 回退：只读锁定像素缓冲并按平面读出，交由通用 NV12/BGRA 路径成像。
     /// 各平面的 stride 由 <c>GetBytesPerRowOfPlane</c> 给出（通常有对齐填充）。
     /// </summary>
-    private static SKImage? WrapViaCpu(IntPtr buffer, GRContext? grContext, int width, int height)
+    private static Image? WrapViaCpu(IntPtr buffer, GraphicsDevice device, int width, int height)
     {
         // flags = kCVPixelBufferLock_ReadOnly (1)。
         const ulong readOnly = 1;
@@ -233,15 +223,15 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
         {
             if (CVPixelBufferGetPlaneCount(buffer) >= 2)
             {
-                var yImage = UploadPlane(buffer, 0, SKColorType.R8Unorm);
-                var uvImage = UploadPlane(buffer, 1, SKColorType.Rg88);
+                var yImage = UploadPlane(buffer, 0, ImagePixelFormat.R8, device);
+                var uvImage = UploadPlane(buffer, 1, ImagePixelFormat.Rg88, device);
 
                 try
                 {
                     if (yImage == null || uvImage == null) return null;
 
                     return Nv12FrameComposer.Compose(
-                        yImage, uvImage, width, height, grContext,
+                        yImage, uvImage, width, height, device,
                         Nv12FrameComposer.SelectColorSpace(height));
                 }
                 finally
@@ -251,12 +241,11 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
                 }
             }
 
-            // 非平面格式：按 BGRA 读取。
+            // 非平面格式：按 BGRA 读取（不透明）。
             IntPtr baseAddress = CVPixelBufferGetBaseAddress(buffer);
             if (baseAddress == IntPtr.Zero) return null;
 
-            var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Opaque);
-            return SKImage.FromPixelCopy(info, baseAddress, (int)CVPixelBufferGetBytesPerRow(buffer));
+            return device.CreateImage(width, height, ImagePixelFormat.Bgrx8888, baseAddress, (int)CVPixelBufferGetBytesPerRow(buffer));
         }
         finally
         {
@@ -264,7 +253,7 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
         }
     }
 
-    private static SKImage? UploadPlane(IntPtr buffer, nuint plane, SKColorType colorType)
+    private static Image? UploadPlane(IntPtr buffer, nuint plane, ImagePixelFormat format, GraphicsDevice device)
     {
         IntPtr baseAddress = CVPixelBufferGetBaseAddressOfPlane(buffer, plane);
         if (baseAddress == IntPtr.Zero) return null;
@@ -274,8 +263,7 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
         int stride = (int)CVPixelBufferGetBytesPerRowOfPlane(buffer, plane);
         if (planeWidth <= 0 || planeHeight <= 0 || stride <= 0) return null;
 
-        var info = new SKImageInfo(planeWidth, planeHeight, colorType, SKAlphaType.Opaque);
-        return SKImage.FromPixelCopy(info, baseAddress, stride);
+        return device.CreateImage(planeWidth, planeHeight, format, baseAddress, stride);
     }
 
     /// <summary>
@@ -287,7 +275,7 @@ internal sealed class AVFoundationFrameSource : IVideoFrameSource, IDisposable
         if (_textureCache != IntPtr.Zero) return _textureCache;
         if (_textureCacheUnavailable) return IntPtr.Zero;
 
-        // 与 Metal 窗口后端相同的系统默认设备，映射出的纹理才能被宿主的 GRContext 采样。
+        // 与 Metal 窗口后端相同的系统默认设备，映射出的纹理才能被宿主的 GPU 设备采样。
         // 缓存自己持有设备，这里的 +1 引用用完即还。
         IntPtr device = MetalInterop.CreateSystemDefaultDevice();
         if (device != IntPtr.Zero)

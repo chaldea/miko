@@ -18,4 +18,11 @@
     <ProjectReference Include="..\..\src\Miko\Miko.csproj" />
   </ItemGroup>
 
+  <!-- White-box: reads rendered pixels through SkiaSharp. Miko keeps Skia out of its public surface
+       (ISSUE-162), so the package is referenced here and the engine is driven through the shim below. -->
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.119.1" />
+    <Compile Include="..\..\tests\Shared\SkiaCanvasExtensions.cs" Link="Shared\SkiaCanvasExtensions.cs" />
+  </ItemGroup>
+
 </Project>

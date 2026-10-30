@@ -2,7 +2,7 @@
 
 ## 边界
 
-Miko 是原生 Skia UI 引擎。播放器复用 `VideoElement` 与 `IVideoSession`，不引入浏览器、DPlayer 或 JavaScript。`Miko.Components` 只引用核心引擎；`AddMikoPlayer()` 仅注册播放器配置。系统视频后端仍由宿主选择。
+Miko 是原生 Skia UI 引擎。播放器复用 `VideoElement` 与 `IVideoSession`，不引入浏览器、DPlayer 或 JavaScript。`Miko.Components` 只引用核心引擎，绘制只经 `Miko.Graphics` 抽象（`IDrawingContext` / `IGraphicsFactory`），不引用 SkiaSharp（ISSUE-162）；`AddMikoPlayer()` 仅注册播放器配置。系统视频后端仍由宿主选择。
 
 ## 结构
 
@@ -15,7 +15,7 @@ Miko 是原生 Skia UI 引擎。播放器复用 `VideoElement` 与 `IVideoSessio
 
 HLS 播放列表、分段、直播刷新和音视频同步由平台媒体库负责，不自行下载拼接 m3u8。Windows 需要完整媒体播放管线，因为现有 SourceReader 只输出视频，无音频且不能保证 HLS。其他平台保留系统后端，能力差异明确反映在组件状态与文档中。
 
-控制器接收真实缓冲和错误信息；未报告缓冲区范围的后端不显示虚构的缓存进度。未知时长显示直播状态并禁止按总时长拖动。源改变和卸载时释放事件订阅及 Skia 缓存，后台过期事件不得修改新会话。
+控制器接收真实缓冲和错误信息；未报告缓冲区范围的后端不显示虚构的缓存进度。未知时长显示直播状态并禁止按总时长拖动。源改变和卸载时释放事件订阅及绘制资源缓存，后台过期事件不得修改新会话。
 
 ## UI 与性能
 
@@ -45,3 +45,9 @@ HLS 播放列表、分段、直播刷新和音视频同步由平台媒体库负�
 - 非全屏视口改用 `aspect-ratio: 16 / 9` 定高，由布局在同一遍内按宽度推导。此前首帧以 240px 占位，`PlaybackUpdated` 拿到上一帧的 `OffsetWidth` 后写回像素高度：打开页面要排两遍布局，每次改宽（旋转、窗口缩放）都要多排一遍且滞后一帧。
 - 实测（`MikoInteractionController.RenderFrame` + `FrameProfiler`，会话尚未报告尺寸，与系统解码器一致）：打开页面那一帧布局 2 遍 → 1 遍，与无播放器的纯 div 树相同；旋转 2 帧布局 → 1 帧。
 - 全屏仍为 `flex-grow: 1; height: 0`，铺满控制栏以外的高度。
+
+## 绘制抽象（ISSUE-162，2026-10-29）
+
+- 核心库不再向外暴露 Skia：`CanvasElement.Paint` 改为 `Action<IDrawingContext, RectF>`，`DanmakuItem.Color` 改为 `Miko.Common.Color?`。进度条、缓冲转圈、图标与弹幕全部改用 `IDrawingContext` 的图元；图标经 `IGraphicsFactory.DecodeImage` 解码为矢量图，以 `tint` 着白色；弹幕文本经 `IGraphicsFactory.CreateText` 排版。`Miko.Components` 已无 SkiaSharp / Svg.Skia 引用，核心库的 Skia 包对外只提供运行时资产，回到旧写法会编译失败。
+- 弹幕文本改走引擎的文本管线（字体回退 + 双向 + 整形）后，修复了一个旧缺陷：此前整条弹幕只取一个字体（按首个非 ASCII 字符选），`日本語のコメント` 的假名显示为方框，`Scrolling comment 弹幕` 的拉丁字母用的是 CJK 字体。字形改为子像素定位，与页面其它文本一致，滚动时更平滑。
+- 回归验证（同一组固定状态逐像素对比改动前后）：控制栏（进度、缓冲区间、全部图标、时间文本）、视频帧、空闲 / 错误 / 直播 / 暂停各状态逐像素一致；弹幕只有抗锯齿级差异（字体、字号、位置一致）。macOS 桌面 Metal 与 OpenGL 窗口、Android 模拟器（OES 零拷贝，暂停 / 全屏横屏 / 返回 / 切后台恢复）、iOS 模拟器（Metal 零拷贝）实机播放正常。

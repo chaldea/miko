@@ -4,15 +4,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Common;
+using Miko.Graphics;
 using Miko.Hosting;
 using Miko.Native;
 using Miko.Platform;
-using Miko.Rendering;
 using Miko.Windowing.Common;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
-using SkiaSharp;
 
 namespace Miko.Windowing;
 
@@ -46,11 +45,11 @@ public sealed class SilkDesktopHost
     private IWindow? _window;
     private IInputContext? _inputContext;
     private SilkWindowGraphics? _graphics;
-    private GRContext? _grContext;
+    private GraphicsDevice? _device;
 
     // 本帧画布缩放系数（窗口坐标 → 表面像素），由渲染线程在帧开始时从后端读取。
     private float _scale = 1f;
-    private readonly Action<SKCanvas> _paint;
+    private readonly Action<IDrawingContext> _paint;
 
     // 仅渲染线程读写（队列消费时更新），无需同步。
     private int _width;
@@ -109,6 +108,9 @@ public sealed class SilkDesktopHost
             ShouldSwapAutomatically = false,
         };
 
+        // Silk.NET 在 Ubuntu 24.04+ 上找不到随应用发布的 libglfw（见 SilkLibraryResolver），
+        // 必须在首次加载 GLFW（下面两行都会）之前装上。
+        Common.SilkLibraryResolver.Install();
         // Linux 上 GLFW 的错误默认被静默吞掉（见 GlfwDiagnostics）：先接上日志，启动失败才有原因可查。
         Common.GlfwDiagnostics.Install(_logger);
         _window = Window.Create(options);
@@ -198,23 +200,23 @@ public sealed class SilkDesktopHost
         // 视频帧源持有本上下文上的 GPU 图像，须先于上下文释放。
         _controller.Engine.DisposeVideoSessions();
         _graphics?.Dispose();
-        _grContext = null;
+        _device = null;
     }
 
     private void InitGraphics()
     {
         var graphics = _graphics!;
         graphics.Initialize();
-        _grContext = graphics.Context;
+        _device = graphics.Device;
         _logger.LogInformation("{Graphics} context initialized on render thread", graphics.Description);
 
-        // 把 GPU 上下文交给引擎，供视频帧源把解码 GPU 资源零拷贝包装为图像。
-        _controller.Engine.GraphicsContext = _grContext;
+        // 把 GPU 设备交给引擎，供视频帧源把解码 GPU 资源零拷贝包装为图像。
+        _controller.Engine.GraphicsDevice = _device;
 
         _context.RegisterFonts();
 
-        using var tempSurface = SKSurface.Create(new SKImageInfo(_width, _height));
-        _controller.Initialize(tempSurface.Canvas, _width, _height);
+        using var tempSurface = _controller.Engine.Graphics.CreateSurface(Math.Max(1, _width), Math.Max(1, _height));
+        _controller.Initialize(tempSurface.Context, _width, _height);
         _controller.RunPostInitHooks();
         _frameTimer.Start();
     }
@@ -222,7 +224,7 @@ public sealed class SilkDesktopHost
     /// <summary>渲染一帧到窗口表面。返回 false 表示本帧没有表面可画（未初始化/最小化），无需呈现。</summary>
     private bool RenderFrame()
     {
-        if (_graphics == null || _grContext == null) return false;
+        if (_graphics == null || _device == null) return false;
 
         float currentTime = (float)_frameTimer.Elapsed.TotalSeconds;
         float deltaTime = currentTime - _lastFrameTime;
@@ -238,21 +240,21 @@ public sealed class SilkDesktopHost
 
         // RenderFrame 内部仍走 _sync（对桌面已不竞争，因为输入也在本线程消费），
         // 与移动端保持一致。
-        _controller.RenderFrame(surface.Canvas, _width, _height, deltaTime, _paint);
+        _controller.RenderFrame(surface.Context, _width, _height, deltaTime, _paint);
+        surface.Flush();
 
         MaybeDumpFrame(surface);
         return true;
     }
 
-    private void PaintFrame(SKCanvas canvas)
+    private void PaintFrame(IDrawingContext canvas)
     {
-        canvas.Clear(SKColors.White);
+        canvas.Clear(Color.White);
         // 引擎按窗口坐标绘制；Retina 屏上表面是物理像素。
         canvas.Save();
-        canvas.Scale(_scale);
+        canvas.Scale(_scale, _scale);
         _controller.Engine.Render(canvas);
         canvas.Restore();
-        canvas.Flush();
     }
 
     /// <summary>
@@ -260,13 +262,13 @@ public sealed class SilkDesktopHost
     /// <c>MIKO_DUMP_FRAME=&lt;路径&gt;</c> 门控（未设置时只是一次字段判断）。
     ///
     /// <para>存在的意义是排除外部截图工具的干扰：截图软件可能缩放、重编码或丢弃 alpha，
-    /// 拿它判断渲染质量会把工具的产物误认为引擎缺陷。这里抓的是 Skia 呈现到窗口的<b>同一张</b>
-    /// 表面，因此能直接回答"引擎/宿主到底输出了什么"。</para>
+    /// 拿它判断渲染质量会把工具的产物误认为引擎缺陷。这里抓的是呈现到窗口的<b>同一张</b>
+    /// 表面（按像素读回，复用的 GL 窗口表面也是最新一帧），因此能直接回答"引擎/宿主到底输出了什么"。</para>
     ///
     /// <para>只转储一帧（首帧之后自行关闭）：渲染循环每秒数十帧，逐帧写盘会拖垮它。
     /// 同时跳过前若干帧，等布局、字体与图片异步加载稳定后再抓。</para>
     /// </summary>
-    private void MaybeDumpFrame(SKSurface surface)
+    private void MaybeDumpFrame(RenderSurface surface)
     {
         if (_dumpPath == null || _dumpDone) return;
 
@@ -276,14 +278,9 @@ public sealed class SilkDesktopHost
         _dumpDone = true;
         try
         {
-            using var image = surface.Snapshot();
-            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-            if (data != null)
-            {
-                File.WriteAllBytes(_dumpPath, data.ToArray());
-                _logger.LogInformation("Dumped frame to {Path} ({Width}x{Height})",
-                    _dumpPath, image.Width, image.Height);
-            }
+            File.WriteAllBytes(_dumpPath, surface.EncodePng());
+            _logger.LogInformation("Dumped frame to {Path} ({Width}x{Height})",
+                _dumpPath, surface.Width, surface.Height);
         }
         catch (Exception ex)
         {
@@ -348,26 +345,27 @@ public sealed class SilkDesktopHost
     }
 
     /// <summary>
-    /// 诊断用：由 <c>MIKO_RESIZE_LOG=&lt;路径&gt;</c> 门控，记录每次缩放后 Skia GPU 资源缓存
+    /// 诊断用：由 <c>MIKO_RESIZE_LOG=&lt;路径&gt;</c> 门控，记录每次缩放后 GPU 资源缓存
     /// 与进程内存的对应关系（ISSUE-143）。未设置时只是一次字段判断。
     ///
-    /// <para>存在的意义：进程私有内存是个汇总数字，单看它无法区分「Skia 按新尺寸缓存了资源」
-    /// 与「某处每帧泄漏」。把 Skia 自己报告的缓存字节数与同一时刻的私有内存并排记录，
+    /// <para>存在的意义：进程私有内存是个汇总数字，单看它无法区分「渲染后端按新尺寸缓存了资源」
+    /// 与「某处每帧泄漏」。把渲染后端自己报告的缓存字节数与同一时刻的私有内存并排记录，
     /// 才能把增长归因到具体持有方。</para>
     /// </summary>
     private void ReportResizeMemory(int width, int height)
     {
-        if (_resizeLogPath == null || _grContext == null) return;
+        if (_resizeLogPath == null || _device == null) return;
 
-        var usage = GpuResourceCache.GetUsage(_grContext);
+        var usage = _device.ResourceUsage;
+        var shared = GraphicsDevice.GetSharedCacheUsage();
         using var process = System.Diagnostics.Process.GetCurrentProcess();
         try
         {
             File.AppendAllText(_resizeLogPath,
                 $"{width}x{height},{usage.ResourceCount},{usage.ResourceBytes}," +
                 $"{process.PrivateMemorySize64},{GC.GetTotalMemory(false)}," +
-                $"{SKGraphics.GetResourceCacheTotalBytesUsed()},{SKGraphics.GetFontCacheUsed()}," +
-                $"{SKGraphics.GetFontCacheCountUsed()}\n");
+                $"{shared.RasterCacheBytes},{shared.FontCacheBytes}," +
+                $"{shared.FontCacheCount}\n");
         }
         catch (Exception ex)
         {

@@ -1,36 +1,30 @@
 using Miko.Common;
-using SkiaSharp;
-using Svg.Skia;
+using Miko.Graphics;
 
 namespace Miko.Components.Player;
 
 internal sealed class PlayerIcons : IDisposable
 {
-    private readonly Dictionary<string, SKSvg> _icons = new();
-    private readonly SKPaint _paint = new() { ColorFilter = SKColorFilter.CreateBlendMode(SKColors.White, SKBlendMode.SrcIn) };
+    private const float IconSize = 22;
+    private readonly Dictionary<string, Image?> _icons = new();
 
-    public void Draw(SKCanvas canvas, RectF rect, string name)
+    /// <summary>Draws the white icon <paramref name="name"/>, 22px, centered in <paramref name="rect"/>.</summary>
+    public void Draw(IDrawingContext context, RectF rect, string name)
     {
-        if (!_icons.TryGetValue(name, out var svg))
+        if (!_icons.TryGetValue(name, out var icon))
         {
             using var stream = typeof(PlayerIcons).Assembly.GetManifestResourceStream($"Miko.Player.Icons.{name}.svg")!;
-            svg = new SKSvg();
-            svg.Load(stream);
-            _icons.Add(name, svg);
+            icon = context.Graphics.DecodeImage(stream);
+            _icons.Add(name, icon);
         }
-        if (svg.Picture == null) return;
-        var bounds = svg.Picture.CullRect;
-        canvas.Save();
-        canvas.Translate(rect.X + (rect.Width - 22) / 2, rect.Y + (rect.Height - 22) / 2);
-        canvas.Scale(22 / bounds.Width, 22 / bounds.Height);
-        canvas.DrawPicture(svg.Picture, _paint);
-        canvas.Restore();
+        if (icon == null) return;
+        var bounds = new RectF(rect.X + (rect.Width - IconSize) / 2, rect.Y + (rect.Height - IconSize) / 2, IconSize, IconSize);
+        context.DrawImage(icon, bounds, tint: Color.White);
     }
+
     public void Dispose()
     {
-        foreach (var icon in _icons.Values) icon.Dispose();
+        foreach (var icon in _icons.Values) icon?.Dispose();
         _icons.Clear();
-        _paint.ColorFilter?.Dispose();
-        _paint.Dispose();
     }
 }

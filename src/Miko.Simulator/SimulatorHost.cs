@@ -5,15 +5,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Miko.Common;
 using Miko.Core;
 using Miko.Events;
+using Miko.Graphics;
 using Miko.Hosting;
 using Miko.Platform;
-using Miko.Rendering;
 using Miko.Windowing.Common;
 using Silk.NET.Core;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
-using SkiaSharp;
 using SilkMouseButton = Silk.NET.Input.MouseButton;
 
 namespace Miko.Simulator;
@@ -59,11 +58,11 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     private IWindow? _window;
     private IInputContext? _inputContext;
     private SilkWindowGraphics? _graphics;
-    private GRContext? _grContext;
+    private GraphicsDevice? _gpu;
     private SilkWindowThreadRunner? _windowRunner;
 
     // 应用画面离屏 GPU 画布（按设备物理像素分辨率），跨帧保留。
-    private SKSurface? _appSurface;
+    private RenderSurface? _appSurface;
 
     private int _windowWidth;
     private int _windowHeight;
@@ -75,7 +74,7 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     private bool _appInitialized;
 
     // 设备画面在窗口中的屏幕矩形（用于输入坐标映射），每帧合成时更新。
-    private SKRect _deviceScreenRect;
+    private RectF _deviceScreenRect;
     private float _deviceScreenLeft;
     private float _deviceScreenTop;
     private float _deviceScreenRight;
@@ -119,7 +118,7 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     public IReadOnlyList<DeviceProfile> AvailableDevices => _options.Devices;
     public Orientation CurrentOrientation => _orientation;
     public bool SafeAreaEnabled => _safeAreaEnabled;
-    public SKSurface? AppSurface => _appSurface;
+    public RenderSurface? AppSurface => _appSurface;
 
     /// <summary>应用交互控制器，供调试服务转发模拟输入（点击/滚动等）。</summary>
     public MikoInteractionController AppController => _appController;
@@ -252,7 +251,8 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
             ShouldSwapAutomatically = false,
         };
 
-        // 与桌面宿主相同：Linux 上让 GLFW 的错误可见。
+        // 与桌面宿主相同：让 Silk.NET 找到随应用发布的 libglfw，并在 Linux 上让 GLFW 的错误可见。
+        Miko.Windowing.Common.SilkLibraryResolver.Install();
         Miko.Windowing.Common.GlfwDiagnostics.Install();
         _window = Window.Create(options);
         _window.Load += OnLoad;
@@ -325,11 +325,11 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     {
         var graphics = _graphics!;
         graphics.Initialize();
-        _grContext = graphics.Context;
+        _gpu = graphics.Device;
         _logger.LogInformation("{Graphics} context initialized on render thread", graphics.Description);
 
-        // 应用引擎共享同一 GPU 上下文，供视频/图片等 GPU 资源使用。
-        _appController.Engine.GraphicsContext = _grContext;
+        // 应用引擎共享同一 GPU 设备，供视频/图片等 GPU 资源使用。
+        _appController.Engine.GraphicsDevice = _gpu;
         _appContext.RegisterFonts();
 
         InitAppEngine();
@@ -345,28 +345,25 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 
         if (_appSurface != null)
         {
-            var usageBefore = GpuResourceCache.GetUsage(_grContext!);
+            var usageBefore = _gpu!.ResourceUsage;
             _appSurface.Dispose();
             _appSurface = null;
-            GpuResourceCache.PurgeUnlockedResources(_grContext);
-            var usageAfter = GpuResourceCache.GetUsage(_grContext!);
+            _gpu.PurgeUnlockedResources();
+            var usageAfter = _gpu.ResourceUsage;
             _logger.LogDebug(
                 "Purged unlocked GPU resources after surface replacement: {BeforeCount} resources/{BeforeBytes} bytes -> {AfterCount} resources/{AfterBytes} bytes",
                 usageBefore.ResourceCount, usageBefore.ResourceBytes,
                 usageAfter.ResourceCount, usageAfter.ResourceBytes);
         }
 
-        // 使用 SKSurfaceProperties 指定像素几何信息，改善文字和图形的渲染质量。
-        // 创建 GPU 支持的 Surface 时，指定 surface properties 以启用更好的子像素渲染。
-        var surfaceProps = new SKSurfaceProperties(SKPixelGeometry.RgbHorizontal);
-        _appSurface = SKSurface.Create(_grContext, budgeted: true,
-            new SKImageInfo(pixelW, pixelH, SKColorType.Rgba8888, SKAlphaType.Premul),
-            0, surfaceProps);
+        // 指定水平 RGB 像素几何，启用子像素文本渲染，改善文字的渲染质量。
+        _appSurface = _gpu!.CreateSurface(pixelW, pixelH, subpixelText: true)
+            ?? throw new InvalidOperationException($"Could not create a {pixelW}x{pixelH} app surface.");
 
         // 应用以逻辑坐标布局；离屏画布按 scale 放大渲染以保持清晰。
         if (!_appInitialized)
         {
-            _appController.Initialize(_appSurface!.Canvas, logicalW, logicalH);
+            _appController.Initialize(_appSurface.Context, logicalW, logicalH);
             _appController.RunPostInitHooks();
             _appInitialized = true;
         }
@@ -481,11 +478,11 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     private void ShutdownGraphics()
     {
         _appController.Engine.DisposeVideoSessions();
-        // 表面引用 GRContext，必须先于它释放。
+        // 表面引用 GPU 设备，必须先于它释放。
         _appSurface?.Dispose();
         _appSurface = null;
         _graphics?.Dispose();
-        _grContext = null;
+        _gpu = null;
     }
 
     // ---------------------------------------------------------------------
@@ -494,7 +491,7 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 
     private bool RenderIteration()
     {
-        if (_graphics == null || _grContext == null || _appSurface == null) return false;
+        if (_graphics == null || _gpu == null || _appSurface == null) return false;
 
         DrainInputMessages();
         // 排空跨线程调用队列（MCP 等后台线程投递的 DOM 读写操作），在任何渲染前于本线程执行。
@@ -516,13 +513,13 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
         }
         _needsPresent = false;
 
-        // 最小化时窗口为 0×0。用 0 尺寸创建 GRBackendRenderTarget / SKSurface 会返回 null，
-        // 解引用 Canvas 将抛异常并污染 GRContext，导致恢复后再也无法渲染（ISSUE-067 现象）。
+        // 最小化时窗口为 0×0。用 0 尺寸创建窗口渲染目标会失败，
+        // 解引用画布将抛异常并污染 GPU 上下文，导致恢复后再也无法渲染（ISSUE-067 现象）。
         // 直接跳过本帧——恢复时尺寸恢复正常，渲染随之恢复。
         if (_windowWidth <= 0 || _windowHeight <= 0) return false;
 
         // 窗口表面必须在任何离屏渲染之前取得：OpenGL 后端在这里读取窗口默认帧缓冲绑定。
-        // 一旦渲染应用到离屏 SKSurface，Skia 会绑定离屏 FBO 并保持绑定，之后再读取拿到的将是离屏 FBO，
+        // 一旦渲染应用到离屏表面，后端会绑定离屏 FBO 并保持绑定，之后再读取拿到的将是离屏 FBO，
         // 合成内容就会画进用户看不到的离屏画布，窗口保持黑屏（ISSUE-067 现象）。
         var surface = _graphics.BeginFrame(_windowWidth, _windowHeight);
         if (surface == null) return false;
@@ -541,20 +538,20 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
             BuildPanel();
         }
 
-        // 3. 合成到窗口表面。离屏渲染改动过 GL 状态，先让 GR 上下文重新同步（Metal 下为空操作）。
-        _grContext.ResetContext();
-        var canvas = surface.Canvas;
+        // 3. 合成到窗口表面。离屏渲染改动过 GL 状态，先让 GPU 设备重新同步（Metal 下为空操作）。
+        _gpu.ResetContext();
+        var canvas = surface.Context;
 
-        canvas.Clear(new SKColor(24, 25, 28));
+        canvas.Clear(new Color(24, 25, 28));
         // 合成与面板按窗口坐标绘制；Retina 屏上窗口表面是物理像素。
         canvas.Save();
-        canvas.Scale(_graphics.Scale);
+        canvas.Scale(_graphics.Scale, _graphics.Scale);
         CompositeDevice(canvas);
         _inputMethod.SetCursorOffset(_deviceScreenRect.Left, _deviceScreenRect.Top);
         RenderPanel(canvas);
         canvas.Restore();
 
-        canvas.Flush();
+        surface.Flush();
 
         // 手动呈现（ShouldSwapAutomatically = false，见 Run 中窗口选项）。
         _graphics.Present();
@@ -565,14 +562,14 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     private void RenderApp(float deltaTime)
     {
         var (logicalW, logicalH) = CurrentLogicalSize();
-        var appCanvas = _appSurface!.Canvas;
+        var appCanvas = _appSurface!.Context;
 
         _appController.RenderFrame(appCanvas, logicalW, logicalH, deltaTime, c =>
         {
             var rootBg = _appController.Engine.GetRootBackgroundColor();
-            c.Clear(rootBg?.ToSKColor() ?? SKColors.White);
+            c.Clear(rootBg ?? Color.White);
             c.Save();
-            c.Scale(_device.Scale);
+            c.Scale(_device.Scale, _device.Scale);
             _appController.Engine.Render(c);
             c.Restore();
         });
@@ -580,7 +577,7 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
     }
 
     // 把离屏应用画面带边框合成到窗口左侧，并记录设备屏幕矩形供输入映射。
-    private void CompositeDevice(SKCanvas canvas)
+    private void CompositeDevice(IDrawingContext canvas)
     {
         var (logicalW, logicalH) = CurrentLogicalSize();
 
@@ -588,37 +585,32 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
         float availW = _windowWidth - PanelWidth;
         float screenLeft = MathF.Max(DeviceMargin, (availW - logicalW) / 2f);
         float screenTop = MathF.Max(DeviceMargin, (_windowHeight - logicalH) / 2f);
-        _deviceScreenRect = SKRect.Create(screenLeft, screenTop, logicalW, logicalH);
+        _deviceScreenRect = new RectF(screenLeft, screenTop, logicalW, logicalH);
         Volatile.Write(ref _deviceScreenLeft, _deviceScreenRect.Left);
         Volatile.Write(ref _deviceScreenTop, _deviceScreenRect.Top);
         Volatile.Write(ref _deviceScreenRight, _deviceScreenRect.Right);
         Volatile.Write(ref _deviceScreenBottom, _deviceScreenRect.Bottom);
 
         // 边框（圆角外壳）。
-        var bezelRect = SKRect.Inflate(_deviceScreenRect, BezelThickness, BezelThickness);
-        using (var bezelPaint = new SKPaint { Color = new SKColor(12, 12, 14), IsAntialias = true })
-        {
-            canvas.DrawRoundRect(bezelRect, BezelRadius, BezelRadius, bezelPaint);
-        }
+        var bezelRect = new RectF(
+            _deviceScreenRect.X - BezelThickness, _deviceScreenRect.Y - BezelThickness,
+            _deviceScreenRect.Width + 2 * BezelThickness, _deviceScreenRect.Height + 2 * BezelThickness);
+        canvas.FillRoundRect(bezelRect, BezelRadius, new Color(12, 12, 14));
 
         // 把离屏画面缩放绘制到逻辑尺寸（离屏是物理像素分辨率）。
         using var image = _appSurface!.Snapshot();
-        using (var clip = new SKRoundRect(_deviceScreenRect, BezelRadius / 2f))
-        {
-            canvas.Save();
-            canvas.ClipRoundRect(clip, antialias: true);
-            // 使用 Cubic 采样提供更好的缩小质量（从高分辨率缩小到显示尺寸）
-            var sampling = new SKSamplingOptions(SKCubicResampler.Mitchell);
-            canvas.DrawImage(image, _deviceScreenRect, sampling);
-            canvas.Restore();
-        }
+        canvas.Save();
+        canvas.ClipRoundRect(_deviceScreenRect, BezelRadius / 2f);
+        // 使用 Cubic（Mitchell）采样提供更好的缩小质量（从高分辨率缩小到显示尺寸）
+        canvas.DrawImage(image, _deviceScreenRect, ImageSampling.Cubic);
+        canvas.Restore();
     }
 
-    private void RenderPanel(SKCanvas canvas)
+    private void RenderPanel(IDrawingContext canvas)
     {
         canvas.Save();
         canvas.Translate(_windowWidth - PanelWidth, 0);
-        canvas.ClipRect(SKRect.Create(0, 0, PanelWidth, _windowHeight));
+        canvas.ClipRect(new RectF(0, 0, PanelWidth, _windowHeight));
         _panelEngine.Render(canvas);
         canvas.Restore();
     }
@@ -636,8 +628,8 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
             onBack: () => DispatchBackInternal());
 
         var styleSheets = new List<Styling.StyleSheet> { SimulatorStyleSheet.Create() };
-        using var tempSurface = SKSurface.Create(new SKImageInfo(Math.Max(1, PanelWidth), Math.Max(1, _windowHeight)));
-        _panelEngine.Initialize(root, styleSheets, tempSurface.Canvas, PanelWidth, _windowHeight);
+        using var tempSurface = _panelEngine.Graphics.CreateSurface(Math.Max(1, PanelWidth), Math.Max(1, _windowHeight));
+        _panelEngine.Initialize(root, styleSheets, tempSurface.Context, PanelWidth, _windowHeight);
     }
 
     // ---------------------------------------------------------------------

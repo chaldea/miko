@@ -10,7 +10,7 @@ in Razor or build the DOM by hand, every frame goes through the same stages.
 2. Style computation  →  StyleResolver matches selectors and cascades styles
 3. Layout tree build  →  filter elements by their display property
 4. Layout             →  constraints flow down, sizes flow up
-5. Paint              →  RenderEngine draws to an SKCanvas (dirty-region optimized)
+5. Paint              →  RenderEngine draws to an IDrawingContext (dirty-region optimized)
 ```
 
 1. **DOM construction.** An `Element` tree is created — either by your code or by the
@@ -24,7 +24,8 @@ in Razor or build the DOM by hand, every frame goes through the same stages.
    / flex algorithms — constraints flow down from parents, content sizes flow back up (see
    [Layout](../guide/layout.md)).
 5. **Paint.** `RenderEngine` walks the layout tree and draws backgrounds, borders, text,
-   and images to an `SKCanvas` via the `Painter`, repainting only dirty regions.
+   and images to the drawing context the host provides (see [Custom Drawing](./drawing.md)),
+   repainting only dirty regions. SkiaSharp does the drawing, sealed inside the `Miko` package.
 
 ## Layer responsibilities
 
@@ -33,7 +34,8 @@ in Razor or build the DOM by hand, every frame goes through the same stages.
 | **Core** | The `Element` tree and `MikoEngine`, which coordinates layout and rendering. |
 | **Styling** | Stylesheets, selectors, the cascade, and computed styles. |
 | **Layout** | The box model plus block, inline, and flex layout algorithms. |
-| **Rendering** | `RenderEngine`, the SkiaSharp `Painter`, and the dirty-region manager. |
+| **Rendering** | `RenderEngine`, its painter, and the dirty-region manager. |
+| **Graphics** | The drawing abstraction (`IDrawingContext`, `IGraphicsFactory`, `GraphicsDevice`) that keeps the backend inside the core. |
 | **Fonts** | Font registration, fallback resolution, and text measurement. |
 | **Events** | DOM-style event dispatch with capture and bubbling. |
 

@@ -43,6 +43,8 @@ internal static class Program
             ShouldSwapAutomatically = false,
         };
 
+        // 与桌面宿主相同：Ubuntu 24.04+ 上要靠它才找得到随应用发布的 libglfw。
+        Miko.Windowing.Common.SilkLibraryResolver.Install();
         using var window = Window.Create(options);
         GL? gl = null;
         GRContext? grContext = null;

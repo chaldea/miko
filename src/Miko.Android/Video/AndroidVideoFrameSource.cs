@@ -1,14 +1,14 @@
 using Android.Graphics;
 using Android.Opengl;
 using Android.Views;
+using Miko.Graphics;
 using Miko.Platform.Video;
-using SkiaSharp;
 
 namespace Miko.Android.Video;
 
 /// <summary>
 /// Android 帧源：把 <c>MediaCodec</c> 直出到 <c>SurfaceTexture</c> 的 OES 外部纹理
-/// 包装为 <see cref="SKImage"/> —— **真零拷贝**，像素从解码器到屏幕全程驻留 GPU。
+/// 包装为 <see cref="Image"/> —— **真零拷贝**，像素从解码器到屏幕全程驻留 GPU。
 ///
 /// <para>
 /// 与其它平台不同，这里不继承 <see cref="VideoFrameSourceBase"/>：那套骨架面向
@@ -27,7 +27,7 @@ namespace Miko.Android.Video;
 internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
 {
     /// <summary>
-    /// <c>GL_TEXTURE_EXTERNAL_OES</c>。Skia 的 <c>GRGlTextureInfo.Target</c> 接受任意 GL 枚举，
+    /// <c>GL_TEXTURE_EXTERNAL_OES</c>。<see cref="GraphicsDevice.WrapGlTexture"/> 接受任意 GL 纹理目标，
     /// 因此可以直接用外部纹理目标 —— 这是本路径可行的关键。
     /// </summary>
     private const uint GlTextureExternalOes = 0x8D65;
@@ -43,16 +43,13 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
     private int _textureId;
     private readonly float[] _transformMatrix = new float[16];
 
-    private SKImage? _currentImage;
+    private Image? _currentImage;
     private bool _hasPendingFrame;
     private int _frameWidth;
     private int _frameHeight;
     private bool _disposed;
 
     internal event Action? FrameAvailable;
-
-    private SKRuntimeEffect? _oesEffect;
-    private SKRuntimeEffectUniforms? _oesUniforms;
 
     /// <summary>
     /// 解码线程等待渲染线程创建好输出 Surface。<c>MediaCodec.Configure</c> 需要它，
@@ -84,10 +81,10 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
     }
 
     /// <inheritdoc />
-    public SKImage? AcquireCurrentFrame(GRContext? grContext)
+    public Image? AcquireCurrentFrame(GraphicsDevice device)
     {
-        // 无 GPU 上下文时外部纹理无从采样（Android 宿主始终有 GL 上下文，此为防御）。
-        if (grContext == null) return null;
+        // 无 GL 上下文时外部纹理无从采样（Android 宿主始终有 GL 上下文，此为防御）。
+        if (device.Backend != GraphicsBackend.OpenGl) return null;
 
         lock (_lock)
         {
@@ -110,14 +107,10 @@ internal sealed class AndroidVideoFrameSource : IVideoFrameSource, IDisposable
             if (_frameWidth <= 0 || _frameHeight <= 0)
                 return _currentImage;
 
-            // 纹理内容已更新，但纹理 id 不变。仍需重建 SKImage：Skia 会缓存图像内容，
-            // 复用同一个 SKImage 会导致画面停在首帧。
-            var glInfo = new GRGlTextureInfo(GlTextureExternalOes, (uint)_textureId, GlRgba8);
-            using var backendTexture = new GRBackendTexture(_frameWidth, _frameHeight, mipmapped: false, glInfo);
-
-            var image = SKImage.FromTexture(
-                grContext, backendTexture, GRSurfaceOrigin.TopLeft,
-                SKColorType.Rgba8888, SKAlphaType.Opaque);
+            // 纹理内容已更新，但纹理 id 不变。仍需重新包装：渲染后端会缓存图像内容，
+            // 复用同一个图像会导致画面停在首帧。
+            var image = device.WrapGlTexture(
+                GlTextureExternalOes, (uint)_textureId, GlRgba8, _frameWidth, _frameHeight, ImagePixelFormat.Rgbx8888);
 
             if (image != null)
             {

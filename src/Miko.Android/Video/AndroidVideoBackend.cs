@@ -9,7 +9,7 @@ namespace Miko.Android.Video;
 /// 两者都是系统组件，不增加应用体积；支持的编码取决于设备解码器
 /// （H.264/HEVC/VP8/VP9/AV1 视机型而定）。
 /// <para>
-/// 解码输出直接写入 <c>SurfaceTexture</c> 关联的 OES 外部纹理，因此帧从解码器到 Skia
+/// 解码输出直接写入 <c>SurfaceTexture</c> 关联的 OES 外部纹理，因此帧从解码器到渲染器
 /// 全程驻留 GPU —— 这是五个平台中最干净的零拷贝路径（见 <see cref="AndroidVideoFrameSource"/>）。
 /// </para>
 /// <para><b>未经真机运行验证</b>：本机无 Android 设备/模拟器，此实现仅通过编译验证。</para>

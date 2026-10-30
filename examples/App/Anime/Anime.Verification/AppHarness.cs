@@ -6,21 +6,20 @@ using Miko.Common;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
+using Miko.Graphics;
 using Miko.Hosting;
 using Miko.Layout;
 using Miko.Platform;
 using Miko.Routing;
 using Miko.Windowing.Video;
-using SkiaSharp;
 
 namespace Anime.Verification;
 
-/// <summary>Drives the real shared application using the platform controller and Skia renderer.</summary>
+/// <summary>Drives the real shared application using the platform controller and an offscreen surface.</summary>
 internal sealed class AppHarness : IDisposable
 {
     private readonly MikoAppContext _context;
-    private SKBitmap _bitmap = new(390, 844);
-    private SKCanvas _canvas;
+    private RenderSurface _surface;
 
     public AppHarness(string? output, bool ios = false)
     {
@@ -34,9 +33,9 @@ internal sealed class AppHarness : IDisposable
                 builder.Services.AddSingleton<IPlatformInfo>(new PlatformInfo(HostPlatform.Ios));
             }
         });
-        _canvas = new SKCanvas(_bitmap);
+        _surface = _context.Engine.Graphics.CreateSurface(390, 844);
         _context.RegisterFonts();
-        _context.Controller.Initialize(_canvas, _bitmap.Width, _bitmap.Height);
+        _context.Controller.Initialize(_surface.Context, _surface.Width, _surface.Height);
     }
 
     public string Output { get; }
@@ -55,10 +54,8 @@ internal sealed class AppHarness : IDisposable
 
     public void Resize(int width, int height)
     {
-        _canvas.Dispose();
-        _bitmap.Dispose();
-        _bitmap = new SKBitmap(width, height);
-        _canvas = new SKCanvas(_bitmap);
+        _surface.Dispose();
+        _surface = _context.Engine.Graphics.CreateSurface(width, height);
         _context.Controller.SetViewportSize(width, height);
         Pump();
     }
@@ -67,7 +64,7 @@ internal sealed class AppHarness : IDisposable
     {
         for (var frame = 0; frame < count; frame++)
         {
-            _context.Controller.RenderFrame(_canvas, _bitmap.Width, _bitmap.Height, 1f / 60f, _context.Engine.Render);
+            _context.Controller.RenderFrame(_surface.Context, _surface.Width, _surface.Height, 1f / 60f, _context.Engine.Render);
             Thread.Sleep(10);
         }
     }
@@ -75,9 +72,7 @@ internal sealed class AppHarness : IDisposable
     public void Capture(string name)
     {
         Pump();
-        using var data = _bitmap.Encode(SKEncodedImageFormat.Png, 100);
-        using var stream = File.Create(Path.Combine(Output, $"{name}.png"));
-        data.SaveTo(stream);
+        File.WriteAllBytes(Path.Combine(Output, $"{name}.png"), _surface.EncodePng());
         var boxes = Boxes(_context.Engine.GetCurrentLayout()!).ToArray();
         File.WriteAllLines(Path.Combine(Output, $"{name}.layout.txt"), boxes.Select(box =>
             $"{box.Element.TagName}.{box.Element.Class}: {box.BoxModel.BorderBox}"));
@@ -107,7 +102,7 @@ internal sealed class AppHarness : IDisposable
             x -= ancestorBox?.ScrollLeft ?? 0;
             y -= ancestorBox?.ScrollTop ?? 0;
         }
-        Require(x >= 0 && x < _bitmap.Width && y >= 0 && y < _bitmap.Height, $"Target outside viewport: {host.Class} ({x}, {y})");
+        Require(x >= 0 && x < _surface.Width && y >= 0 && y < _surface.Height, $"Target outside viewport: {host.Class} ({x}, {y})");
         var hit = _context.Engine.HitTest(x, y);
         Require(hit is not null && (ReferenceEquals(hit, target) || Descendants(target).Contains(hit)),
             $"Pointer missed {host.Class}; hit {hit?.TagName}.{hit?.Class} at ({x}, {y}).");
@@ -136,8 +131,7 @@ internal sealed class AppHarness : IDisposable
     {
         _context.Engine.DisposeVideoSessions();
         (_context.Services as IDisposable)?.Dispose();
-        _canvas.Dispose();
-        _bitmap.Dispose();
+        _surface.Dispose();
     }
 
     private LayoutBox Box(Element element) => Boxes(_context.Engine.GetCurrentLayout()!).First(b => ReferenceEquals(b.Element, element));

@@ -15,7 +15,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Android</PackageId>
     <Authors>Miko</Authors>
-    <Description>Android host (SkiaSharp GL surface + touch input) for the Miko rendering engine.</Description>
+    <Description>Android host (GL surface + touch input) for the Miko rendering engine.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -23,7 +23,7 @@
          CS1573/CS1574: param tags and crefs in existing comments still to clean up (Release-1.0.0 P1-B1). -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591;CS1573;CS1574</NoWarn>
-    <PackageTags>miko;android;skiasharp;ui</PackageTags>
+    <PackageTags>miko;android;ui</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -33,10 +33,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Miko\Miko.csproj" />
     <ProjectReference Include="..\Miko.Native\Miko.Native.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="SkiaSharp.Views" Version="3.119.1" />
   </ItemGroup>
 
   <ItemGroup>

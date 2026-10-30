@@ -1,17 +1,16 @@
 using System.Runtime.Versioning;
-using Miko.Rendering;
+using Miko.Graphics;
 using Miko.Windowing.Common;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
-using SkiaSharp;
 using static Miko.Windowing.MacOS.ObjC;
 
 namespace Miko.Windowing.MacOS;
 
 /// <summary>
 /// macOS 的 Metal 呈现后端：把一个 <c>CAMetalLayer</c> 挂到 GLFW 窗口（以 <see cref="GraphicsAPI.None"/>
-/// 创建，没有 GL 上下文）的内容视图上，每帧把可绘制纹理包装成 Skia 表面。
-/// 设备、命令队列与 <see cref="GRContext"/> 都由本类持有，做法与 iOS 的 <c>MikoMetalView</c> 一致。
+/// 创建，没有 GL 上下文）的内容视图上，每帧把可绘制纹理包装成绘制表面。
+/// Metal 设备、命令队列与 <see cref="GraphicsDevice"/> 都由本类持有，做法与 iOS 的 <c>MikoMetalView</c> 一致。
 ///
 /// <para><b>Retina</b>：窗口坐标是点（point），可绘制纹理按 <c>backingScaleFactor</c> 分配物理像素，
 /// 宿主按 <see cref="Scale"/> 缩放画布。尺寸与缩放在主线程随窗口事件更新（AppKit 的约定），
@@ -47,8 +46,7 @@ internal sealed class MetalWindowGraphics : SilkWindowGraphics
     // 当前帧（BeginFrame 到 Present 之间）。
     private IntPtr _pool;
     private IntPtr _drawable;
-    private GRBackendRenderTarget? _target;
-    private SKSurface? _surface;
+    private RenderSurface? _surface;
 
     /// <summary>本机是否有可用的 Metal 设备。</summary>
     internal static bool IsSupported
@@ -82,12 +80,12 @@ internal sealed class MetalWindowGraphics : SilkWindowGraphics
         _layer = CFRetain(SendPtr(GetClass("CAMetalLayer"), GetSelector("layer")));
         SendVoid(_layer, GetSelector("setDevice:"), _device);
         SendVoid(_layer, GetSelector("setPixelFormat:"), MetalInterop.PixelFormatBgra8Unorm);
-        // 让 Skia 在需要读回目标的混合模式下仍可采样它；MIKO_DUMP_FRAME 的帧转储也要读回。
+        // 让渲染后端在需要读回目标的混合模式下仍可采样它；MIKO_DUMP_FRAME 的帧转储也要读回。
         SendVoid(_layer, GetSelector("setFramebufferOnly:"), false);
         // 每帧都整屏清除，不需要与窗口背景混合。
         SendVoid(_layer, GetSelector("setOpaque:"), true);
 
-        // Skia 按 sRGB 出图（CSS 颜色即 sRGB）。不标注色彩空间时 macOS 不做颜色匹配，
+        // 引擎按 sRGB 出图（CSS 颜色即 sRGB）。不标注色彩空间时 macOS 不做颜色匹配，
         // 在 P3 广色域屏上会过饱和；iOS 对未标注内容本就按 sRGB 解释，这里对齐它。
         IntPtr srgb = MetalInterop.CreateSrgbColorSpace();
         if (srgb != IntPtr.Zero)
@@ -113,13 +111,11 @@ internal sealed class MetalWindowGraphics : SilkWindowGraphics
 
     public override void Initialize()
     {
-        using var backend = new GRMtlBackendContext { DeviceHandle = _device, QueueHandle = _queue };
-        Context = GRContext.CreateMetal(backend)
-            ?? throw new InvalidOperationException("Failed to create a Skia Metal context.");
-        GpuResourceCache.Configure(Context);
+        Device = GraphicsDevice.CreateMetal(_device, _queue);
+        Device.ResourceCacheLimit = GraphicsDevice.DefaultResourceCacheLimit;
     }
 
-    public override SKSurface? BeginFrame(int width, int height)
+    public override RenderSurface? BeginFrame(int width, int height)
     {
         ReleaseCompletedFrames();
         if (width <= 0 || height <= 0) return null;
@@ -135,8 +131,7 @@ internal sealed class MetalWindowGraphics : SilkWindowGraphics
             int pixelHeight = (int)SendNUInt(texture, SelHeight);
 
             // 图层每帧轮换可绘制纹理，包装对象随帧新建、随帧释放。
-            _target = new GRBackendRenderTarget(pixelWidth, pixelHeight, new GRMtlTextureInfo(texture));
-            _surface = SKSurface.Create(Context, _target, GRSurfaceOrigin.TopLeft, SKColorType.Bgra8888);
+            _surface = Device.CreateMetalSurface(texture, pixelWidth, pixelHeight);
             if (_surface != null)
                 return _surface;
         }
@@ -149,12 +144,12 @@ internal sealed class MetalWindowGraphics : SilkWindowGraphics
     {
         if (_surface == null) return;
 
-        // 先提交 Skia 本帧的命令，再在同一队列上用一个命令缓冲呈现。
-        Context.Flush();
+        // 先提交本帧的绘制命令，再在同一队列上用一个命令缓冲呈现。
+        Device.Flush();
         IntPtr commandBuffer = SendPtr(_queue, SelCommandBuffer);
         if (commandBuffer != IntPtr.Zero)
         {
-            // 本帧登记的视频纹理等到呈现缓冲执行完（即 Skia 本帧命令已执行完）再释放。
+            // 本帧登记的视频纹理等到呈现缓冲执行完（即本帧绘制命令已执行完）再释放。
             var retained = MetalFrameResources.TakePending();
             if (retained != null)
                 _inFlight.Enqueue((CFRetain(commandBuffer), retained));
@@ -191,7 +186,7 @@ internal sealed class MetalWindowGraphics : SilkWindowGraphics
         if (MetalFrameResources.TakePending() is { } orphaned)
             foreach (var resource in orphaned) resource.Dispose();
 
-        DisposeContext();
+        DisposeDevice();
 
         ReleaseHandle(ref _layer);
         ReleaseHandle(ref _queue);
@@ -201,10 +196,9 @@ internal sealed class MetalWindowGraphics : SilkWindowGraphics
     /// <summary>释放本帧的包装对象并弹出本帧的自动释放池（可绘制对象随之释放）。</summary>
     private void EndFrame()
     {
+        // 表面连同它包装的渲染目标一起释放。
         _surface?.Dispose();
         _surface = null;
-        _target?.Dispose();
-        _target = null;
         _drawable = IntPtr.Zero;
 
         if (_pool != IntPtr.Zero)

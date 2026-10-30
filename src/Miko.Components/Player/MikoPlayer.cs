@@ -4,10 +4,10 @@ using Miko.Components.Player.Danmaku;
 using Miko.Core;
 using Miko.Core.DomElements;
 using Miko.Events;
+using Miko.Graphics;
 using Miko.Platform;
 using Miko.Platform.Video;
 using Miko.Styling;
-using SkiaSharp;
 
 namespace Miko.Components.Player;
 
@@ -60,7 +60,9 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     private readonly PlayerIcons _icons = new();
     private readonly DanmakuTimeline _timeline = new();
     private readonly DanmakuPainter _danmakuPainter = new();
-    private readonly SKPaint _paint = new() { IsAntialias = true };
+    private static readonly Color TrackColor = Color.FromHex("#494d53");
+    private static readonly Color BufferedColor = Color.FromHex("#8d939c");
+    private static readonly Color ProgressColor = Color.FromHex("#38cfa1");
     private IReadOnlyList<DanmakuItem>? _lastDanmaku;
     private DanmakuSettings? _lastSettings;
     private MediaSource _lastSource;
@@ -399,36 +401,29 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         element.Style = style;
     }
 
-    private void DrawOverlay(SKCanvas canvas, RectF bounds)
+    private void DrawOverlay(IDrawingContext context, RectF bounds)
     {
         if (_disposed) return;
-        _danmakuPainter.Paint(canvas, bounds, _timeline, Controller.Position);
+        _danmakuPainter.Paint(context, bounds, _timeline, Controller.Position);
         if (!Controller.IsBuffering) return;
-        _paint.Color = SKColors.White;
-        _paint.Style = SKPaintStyle.Stroke;
-        _paint.StrokeWidth = 3;
         float x = bounds.X + bounds.Width / 2, y = bounds.Y + bounds.Height / 2;
-        canvas.DrawArc(new SKRect(x - 14, y - 14, x + 14, y + 14), (Environment.TickCount64 % 1000) * .36f, 270, false, _paint);
-        _paint.Style = SKPaintStyle.Fill;
+        context.StrokeArc(new RectF(x - 14, y - 14, 28, 28), (Environment.TickCount64 % 1000) * .36f, 270, Color.White, 3);
     }
-    private void DrawProgress(SKCanvas canvas, RectF bounds)
+    private void DrawProgress(IDrawingContext context, RectF bounds)
     {
         float y = bounds.Y + bounds.Height / 2;
-        _paint.Color = SKColor.Parse("#494d53");
-        canvas.DrawRect(bounds.X, y - 2, bounds.Width, 4, _paint);
+        context.FillRect(new RectF(bounds.X, y - 2, bounds.Width, 4), TrackColor);
         double duration = Controller.Duration.TotalSeconds;
         if (duration <= 0) return;
-        _paint.Color = SKColor.Parse("#8d939c");
         foreach (var range in Controller.BufferedRanges)
         {
             float left = (float)Math.Clamp(range.Start.TotalSeconds / duration, 0, 1);
             float right = (float)Math.Clamp(range.End.TotalSeconds / duration, 0, 1);
-            canvas.DrawRect(bounds.X + left * bounds.Width, y - 2, Math.Max(0, right - left) * bounds.Width, 4, _paint);
+            context.FillRect(new RectF(bounds.X + left * bounds.Width, y - 2, Math.Max(0, right - left) * bounds.Width, 4), BufferedColor);
         }
         float progress = _dragging ? _scrub : (float)Math.Clamp(Controller.Position.TotalSeconds / duration, 0, 1);
-        _paint.Color = SKColor.Parse("#38cfa1");
-        canvas.DrawRect(bounds.X, y - 2, progress * bounds.Width, 4, _paint);
-        canvas.DrawCircle(bounds.X + progress * bounds.Width, y, 5, _paint);
+        context.FillRect(new RectF(bounds.X, y - 2, progress * bounds.Width, 4), ProgressColor);
+        context.FillCircle(bounds.X + progress * bounds.Width, y, 5, ProgressColor);
     }
 
     protected override void OnDispose() => Dispose();
@@ -443,8 +438,7 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         _video.PlaybackUpdated -= Refresh;
         Controller.Changed -= UpdateControls;
         Controller.Dispose();
-        _danmakuPainter.Dispose();
+        _danmakuPainter.Clear();
         _icons.Dispose();
-        _paint.Dispose();
     }
 }

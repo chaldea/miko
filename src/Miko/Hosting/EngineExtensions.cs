@@ -4,6 +4,8 @@ using Miko.Animation;
 using Miko.Components;
 using Miko.Core;
 using Miko.Events;
+using Miko.Graphics;
+using Miko.Graphics.Skia;
 using Miko.Highlight;
 using Miko.Layout;
 using Miko.Platform;
@@ -59,6 +61,8 @@ public static class EngineExtensions
         services.AddImageLoader();
         // - 语法高亮（应用可重新注册 ISyntaxHighlighter 覆盖，见 ISSUE-098）。
         services.AddSyntaxHighlighter();
+        // - 绘制资源（文本、图像、离屏表面）。组件经它而不是渲染后端的类型绘制（ISSUE-162）。
+        services.TryAddSingleton<IGraphicsFactory>(SkiaGraphicsFactory.Instance);
 
         services.TryAddSingleton<MikoEngine>();
 

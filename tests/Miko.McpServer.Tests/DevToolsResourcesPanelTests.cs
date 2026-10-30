@@ -8,8 +8,8 @@ using Miko.DevTools.Styles;
 using Miko.Hosting;
 using Miko.Layout;
 using Miko.Platform.Resources;
+using Miko.Graphics;
 using Shouldly;
-using SkiaSharp;
 
 namespace Miko.McpServer.Tests;
 
@@ -35,8 +35,8 @@ public class DevToolsResourcesPanelTests
     /// <summary>不实现 <see cref="IResourceDiagnostics"/> 的加载器：网络/缓存两节应给出说明而非崩溃。</summary>
     private sealed class OpaqueImageLoader : IImageLoader
     {
-        public Task<SKBitmap?> LoadAsync(MediaSource source, CancellationToken ct = default) =>
-            Task.FromResult<SKBitmap?>(null);
+        public Task<Image?> LoadAsync(MediaSource source, CancellationToken ct = default) =>
+            Task.FromResult<Image?>(null);
     }
 
     private static IEnumerable<Element> Descendants(Element root)
@@ -210,9 +210,9 @@ public class DevToolsResourcesPanelTests
         root.AddChild(ResourcesPanel.Build(bridge, visible: true));
 
         var engine = new MikoEngineBuilder().Build();
-        using var surface = SKSurface.Create(new SKImageInfo(900, 600));
+        using var surface = engine.Graphics.CreateSurface(900, 600);
         engine.Initialize(root, new List<Styling.StyleSheet> { DevToolsStyleSheet.Create() },
-            surface.Canvas, 900, 600);
+            surface.Context, 900, 600);
 
         var layout = engine.GetCurrentLayout();
         layout.ShouldNotBeNull();
@@ -246,9 +246,9 @@ public class DevToolsResourcesPanelTests
         root.AddChild(ResourcesPanel.Build(bridge, visible: true));
 
         var engine = new MikoEngineBuilder().Build();
-        using var surface = SKSurface.Create(new SKImageInfo(420, 600));
+        using var surface = engine.Graphics.CreateSurface(420, 600);
         engine.Initialize(root, new List<Styling.StyleSheet> { DevToolsStyleSheet.Create() },
-            surface.Canvas, 420, 600);
+            surface.Context, 420, 600);
 
         var sizeCells = new List<LayoutBox>();
         CollectByClass(engine.GetCurrentLayout()!, "res-cell-size", sizeCells);

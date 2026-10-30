@@ -1,10 +1,11 @@
-using SkiaSharp;
+using Miko.Common;
 
 namespace Miko.Components.Player.Danmaku;
 
 public enum DanmakuMode { Scroll, Top, Bottom }
 
-public sealed record DanmakuItem(TimeSpan Time, string Text, DanmakuMode Mode = DanmakuMode.Scroll, SKColor? Color = null);
+/// <param name="Color">Text color; <c>null</c> is white. Its alpha is replaced by <see cref="DanmakuSettings.Opacity"/>.</param>
+public sealed record DanmakuItem(TimeSpan Time, string Text, DanmakuMode Mode = DanmakuMode.Scroll, Color? Color = null);
 
 public sealed record DanmakuSettings
 {

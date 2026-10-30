@@ -4,8 +4,8 @@ using Miko.Core;
 using Miko.Hosting;
 using Miko.Styling;
 using Miko.Styling.Selectors;
+using Miko.Graphics;
 using Shouldly;
-using SkiaSharp;
 
 namespace Miko.Razor.Tests;
 
@@ -21,7 +21,7 @@ public class RazorVirtualizeTests : IDisposable
     private const int W = 900;
     private const int H = 300;
 
-    private readonly SKSurface _surface = SKSurface.Create(new SKImageInfo(W, H));
+    private readonly RenderSurface _surface = GraphicsDevice.Software.CreateSurface(W, H)!;
 
     public void Dispose() => _surface.Dispose();
 
@@ -43,7 +43,7 @@ public class RazorVirtualizeTests : IDisposable
         var page = new VirtualizeFixture();
         var root = page.Build();
         var engine = new MikoEngineBuilder().Build();
-        engine.Initialize(root, new List<StyleSheet> { sheet }, _surface.Canvas, W, H);
+        engine.Initialize(root, new List<StyleSheet> { sheet }, _surface.Context, W, H);
         return (engine, page, root);
     }
 
@@ -87,7 +87,7 @@ public class RazorVirtualizeTests : IDisposable
 
         pending.SetResult(new ItemsProviderResult<VirtualizeFixture.Person>(
             Enumerable.Range(0, 20).Select(i => new VirtualizeFixture.Person(i, $"Loaded {i}")), 500));
-        engine.Render(_surface.Canvas);
+        engine.Render(_surface.Context);
 
         var loaded = root.FindByClass("loaded");
         loaded.Count.ShouldBeGreaterThanOrEqualTo(10);

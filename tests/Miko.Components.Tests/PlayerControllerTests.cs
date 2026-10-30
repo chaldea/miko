@@ -1,7 +1,7 @@
 using Miko.Components.Player;
 using Miko.Platform.Video;
+using Miko.Graphics;
 using Shouldly;
-using SkiaSharp;
 
 namespace Miko.Components.Tests;
 
@@ -85,7 +85,7 @@ internal sealed class TestVideoSession : IVideoSession
     public void Dispose() => Disposed = true;
     private sealed class EmptyFrameSource : IVideoFrameSource
     {
-        public SKImage? AcquireCurrentFrame(GRContext? context) => null;
+        public Image? AcquireCurrentFrame(GraphicsDevice device) => null;
         public void ReleaseCurrentFrame() { }
     }
 }

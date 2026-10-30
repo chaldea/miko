@@ -25,7 +25,7 @@ public struct RectF
     public float Right => X + Width;
     public float Bottom => Y + Height;
 
-    public SKRect ToSKRect() => new SKRect(X, Y, X + Width, Y + Height);
+    internal SKRect ToSKRect() => new SKRect(X, Y, X + Width, Y + Height);
 
     public bool IntersectsWith(RectF other)
     {

@@ -8,8 +8,8 @@ using Miko.Events;
 using Miko.Hosting;
 using Miko.Platform;
 using Miko.Styling;
+using Miko.Graphics;
 using Shouldly;
-using SkiaSharp;
 
 namespace Miko.Components.Tests;
 
@@ -20,8 +20,8 @@ namespace Miko.Components.Tests;
 /// </summary>
 public class PlayerFullscreenPlatformTests : IDisposable
 {
-    private readonly SKBitmap _bitmap = new(360, 740);
-    private readonly SKCanvas _canvas;
+    private readonly RenderSurface _surface;
+    private readonly IDrawingContext _canvas;
     private readonly MikoEngine _engine;
     private readonly RecordingOrientation _orientation = new();
     private readonly PlatformInfo _platform;
@@ -30,8 +30,9 @@ public class PlayerFullscreenPlatformTests : IDisposable
 
     public PlayerFullscreenPlatformTests()
     {
-        _canvas = new SKCanvas(_bitmap);
         _engine = new MikoEngineBuilder().Build();
+        _surface = _engine.Graphics.CreateSurface(360, 740);
+        _canvas = _surface.Context;
         _platform = new PlatformInfo(HostPlatform.Android) { Orientation = _orientation };
         _player = new MikoPlayer { Engine = _engine, PlatformService = _platform };
         _root = new DivElement { Style = new Style { Display = Display.Block, Width = Length.Percent(100), Height = Length.Percent(100) } };
@@ -43,8 +44,7 @@ public class PlayerFullscreenPlatformTests : IDisposable
     public void Dispose()
     {
         _player.Dispose();
-        _canvas.Dispose();
-        _bitmap.Dispose();
+        _surface.Dispose();
     }
 
     [Fact]
