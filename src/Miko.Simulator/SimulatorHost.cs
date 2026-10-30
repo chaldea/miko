@@ -251,7 +251,8 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
             ShouldSwapAutomatically = false,
         };
 
-        // 与桌面宿主相同：Linux 上让 GLFW 的错误可见。
+        // 与桌面宿主相同：让 Silk.NET 找到随应用发布的 libglfw，并在 Linux 上让 GLFW 的错误可见。
+        Miko.Windowing.Common.SilkLibraryResolver.Install();
         Miko.Windowing.Common.GlfwDiagnostics.Install();
         _window = Window.Create(options);
         _window.Load += OnLoad;

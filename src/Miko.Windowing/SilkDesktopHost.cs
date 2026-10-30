@@ -108,6 +108,9 @@ public sealed class SilkDesktopHost
             ShouldSwapAutomatically = false,
         };
 
+        // Silk.NET 在 Ubuntu 24.04+ 上找不到随应用发布的 libglfw（见 SilkLibraryResolver），
+        // 必须在首次加载 GLFW（下面两行都会）之前装上。
+        Common.SilkLibraryResolver.Install();
         // Linux 上 GLFW 的错误默认被静默吞掉（见 GlfwDiagnostics）：先接上日志，启动失败才有原因可查。
         Common.GlfwDiagnostics.Install(_logger);
         _window = Window.Create(options);
