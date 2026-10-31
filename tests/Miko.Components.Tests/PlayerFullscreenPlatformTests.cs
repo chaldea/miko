@@ -14,9 +14,10 @@ using Shouldly;
 namespace Miko.Components.Tests;
 
 /// <summary>
-/// Fullscreen on a phone (ISSUE-149): the player locks landscape, keeps the screen on, and lets the
-/// system back button leave fullscreen before it leaves the page. Every request is released exactly
-/// once — on leaving fullscreen or on dispose — so the screen is never left locked or awake.
+/// Fullscreen on a phone (ISSUE-149): the player locks landscape, keeps the screen on, hides the
+/// system bars, and lets the system back button leave fullscreen before it leaves the page. Every
+/// request is released exactly once — on leaving fullscreen or on dispose — so the screen is never
+/// left locked, awake or without its status bar.
 /// </summary>
 public class PlayerFullscreenPlatformTests : IDisposable
 {
@@ -24,6 +25,7 @@ public class PlayerFullscreenPlatformTests : IDisposable
     private readonly IDrawingContext _canvas;
     private readonly MikoEngine _engine;
     private readonly RecordingOrientation _orientation = new();
+    private readonly RecordingSystemBars _systemBars = new();
     private readonly PlatformInfo _platform;
     private readonly MikoPlayer _player;
     private readonly DivElement _root;
@@ -33,7 +35,7 @@ public class PlayerFullscreenPlatformTests : IDisposable
         _engine = new MikoEngineBuilder().Build();
         _surface = _engine.Graphics.CreateSurface(360, 740);
         _canvas = _surface.Context;
-        _platform = new PlatformInfo(HostPlatform.Android) { Orientation = _orientation };
+        _platform = new PlatformInfo(HostPlatform.Android) { Orientation = _orientation, SystemBars = _systemBars };
         _player = new MikoPlayer { Engine = _engine, PlatformService = _platform };
         _root = new DivElement { Style = new Style { Display = Display.Block, Width = Length.Percent(100), Height = Length.Percent(100) } };
         _root.Children.Add(_player.Build());
@@ -58,6 +60,20 @@ public class PlayerFullscreenPlatformTests : IDisposable
         _platform.Back.Count.ShouldBe(1);
     }
 
+    /// <summary>
+    /// The status bar and the camera-cutout strip used to stay on screen as grey bands: the player
+    /// filled the app's window but never asked for the system bars to go (issues/feat-components-player.md, problem 1).
+    /// </summary>
+    [Fact]
+    public void Should_hide_the_system_bars_while_fullscreen()
+    {
+        _player.ToggleFullscreen();
+        _systemBars.HiddenDepth.ShouldBe(1);
+
+        _player.ToggleFullscreen();
+        _systemBars.HiddenDepth.ShouldBe(0);
+    }
+
     [Fact]
     public void Should_release_every_request_when_leaving_fullscreen()
     {
@@ -66,6 +82,7 @@ public class PlayerFullscreenPlatformTests : IDisposable
 
         _orientation.LockDepth.ShouldBe(0);
         _orientation.AwakeDepth.ShouldBe(0);
+        _systemBars.HiddenDepth.ShouldBe(0);
         _platform.Back.Count.ShouldBe(0);
     }
 
@@ -109,6 +126,7 @@ public class PlayerFullscreenPlatformTests : IDisposable
 
         _orientation.LockDepth.ShouldBe(0);
         _orientation.AwakeDepth.ShouldBe(0);
+        _systemBars.HiddenDepth.ShouldBe(0);
         _platform.Back.Count.ShouldBe(0);
     }
 
@@ -153,6 +171,13 @@ public class PlayerFullscreenPlatformTests : IDisposable
     private sealed class EmptyServiceProvider : IServiceProvider
     {
         public object? GetService(Type serviceType) => null;
+    }
+
+    private sealed class RecordingSystemBars : ISystemBarsService
+    {
+        public int HiddenDepth { get; private set; }
+        public void Hide() => HiddenDepth++;
+        public void Show() => HiddenDepth = Math.Max(0, HiddenDepth - 1);
     }
 
     private sealed class RecordingOrientation : IOrientationService

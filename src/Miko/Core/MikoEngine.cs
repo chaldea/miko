@@ -72,6 +72,13 @@ public class MikoEngine
     public MutationTracker Mutations => _mutations;
 
     /// <summary>
+    /// 本引擎每帧排空的动作队列。计时器、异步回调等后台线程上的工作经它回到渲染线程再改 DOM；
+    /// 按需绘制的宿主（Android）在有动作投递时出一帧。与容器中注册的 <see cref="Platform.MikoDispatcher"/>
+    /// 是同一个实例，独立构造的组件（未经 DI 注入）也能经引擎拿到它。
+    /// </summary>
+    public Platform.MikoDispatcher Dispatcher => _dispatcher;
+
+    /// <summary>
     /// 本引擎使用的渲染引擎。调试/宿主集成需要它来挂
     /// <see cref="RenderEngine.OverlayCallback"/> 之类的绘制钩子。
     /// <para>直接取自引擎自身的依赖，因此调用方拿到的必定是<b>这个</b>引擎正在用的实例——

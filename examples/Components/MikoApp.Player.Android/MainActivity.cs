@@ -44,7 +44,9 @@ public class MainActivity : Activity
                     i % 5 == 0 ? DanmakuMode.Top : DanmakuMode.Scroll)).ToArray() };
             var root = new DivElement { Style = new Style { Display = Miko.Common.Display.Flex, FlexDirection = FlexDirection.Column,
                 Width = Length.Percent(100), Height = Length.Percent(100), BackgroundColor = Color.FromHex("#101214"), Color = Color.White,
-                Padding = Length.Px(12), BoxSizing = BoxSizing.BorderBox } };
+                Padding = Length.Px(12), BoxSizing = BoxSizing.BorderBox,
+                // The page is drawn edge to edge: keep the heading clear of the status bar and camera cutout.
+                PaddingTop = Length.SafeAreaInsetTop + Length.Px(12), PaddingBottom = Length.SafeAreaInsetBottom + Length.Px(12) } };
             root.Children.Add(new H2Element { TextContent = "MikoPlayer", Style = new Style { FontSize = Length.Px(22) } });
             var sources = new DivElement { Style = new Style { Display = Miko.Common.Display.Flex, Height = Length.Px(48), Gap = Length.Px(8) } };
             foreach (var (label, uri) in new[] { ("Local", local), ("HLS", "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8") })

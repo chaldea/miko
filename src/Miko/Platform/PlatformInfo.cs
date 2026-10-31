@@ -67,6 +67,14 @@ public sealed class PlatformInfo : IPlatformService
     /// </summary>
     public IHapticFeedback Haptics { get; init; } = new NullHapticFeedback();
 
+    /// <summary>
+    /// System bar visibility (immersive fullscreen). Defaults to the inert implementation so
+    /// components can call it unconditionally; <c>MikoAppBuilder.CreateDefault</c> initializes it
+    /// from the registered <see cref="ISystemBarsService"/> (replaced by the platform packages via
+    /// <c>UseSystemBars</c>).
+    /// </summary>
+    public ISystemBarsService SystemBars { get; init; } = new NullSystemBarsService();
+
     public PlatformInfo() => Platform = Detect();
 
     public PlatformInfo(HostPlatform platform) => Platform = platform;

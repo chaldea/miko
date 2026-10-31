@@ -1365,9 +1365,10 @@ public class App
 - **视频播放**：需要平台注入 `IVideoBackend` 实现，否则 `<video>` 元素仅显示背景/poster
 - **字体回退**：不同平台的系统字体不同，使用 `FontFallbackResolver` 确保跨平台一致性
 - **输入法（IME）**：移动平台支持原生软键盘，桌面依赖操作系统 IME
-- **组件面向的平台服务**：`IPlatformService` 提供返回键链（`Back`）、屏幕方向/常亮（`Orientation`）与
-  触觉反馈（`Haptics`），全部同步、不支持时静默空操作。真实实现由平台头项目调用 `Use*Native()` 接入，
-  不调用时 `IonPicker` 的滚轮触感、`MikoPlayer` 全屏横屏都不会生效（ISSUE-138、ISSUE-149）
+- **组件面向的平台服务**：`IPlatformService` 提供返回键链（`Back`）、屏幕方向/常亮（`Orientation`）、
+  触觉反馈（`Haptics`）与系统栏显隐（`SystemBars`，沉浸式全屏），全部同步、不支持时静默空操作。真实实现由
+  平台头项目调用 `Use*Native()` 接入，不调用时 `IonPicker` 的滚轮触感、`MikoPlayer` 全屏横屏与隐藏状态栏都
+  不会生效（ISSUE-138、ISSUE-149）
 - **Android 最低版本**：API 26（Android 8.0），`Miko.Android`、模板与示例保持一致；更高版本的 API 必须
   放在 `OperatingSystem.IsAndroidVersionAtLeast` 分支里（`Miko.Android` 把 CA1416 视为错误）
 - **文本编辑单位**：`CursorPosition`、输入法选区与 `MaxLength` 按 UTF-16 码元计（与浏览器一致），插入、

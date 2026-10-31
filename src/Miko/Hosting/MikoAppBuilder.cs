@@ -49,6 +49,7 @@ public class MikoAppBuilder
         {
             Orientation = sp.GetRequiredService<IOrientationService>(),
             Haptics = sp.GetRequiredService<IHapticFeedback>(),
+            SystemBars = sp.GetRequiredService<ISystemBarsService>(),
         });
         builder.Services.AddSingleton<IPlatformInfo>(sp => sp.GetRequiredService<PlatformInfo>());
         builder.Services.AddSingleton<IPlatformService>(sp => sp.GetRequiredService<PlatformInfo>());
@@ -61,6 +62,9 @@ public class MikoAppBuilder
         // Same contract for haptic feedback; the platform packages override it via UseHaptics
         // (ISSUE-149).
         builder.Services.TryAddSingleton<IHapticFeedback, NullHapticFeedback>();
+        // And for hiding the system bars (immersive fullscreen); the mobile packages override it
+        // via UseSystemBars.
+        builder.Services.TryAddSingleton<ISystemBarsService, NullSystemBarsService>();
         builder.Services.AddSingleton<HotReloadService>();
         builder.Services.AddSingleton<MikoInteractionController>();
 
@@ -202,6 +206,23 @@ public class MikoAppBuilder
     /// </para>
     /// </summary>
     public MikoAppBuilder UseHaptics(Func<IServiceProvider, IHapticFeedback> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        Services.AddSingleton(factory);
+        return this;
+    }
+
+    /// <summary>
+    /// Supplies the platform's system-bar implementation (immersive fullscreen). Called by the
+    /// mobile packages (<c>UseAndroidNative()</c> / <c>UseIosNative()</c>) with their own
+    /// implementation, so components (a video player going fullscreen) reach it through the shared
+    /// <see cref="IPlatformService"/>.
+    /// <para>
+    /// Without this the inert <see cref="NullSystemBarsService"/> stays in place — the right
+    /// behavior for the desktop, whose windows have no system bars, and for bare tests.
+    /// </para>
+    /// </summary>
+    public MikoAppBuilder UseSystemBars(Func<IServiceProvider, ISystemBarsService> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
         Services.AddSingleton(factory);

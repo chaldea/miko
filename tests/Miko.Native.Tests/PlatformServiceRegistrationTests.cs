@@ -113,6 +113,34 @@ public class PlatformServiceRegistrationTests
         services.GetRequiredService<IPlatformService>().Haptics.ShouldBeSameAs(custom);
     }
 
+    /// <summary>Desktop windows and the simulator have no system bars to hide: the default stays inert.</summary>
+    [Theory]
+    [MemberData(nameof(ProviderFactories))]
+    public void WithoutMobilePackage_SystemBarsAreInert(string _, Func<MikoAppBuilder, IServiceProvider> build)
+    {
+        var builder = MikoAppBuilder.CreateDefault();
+        builder.UseDesktopNative();
+
+        var services = build(builder);
+
+        services.GetRequiredService<IPlatformService>().SystemBars.ShouldBeOfType<NullSystemBarsService>();
+    }
+
+    /// <summary>The app-supplied implementation reaches components through the shared platform service.</summary>
+    [Theory]
+    [MemberData(nameof(ProviderFactories))]
+    public void UseSystemBars_BindsThePlatformService(string _, Func<MikoAppBuilder, IServiceProvider> build)
+    {
+        var builder = MikoAppBuilder.CreateDefault();
+        var custom = new NullSystemBarsService();
+        builder.UseSystemBars(_ => custom);
+
+        var services = build(builder);
+
+        services.GetRequiredService<IPlatformService>().SystemBars.ShouldBeSameAs(custom);
+        services.GetRequiredService<PlatformInfo>().SystemBars.ShouldBeSameAs(custom);
+    }
+
     [Fact]
     public void SimulatorHaptics_CountsEachCall()
     {
