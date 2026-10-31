@@ -9,7 +9,7 @@ using Miko.Platform.Video;
 using Miko.Styling;
 using Miko.Windowing.Video;
 
-namespace MikoApp.Player;
+namespace MikoApp.Player.Desktop;
 
 internal static class PlayerVerification
 {
@@ -22,7 +22,7 @@ internal static class PlayerVerification
         var engine = context.Engine;
         using var player = new MikoPlayer
         {
-            Engine = engine, Source = source ?? "Assets/miko-local.mp4", AutoPlay = true, Muted = true,
+            Engine = engine, Source = source ?? MikoApp.Player.App.BundledClip, AutoPlay = true, Muted = true,
             Danmaku = [new(TimeSpan.Zero, "MikoPlayer native video"), new(TimeSpan.FromSeconds(.1), "Danmaku", DanmakuMode.Top)]
         };
         var root = new DivElement { Style = new Style { Display = Miko.Common.Display.Block, Width = Miko.Common.Length.Percent(100), Height = Miko.Common.Length.Percent(100), BackgroundColor = Miko.Common.Color.Black } };

@@ -4,12 +4,6 @@ using Android.OS;
 using Miko.Android;
 using Miko.Android.Native;
 using Miko.Android.Video;
-using Miko.Common;
-using Miko.Components.Player;
-using Miko.Components.Player.Danmaku;
-using Miko.Core.DomElements;
-using Miko.Hosting;
-using Miko.Styling;
 
 namespace MikoApp.Player.Android;
 
@@ -21,55 +15,32 @@ namespace MikoApp.Player.Android;
         | ConfigChanges.FontScale | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
 public class MainActivity : Activity
 {
-    private MikoPlayer? _player;
     private MikoSurfaceView? _view;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
+        // MediaPlayer needs a file path, not an asset stream: extract the bundled clip once.
         string local = Path.Combine(FilesDir!.AbsolutePath, "miko-local.mp4");
         using (var source = Assets!.Open("miko-local.mp4"))
         using (var destination = File.Create(local)) source.CopyTo(destination);
-        var builder = MikoAppBuilder.CreateDefault();
-        builder.Services.AddMikoPlayer();
-        builder.UseAndroidVideo();
-        // Fullscreen locks landscape and keeps the screen on through the platform services (ISSUE-149).
-        builder.UseAndroidNative();
-        builder.UseRootComponent(() =>
+
+        // UseAndroidVideo(): MediaPlayer with zero-copy OES frames. UseAndroidNative(): fullscreen
+        // locks landscape, keeps the screen on and hides the system bars; the long press ticks the
+        // haptics. A launch intent's "source" extra opens another URI first.
+        _view = MikoAndroidApp.CreateView(this, () => MikoApp.Player.App.CreateContext(builder =>
         {
-            _player?.Dispose();
-            _player = new MikoPlayer { Source = Intent?.GetStringExtra("source") ?? local, AutoPlay = true, Loop = true,
-                DanmakuSettings = new DanmakuSettings { FontSize = 16, Area = .5f, MaxVisible = 16 },
-                Danmaku = Enumerable.Range(0, 200).Select(i => new DanmakuItem(TimeSpan.FromSeconds(i * .6), "Miko danmaku " + i,
-                    i % 5 == 0 ? DanmakuMode.Top : DanmakuMode.Scroll)).ToArray() };
-            var root = new DivElement { Style = new Style { Display = Miko.Common.Display.Flex, FlexDirection = FlexDirection.Column,
-                Width = Length.Percent(100), Height = Length.Percent(100), BackgroundColor = Color.FromHex("#101214"), Color = Color.White,
-                Padding = Length.Px(12), BoxSizing = BoxSizing.BorderBox,
-                // The page is drawn edge to edge: keep the heading clear of the status bar and camera cutout.
-                PaddingTop = Length.SafeAreaInsetTop + Length.Px(12), PaddingBottom = Length.SafeAreaInsetBottom + Length.Px(12) } };
-            root.Children.Add(new H2Element { TextContent = "MikoPlayer", Style = new Style { FontSize = Length.Px(22) } });
-            var sources = new DivElement { Style = new Style { Display = Miko.Common.Display.Flex, Height = Length.Px(48), Gap = Length.Px(8) } };
-            foreach (var (label, uri) in new[] { ("Local", local), ("HLS", "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8") })
-                sources.Children.Add(new ButtonElement { TextContent = label, Style = new Style { Width = Length.Px(80), Height = Length.Px(44), Color = Color.White,
-                    BackgroundColor = Color.FromHex("#30373b"), BorderWidth = Length.Px(0) },
-                    OnClick = _ => { _player.Source = uri; _player.Build(); } });
-            root.Children.Add(sources);
-            root.Children.Add(_player.Build());
-            return root;
-        });
-        _view = MikoAndroidApp.CreateView(this, builder.Build);
+            builder.UseAndroidVideo();
+            builder.UseAndroidNative();
+        }, localSource: local, initialSource: Intent?.GetStringExtra("source")));
         SetContentView(_view);
     }
 
-    // Give an open overlay (menu / modal / action sheet) first refusal on the hardware back
-    // button (ISSUE-138). Without this the system default runs and the app exits with the
-    // overlay still open.
+    // The back button leaves the settings panel and fullscreen before it leaves the app (ISSUE-138).
     public override void OnBackPressed()
     {
         if (_view is not null && _view.HandleBackPressed()) return;
 
         base.OnBackPressed();
     }
-
-    protected override void OnDestroy() { _player?.Dispose(); base.OnDestroy(); }
 }

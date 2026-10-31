@@ -60,3 +60,9 @@ HLS 播放列表、分段、直播刷新和音视频同步由平台媒体库负�
 - **设置面板（问题 3）。** 按平台选择呈现：Android/iOS（含模拟器所模拟的手机）为右侧半透明抽屉，300px 宽、整高、44px 触控行，打开时让出控制栏；桌面为设置按钮上方的半透明弹出菜单，高度随内容、最多到画面顶部，外层不接收点击。点画面、返回键（Overlay 优先级，先于退出全屏）或 Escape 关闭。原生 `<select>` / 复选框 / range 换成为深色半透明面板绘制的倍速芯片、开关和画布滑块（拖动时阻止默认行为，不会滚动面板）。
 - **长按倍速（问题 4）。** 引擎的 `longpress`（500ms 未移动）在播放中触发：记下当前倍速，切到 `LongPressPlaybackRate`（默认 2，限制在 0.25–4，0 关闭），顶部显示「» 2x」半透明提示，`Haptics.Impact(Light)` 震动一次；`pointerup` / `pointercancel` 恢复原倍速。长按期间 `pointermove` 阻止默认行为，页面不会滚动；引擎在长按后不再派发 click。长按中途父组件改了 `PlaybackRate`，松手后生效。
 - **验证。** 播放器测试 62 项（新增 28 项，主要是 `PlayerGestureTests`：单/双击、点击穿透隐藏的控制栏、自动隐藏、鼠标、长按、两种设置呈现、开关与滑块经真实输入控制器、全屏刘海内边距、系统栏的获取与释放）。逐一回退点击穿透、刘海内边距、触屏单击语义、长按倍速与震动、隐藏系统栏这几处修复，对应用例都会变红。Android API 36 模拟器（开启 tall 刘海仿真）：全屏后 `dumpsys window` 显示状态栏与导航栏 `visible=false`、画面延伸进刘海、控制栏避开刘海；单击呼出、5s 自动隐藏、右侧设置抽屉、点画面关闭、长按显示「» 2x」并在 `vibrator_manager` 记录一次 `performHapticFeedback(constant=1)`、松手恢复、双击暂停、返回键退出全屏并恢复系统栏。iOS 仅完成编译。
+
+## 示例的三个平台启动项目（2026-10-31）
+
+- `examples/Components` 改为与 `examples/Multiplatform` 相同的结构：`MikoApp.Player` 是共享的演示页（`PlayerDemo.razor`、`App.CreateContext`），`MikoApp.Player.Desktop` / `.Android` / `.iOS` 只注册各自的视频后端（`UseSystemVideo` / `UseAndroidVideo` / `UseIosVideo`）与原生服务（`Use*Native`）并打包本地样例。原先的桌面项目本身是引用 `Miko.Windowing` 的可执行程序，iOS 无法共用；Android 头原来用 C# 另写了一份界面，现在三端运行同一页面。本地样例的路径各端不同：桌面复制到程序目录、iOS 作为 `BundleResource` 放进 app bundle（两者都以 `Assets/miko-local.mp4` 相对解析），Android 从 APK assets 解到应用目录后以绝对路径传入。
+- iOS 模拟器（iPhone 18 Pro，iOS 27.0）实测，触摸经 XCUITest 注入真实 UIKit 事件：本地样例与 HLS 均可播放；单击呼出控制栏、5s 自动隐藏；双击暂停/继续；全屏转横屏、状态栏隐藏、控制栏避开灵动岛；右侧设置抽屉，选择倍速芯片；长按中途截图可见「» 2x」，松手消失；左缘返回手势先关抽屉、再退出全屏并恢复状态栏。退出全屏后界面保持横屏，直到设备转回竖屏——`IosOrientationService` 解锁后由系统按设备朝向选择，模拟器里设备已被转到横屏。模拟器没有触觉硬件，震动未能观察。
+- 桌面（macOS 窗口，`MIKO_DUMP_FRAME` 抓帧）播放本地样例；`--verify` 无窗口模式在 macOS 上取不到 AVFoundation 的帧，为既有限制。Android 模拟器上新的共享页面播放本地样例，全屏隐藏系统栏、返回键恢复。

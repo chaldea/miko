@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
+  <!-- The player demo shared by the Desktop / Android / iOS heads. Each head adds its video backend
+       and native services, bundles the sample clip and drives the render loop. -->
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -9,7 +10,5 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/Miko.Components/Miko.Components.csproj" />
-    <ProjectReference Include="../../../src/Miko.Windowing/Miko.Windowing.csproj" />
-    <Content Include="../../Media/MikoApp.Media/Assets/miko-local.mp4" Link="Assets/miko-local.mp4" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
