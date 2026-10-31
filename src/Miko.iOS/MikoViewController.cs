@@ -26,6 +26,10 @@ public class MikoViewController : UIViewController
     private bool _statusBarHidden;
     private UIStatusBarAnimation _statusBarAnimation = UIStatusBarAnimation.None;
 
+    // 沉浸式全屏（ISystemBarsService）：与 IStatusBarService 的显隐分开记，任一方要求隐藏状态栏就隐藏，
+    // 全屏结束时不会把应用自己隐藏的状态栏又显示出来。
+    private bool _systemBarsHidden;
+
     // 允许的屏幕方向。iOS 同样由视图控制器**声明**：IosOrientationService 请求旋转时，
     // 系统会回头询问本属性，若目标方向不在此集合内则请求被忽略（ISSUE-138）。
     // 默认全放开，与 iOS 应用的常规行为一致；锁定期间由 SetSupportedOrientations 收窄。
@@ -107,7 +111,10 @@ public class MikoViewController : UIViewController
     public override UIStatusBarStyle PreferredStatusBarStyle() => _statusBarStyle;
 
     /// <inheritdoc />
-    public override bool PrefersStatusBarHidden() => _statusBarHidden;
+    public override bool PrefersStatusBarHidden() => _statusBarHidden || _systemBarsHidden;
+
+    /// <inheritdoc />
+    public override bool PrefersHomeIndicatorAutoHidden => _systemBarsHidden;
 
     /// <inheritdoc />
     public override UIStatusBarAnimation PreferredStatusBarUpdateAnimation => _statusBarAnimation;
@@ -145,6 +152,17 @@ public class MikoViewController : UIViewController
         // 不需要（也不能）自己包一层 UIView.Animate——SetNeedsStatusBarAppearanceUpdate 只是
         // 打个标记，包在动画块里没有任何属性可插值，Slide 反而会变成瞬间切换。
         SetNeedsStatusBarAppearanceUpdate();
+    }
+
+    /// <summary>
+    /// 由 <c>IosSystemBarsService</c> 调用以进入/退出沉浸式全屏：隐藏状态栏，Home 指示条在无触摸时自动隐藏
+    /// （iOS 不允许应用彻底隐藏它）。必须在主线程调用。
+    /// </summary>
+    internal void SetSystemBarsHidden(bool hidden)
+    {
+        _systemBarsHidden = hidden;
+        SetNeedsStatusBarAppearanceUpdate();
+        SetNeedsUpdateOfHomeIndicatorAutoHidden();
     }
 
     private void OnFrame()

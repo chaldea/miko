@@ -732,14 +732,16 @@ interfaces expose only permission state and business parameters.
 
 `IPlatformService : IPlatformInfo` (`src/Miko/Platform/`) is what *component libraries* use, as opposed
 to the app-facing `Miko.Native`: `Back` (system back-button chain, priority-ordered),
-`Orientation` (lock / keep-awake, reference counted) and `Haptics` (`IHapticFeedback`:
-`SelectionStart/Changed/End`, `Impact`, mirroring Ionic's haptic utilities). Every member is
+`Orientation` (lock / keep-awake, reference counted), `Haptics` (`IHapticFeedback`:
+`SelectionStart/Changed/End`, `Impact`, mirroring Ionic's haptic utilities) and `SystemBars`
+(`ISystemBarsService.Hide/Show`, reference counted: Android immersive + layout into the cutout, iOS
+status bar + home indicator auto-hide, inert on desktop and in the simulator). Every member is
 synchronous, safe to call while rendering, and silently inert where unsupported — components never
 null-check or catch. One `PlatformInfo` instance backs `PlatformInfo`, `IPlatformInfo` and
 `IPlatformService` (ISSUE-138, ISSUE-149).
 
-- The real orientation / haptics implementations are bound by the platform packages' `Use*Native()`
-  (through `MikoAppBuilder.UseOrientation` / `UseHaptics`). An app that does not call it keeps the
+- The real orientation / haptics / system-bar implementations are bound by the platform packages'
+  `Use*Native()` (through `MikoAppBuilder.UseOrientation` / `UseHaptics` / `UseSystemBars`). An app that does not call it keeps the
   `Null*` defaults — picker ticks and fullscreen landscape then do nothing. The desktop keeps
   `NullHapticFeedback` on purpose; the simulator logs and counts haptics (`SimulatorHapticFeedback`).
 - Android haptics use `View.PerformHapticFeedback` (no `VIBRATE` permission, honours the system

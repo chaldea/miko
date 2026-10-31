@@ -1,4 +1,5 @@
 using System.Globalization;
+using Miko.Animation;
 using Miko.Common;
 using Miko.Components.Player.Danmaku;
 using Miko.Core;
@@ -12,7 +13,13 @@ using Miko.Styling;
 namespace Miko.Components.Player;
 
 /// <summary>A retained native video player. Public methods and parameters are UI-thread APIs.</summary>
-public sealed class MikoPlayer : ComponentBase, IDisposable
+/// <remarks>
+/// The picture fills the player; the controls, the settings panel and the hints are overlays on it.
+/// Touch: a tap shows or hides the controls, a double tap plays or pauses, a long press plays at
+/// <see cref="LongPressPlaybackRate"/> until released. Mouse: a click plays or pauses, moving the
+/// mouse shows the controls. While playing, the controls hide after <see cref="ControlsHideDelay"/>.
+/// </remarks>
+public sealed partial class MikoPlayer : ComponentBase, IDisposable
 {
     [Parameter] public MediaSource Source { get; set; }
     [Parameter] public string? MimeType { get; set; }
@@ -26,19 +33,41 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     [Parameter] public Style? Style { get; set; }
     [Parameter] public IReadOnlyList<DanmakuItem> Danmaku { get; set; } = Array.Empty<DanmakuItem>();
     [Parameter] public DanmakuSettings DanmakuSettings { get; set; } = new();
+
+    /// <summary>
+    /// Playback rate while the picture is long-pressed; releasing restores the previous rate.
+    /// Clamped to the controller's 0.25–4 range; 0 disables the gesture.
+    /// </summary>
+    [Parameter] public float LongPressPlaybackRate { get; set; } = 2;
+
+    /// <summary>
+    /// How long the controls stay up during playback after the last interaction. Zero or less keeps
+    /// them up until the picture is tapped.
+    /// </summary>
+    [Parameter] public TimeSpan ControlsHideDelay { get; set; } = TimeSpan.FromSeconds(5);
+
     [Inject] public MikoEngine? Engine { get; set; }
     [Inject] public MikoPlayerOptions Options { get; set; } = new();
 
     /// <summary>
-    /// Component-facing platform service: landscape lock, keep-awake and the system back button
-    /// while fullscreen (ISSUE-149). Null without a service scope; fullscreen then stays a pure
-    /// viewport layout, as before.
+    /// Component-facing platform service: landscape lock, keep-awake, hidden system bars and the
+    /// system back button while fullscreen (ISSUE-149), haptics for the long press. Null without a
+    /// service scope; fullscreen then stays a pure viewport layout.
     /// </summary>
     [Inject] public IPlatformService? PlatformService { get; set; }
+
+    /// <summary>Clock of the auto-hide and double-tap timers; the system clock when none is registered.</summary>
+    [Inject] public TimeProvider? Clock { get; set; }
 
     public PlayerController Controller { get; } = new();
     public bool IsFullscreen { get; private set; }
     public bool IsSettingsOpen { get; private set; }
+
+    /// <summary>Whether the control bar is shown over the picture.</summary>
+    public bool AreControlsVisible { get; private set; } = true;
+
+    /// <summary>Whether a long press is holding playback at <see cref="LongPressPlaybackRate"/>.</summary>
+    public bool IsLongPressActive { get; private set; }
 
     /// <summary>
     /// Raised after <see cref="IsFullscreen"/> changes — including when the system back button exits
@@ -51,8 +80,12 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     private readonly DivElement _viewport = new();
     private readonly VideoElement _video = new();
     private readonly CanvasElement _overlay = new();
+    private readonly DivElement _chrome = new();
     private readonly CanvasElement _progress = new();
     private readonly DivElement _settings = new();
+    private readonly DivElement _settingsPanel = new();
+    private readonly DivElement _hint = new();
+    private readonly SpanElement _hintText = new();
     private readonly SpanElement _time = new();
     private readonly SpanElement _tooltip = new();
     private readonly DivElement _error = new();
@@ -63,6 +96,9 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     private static readonly Color TrackColor = Color.FromHex("#494d53");
     private static readonly Color BufferedColor = Color.FromHex("#8d939c");
     private static readonly Color ProgressColor = Color.FromHex("#38cfa1");
+    // The controls and the settings fade in and out instead of popping. The list is on both states:
+    // the engine reads the transitions of the previous frame's style.
+    private static readonly List<Transition> FadeTransitions = [Transition.For("opacity", .2f)];
     private IReadOnlyList<DanmakuItem>? _lastDanmaku;
     private DanmakuSettings? _lastSettings;
     private MediaSource _lastSource;
@@ -93,6 +129,7 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
     {
         if (!_built || !_lastSource.Equals(Source) || _lastMime != MimeType)
         {
+            EndLongPress();
             Controller.Reset(AutoPlay);
             _video.Source = Source;
             _video.MimeType = MimeType;
@@ -105,7 +142,13 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         if (!_built || _lastMuted != Muted) { Controller.SetMuted(Muted); _lastMuted = Muted; }
         if (!_built || _lastLoop != Loop) { Controller.SetLoop(Loop); _lastLoop = Loop; }
         if (_lastVolume != Volume) { Controller.SetVolume(Volume); _lastVolume = Volume; }
-        if (_lastRate != PlaybackRate) { Controller.SetPlaybackRate(PlaybackRate); _lastRate = PlaybackRate; }
+        if (_lastRate != PlaybackRate)
+        {
+            // A long press holds its own rate; the new one takes over when the press ends.
+            if (IsLongPressActive) _rateBeforeLongPress = PlaybackRate;
+            else Controller.SetPlaybackRate(PlaybackRate);
+            _lastRate = PlaybackRate;
+        }
         _video.Muted = Controller.Muted;
         _video.Loop = Controller.Loop;
         if (!ReferenceEquals(_lastDanmaku, Danmaku)) { _timeline.SetItems(Danmaku); _lastDanmaku = Danmaku; }
@@ -133,23 +176,27 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         _timeline.Settings = settings with { MaxVisible = Math.Min(settings.MaxVisible, Options.MaxVisibleDanmaku) };
         Repaint();
     }
-    public void Retry() { Controller.Reset(AutoPlay); _video.Reload(); Repaint(); }
+    public void Retry() { EndLongPress(); Controller.Reset(AutoPlay); _video.Reload(); Repaint(); }
 
     public void ToggleFullscreen()
     {
+        // The panel is laid out for the mode it was opened in.
+        CloseSettings();
         IsFullscreen = !IsFullscreen;
         if (IsFullscreen) AcquireFullscreenPlatform();
         else ReleaseFullscreenPlatform();
         ApplyRootStyle();
-        ApplyViewportStyle();
+        ApplyChromeStyle();
+        ApplyHintStyle();
+        ShowControls();
         Repaint();
         FullscreenChanged?.Invoke();
     }
 
     /// <summary>
-    /// Fullscreen on a phone means landscape with the screen kept on, and the system back button
-    /// (Android back, iOS edge swipe, desktop Escape) leaving fullscreen before it leaves the page.
-    /// The back slot uses overlay priority so it outranks the page's back button.
+    /// Fullscreen on a phone means landscape with the screen kept on and the system bars hidden, and
+    /// the system back button (Android back, iOS edge swipe, desktop Escape) leaving fullscreen before
+    /// it leaves the page. The back slot uses overlay priority so it outranks the page's back button.
     /// </summary>
     private void AcquireFullscreenPlatform()
     {
@@ -158,6 +205,7 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         _fullscreenPlatform = platform;
         platform.Orientation.Lock(ScreenOrientation.Landscape);
         platform.Orientation.KeepAwake();
+        platform.SystemBars.Hide();
         // Checked again when invoked: the slot may outlive the state that registered it.
         _fullscreenBack = platform.Back.Register(() =>
         {
@@ -176,23 +224,22 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         _fullscreenBack = null;
         platform.Orientation.Unlock();
         platform.Orientation.AllowSleep();
+        platform.SystemBars.Show();
     }
 
-    public void ToggleSettings()
-    {
-        IsSettingsOpen = !IsSettingsOpen;
-        if (IsSettingsOpen) BuildSettings();
-        ChangeStyle(_settings, s => s.Display = IsSettingsOpen ? Display.Flex : Display.None);
-        Repaint();
-    }
-
+    /// <summary>
+    /// Inline: 16:9 of the player width, resolved by layout through <c>aspect-ratio</c> (ISSUE-150);
+    /// a height from <see cref="Style"/> wins. Fullscreen: the whole viewport, under the camera cutout
+    /// too — only the overlays keep clear of it (<see cref="ApplyChromeStyle"/>), the picture is
+    /// letterboxed in black like any fullscreen player.
+    /// </summary>
     private void ApplyRootStyle()
     {
         var style = new Style
         {
-            Display = Display.Flex, FlexDirection = FlexDirection.Column, Width = Length.Percent(100),
-            MinWidth = Length.Px(0), BackgroundColor = Color.FromHex("#151719"), Color = Color.White,
-            FontFamily = "Arial", FontSize = Length.Px(14), Position = Position.Relative, BoxSizing = BoxSizing.BorderBox
+            Display = Display.Block, Position = Position.Relative, Width = Length.Percent(100), MinWidth = Length.Px(0),
+            AspectRatio = new AspectRatio(16, 9), FlexShrink = 0, Overflow = Overflow.Hidden, BackgroundColor = Color.Black,
+            Color = Color.White, FontFamily = "Arial", FontSize = Length.Px(14), BoxSizing = BoxSizing.BorderBox
         };
         if (Style != null) style.Merge(Style);
         if (IsFullscreen)
@@ -200,11 +247,8 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
             style.Position = Position.Fixed;
             style.Top = Length.Px(0); style.Left = Length.Px(0);
             style.Width = Length.Vw(100); style.Height = Length.Vh(100);
-            style.MaxWidth = null; style.MaxHeight = null; style.Margin = Length.Px(0);
-            style.PaddingTop = Length.SafeAreaInsetTop;
-            style.PaddingBottom = Length.SafeAreaInsetBottom;
-            style.PaddingLeft = Length.SafeAreaInsetLeft;
-            style.PaddingRight = Length.SafeAreaInsetRight;
+            style.MaxWidth = null; style.MaxHeight = null; style.AspectRatio = null;
+            style.Margin = Length.Px(0); style.Padding = Length.Px(0);
             style.ZIndex = 10000;
         }
         _root.Style = style;
@@ -218,48 +262,47 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
 
     private void BuildElements()
     {
+        // Paint order is tree order (every layer is positioned): picture, error, hint, controls,
+        // settings, tooltip. Hit testing runs the other way, so an open panel takes its taps first.
         _viewport.Class = "miko-player-viewport";
-        ApplyViewportStyle();
+        var viewport = Fill();
+        viewport.BackgroundColor = Color.Black;
+        viewport.Overflow = Overflow.Hidden;
+        _viewport.Style = viewport;
         _video.Style = Fill();
         _overlay.Style = Fill();
         _overlay.Paint = DrawOverlay;
-        _overlay.OnClick = _ => Controller.TogglePlayback();
         _viewport.Children.Add(_video);
         _viewport.Children.Add(_overlay);
+        _viewport.OnClick = OnSurfaceClick;
+        _viewport.OnLongPress = OnSurfaceLongPress;
+        _viewport.OnPointerMove = e => { if (IsLongPressActive) e.PreventDefault(); };
+        _viewport.OnPointerUp = _ => EndLongPress();
+        _viewport.OnPointerCancel = _ => EndLongPress();
+        _root.Children.Add(_viewport);
+
         _error.Style = new Style { Display = Display.None, Position = Position.Absolute, Top = Length.Px(12), Left = Length.Px(12),
             Right = Length.Px(12), FlexDirection = FlexDirection.Column, AlignItems = AlignItems.Center, BackgroundColor = Color.FromHex("#292c30"), Padding = Length.Px(12) };
         _errorText.Style = new Style { Display = Display.Block, Width = Length.Percent(100), FontSize = Length.Px(13) };
         _error.Children.Add(_errorText);
         _error.Children.Add(IconButton("Retry", () => "refresh", Retry));
-        _viewport.Children.Add(_error);
-        _root.Children.Add(_viewport);
+        _root.Children.Add(_error);
 
-        _progress.Class = "miko-player-progress";
-        _progress.Style = new Style { Display = Display.Block, Width = Length.Percent(100), Height = Length.Px(28), FlexShrink = 0 };
-        _progress.Paint = DrawProgress;
-        _progress.OnPointerDown = e => { if (!Controller.CanSeek) return; _dragging = true; Scrub(e); e.PreventDefault(); e.StopPropagation(); };
-        _progress.OnPointerMove = e => { if (_dragging) { Scrub(e); e.PreventDefault(); e.StopPropagation(); } };
-        _progress.OnPointerUp = e => { if (_dragging) { Scrub(e); _dragging = false; Seek(TimeSpan.FromSeconds(_scrub * Controller.Duration.TotalSeconds)); e.StopPropagation(); } };
-        _progress.OnPointerCancel = _ => { _dragging = false; Repaint(); };
-        _root.Children.Add(_progress);
+        BuildHint();
+        BuildChrome();
 
-        var controls = new DivElement { Class = "miko-player-controls", Style = new Style
-        { Display = Display.Flex, Width = Length.Percent(100), Height = Length.Px(48), FlexShrink = 0, AlignItems = AlignItems.Center, PaddingLeft = Length.Px(4), PaddingRight = Length.Px(4), BoxSizing = BoxSizing.BorderBox } };
-        controls.Children.Add(IconButton("Play / pause", () => Controller.State == VideoSessionState.Playing ? "pause" : "play", Controller.TogglePlayback));
-        _time.Style = new Style { Display = Display.Block, FlexGrow = 1, MinWidth = Length.Px(0), FontSize = Length.Px(12), PaddingLeft = Length.Px(4) };
-        controls.Children.Add(_time);
-        controls.Children.Add(IconButton("Mute", () => Controller.Muted || Controller.Volume == 0 ? "volume-mute" : "volume-high", () => Controller.SetMuted(!Controller.Muted)));
-        controls.Children.Add(IconButton("Danmaku", () => "chatbox-outline", () => SetDanmakuSettings(_timeline.Settings with { Enabled = !_timeline.Settings.Enabled })));
-        controls.Children.Add(IconButton("Settings", () => "settings-outline", ToggleSettings));
-        controls.Children.Add(IconButton("Fullscreen", () => IsFullscreen ? "contract" : "expand", ToggleFullscreen));
-        _root.Children.Add(controls);
         _settings.Class = "miko-player-settings";
-        _settings.Style = new Style { Display = Display.None, FlexDirection = FlexDirection.Column, Width = Length.Percent(100), MaxHeight = Length.Px(250),
-            OverflowY = Overflow.Auto, BackgroundColor = Color.FromHex("#25282c"), Padding = Length.Px(12), FlexShrink = 0, BoxSizing = BoxSizing.BorderBox };
+        _settingsPanel.Class = "miko-player-settings-panel";
+        _settings.Children.Add(_settingsPanel);
+        ApplySettingsStyle();
         _root.Children.Add(_settings);
-        _tooltip.Style = new Style { Display = Display.None, Position = Position.Absolute, Bottom = Length.Px(80), Right = Length.Px(12),
-            BackgroundColor = Color.FromHex("#34383d"), Color = Color.White, Padding = Length.Px(6), FontSize = Length.Px(12), PointerEvents = PointerEvents.None };
+
+        _tooltip.Style = new Style { Display = Display.None, Position = Position.Absolute, Bottom = Length.Px(76), Right = Length.Px(12),
+            BackgroundColor = Color.FromRgba(28, 28, 30, .9f), Color = Color.White, Padding = Length.Px(6), FontSize = Length.Px(12), PointerEvents = PointerEvents.None };
         _root.Children.Add(_tooltip);
+
+        // Moving the mouse over the player brings the controls back (and restarts their timer).
+        _root.OnPointerMove = e => { if (e.PointerType == PointerType.Mouse) ShowControls(); };
         _root.OnKeyDown = e =>
         {
             if (e.Target is InputElement or SelectElement) return;
@@ -270,72 +313,136 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
                 case "ArrowRight": Seek(Controller.Position + TimeSpan.FromSeconds(5)); break;
                 case "m": case "M": Controller.SetMuted(!Controller.Muted); break;
                 case "f": case "F": ToggleFullscreen(); break;
-                // With a platform service, Escape reaches the back-button chain first: it leaves
-                // fullscreen there and is swallowed. This branch only serves hosts without one.
-                case "Escape": if (IsFullscreen && _fullscreenPlatform is null) ToggleFullscreen(); if (IsSettingsOpen) ToggleSettings(); break;
+                // With a platform service, Escape reaches the back-button chain first: it closes the
+                // settings or leaves fullscreen there and is swallowed. This branch only serves hosts
+                // without one.
+                case "Escape":
+                    if (IsSettingsOpen) CloseSettings();
+                    else if (IsFullscreen && _fullscreenPlatform is null) ToggleFullscreen();
+                    break;
                 default: return;
             }
+            ShowControls();
             e.PreventDefault(); e.StopPropagation();
         };
     }
+
+    /// <summary>
+    /// The control bar: a gradient scrim, the progress bar and the button row, overlaid on the bottom
+    /// of the picture. Its blank parts are part of the picture for gestures.
+    /// </summary>
+    private void BuildChrome()
+    {
+        _chrome.Class = "miko-player-chrome";
+        ApplyChromeStyle();
+        // Darkens the picture under the controls so they stay legible on bright frames.
+        _chrome.Children.Add(new CanvasElement
+        {
+            Class = "miko-player-scrim",
+            Style = new Style { Display = Display.Block, Position = Position.Absolute, Left = Length.Px(0), Right = Length.Px(0),
+                Top = Length.Px(-40), Bottom = Length.Px(0), PointerEvents = PointerEvents.None },
+            Paint = DrawScrim,
+        });
+        // A tap that reaches the bar itself (the time text, the gaps between buttons) is a tap on the
+        // picture; buttons and the progress bar stop their own clicks.
+        _chrome.OnClick = OnSurfaceClick;
+
+        _progress.Class = "miko-player-progress";
+        // Positioned so that it paints above the scrim, which is positioned too.
+        _progress.Style = new Style { Display = Display.Block, Position = Position.Relative, Height = Length.Px(28), FlexShrink = 0,
+            MarginLeft = Length.Px(12), MarginRight = Length.Px(12) };
+        _progress.Paint = DrawProgress;
+        _progress.OnPointerDown = e =>
+        {
+            if (!Controller.CanSeek) return;
+            _dragging = true;
+            CancelAutoHide();
+            Scrub(e); e.PreventDefault(); e.StopPropagation();
+        };
+        _progress.OnPointerMove = e => { if (_dragging) { Scrub(e); e.PreventDefault(); e.StopPropagation(); } };
+        _progress.OnPointerUp = e =>
+        {
+            if (!_dragging) return;
+            Scrub(e); _dragging = false;
+            Seek(TimeSpan.FromSeconds(_scrub * Controller.Duration.TotalSeconds));
+            ScheduleAutoHide();
+            e.StopPropagation();
+        };
+        _progress.OnPointerCancel = _ => { _dragging = false; ScheduleAutoHide(); Repaint(); };
+        _progress.OnClick = e => e.StopPropagation();
+        _chrome.Children.Add(_progress);
+
+        var controls = new DivElement { Class = "miko-player-controls", Style = new Style
+        { Display = Display.Flex, Position = Position.Relative, Height = Length.Px(44), FlexShrink = 0, AlignItems = AlignItems.Center,
+            PaddingLeft = Length.Px(4), PaddingRight = Length.Px(4), BoxSizing = BoxSizing.BorderBox } };
+        controls.Children.Add(IconButton("Play / pause", () => Controller.State == VideoSessionState.Playing ? "pause" : "play", Controller.TogglePlayback));
+        _time.Style = new Style { Display = Display.Block, FlexGrow = 1, MinWidth = Length.Px(0), FontSize = Length.Px(12), PaddingLeft = Length.Px(4) };
+        controls.Children.Add(_time);
+        controls.Children.Add(IconButton("Mute", () => Controller.Muted || Controller.Volume == 0 ? "volume-mute" : "volume-high", () => Controller.SetMuted(!Controller.Muted)));
+        controls.Children.Add(IconButton("Danmaku", () => "chatbox-outline", () => SetDanmakuSettings(_timeline.Settings with { Enabled = !_timeline.Settings.Enabled })));
+        controls.Children.Add(IconButton("Settings", () => "settings-outline", ToggleSettings));
+        controls.Children.Add(IconButton("Fullscreen", () => IsFullscreen ? "contract" : "expand", ToggleFullscreen));
+        _chrome.Children.Add(controls);
+        _root.Children.Add(_chrome);
+    }
+
+    private void ApplyChromeStyle()
+    {
+        var style = new Style
+        {
+            Display = Display.Flex, FlexDirection = FlexDirection.Column, Position = Position.Absolute,
+            Left = Length.Px(0), Right = Length.Px(0), Bottom = Length.Px(0),
+            // Hidden controls take no taps: they reach the picture, which brings the controls back.
+            Opacity = AreControlsVisible ? 1 : 0,
+            PointerEvents = AreControlsVisible ? PointerEvents.Auto : PointerEvents.None,
+            Transitions = FadeTransitions,
+        };
+        if (IsFullscreen)
+        {
+            // The picture runs under the camera cutout and the gesture bar; the controls do not.
+            style.PaddingLeft = Length.SafeAreaInsetLeft + Length.Px(8);
+            style.PaddingRight = Length.SafeAreaInsetRight + Length.Px(8);
+            style.PaddingBottom = Length.SafeAreaInsetBottom + Length.Px(4);
+        }
+        _chrome.Style = style;
+    }
+
+    /// <summary>The "▸▸ 2x" pill shown at the top of the picture while a long press speeds playback up.</summary>
+    private void BuildHint()
+    {
+        _hint.Class = "miko-player-speed-hint";
+        ApplyHintStyle();
+        var pill = new DivElement { Style = new Style
+        {
+            Display = Display.Flex, AlignItems = AlignItems.Center, Height = Length.Px(32), PaddingLeft = Length.Px(12),
+            PaddingRight = Length.Px(14), BorderRadius = 16, BackgroundColor = Color.FromRgba(0, 0, 0, .55f), FontSize = Length.Px(13)
+        } };
+        pill.Children.Add(new CanvasElement { Style = new Style { Display = Display.Block, Width = Length.Px(18), Height = Length.Px(14),
+            MarginRight = Length.Px(6), FlexShrink = 0 }, Paint = DrawFastForward });
+        _hintText.Style = new Style { Display = Display.Block, WhiteSpace = WhiteSpace.Nowrap };
+        pill.Children.Add(_hintText);
+        _hint.Children.Add(pill);
+        _root.Children.Add(_hint);
+    }
+
+    private void ApplyHintStyle() => _hint.Style = new Style
+    {
+        Display = IsLongPressActive ? Display.Flex : Display.None, Position = Position.Absolute, Left = Length.Px(0), Right = Length.Px(0),
+        Top = IsFullscreen ? Length.SafeAreaInsetTop + Length.Px(16) : Length.Px(16),
+        JustifyContent = JustifyContent.Center, PointerEvents = PointerEvents.None
+    };
 
     private ButtonElement IconButton(string label, Func<string> icon, Action action)
     {
         var button = new ButtonElement { Class = "miko-player-button", Style = new Style
         { Display = Display.Block, Position = Position.Relative, Width = Length.Px(44), Height = Length.Px(44), FlexShrink = 0, BackgroundColor = Color.Transparent, Padding = Length.Px(0), BorderWidth = Length.Px(0) } };
         button.Children.Add(new CanvasElement { Style = Fill(), Paint = (c, r) => _icons.Draw(c, r, icon()) });
-        button.OnClick = e => { e.StopPropagation(); action(); Repaint(); };
+        // Using a control restarts the hide timer first: the action may hide the controls itself
+        // (the settings drawer replaces them).
+        button.OnClick = e => { e.StopPropagation(); ShowControls(); action(); Repaint(); };
         button.OnMouseEnter = _ => { _tooltip.TextContent = label; ChangeStyle(_tooltip, s => s.Display = Display.Block); };
         button.OnMouseLeave = _ => ChangeStyle(_tooltip, s => s.Display = Display.None);
         return button;
-    }
-
-    private void BuildSettings()
-    {
-        _settings.Children.Clear();
-        AddSlider("Volume", Controller.Volume, 0, 1, Controller.SetVolume);
-        AddChoice("Speed", ["0.5", "0.75", "1", "1.25", "1.5", "2"], Controller.PlaybackRate.ToString(CultureInfo.InvariantCulture),
-            value => Controller.SetPlaybackRate(float.Parse(value, CultureInfo.InvariantCulture)));
-        AddToggle("Loop", Controller.Loop, Controller.SetLoop);
-        AddToggle("Danmaku", _timeline.Settings.Enabled, value => SetDanmakuSettings(_timeline.Settings with { Enabled = value }));
-        AddSlider("Opacity", _timeline.Settings.Opacity, 0, 1, value => SetDanmakuSettings(_timeline.Settings with { Opacity = value }));
-        AddSlider("Text size", _timeline.Settings.FontSize, 12, 48, value => SetDanmakuSettings(_timeline.Settings with { FontSize = value }));
-        AddSlider("Travel time", _timeline.Settings.Duration, 2, 20, value => SetDanmakuSettings(_timeline.Settings with { Duration = value }));
-        AddSlider("Area", _timeline.Settings.Area, .2f, 1, value => SetDanmakuSettings(_timeline.Settings with { Area = value }));
-        AddSlider("Density", _timeline.Settings.MaxVisible, 1, Options.MaxVisibleDanmaku,
-            value => SetDanmakuSettings(_timeline.Settings with { MaxVisible = (int)value }));
-    }
-
-    private DivElement SettingRow(string label)
-    {
-        var row = new DivElement { Style = new Style { Display = Display.Flex, AlignItems = AlignItems.Center, MinHeight = Length.Px(44), Width = Length.Percent(100), FlexShrink = 0 } };
-        row.Children.Add(new SpanElement { TextContent = label, Style = new Style { Display = Display.Block, Width = Length.Px(100), FlexShrink = 0 } });
-        _settings.Children.Add(row);
-        return row;
-    }
-    private void AddSlider(string label, float value, float min, float max, Action<float> change)
-    {
-        var input = new InputElement { Type = InputType.Range, Min = min, Max = max, NumericValue = value,
-            Style = new Style { Display = Display.Block, FlexGrow = 1, FlexBasis = Length.Px(0), MinWidth = Length.Px(0), Height = Length.Px(36) } };
-        input.OnInput = _ => { change(input.NumericValue); Repaint(); };
-        input.OnChange = _ => { change(input.NumericValue); Repaint(); };
-        SettingRow(label).Children.Add(input);
-    }
-    private void AddToggle(string label, bool value, Action<bool> change)
-    {
-        var input = new InputElement { Type = InputType.Checkbox, Checked = value,
-            Style = new Style { Display = Display.Block, Width = Length.Px(24), Height = Length.Px(24) } };
-        input.OnChange = _ => { change(input.Checked); Repaint(); };
-        SettingRow(label).Children.Add(input);
-    }
-    private void AddChoice(string label, string[] values, string value, Action<string> change)
-    {
-        var input = new SelectElement { Value = value, Style = new Style { Display = Display.Block, FlexGrow = 1, MinWidth = Length.Px(0), Height = Length.Px(36), Color = Color.Black, FontSize = Length.Px(14) } };
-        foreach (var option in values)
-            input.Children.Add(new OptionElement { Value = option, TextContent = option + "x", Style = new Style { Display = Display.None } });
-        input.Value = value;
-        input.OnChange = _ => change(input.Value ?? "1");
-        SettingRow(label).Children.Add(input);
     }
 
     private void Scrub(PointerEventArgs e)
@@ -351,23 +458,6 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         finally { _refreshing = false; }
     }
 
-    /// <summary>
-    /// Inline: 16:9 of the player width, resolved by layout through <c>aspect-ratio</c> (ISSUE-150).
-    /// The height used to be written back as pixels once a frame had measured the width, so opening a
-    /// page laid out twice and every resize lagged one frame behind. Fullscreen: fill the height the
-    /// controls leave free.
-    /// </summary>
-    private void ApplyViewportStyle()
-    {
-        var style = new Style
-        {
-            Display = Display.Block, Position = Position.Relative, Width = Length.Percent(100), MinHeight = Length.Px(100),
-            BackgroundColor = Color.Black, Overflow = Overflow.Hidden
-        };
-        if (IsFullscreen) { style.FlexGrow = 1; style.Height = Length.Px(0); }
-        else style.AspectRatio = new AspectRatio(16, 9);
-        _viewport.Style = style;
-    }
     private void UpdateControls()
     {
         if (_disposed) return;
@@ -386,12 +476,17 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
             ChangeStyle(_error, s => s.Display = display);
         }
         if (hasError && _errorText.TextContent != Controller.Error) _errorText.TextContent = Controller.Error;
-        _lastState = Controller.State;
+        if (Controller.State != _lastState)
+        {
+            _lastState = Controller.State;
+            OnPlaybackStateChanged();
+        }
         if (!_refreshing) Repaint();
     }
     public static string FormatTime(TimeSpan value) => value.TotalHours >= 1
         ? $"{(int)value.TotalHours}:{value.Minutes:00}:{value.Seconds:00}"
         : $"{(int)value.TotalMinutes}:{value.Seconds:00}";
+    private static string FormatRate(float rate) => rate.ToString("0.##", CultureInfo.InvariantCulture) + "x";
     private void Repaint() => Engine?.RequestRepaint();
     private static void ChangeStyle(Element element, Action<Style> update)
     {
@@ -426,6 +521,33 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         context.FillCircle(bounds.X + progress * bounds.Width, y, 5, ProgressColor);
     }
 
+    /// <summary>
+    /// Black from transparent at the top to 60% at the bottom, eased in. Two-pixel bands: the drawing
+    /// API has no gradients, and the scrim is a few dozen rectangles.
+    /// </summary>
+    private static void DrawScrim(IDrawingContext context, RectF bounds)
+    {
+        const float band = 2;
+        for (float y = 0; y < bounds.Height; y += band)
+        {
+            float t = (y + band / 2) / bounds.Height;
+            var alpha = (byte)(t * t * 153);
+            if (alpha == 0) continue;
+            context.FillRect(new RectF(bounds.X, bounds.Y + y, bounds.Width, Math.Min(band, bounds.Height - y)), new Color(0, 0, 0, alpha));
+        }
+    }
+
+    private static void DrawFastForward(IDrawingContext context, RectF bounds)
+    {
+        float top = bounds.Y + 2, bottom = bounds.Bottom - 2, middle = bounds.Y + bounds.Height / 2;
+        for (int i = 0; i < 2; i++)
+        {
+            float x = bounds.X + 2 + i * 7;
+            context.StrokeLine(x, top, x + 5, middle, Color.White, 2);
+            context.StrokeLine(x + 5, middle, x, bottom, Color.White, 2);
+        }
+    }
+
     protected override void OnDispose() => Dispose();
     public void Dispose()
     {
@@ -433,6 +555,9 @@ public sealed class MikoPlayer : ComponentBase, IDisposable
         _disposed = true;
         // Leaving the page while fullscreen must not leave the screen locked landscape and awake.
         ReleaseFullscreenPlatform();
+        _settingsBack?.Dispose();
+        _settingsBack = null;
+        DisposeTimers();
         _video.SessionChanged -= Controller.Attach;
         _video.PlaybackEvent -= Controller.HandleEvent;
         _video.PlaybackUpdated -= Refresh;

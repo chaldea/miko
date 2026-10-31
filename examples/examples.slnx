@@ -4,6 +4,12 @@
     <Project Path="Async/MikoApp.AsyncDemo.Desktop/MikoApp.AsyncDemo.Desktop.csproj" />
     <Project Path="Async/MikoApp.AsyncDemo/MikoApp.AsyncDemo.csproj" />
   </Folder>
+  <Folder Name="/Components/">
+    <Project Path="Components/MikoApp.Player.Android/MikoApp.Player.Android.csproj" />
+    <Project Path="Components/MikoApp.Player.Desktop/MikoApp.Player.Desktop.csproj" />
+    <Project Path="Components/MikoApp.Player.iOS/MikoApp.Player.iOS.csproj" />
+    <Project Path="Components/MikoApp.Player/MikoApp.Player.csproj" />
+  </Folder>
   <Folder Name="/Ionic/">
     <Project Path="Ionic/IonicComponents/IonicComponents.csproj" />
     <Project Path="Ionic/IonicDemo.Android/IonicDemo.Android.csproj" />
@@ -14,6 +20,7 @@
   </Folder>
   <Folder Name="/Libs/">
     <Project Path="../src/Miko.Bootstrap/Miko.Bootstrap.csproj" />
+    <Project Path="../src/Miko.Components/Miko.Components.csproj" />
     <Project Path="../src/Miko.DevTools/Miko.DevTools.csproj" />
     <Project Path="../src/Miko.Ionic/Miko.Ionic.csproj" />
     <Project Path="../src/Miko.Razor.Compiler/Miko.Razor.Compiler.csproj" />

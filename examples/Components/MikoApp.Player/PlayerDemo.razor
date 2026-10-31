@@ -4,24 +4,53 @@
     <h2 Style="@HeadingStyle">MikoPlayer</h2>
     <div Style="@SourceStyle">
         <input @bind="_sourceInput" Style="@InputStyle" />
-        <button @onclick="OpenSource">Open</button>
-        <button @onclick="OpenLocal">Local</button>
-        <button @onclick="OpenHls">HLS</button>
+        <button @onclick="OpenSource" Style="@ButtonStyle">Open</button>
+        <button @onclick="OpenLocal" Style="@ButtonStyle">Local</button>
+        <button @onclick="OpenHls" Style="@ButtonStyle">HLS</button>
     </div>
-    <MikoPlayer Source="@_source" AutoPlay="true" Danmaku="@Comments" />
+    <MikoPlayer Source="@_source" AutoPlay="true" Loop="true" Danmaku="@Comments" />
+    <div Style="@HintStyle">Touch: tap shows or hides the controls, double tap plays or pauses, long press plays at 2x. Mouse: click plays or pauses.</div>
 </div>
 
 @code {
-    private string _source = "Assets/miko-local.mp4";
-    private string _sourceInput = "Assets/miko-local.mp4";
+    /// <summary>The bundled sample clip, opened by the Local button.</summary>
+    [Parameter] public string LocalSource { get; set; } = App.BundledClip;
+
+    /// <summary>The source opened first; <see cref="LocalSource"/> when null.</summary>
+    [Parameter] public string? InitialSource { get; set; }
+
+    private string _source = "";
+    private string _sourceInput = "";
+
+    protected override void OnInitialized()
+    {
+        _source = _sourceInput = InitialSource ?? LocalSource;
+    }
+
     private void OpenSource() => _source = _sourceInput.Trim();
-    private void OpenLocal() { _sourceInput = "Assets/miko-local.mp4"; OpenSource(); }
-    private void OpenHls() { _sourceInput = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"; OpenSource(); }
+    private void OpenLocal() { _sourceInput = LocalSource; OpenSource(); }
+    private void OpenHls() { _sourceInput = App.HlsSample; OpenSource(); }
+
     private static readonly IReadOnlyList<DanmakuItem> Comments = Enumerable.Range(0, 120)
         .Select(i => new DanmakuItem(TimeSpan.FromSeconds(i * .8), i % 3 == 0 ? "Miko native video" : "Skia danmaku " + i,
             i % 7 == 0 ? DanmakuMode.Top : i % 11 == 0 ? DanmakuMode.Bottom : DanmakuMode.Scroll)).ToArray();
-    private static readonly Style PageStyle = new() { Display = Display.Flex, FlexDirection = FlexDirection.Column, Width = Length.Percent(100), Height = Length.Percent(100), BackgroundColor = Color.FromHex("#101214"), Color = Color.White, Padding = Length.Px(12), OverflowY = Overflow.Auto };
-    private static readonly Style HeadingStyle = new() { FontSize = Length.Px(22), Margin = Length.Px(8), FlexShrink = 0 };
-    private static readonly Style SourceStyle = new() { Display = Display.Flex, Gap = Length.Px(6), Height = Length.Px(48), AlignItems = AlignItems.Center, FlexShrink = 0 };
+
+    // Phones draw edge to edge: the page keeps clear of the status bar, the camera cutout and the
+    // home indicator. The safe area is zero on the desktop.
+    private static readonly Style PageStyle = new()
+    {
+        Display = Display.Flex, FlexDirection = FlexDirection.Column, Width = Length.Percent(100), Height = Length.Percent(100),
+        BackgroundColor = Color.FromHex("#101214"), Color = Color.White, OverflowY = Overflow.Auto, BoxSizing = BoxSizing.BorderBox,
+        PaddingTop = Length.SafeAreaInsetTop + Length.Px(12), PaddingBottom = Length.SafeAreaInsetBottom + Length.Px(12),
+        PaddingLeft = Length.SafeAreaInsetLeft + Length.Px(12), PaddingRight = Length.SafeAreaInsetRight + Length.Px(12),
+    };
+    private static readonly Style HeadingStyle = new() { FontSize = Length.Px(22), MarginTop = Length.Px(4), MarginBottom = Length.Px(12), FlexShrink = 0 };
+    private static readonly Style SourceStyle = new() { Display = Display.Flex, Gap = Length.Px(6), Height = Length.Px(44), AlignItems = AlignItems.Center, FlexShrink = 0, MarginBottom = Length.Px(12) };
     private static readonly Style InputStyle = new() { FlexGrow = 1, MinWidth = Length.Px(0), Height = Length.Px(36) };
+    private static readonly Style ButtonStyle = new()
+    {
+        Display = Display.Flex, AlignItems = AlignItems.Center, Height = Length.Px(36), FlexShrink = 0, PaddingLeft = Length.Px(12), PaddingRight = Length.Px(12), BorderWidth = Length.Px(0),
+        BorderRadius = 6, BackgroundColor = Color.FromHex("#30373b"), Color = Color.White, FontSize = Length.Px(14),
+    };
+    private static readonly Style HintStyle = new() { Color = Color.FromHex("#8d939c"), FontSize = Length.Px(12), MarginTop = Length.Px(12), FlexShrink = 0 };
 }

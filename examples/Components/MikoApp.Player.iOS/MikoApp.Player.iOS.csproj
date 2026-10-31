@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-ios</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <ApplicationId>com.miko.playerdemo</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <!-- mlaunch receives a project-relative app path, even when run from another directory. -->
+    <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../MikoApp.Player/MikoApp.Player.csproj" />
+    <ProjectReference Include="../../../src/Miko.iOS/Miko.iOS.csproj" />
+    <!-- Inside the app bundle: the iOS backend resolves App.BundledClip against the bundle. -->
+    <BundleResource Include="../../Media/MikoApp.Media/Assets/miko-local.mp4" LogicalName="Assets/miko-local.mp4" />
+  </ItemGroup>
+</Project>

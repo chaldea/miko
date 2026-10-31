@@ -70,8 +70,28 @@ All notable changes to Miko are documented in this file. The format is based on
 - **Localized.** `Locale` (default: the current culture) drives month and day names, the order of
   the date wheels, the hour cycle and the day period, from .NET culture data.
 
+### Video player
+
+- **`MikoPlayer` behaves like a mobile video player.** The controls sit over the picture on a
+  gradient and fade out five seconds into playback (`ControlsHideDelay`). On touch screens a tap
+  shows or hides them, a double tap plays or pauses, and a long press plays at double speed
+  (`LongPressPlaybackRate`) with a hint and a light haptic tick until the finger lifts. With a mouse a
+  click plays or pauses and moving the mouse brings the controls back.
+- **Real fullscreen on phones.** Fullscreen hides the status bar and navigation bar (iOS: the
+  status bar and, after a moment, the home indicator), and the picture covers the camera cutout;
+  only the controls keep clear of it. Back closes the settings first, then leaves fullscreen.
+- **Settings over the picture.** Phones open a translucent drawer on the right with touch-sized
+  speed chips, switches and sliders; the desktop opens a pop-up above the settings button.
+- `IPlatformService.SystemBars` (`ISystemBarsService`, `Hide` / `Show`, reference counted) lets
+  components ask for immersive fullscreen. `UseAndroidNative()` and `UseIosNative()` supply it; elsewhere it
+  does nothing. `MikoEngine.Dispatcher` exposes the engine's frame queue to components built outside DI.
+
 ### Upgrade notes
 
+- `MikoPlayer` is now exactly the picture: a 16:9 box (or the height its `Style` gives it) with the
+  controls drawn inside it, where it used to add a 76px control bar below a 16:9 picture. A layout
+  that reserved room for that bar can drop it. A tap on the picture on a touch screen no longer
+  pauses; a double tap does.
 - `ComputedStyle.TextAlign` is `TextAlign.Start` when nothing sets it (it was `Left`). Code that
   compares it with `TextAlign.Left` should map it first: in a left-to-right element `Start` is
   drawn exactly like `Left`.

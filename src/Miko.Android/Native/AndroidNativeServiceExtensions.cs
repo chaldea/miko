@@ -54,6 +54,8 @@ public static class AndroidNativeServiceExtensions
         builder.UseOrientation(sp => new AndroidOrientationService(sp.GetRequiredService<INativeHostContext>()));
         // 组件面向的触觉反馈（ISSUE-149）——滚轮选择器转动、排序拖动时的"咔"一下。
         builder.UseHaptics(sp => new AndroidHapticFeedback(sp.GetRequiredService<INativeHostContext>()));
+        // 组件面向的系统栏显隐——视频全屏时隐藏状态栏与导航栏、画面延伸进刘海区。
+        builder.UseSystemBars(sp => new AndroidSystemBarsService(sp.GetRequiredService<INativeHostContext>()));
 
         services.ReplaceNative<IAppService, AndroidAppService>();
         services.ReplaceNative<IBrowserService, AndroidBrowserService>();

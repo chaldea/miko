@@ -2,7 +2,7 @@ namespace Miko.Platform;
 
 /// <summary>
 /// 组件面向的平台服务（ISSUE-138）。聚合组件库在交互增强时需要的那部分平台能力：平台识别
-/// （继承自 <see cref="IPlatformInfo"/>）、系统返回键、屏幕方向/息屏、触觉反馈。
+/// （继承自 <see cref="IPlatformInfo"/>）、系统返回键、屏幕方向/息屏、触觉反馈、系统栏显隐。
 ///
 /// <para><b>与 <c>Miko.Native</c> 的区别：</b><c>Miko.Native</c> 是面向**应用开发者**的能力层，
 /// 覆盖相机、文件系统等完整原生 API，方法为 <c>Task</c> 且平台不支持时抛
@@ -25,4 +25,7 @@ public interface IPlatformService : IPlatformInfo
 
     /// <summary>触觉反馈（ISSUE-149）。桌面等没有触觉硬件的平台返回空实现，调用永远安全。</summary>
     IHapticFeedback Haptics { get; }
+
+    /// <summary>系统栏显隐（沉浸式全屏）。桌面等没有系统栏的平台返回空实现，调用永远安全。</summary>
+    ISystemBarsService SystemBars { get; }
 }

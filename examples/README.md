@@ -13,6 +13,7 @@ the framework — from a static render-to-PNG console app to full cross-platform
 | [`Windows/`](#windows)              | The same starter templates as single Windows desktop projects.                 |
 | [`Async/`](#async)                  | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls.  |
 | [`Media/`](#media)                  | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
+| [`Components/`](#components)        | The `MikoPlayer` video player (controls, gestures, danmaku, HLS) on Desktop / Android / iOS. |
 | [`Localization/`](#localization)    | `IStringLocalizer` + `.resx`, live language switching, right-to-left layout, complex scripts. |
 | [`App/Anime/`](#anime)              | Multiplatform Ionic three-tab anime demo with interface-backed mock services.  |
 
@@ -213,6 +214,22 @@ dotnet run --project examples/Media/MikoApp.Media.Api        # http://localhost:
 > The client carries **no FFmpeg binaries**: video uses Media Foundation (Windows),
 > GStreamer (Linux) or AVFoundation (macOS). Only `MikoApp.Media.Api` references FFmpeg,
 > and only to pre-generate the sample clip.
+
+---
+
+## Components
+
+`Components/` — the `MikoPlayer` video player from `Miko.Components`: overlay controls, touch
+gestures (tap, double tap, long press for 2x), settings, danmaku, fullscreen and HLS. The shared
+demo page lives in `MikoApp.Player`; `MikoApp.Player.Desktop`, `MikoApp.Player.Android` and
+`MikoApp.Player.iOS` are the platform heads, each registering its system video backend and
+native services and bundling the local sample clip.
+
+```bash
+dotnet run --project examples/Components/MikoApp.Player.Desktop
+```
+
+See [Components/README.md](Components/README.md) for the Android and iOS commands.
 
 ---
 

@@ -25,13 +25,15 @@ public class PlayerIntegrationTests : IDisposable
     private readonly Backend _backend = new();
     private readonly MikoPlayer _player;
     private readonly DivElement _root;
+    // The controls' timers never fire on their own here.
+    private readonly ManualClock _clock = new();
     public PlayerIntegrationTests()
     {
         _engine = new MikoEngineBuilder().Build();
         _surface = _engine.Graphics.CreateSurface(960, 760);
         _canvas = _surface.Context;
         _engine.VideoBackend = _backend;
-        _player = new MikoPlayer { Engine = _engine, Source = "movie.mp4" };
+        _player = new MikoPlayer { Engine = _engine, Source = "movie.mp4", Clock = _clock };
         _root = new DivElement { Style = new Style { Display = Display.Block, Width = Length.Percent(100), Height = Length.Percent(100) } };
         _root.Children.Add(_player.Build());
         _engine.Initialize(_root, [], _canvas, 960, 760);
@@ -64,8 +66,11 @@ public class PlayerIntegrationTests : IDisposable
         controls.Children.Sum(c => c.OffsetWidth).ShouldBeLessThanOrEqualTo(360);
         controls.FindByTagName("button").ShouldAllBe(x => x.OffsetWidth == 44 && x.OffsetHeight == 44);
         _player.ToggleSettings(); Render();
-        var speed = (SelectElement)_root.FindByTagName("select").Single();
-        speed.GetDisplayText().ShouldBe("1x");
+        // All six speeds share one line of the settings panel.
+        var chips = _root.FindByClass("miko-player-chip").ToList();
+        chips.Select(c => c.TextContent).ShouldBe(["0.5x", "0.75x", "1x", "1.25x", "1.5x", "2x"]);
+        chips.Select(c => BorderBox(c).Y).Distinct().Count().ShouldBe(1);
+        BorderBox(chips[^1]).Right.ShouldBeLessThanOrEqualTo(BorderBox(_root.FindByClass("miko-player-settings").Single()).Right);
     }
 
     [Fact]
@@ -113,21 +118,35 @@ public class PlayerIntegrationTests : IDisposable
         _engine.SetViewportSize(360, 740); Render();
         var viewport = _root.FindByClass("miko-player-viewport").Single();
         _player.ToggleFullscreen(); Render();
-        // Fullscreen: the viewport takes the height the 28px progress bar and 48px controls leave free.
-        viewport.OffsetHeight.ShouldBe(740 - 28 - 48, .5f);
+        // Fullscreen: the picture takes the whole screen; the controls are drawn over it.
+        viewport.OffsetHeight.ShouldBe(740, .5f);
         _player.ToggleFullscreen(); Render();
         viewport.OffsetHeight.ShouldBe(202.5f, .5f);
     }
 
     [Fact]
-    public void Should_Shrink_Viewport_In_A_Fixed_Height_Player()
+    public void Should_Overlay_The_Controls_On_The_Picture()
     {
-        // The Anime detail page fixes the player height; the viewport gives way to the controls.
+        // The controls used to sit below a 16:9 picture and squeeze it in fullscreen (issue: player 2).
+        _engine.SetViewportSize(360, 740); Render();
+        var player = BorderBox(_root.FindByClass("miko-player").Single());
+        var picture = BorderBox(_root.FindByClass("miko-player-viewport").Single());
+        var chrome = BorderBox(_root.FindByClass("miko-player-chrome").Single());
+        player.Height.ShouldBe(202.5f, .5f);
+        picture.ShouldBe(player);
+        chrome.Bottom.ShouldBe(player.Bottom, .5f);
+        chrome.Width.ShouldBe(player.Width, .5f);
+    }
+
+    [Fact]
+    public void Should_Fill_A_Fixed_Height_Player_With_The_Picture()
+    {
+        // The Anime detail page fixes the player height; the controls are drawn over the picture.
         _player.Style = new Style { Height = Length.Px(230), FlexShrink = 0 };
         _player.Build();
         _engine.SetViewportSize(360, 740); Render();
         _root.FindByClass("miko-player").Single().OffsetHeight.ShouldBe(230, .5f);
-        _root.FindByClass("miko-player-viewport").Single().OffsetHeight.ShouldBe(230 - 28 - 48, .5f);
+        _root.FindByClass("miko-player-viewport").Single().OffsetHeight.ShouldBe(230, .5f);
     }
 
     [Fact]
@@ -162,27 +181,19 @@ public class PlayerIntegrationTests : IDisposable
             new HotReloadService(NullLogger<HotReloadService>.Instance), NullLogger<MikoInteractionController>.Instance);
         _player.Pause(); Render();
         var progress = _root.FindByClass("miko-player-progress").Single();
-        var box = FindBox(_engine.GetCurrentLayout()!, progress)!;
-        float y = box.BoxModel.BorderBox.Y + progress.OffsetHeight / 2;
-        input.OnPointerDown(progress.OffsetWidth * .2f, y, MouseButton.Left, PointerType.Touch, 0);
+        var box = BorderBox(progress);
+        float y = box.Y + box.Height / 2;
+        input.OnPointerDown(box.X + box.Width * .2f, y, MouseButton.Left, PointerType.Touch, 0);
         Render();
-        input.OnPointerMove(progress.OffsetWidth * .75f, y);
+        input.OnPointerMove(box.X + box.Width * .75f, y);
         Render();
-        input.OnPointerUp(progress.OffsetWidth * .75f, y, MouseButton.Left, PointerType.Touch, 0);
+        input.OnPointerUp(box.X + box.Width * .75f, y, MouseButton.Left, PointerType.Touch, 0);
         _backend.Sessions.Single().Position.ShouldBe(TimeSpan.FromSeconds(45));
         _root.FindByClass("miko-player-controls").Single().Children[1].TextContent.ShouldBe("0:45 / 1:00");
     }
 
-    private static Miko.Layout.LayoutBox? FindBox(Miko.Layout.LayoutBox box, Element element)
-    {
-        if (box.Element == element) return box;
-        foreach (var child in box.Children)
-            if (FindBox(child, element) is { } found) return found;
-        return null;
-    }
-
     [Fact]
-    public void Should_Select_Speed_When_Dropdown_Overlaps_A_Slider()
+    public void Should_Select_Speed_From_The_Settings_Chips()
     {
         using var services = new ServiceCollection().BuildServiceProvider();
         var input = new MikoInteractionController(
@@ -190,21 +201,18 @@ public class PlayerIntegrationTests : IDisposable
             new HotReloadService(NullLogger<HotReloadService>.Instance), NullLogger<MikoInteractionController>.Instance);
         _engine.SetViewportSize(360, 900);
         _player.ToggleSettings(); Render();
-        var select = (SelectElement)_root.FindByTagName("select").Single();
-        var bounds = FindBox(_engine.GetCurrentLayout()!, select)!.BoxModel.BorderBox;
-        float x = bounds.X + bounds.Width / 2;
-        _engine.HitTest(x, bounds.Y + bounds.Height / 2).ShouldBeSameAs(select);
-        void Tap(float y)
-        {
-            input.OnPointerDown(x, y, MouseButton.Left, PointerType.Touch);
-            input.OnPointerUp(x, y, MouseButton.Left, PointerType.Touch);
-        }
-        Tap(bounds.Y + bounds.Height / 2); Render();
-        select.IsOpen.ShouldBeTrue();
-        Tap(bounds.Bottom + 22 * 5.5f); Render();
-        select.IsOpen.ShouldBeFalse();
+        var chip = _root.FindByClass("miko-player-chip").Single(c => c.TextContent == "2x");
+        var bounds = BorderBox(chip);
+        float x = bounds.X + bounds.Width / 2, y = bounds.Y + bounds.Height / 2;
+        _engine.HitTest(x, y).ShouldBeSameAs(chip);
+        input.OnPointerDown(x, y, MouseButton.Left, PointerType.Touch);
+        input.OnPointerUp(x, y, MouseButton.Left, PointerType.Touch);
+        Render();
         _player.Controller.PlaybackRate.ShouldBe(2);
         _backend.Sessions.Single().Rate.ShouldBe(2);
+        // Choosing a speed keeps the panel open, with the new speed selected.
+        _player.IsSettingsOpen.ShouldBeTrue();
+        chip.Style!.BackgroundColor.ValueOrNull().ShouldBe(Color.FromHex("#38cfa1"));
     }
 
     [Fact]

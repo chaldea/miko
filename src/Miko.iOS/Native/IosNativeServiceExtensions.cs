@@ -55,6 +55,8 @@ public static class IosNativeServiceExtensions
         builder.UseOrientation(sp => new IosOrientationService(sp.GetRequiredService<INativeHostContext>()));
         // 组件面向的触觉反馈（ISSUE-149）——滚轮选择器转动、排序拖动时的"咔"一下。
         builder.UseHaptics(sp => new IosHapticFeedback(sp.GetRequiredService<INativeHostContext>()));
+        // 组件面向的系统栏显隐——视频全屏时隐藏状态栏、自动隐藏 Home 指示条。
+        builder.UseSystemBars(sp => new IosSystemBarsService(sp.GetRequiredService<INativeHostContext>()));
 
         services.ReplaceNative<IAppService, IosAppService>();
         services.ReplaceNative<IBrowserService, IosBrowserService>();
