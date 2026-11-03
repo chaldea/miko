@@ -13,7 +13,7 @@ the framework — from a static render-to-PNG console app to full cross-platform
 | [`Windows/`](#windows)              | The same starter templates as single Windows desktop projects.                 |
 | [`Async/`](#async)                  | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls.  |
 | [`Media/`](#media)                  | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
-| [`Components/`](#components)        | The `MikoPlayer` video player (controls, gestures, danmaku, HLS) on Desktop / Android / iOS. |
+| [`Components/`](#components)        | The `MikoPlayer` video player on Desktop / Android / iOS; the barcode scanner and camera on Android / iOS. |
 | [`Localization/`](#localization)    | `IStringLocalizer` + `.resx`, live language switching, right-to-left layout, complex scripts. |
 | [`App/Anime/`](#anime)              | Multiplatform Ionic three-tab anime demo with interface-backed mock services.  |
 
@@ -228,6 +228,9 @@ native services and bundling the local sample clip.
 ```bash
 dotnet run --project examples/Components/MikoApp.Player.Desktop
 ```
+
+`MikoApp.Camera` is the camera demo: `MikoBarcodeScanner`, `MikoCamera` and a diagnostics page for the
+`<camera>` element, with `MikoApp.Camera.Android` and `MikoApp.Camera.iOS` heads.
 
 See [Components/README.md](Components/README.md) for the Android and iOS commands.
 

@@ -59,6 +59,15 @@ public class MikoSurfaceView : GLSurfaceView
     /// </summary>
     public AndroidNativeHost NativeHost { get; }
 
+    private static WeakReference<global::Android.App.Activity>? s_lastActivity;
+
+    /// <summary>
+    /// The Activity of the most recently created view, for platform services that must show system UI
+    /// (the camera permission dialog) in apps that did not register <c>UseAndroidNative()</c>.
+    /// </summary>
+    internal static global::Android.App.Activity? LastActivity
+        => s_lastActivity != null && s_lastActivity.TryGetTarget(out var activity) && !activity.IsFinishing ? activity : null;
+
     public MikoSurfaceView(Context context, MikoAppContext appContext) : base(context)
     {
         // EGL 配置必须在设置渲染器之前给出，渲染模式（下方）必须在之后。
@@ -80,6 +89,7 @@ public class MikoSurfaceView : GLSurfaceView
         if (_controller.ScrollBehavior is DefaultScrollBehavior)
             _controller.SetScrollBehavior(new ElasticScrollBehavior(new InertialScrollBehavior(friction: 4.0f)));
         _activity = context as global::Android.App.Activity;
+        if (_activity != null) s_lastActivity = new WeakReference<global::Android.App.Activity>(_activity);
 
         // 把 Android 宿主交给 Native 能力层。服务容器在 MikoAppBuilder.Build() 时就已构建，
         // 那时 Activity 还不存在，因此 Native 服务只能在这里拿到宿主（延迟注入）。

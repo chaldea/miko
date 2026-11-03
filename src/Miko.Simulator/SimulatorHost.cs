@@ -477,7 +477,7 @@ public sealed class SimulatorHost : Native.ISimulatedDeviceSource
 
     private void ShutdownGraphics()
     {
-        _appController.Engine.DisposeVideoSessions();
+        _appController.Engine.DisposeMediaSessions();
         // 表面引用 GPU 设备，必须先于它释放。
         _appSurface?.Dispose();
         _appSurface = null;

@@ -126,6 +126,7 @@ public class RenderTreeBuilder
         ["li"] = () => new LiElement(),
         ["img"] = () => new ImageElement(),
         ["video"] = () => new VideoElement(),
+        ["camera"] = () => new CameraElement(),
         ["table"] = () => new TableElement(),
         ["caption"] = () => new CaptionElement(),
         ["colgroup"] = () => new ColgroupElement(),
@@ -366,6 +367,26 @@ public class RenderTreeBuilder
     /// Parses an HTML <c>input type</c> attribute. Kept here (rather than inlined by the
     /// compiler) so a runtime-valued <c>type</c> expression resolves identically to a literal.
     /// </summary>
+    /// <summary><c>&lt;camera facing="…"&gt;</c>: <c>back</c> (default), <c>front</c> or <c>external</c>.</summary>
+    public static Platform.Camera.CameraFacing ParseCameraFacing(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "front" or "user" => Platform.Camera.CameraFacing.Front,
+        "external" => Platform.Camera.CameraFacing.External,
+        _ => Platform.Camera.CameraFacing.Back,
+    };
+
+    /// <inheritdoc cref="ParseCameraFacing(string?)"/>
+    public static Platform.Camera.CameraFacing ParseCameraFacing(Platform.Camera.CameraFacing value) => value;
+
+    /// <summary><c>&lt;camera fit="…"&gt;</c>: <c>cover</c> (default) or <c>contain</c>.</summary>
+    public static Platform.Camera.CameraFit ParseCameraFit(string? value)
+        => string.Equals(value?.Trim(), "contain", StringComparison.OrdinalIgnoreCase)
+            ? Platform.Camera.CameraFit.Contain
+            : Platform.Camera.CameraFit.Cover;
+
+    /// <inheritdoc cref="ParseCameraFit(string?)"/>
+    public static Platform.Camera.CameraFit ParseCameraFit(Platform.Camera.CameraFit value) => value;
+
     public static InputType ParseInputType(string? value) => value?.ToLowerInvariant() switch
     {
         "checkbox" => InputType.Checkbox,
@@ -667,6 +688,16 @@ public class RenderTreeBuilder
                 video.Muted = ParseHtmlBool(value); break;
             case "controls" when element is VideoElement video:
                 video.Controls = ParseHtmlBool(value); break;
+            case "facing" when element is CameraElement camera:
+                camera.Facing = ParseCameraFacing(value); break;
+            case "active" when element is CameraElement camera:
+                camera.Active = ParseHtmlBool(value); break;
+            case "torch" when element is CameraElement camera:
+                camera.Torch = ParseHtmlBool(value); break;
+            case "mirror" when element is CameraElement camera:
+                camera.Mirror = ParseHtmlBool(value); break;
+            case "fit" when element is CameraElement camera:
+                camera.Fit = ParseCameraFit(value); break;
             case "language" when element is CodeElement code:
                 code.Language = value; break;
             case "highlight" when element is CodeElement code:

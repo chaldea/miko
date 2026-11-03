@@ -1,0 +1,94 @@
+@namespace MikoApp.Camera
+
+@* Home page of the camera demos: the barcode scanner, the photo camera and the bare <camera> element. *@
+<div Style="@RootStyle">
+    @if (_page == DemoPage.Scanner)
+    {
+        <MikoBarcodeScanner Formats="@_formats" CodeScanned="@OnScanned" Close="@GoHome" />
+    }
+    else if (_page == DemoPage.Camera)
+    {
+        <MikoCamera CaptureOptions="@PhotoOptions" PhotoTaken="@OnPhotoTaken" CaptureFailed="@OnCaptureFailed" Close="@GoHome" />
+    }
+    else if (_page == DemoPage.Element)
+    {
+        <CameraElementPage Close="@GoHome" />
+    }
+    else
+    {
+        <div Style="@HomeStyle">
+            <h2 Style="@HeadingStyle">Miko Camera</h2>
+            <button @onclick="ScanQrCode" Style="@ButtonStyle">Scan a QR code</button>
+            <button @onclick="ScanAnyBarcode" Style="@ButtonStyle">Scan any barcode</button>
+            <button @onclick="TakePhoto" Style="@ButtonStyle">Take a photo</button>
+            <button @onclick="OpenElementPage" Style="@ButtonStyle">Camera element (diagnostics)</button>
+            <div Style="@ResultStyle">@_result</div>
+            @if (_photoUri != null)
+            {
+                <img src="@_photoUri" Style="@PhotoStyle" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private enum DemoPage { Home, Scanner, Camera, Element }
+
+    private DemoPage _page = DemoPage.Home;
+    private BarcodeFormats _formats = BarcodeFormats.QrCode;
+    private string _result = "";
+    private string? _photoUri;
+    private int _photoWidth = 1, _photoHeight = 1;
+
+    // Shown as a data: URI on the home page, so the photo is kept small.
+    private static readonly CameraCaptureOptions PhotoOptions = new() { MaxDimension = 1280, Quality = 85 };
+
+    private void ScanQrCode() { _formats = BarcodeFormats.QrCode; _page = DemoPage.Scanner; }
+    private void ScanAnyBarcode() { _formats = BarcodeFormats.All; _page = DemoPage.Scanner; }
+    private void TakePhoto() => _page = DemoPage.Camera;
+    private void OpenElementPage() => _page = DemoPage.Element;
+    private void GoHome() => _page = DemoPage.Home;
+
+    private void OnScanned(BarcodeResult code)
+    {
+        _result = $"{code.Format}: {code.Text}";
+        _page = DemoPage.Home;
+    }
+
+    private void OnPhotoTaken(CameraPhoto photo)
+    {
+        _photoUri = $"data:{photo.MimeType};base64,{Convert.ToBase64String(photo.Data)}";
+        (_photoWidth, _photoHeight) = (photo.Width, photo.Height);
+        _result = $"Photo: {photo.Width}×{photo.Height}, {photo.Data.Length / 1024} KB";
+        _page = DemoPage.Home;
+    }
+
+    // Stays on the camera; the message shows on the home page.
+    private void OnCaptureFailed(Exception error) => _result = "Capture failed: " + error.Message;
+
+    private Style PhotoStyle => new()
+    {
+        Display = Display.Block, Width = Length.Percent(100), AspectRatio = new AspectRatio(_photoWidth, _photoHeight),
+        MarginTop = Length.Px(12), FlexShrink = 0, BorderRadius = 8,
+    };
+
+    private static readonly Style RootStyle = new()
+    {
+        Display = Display.Block, Position = Position.Relative, Width = Length.Percent(100), Height = Length.Percent(100), BackgroundColor = Color.Black,
+    };
+    // Phones draw edge to edge: the home page keeps clear of the status bar, the cutout and the home indicator.
+    private static readonly Style HomeStyle = new()
+    {
+        Display = Display.Flex, FlexDirection = FlexDirection.Column, Gap = Length.Px(10), Width = Length.Percent(100), Height = Length.Percent(100),
+        BackgroundColor = Color.FromHex("#101214"), Color = Color.White, OverflowY = Overflow.Auto, BoxSizing = BoxSizing.BorderBox,
+        PaddingTop = Length.SafeAreaInsetTop + Length.Px(16), PaddingBottom = Length.SafeAreaInsetBottom + Length.Px(16),
+        PaddingLeft = Length.SafeAreaInsetLeft + Length.Px(16), PaddingRight = Length.SafeAreaInsetRight + Length.Px(16),
+    };
+    private static readonly Style HeadingStyle = new() { FontSize = Length.Px(22), MarginTop = Length.Px(4), MarginBottom = Length.Px(8), FlexShrink = 0 };
+    private static readonly Style ButtonStyle = new()
+    {
+        Display = Display.Flex, AlignItems = AlignItems.Center, Height = Length.Px(48), FlexShrink = 0, PaddingLeft = Length.Px(16), PaddingRight = Length.Px(16),
+        BorderWidth = Length.Px(0), BorderRadius = 10, BackgroundColor = Color.FromHex("#30373b"), Color = Color.White, FontSize = Length.Px(16),
+    };
+    private static readonly Style ResultStyle = new() { FontSize = Length.Px(14), Color = Color.FromHex("#c0c4c8"), MarginTop = Length.Px(8), FlexShrink = 0 };
+}

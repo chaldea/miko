@@ -98,6 +98,7 @@ internal static class MikoElements
         ["li"] = DomNamespace + "LiElement",
         ["img"] = DomNamespace + "ImageElement",
         ["video"] = DomNamespace + "VideoElement",
+        ["camera"] = DomNamespace + "CameraElement",
         ["table"] = DomNamespace + "TableElement",
         ["caption"] = DomNamespace + "CaptionElement",
         ["colgroup"] = DomNamespace + "ColgroupElement",
@@ -268,6 +269,19 @@ internal static class MikoElements
                     converter: BuilderTypeName + ".ParseBooleanAttribute"),
                 ["controls"] = new Slot("Controls", SlotKind.Converted,
                     converter: BuilderTypeName + ".ParseBooleanAttribute"),
+            },
+            ["camera"] = new(StringComparer.Ordinal)
+            {
+                ["facing"] = new Slot("Facing", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseCameraFacing"),
+                ["active"] = new Slot("Active", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseBooleanAttribute"),
+                ["torch"] = new Slot("Torch", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseBooleanAttribute"),
+                ["mirror"] = new Slot("Mirror", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseBooleanAttribute"),
+                ["fit"] = new Slot("Fit", SlotKind.Converted,
+                    converter: BuilderTypeName + ".ParseCameraFit"),
             },
             ["code"] = new(StringComparer.Ordinal)
             {

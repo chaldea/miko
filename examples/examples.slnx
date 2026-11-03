@@ -5,6 +5,9 @@
     <Project Path="Async/MikoApp.AsyncDemo/MikoApp.AsyncDemo.csproj" />
   </Folder>
   <Folder Name="/Components/">
+    <Project Path="Components/MikoApp.Camera.Android/MikoApp.Camera.Android.csproj" />
+    <Project Path="Components/MikoApp.Camera.iOS/MikoApp.Camera.iOS.csproj" />
+    <Project Path="Components/MikoApp.Camera/MikoApp.Camera.csproj" />
     <Project Path="Components/MikoApp.Player.Android/MikoApp.Player.Android.csproj" />
     <Project Path="Components/MikoApp.Player.Desktop/MikoApp.Player.Desktop.csproj" />
     <Project Path="Components/MikoApp.Player.iOS/MikoApp.Player.iOS.csproj" />

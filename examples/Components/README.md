@@ -53,6 +53,40 @@ xcrun simctl launch booted com.miko.playerdemo
 If the build reports that the iOS workload requires a different Xcode version, add
 `-p:ValidateXcodeVersion=false`. A device build needs your signing settings (`-r ios-arm64`).
 
+# Camera Examples
+
+The camera demo page is shared too; each head registers its camera backend and native services.
+
+| Project | Contents |
+| --- | --- |
+| `MikoApp.Camera` | Shared pages and configuration (`App.CreateContext`): the home page (`CameraDemo.razor`) opens `MikoBarcodeScanner` (QR only or every format), `MikoCamera`, and a diagnostics page (`CameraElementPage.razor`: preview, flip, torch, capture, restart, analysis rate). Scan and photo results show on the home page. |
+| `MikoApp.Camera.Android` | `UseAndroidCamera()` (Camera2), `UseAndroidNative()`; asks for the `CAMERA` permission on first use. |
+| `MikoApp.Camera.iOS` | `UseIosCamera()` (AVFoundation), `UseIosNative()`; `NSCameraUsageDescription` in `Info.plist`. |
+
+There is no desktop head yet: the desktop camera backend is not implemented.
+
+## Android
+
+```sh
+dotnet build examples/Components/MikoApp.Camera.Android
+adb install -r examples/Components/MikoApp.Camera.Android/bin/Debug/net10.0-android/com.miko.camerademo-Signed.apk
+adb shell am start -n com.miko.camerademo/crc649cf130a0106f6c98.MainActivity
+```
+
+The emulator's virtual cameras work for the preview and for photos; scanning needs a code in front of
+a real camera.
+
+## iOS
+
+The simulator has no camera: the pages open and report "No camera available". Use a device for the
+camera itself (`-r ios-arm64` with your signing settings).
+
+```sh
+dotnet build examples/Components/MikoApp.Camera.iOS -r iossimulator-arm64 -p:ValidateXcodeVersion=false
+xcrun simctl install booted examples/Components/MikoApp.Camera.iOS/bin/Debug/net10.0-ios/iossimulator-arm64/MikoApp.Camera.iOS.app
+xcrun simctl launch booted com.miko.camerademo
+```
+
 ## Tests
 
 ```sh

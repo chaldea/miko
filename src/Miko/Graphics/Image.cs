@@ -25,6 +25,16 @@ public abstract class Image : IDisposable
     /// <summary>是否为矢量图（按任意尺寸绘制都清晰）。</summary>
     public abstract bool IsVector { get; }
 
+    /// <summary>
+    /// Copies the pixels into <paramref name="destination"/> as 32-bit
+    /// <see cref="ImagePixelFormat.Rgba8888"/> / <see cref="ImagePixelFormat.Bgra8888"/> (alpha
+    /// unpremultiplied), <see cref="Width"/> × <see cref="Height"/>. A vector image is rasterized at its
+    /// <c>viewBox</c> size. A GPU image (video or camera frame) can only be read on the render thread.
+    /// <paramref name="rowBytes"/> 0 means packed rows.
+    /// </summary>
+    /// <returns>False when the format is not a 32-bit one, the buffer is too small or the pixels cannot be read.</returns>
+    public abstract bool ReadPixels(Span<byte> destination, ImagePixelFormat format, int rowBytes = 0);
+
     public abstract void Dispose();
 }
 

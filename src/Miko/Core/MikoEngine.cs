@@ -15,7 +15,7 @@ using SkiaSharp;
 
 namespace Miko.Core;
 
-public class MikoEngine
+public partial class MikoEngine
 {
     private readonly LayoutEngine _layoutEngine;
     private readonly RenderEngine _renderEngine;
@@ -40,7 +40,8 @@ public class MikoEngine
         Highlight.ISyntaxHighlighter syntaxHighlighter,
         IGraphicsFactory graphics,
         ILogger<MikoEngine>? logger = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        Platform.Camera.ICameraBackend? cameraBackend = null)
     {
         _layoutEngine = layoutEngine;
         _renderEngine = renderEngine;
@@ -59,6 +60,7 @@ public class MikoEngine
         // SyntaxHighlighter），因此可以直接构造器注入，无需引擎依赖 IServiceProvider
         // 做可选解析（ISSUE-129）。平台宿主/应用重新注册接口即可覆盖。
         VideoBackend = videoBackend;
+        CameraBackend = cameraBackend;
         ImageLoader = imageLoader;
         SyntaxHighlighter = syntaxHighlighter;
         Graphics = graphics;
@@ -345,6 +347,7 @@ public class MikoEngine
 
         // 同步视频会话（创建新元素的会话、回收已移除元素的会话）。
         SyncVideoSessions(root);
+        SyncCameraSessions(root);
 
         if (startTransition)
         {
@@ -449,6 +452,7 @@ public class MikoEngine
         if (_root != null)
         {
             SyncVideoSessions(_root);
+            SyncCameraSessions(_root);
             InvalidateElement(_root);
         }
     }
@@ -524,6 +528,7 @@ public class MikoEngine
         // 认领本帧树上的新子树（ISSUE-129，与 Render 同理）。
         EnsureOwnersAssigned();
         SyncVideoSessions(_root);
+        SyncCameraSessions(_root);
         SyncImageSources(_root);
 
         _renderEngine.SetCanvas(canvas);
@@ -645,6 +650,7 @@ public class MikoEngine
         {
             // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
             SyncVideoSessions(root);
+            SyncCameraSessions(root);
             // 同步图片源（DOM 可能在 Razor 重渲染中增删 <img>）。
             SyncImageSources(root);
             return;
@@ -666,6 +672,7 @@ public class MikoEngine
 
         // 同步视频会话（DOM 可能在 Razor 重渲染中增删 <video>）。
         SyncVideoSessions(root);
+        SyncCameraSessions(root);
         RestoreScrollState(oldLayout, _currentLayout);
     }
 
@@ -1904,6 +1911,7 @@ public class MikoEngine
             session.Pause();
             _suspendedVideoSessions.Add(session);
         }
+        SuspendCameras();
     }
 
     /// <summary>
@@ -1912,6 +1920,7 @@ public class MikoEngine
     /// </summary>
     internal void ResumeMedia()
     {
+        ResumeCameras();
         if (_suspendedVideoSessions.Count == 0) return;
         foreach (var session in _videoSessions.Values)
         {
