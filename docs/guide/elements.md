@@ -73,6 +73,7 @@ Event attributes (`@onclick="Handler"` etc.): `@onclick`, `@onmouseenter`, `@onm
 | `<li>` | `LiElement` | `value` | — |
 | `<img>` | `ImageElement` | `src`, `placeholder` | — |
 | `<video>` | `VideoElement` | `src`, `poster`, `autoplay`, `loop`, `muted`, `controls` | — |
+| `<camera>` | `CameraElement` | `facing`, `active`, `torch`, `mirror`, `fit` | — |
 | `<table>` | `TableElement` | — | — |
 | `<caption>` | `CaptionElement` | — | — |
 | `<colgroup>` | `ColgroupElement` | `span` | — |
