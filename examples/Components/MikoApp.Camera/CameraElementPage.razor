@@ -1,0 +1,141 @@
+@namespace MikoApp.Camera
+
+@* The camera without a camera UI: checks the platform backend (frames, rotation, analysis rate, capture).
+   MikoCameraView keeps its <camera> element across re-renders. A bare <camera> here would be a new
+   element on every render, and the engine would reopen the camera each time the status line changes. *@
+<div Style="@PageStyle">
+    <div Style="@PreviewAreaStyle">
+        <MikoCameraView @ref="View" Facing="@_facing" Torch="@_torch" Analyzer="@_meter" Style="@FillStyle" />
+    </div>
+    <div Style="@BarStyle">
+        <button @onclick="Flip" Style="@ButtonStyle">Flip</button>
+        <button @onclick="ToggleTorch" Style="@ButtonStyle">Torch</button>
+        <button @onclick="Capture" Style="@ButtonStyle">Capture</button>
+        <button @onclick="Restart" Style="@ButtonStyle">Restart</button>
+        <button @onclick="Back" Style="@ButtonStyle">Back</button>
+    </div>
+    <div Style="@StatusStyle">@_status</div>
+    <div Style="@StatusStyle">@_analysis</div>
+</div>
+
+@code {
+    /// <summary>The Back button.</summary>
+    [Parameter] public EventCallback Close { get; set; }
+
+    private CameraFacing _facing = CameraFacing.Back;
+    private bool _disposed;
+    private bool _torch;
+    private string _status = "Starting…";
+    private string _analysis = "";
+    private readonly LuminanceMeter _meter = new();
+
+    private MikoCameraView? _view;
+
+    /// <summary>The @ref target. The view instance is reused across re-renders, so this hooks the camera up once.</summary>
+    private MikoCameraView? View
+    {
+        get => _view;
+        set
+        {
+            if (value == null || ReferenceEquals(value, _view)) return;
+            _view = value;
+            var camera = value.Camera;
+            camera.SessionEvent += e =>
+            {
+                _status = e switch
+                {
+                    CameraSessionEvent.Started s => $"{camera.Session?.Device?.Name}: {s.Width}×{s.Height}, rotation {camera.Session?.Rotation}",
+                    CameraSessionEvent.Error err => $"Error ({err.Kind}): {err.Message}",
+                    CameraSessionEvent.Stopped => "Stopped",
+                    _ => _status,
+                };
+                if (!_disposed) StateHasChanged();
+            };
+        }
+    }
+
+    /// <summary>The system back button (Android back, iOS edge swipe) closes the page, like Back.</summary>
+    [Inject] public Miko.Platform.IPlatformService? PlatformService { get; set; }
+
+    private IDisposable? _back;
+
+    protected override void OnInitialized()
+    {
+        _back = PlatformService?.Back.Register(() =>
+        {
+            if (_disposed) return false;
+            _ = Close.InvokeAsync();
+            return true;
+        }, Miko.Platform.BackButtonPriority.Navigation);
+        _meter.Updated = text => Engine?.Dispatcher.Post(() =>
+        {
+            if (_disposed) return;
+            _analysis = text;
+            StateHasChanged();
+        });
+    }
+
+    [Inject] public MikoEngine? Engine { get; set; }
+
+    private void Flip() => _facing = _facing == CameraFacing.Back ? CameraFacing.Front : CameraFacing.Back;
+    private void ToggleTorch() => _torch = !_torch;
+    private void Restart() => _view?.Restart();
+    private Task Back() => Close.InvokeAsync();
+
+    protected override void OnDispose()
+    {
+        _disposed = true;
+        _back?.Dispose();
+    }
+
+    private async Task Capture()
+    {
+        if (_view is not { } view) return;
+        try
+        {
+            var photo = await view.CapturePhotoAsync();
+            _status = $"Photo: {photo.Width}×{photo.Height}, {photo.Data.Length / 1024} KB";
+        }
+        catch (Exception ex)
+        {
+            _status = "Capture failed: " + ex.Message;
+        }
+    }
+
+    /// <summary>Average brightness of the analysis frames, and how many arrive per second.</summary>
+    private sealed class LuminanceMeter : ICameraFrameAnalyzer
+    {
+        private long _windowStart = Environment.TickCount64;
+        private int _frames;
+        public Action<string>? Updated;
+
+        public void Analyze(in CameraAnalysisFrame frame)
+        {
+            long sum = 0;
+            var y = frame.Luminance;
+            for (int i = 0; i < y.Length; i += 16) sum += y[i];
+            _frames++;
+            long now = Environment.TickCount64;
+            if (now - _windowStart < 1000) return;
+            Updated?.Invoke($"Analysis: {frame.Width}×{frame.Height}, {_frames * 1000 / (now - _windowStart)} fps, mean luma {sum * 16 / y.Length}");
+            _frames = 0;
+            _windowStart = now;
+        }
+    }
+
+    private static readonly Style PageStyle = new()
+    {
+        Display = Display.Flex, FlexDirection = FlexDirection.Column, Width = Length.Percent(100), Height = Length.Percent(100),
+        BackgroundColor = Color.Black, Color = Color.White, BoxSizing = BoxSizing.BorderBox,
+        PaddingTop = Length.SafeAreaInsetTop, PaddingBottom = Length.SafeAreaInsetBottom + Length.Px(12),
+    };
+    private static readonly Style PreviewAreaStyle = new() { Display = Display.Block, Position = Position.Relative, FlexGrow = 1, MinHeight = Length.Px(0), Width = Length.Percent(100) };
+    private static readonly Style FillStyle = new() { Position = Position.Absolute, Top = Length.Px(0), Left = Length.Px(0) };
+    private static readonly Style BarStyle = new() { Display = Display.Flex, Gap = Length.Px(8), JustifyContent = JustifyContent.Center, PaddingTop = Length.Px(12), FlexShrink = 0 };
+    private static readonly Style ButtonStyle = new()
+    {
+        Display = Display.Flex, AlignItems = AlignItems.Center, Height = Length.Px(40), PaddingLeft = Length.Px(14), PaddingRight = Length.Px(14),
+        BorderWidth = Length.Px(0), BorderRadius = 8, BackgroundColor = Color.FromHex("#30373b"), Color = Color.White, FontSize = Length.Px(14),
+    };
+    private static readonly Style StatusStyle = new() { FontSize = Length.Px(12), Color = Color.FromHex("#c0c4c8"), PaddingTop = Length.Px(8), PaddingLeft = Length.Px(12), PaddingRight = Length.Px(12), FlexShrink = 0 };
+}

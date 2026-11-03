@@ -57,6 +57,8 @@ public static class EngineExtensions
         // - 视频后端默认为空实现（不创建会话，<video> 只显示背景/poster）；
         //   平台宿主注册 FFmpeg/MediaCodec/AVFoundation 后端即被覆盖。
         services.TryAddSingleton<IVideoBackend, NullVideoBackend>();
+        // - 相机后端同理：默认空实现不打开任何会话，<camera> 只显示背景；平台宿主注册系统相机后覆盖。
+        services.TryAddSingleton<Platform.Camera.ICameraBackend, Platform.Camera.NullCameraBackend>();
         // - 图片加载（<img> 需要它才能自动加载）。
         services.AddImageLoader();
         // - 语法高亮（应用可重新注册 ISyntaxHighlighter 覆盖，见 ISSUE-098）。

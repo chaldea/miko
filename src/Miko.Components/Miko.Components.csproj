@@ -6,8 +6,8 @@
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Components</PackageId>
     <Authors>Miko</Authors>
-    <Description>Native player components for Miko.</Description>
-    <PackageTags>miko;components;player;video;ui</PackageTags>
+    <Description>Native player, camera and QR code scanner components for Miko.</Description>
+    <PackageTags>miko;components;player;video;camera;qrcode;scanner;ui</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -21,6 +21,12 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Miko/Miko.csproj" />
+    <!-- Barcode decoding for MikoBarcodeScanner: a managed port of ZXing (Apache-2.0), no native code. -->
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
+    <EmbeddedResource Include="../Miko.Ionic/Resources/svg/chevron-back-outline.svg;../Miko.Ionic/Resources/svg/close-outline.svg;../Miko.Ionic/Resources/svg/flash-outline.svg;../Miko.Ionic/Resources/svg/flash-off-outline.svg;../Miko.Ionic/Resources/svg/camera-reverse-outline.svg;../Miko.Ionic/Resources/svg/images.svg;../Miko.Ionic/Resources/svg/flashlight.svg">
+      <Link>Camera/Icons/%(Filename)%(Extension)</Link>
+      <LogicalName>Miko.Camera.Icons.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="../Miko.Ionic/Resources/svg/play.svg;../Miko.Ionic/Resources/svg/pause.svg;../Miko.Ionic/Resources/svg/volume-high.svg;../Miko.Ionic/Resources/svg/volume-mute.svg;../Miko.Ionic/Resources/svg/settings-outline.svg;../Miko.Ionic/Resources/svg/expand.svg;../Miko.Ionic/Resources/svg/contract.svg;../Miko.Ionic/Resources/svg/chatbox-outline.svg;../Miko.Ionic/Resources/svg/refresh.svg">
       <Link>Player/Icons/%(Filename)%(Extension)</Link>
       <LogicalName>Miko.Player.Icons.%(Filename)%(Extension)</LogicalName>

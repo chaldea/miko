@@ -596,7 +596,7 @@ public class BlockLayout
         => child.Element is Miko.Core.DomElements.BrElement;
 
     /// <summary>
-    /// replaced 元素（video / img）的内禀尺寸（CSS 像素）。
+    /// replaced 元素（video / img / camera）的内禀尺寸（CSS 像素）。
     /// 媒体已加载时返回真实尺寸；video 未知时回退到 HTML 默认 300×150。
     /// img 未加载完成时返回 (0, 0)（无内禀尺寸，需 CSS 显式定尺寸以避免加载前后的重排抖动）。
     /// 非 replaced 元素返回 (0, 0)。
@@ -612,6 +612,10 @@ public class BlockLayout
         if (element is Core.DomElements.ImageElement image)
         {
             return (image.IntrinsicWidth ?? 0, image.IntrinsicHeight ?? 0);
+        }
+        if (element is Core.DomElements.CameraElement camera)
+        {
+            return (camera.IntrinsicWidth ?? 300, camera.IntrinsicHeight ?? 150);
         }
         return (0, 0);
     }

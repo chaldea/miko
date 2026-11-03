@@ -1203,6 +1203,11 @@ public class RenderEngine
             RenderVideoFrame(box, videoElement);
         }
 
+        if (element is Miko.Core.DomElements.CameraElement cameraElement)
+        {
+            RenderCameraFrame(box, cameraElement);
+        }
+
         if (element is CanvasElement { Paint: { } paint })
         {
             var content = box.BoxModel.Content;
@@ -1487,6 +1492,55 @@ public class RenderEngine
         {
             var dst = FitContain(video.PosterBitmap.Width, video.PosterBitmap.Height, content);
             _painter.DrawImage(video.PosterBitmap, dst);
+        }
+    }
+
+    /// <summary>
+    /// Composites the camera's latest frame into the content box: turned upright by the session's
+    /// rotation, mirrored for front cameras (or as <see cref="Miko.Core.DomElements.CameraElement.Mirror"/>
+    /// says), then fitted (cover crops to the box, contain letterboxes). Before the first frame only the
+    /// background shows.
+    /// </summary>
+    private void RenderCameraFrame(LayoutBox box, Miko.Core.DomElements.CameraElement camera)
+    {
+        if (_painter == null || _canvas == null || camera.Session is not { } session) return;
+
+        var content = box.BoxModel.Content;
+        if (content.Width <= 0 || content.Height <= 0) return;
+
+        var frame = session.FrameSource.AcquireCurrentFrame(GraphicsDevice ?? Graphics.GraphicsDevice.Software);
+        if (frame == null) return;
+        try
+        {
+            int rotation = Platform.Camera.CameraOrientation.Normalize(session.Rotation);
+            bool mirrored = camera.Mirror ?? session.IsMirrored;
+            bool sideways = rotation % 180 != 0;
+            float uprightWidth = sideways ? frame.Height : frame.Width;
+            float uprightHeight = sideways ? frame.Width : frame.Height;
+            float scale = camera.Fit == Platform.Camera.CameraFit.Contain
+                ? Math.Min(content.Width / uprightWidth, content.Height / uprightHeight)
+                : Math.Max(content.Width / uprightWidth, content.Height / uprightHeight);
+            float width = frame.Width * scale, height = frame.Height * scale;
+
+            int saveCount = _canvas.Save();
+            try
+            {
+                _canvas.ClipRect(new SKRect(content.X, content.Y, content.Right, content.Bottom));
+                _canvas.Translate(content.X + content.Width / 2, content.Y + content.Height / 2);
+                if (mirrored) _canvas.Scale(-1, 1);
+                if (rotation != 0) _canvas.RotateDegrees(rotation);
+                var dst = new SKRect(-width / 2, -height / 2, width / 2, height / 2);
+                if (Graphics.Skia.SkiaImage.Require(frame).ToSKImage() is { } image)
+                    _canvas.DrawImage(image, dst, new SKSamplingOptions(SKFilterMode.Linear));
+            }
+            finally
+            {
+                _canvas.RestoreToCount(saveCount);
+            }
+        }
+        finally
+        {
+            session.FrameSource.ReleaseCurrentFrame();
         }
     }
 

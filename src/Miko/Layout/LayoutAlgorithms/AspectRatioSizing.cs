@@ -94,10 +94,10 @@ internal static class AspectRatioSizing
         => !IsReplacedElement(box.Element) && box.ComputedStyle.OverflowY == Overflow.Visible;
 
     /// <summary>
-    /// 是否为替换元素（img / video）。与 <see cref="BlockLayout.GetReplacedIntrinsicSize"/> 不同，
+    /// 是否为替换元素（img / video / camera）。与 <see cref="BlockLayout.GetReplacedIntrinsicSize"/> 不同，
     /// 不要求媒体已加载——未加载的 &lt;img&gt; 没有自然尺寸，但仍是替换元素，aspect-ratio 照样适用
     /// （这正是用它在图片加载前预留版面的用法）。
     /// </summary>
     public static bool IsReplacedElement(Core.Element element)
-        => element is Core.DomElements.ImageElement or Core.DomElements.VideoElement;
+        => element is Core.DomElements.ImageElement or Core.DomElements.VideoElement or Core.DomElements.CameraElement;
 }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- The camera backend asks for this permission the first time a camera opens. -->
+  <uses-permission android:name="android.permission.CAMERA" />
+  <!-- Not required: without a camera the app still runs, and <camera> reports NoDevice. -->
+  <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+  <application android:label="Miko Camera" />
+</manifest>

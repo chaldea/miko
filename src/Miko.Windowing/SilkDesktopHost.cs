@@ -198,7 +198,7 @@ public sealed class SilkDesktopHost
     private void ShutdownGraphics()
     {
         // 视频帧源持有本上下文上的 GPU 图像，须先于上下文释放。
-        _controller.Engine.DisposeVideoSessions();
+        _controller.Engine.DisposeMediaSessions();
         _graphics?.Dispose();
         _device = null;
     }

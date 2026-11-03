@@ -277,7 +277,7 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
         if (disposing)
         {
             // 视频帧源持有本设备上的 GPU 图像，须先于设备释放（与桌面宿主关闭时的顺序一致）。
-            _controller.Engine.DisposeVideoSessions();
+            _controller.Engine.DisposeMediaSessions();
             _controller.Engine.GraphicsDevice = null;
             _gpu.Dispose();
             _queue.Dispose();

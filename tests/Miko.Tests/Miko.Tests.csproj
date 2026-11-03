@@ -51,6 +51,7 @@
     <!-- TextShapingTests calls the HarfBuzz shaper directly. -->
     <PackageReference Include="HarfBuzzSharp" Version="8.3.1.2" />
     <Compile Include="..\Shared\SkiaCanvasExtensions.cs" Link="Shared\SkiaCanvasExtensions.cs" />
+    <Compile Include="..\Shared\FakeCameraBackend.cs" Link="Shared\FakeCameraBackend.cs" />
   </ItemGroup>
 
 </Project>

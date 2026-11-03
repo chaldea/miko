@@ -12,5 +12,6 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <ProjectReference Include="../../src/Miko.Components/Miko.Components.csproj" />
     <Using Include="Xunit" />
+    <Compile Include="..\Shared\FakeCameraBackend.cs" Link="Shared\FakeCameraBackend.cs" />
   </ItemGroup>
 </Project>

@@ -143,6 +143,44 @@ internal sealed class SkiaImage : Image
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
     };
 
+    public override bool ReadPixels(Span<byte> destination, ImagePixelFormat format, int rowBytes = 0)
+    {
+        if (format is not (ImagePixelFormat.Rgba8888 or ImagePixelFormat.Bgra8888)) return false;
+        var info = InfoFor(_width, _height, format);
+        if (rowBytes == 0) rowBytes = info.RowBytes;
+        if (rowBytes < info.RowBytes || destination.Length < (long)rowBytes * (_height - 1) + info.RowBytes) return false;
+
+        // Drawn premultiplied (what a raster canvas draws into), then read back unpremultiplied.
+        using var bitmap = new SKBitmap(info.WithAlphaType(SKAlphaType.Premul));
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.Transparent);
+            if (Picture != null)
+            {
+                var cull = Picture.CullRect;
+                canvas.Scale(_width / cull.Width, _height / cull.Height);
+                canvas.Translate(-cull.Left, -cull.Top);
+                canvas.DrawPicture(Picture);
+            }
+            else if (ToSKImage() is { } image)
+            {
+                canvas.DrawImage(image, 0, 0);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        using var unpremul = new SKBitmap(info);
+        using var pixmap = bitmap.PeekPixels();
+        if (!pixmap.ReadPixels(unpremul.Info, unpremul.GetPixels(), unpremul.RowBytes, 0, 0)) return false;
+        var pixels = unpremul.GetPixelSpan();
+        for (int y = 0; y < _height; y++)
+            pixels.Slice(y * unpremul.RowBytes, info.RowBytes).CopyTo(destination.Slice(y * rowBytes, info.RowBytes));
+        return true;
+    }
+
     public override void Dispose()
     {
         Bitmap?.Dispose();
