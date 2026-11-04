@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageId>Miko.Charts</PackageId>
+    <Authors>Miko</Authors>
+    <Description>LiveCharts2 rendering layer for Miko. Brings animated charts to Miko apps.</Description>
+    <PackageTags>miko;charts;livecharts;visualization</PackageTags>
+    <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Miko/Miko.csproj" />
+    <ProjectReference Include="../Miko.Charts.Generators/Miko.Charts.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Miko.Charts.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Core/Geo/world.geojson" LogicalName="LiveChartsCore.Geo.world.geojson" />
+  </ItemGroup>
+</Project>

@@ -11,6 +11,7 @@ the framework — from cross-platform Razor apps to async HTTP communication and
 | [Async](#async) | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls. |
 | [Media](#media) | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
 | [Localization](#localization) | `IStringLocalizer` + `.resx`, live language switching, right-to-left layout, complex scripts. |
+| [Charts](#charts) | The `Miko.Charts` gallery: line, column, pie, gauge, stacked, scatter, candlesticks, radar and map. |
 
 ## Multiplatform
 
@@ -98,3 +99,13 @@ See [Localization & Right-to-Left](./guide/localization.md) for the concepts.
 For the full walkthroughs, see the
 [`examples/README.md`](https://github.com/chaldea/miko/blob/main/examples/README.md)
 in the repository.
+
+## Charts
+
+`MikoApp.Charts` is a gallery of the [chart components](./components/charts.md): a live line chart
+with panning and zoom, columns with a legend and a click handler, doughnut, gauge, stacked area,
+scatter, candlesticks, radar and a world heat map.
+
+```bash
+dotnet run --project examples/Components/MikoApp.Charts.Desktop
+```

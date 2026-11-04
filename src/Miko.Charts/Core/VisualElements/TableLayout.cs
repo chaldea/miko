@@ -1,0 +1,322 @@
+﻿// The MIT License(MIT)
+//
+// Copyright(c) 2021 Alberto Rodriguez Orozco & LiveCharts Contributors
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+using System;
+using System.Collections.Generic;
+using LiveChartsCore.Drawing;
+using LiveChartsCore.Kernel;
+using LiveChartsCore.Motion;
+using LiveChartsCore.Painting;
+
+namespace LiveChartsCore.VisualElements;
+
+/// <summary>
+/// Defines the table panel class.
+/// </summary>
+/// <typeparam name="TBackgroundGeometry">The type of the background geometry.</typeparam>
+[Obsolete("Replaced by the not generic TableLayout class.")]
+public class TableLayout<TBackgroundGeometry> : VisualElement
+    where TBackgroundGeometry : BoundedDrawnGeometry, new()
+{
+    private readonly Dictionary<int, Dictionary<int, TableCell>> _positions = [];
+    private LvcSize[,] _measuredSizes = new LvcSize[0, 0];
+    private int _maxRow = 0;
+    private int _maxColumn = 0;
+
+    /// <summary>
+    /// Gets or sets the padding.
+    /// </summary>
+    public Padding Padding { get; set => SetProperty(ref field, value); } = new();
+
+    /// <summary>
+    /// Gets or sets the horizontal alignment.
+    /// </summary>
+    public Align HorizontalAlignment { get; set => SetProperty(ref field, value); } = Align.Middle;
+
+    /// <summary>
+    /// Gets or sets the horizontal alignment.
+    /// </summary>
+    public Align VerticalAlignment { get; set => SetProperty(ref field, value); } = Align.Middle;
+
+    /// <summary>
+    /// Gets or sets the background paint.
+    /// </summary>
+    public Paint? BackgroundPaint
+    {
+        get;
+        set => SetPaintProperty(ref field, value);
+    }
+
+    /// <summary>
+    /// Gets the background geometry.
+    /// </summary>
+    public TBackgroundGeometry BackgroundGeometry { get; } = new();
+
+    /// <inheritdoc cref="VisualElement.Measure(Chart)"/>
+    public override LvcSize Measure(Chart chart)
+    {
+        var maxH = Padding.Top;
+        _measuredSizes = new LvcSize[_maxRow + 2, _maxColumn + 2];
+
+        var mr = _maxRow + 1;
+        var mc = _maxColumn + 1;
+
+        for (var r = 0; r <= _maxRow; r++)
+        {
+            if (!_positions.TryGetValue(r, out var row)) continue;
+
+            for (var c = 0; c <= _maxColumn; c++)
+            {
+                var cellSize = _measuredSizes[r, c];
+                var rowSize = _measuredSizes[r, mc];
+                var columnSize = _measuredSizes[mr, c];
+
+                if (!row.TryGetValue(c, out var cell)) continue;
+
+                var childSize = cell.VisualElement.Measure(chart);
+
+                if (cellSize.Width < childSize.Width)
+                    _measuredSizes[r, c] = new(childSize.Width, _measuredSizes[r, c].Height);
+                if (cellSize.Height < childSize.Height)
+                    _measuredSizes[r, c] = new(_measuredSizes[r, c].Width, childSize.Height);
+                if (rowSize.Height < childSize.Height)
+                    _measuredSizes[r, mc] = new(0, childSize.Height);
+                if (columnSize.Width < childSize.Width)
+                    _measuredSizes[mr, c] = new(childSize.Width, 0);
+            }
+
+            maxH += _measuredSizes[r, _maxColumn + 1].Height;
+        }
+
+        var maxW = Padding.Left;
+        for (var c = 0; c <= _maxColumn; c++)
+            maxW += _measuredSizes[_maxRow + 1, c].Width;
+
+        return new(maxW + Padding.Right, maxH + Padding.Bottom);
+    }
+
+    /// <inheritdoc cref="ChartElement.RemoveFromUI(Chart)"/>
+    public override void RemoveFromUI(Chart chart)
+    {
+        foreach (var child in EnumerateChildren())
+            chart.RemoveVisual(child.VisualElement);
+
+        base.RemoveFromUI(chart);
+    }
+
+    /// <summary>
+    /// Adds a child to the layout.
+    /// </summary>
+    /// <param name="row">The row index.</param>
+    /// <param name="column">The column index.</param>
+    /// <param name="child">The visual to add.</param>
+    /// <param name="horizontalAlign">The cell horizontal alignment, if null the alignment will be defined by the layout.</param>
+    /// <param name="verticalAlign">The cell vertical alignment, if null the alignment will be defined by the layout.</param>
+    public void AddChild(
+        VisualElement child,
+        int row, int column,
+        Align? horizontalAlign = null,
+        Align? verticalAlign = null)
+    {
+        if (!_positions.TryGetValue(row, out var r))
+            _positions.Add(row, r = []);
+        r[column] = new(row, column, child, verticalAlign, horizontalAlign);
+
+        if (row > _maxRow) _maxRow = row;
+        if (column > _maxColumn) _maxColumn = column;
+    }
+
+    /// <summary>
+    /// Removes a child from the layout.
+    /// </summary>
+    /// <param name="row">The row.</param>
+    /// <param name="column">The column.</param>
+    public void RemoveChildAt(int row, int column)
+    {
+        var r = _positions[row];
+        _ = r.Remove(column);
+        if (r.Count == 0) _ = _positions.Remove(row);
+    }
+
+    /// <summary>
+    /// Enumerates the children in the layout.
+    /// </summary>
+    public IEnumerable<TableCell> EnumerateChildren()
+    {
+        foreach (var r in _positions.Keys)
+            foreach (var c in _positions[r].Keys)
+                yield return _positions[r][c];
+    }
+
+    /// <inheritdoc cref="VisualElement.OnInvalidated(Chart)"/>
+    protected internal override void OnInvalidated(Chart chart)
+    {
+        var controlSize = Measure(chart);
+
+        float w, h = Padding.Top;
+
+        for (var r = 0; r <= _maxRow; r++)
+        {
+            if (!_positions.TryGetValue(r, out var row)) continue;
+
+            var rowHeight = _measuredSizes[r, _maxColumn + 1].Height;
+            w = Padding.Left;
+
+            for (var c = 0; c <= _maxColumn; c++)
+            {
+                var columnWidth = _measuredSizes[_maxRow + 1, c].Width;
+                if (!row.TryGetValue(c, out var cell))
+                {
+                    w += columnWidth;
+                    continue;
+                }
+
+                cell.VisualElement._x = (cell.HorizontalAlign ?? HorizontalAlignment) switch
+                {
+                    Align.Start => w,
+                    Align.Middle => w + (columnWidth - _measuredSizes[r, c].Width) * 0.5f,
+                    Align.End => w + columnWidth - _measuredSizes[r, c].Width,
+                    _ => throw new NotImplementedException(),
+                };
+                cell.VisualElement._y = (cell.VerticalAlign ?? VerticalAlignment) switch
+                {
+                    Align.Start => h,
+                    Align.Middle => h + (rowHeight - _measuredSizes[r, c].Height) * 0.5f,
+                    Align.End => h + rowHeight - _measuredSizes[r, c].Height,
+                    _ => throw new NotImplementedException(),
+                };
+
+                cell.VisualElement.OnInvalidated(chart);
+                cell.VisualElement.SetParent(BackgroundGeometry);
+                w += columnWidth;
+            }
+
+            h += rowHeight;
+        }
+
+        // NOTE #20231605
+        // force the background to have at least an invisible geometry
+        // we use this geometry in the motion canvas to track the position
+        // of the stack panel as the time and animations elapse.
+        BackgroundPaint ??= LiveCharts.DefaultSettings
+            .GetProvider()
+            .GetSolidColorPaint(new LvcColor(0, 0, 0, 0));
+
+        chart.Canvas.AddDrawableTask(BackgroundPaint, zone: CanvasZone.NoClip);
+        BackgroundGeometry.X = (float)X;
+        BackgroundGeometry.Y = (float)Y;
+        BackgroundGeometry.Width = controlSize.Width;
+        BackgroundGeometry.Height = controlSize.Height;
+        BackgroundGeometry.RotateTransform = (float)Rotation;
+        BackgroundGeometry.TranslateTransform = Translate;
+
+        BackgroundPaint.AddGeometryToPaintTask(chart.Canvas, BackgroundGeometry);
+    }
+
+    /// <inheritdoc cref="VisualElement.SetParent(DrawnGeometry)"/>
+    protected internal override void SetParent(DrawnGeometry parent)
+    {
+        if (BackgroundGeometry is null) return;
+        ((IDrawnElement)BackgroundGeometry).Parent = parent;
+    }
+
+    /// <inheritdoc cref="VisualElement.GetDrawnGeometries"/>
+    protected internal override Animatable?[] GetDrawnGeometries() =>
+        [BackgroundGeometry];
+
+    /// <inheritdoc cref="ChartElement.GetPaintTasks"/>
+    protected internal override Paint?[] GetPaintTasks() =>
+        [BackgroundPaint];
+
+    /// <inheritdoc cref="VisualElement.IsHitBy(Chart, LvcPoint)"/>
+    protected internal override IEnumerable<VisualElement> IsHitBy(Chart chart, LvcPoint point)
+    {
+        var location = GetActualCoordinate();
+
+        // see note #241104
+        location.X += _translate.X;
+        location.Y += _translate.Y;
+
+        var size = Measure(chart);
+
+        // it returns an enumerable because there are more complex types where a visual can contain more than one element
+        if (point.X >= location.X && point.X <= location.X + size.Width &&
+            point.Y >= location.Y && point.Y <= location.Y + size.Height)
+        {
+            yield return this;
+        }
+
+        var relativePoint = new LvcPoint(point.X - location.X, point.Y - location.Y);
+        foreach (var child in EnumerateChildren())
+        {
+            foreach (var element in child.VisualElement.IsHitBy(chart, relativePoint))
+            {
+                yield return element;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Defines a cell in the <see cref="TableLayout{TBackgroundGeometry}"/>.
+    /// </summary>
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="TableCell"/> class.
+    /// </remarks>
+    /// <param name="row">The row index.</param>
+    /// <param name="column">The column index.</param>
+    /// <param name="visualElement">The visual to add.</param>
+    /// <param name="verticalAlign">The cell vertical alignment, if null the alignment will be defined by the layout.</param>
+    /// <param name="horizontalAlign">The cell horizontal alignment, if null the alignment will be defined by the layout.</param>
+    public class TableCell(
+        int row,
+        int column,
+        VisualElement visualElement,
+        Align? verticalAlign = null,
+        Align? horizontalAlign = null)
+    {
+        /// <summary>
+        /// Gets the row.
+        /// </summary>
+        public int Row { get; } = row;
+
+        /// <summary>
+        /// Gets the column.
+        /// </summary>
+        public int Column { get; } = column;
+
+        /// <summary>
+        /// Gets or sets the vertical alignment.
+        /// </summary>
+        public Align? VerticalAlign { get; } = verticalAlign;
+
+        /// <summary>
+        /// Gets or sets the horizontal alignment.
+        /// </summary>
+        public Align? HorizontalAlign { get; } = horizontalAlign;
+
+        /// <summary>
+        /// Gets the visual element.
+        /// </summary>
+        public VisualElement VisualElement { get; } = visualElement;
+    }
+}
+

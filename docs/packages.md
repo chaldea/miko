@@ -13,6 +13,7 @@ tools and templates.
 | [`Miko.Simulator`](https://www.nuget.org/packages/Miko.Simulator) | Device simulator host for previewing mobile apps on desktop. Development only. |
 | [`Miko.McpServer`](https://www.nuget.org/packages/Miko.McpServer) | MCP debug server that exposes a running app over localhost. Development only. |
 | [`Miko.Components`](https://www.nuget.org/packages/Miko.Components) | **Preview** — Extended components (native video player, danmaku). APIs may change. |
+| [`Miko.Charts`](https://www.nuget.org/packages/Miko.Charts) | **Preview** — Animated charts ported from LiveCharts2: cartesian, pie, polar and map. APIs may change. See [Charts](./components/charts.md). |
 | [`Miko.Testing`](https://www.nuget.org/packages/Miko.Testing) | **Preview** — Testing utilities. APIs may change. |
 | [`Miko.Razor.Compiler`](https://www.nuget.org/packages/Miko.Razor.Compiler) | Source generator that compiles `.razor` components and routes. |
 | [`Miko.Templates`](https://www.nuget.org/packages/Miko.Templates) | `dotnet new` templates for scaffolding Miko apps. |

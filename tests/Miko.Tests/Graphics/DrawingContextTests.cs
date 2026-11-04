@@ -232,5 +232,13 @@ public class DrawingContextTests
         public void DrawText(TextBlock text, float x, float baseline, Color color) { }
         public void StrokeText(TextBlock text, float x, float baseline, Color color, float strokeWidth) { }
         public void DrawImage(Image image, RectF destination, ImageSampling sampling = ImageSampling.Auto, Color? tint = null) { }
+        public void Transform(float a, float b, float c, float d, float e, float f) { }
+        public RectF ClipBounds => default;
+        public void DrawRect(RectF rect, GraphicsPaint paint) { }
+        public void DrawRoundRect(RectF rect, float radiusX, float radiusY, GraphicsPaint paint) { }
+        public void DrawOval(float centerX, float centerY, float radiusX, float radiusY, GraphicsPaint paint) { }
+        public void DrawLine(float x0, float y0, float x1, float y1, GraphicsPaint paint) { }
+        public void DrawPath(GraphicsPath path, GraphicsPaint paint) { }
+        public void DrawText(TextBlock text, float x, float baseline, GraphicsPaint paint) { }
     }
 }

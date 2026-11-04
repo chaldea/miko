@@ -13,7 +13,7 @@ the framework — from a static render-to-PNG console app to full cross-platform
 | [`Windows/`](#windows)              | The same starter templates as single Windows desktop projects.                 |
 | [`Async/`](#async)                  | `async`/`await` components, Blazor-style `EventCallback`, and real HTTP calls.  |
 | [`Media/`](#media)                  | Network `<img>` (with `placeholder`) and `<video>` via the unified resource manager. |
-| [`Components/`](#components)        | The `MikoPlayer` video player on Desktop / Android / iOS; the barcode scanner and camera on Android / iOS. |
+| [`Components/`](#components)        | The `MikoPlayer` video player on Desktop / Android / iOS; the barcode scanner and camera on Android / iOS; the `Miko.Charts` gallery. |
 | [`Localization/`](#localization)    | `IStringLocalizer` + `.resx`, live language switching, right-to-left layout, complex scripts. |
 | [`App/Anime/`](#anime)              | Multiplatform Ionic three-tab anime demo with interface-backed mock services.  |
 
@@ -231,6 +231,14 @@ dotnet run --project examples/Components/MikoApp.Player.Desktop
 
 `MikoApp.Camera` is the camera demo: `MikoBarcodeScanner`, `MikoCamera` and a diagnostics page for the
 `<camera>` element, with `MikoApp.Camera.Android` and `MikoApp.Camera.iOS` heads.
+
+`MikoApp.Charts` is the chart gallery from `Miko.Charts`: a live line chart with panning and zoom,
+columns with a legend, doughnut, gauge, stacked area, scatter, candlesticks, radar and a world heat
+map. `MikoApp.Charts.Desktop` is its desktop head.
+
+```bash
+dotnet run --project examples/Components/MikoApp.Charts.Desktop
+```
 
 See [Components/README.md](Components/README.md) for the Android and iOS commands.
 
