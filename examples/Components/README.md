@@ -87,6 +87,41 @@ xcrun simctl install booted examples/Components/MikoApp.Camera.iOS/bin/Debug/net
 xcrun simctl launch booted com.miko.camerademo
 ```
 
+# Webcam Examples
+
+`MikoApp.Webcam` is the `MikoWebcam` demo page (`WebcamDemo.razor`, Chinese texts). The device and the Ezviz credentials come from the environment, never from source:
+
+| Variable | |
+| --- | --- |
+| `EZVIZ_DEVICE` | `ezopen://VERIFYCODE@open.ys7.com/SERIAL/1.live` (the verification code is on the device label) |
+| `EZVIZ_APP_KEY`, `EZVIZ_APP_SECRET` | Open Platform application; or `EZVIZ_ACCESS_TOKEN` |
+| `EZVIZ_DEVICE_IP` | Optional: the camera's LAN address when the cloud does not know it |
+| `EZVIZ_CLOUD_RELAY` | `1` falls back to the paid HLS relay for cameras on other networks |
+
+| Project | Contents |
+| --- | --- |
+| `MikoApp.Webcam` | Shared page and configuration (`App.CreateContext`). |
+| `MikoApp.Webcam.Desktop` | `UseSystemVideo()`: RTSP decodes with VideoToolbox on macOS; Windows / Linux have no stream decoder yet. `--verify <dir>` renders the real app offscreen once the picture plays and saves portrait, HD and fullscreen PNGs (`EZVIZ_VERIFY_PTZ=1` also holds the disk's right and left arrows, with device snapshots in between). |
+| `MikoApp.Webcam.Android` | `UseAndroidVideo()` (MediaCodec), `UseAndroidNative()`; the variables are passed as launch extras. |
+| `MikoApp.Webcam.iOS` | `UseIosVideo()` (VideoToolbox), `UseIosNative()`; `NSLocalNetworkUsageDescription` in `Info.plist`. |
+
+```sh
+export EZVIZ_DEVICE='ezopen://VERIFYCODE@open.ys7.com/SERIAL/1.live' EZVIZ_APP_KEY=… EZVIZ_APP_SECRET=…
+dotnet run --project examples/Components/MikoApp.Webcam.Desktop
+dotnet run --project examples/Components/MikoApp.Webcam.Desktop -- --verify /tmp/webcam
+
+dotnet build examples/Components/MikoApp.Webcam.Android
+adb install -r examples/Components/MikoApp.Webcam.Android/bin/Debug/net10.0-android/com.miko.webcamdemo-Signed.apk
+adb shell am start -n com.miko.webcamdemo/crc6465d12f15e485bca1.MainActivity \
+  -e EZVIZ_DEVICE "'ezopen://VERIFYCODE@open.ys7.com/SERIAL/1.live'" -e EZVIZ_APP_KEY … -e EZVIZ_APP_SECRET …
+
+dotnet build examples/Components/MikoApp.Webcam.iOS -r iossimulator-arm64 -p:ValidateXcodeVersion=false
+xcrun simctl install booted examples/Components/MikoApp.Webcam.iOS/bin/Debug/net10.0-ios/iossimulator-arm64/MikoApp.Webcam.iOS.app
+SIMCTL_CHILD_EZVIZ_DEVICE='ezopen://…' SIMCTL_CHILD_EZVIZ_APP_KEY=… SIMCTL_CHILD_EZVIZ_APP_SECRET=… xcrun simctl launch booted com.miko.webcamdemo
+```
+
+The emulator and the simulator reach the camera through the host's network.
+
 # Chart Examples
 
 `MikoApp.Charts` is the `Miko.Charts` gallery (`ChartsDemo.razor`): a live line chart (timer, add and
@@ -110,4 +145,4 @@ dotnet test tests/Miko.Components.Tests
 dotnet test tests/Miko.Charts.Tests
 ```
 
-See [implementation and verification notes](../../src/Miko.Components/Player/DESIGN.md).
+See the implementation and verification notes of the [player](../../src/Miko.Components/Player/DESIGN.md) and the [webcam](../../src/Miko.Components/Webcam/DESIGN.md).

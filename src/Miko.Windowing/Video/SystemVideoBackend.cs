@@ -23,7 +23,7 @@ namespace Miko.Windowing.Video;
 /// <c>&lt;video&gt;</c> 退化为只显示 poster/背景，而不是让整个应用崩溃。
 /// </para>
 /// </summary>
-public sealed class SystemVideoBackend : IVideoBackend
+public sealed class SystemVideoBackend : IVideoBackend, IVideoStreamDecoderFactory
 {
     private readonly ILogger<SystemVideoBackend> _logger;
     private readonly IVideoBackend? _platformBackend;
@@ -64,6 +64,17 @@ public sealed class SystemVideoBackend : IVideoBackend
 
         return _platformBackend.CreateSession(source, options);
     }
+
+    /// <summary>
+    /// Live streams (<see cref="IEncodedVideoSource"/>) decode where the platform backend has a stream
+    /// decoder: VideoToolbox on macOS. Windows and Linux do not have one yet.
+    /// </summary>
+    public bool CanDecode(VideoCodec codec) => _platformBackend is IVideoStreamDecoderFactory decoders && decoders.CanDecode(codec);
+
+    public IVideoStreamDecoder CreateDecoder(VideoCodec codec) =>
+        _platformBackend is IVideoStreamDecoderFactory decoders
+            ? decoders.CreateDecoder(codec)
+            : throw new NotSupportedException($"The {(_platformBackend?.GetType().Name ?? "missing")} video backend cannot decode live streams.");
 
     /// <summary>
     /// 探测并构造当前平台的后端。构造期即验证系统库可加载（各后端的 <c>IsAvailable</c>），

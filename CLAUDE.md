@@ -716,6 +716,24 @@ NV12 gotcha: hardware decoders align the **Y plane row count** up to a macrobloc
 (e.g. 180→192), so the UV plane does not start at `stride * height`. Deriving the offset from the
 buffer length is what keeps a green bar off the top of the picture (U=V=0 reads as pure green).
 
+**Live streams (encoded video).** For protocols no system player speaks (RTSP, vendor protocols),
+the app delivers compressed access units and the platform only decodes:
+- `IEncodedVideoSourceFactory` (DI, every registration asked in order, before the backend) claims a
+  `<video src>` by scheme and opens an `IEncodedVideoSource` (Annex-B H.264 / H.265 access units).
+- The backend implements `IVideoStreamDecoderFactory`: VideoToolbox on macOS
+  (`VideoToolboxStreamDecoder`, P/Invoke) and iOS (`IosStreamDecoder`), MediaCodec on Android
+  (`AndroidStreamDecoder`), each into its existing zero-copy frame source. Windows / Linux have none
+  yet, and the engine reports the `<video>` as an error event.
+- `EncodedVideoSession` joins them: duration 0, `Pause` disconnects and keeps the last picture,
+  5 reconnects with backoff, `VideoStreamException.IsPermanent` fails at once, one decoder per session.
+  After creating the decoder it raises `Buffering(true)`, because Android's output surface is created
+  by the render thread on the next paint of the video, and on-demand hosts paint only on an event.
+- `NalUnits` holds the Annex-B helpers. Log `<video src>` through `EncodedVideoSession.Redact`,
+  because the source carries camera passwords.
+- `Miko.Components` provides `rtsp://` (`AddMikoRtsp()`, managed client in `Webcam/Streaming/`) and
+  `MikoWebcam` with the Ezviz provider (`AddMikoWebcam()`). See `src/Miko.Components/Webcam/DESIGN.md`
+  for why Ezviz's own stream protocol (closed native SDK) is replaced by the camera's LAN RTSP.
+
 ### Native Capabilities
 
 `Miko.Native` defines 17 capability interfaces (app, browser, camera, clipboard, device,

@@ -1,0 +1,40 @@
+@namespace MikoApp.Webcam
+
+<div Style="@PageStyle">
+    <div Style="@HeaderStyle">
+        <span Style="@TitleStyle">@(_name ?? Device?.Serial ?? "MikoWebcam")</span>
+    </div>
+    @if (Device is null)
+    {
+        <div Style="@EmptyStyle">Set EZVIZ_DEVICE (ezopen://VERIFYCODE@open.ys7.com/SERIAL/1.live) and the Ezviz credentials, then restart.</div>
+    }
+    else
+    {
+        <MikoWebcam @ref="_webcam" Device="@Device" Texts="@WebcamTexts.Chinese" Style="@WebcamStyle" InfoLoaded="@(info => _name = info.Name)" />
+    }
+</div>
+
+@code {
+    [Parameter] public WebcamDevice? Device { get; set; }
+
+    private MikoWebcam? _webcam;
+    private string? _name;
+
+    /// <summary>The webcam on the page, once built (the desktop head's offscreen verification drives it).</summary>
+    public MikoWebcam? Webcam => _webcam;
+
+    // Phones draw edge to edge: the header keeps clear of the status bar and the cutout.
+    private static readonly Style PageStyle = new()
+    {
+        Display = Display.Flex, FlexDirection = FlexDirection.Column, Width = Length.Percent(100), Height = Length.Percent(100),
+        BackgroundColor = Color.FromHex("#f3f5f9"), BoxSizing = BoxSizing.BorderBox, PaddingBottom = Length.SafeAreaInsetBottom,
+    };
+    private static readonly Style HeaderStyle = new()
+    {
+        Display = Display.Flex, AlignItems = AlignItems.Center, FlexShrink = 0, Height = Length.SafeAreaInsetTop + Length.Px(52),
+        PaddingTop = Length.SafeAreaInsetTop, PaddingLeft = Length.Px(16), BackgroundColor = Color.FromHex("#f8f8f8"), BoxSizing = BoxSizing.BorderBox,
+    };
+    private static readonly Style TitleStyle = new() { FontSize = Length.Px(18), Color = Color.FromHex("#2b2f36") };
+    private static readonly Style EmptyStyle = new() { Padding = Length.Px(24), Color = Color.FromHex("#6b7280"), FontSize = Length.Px(14) };
+    private static readonly Style WebcamStyle = new() { FlexGrow = 1 };
+}

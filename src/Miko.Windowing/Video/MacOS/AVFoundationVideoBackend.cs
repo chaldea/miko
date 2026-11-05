@@ -14,7 +14,7 @@ namespace Miko.Windowing.Video.MacOS;
 /// <para>已在 macOS 27（Apple M6）上验证播放，Metal 窗口后端下走零拷贝（ISSUE-147）。</para>
 /// </summary>
 [SupportedOSPlatform("macos")]
-internal sealed class AVFoundationVideoBackend : IVideoBackend
+internal sealed class AVFoundationVideoBackend : IVideoBackend, IVideoStreamDecoderFactory
 {
     private readonly ILogger _logger;
 
@@ -65,4 +65,9 @@ internal sealed class AVFoundationVideoBackend : IVideoBackend
         session.Start();
         return session;
     }
+
+    /// <summary>VideoToolbox decodes H.264 and HEVC on every Mac Miko supports (in hardware on Apple silicon).</summary>
+    public bool CanDecode(VideoCodec codec) => codec is VideoCodec.H264 or VideoCodec.H265;
+
+    public IVideoStreamDecoder CreateDecoder(VideoCodec codec) => new VideoToolboxStreamDecoder(codec, _logger);
 }

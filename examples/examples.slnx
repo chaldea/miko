@@ -14,6 +14,10 @@
     <Project Path="Components/MikoApp.Player.Desktop/MikoApp.Player.Desktop.csproj" />
     <Project Path="Components/MikoApp.Player.iOS/MikoApp.Player.iOS.csproj" />
     <Project Path="Components/MikoApp.Player/MikoApp.Player.csproj" />
+    <Project Path="Components/MikoApp.Webcam.Android/MikoApp.Webcam.Android.csproj" />
+    <Project Path="Components/MikoApp.Webcam.Desktop/MikoApp.Webcam.Desktop.csproj" />
+    <Project Path="Components/MikoApp.Webcam.iOS/MikoApp.Webcam.iOS.csproj" />
+    <Project Path="Components/MikoApp.Webcam/MikoApp.Webcam.csproj" />
   </Folder>
   <Folder Name="/Ionic/">
     <Project Path="Ionic/IonicComponents/IonicComponents.csproj" />

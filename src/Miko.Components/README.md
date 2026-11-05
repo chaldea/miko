@@ -47,6 +47,22 @@ Settings — speed, loop, volume, danmaku on/off, opacity, text size, travel tim
 
 Fullscreen covers the whole screen. With the platform's native services registered (`UseAndroidNative()` / `UseIosNative()`), it locks landscape, keeps the screen on and hides the system bars — Android hides the status and navigation bars and lets the picture run under the camera cutout, iOS hides the status bar and auto-hides the home indicator — and the controls keep clear of the cutout through the safe area. Back leaves fullscreen. On the desktop it fills the window without changing the OS window mode. Unknown-duration live streams show `LIVE` and disable duration-based seeking. Buffered ranges are displayed only when the backend reports them. `Poster` currently follows the core video element's local-file support.
 
+## Network Camera
+
+`MikoWebcam` shows a network camera: the live picture with a toolbar (play / stop, quality, bitrate, fullscreen), snapshot / privacy / flip actions, and a pan / tilt disk. The camera is an `IWebcamProvider`; Ezviz (萤石) is built in.
+
+```csharp
+using Miko.Components.Webcam;
+
+builder.Services.AddMikoWebcam(o => { o.AppKey = "…"; o.AppSecret = "…"; });   // or o.AccessToken
+```
+
+```razor
+<MikoWebcam Device="@(WebcamDevice.ParseEzopen("ezopen://VERIFYCODE@open.ys7.com/SERIAL/1.live", out _))" Texts="@WebcamTexts.Chinese" />
+```
+
+The picture streams straight from the camera on the local network over RTSP (user `admin`, the verification code as password) and is decoded by the platform (VideoToolbox on macOS / iOS, MediaCodec on Android), with no Ezviz native SDK. The paid cloud HLS relay is used only with `EnableCloudRelay`. `AddMikoRtsp()` makes any `<video src="rtsp://…">` play. See [Network Camera](../../docs/components/webcam.md) and [design](Webcam/DESIGN.md).
+
 ## Platform Backends
 
 | Platform | System Pipeline | Notes |
