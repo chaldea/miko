@@ -47,10 +47,14 @@
     <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
     <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />
     <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
-    <!-- The renderer's managed SkiaSharp comes through Miko (runtime assets only: the host draws
-         through Miko.Graphics, ISSUE-162). SkiaSharp's net8.0+ dependency group carries only macOS
-         and Win32 natives; without this a desktop app cannot load libSkiaSharp on Linux. -->
+    <!-- The renderer's managed SkiaSharp and HarfBuzzSharp come through Miko (runtime assets only:
+         the host draws through Miko.Graphics, ISSUE-162). Their net8.0+ dependency groups carry only
+         macOS and Win32 natives; without these a desktop app cannot load libSkiaSharp on Linux, or
+         libHarfBuzzSharp the first time it shapes text (RTL, complex scripts, marks, emoji). Both
+         stay out of the core: an Android RID falls back to linux-* native assets. The HarfBuzz
+         version is the one SkiaSharp.HarfBuzz pins: the native library must match its binding. -->
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.1" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.1.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
   </ItemGroup>

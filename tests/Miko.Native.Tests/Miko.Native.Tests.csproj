@@ -16,7 +16,8 @@
     <PackageReference Include="Shouldly" Version="4.3.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.1" />
+    <!-- No *.NativeAssets.Linux here on purpose: the Linux natives come through Miko.Windowing,
+         as they do for every desktop app, and DesktopNativeAssetsTests checks they arrive. -->
   </ItemGroup>
 
   <ItemGroup>

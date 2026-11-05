@@ -47,12 +47,12 @@ For distribution outside the App Store, you must sign and notarize the app with 
 
 ### Linux
 
-The output is a native ELF executable. **Important:** the `SkiaSharp.NativeAssets.Linux` package dependency ships `libSkiaSharp.so`. The target system must have:
+The output is a native ELF executable. **Important:** the `SkiaSharp.NativeAssets.Linux` and `HarfBuzzSharp.NativeAssets.Linux` package dependencies ship `libSkiaSharp.so` and `libHarfBuzzSharp.so` (text shaping). The target system must have:
 
 - A working **OpenGL** driver (the desktop host renders with OpenGL on Windows and Linux, and with Metal on macOS)
 - glibc (the library is not compatible with musl-based distros like Alpine)
 
-`Miko.Windowing` depends on `SkiaSharp.NativeAssets.Linux`, so `libSkiaSharp.so` is included in the `linux-x64` publish output automatically.
+`Miko.Windowing` depends on both packages, so the two libraries are included in the `linux-x64` publish output automatically. A host that does not go through `Miko.Windowing` (a headless renderer, a test project) has to reference them itself: the base `SkiaSharp` and `HarfBuzzSharp` packages carry only the Windows and macOS libraries, and a missing `libHarfBuzzSharp.so` only fails, with a `DllNotFoundException`, the first time text needs shaping.
 
 ## Trimming and Native AOT
 
