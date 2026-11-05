@@ -14,10 +14,11 @@
     <PackageReference Include="Shouldly" Version="4.3.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
-    <!-- Native SkiaSharp libraries for headless Linux (e.g. ubuntu-latest CI).
-         The base SkiaSharp package ships no native libs; without this the tests
-         fail to load linux-x64/native/libSkiaSharp. -->
+    <!-- Native SkiaSharp / HarfBuzzSharp libraries for headless Linux (e.g. ubuntu-latest CI).
+         The base packages ship no Linux native libs; without these the tests fail to load
+         linux-x64/native/libSkiaSharp, or libHarfBuzzSharp in every test that shapes text. -->
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.1" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.1.2" />
   </ItemGroup>
 
   <ItemGroup>

@@ -130,6 +130,7 @@ export default defineConfig({
           { text: 'Examples', link: '/examples' },
           { text: 'Packages', link: '/packages' },
           { text: 'Component Libraries', link: '/components/' },
+          { text: 'Charts', link: '/components/charts' },
           { text: 'MCP Server', link: '/mcp-server' },
           { text: 'Known Limitations', link: '/guide/known-limitations' }
         ]

@@ -87,10 +87,27 @@ xcrun simctl install booted examples/Components/MikoApp.Camera.iOS/bin/Debug/net
 xcrun simctl launch booted com.miko.camerademo
 ```
 
+# Chart Examples
+
+`MikoApp.Charts` is the `Miko.Charts` gallery (`ChartsDemo.razor`): a live line chart (timer, add and
+remove points, pan by dragging, zoom buttons), columns and a line with a legend and a click handler,
+doughnut, gauge, stacked area, scatter, candlesticks, radar and a world heat map. `App.CreateContext`
+registers the charts with `AddMikoCharts()`.
+
+| Project | Contents |
+| --- | --- |
+| `MikoApp.Charts` | Shared page and configuration. |
+| `MikoApp.Charts.Desktop` | Windows / macOS / Linux window. |
+
+```sh
+dotnet run --project examples/Components/MikoApp.Charts.Desktop
+```
+
 ## Tests
 
 ```sh
 dotnet test tests/Miko.Components.Tests
+dotnet test tests/Miko.Charts.Tests
 ```
 
 See [implementation and verification notes](../../src/Miko.Components/Player/DESIGN.md).

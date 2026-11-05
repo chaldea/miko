@@ -78,7 +78,7 @@ public interface IDrawingContext
     /// <summary>在基线 <paramref name="baseline"/> 处绘制文本，<paramref name="x"/> 为文本左边缘。</summary>
     void DrawText(TextBlock text, float x, float baseline, Color color);
 
-    /// <summary>描绘文本字形的轮廓（如弹幕的描边），位置约定同 <see cref="DrawText"/>。</summary>
+    /// <summary>描绘文本字形的轮廓（如弹幕的描边），位置约定同 <see cref="DrawText(TextBlock, float, float, Color)"/>。</summary>
     void StrokeText(TextBlock text, float x, float baseline, Color color, float strokeWidth);
 
     /// <summary>
@@ -87,4 +87,34 @@ public interface IDrawingContext
     /// （单色图标的 <c>fill: currentColor</c>）。矢量图像按目标尺寸直接绘制，任何缩放下都清晰。
     /// </summary>
     void DrawImage(Image image, RectF destination, ImageSampling sampling = ImageSampling.Auto, Color? tint = null);
+
+    // --- Paint-based drawing: paths, gradients, dashes, shadows (used by Miko.Charts) ---
+
+    /// <summary>Concatenates a 2D affine matrix [<c>a c e; b d f</c>] (the SVG/Canvas layout) to the current transform.</summary>
+    void Transform(float a, float b, float c, float d, float e, float f);
+
+    /// <summary>
+    /// The current clip as the smallest rectangle in the current (logical) coordinates that contains it.
+    /// Gradients are laid out against it.
+    /// </summary>
+    RectF ClipBounds { get; }
+
+    /// <summary>Draws a rectangle with a <see cref="GraphicsPaint"/> (fill or stroke, gradient, dash, shadow).</summary>
+    void DrawRect(RectF rect, GraphicsPaint paint);
+
+    /// <summary>Draws a rounded rectangle with independent corner radii in x and y.</summary>
+    void DrawRoundRect(RectF rect, float radiusX, float radiusY, GraphicsPaint paint);
+
+    /// <summary>Draws an ellipse centered at (<paramref name="centerX"/>, <paramref name="centerY"/>).</summary>
+    void DrawOval(float centerX, float centerY, float radiusX, float radiusY, GraphicsPaint paint);
+
+    void DrawLine(float x0, float y0, float x1, float y1, GraphicsPaint paint);
+
+    void DrawPath(GraphicsPath path, GraphicsPaint paint);
+
+    /// <summary>
+    /// Draws laid-out text, filled or stroked as <paramref name="paint"/> says. Position as in
+    /// <see cref="DrawText(TextBlock, float, float, Color)"/>.
+    /// </summary>
+    void DrawText(TextBlock text, float x, float baseline, GraphicsPaint paint);
 }

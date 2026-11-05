@@ -156,7 +156,11 @@ The repository uses a single solution file:
    - Cross-platform native capability interfaces (17 areas modelled on Ionic Capacitor v8)
    - Pure abstractions with zero platform dependencies; implementations live in the platform packages
 
-9. **Miko.Razor.Compiler** (`src/Miko.Razor.Compiler/`)
+9. **Miko.Charts** (`src/Miko.Charts/`) — see "Charts" below
+   - `CartesianChart`, `PieChart`, `PolarChart`, `GeoMap` Razor components; `AddMikoCharts()`
+   - A LiveCharts2 port: `Core/` is LiveChartsCore 2.0.5 unchanged, `MikoView/` replaces SkiaSharpView
+
+10. **Miko.Razor.Compiler** (`src/Miko.Razor.Compiler/`)
    - Custom Razor source generator (targets net10.0)
    - Compiles `.razor` components into native Miko DOM elements
    - Consumed as analyzer DLLs by Razor projects
@@ -194,6 +198,8 @@ The repository uses a single solution file:
 
 **Graphics** (`src/Miko/Graphics/`, ISSUE-162) — the only drawing API outside the core
 - `IDrawingContext.cs`, `IGraphicsFactory.cs`: drawing target and resource factory (text, images, surfaces)
+- `GraphicsPath.cs`, `GraphicsPaint.cs`: vector paths and reusable paints (stroke, gradient, dash, blur/shadow)
+  drawn with the paint overloads of `IDrawingContext` (`DrawPath`, `DrawRect`, …, `Transform`, `ClipBounds`)
 - `TextBlock.cs`, `Image.cs`, `RenderSurface.cs`: opaque resources; `GraphicsDevice.cs`: GPU context from native handles
 - `WindowRenderTarget.cs`: GL window framebuffer surface, reused per (size, FBO) (ISSUE-143)
 - `Skia/`: the internal Skia implementation (`SkiaDrawingContext`, `SkiaGraphicsFactory`, `SkiaImage`)
@@ -641,6 +647,31 @@ Built-in fallback chain: Arial → Segoe UI → Microsoft YaHei → SimSun → M
 - A layout's `@Body` survives the layout's own re-render: `LayoutComponentBase` keeps the page
   *component* (whose `CurrentRoot` is its latest generation) and re-renders it with the layout.
   It must not keep a page *element* — that is the ISSUE-142 generation leak.
+
+### Charts (Miko.Charts)
+
+`src/Miko.Charts` ports LiveCharts2 (MIT, notice in THIRD-PARTY-NOTICES.txt). User docs: `docs/components/charts.md`.
+
+- **`Core/` is LiveChartsCore copied unchanged** (namespaces `LiveChartsCore.*`, XAML-only `Generators/` files
+  dropped). Keep it diffable against upstream: fix bugs in `MikoView/` where possible. `[MotionProperty]`
+  is expanded by `src/Miko.Charts.Generators` (the motion-property half of LiveChartsGenerators only).
+- **`MikoView/` replaces SkiaSharpView** and draws only through `Miko.Graphics`: `MikoDrawingContext` wraps an
+  `IDrawingContext`, `MikoPaint` wraps a `GraphicsPaint`, `LabelGeometry` lays text out with
+  `IGraphicsFactory.CreateText` (one `TextBlock` per line). No SkiaSharp reference (the seal makes it a build
+  error). A drawing need the charts have goes into `Miko.Graphics`, never a backend type.
+- **Labels are measured before there is a drawing context**, so the text factory is process-wide
+  (`LiveChartsMiko.UseGraphics`, set by the components from `MikoEngine.Graphics`). LiveCharts settings
+  (provider, theme, text settings) are process-wide statics too: chart tests run in one non-parallel collection.
+- **Threading**: LiveCharts measures from its update throttler (thread pool) through
+  `IChartView.InvokeOnUIThread`, which posts to `MikoEngine.Dispatcher` and requests a frame. Measure and draw
+  both run on the render thread.
+- **Frames on demand**: `MotionCanvasHost` paints the motion canvas in a `CanvasElement` and calls
+  `RequestRepaint` while the canvas is invalid (an animation is running) and when it is invalidated outside a
+  frame. An idle chart costs no frames.
+- Components assign collection parameters to the view only when the reference changed (re-assigning restarts the
+  observers and the series ids, i.e. the palette colors). Miko has no wheel event: `CartesianChart.Zoom()` zooms.
+- `InMemoryCartesianChart` / `InMemoryPieChart` / `InMemoryPolarChart` render to a `RenderSurface` (the old
+  `SKCartesianChart` …); their settings are on `.View`.
 
 ### Video Playback
 

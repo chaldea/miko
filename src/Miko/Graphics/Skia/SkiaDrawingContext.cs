@@ -134,6 +134,69 @@ internal sealed class SkiaDrawingContext : IDrawingContext, IDisposable
         Canvas.DrawImage(raster, destination.ToSKRect(), SamplingFor(sampling, raster, destination), paint);
     }
 
+    public void Transform(float a, float b, float c, float d, float e, float f)
+    {
+        var matrix = new SKMatrix(a, c, e, b, d, f, 0, 0, 1);
+        Canvas.Concat(in matrix);
+    }
+
+    public RectF ClipBounds
+    {
+        get
+        {
+            // LocalClipBounds is outset by a pixel for antialiasing; map the exact device clip back instead.
+            // (A gradient laid out over the clip would otherwise not reach its end colors at the edges.)
+            var device = Canvas.DeviceClipBounds;
+            if (!Canvas.TotalMatrix.TryInvert(out var inverse))
+            {
+                var local = Canvas.LocalClipBounds;
+                return new RectF(local.Left, local.Top, local.Width, local.Height);
+            }
+
+            var bounds = inverse.MapRect(new SKRect(device.Left, device.Top, device.Right, device.Bottom));
+            return new RectF(bounds.Left, bounds.Top, bounds.Width, bounds.Height);
+        }
+    }
+
+    public void DrawRect(RectF rect, GraphicsPaint paint)
+    {
+        ArgumentNullException.ThrowIfNull(paint);
+        Canvas.DrawRect(rect.ToSKRect(), paint.Resolve());
+    }
+
+    public void DrawRoundRect(RectF rect, float radiusX, float radiusY, GraphicsPaint paint)
+    {
+        ArgumentNullException.ThrowIfNull(paint);
+        Canvas.DrawRoundRect(rect.ToSKRect(), radiusX, radiusY, paint.Resolve());
+    }
+
+    public void DrawOval(float centerX, float centerY, float radiusX, float radiusY, GraphicsPaint paint)
+    {
+        ArgumentNullException.ThrowIfNull(paint);
+        Canvas.DrawOval(centerX, centerY, radiusX, radiusY, paint.Resolve());
+    }
+
+    public void DrawLine(float x0, float y0, float x1, float y1, GraphicsPaint paint)
+    {
+        ArgumentNullException.ThrowIfNull(paint);
+        Canvas.DrawLine(x0, y0, x1, y1, paint.Resolve());
+    }
+
+    public void DrawPath(GraphicsPath path, GraphicsPaint paint)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(paint);
+        Canvas.DrawPath(path.Native, paint.Resolve());
+    }
+
+    public void DrawText(TextBlock text, float x, float baseline, GraphicsPaint paint)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(paint);
+        var blob = text.Shaped.GetBlob(Painter.CreateHighQualityFont);
+        if (blob != null) Canvas.DrawText(blob, x, baseline, paint.Resolve());
+    }
+
     private SKSamplingOptions SamplingFor(ImageSampling sampling, SKImage image, RectF destination) => sampling switch
     {
         ImageSampling.Nearest => new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.None),

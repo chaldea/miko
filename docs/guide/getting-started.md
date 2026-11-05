@@ -9,7 +9,7 @@ official templates.
 - A platform supported by SkiaSharp:
   - **Windows** — Windows 10 or 11
   - **macOS** — Current macOS release
-  - **Linux** — glibc-based distros (Ubuntu, Debian, Fedora, etc.). Desktop apps require a working OpenGL driver; `libSkiaSharp.so` is shipped via `SkiaSharp.NativeAssets.Linux`.
+  - **Linux** — glibc-based distros (Ubuntu, Debian, Fedora, etc.). Desktop apps require a working OpenGL driver; `libSkiaSharp.so` and `libHarfBuzzSharp.so` are shipped via `SkiaSharp.NativeAssets.Linux` and `HarfBuzzSharp.NativeAssets.Linux`.
   - **Android** — API 26 (Android 8.0) or later, targeting API 36
   - **iOS** — iOS 15.0 or later
 

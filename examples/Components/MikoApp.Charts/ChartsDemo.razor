@@ -1,0 +1,260 @@
+@using System.Collections.ObjectModel
+@using LiveChartsCore.Kernel
+@using LiveChartsCore.MikoView.Drawing.Geometries
+@using LiveChartsCore.MikoView.VisualElements
+@using LiveChartsCore.Drawing
+@using LiveChartsCore.MikoView.Extensions
+@implements IDisposable
+
+<div Style="@PageStyle">
+    <h2 Style="@HeadingStyle">Miko.Charts</h2>
+    <div Style="@HintStyle">LiveCharts2 drawn by Miko. Hover a chart for its tooltip; drag the line chart to pan it, use the zoom buttons to zoom.</div>
+
+    <div Style="@GridStyle">
+        <div Style="@CardStyle">
+            <div Style="@TitleStyle">Live line · pan and zoom (X)</div>
+            <CartesianChart @ref="_liveChart" Series="@_liveSeries" XAxes="@_liveXAxes" ZoomMode="ZoomAndPanMode.X"
+                            TooltipPosition="TooltipPosition.Top" />
+            <div Style="@RowStyle">
+                <button @onclick="ToggleLive" Style="@ButtonStyle">@(_timer is null ? "Start" : "Stop")</button>
+                <button @onclick="AddPoint" Style="@ButtonStyle">Add point</button>
+                <button @onclick="RemovePoint" Style="@ButtonStyle">Remove point</button>
+                <button @onclick="ZoomIn" Style="@ButtonStyle">Zoom +</button>
+                <button @onclick="ZoomOut" Style="@ButtonStyle">Zoom −</button>
+            </div>
+        </div>
+
+        <div Style="@CardStyle">
+            <div Style="@TitleStyle">Columns and a line · legend</div>
+            <CartesianChart Series="@_salesSeries" XAxes="@_monthAxes" LegendPosition="LegendPosition.Top"
+                            DataPointerDown="OnColumnClicked" />
+            <div Style="@HintStyle">@_clicked</div>
+        </div>
+
+        <div Style="@CardStyle">
+            <div Style="@TitleStyle">Doughnut</div>
+            <PieChart Series="@_pieSeries" LegendPosition="LegendPosition.Right" />
+        </div>
+
+        <div Style="@CardStyle">
+            <div Style="@TitleStyle">Gauge</div>
+            <PieChart Series="@_gaugeSeries" InitialRotation="135" MaxAngle="270" MinValue="0" MaxValue="100" />
+            <div Style="@RowStyle">
+                <button @onclick="RandomGauge" Style="@ButtonStyle">Random value</button>
+            </div>
+        </div>
+
+        <div Style="@CardStyle">
+            <div Style="@TitleStyle">Stacked area</div>
+            <CartesianChart Series="@_stackedSeries" />
+        </div>
+
+        <div Style="@CardStyle">
+            <div Style="@TitleStyle">Scatter</div>
+            <CartesianChart Series="@_scatterSeries" />
+        </div>
+
+        <div Style="@CardStyle">
+            <div Style="@TitleStyle">Candlesticks</div>
+            <CartesianChart Series="@_candleSeries" XAxes="@_dateAxes" />
+        </div>
+
+        <div Style="@CardStyle">
+            <div Style="@TitleStyle">Radar (polar)</div>
+            <PolarChart Series="@_polarSeries" AngleAxes="@_polarAngleAxes" />
+        </div>
+
+        <div Style="@WideCardStyle">
+            <div Style="@TitleStyle">Heat map (world)</div>
+            <GeoMap Series="@_mapSeries" Style="@MapStyle" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly Random s_random = new(7);
+
+    // --- live line
+    private readonly ObservableCollection<ObservableValue> _liveValues =
+        new(Enumerable.Range(0, 30).Select(i => new ObservableValue(Math.Round(50 + 30 * Math.Sin(i / 4.0), 1))));
+    private ISeries[] _liveSeries = null!;
+    private readonly Axis[] _liveXAxes = [new Axis { Name = "Sample" }];
+    private Timer? _timer;
+    private CartesianChart? _liveChart;
+    private int _tick = 30;
+
+    // --- columns and line
+    private readonly ISeries[] _salesSeries =
+    [
+        new ColumnSeries<double>([42, 55, 61, 48, 70, 82]) { Name = "Revenue" },
+        new LineSeries<double>([38, 41, 52, 50, 60, 74]) { Name = "Target", Fill = null, GeometrySize = 10 },
+    ];
+    private readonly Axis[] _monthAxes = [new Axis { Labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"] }];
+    private string _clicked = "Click a column.";
+
+    // --- pie and gauge
+    private readonly ISeries[] _pieSeries =
+    [
+        new PieSeries<double>([42]) { Name = "Desktop", InnerRadius = 50 },
+        new PieSeries<double>([33]) { Name = "Android", InnerRadius = 50 },
+        new PieSeries<double>([18]) { Name = "iOS", InnerRadius = 50 },
+        new PieSeries<double>([7]) { Name = "Other", InnerRadius = 50 },
+    ];
+    private readonly ObservableValue _gaugeValue = new(64);
+    private ISeries[] _gaugeSeries = null!;
+
+    // --- stacked area, scatter, candles, polar, map
+    private readonly ISeries[] _stackedSeries =
+    [
+        new StackedAreaSeries<double>([3, 2, 3, 5, 3, 4, 6]) { Name = "A" },
+        new StackedAreaSeries<double>([6, 5, 6, 3, 8, 5, 2]) { Name = "B" },
+        new StackedAreaSeries<double>([4, 8, 2, 8, 9, 5, 3]) { Name = "C" },
+    ];
+    private readonly ISeries[] _scatterSeries =
+    [
+        new ScatterSeries<ObservablePoint>(Enumerable.Range(0, 60)
+            .Select(_ => new ObservablePoint(s_random.NextDouble() * 10, s_random.NextDouble() * 10)).ToArray()) { Name = "Samples" },
+    ];
+    private readonly ISeries[] _candleSeries;
+    // DateTimeAxis turns the axis values (ticks) into dates safely: an axis also asks its labeler for values
+    // outside the data while it measures label sizes, which a hand-written new DateTime(ticks) rejects.
+    private readonly Axis[] _dateAxes = [new DateTimeAxis(TimeSpan.FromDays(1), date => date.ToString("MM-dd"))];
+    private readonly ISeries[] _polarSeries =
+    [
+        new PolarLineSeries<double>([4, 3, 5, 2, 4, 3]) { Name = "Team A", IsClosed = true, LineSmoothness = 0 },
+        new PolarLineSeries<double>([2, 5, 3, 4, 2, 5]) { Name = "Team B", IsClosed = true, LineSmoothness = 0 },
+    ];
+    private readonly PolarAxis[] _polarAngleAxes =
+    [
+        new PolarAxis { Labels = ["Speed", "Power", "Range", "Comfort", "Safety", "Price"], MinStep = 1, ForceStepToMin = true },
+    ];
+    private readonly HeatLandSeries[] _mapSeries =
+    [
+        new HeatLandSeries
+        {
+            Lands =
+            [
+                new HeatLand { Name = "chn", Value = 12 }, new HeatLand { Name = "usa", Value = 9 },
+                new HeatLand { Name = "bra", Value = 6 }, new HeatLand { Name = "ind", Value = 10 },
+                new HeatLand { Name = "deu", Value = 5 }, new HeatLand { Name = "jpn", Value = 7 },
+                new HeatLand { Name = "aus", Value = 3 }, new HeatLand { Name = "zaf", Value = 2 },
+            ],
+        },
+    ];
+
+    public ChartsDemo()
+    {
+        var day = new DateTime(2026, 10, 1);
+        var price = 100.0;
+        _candleSeries =
+        [
+            new CandlesticksSeries<FinancialPoint>(Enumerable.Range(0, 20).Select(i =>
+            {
+                var open = price;
+                var close = open + (s_random.NextDouble() - 0.45) * 8;
+                price = close;
+                return new FinancialPoint(day.AddDays(i), Math.Max(open, close) + s_random.NextDouble() * 3, open, close,
+                    Math.Min(open, close) - s_random.NextDouble() * 3);
+            }).ToArray()) { Name = "MIKO" },
+        ];
+    }
+
+    protected override void OnInitialized()
+    {
+        _liveSeries = [new LineSeries<ObservableValue>(_liveValues) { Name = "Signal", GeometrySize = 0, LineSmoothness = 0.6 }];
+        // a gauge is a pie of one value over MaxValue, plus a background series that fills the rest
+        _gaugeSeries = GaugeGenerator.BuildSolidGauge(
+            new GaugeItem(_gaugeValue, series =>
+            {
+                series.Name = "Load";
+                series.InnerRadius = 60;
+                series.DataLabelsPosition = PolarLabelsPosition.ChartCenter;
+                series.DataLabelsSize = 30;
+                series.DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue:N0}%";
+            }),
+            new GaugeItem(GaugeItem.Background, series =>
+            {
+                series.InnerRadius = 60;
+                series.Fill = new SolidColorPaint(new LvcColor(0, 0, 0, 18));
+            }));
+    }
+
+    private void ToggleLive()
+    {
+        if (_timer is null)
+        {
+            // the timer fires on the thread pool; the engine's dispatcher runs the change on the render thread,
+            // where the chart reads its collections.
+            var dispatcher = Engine?.Dispatcher;
+            _timer = new Timer(_ => dispatcher?.Post(AddPoint), null, 0, 250);
+        }
+        else
+        {
+            _timer.Dispose();
+            _timer = null;
+        }
+    }
+
+    private void AddPoint()
+    {
+        _tick++;
+        _liveValues.Add(new ObservableValue(Math.Round(50 + 30 * Math.Sin(_tick / 4.0) + s_random.Next(-6, 6), 1)));
+        if (_liveValues.Count > 60) _liveValues.RemoveAt(0);
+    }
+
+    private void RemovePoint()
+    {
+        if (_liveValues.Count > 0) _liveValues.RemoveAt(0);
+    }
+
+    private void ZoomIn() => _liveChart?.Zoom(ZoomDirection.ZoomIn);
+
+    private void ZoomOut() => _liveChart?.Zoom(ZoomDirection.ZoomOut);
+
+    private void RandomGauge() => _gaugeValue.Value = s_random.Next(5, 100);
+
+    private void OnColumnClicked(IEnumerable<ChartPoint> points)
+    {
+        var point = points.FirstOrDefault();
+        _clicked = point is null
+            ? "Click a column."
+            : $"{point.Context.Series.Name}: {point.Coordinate.PrimaryValue} in {_monthAxes[0].Labels![(int)point.Coordinate.SecondaryValue]}";
+    }
+
+    [Inject] public Miko.Core.MikoEngine? Engine { get; set; }
+
+    public void Dispose() => _timer?.Dispose();
+
+    private static readonly Style PageStyle = new()
+    {
+        Display = Display.Flex, FlexDirection = FlexDirection.Column, Width = Length.Percent(100), Height = Length.Percent(100),
+        BackgroundColor = Color.FromHex("#f4f5f7"), OverflowY = Overflow.Auto, BoxSizing = BoxSizing.BorderBox,
+        PaddingTop = Length.SafeAreaInsetTop + Length.Px(16), PaddingBottom = Length.SafeAreaInsetBottom + Length.Px(16),
+        PaddingLeft = Length.SafeAreaInsetLeft + Length.Px(16), PaddingRight = Length.SafeAreaInsetRight + Length.Px(16),
+    };
+    private static readonly Style HeadingStyle = new() { FontSize = Length.Px(22), MarginTop = Length.Px(0), MarginBottom = Length.Px(4), FlexShrink = 0 };
+    private static readonly Style HintStyle = new() { Color = Color.FromHex("#5f6670"), FontSize = Length.Px(13), MarginBottom = Length.Px(12), FlexShrink = 0 };
+    private static readonly Style GridStyle = new()
+    {
+        Display = Display.Grid, Gap = Length.Px(16), FlexShrink = 0,
+        GridTemplateColumns = new List<GridTrackSize> { GridTrackSize.Repeat(GridAutoRepeat.AutoFill, GridTrackSize.MinMax(GridTrackSize.Px(320), GridTrackSize.Fr(1))) },
+    };
+    private static readonly Style CardStyle = new()
+    {
+        Display = Display.Flex, FlexDirection = FlexDirection.Column, BackgroundColor = Color.White, BorderRadius = 10,
+        Padding = new Miko.Common.Padding(Length.Px(12)), MinWidth = Length.Px(0),
+    };
+    private static readonly Style WideCardStyle = new()
+    {
+        Display = Display.Flex, FlexDirection = FlexDirection.Column, BackgroundColor = Color.White, BorderRadius = 10,
+        Padding = new Miko.Common.Padding(Length.Px(12)), MinWidth = Length.Px(0), GridColumnStart = GridLine.Line(1), GridColumnEnd = GridLine.Line(-1),
+    };
+    private static readonly Style TitleStyle = new() { FontSize = Length.Px(15), FontWeight = FontWeight.SemiBold, MarginBottom = Length.Px(8) };
+    private static readonly Style RowStyle = new() { Display = Display.Flex, Gap = Length.Px(8), MarginTop = Length.Px(8) };
+    private static readonly Style MapStyle = new() { Height = Length.Px(380) };
+    private static readonly Style ButtonStyle = new()
+    {
+        Display = Display.Flex, AlignItems = AlignItems.Center, Height = Length.Px(32), PaddingLeft = Length.Px(12), PaddingRight = Length.Px(12),
+        BorderWidth = Length.Px(0), BorderRadius = 6, BackgroundColor = Color.FromHex("#2a6df4"), Color = Color.White, FontSize = Length.Px(13),
+    };
+}

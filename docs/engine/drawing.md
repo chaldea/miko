@@ -7,7 +7,8 @@ named outside it, so it can be replaced later without breaking the code built on
 
 | Type | What it is |
 | --- | --- |
-| `IDrawingContext` | A drawing target: state (save / restore, transforms, clips) and primitives (rectangles, circles, arcs, lines, text, images). |
+| `IDrawingContext` | A drawing target: state (save / restore, transforms, clips) and primitives (rectangles, circles, arcs, lines, text, images, paths). |
+| `GraphicsPath`, `GraphicsPaint` | A vector outline, and how to fill or stroke it: gradients, dashes, shadows. See [Paths and paints](#paths-and-paints). |
 | `IGraphicsFactory` | Creates resources: laid-out text (`TextBlock`), decoded images (`Image`), offscreen surfaces (`RenderSurface`). Registered in the container; also `MikoEngine.Graphics` and `IDrawingContext.Graphics`. |
 | `TextBlock` | One line of text laid out with the engine's own pipeline (font fallback, bidi, shaping), so mixed scripts render correctly. |
 | `Image` | A bitmap, an SVG (drawn as vectors at any size) or a GPU texture such as a video frame. |
@@ -42,6 +43,43 @@ var canvas = new CanvasElement
 
 A paint callback only draws. To change what is drawn, update your state and call
 `MikoEngine.RequestRepaint()`. A paint-only change does not trigger a layout.
+
+## Paths and paints
+
+The `Fill*` / `Stroke*` methods take a color. For anything more, describe the shape as a
+`GraphicsPath` and how to draw it as a `GraphicsPaint`, then call `DrawPath`, `DrawRect`,
+`DrawRoundRect`, `DrawOval`, `DrawLine` or `DrawText` with the paint:
+
+```csharp
+using var path = new GraphicsPath();
+path.MoveTo(box.X, box.Bottom);
+path.CubicTo(box.X + 40, box.Y, box.Right - 40, box.Bottom, box.Right, box.Y);
+
+using var line = new GraphicsPaint(Color.FromHex("#2196f3"))
+{
+    IsStroke = true,
+    StrokeWidth = 3,
+    StrokeCap = StrokeCap.Round,
+};
+line.SetDash([8, 4]);
+context.DrawPath(path, line);
+
+using var fill = new GraphicsPaint();
+fill.SetLinearGradient(box.X, box.Y, box.X, box.Bottom,
+    [new Color(33, 150, 243, 90), new Color(33, 150, 243, 0)]);
+context.DrawRect(box, fill);
+```
+
+| Type | What it holds |
+| --- | --- |
+| `GraphicsPath` | `MoveTo`, `LineTo`, `QuadTo`, `CubicTo`, `ArcTo` (an oval arc, or an SVG-style arc to a point), `ArcToTangent`, `Close`. `GraphicsPath.FromSvgPathData` parses an SVG `d` attribute; `TightBounds` measures the shape. |
+| `GraphicsPaint` | Fill or stroke (`IsStroke`, `StrokeWidth`, `StrokeCap`, `StrokeJoin`, `StrokeMiter`), `Color` and `Opacity`, a linear or radial gradient (`SetLinearGradient`, `SetRadialGradient`), a dash pattern (`SetDash`), a blur or drop shadow (`SetBlur`, `SetDropShadow`). |
+
+Both wrap native objects: create them once and reuse them across frames, change a paint's
+properties between draws, and dispose them when you are done. `Transform(a, b, c, d, e, f)`
+concatenates an affine matrix to the current transform (the SVG / Canvas layout), and
+`ClipBounds` reports the current clip in the current coordinates, for example to lay a gradient
+across the area being drawn. [Charts](../components/charts.md) are drawn with exactly these.
 
 - **Coordinates** are logical pixels. The host has already applied the device density;
   `context.DeviceScale` reports it, which helps when choosing a bitmap resolution.
