@@ -41,8 +41,11 @@ public partial class MikoEngine
         IGraphicsFactory graphics,
         ILogger<MikoEngine>? logger = null,
         TimeProvider? timeProvider = null,
-        Platform.Camera.ICameraBackend? cameraBackend = null)
+        Platform.Camera.ICameraBackend? cameraBackend = null,
+        IEnumerable<IEncodedVideoSourceFactory>? encodedVideoSources = null)
     {
+        _timeProvider = timeProvider;
+        EncodedVideoSources = encodedVideoSources?.ToList() ?? [];
         _layoutEngine = layoutEngine;
         _renderEngine = renderEngine;
         _dirtyManager = dirtyManager;
@@ -161,6 +164,16 @@ public partial class MikoEngine
 
     /// <summary>本引擎当前是否具备真实的视频播放能力（未注册后端或注册的是空后端时为 false）。</summary>
     private bool HasVideoBackend => VideoBackend is not null and not NullVideoBackend;
+
+    private readonly TimeProvider? _timeProvider;
+
+    /// <summary>
+    /// Live stream sources (RTSP cameras, vendor protocols) asked before the <see cref="VideoBackend"/>:
+    /// a <c>&lt;video&gt;</c> source one of them recognises plays as an <see cref="EncodedVideoSession"/>,
+    /// decoded by the backend's <see cref="IVideoStreamDecoderFactory"/>. Every
+    /// <see cref="IEncodedVideoSourceFactory"/> registered in DI, in registration order.
+    /// </summary>
+    public IList<IEncodedVideoSourceFactory> EncodedVideoSources { get; }
 
     /// <summary>
     /// 图片资源加载器。由平台宿主在初始化时从 DI 注入（默认注入内置 <c>ResourceManager</c>）。
@@ -1782,18 +1795,37 @@ public partial class MikoEngine
         }
     }
 
+    /// <summary>
+    /// A live session when a registered <see cref="IEncodedVideoSourceFactory"/> recognises the
+    /// source; null to let the backend play it. Throws when the source is live but the backend has
+    /// no stream decoder (the caller reports it on the element).
+    /// </summary>
+    private IVideoSession? CreateEncodedVideoSession(VideoSourceDescriptor source, VideoSessionOptions options)
+    {
+        foreach (var factory in EncodedVideoSources)
+        {
+            if (!factory.CanOpen(source)) continue;
+            if (VideoBackend is not IVideoStreamDecoderFactory decoders)
+                throw new NotSupportedException(
+                    $"The video backend ({VideoBackend?.GetType().Name}) cannot decode live streams on this platform.");
+            return new EncodedVideoSession(source, factory, decoders, options, _logger, _timeProvider);
+        }
+        return null;
+    }
+
     private void CreateVideoSession(VideoElement video)
     {
         video.SessionSource = video.Source.ToUri();
         video.SessionMimeType = video.MimeType;
         try
         {
-            var session = VideoBackend!.CreateSession(
-                new VideoSourceDescriptor(video.Source.ToUri(), video.MimeType),
-                new VideoSessionOptions(
-                    AutoPlay: video.AutoPlay,
-                    Muted: video.Muted,
-                    Loop: video.Loop));
+            var descriptor = new VideoSourceDescriptor(video.Source.ToUri(), video.MimeType);
+            var options = new VideoSessionOptions(
+                AutoPlay: video.AutoPlay,
+                Muted: video.Muted,
+                Loop: video.Loop);
+            var session = CreateEncodedVideoSession(descriptor, options)
+                ?? VideoBackend!.CreateSession(descriptor, options);
 
             video.Session = session;
             _videoSessions[video] = session;
@@ -1821,11 +1853,11 @@ public partial class MikoEngine
                 OnVideoSessionEvent(video, new VideoSessionEvent.Loaded(session.VideoWidth, session.VideoHeight, session.Duration));
             video.NotifySessionChanged();
 
-            _logger.LogDebug("Video session created for <video src=\"{Src}\">", video.Source.Raw);
+            _logger.LogDebug("Video session created for <video src=\"{Src}\">", EncodedVideoSession.Redact(video.Source.Raw));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create video session for <video src=\"{Src}\">", video.Source.Raw);
+            _logger.LogError(ex, "Failed to create video session for <video src=\"{Src}\">", EncodedVideoSession.Redact(video.Source.Raw));
             video.NotifyPlaybackEvent(new VideoSessionEvent.Error(ex.Message, ex));
         }
     }
@@ -1869,7 +1901,7 @@ public partial class MikoEngine
 
             case VideoSessionEvent.Error error:
                 _logger.LogError(error.Cause, "Video error on <video src=\"{Src}\">: {Message}",
-                    video.Source.Raw, error.Message);
+                    EncodedVideoSession.Redact(video.Source.Raw), error.Message);
                 PostInvalidate(video);
                 break;
 

@@ -12,7 +12,7 @@ tools and templates.
 | [`Miko.DevTools`](https://www.nuget.org/packages/Miko.DevTools) | Runtime debugging tools: DOM and layout tree, console, and resource inspector. Development only. |
 | [`Miko.Simulator`](https://www.nuget.org/packages/Miko.Simulator) | Device simulator host for previewing mobile apps on desktop. Development only. |
 | [`Miko.McpServer`](https://www.nuget.org/packages/Miko.McpServer) | MCP debug server that exposes a running app over localhost. Development only. |
-| [`Miko.Components`](https://www.nuget.org/packages/Miko.Components) | **Preview** — Extended components (native video player, danmaku). APIs may change. |
+| [`Miko.Components`](https://www.nuget.org/packages/Miko.Components) | **Preview** — Extended components (native video player, danmaku, camera, barcode scanner, network camera with pan / tilt). APIs may change. |
 | [`Miko.Charts`](https://www.nuget.org/packages/Miko.Charts) | **Preview** — Animated charts ported from LiveCharts2: cartesian, pie, polar and map. APIs may change. See [Charts](./components/charts.md). |
 | [`Miko.Testing`](https://www.nuget.org/packages/Miko.Testing) | **Preview** — Testing utilities. APIs may change. |
 | [`Miko.Razor.Compiler`](https://www.nuget.org/packages/Miko.Razor.Compiler) | Source generator that compiles `.razor` components and routes. |

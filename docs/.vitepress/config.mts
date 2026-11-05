@@ -131,6 +131,7 @@ export default defineConfig({
           { text: 'Packages', link: '/packages' },
           { text: 'Component Libraries', link: '/components/' },
           { text: 'Charts', link: '/components/charts' },
+          { text: 'Network Camera', link: '/components/webcam' },
           { text: 'MCP Server', link: '/mcp-server' },
           { text: 'Known Limitations', link: '/guide/known-limitations' }
         ]

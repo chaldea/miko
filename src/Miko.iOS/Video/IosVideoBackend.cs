@@ -14,7 +14,7 @@ namespace Miko.iOS.Video;
 /// </para>
 /// <para><b>未经真机运行验证</b>：已在 iOS 27 模拟器（Metal 宿主）中验证本地文件的零拷贝播放，尚未在真机上运行。</para>
 /// </summary>
-public sealed class IosVideoBackend : IVideoBackend
+public sealed class IosVideoBackend : IVideoBackend, IVideoStreamDecoderFactory
 {
     private readonly ILogger _logger;
 
@@ -39,4 +39,9 @@ public sealed class IosVideoBackend : IVideoBackend
         session.Start();
         return session;
     }
+
+    /// <summary>VideoToolbox decodes H.264 and HEVC on every device iOS 11+ runs on.</summary>
+    public bool CanDecode(VideoCodec codec) => codec is VideoCodec.H264 or VideoCodec.H265;
+
+    public IVideoStreamDecoder CreateDecoder(VideoCodec codec) => new IosStreamDecoder(codec, _logger);
 }

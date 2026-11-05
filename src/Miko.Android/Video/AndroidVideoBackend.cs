@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Android.Media;
 using Miko.Platform.Video;
 
 namespace Miko.Android.Video;
@@ -14,7 +15,7 @@ namespace Miko.Android.Video;
 /// </para>
 /// <para><b>未经真机运行验证</b>：本机无 Android 设备/模拟器，此实现仅通过编译验证。</para>
 /// </summary>
-public sealed class AndroidVideoBackend : IVideoBackend
+public sealed class AndroidVideoBackend : IVideoBackend, IVideoStreamDecoderFactory
 {
     private readonly ILogger _logger;
 
@@ -38,4 +39,14 @@ public sealed class AndroidVideoBackend : IVideoBackend
         session.Start();
         return session;
     }
+
+    /// <summary>Whether the device has a decoder for <paramref name="codec"/> (HEVC is missing on some low-end devices).</summary>
+    public bool CanDecode(VideoCodec codec)
+    {
+        string mime = AndroidStreamDecoder.MimeType(codec);
+        using var list = new MediaCodecList(MediaCodecListKind.RegularCodecs);
+        return list.GetCodecInfos().Any(info => !info.IsEncoder && info.GetSupportedTypes().Any(t => t.Equals(mime, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public IVideoStreamDecoder CreateDecoder(VideoCodec codec) => new AndroidStreamDecoder(codec, _logger);
 }
