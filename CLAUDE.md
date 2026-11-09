@@ -232,9 +232,12 @@ The repository uses a single solution file:
 - `Virtualization/`: `Virtualize<TItem>` (ISSUE-151), its slots, size index and items-provider types
 
 **Routing** (`src/Miko/Routing/`)
-- `Router.cs`: Client-side routing with pattern matching
+- `Router.cs`: Client-side routing; `Match(path)` → `RouteMatch` (route + typed values), most specific route first
+- `RouteTemplate.cs`: Blazor route templates (ISSUE-164) — `{id}`, `{id:int}`, `{id?}`, `{*rest}`;
+  `RouteView` assigns the values to the page's `[Parameter]` properties without converting them
+  (a type mismatch throws), and the scroll-snapshot page key adds them to the component type
 - `NavigationManager.cs`: Programmatic navigation
-- `RouteData.cs`: Route parameters and values
+- `RouteData.cs`: A registered route (template + component type)
 
 **Animation** (`src/Miko/Animation/`)
 - `AnimationManager.cs`: Manages keyframe animations and transitions

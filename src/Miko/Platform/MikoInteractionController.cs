@@ -385,9 +385,12 @@ public sealed class MikoInteractionController
     /// <c>/home</c>，同一个首页于是有两个键：离开时把快照存在 <c>/</c> 下，切回来查 <c>/home</c>
     /// 什么也找不到，滚动条照旧被重置。用组件类型做键则两条路径归一。</para>
     ///
+    /// <para>带参数的路由在类型后追加参数值（ISSUE-164）：<c>/user/1</c> 与 <c>/user/2</c> 是同一个
+    /// 组件的不同内容，共用一个键会让从一个详情页进入另一个时恢复成前一个的滚动位置。</para>
+    ///
     /// <para>解析不出（路径未注册）时返回 null，引擎回落到用路径本身做键——与改动前的行为一致。</para>
     /// </summary>
-    private string? ResolvePageKey(string path) => _router?.Resolve(path)?.FullName;
+    private string? ResolvePageKey(string path) => _router?.ResolvePageKey(path);
 
     /// <summary>
     /// 帧间隔上限（秒）。超过该间隔说明期间没有出帧——稳态空闲（ISSUE-096）下宿主跳帧休眠，

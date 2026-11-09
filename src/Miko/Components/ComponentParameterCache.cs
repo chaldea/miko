@@ -6,7 +6,8 @@ namespace Miko.Components;
 /// <summary>
 /// Per-component-type cache of the reflection needed to populate
 /// <see cref="CascadingParameterAttribute"/> and <see cref="InjectAttribute"/> properties
-/// (ISSUE-136).
+/// (ISSUE-136), and the <see cref="ParameterAttribute"/> properties that route values are
+/// assigned to (ISSUE-164).
 ///
 /// <para>Without it, <see cref="ComponentBase.Build"/> ran
 /// <c>GetProperties(Public | NonPublic | Instance)</c> plus a
@@ -46,7 +47,7 @@ internal static class ComponentParameterCache
         public string? Name { get; }
     }
 
-    private sealed record Descriptor(ParameterSetter[] Cascading, ParameterSetter[] Injected);
+    private sealed record Descriptor(ParameterSetter[] Cascading, ParameterSetter[] Injected, ParameterSetter[] Parameters);
 
     // 以类型为键，全进程共享。组件类型数量有限且生命周期与程序集相同，故用普通字典 +
     // 读多写少的复制写入，避免每次渲染都走锁。
@@ -60,6 +61,10 @@ internal static class ComponentParameterCache
     internal static ParameterSetter[] GetInjectedProperties(
         [DynamicallyAccessedMembers(ComponentTypeMembers.Parameters)] Type type)
         => GetDescriptor(type).Injected;
+
+    internal static ParameterSetter[] GetParameters(
+        [DynamicallyAccessedMembers(ComponentTypeMembers.Parameters)] Type type)
+        => GetDescriptor(type).Parameters;
 
     private static Descriptor GetDescriptor(
         [DynamicallyAccessedMembers(ComponentTypeMembers.Parameters)] Type type)
@@ -86,6 +91,7 @@ internal static class ComponentParameterCache
     {
         List<ParameterSetter>? cascading = null;
         List<ParameterSetter>? injected = null;
+        List<ParameterSetter>? parameters = null;
 
         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         foreach (var prop in properties)
@@ -103,11 +109,17 @@ internal static class ComponentParameterCache
             {
                 (injected ??= new()).Add(new ParameterSetter(prop, CreateSetter(prop), null));
             }
+
+            if (prop.GetCustomAttribute<ParameterAttribute>() != null)
+            {
+                (parameters ??= new()).Add(new ParameterSetter(prop, CreateSetter(prop), null));
+            }
         }
 
         return new Descriptor(
             cascading?.ToArray() ?? [],
-            injected?.ToArray() ?? []);
+            injected?.ToArray() ?? [],
+            parameters?.ToArray() ?? []);
     }
 
     /// <summary>
