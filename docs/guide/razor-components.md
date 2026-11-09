@@ -271,6 +271,61 @@ into `Pages/` and it is wired up by the source generator when you call
 `UseGeneratedRoutes()`. A component may declare several `@page` directives to answer on more
 than one route.
 
+### Route parameters
+
+Route templates use Blazor's syntax. A segment in braces is a parameter, and its value is
+assigned to the page's `[Parameter]` property of the same name (case-insensitive) before
+`OnInitialized` runs:
+
+```razor
+@page "/user/{id:int}/{option:bool?}"
+@page "/catch-all/{*pageRoute}"
+
+<p>User @Id, option @Option, rest @PageRoute</p>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Parameter] public bool Option { get; set; }
+    [Parameter] public string? PageRoute { get; set; }
+}
+```
+
+| Syntax | Matches | Value |
+| --- | --- | --- |
+| `{id}` | any one segment | `string` |
+| `{id:int}` | a segment the constraint accepts | the constraint's type |
+| `{id?}` / `{id:int?}` | the segment, or nothing | not assigned when absent: the property keeps its initializer |
+| `{*rest}` | the rest of the path, zero or more segments | `string` (`a/b/c`), not assigned when empty |
+
+Constraints: `bool`, `datetime`, `decimal`, `double`, `float`, `guid`, `int`, `long`. Numbers and
+dates are parsed with the invariant culture, so `/price/19.99` means the same on every device. A
+value its constraint rejects means the route does not match — also for an optional parameter
+(`/user/1/maybe` does not match the template above).
+
+Values are not converted: the constraint decides the type, which must be assignable to the
+property (`int` also fits `int?`). An unconstrained `{id}` is a `string`, so it cannot fill an
+`int Id` — give it `{id:int}`. A mismatch, or a route parameter the page has no `[Parameter]`
+property for, throws when the page is rendered, naming the template and the property.
+
+More rules, all as in Blazor:
+
+- Segments are URL-decoded; the query string and fragment are ignored (`/user/1?tab=posts`
+  is `/user/1`), and literal segments compare case-insensitively.
+- Optional parameters can only be followed by optional parameters or a catch-all, and the
+  catch-all must be the last segment. An invalid template throws when the route is registered.
+- When several routes match, the most specific wins whatever the registration order: per
+  segment, a literal beats a constrained parameter, which beats an unconstrained one, which
+  beats a catch-all; then the template with fewer segments wins. `/user/new` therefore wins
+  over `/user/{id:int}`, which wins over `/user/{name}`.
+
+Each navigation renders a new page instance, so going from `/user/1` to `/user/2` runs
+`OnInitialized` again with the new values. The two keep separate scroll positions: a routed
+page's scroll snapshot is keyed by its component type plus its parameter values.
+
+The same templates work in `[Route("…")]` attributes and in `router.MapRoute<TPage>("…")`
+(through `UseRouter(Action<Router>)`). `Router.Match(path)` returns the matched route and the
+typed values, for code that needs them outside a page.
+
 Navigate programmatically by injecting `NavigationManager`:
 
 ```razor

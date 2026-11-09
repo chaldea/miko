@@ -1,0 +1,16 @@
+@page "/razor-user/{id:int}/{option:bool?}"
+@page "/razor-catch-all/{*pageRoute}"
+@namespace Miko.Razor.Tests
+@using Miko.Components
+@* ISSUE-164: the templates from the issue, registered by the generated RegisterRoutes. *@
+<div class="route-page">
+    <span class="route-id">@Id</span>
+    <span class="route-option">@Option</span>
+    <span class="route-rest">@(PageRoute ?? "(none)")</span>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Parameter] public bool Option { get; set; }
+    [Parameter] public string? PageRoute { get; set; }
+}
