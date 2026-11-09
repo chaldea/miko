@@ -179,8 +179,14 @@ public class EventDispatcher
             case EventTypes.KeyDown when args is KeyboardEventArgs keyArgs:
                 element.OnKeyDown?.Invoke(keyArgs);
                 break;
+            case EventTypes.KeyUp when args is KeyboardEventArgs keyArgs:
+                element.OnKeyUp?.Invoke(keyArgs);
+                break;
             case EventTypes.Input when args is InputEventArgs inputArgs:
                 element.OnInput?.Invoke(inputArgs);
+                break;
+            case EventTypes.Wheel when args is WheelEventArgs wheelArgs:
+                element.OnWheel?.Invoke(wheelArgs);
                 break;
         }
     }

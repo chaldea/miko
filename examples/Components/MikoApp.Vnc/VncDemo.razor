@@ -1,0 +1,17 @@
+@namespace MikoApp.Vnc
+
+@* The viewer fills the page. Without VNC_HOST it shows its connect form. *@
+<MikoVnc @ref="_vnc" Host="@Host" Port="@Port" Password="@Password" Texts="@VncTexts.Chinese" Style="@FillStyle" />
+
+@code {
+    [Parameter] public string? Host { get; set; }
+    [Parameter] public int Port { get; set; } = 5900;
+    [Parameter] public string? Password { get; set; }
+
+    private MikoVnc? _vnc;
+
+    /// <summary>The viewer on the page, once built (the desktop head's offscreen verification drives it).</summary>
+    public MikoVnc? Vnc => _vnc;
+
+    private static readonly Style FillStyle = new() { Width = Length.Percent(100), Height = Length.Percent(100) };
+}

@@ -45,7 +45,7 @@ Every element accepts these attributes:
 | `style` | `Style` |
 | `disabled` | `Disabled` |
 
-Event attributes (`@onclick="Handler"` etc.): `@onclick`, `@onmouseenter`, `@onmouseleave`, `@onmousedown`, `@onmouseup`, `@onmousemove`, `@onpointerdown`, `@onpointerup`, `@onpointermove`, `@onpointercancel`, `@onlongpress`, `@onfocus`, `@onblur`, `@onchange`, `@onscroll`, `@onkeydown`, `@oninput`.
+Event attributes (`@onclick="Handler"` etc.): `@onclick`, `@onmouseenter`, `@onmouseleave`, `@onmousedown`, `@onmouseup`, `@onmousemove`, `@onpointerdown`, `@onpointerup`, `@onpointermove`, `@onpointercancel`, `@onlongpress`, `@onfocus`, `@onblur`, `@onchange`, `@onscroll`, `@onkeydown`, `@onkeyup`, `@oninput`, `@onwheel`.
 
 | Tag | Element class | Extra attributes | Binding |
 | --- | --- | --- | --- |

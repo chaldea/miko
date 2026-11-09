@@ -52,6 +52,11 @@ public sealed class MikoInteractionController
     private int _activePointerId = 1;
     private bool _pointerMoved;
     private bool _longPressFired;
+    // pointerdown / mousedown of the current press had preventDefault(): the press does not move
+    // focus (as in the browser), so a component can take focus in its own handler and keep it.
+    private bool _pointerDownDefaultPrevented;
+    // Targets of the middle and right buttons while held (they get down / up only, never click).
+    private Element? _middleDownTarget, _rightDownTarget;
     private CancellationTokenSource? _longPressCancellation;
     private Cursor _currentCursor = Cursor.Default;
 
@@ -585,6 +590,11 @@ public sealed class MikoInteractionController
     // 指针输入（坐标为已根据像素密度换算后的逻辑坐标）
     // ---------------------------------------------------------------------
 
+    /// <summary>
+    /// 指针按下。主键（左键 / 触摸）驱动点击、焦点、拖动、长按与滚动手势；中键与右键只向命中元素派发
+    /// pointerdown / mousedown（<see cref="MouseEventArgs.Button"/> 标明是哪个键），松开时向同一元素派发
+    /// pointerup / mouseup，不产生 click、不移动焦点——与浏览器相同，组件按 <c>Button</c> 区分。
+    /// </summary>
     public void OnPointerDown(
         float x,
         float y,
@@ -592,7 +602,11 @@ public sealed class MikoInteractionController
         PointerType pointerType = PointerType.Mouse,
         int pointerId = 1)
     {
-        if (button != MouseButton.Left) return;
+        if (button != MouseButton.Left)
+        {
+            OnAuxiliaryButtonDown(x, y, button, pointerType, pointerId);
+            return;
+        }
         lock (_sync)
         {
             _mouseDownPosition = new System.Numerics.Vector2(x, y);
@@ -603,6 +617,7 @@ public sealed class MikoInteractionController
             _activePointerId = pointerId;
             _pointerMoved = false;
             _longPressFired = false;
+            _pointerDownDefaultPrevented = false;
             CancelLongPress();
             _scrollGestureBehavior?.PointerDown(x, y);
 
@@ -629,8 +644,11 @@ public sealed class MikoInteractionController
             {
                 _pointerDownTarget = target;
                 _pointerDownBounds = GetRenderedBorderBox(target);
-                DispatchPointerPair(target, EventTypes.PointerDown, EventTypes.MouseDown,
-                    x, y, button, isButtonPressed: true, _pointerDownBounds);
+                var downArgs = DispatchPointerEvent(target, EventTypes.PointerDown, x, y, button, isButtonPressed: true,
+                    _pointerDownBounds, _activePointerType, _activePointerId);
+                var mouseDownArgs = DispatchPointerEvent(target.ResolveSuperseded(), EventTypes.MouseDown, x, y, button,
+                    isButtonPressed: true, _pointerDownBounds, _activePointerType, _activePointerId);
+                _pointerDownDefaultPrevented = downArgs.DefaultPrevented || mouseDownArgs.DefaultPrevented;
                 ScheduleLongPress();
             }
 
@@ -650,7 +668,11 @@ public sealed class MikoInteractionController
         PointerType pointerType = PointerType.Mouse,
         int pointerId = 1)
     {
-        if (button != MouseButton.Left) return;
+        if (button != MouseButton.Left)
+        {
+            OnAuxiliaryButtonUp(x, y, button, pointerType, pointerId);
+            return;
+        }
         lock (_sync)
         {
             if (_pointerDownTarget != null && pointerId != _activePointerId) return;
@@ -840,15 +862,68 @@ public sealed class MikoInteractionController
     }
 
     /// <summary>
-    /// 滚动。<paramref name="deltaX"/>/<paramref name="deltaY"/> 为像素增量
-    /// （平台实现层负责将滚轮单位换算为像素）。
+    /// 滚动（鼠标滚轮、触控板）。<paramref name="deltaX"/>/<paramref name="deltaY"/> 为像素增量
+    /// （平台实现层负责将滚轮单位换算为像素）。先向指针下的元素派发冒泡的 <c>wheel</c>；
+    /// 处理器 preventDefault 后不再滚动任何容器（与 DOM 相同）。
     /// </summary>
     public void OnScroll(float x, float y, float deltaX, float deltaY)
     {
         lock (_sync)
         {
             _logger.LogTrace("OnScroll: pos=({PosX}, {PosY}), delta=({DeltaX}, {DeltaY})", x, y, deltaX, deltaY);
+            if (_engine.HitTest(x, y) is { } target)
+            {
+                var rect = GetRenderedBorderBox(target) ?? default;
+                var wheel = new WheelEventArgs
+                {
+                    Target = target,
+                    X = x,
+                    Y = y,
+                    OffsetX = x - rect.Left,
+                    OffsetY = y - rect.Top,
+                    TargetWidth = rect.Width,
+                    TargetHeight = rect.Height,
+                    ViewportWidth = _engine.ViewportWidth,
+                    ViewportHeight = _engine.ViewportHeight,
+                    DeltaX = deltaX,
+                    DeltaY = deltaY,
+                    Bubbles = true,
+                };
+                DispatchWithSyncContext(target, EventTypes.Wheel, wheel);
+                if (wheel.DefaultPrevented) return;
+            }
             _scrollBehavior.ScrollBy(_engine, x, y, deltaX, deltaY);
+        }
+    }
+
+    // Middle / right button: down and up go to the element under the pointer at the press (as the primary
+    // button's are captured), nothing else happens — no click, no focus change, no drag or scroll gesture.
+    private void OnAuxiliaryButtonDown(float x, float y, MouseButton button, PointerType pointerType, int pointerId)
+    {
+        lock (_sync)
+        {
+            var target = _engine.HitTest(x, y);
+            if (button == MouseButton.Middle) _middleDownTarget = target;
+            else _rightDownTarget = target;
+            if (target == null) return;
+            var bounds = GetRenderedBorderBox(target);
+            DispatchPointerEvent(target, EventTypes.PointerDown, x, y, button, isButtonPressed: true, bounds, pointerType, pointerId);
+            DispatchPointerEvent(target.ResolveSuperseded(), EventTypes.MouseDown, x, y, button, isButtonPressed: true, bounds, pointerType, pointerId);
+        }
+    }
+
+    private void OnAuxiliaryButtonUp(float x, float y, MouseButton button, PointerType pointerType, int pointerId)
+    {
+        lock (_sync)
+        {
+            var target = (button == MouseButton.Middle ? _middleDownTarget : _rightDownTarget)?.ResolveSuperseded()
+                ?? _engine.HitTest(x, y);
+            if (button == MouseButton.Middle) _middleDownTarget = null;
+            else _rightDownTarget = null;
+            if (target == null) return;
+            var bounds = GetRenderedBorderBox(target);
+            DispatchPointerEvent(target, EventTypes.PointerUp, x, y, button, isButtonPressed: false, bounds, pointerType, pointerId);
+            DispatchPointerEvent(target.ResolveSuperseded(), EventTypes.MouseUp, x, y, button, isButtonPressed: false, bounds, pointerType, pointerId);
         }
     }
 
@@ -921,7 +996,11 @@ public sealed class MikoInteractionController
         else
         {
             CloseAllSelects();
-            SetFocusCore(null);
+            // A press whose pointerdown / mousedown was preventDefault()-ed does not move focus
+            // (the browser's rule). A component can then focus its own keyboard target in the handler —
+            // a remote screen, a custom editor — or keep the soft keyboard open across taps.
+            if (!_pointerDownDefaultPrevented)
+                SetFocusCore(null);
         }
     }
 
@@ -1185,45 +1264,62 @@ public sealed class MikoInteractionController
                 if (handler(key)) return true;
             }
 
-            if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return false;
-            var editableElement = (Element)editable;
-
-            var keyName = key.ToString();
-            bool ctrl = mods.HasFlag(MikoKeyModifiers.Control);
-
-            var keyArgs = new KeyboardEventArgs
-            {
-                Target = editableElement,
-                Key = keyName,
-                CtrlKey = ctrl,
-                ShiftKey = mods.HasFlag(MikoKeyModifiers.Shift),
-                AltKey = mods.HasFlag(MikoKeyModifiers.Alt),
-                Bubbles = true
-            };
-            DispatchWithSyncContext(editableElement, EventTypes.KeyDown, keyArgs);
-
+            var keyArgs = DispatchKey(EventTypes.KeyDown, key, mods, repeat: false);
+            if (keyArgs == null) return false;
             if (!keyArgs.DefaultPrevented)
                 ProcessKeyAction(key);
             return keyArgs.DefaultPrevented;
         }
     }
 
-    /// <summary>键释放（当前无状态需要清理，保留以备扩展与对称性）。</summary>
+    /// <summary>键释放：向聚焦的文本控件派发冒泡的 <c>keyup</c>（键按下派发 keydown 的同一目标）。</summary>
     public void OnKeyUp(MikoKey key, MikoKeyModifiers mods)
     {
+        lock (_sync)
+        {
+            DispatchKey(EventTypes.KeyUp, key, mods, repeat: false);
+        }
     }
 
     /// <summary>该按键在按住时是否应触发重复（用于平台层的按键重复定时）。</summary>
     public static bool IsRepeatableKey(MikoKey key) => key is
-        MikoKey.Backspace or MikoKey.Delete or MikoKey.Left or MikoKey.Right or MikoKey.Home or MikoKey.End;
+        MikoKey.Backspace or MikoKey.Delete or MikoKey.Left or MikoKey.Right or MikoKey.Home or MikoKey.End or
+        MikoKey.Up or MikoKey.Down or MikoKey.PageUp or MikoKey.PageDown;
 
-    /// <summary>由平台层在按键重复时调用，重新执行编辑动作。</summary>
+    /// <summary>
+    /// 由平台层在按键重复时调用：再派发一次 keydown（<see cref="KeyboardEventArgs.Repeat"/> 为 true），
+    /// 未被 preventDefault 时重新执行编辑动作——与浏览器的按住重复相同。
+    /// </summary>
     public void RepeatKey(MikoKey key)
     {
         lock (_sync)
         {
-            ProcessKeyAction(key);
+            var keyArgs = DispatchKey(EventTypes.KeyDown, key, MikoKeyModifiers.None, repeat: true);
+            if (keyArgs is not { DefaultPrevented: true })
+                ProcessKeyAction(key);
         }
+    }
+
+    // keydown / keyup go to the focused text control (an editor, or a component's keyboard target that
+    // implements ITextEditable); null when nothing editable has focus.
+    private KeyboardEventArgs? DispatchKey(string eventType, MikoKey key, MikoKeyModifiers mods, bool repeat)
+    {
+        if (FocusedElement is not ITextEditable { IsEditable: true } editable) return null;
+        var element = (Element)editable;
+        var keyArgs = new KeyboardEventArgs
+        {
+            Target = element,
+            Key = key.ToString(),
+            Code = key,
+            CtrlKey = mods.HasFlag(MikoKeyModifiers.Control),
+            ShiftKey = mods.HasFlag(MikoKeyModifiers.Shift),
+            AltKey = mods.HasFlag(MikoKeyModifiers.Alt),
+            MetaKey = mods.HasFlag(MikoKeyModifiers.Meta),
+            Repeat = repeat,
+            Bubbles = true,
+        };
+        DispatchWithSyncContext(element, eventType, keyArgs);
+        return keyArgs;
     }
 
     private void ProcessKeyAction(MikoKey key)
@@ -1828,6 +1924,8 @@ public sealed class MikoInteractionController
         _isDragging = false;
         _draggingRange = null;
         _draggingScrollbar = null;
+        _middleDownTarget = null;
+        _rightDownTarget = null;
     }
 
     private static LayoutBox? FindLayoutBoxRecursive(LayoutBox box, Element element)

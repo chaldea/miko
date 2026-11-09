@@ -819,7 +819,7 @@ public class MikoSurfaceView : GLSurfaceView
             /// </summary>
             public override bool SendKeyEvent(KeyEvent? e)
             {
-                if (e == null || e.Action != KeyEventActions.Down) return true;
+                if (e == null || e.Action is not (KeyEventActions.Down or KeyEventActions.Up)) return true;
 
                 var key = e.KeyCode switch
                 {
@@ -828,10 +828,29 @@ public class MikoSurfaceView : GLSurfaceView
                     Keycode.Enter or Keycode.NumpadEnter => MikoKey.Enter,
                     Keycode.DpadLeft => MikoKey.Left,
                     Keycode.DpadRight => MikoKey.Right,
+                    Keycode.DpadUp => MikoKey.Up,
+                    Keycode.DpadDown => MikoKey.Down,
                     Keycode.MoveHome => MikoKey.Home,
                     Keycode.MoveEnd => MikoKey.End,
+                    Keycode.PageUp => MikoKey.PageUp,
+                    Keycode.PageDown => MikoKey.PageDown,
+                    Keycode.Tab => MikoKey.Tab,
+                    Keycode.Escape => MikoKey.Escape,
+                    Keycode.Insert => MikoKey.Insert,
                     _ => null,
                 };
+
+                // The release goes to keyup (components that hold keys — a remote desktop — need it);
+                // text-producing keys commit on the press only.
+                if (e.Action == KeyEventActions.Up)
+                {
+                    if (key.HasValue)
+                    {
+                        _owner._controller.OnKeyUp(key.Value, MikoKeyModifiers.None);
+                        _owner.RequestFrame();
+                    }
+                    return true;
+                }
 
                 if (key.HasValue)
                 {

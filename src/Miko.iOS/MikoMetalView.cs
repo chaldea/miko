@@ -268,7 +268,9 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
 
     public void DeleteBackward()
     {
+        // The soft keyboard reports a tap, not a press and a release: send both.
         _controller.OnKeyDown(MikoKey.Backspace, MikoKeyModifiers.None);
+        _controller.OnKeyUp(MikoKey.Backspace, MikoKeyModifiers.None);
         SetNeedsDisplay();
     }
 

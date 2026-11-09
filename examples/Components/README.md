@@ -122,6 +122,36 @@ SIMCTL_CHILD_EZVIZ_DEVICE='ezopen://…' SIMCTL_CHILD_EZVIZ_APP_KEY=… SIMCTL_C
 
 The emulator and the simulator reach the camera through the host's network.
 
+# VNC Remote Desktop Examples
+
+`MikoApp.Vnc` is a full-page `MikoVnc` (`VncDemo.razor`). The server comes from the environment and is never
+in source:
+
+| Variable | |
+| --- | --- |
+| `VNC_HOST` | `host`, `host:display` or `host::port`. Without it the viewer shows its connect form. |
+| `VNC_PASSWORD` | Optional. Without it the viewer asks when the server needs a password. |
+
+| Project | Contents |
+| --- | --- |
+| `MikoApp.Vnc` | Shared page and configuration (`App.CreateContext`). |
+| `MikoApp.Vnc.Desktop` | Windows / macOS / Linux window. `--verify <dir>` runs the real app offscreen against `VNC_HOST`: it saves the desktop, the toolbar panels, the zoomed view and a phone-width frame, then connects once per encoding and compares each decoded screen with the Raw one. It only moves the pointer on the remote machine. |
+| `MikoApp.Vnc.Android` | `UseAndroidNative()`, `AdjustResize`; the variables are passed as launch extras. |
+| `MikoApp.Vnc.iOS` | `UseIosNative()`; `NSLocalNetworkUsageDescription` in `Info.plist`. |
+
+```sh
+export VNC_HOST=192.168.1.20 VNC_PASSWORD=…
+dotnet run --project examples/Components/MikoApp.Vnc.Desktop
+dotnet run --project examples/Components/MikoApp.Vnc.Desktop -- --verify /tmp/vnc
+
+dotnet build examples/Components/MikoApp.Vnc.Android -t:Install
+adb shell am start -n com.miko.vncdemo/crc….MainActivity -e VNC_HOST 192.168.1.20 -e VNC_PASSWORD …
+
+dotnet build examples/Components/MikoApp.Vnc.iOS -r iossimulator-arm64 -p:ValidateXcodeVersion=false
+xcrun simctl install booted examples/Components/MikoApp.Vnc.iOS/bin/Debug/net10.0-ios/iossimulator-arm64/MikoApp.Vnc.iOS.app
+SIMCTL_CHILD_VNC_HOST=192.168.1.20 xcrun simctl launch booted com.miko.vncdemo
+```
+
 # Chart Examples
 
 `MikoApp.Charts` is the `Miko.Charts` gallery (`ChartsDemo.razor`): a live line chart (timer, add and
@@ -145,4 +175,4 @@ dotnet test tests/Miko.Components.Tests
 dotnet test tests/Miko.Charts.Tests
 ```
 
-See the implementation and verification notes of the [player](../../src/Miko.Components/Player/DESIGN.md) and the [webcam](../../src/Miko.Components/Webcam/DESIGN.md).
+See the implementation and verification notes of the [player](../../src/Miko.Components/Player/DESIGN.md), the [webcam](../../src/Miko.Components/Webcam/DESIGN.md) and the [VNC viewer](../../src/Miko.Components/Vnc/DESIGN.md).

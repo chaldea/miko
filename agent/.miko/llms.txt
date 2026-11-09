@@ -123,6 +123,7 @@ Miko renders Razor components natively with SkiaSharp. It looks like web develop
 - [Using the Engine Directly](docs/engine/direct-api.md): building the element tree in C# without Razor.
 - [Custom Drawing](docs/engine/drawing.md): `IDrawingContext`, `<canvas>` painting, paths and paints, offscreen surfaces and graphics devices.
 - [Charts](docs/components/charts.md): `Miko.Charts` — `CartesianChart`, `PieChart`, `PolarChart`, `GeoMap` (LiveCharts2 port), `AddMikoCharts()`.
+- [Remote Desktop](docs/components/vnc.md): `MikoVnc` (Miko.Components) — VNC client (RFB 3.3–3.8, VNC / Tight auth, Tight / ZRLE / Hextile…), password dialog, connect form, keys bar, touch gestures; `VncClient` for headless use.
 - [Network Camera](docs/components/webcam.md): `MikoWebcam` (Miko.Components) — live picture, pan / tilt disk, snapshot / privacy / flip; `IWebcamProvider` (Ezviz built in, `AddMikoWebcam()`); `rtsp://` in `<video>` (`AddMikoRtsp()`); private protocols via `IEncodedVideoSourceFactory`.
 - [Packages](docs/packages.md): the NuGet packages and platform hosts.
 - [Examples](docs/examples.md): the sample apps in the Miko repository.

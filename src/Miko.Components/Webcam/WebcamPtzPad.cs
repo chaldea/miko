@@ -46,7 +46,7 @@ internal sealed class WebcamPtzPad
             Paint = Draw,
             OnPointerDown = OnPointerDown,
             OnPointerMove = e => { if (Pressed != null) { e.PreventDefault(); e.StopPropagation(); } },
-            OnPointerUp = _ => Release(),
+            OnPointerUp = e => { if (e.Button == MouseButton.Left) Release(); },
             OnPointerCancel = _ => Release(),
             OnClick = e => e.StopPropagation(),
         };
@@ -87,7 +87,7 @@ internal sealed class WebcamPtzPad
 
     private void OnPointerDown(PointerEventArgs e)
     {
-        if (!Enabled) return;
+        if (!Enabled || e.Button != MouseButton.Left) return;
         var direction = HitTest(e.OffsetX, e.OffsetY, Math.Min(e.TargetWidth, e.TargetHeight));
         if (direction is null || !Allows(direction.Value)) return;
         e.PreventDefault();

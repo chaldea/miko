@@ -18,5 +18,7 @@ namespace Miko.Components;
 [EventHandler("onchange",     typeof(ChangeEventArgs))]
 [EventHandler("onscroll",     typeof(ScrollEventArgs))]
 [EventHandler("onkeydown",    typeof(KeyboardEventArgs), true, true)]
+[EventHandler("onkeyup",      typeof(KeyboardEventArgs), true, true)]
 [EventHandler("oninput",      typeof(InputEventArgs))]
+[EventHandler("onwheel",      typeof(WheelEventArgs),    true, true)]
 public static class EventHandlers { }

@@ -36,6 +36,39 @@ public static class SilkKeyMap
         Key.F10 => MikoKey.F10,
         Key.F11 => MikoKey.F11,
         Key.F12 => MikoKey.F12,
+        Key.Up => MikoKey.Up,
+        Key.Down => MikoKey.Down,
+        Key.PageUp => MikoKey.PageUp,
+        Key.PageDown => MikoKey.PageDown,
+        Key.Insert => MikoKey.Insert,
+        Key.SuperLeft => MikoKey.MetaLeft,
+        Key.SuperRight => MikoKey.MetaRight,
+        Key.CapsLock => MikoKey.CapsLock,
+        Key.NumLock => MikoKey.NumLock,
+        Key.ScrollLock => MikoKey.ScrollLock,
+        Key.PrintScreen => MikoKey.PrintScreen,
+        Key.Pause => MikoKey.Pause,
+        Key.Menu => MikoKey.Menu,
+        Key.Space => MikoKey.Space,
+        >= Key.A and <= Key.Z => MikoKey.A + (key - Key.A),
+        >= Key.Number0 and <= Key.Number9 => MikoKey.D0 + (key - Key.Number0),
+        Key.GraveAccent => MikoKey.Grave,
+        Key.Minus => MikoKey.Minus,
+        Key.Equal => MikoKey.Equal,
+        Key.LeftBracket => MikoKey.LeftBracket,
+        Key.RightBracket => MikoKey.RightBracket,
+        Key.BackSlash => MikoKey.Backslash,
+        Key.Semicolon => MikoKey.Semicolon,
+        Key.Apostrophe => MikoKey.Apostrophe,
+        Key.Comma => MikoKey.Comma,
+        Key.Period => MikoKey.Period,
+        Key.Slash => MikoKey.Slash,
+        >= Key.Keypad0 and <= Key.Keypad9 => MikoKey.Keypad0 + (key - Key.Keypad0),
+        Key.KeypadDecimal => MikoKey.KeypadDecimal,
+        Key.KeypadDivide => MikoKey.KeypadDivide,
+        Key.KeypadMultiply => MikoKey.KeypadMultiply,
+        Key.KeypadSubtract => MikoKey.KeypadSubtract,
+        Key.KeypadAdd => MikoKey.KeypadAdd,
         _ => MikoKey.Unknown,
     };
 
@@ -48,6 +81,8 @@ public static class SilkKeyMap
             modifiers |= MikoKeyModifiers.Shift;
         if (keyboard.IsKeyPressed(Key.AltLeft) || keyboard.IsKeyPressed(Key.AltRight))
             modifiers |= MikoKeyModifiers.Alt;
+        if (keyboard.IsKeyPressed(Key.SuperLeft) || keyboard.IsKeyPressed(Key.SuperRight))
+            modifiers |= MikoKeyModifiers.Meta;
         return modifiers;
     }
 

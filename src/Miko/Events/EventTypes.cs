@@ -21,5 +21,9 @@ public static class EventTypes
     public const string Change = "change";
     public const string Scroll = "scroll";
     public const string KeyDown = "keydown";
+    public const string KeyUp = "keyup";
     public const string Input = "input";
+
+    /// <summary>Mouse wheel / trackpad scroll over an element, before it scrolls anything (cancelable).</summary>
+    public const string Wheel = "wheel";
 }

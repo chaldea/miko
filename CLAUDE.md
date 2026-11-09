@@ -734,6 +734,39 @@ the app delivers compressed access units and the platform only decodes:
   `MikoWebcam` with the Ezviz provider (`AddMikoWebcam()`). See `src/Miko.Components/Webcam/DESIGN.md`
   for why Ezviz's own stream protocol (closed native SDK) is replaced by the camera's LAN RTSP.
 
+### Remote desktop (MikoVnc) and raw input
+
+`Miko.Components/Vnc` is a VNC client (issues/feat-components-vnc.md). User docs: `docs/components/vnc.md`;
+decision and verification record: `src/Miko.Components/Vnc/DESIGN.md`.
+
+- **Everything is managed, no package**: RFB 3.3–3.8 (`Protocol/VncClient`), None / VNC / Tight security,
+  Raw / CopyRect / RRE / Hextile / Zlib / ZRLE / Tight. `ZlibInflater` decodes the connection-long zlib
+  streams piece by piece (BCL `DeflateStream` cannot, and is native underneath); `VncDes` does the challenge
+  (platform DES is missing on OpenSSL 3 defaults and WASM); Tight JPEG goes through `IGraphicsFactory.DecodeImage`.
+- The client format is fixed (32 bpp, red << 16): a wire pixel is `Bgrx8888`. ZRLE CPIXEL is B, G, R but
+  Tight TPIXEL is R, G, B. `VncFramebuffer` is lock-free: writes bump 128 × 128 tile versions, the view
+  re-uploads only changed tiles. Pointer moves coalesce in the send queue, but a message whose buttons
+  differ from the previous one is never replaced (a drag's press must land where it was sent).
+- `VncScreen` is an `ITextEditable` that never holds text: that is how it receives keys, typed text,
+  IME commits and the soft keyboard through the existing pipeline. Printable keys are sent from their
+  text; named keys and Ctrl / Alt / Meta shortcuts from `KeyboardEventArgs.Code`.
+- A locked Windows server turns its display off and TightVNC then captures black; a pointer move wakes
+  it. Verification against a real server only moves the pointer (it is someone's desktop).
+
+Core input added for it (browser semantics, any component can use it):
+
+- Middle / right buttons dispatch pointerdown / mousedown and pointerup / mouseup to the element under
+  the press (`Button` set), never click, never move focus. Drag-starting handlers must check
+  `Button == MouseButton.Left` (Ionic's did; range, refresher, webcam pad and player sliders were fixed).
+- `wheel` (`OnWheel` / `@onwheel`, `WheelEventArgs`) goes to the hit element before any container
+  scrolls; `PreventDefault` cancels the scroll.
+- `keyup` (`OnKeyUp` / `@onkeyup`) and `KeyboardEventArgs.Code` / `MetaKey` / `Repeat` reach the focused
+  `ITextEditable`; `RepeatKey` dispatches a repeat keydown first. `MikoKey` gained the full keyboard
+  (appended: existing values keep their numbers) and `MikoKeyModifiers.Meta`; `SilkKeyMap` maps them.
+- A pointerdown / mousedown with `PreventDefault()` does not change focus on its click (the browser rule):
+  how a custom keyboard target keeps focus, and how taps keep a phone's soft keyboard up.
+- `Cursor.None` (`cursor: none`) hides the system cursor on the Silk host (`CursorMode.Hidden`).
+
 ### Native Capabilities
 
 `Miko.Native` defines 17 capability interfaces (app, browser, camera, clipboard, device,

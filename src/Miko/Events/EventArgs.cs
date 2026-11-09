@@ -149,10 +149,34 @@ public enum MouseButton
 /// </summary>
 public class KeyboardEventArgs : MikoEventArgs
 {
+    /// <summary>The key's name: the <see cref="Platform.MikoKey"/> member name (<c>"Backspace"</c>, <c>"Left"</c>, <c>"A"</c>).</summary>
     public string Key { get; init; } = string.Empty;
+
+    /// <summary>The physical key (US layout names; what is typed arrives separately as text input).</summary>
+    public Platform.MikoKey Code { get; init; }
+
     public bool CtrlKey { get; init; }
     public bool ShiftKey { get; init; }
     public bool AltKey { get; init; }
+
+    /// <summary>The Windows key / ⌘ Command is held.</summary>
+    public bool MetaKey { get; init; }
+
+    /// <summary>A key-down produced by holding the key (the host's key repeat).</summary>
+    public bool Repeat { get; init; }
+}
+
+/// <summary>
+/// 滚轮事件参数（鼠标滚轮、触控板双指滑动）。在滚动容器滚动之前派发给指针下的元素；
+/// 处理器 <see cref="MikoEventArgs.PreventDefault"/> 后不再滚动（与 DOM 的 <c>wheel</c> 相同）。
+/// </summary>
+public class WheelEventArgs : MouseEventArgs
+{
+    /// <summary>Horizontal amount in pixels; positive scrolls right. A mouse wheel notch is 40 px on the desktop hosts.</summary>
+    public float DeltaX { get; init; }
+
+    /// <summary>Vertical amount in pixels; positive scrolls down (content moves up).</summary>
+    public float DeltaY { get; init; }
 }
 
 /// <summary>
