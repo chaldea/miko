@@ -354,7 +354,7 @@ public sealed partial class MikoPlayer : ComponentBase, IDisposable
         _progress.Paint = DrawProgress;
         _progress.OnPointerDown = e =>
         {
-            if (!Controller.CanSeek) return;
+            if (!Controller.CanSeek || e.Button != MouseButton.Left) return;
             _dragging = true;
             CancelAutoHide();
             Scrub(e); e.PreventDefault(); e.StopPropagation();
@@ -362,7 +362,7 @@ public sealed partial class MikoPlayer : ComponentBase, IDisposable
         _progress.OnPointerMove = e => { if (_dragging) { Scrub(e); e.PreventDefault(); e.StopPropagation(); } };
         _progress.OnPointerUp = e =>
         {
-            if (!_dragging) return;
+            if (!_dragging || e.Button != MouseButton.Left) return;
             Scrub(e); _dragging = false;
             Seek(TimeSpan.FromSeconds(_scrub * Controller.Duration.TotalSeconds));
             ScheduleAutoHide();

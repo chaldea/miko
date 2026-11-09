@@ -399,7 +399,9 @@ public abstract class Element
         OnChange = source.OnChange;
         OnScroll = source.OnScroll;
         OnKeyDown = source.OnKeyDown;
+        OnKeyUp = source.OnKeyUp;
         OnInput = source.OnInput;
+        OnWheel = source.OnWheel;
         _eventListeners.Clear();
         _eventListeners.AddRange(source._eventListeners);
 
@@ -453,7 +455,9 @@ public abstract class Element
     public MikoEventHandler<ChangeEventArgs>? OnChange { get; set; }
     public MikoEventHandler<ScrollEventArgs>? OnScroll { get; set; }
     public MikoEventHandler<KeyboardEventArgs>? OnKeyDown { get; set; }
+    public MikoEventHandler<KeyboardEventArgs>? OnKeyUp { get; set; }
     public MikoEventHandler<InputEventArgs>? OnInput { get; set; }
+    public MikoEventHandler<WheelEventArgs>? OnWheel { get; set; }
 
     /// <summary>
     /// 添加事件监听器
@@ -532,7 +536,9 @@ public abstract class Element
             EventTypes.Change => OnChange != null,
             EventTypes.Scroll => OnScroll != null,
             EventTypes.KeyDown => OnKeyDown != null,
+            EventTypes.KeyUp => OnKeyUp != null,
             EventTypes.Input => OnInput != null,
+            EventTypes.Wheel => OnWheel != null,
             _ => false,
         };
     }

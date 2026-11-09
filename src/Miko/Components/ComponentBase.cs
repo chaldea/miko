@@ -315,6 +315,7 @@ public abstract class ComponentBase : IComponent
             EventCallback<ScrollEventArgs> c => (MikoEventHandler<ScrollEventArgs>)(a => _ = c.InvokeAsync(a)),
             EventCallback<KeyboardEventArgs> c => (MikoEventHandler<KeyboardEventArgs>)(a => _ = c.InvokeAsync(a)),
             EventCallback<InputEventArgs> c => (MikoEventHandler<InputEventArgs>)(a => _ = c.InvokeAsync(a)),
+            EventCallback<WheelEventArgs> c => (MikoEventHandler<WheelEventArgs>)(a => _ = c.InvokeAsync(a)),
             _ => null,
         };
         if (handler is null) return false;

@@ -146,7 +146,7 @@
 
     private async Task HandlePointer(MouseEventArgs args)
     {
-        if (Disabled || !args.IsButtonPressed || args.TargetWidth <= 0 || Max <= Min) return;
+        if (Disabled || !args.IsButtonPressed || args.Button != MouseButton.Left || args.TargetWidth <= 0 || Max <= Min) return;
 
         var ratio = Math.Clamp(args.OffsetX / args.TargetWidth, 0.0, 1.0);
         var rawValue = Min + ratio * (Max - Min);

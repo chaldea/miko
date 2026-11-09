@@ -63,6 +63,16 @@ builder.Services.AddMikoWebcam(o => { o.AppKey = "…"; o.AppSecret = "…"; });
 
 The picture streams straight from the camera on the local network over RTSP (user `admin`, the verification code as password) and is decoded by the platform (VideoToolbox on macOS / iOS, MediaCodec on Android), with no Ezviz native SDK. The paid cloud HLS relay is used only with `EnableCloudRelay`. `AddMikoRtsp()` makes any `<video src="rtsp://…">` play. See [Network Camera](../../docs/components/webcam.md) and [design](Webcam/DESIGN.md).
 
+## Remote Desktop (VNC)
+
+`MikoVnc` is a VNC client: the remote screen with a collapsible toolbar (keyboard, keys bar with Esc / Tab / Ctrl / Alt / Win / F-keys / Ctrl+Alt+Del, zoom, settings, fullscreen), a password dialog when the server asks, and a connect form when no host is given.
+
+```razor
+<MikoVnc Host="192.168.1.20" Texts="@VncTexts.Chinese" />
+```
+
+The protocol is managed code (`VncClient`): RFB 3.3–3.8; None, VNC and Tight security; Raw, CopyRect, RRE, Hextile, Zlib, ZRLE and Tight with JPEG. zlib and DES are managed too, with no native package. See [Remote Desktop](../../docs/components/vnc.md) and [design](Vnc/DESIGN.md).
+
 ## Platform Backends
 
 | Platform | System Pipeline | Notes |

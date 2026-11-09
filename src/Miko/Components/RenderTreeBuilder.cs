@@ -842,8 +842,12 @@ public class RenderTreeBuilder
                 element.OnScroll = arg => _ = sc.InvokeAsync(arg); break;
             case "onkeydown" when callback is EventCallback<KeyboardEventArgs> kc:
                 element.OnKeyDown = arg => _ = kc.InvokeAsync(arg); break;
+            case "onkeyup" when callback is EventCallback<KeyboardEventArgs> kc:
+                element.OnKeyUp = arg => _ = kc.InvokeAsync(arg); break;
             case "oninput" when callback is EventCallback<InputEventArgs> ic:
                 element.OnInput = arg => _ = ic.InvokeAsync(arg); break;
+            case "onwheel" when callback is EventCallback<WheelEventArgs> wc:
+                element.OnWheel = arg => _ = wc.InvokeAsync(arg); break;
         }
     }
 

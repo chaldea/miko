@@ -321,7 +321,11 @@ public enum TextOverflow
 }
 public enum FontStyle { Normal, Italic, Oblique }
 public enum WhiteSpace { Normal, Nowrap, Pre, PreWrap, PreLine }
-public enum Cursor { Default, Pointer, Text, Wait, NotAllowed, Move, Help }
+/// <summary>
+/// The mouse cursor over an element (CSS <c>cursor</c>). <see cref="None"/> hides it, for elements that draw
+/// their own (a remote desktop's pointer); hosts without a mouse cursor ignore the value.
+/// </summary>
+public enum Cursor { Default, Pointer, Text, Wait, NotAllowed, Move, Help, None }
 public enum Visibility { Visible, Hidden, Collapse }
 /// <summary>
 /// Whether an element is a hit-test target. <see cref="None"/> makes the element transparent

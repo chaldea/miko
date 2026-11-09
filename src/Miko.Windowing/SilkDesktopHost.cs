@@ -60,7 +60,9 @@ public sealed class SilkDesktopHost
 
     // 渲染线程 → 主线程的“最新光标”反向通道（只关心最新值，故用单字段而非队列）。
     private volatile StandardCursor _pendingCursor = StandardCursor.Default;
+    private volatile bool _pendingCursorHidden;
     private StandardCursor _appliedCursor = StandardCursor.Default;
+    private bool _appliedCursorHidden;
 
     // 首帧（以及初始化/图形重建后的帧）必须呈现一次，即使引擎报告无待办工作——
     // 否则窗口在后端缓冲尚未绘制过时一直保持空白（ISSUE-096 空闲跳过逻辑的兜底）。
@@ -470,6 +472,7 @@ public sealed class SilkDesktopHost
     /// <summary>渲染线程触发（命中测试在渲染帧内）：只记录最新光标，由主线程应用。</summary>
     private void OnCursorChanged(Cursor cursor)
     {
+        _pendingCursorHidden = cursor == Cursor.None;
         _pendingCursor = SilkKeyMap.ToStandardCursor(cursor);
     }
 
@@ -477,8 +480,13 @@ public sealed class SilkDesktopHost
     private void ApplyPendingCursor()
     {
         var desired = _pendingCursor;
-        if (desired == _appliedCursor || _primaryMouse == null) return;
+        bool hidden = _pendingCursorHidden;
+        if ((desired == _appliedCursor && hidden == _appliedCursorHidden) || _primaryMouse == null) return;
         _appliedCursor = desired;
+        _appliedCursorHidden = hidden;
+        // cursor: none (an element that draws its own pointer, e.g. a remote desktop) hides the system cursor
+        // over the window; the next cursor brings it back.
+        _primaryMouse.Cursor.CursorMode = hidden ? CursorMode.Hidden : CursorMode.Normal;
         _primaryMouse.Cursor.Type = CursorType.Standard;
         _primaryMouse.Cursor.StandardCursor = desired;
     }

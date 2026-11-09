@@ -28,9 +28,10 @@ internal sealed class IonRefresherContext
         if (ReferenceEquals(_refresher, refresher)) _refresher = null;
     }
 
-    internal void PointerDown(PointerEventArgs args) => _refresher?.HandleContentPointerDown(args);
+    // Only the primary button pulls (a right / middle press reaches pointer handlers too, as in the browser).
+    internal void PointerDown(PointerEventArgs args) { if (args.Button == MouseButton.Left) _refresher?.HandleContentPointerDown(args); }
     internal void PointerMove(PointerEventArgs args) => _refresher?.HandleContentPointerMove(args);
-    internal void PointerUp(PointerEventArgs args) => _refresher?.HandleContentPointerUp(args);
+    internal void PointerUp(PointerEventArgs args) { if (args.Button == MouseButton.Left) _refresher?.HandleContentPointerUp(args); }
     internal void PointerCancel(PointerEventArgs args) => _refresher?.HandleContentPointerCancel(args);
 
     private sealed class Scope : IDisposable

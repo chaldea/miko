@@ -151,7 +151,9 @@ internal static class MikoElements
         ["onchange"] = new Slot("OnChange", SlotKind.EventHandler),
         ["onscroll"] = new Slot("OnScroll", SlotKind.EventHandler),
         ["onkeydown"] = new Slot("OnKeyDown", SlotKind.EventHandler),
+        ["onkeyup"] = new Slot("OnKeyUp", SlotKind.EventHandler),
         ["oninput"] = new Slot("OnInput", SlotKind.EventHandler),
+        ["onwheel"] = new Slot("OnWheel", SlotKind.EventHandler),
     };
 
     /// <summary>

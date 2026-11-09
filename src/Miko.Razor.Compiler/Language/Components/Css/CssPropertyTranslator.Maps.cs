@@ -87,7 +87,7 @@ internal sealed partial class CssPropertyTranslator
 
     internal static readonly Dictionary<string, string> CursorMap = Map(@"
         auto:Default default:Default pointer:Pointer text:Text wait:Wait not-allowed:NotAllowed move:Move help:Help
-        none:Default:default context-menu:Default:default progress:Wait:wait cell:Default:default
+        none:None context-menu:Default:default progress:Wait:wait cell:Default:default
         crosshair:Default:default vertical-text:Text:text alias:Default:default copy:Default:default
         no-drop:NotAllowed:not-allowed grab:Move:move grabbing:Move:move all-scroll:Move:move
         col-resize:Move:move row-resize:Move:move n-resize:Move:move e-resize:Move:move s-resize:Move:move

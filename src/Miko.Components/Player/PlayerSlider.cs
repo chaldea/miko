@@ -35,9 +35,9 @@ internal sealed class PlayerSlider
             Class = "miko-player-slider",
             Style = new Style { Display = Display.Block, FlexGrow = 1, FlexBasis = Length.Px(0), MinWidth = Length.Px(0), Height = Length.Px(32) },
             Paint = Draw,
-            OnPointerDown = e => { _dragging = true; Update(e); },
+            OnPointerDown = e => { if (e.Button != MouseButton.Left) return; _dragging = true; Update(e); },
             OnPointerMove = e => { if (_dragging) Update(e); },
-            OnPointerUp = e => { if (!_dragging) return; Update(e); _dragging = false; },
+            OnPointerUp = e => { if (!_dragging || e.Button != MouseButton.Left) return; Update(e); _dragging = false; },
             OnPointerCancel = _ => _dragging = false,
             // A tap without a drag still clicks; it must not reach the panel as an outside tap.
             OnClick = e => e.StopPropagation(),

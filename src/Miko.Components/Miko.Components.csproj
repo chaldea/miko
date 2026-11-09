@@ -6,8 +6,8 @@
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Components</PackageId>
     <Authors>Miko</Authors>
-    <Description>Native player, camera, QR code scanner and network camera (webcam) components for Miko.</Description>
-    <PackageTags>miko;components;player;video;camera;qrcode;scanner;webcam;rtsp;ezviz;ui</PackageTags>
+    <Description>Native player, camera, QR code scanner, network camera (webcam) and VNC remote desktop components for Miko.</Description>
+    <PackageTags>miko;components;player;video;camera;qrcode;scanner;webcam;rtsp;ezviz;vnc;rfb;remote-desktop;ui</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -35,6 +35,10 @@
     <EmbeddedResource Include="../Miko.Ionic/Resources/svg/stop.svg;../Miko.Ionic/Resources/svg/camera-outline.svg;../Miko.Ionic/Resources/svg/eye-off-outline.svg;../Miko.Ionic/Resources/svg/swap-vertical-outline.svg;../Miko.Ionic/Resources/svg/alert-circle-outline.svg;../Miko.Ionic/Resources/svg/caret-up.svg;../Miko.Ionic/Resources/svg/caret-down.svg;../Miko.Ionic/Resources/svg/caret-back.svg;../Miko.Ionic/Resources/svg/caret-forward.svg">
       <Link>Webcam/Icons/%(Filename)%(Extension)</Link>
       <LogicalName>Miko.Webcam.Icons.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="../Miko.Ionic/Resources/svg/keypad-outline.svg;../Miko.Ionic/Resources/svg/key-outline.svg;../Miko.Ionic/Resources/svg/add-outline.svg;../Miko.Ionic/Resources/svg/remove-outline.svg;../Miko.Ionic/Resources/svg/power-outline.svg;../Miko.Ionic/Resources/svg/chevron-up-outline.svg;../Miko.Ionic/Resources/svg/chevron-down-outline.svg;../Miko.Ionic/Resources/svg/lock-closed-outline.svg;../Miko.Ionic/Resources/svg/desktop-outline.svg">
+      <Link>Vnc/Icons/%(Filename)%(Extension)</Link>
+      <LogicalName>Miko.Vnc.Icons.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 </Project>
