@@ -3,6 +3,7 @@ using Miko.Fonts;
 using Miko.Text;
 using Miko.Utils;
 using Shouldly;
+using SkiaSharp;
 
 namespace Miko.Tests.Text;
 
@@ -53,6 +54,20 @@ public class ClusterIntegrityTests
 
         var markRun = runs.Single(r => r.StartIndex <= 2 && 2 < r.StartIndex + r.Length);
         (markRun.StartIndex <= 1).ShouldBeTrue("the mark shares a run with its base 'e'");
+    }
+
+    [Fact]
+    public void Should_Keep_An_Emoji_Zwj_Sequence_In_One_Font_Run()
+    {
+        var emoji = SKFontManager.Default.MatchCharacter(0x1F468);
+        // Minimal systems without an emoji font have nothing meaningful to assert here.
+        if (emoji == null || !emoji.FamilyName.Contains("Emoji", StringComparison.OrdinalIgnoreCase)) return;
+
+        var resolver = new FontFallbackResolver(FontManager.Instance);
+        var runs = resolver.ResolveTextRuns(
+            "\U0001F468‍\U0001F469‍\U0001F467", "Arial", FontWeight.Normal);
+
+        runs.Count.ShouldBe(1, "a ZWJ sequence must reach HarfBuzz as one run to form its ligature");
     }
 
     [Theory]

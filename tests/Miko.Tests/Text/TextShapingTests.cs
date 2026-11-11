@@ -11,14 +11,15 @@ namespace Miko.Tests.Text;
 
 /// <summary>
 /// HarfBuzz shaping and the shaped-line pipeline (ISSUE-157), against subsets of Noto Sans Arabic /
-/// Hebrew bundled under TestAssets/Fonts/Noto so the glyph-level results do not depend on the
-/// machine's fonts. The two families are registered for the duration of the class.
+/// Hebrew and Noto Emoji bundled under TestAssets/Fonts/Noto so the glyph-level results do not
+/// depend on the machine's fonts. The families are registered for the duration of the class.
 /// </summary>
 [Collection(Miko.Tests.GlobalFontStateCollection.Name)] // registers fonts (process-wide state)
 public class TextShapingTests : IDisposable
 {
     private const string Arabic = "MikoTestArabic";
     private const string Hebrew = "MikoTestHebrew";
+    private const string Emoji = "MikoTestEmoji";
 
     private static readonly string FontDir = Path.Combine(AppContext.BaseDirectory, "TestAssets", "Fonts", "Noto");
     private static readonly SKTypeface ArabicTypeface = SKTypeface.FromFile(Path.Combine(FontDir, "NotoSansArabic-Subset.ttf"));
@@ -28,12 +29,14 @@ public class TextShapingTests : IDisposable
     {
         FontManager.Instance.RegisterFont(Arabic, Path.Combine(FontDir, "NotoSansArabic-Subset.ttf"));
         FontManager.Instance.RegisterFont(Hebrew, Path.Combine(FontDir, "NotoSansHebrew-Subset.ttf"));
+        FontManager.Instance.RegisterFont(Emoji, Path.Combine(FontDir, "NotoEmoji-Family.ttf"));
     }
 
     public void Dispose()
     {
         FontManager.Instance.UnregisterFont(Arabic);
         FontManager.Instance.UnregisterFont(Hebrew);
+        FontManager.Instance.UnregisterFont(Emoji);
     }
 
     [Fact]
@@ -178,15 +181,12 @@ public class TextShapingTests : IDisposable
     }
 
     [Fact]
-    public void Should_Shape_An_Emoji_Zwj_Sequence_As_One_Glyph_When_The_Font_Supports_It()
+    public void Should_Shape_An_Emoji_Zwj_Sequence_As_One_Glyph()
     {
-        var emoji = SKFontManager.Default.MatchCharacter(0x1F468);
-        // Machines without a colour emoji font have nothing to ligate.
-        if (emoji == null || !emoji.FamilyName.Contains("Emoji", StringComparison.OrdinalIgnoreCase)) return;
-
         const string family = "\U0001F468‍\U0001F469‍\U0001F467";
-        var shaped = TextShaping.Shape(family, "Arial", 16, FontWeight.Normal, Direction.Ltr);
+        var shaped = TextShaping.Shape(family, Emoji, 16, FontWeight.Normal, Direction.Ltr);
 
-        shaped.Runs.Sum(r => r.Glyphs.Length).ShouldBe(1);
+        shaped.Runs.Sum(r => r.Glyphs.Length).ShouldBe(1, string.Join(" | ", shaped.Runs.Select(run =>
+            $"{run.Typeface.FamilyName}: {run.Glyphs.Length} glyphs [{string.Join(',', run.Glyphs)}]")));
     }
 }

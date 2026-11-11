@@ -2012,7 +2012,7 @@ internal class Painter
     /// native 对象，而这里原本是每个文本 run 新建一个：单次 <c>DrawText</c> 会先在
     /// <see cref="MeasureRunsWidth"/> 里为每个 run 建一遍、再在绘制循环里建第二遍，
     /// 共 2N+1 个。文本节点数一多（Anime 首页 45 个）就成了帧时间的主要来源
-    /// （ISSUE-144：Android 上 28–41ms/帧）。字体对象只由这三项决定，可跨帧复用。</para>
+    /// （ISSUE-144：Android 上 28–41ms/帧）。这些绘制参数固定，字体对象可跨帧复用。</para>
     ///
     /// <para>缓存命中不受画布状态影响：<see cref="SKFont"/> 不持有画布，缩放由画布矩阵负责。
     /// 字体注册表变化时由 <see cref="ClearFontCache"/> 失效（<see cref="FontManager"/> 在清除
@@ -2033,6 +2033,10 @@ internal class Painter
             Subpixel = true,
             // 使用子像素抗锯齿，配合 SKSurfaceProperties 的 PixelGeometry 获得最佳效果
             Edging = SKFontEdging.SubpixelAntialias,
+            // FreeType rounds advances to whole pixels under Normal hinting unless linear metrics
+            // are requested. Layout and drawing both use this factory, so Linux gets the same
+            // fractional advances as CoreText / DirectWrite (ISSUE-163).
+            LinearMetrics = true,
             // 使用 Normal hinting 在保持清晰度的同时不牺牲字形形状
             Hinting = SKFontHinting.Normal
         };

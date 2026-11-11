@@ -1,8 +1,9 @@
 Noto Sans Arabic: Copyright 2022 The Noto Project Authors (https://github.com/notofonts/arabic)
 Noto Sans Hebrew: Copyright 2024 The Noto Project Authors (https://github.com/notofonts/hebrew)
+Noto Emoji: Copyright 2013 Google LLC (https://github.com/googlefonts/noto-emoji)
 
 The files in this directory are subsets (fontTools pyftsubset, layout features kept) used by
-the shaping tests (ISSUE-157). Both fonts are licensed under the SIL Open Font License 1.1:
+the shaping tests (ISSUE-157, ISSUE-166). These fonts are licensed under the SIL Open Font License 1.1:
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

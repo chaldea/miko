@@ -188,7 +188,9 @@ public class PointerEventDispatchTests
         using (surface)
         {
             controller.OnPointerDown(20, 20, MouseButton.Left, PointerType.Touch);
-            await Task.Delay(650);
+            for (var i = 0; i < 500 && !dispatcher.HasPendingActions; i++)
+                await Task.Delay(10);
+            dispatcher.HasPendingActions.ShouldBeTrue();
             controller.HasPendingWork.ShouldBeTrue();
             dispatcher.Drain();
             controller.OnPointerUp(20, 20, MouseButton.Left, PointerType.Touch);
