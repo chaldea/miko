@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0-android</TargetFramework>
+    <TargetFramework>net11.0-android</TargetFramework>
     <!-- Minimum Android version: 8.0 (API 26). Notification channels, VibrationEffect and the
          network-callback APIs used by Miko.Native exist there unconditionally; newer APIs are
          behind OperatingSystem.IsAndroidVersionAtLeast checks. Apps, templates and examples

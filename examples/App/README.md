@@ -17,7 +17,7 @@ examples/App/
     └── prepare-assets.ps1     从 issue 截图重新生成本地图像资源
 ```
 
-在仓库根目录执行，需要 .NET 10 SDK：
+在仓库根目录执行，需要   .NET 11 SDK：
 
 ```bash
 # 优先验证的 Windows 入口，初始内容区域为 390 × 844
@@ -35,7 +35,7 @@ dotnet build examples/App/App.slnx
 
 Android 通过 Android workload 构建并部署到模拟器或设备。iOS 设备打包、签名和运行需要 macOS / Xcode。Windows 上的 iOS 编译通过不代表已经验证设备运行。
 
-Anime.iOS 使用 `net10.0-ios27.0` 和 Xcode 27 对应的 .NET iOS 工具包，最低支持 iOS 15；当前工具包需要显式启用 `XCODE_27_0_PREVIEW`。窗口由 `SceneDelegate` 按 UIKit 场景生命周期创建，并注册 iOS 原生视频后端。渲染走 `Miko.iOS` 的 Metal 宿主 `MikoMetalView`，在模拟器中使用宿主 Mac 的 GPU（ISSUE-147）。可用 `xcrun simctl list devices available` 查看模拟器名称或 UUID。
+Anime.iOS 使用 `net11.0-ios` 和 Xcode 27 对应的 .NET iOS 工具包，最低支持 iOS 15；当前工具包需要显式启用 `XCODE_27_0_PREVIEW`。窗口由 `SceneDelegate` 按 UIKit 场景生命周期创建，并注册 iOS 原生视频后端。渲染走 `Miko.iOS` 的 Metal 宿主 `MikoMetalView`，在模拟器中使用宿主 Mac 的 GPU（ISSUE-147）。可用 `xcrun simctl list devices available` 查看模拟器名称或 UUID。
 
 升级 SDK 后若遇到 AOT 模块依赖 GUID 不匹配，先执行一次 `dotnet build examples/App/Anime/Anime.iOS -t:Rebuild`，再运行上述命令。未连接 IDE 时出现的调试端口 `10000` 连接提示不影响启动。
 
@@ -86,7 +86,7 @@ Anime.iOS 已接入共享 `FrameProbe`，默认关闭。先构建并安装应用
 
 ```bash
 dotnet build examples/App/Anime/Anime.iOS -t:Rebuild
-xcrun simctl install booted examples/App/Anime/Anime.iOS/bin/Debug/net10.0-ios27.0/iossimulator-arm64/Anime.iOS.app
+xcrun simctl install booted examples/App/Anime/Anime.iOS/bin/Debug/net11.0-ios/iossimulator-arm64/Anime.iOS.app
 SIMCTL_CHILD_MIKO_FRAME_PROBE=1 xcrun simctl launch --console --terminate-running-process booted com.miko.anime
 ```
 

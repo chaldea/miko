@@ -6,8 +6,8 @@ namespace Miko.Razor.Tests;
 /// <summary>
 /// ISSUE-154 BUG-06: the NuGet package's <c>build/Miko.Razor.Compiler.props</c> must locate the
 /// compiler by the compiler's own target framework. It used the consuming project's
-/// <c>$(TargetFramework)</c>, so a platform project (<c>net10.0-android</c>, <c>net10.0-ios</c>) with
-/// <c>.razor</c> files looked for <c>tools/net10.0-android/</c>, which the package does not contain.
+/// <c>$(TargetFramework)</c>, so a platform project (<c>net11.0-android</c>, <c>net11.0-ios</c>) with
+/// <c>.razor</c> files looked for <c>tools/net11.0-android/</c>, which the package does not contain.
 /// </summary>
 public class RazorCompilerPackagePropsTests
 {

@@ -6,7 +6,7 @@ This guide covers publishing Miko apps for **Windows, macOS, and Linux** using t
 
 Miko desktop apps can be published in two modes:
 
-- **Framework-dependent** — requires the .NET 10 runtime to be installed on the target machine. Produces a small binary (~few MB).
+- **Framework-dependent** — requires the   .NET 11 runtime to be installed on the target machine. Produces a small binary (~few MB).
 - **Self-contained** — bundles the .NET runtime with your app. No runtime installation required, but the binary is larger (~60–80 MB depending on platform and trimming).
 
 ### Framework-dependent publish
@@ -17,7 +17,7 @@ dotnet publish MyApp.Desktop.csproj -c Release -r osx-arm64
 dotnet publish MyApp.Desktop.csproj -c Release -r linux-x64
 ```
 
-The output is in `bin/Release/net10.0/<RID>/publish/`. Distribute the entire folder. Users need the [.NET 10 runtime](https://dotnet.microsoft.com/download/dotnet/10.0) installed.
+The output is in `bin/Release/net11.0/<RID>/publish/`. Distribute the entire folder. Users need the [  .NET 11 runtime](https://dotnet.microsoft.com/download/dotnet/11.0) installed.
 
 ### Self-contained publish
 

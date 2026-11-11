@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Miko is a native, cross-platform UI rendering engine for .NET that uses Razor as its layout DSL. It draws every pixel with SkiaSharp — no browser, no WebView, no HTML/CSS runtime — running a browser-like pipeline of style cascade, layout, and incremental painting directly onto a GPU-accelerated canvas.
 
 **Key characteristics:**
-- Target framework: .NET 10.0
+- Target framework: .NET 11.0
 - Rendering backend: SkiaSharp
 - UI DSL: Razor components (compiled by custom source generator)
 - Testing framework: xUnit with Shouldly assertions
@@ -161,7 +161,7 @@ The repository uses a single solution file:
    - A LiveCharts2 port: `Core/` is LiveChartsCore 2.0.5 unchanged, `MikoView/` replaces SkiaSharpView
 
 10. **Miko.Razor.Compiler** (`src/Miko.Razor.Compiler/`)
-   - Custom Razor source generator (targets net10.0)
+   - Custom Razor source generator (targets net11.0)
    - Compiles `.razor` components into native Miko DOM elements
    - Consumed as analyzer DLLs by Razor projects
 
@@ -484,7 +484,7 @@ Razor projects using Miko's custom compiler must include the `_OverrideRazorSour
 ```xml
 <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
   <PropertyGroup>
-    <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\$(Configuration)\net10.0\</_CustomRazorGeneratorDir>
+    <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\$(Configuration)\net11.0\</_CustomRazorGeneratorDir>
   </PropertyGroup>
   <ItemGroup>
     <Analyzer Remove="@(_RazorAnalyzer)" />
@@ -503,7 +503,7 @@ Components inherit from `MikoComponent` or `LayoutComponentBase` and use standar
 
 `Miko.Razor.Compiler.props` (the NuGet package's build file) locates the compiler under
 `tools/<the compiler's own TFM>/` (`_MikoRazorCompilerToolFramework`), never the consumer's
-`$(TargetFramework)`, so platform projects (`net10.0-android`, `net10.0-ios`) with `.razor` files
+`$(TargetFramework)`, so platform projects (`net11.0-android`, `net11.0-ios`) with `.razor` files
 build from the package (ISSUE-154). The compiler csproj fails `pack` if the two drift apart.
 
 ### CSS in components (ISSUE-161)
@@ -1027,14 +1027,14 @@ animationManager.PlayAnimation(element, animation);
 
 ## Important Notes
 
-- This is a .NET 10.0 project (requires appropriate SDK)
+- This is a .NET 11.0 project (requires appropriate SDK)
 - Graphics resources (`RenderSurface`, decoded `Image`s, `GraphicsDevice`) should be disposed (use `using`);
   inside the core, SkiaSharp objects are native and must be disposed too
 - The project uses nullable reference types — respect null annotations
 - Layout calculations use floats — be aware of floating-point precision
 - Style cascade: null means "not set", not a default value
 - `IsDirty` is automatically set on `AddChild`/`RemoveChild`/state changes
-- The Razor compiler targets net10.0 and is consumed only as analyzer DLLs
+- The Razor compiler targets net11.0 and is consumed only as analyzer DLLs
 - Safe area insets are opt-in via `env()` function, never applied as root viewport insets (see memory)
 - Text editing (`ITextEditable`): `CursorPosition`, input-method selection and `MaxLength` count UTF-16
   code units; insert/backspace/delete/arrow keys work on grapheme clusters (`TextEditing` in

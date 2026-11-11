@@ -10,7 +10,7 @@ namespace Miko.TemplateE2E;
 sealed record Template(string ShortName, IReadOnlyList<string> Layouts, IReadOnlyList<Head> Heads);
 
 /// <summary>A head project (<c>MikoMultiplatformApp.Android</c> → <c>Android</c>) and the platform of
-/// its target framework (<c>net10.0-android</c> → <c>android</c>, empty for plain <c>net10.0</c>).</summary>
+/// its target framework (<c>net11.0-android</c> → <c>android</c>, empty for plain <c>net11.0</c>).</summary>
 sealed record Head(string Name, string Platform);
 
 /// <summary>One app to scaffold and the one project of it to build.</summary>

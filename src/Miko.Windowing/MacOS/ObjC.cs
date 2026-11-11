@@ -5,7 +5,7 @@ namespace Miko.Windowing.MacOS;
 
 /// <summary>
 /// macOS 上 Objective-C runtime 与 CoreFoundation 的最小声明，由 Metal 窗口后端与 AVFoundation
-/// 视频后端共用。桌面项目是纯 net10.0（无 macOS 托管绑定），只能经 <c>objc_msgSend</c> 直接发消息。
+/// 视频后端共用。桌面项目是纯 net11.0（无 macOS 托管绑定），只能经 <c>objc_msgSend</c> 直接发消息。
 ///
 /// <para>
 /// 关键约束：<c>objc_msgSend</c> 的真实签名由被调方法决定，必须为每种返回类型/参数组合

@@ -2,10 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <!-- Select the iOS 27 SDK for Xcode 27; net10.0-ios defaults to the iOS 26 SDK. -->
-    <TargetFramework>net10.0-ios27.0</TargetFramework>
-    <!-- The installed Xcode 27 bindings are preview APIs and require explicit opt-in. -->
-    <NoWarn>$(NoWarn);XCODE_27_0_PREVIEW</NoWarn>
+    <TargetFramework>net11.0-ios</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>

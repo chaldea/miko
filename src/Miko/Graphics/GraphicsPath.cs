@@ -47,6 +47,7 @@ public sealed class GraphicsPath : IDisposable
         return path is null ? null : new GraphicsPath(path);
     }
 
+#pragma warning disable CS0618 // SKPath mutation methods replaced by SKPathBuilder in SkiaSharp 4.x
     public void MoveTo(float x, float y) => Native.MoveTo(x, y);
 
     public void LineTo(float x, float y) => Native.LineTo(x, y);
@@ -81,6 +82,7 @@ public sealed class GraphicsPath : IDisposable
 
     /// <summary>Removes everything from the path.</summary>
     public void Reset() => Native.Reset();
+#pragma warning restore CS0618
 
     public void Dispose()
     {
