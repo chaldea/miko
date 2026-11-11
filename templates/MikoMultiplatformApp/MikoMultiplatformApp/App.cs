@@ -13,7 +13,7 @@ namespace MikoMultiplatformApp;
 
 /// <summary>
 /// Shared application configuration. Each platform startup project
-/// (Desktop / Android / iOS) consumes the <see cref="MikoAppContext"/>
+/// (Desktop / Browser / Android / iOS) consumes the <see cref="MikoAppContext"/>
 /// returned here and drives its own render loop.
 /// </summary>
 public static class App

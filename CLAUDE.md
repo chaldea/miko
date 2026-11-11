@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Miko is a native, cross-platform UI rendering engine for .NET that uses Razor as its layout DSL. It draws every pixel with SkiaSharp — no browser, no WebView, no HTML/CSS runtime — running a browser-like pipeline of style cascade, layout, and incremental painting directly onto a GPU-accelerated canvas.
+Miko is a native, cross-platform UI rendering engine for .NET that uses Razor as its layout DSL. It draws every pixel with SkiaSharp — no embedded browser, no WebView, no HTML/CSS runtime — running a browser-like pipeline of style cascade, layout, and incremental painting directly onto a GPU-accelerated canvas (or a Canvas 2D surface in the WebAssembly host).
 
 **Key characteristics:**
 - Target framework: .NET 11.0
@@ -26,6 +26,9 @@ dotnet build src/Miko/Miko.csproj
 # Build mobile projects (requires Android/iOS workloads)
 dotnet build src/Miko.Android/Miko.Android.csproj
 dotnet build src/Miko.iOS/Miko.iOS.csproj
+
+# Build the browser example (requires the wasm-tools workload)
+dotnet build examples/Ionic/IonicDemo.Browser/IonicDemo.Browser.csproj
 ```
 
 ### Running tests
@@ -52,6 +55,9 @@ dotnet run --project examples/Multiplatform/MikoAppBlank/MikoAppBlank.Desktop/Mi
 
 # Simulator (device preview with settings panel)
 dotnet run --project examples/Multiplatform/MikoAppBlank/MikoAppBlank.Simulator/MikoAppBlank.Simulator.csproj
+
+# Browser WebAssembly development server (requires wasm-tools)
+dotnet run --project examples/Ionic/IonicDemo.Browser/IonicDemo.Browser.csproj
 ```
 
 ### Cleaning build artifacts
@@ -103,7 +109,7 @@ Layout Engine (Box Model + Layout Algorithms)
     ↓
 Render Engine (Dirty regions + SkiaSharp painting)
     ↓
-Platform Hosts (Desktop/Android/iOS)
+Platform Hosts (Desktop/Browser/Android/iOS)
 ```
 
 Alongside that pipeline, `Miko.Native` provides a parallel capability axis: the app injects
@@ -113,7 +119,7 @@ implementations.
 ### Solution Structure
 
 The repository uses a single solution file:
-- **miko.slnx**: Contains all projects (core libraries + desktop + mobile)
+- **miko.slnx**: Contains all projects (core libraries + desktop + browser + mobile)
 
 ### Core Packages
 
@@ -134,33 +140,45 @@ The repository uses a single solution file:
      the main thread to create windows and pump their events, so a window running its own loop on a
      background thread hangs on macOS (ISSUE-148)
 
-3. **Miko.Android** (`src/Miko.Android/`)
+3. **Miko.Browser** (`src/Miko.Browser/`)
+   - Browser WebAssembly host using `Microsoft.NET.Sdk.WebAssembly` application heads and a CPU Skia
+     surface presented as RGBA pixels to Canvas 2D (no HTML UI or WebGL requirement)
+   - `wwwroot/miko-browser.js` owns the development bootstrap and forwards pointer, keyboard, IME,
+     resize and lifecycle events; `RunBrowser()` renders on demand at `devicePixelRatio`
+   - `UseBrowserNative()` implements only web-backed `Miko.Native` capabilities; the rest keep `Null*`
+   - Browser heads need `WasmBuildNative=true`, the `wasm-tools` workload and a
+     `runtimeconfig.template.json` with `mainAssembly` so the DevServer picks the app manifest
+   - The .NET 11 Emscripten 6.0.2 ABI requires the matched SkiaSharp / HarfBuzzSharp
+     `4.158.0-preview.1.26556.2` / `14.4.0.300-preview.1.26556.2` package train; older 4.155 WASM
+     archives fail with `saveSetjmp` / `testSetjmp` link errors
+
+4. **Miko.Android** (`src/Miko.Android/`)
    - Android implementation with GLSurfaceView and touch input
 
-4. **Miko.iOS** (`src/Miko.iOS/`)
+5. **Miko.iOS** (`src/Miko.iOS/`)
    - iOS implementation with a Metal `MTKView` (`MikoMetalView`) and touch input
 
-5. **Miko.Simulator** (`src/Miko.Simulator/`)
+6. **Miko.Simulator** (`src/Miko.Simulator/`)
    - Device simulator host for previewing mobile apps on desktop
    - Renders the app in a device-sized canvas with a settings panel
 
-6. **Miko.Bootstrap** (`src/Miko.Bootstrap/`)
+7. **Miko.Bootstrap** (`src/Miko.Bootstrap/`)
    - Bootstrap-style Razor component library
    - Uses custom Razor compiler via `_OverrideRazorSourceGenerator` target
 
-7. **Miko.Ionic** (`src/Miko.Ionic/`)
+8. **Miko.Ionic** (`src/Miko.Ionic/`)
    - Ionic-style Razor component library with iOS/Android mode support
    - Platform-aware theming using `IonicPlatform` and mode system
 
-8. **Miko.Native** (`src/Miko.Native/`)
+9. **Miko.Native** (`src/Miko.Native/`)
    - Cross-platform native capability interfaces (17 areas modelled on Ionic Capacitor v8)
    - Pure abstractions with zero platform dependencies; implementations live in the platform packages
 
-9. **Miko.Charts** (`src/Miko.Charts/`) — see "Charts" below
+10. **Miko.Charts** (`src/Miko.Charts/`) — see "Charts" below
    - `CartesianChart`, `PieChart`, `PolarChart`, `GeoMap` Razor components; `AddMikoCharts()`
    - A LiveCharts2 port: `Core/` is LiveChartsCore 2.0.5 unchanged, `MikoView/` replaces SkiaSharpView
 
-10. **Miko.Razor.Compiler** (`src/Miko.Razor.Compiler/`)
+11. **Miko.Razor.Compiler** (`src/Miko.Razor.Compiler/`)
    - Custom Razor source generator (targets net11.0)
    - Compiles `.razor` components into native Miko DOM elements
    - Consumed as analyzer DLLs by Razor projects

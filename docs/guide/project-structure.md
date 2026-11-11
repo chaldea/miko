@@ -24,6 +24,7 @@ A **multiplatform** app splits the shared UI from per-platform hosts:
 MyApp/
 ├── MyApp/                 # Shared Razor UI — Pages, MainLayout, GlobalStyles, App.cs
 ├── MyApp.Desktop/         # Desktop host (Program.cs, references Miko.Windowing)
+├── MyApp.Browser/         # Browser host (WebAssembly + index.html, references Miko.Browser)
 ├── MyApp.Android/         # Android host (MainActivity, manifest, references Miko.Android)
 ├── MyApp.iOS/             # iOS host (AppDelegate, Info.plist, references Miko.iOS)
 └── MyApp.Simulator/       # Device preview on the desktop (references Miko.Simulator)
@@ -36,6 +37,9 @@ input for its platform and drives the render loop:
 ```csharp
 // Desktop startup project
 MyApp.App.CreateContext().RunDesktop();   // needs Miko.Windowing
+
+// Browser startup project
+MyApp.App.CreateContext().RunBrowser();   // needs Miko.Browser
 
 // Android Activity
 SetContentView(MikoAndroidApp.CreateView(this, MyApp.App.CreateContext)); // needs Miko.Android
@@ -75,6 +79,7 @@ miko/
 │   │   ├── Hosting/            # MikoAppBuilder, MikoAppContext, HotReloadService
 │   │   └── Utils/              # TreeTraversal, TextMeasurer, GeometryUtils
 │   ├── Miko.Windowing/         # Desktop host (Windows/Linux/macOS, Silk.NET)
+│   ├── Miko.Browser/           # Browser host (WebAssembly + Canvas)
 │   ├── Miko.Android/           # Android host
 │   ├── Miko.iOS/               # iOS host
 │   ├── Miko.Ionic/             # Ionic-style Razor component library
@@ -95,6 +100,7 @@ window / GL surface / native input and forwards normalized events to the control
 
 - **Miko.Windowing** — desktop (Windows / Linux / macOS), based on Silk.NET. Renders through
   OpenGL on Windows / Linux and Metal on macOS, the same Skia backend as iOS.
+- **Miko.Browser** — .NET WebAssembly and Skia render into a Canvas, with browser input and web native capabilities.
 - **Miko.Android** — `MikoSurfaceView` hosts rendering and maps touch to pointer events.
 - **Miko.iOS** — `MikoMetalView` hosts rendering on Metal and maps touch to pointer events.
 

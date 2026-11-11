@@ -21,7 +21,7 @@
   <!-- White-box: reads rendered pixels through SkiaSharp. Miko keeps Skia out of its public surface
        (ISSUE-162), so the package is referenced here and the engine is driven through the shim below. -->
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="4.155.0" />
+    <PackageReference Include="SkiaSharp" Version="4.158.0-preview.1.26556.2" />
     <Compile Include="..\..\tests\Shared\SkiaCanvasExtensions.cs" Link="Shared\SkiaCanvasExtensions.cs" />
   </ItemGroup>
 

@@ -10,7 +10,8 @@ namespace Miko.TemplateE2E;
 sealed record Template(string ShortName, IReadOnlyList<string> Layouts, IReadOnlyList<Head> Heads);
 
 /// <summary>A head project (<c>MikoMultiplatformApp.Android</c> → <c>Android</c>) and the platform of
-/// its target framework (<c>net11.0-android</c> → <c>android</c>, empty for plain <c>net11.0</c>).</summary>
+/// its target framework (<c>net11.0-android</c> → <c>android</c>; the Browser head, whose TFM is plain
+/// <c>net11.0</c> with a browser-wasm RID, is <c>browser</c>; other plain <c>net11.0</c> heads are empty).</summary>
 sealed record Head(string Name, string Platform);
 
 /// <summary>One app to scaffold and the one project of it to build.</summary>
@@ -54,7 +55,9 @@ static class BuildPlan
                     continue;
                 var framework = XDocument.Load(project).Descendants("TargetFramework").Single().Value;
                 var dash = framework.IndexOf('-');
-                heads.Add(new Head(name[(sourceName.Length + 1)..], dash < 0 ? "" : framework[(dash + 1)..]));
+                var headName = name[(sourceName.Length + 1)..];
+                var platform = headName == "Browser" ? "browser" : dash < 0 ? "" : framework[(dash + 1)..];
+                heads.Add(new Head(headName, platform));
             }
 
             templates.Add(new Template(root.GetProperty("shortName").GetString()!, layouts, heads));
@@ -96,6 +99,7 @@ static class BuildPlan
     {
         "" => (null, []),
         "android" => (packs.Contains("Microsoft.Android.Sdk.") ? null : "no android workload", []),
+        "browser" => (packs.Contains("Microsoft.NET.Runtime.Emscripten.") ? null : "no wasm-tools workload", []),
         // A device build that needs no signing identity or provisioning profile.
         "ios" => (OperatingSystem.IsMacOS() && packs.Contains("Microsoft.iOS.Sdk.") ? null : "needs macOS + ios workload",
                   ["-r", "ios-arm64", "-p:EnableCodeSigning=false", "-p:ValidateXcodeVersion=false"]),
@@ -104,7 +108,7 @@ static class BuildPlan
     };
 
     // Seconds a build takes on its own (Apple M-series, every layout alike); only the order matters.
-    private static int Cost(BuildJob job) => job.Head?.Platform switch { "ios" => 60, "android" => 30, _ => 2 };
+    private static int Cost(BuildJob job) => job.Head?.Platform switch { "ios" => 60, "android" => 30, "browser" => 20, _ => 2 };
 
     // The canonical names of the requested values (case-insensitive), or all of them.
     private static HashSet<string> Select(string kind, IReadOnlyList<string>? requested, IEnumerable<string> offered)

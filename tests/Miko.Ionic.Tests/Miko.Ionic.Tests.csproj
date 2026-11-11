@@ -15,8 +15,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="11.0.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.155.0" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.4.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.158.0-preview.1.26556.2" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.4.0.300-preview.1.26556.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -57,7 +57,7 @@
   <!-- White-box: reads rendered pixels through SkiaSharp. Miko keeps Skia out of its public surface
        (ISSUE-162), so the package is referenced here and the engine is driven through the shim below. -->
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="4.155.0" />
+    <PackageReference Include="SkiaSharp" Version="4.158.0-preview.1.26556.2" />
     <Compile Include="..\Shared\SkiaCanvasExtensions.cs" Link="Shared\SkiaCanvasExtensions.cs" />
   </ItemGroup>
 

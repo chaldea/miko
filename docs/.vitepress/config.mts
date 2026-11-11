@@ -97,6 +97,7 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Desktop Apps', link: '/guide/publishing-desktop' },
+          { text: 'Browser Apps', link: '/guide/publishing-browser' },
           { text: 'Android Apps', link: '/guide/publishing-android' },
           { text: 'iOS Apps', link: '/guide/publishing-ios' }
         ]

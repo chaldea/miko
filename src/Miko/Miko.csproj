@@ -41,14 +41,15 @@
       GraphicsDevice). A project that genuinely needs Skia itself (a test reaching the internal
       SKCanvas overloads, a diagnostics probe) references the package explicitly.
     -->
-    <PackageReference Include="SkiaSharp" Version="4.155.0" PrivateAssets="compile;contentfiles;analyzers;build" />
+    <PackageReference Include="SkiaSharp" Version="4.158.0-preview.1.26556.2" PrivateAssets="compile;contentfiles;analyzers;build" />
     <!--
-      Svg.Skia 5.x declares HarfBuzzSharp 14.2.0 as its minimum. Referencing the SkiaSharp 4.x
-      build (which requires HarfBuzzSharp 14.4.0) directly wins NuGet's nearest-wins resolution for
-      every consumer of this package, so the .so is the latest 16 KB aligned build.
+      Svg.Skia 5.x declares an older HarfBuzzSharp minimum. Referencing SkiaSharp.HarfBuzz directly
+      keeps its matching HarfBuzzSharp dependency on NuGet's nearest-wins path for every consumer,
+      so the managed bindings and the native library stay on the same package train. The Browser
+      head additionally requires the Emscripten 6.0.2 archives from this package train (.NET 11).
       Svg.Skia's assemblies never call HarfBuzz, so this only fixes the dependency graph.
     -->
-    <PackageReference Include="SkiaSharp.HarfBuzz" Version="4.155.0" PrivateAssets="compile;contentfiles;analyzers;build" />
+    <PackageReference Include="SkiaSharp.HarfBuzz" Version="4.158.0-preview.1.26556.2" PrivateAssets="compile;contentfiles;analyzers;build" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" PrivateAssets="compile;contentfiles;analyzers;build" />
   </ItemGroup>
 

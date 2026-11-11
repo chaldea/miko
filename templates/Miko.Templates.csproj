@@ -4,7 +4,7 @@
     <PackageType>Template</PackageType>
     <PackageId>Miko.Templates</PackageId>
     <Authors>Miko</Authors>
-    <Description>dotnet new templates for building Miko apps with Razor components — desktop and cross-platform (Desktop/Android/iOS).</Description>
+    <Description>dotnet new templates for building Miko apps with Razor components — desktop and cross-platform (Desktop/Browser/Android/iOS).</Description>
     <PackageTags>miko;razor;template;dotnet-new</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>

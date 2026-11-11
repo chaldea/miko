@@ -1,7 +1,7 @@
 # Miko Multiplatform App
 
 An empty [Miko](https://github.com/chaldea/miko) cross-platform application that uses Razor
-components for its UI, rendered with SkiaSharp on Desktop, Android and iOS.
+components for its UI, rendered with SkiaSharp on Desktop, Browser (WebAssembly), Android and iOS.
 
 ## Project layout
 
@@ -9,13 +9,14 @@ components for its UI, rendered with SkiaSharp on Desktop, Android and iOS.
 | ------------------------------- | ------------------------------------------------------------ |
 | `MikoMultiplatformApp`          | Shared UI (Razor components, styles) and app configuration.  |
 | `MikoMultiplatformApp.Desktop`  | Desktop startup (Windows/Linux/macOS) — uses `Miko.Windowing`. |
+| `MikoMultiplatformApp.Browser`  | Browser/WebAssembly startup — uses `Miko.Browser`.            |
 | `MikoMultiplatformApp.Simulator`| Device simulator (Windows/Linux/macOS) — uses `Miko.Simulator`. |
 | `MikoMultiplatformApp.Android`  | Android startup — uses `Miko.Android`.                       |
 | `MikoMultiplatformApp.iOS`      | iOS startup — uses `Miko.iOS`.                               |
 
 The shared project exposes `App.CreateContext()`, which returns a platform-neutral
 `MikoAppContext`. Each startup project consumes that context and drives the render loop
-for its platform. `MikoMultiplatformApp.slnx` opens all five projects in Visual Studio, Rider or VS Code.
+for its platform. `MikoMultiplatformApp.slnx` opens all six projects in Visual Studio, Rider or VS Code.
 
 ## App icon and launch screen
 
@@ -55,6 +56,21 @@ Device simulator (preview app with device chrome and settings panel):
 dotnet run --project MikoMultiplatformApp.Simulator
 ```
 
+Browser (starts the WebAssembly development server and opens the default browser):
+
+```bash
+dotnet run --project MikoMultiplatformApp.Browser
+```
+
+Publish the static browser application to `bin/Release/net11.0/publish/wwwroot`:
+
+```bash
+dotnet publish MikoMultiplatformApp.Browser -c Release
+```
+
+Routes use URL hashes (for example `#/about`), so the published static files need no server-side
+route fallback. Browser rendering requires the `wasm-tools` workload to link SkiaSharp and HarfBuzz.
+
 Android (device/emulator connected, `android` workload installed):
 
 ```bash
@@ -69,7 +85,8 @@ dotnet build MikoMultiplatformApp.iOS -t:Run
 
 ## Requirements
 
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/) or later
+- [.NET 11.0 SDK](https://dotnet.microsoft.com/) or later
+- For Browser: `dotnet workload install wasm-tools`
 - For Android: `dotnet workload install android`
 - For iOS: macOS with `dotnet workload install ios`
 

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Miko
   text: Native UI for .NET, authored in Razor
-  tagline: A cross-platform rendering engine that draws every pixel with SkiaSharp — no browser, no WebView, no HTML/CSS runtime.
+  tagline: A cross-platform rendering engine that draws every pixel with SkiaSharp — no embedded browser, no WebView, no HTML/CSS runtime.
   actions:
     - theme: brand
       text: Get Started
@@ -28,7 +28,7 @@ features:
     details: Ships as a few .NET assemblies plus SkiaSharp. No bundled Chromium, no Node, no WebView. Binaries are a fraction of an Electron app's.
   - icon: 🖥️
     title: Cross-platform
-    details: One codebase runs on Windows, macOS, Linux, Android, and iOS — everywhere SkiaSharp does.
+    details: One codebase runs on Windows, macOS, Linux, Android, iOS, and the browser — everywhere SkiaSharp does.
   - icon: 🚀
     title: Trimming & AOT-aware
     details: The routing and rendering paths are designed for trimmed / Native AOT publishing, for fast startup and small, self-contained binaries.

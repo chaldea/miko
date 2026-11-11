@@ -39,6 +39,7 @@ public class PlatformScrollbarsTests : IDisposable
     [InlineData(HostPlatform.Windows, ScrollbarStyle.Classic)]
     [InlineData(HostPlatform.Linux, ScrollbarStyle.Classic)]
     [InlineData(HostPlatform.MacOS, ScrollbarStyle.Overlay)]
+    [InlineData(HostPlatform.Browser, ScrollbarStyle.Overlay)]
     [InlineData(HostPlatform.Ios, ScrollbarStyle.None)]
     [InlineData(HostPlatform.Android, ScrollbarStyle.None)]
     public void Should_default_to_the_platform_convention(HostPlatform platform, ScrollbarStyle expected)

@@ -17,6 +17,9 @@ public enum HostPlatform
     Linux,
     /// <summary>Apple macOS.</summary>
     MacOS,
+
+    /// <summary>A browser running the WebAssembly host.</summary>
+    Browser,
 }
 
 /// <summary>
@@ -85,6 +88,7 @@ public sealed class PlatformInfo : IPlatformService
     /// </summary>
     public static HostPlatform Detect()
     {
+        if (OperatingSystem.IsBrowser()) return HostPlatform.Browser;
         if (OperatingSystem.IsIOS() || OperatingSystem.IsTvOS()) return HostPlatform.Ios;
         if (OperatingSystem.IsAndroid()) return HostPlatform.Android;
         if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst()) return HostPlatform.MacOS;
