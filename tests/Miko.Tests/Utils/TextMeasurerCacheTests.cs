@@ -1,5 +1,7 @@
 using Miko.Common;
 using Miko.Fonts;
+using Miko.Rendering;
+using Miko.Text;
 using Miko.Utils;
 using Shouldly;
 
@@ -64,6 +66,21 @@ public class TextMeasurerCacheTests : IDisposable
 
         // Distinct cache keys must not collide
         large.Width.ShouldBeGreaterThan(small.Width);
+    }
+
+    [Fact]
+    public void MeasureText_UsesTheSameAdvancesAsThePainter()
+    {
+        const string text = "hello hello";
+        var runs = new FontFallbackResolver(FontManager.Instance)
+            .ResolveTextRuns(text, "Arial", FontWeight.Normal);
+        float drawnWidth = runs.Sum(run =>
+            Painter.CreateHighQualityFont(run.Typeface, 15).MeasureText(run.Text));
+
+        TextMeasurer.MeasureTextWidth(text, "Arial", 15, FontWeight.Normal)
+            .ShouldBe(drawnWidth, 0.01f);
+        TextShaping.Shape(text, "Arial", 15, FontWeight.Normal, Direction.Ltr).Width
+            .ShouldBe(drawnWidth, 0.01f);
     }
 
     [Fact]

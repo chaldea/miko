@@ -229,14 +229,14 @@ internal static class TextShaping
         return new ShapedRun(typeface, fontSize, glyphs, positions, advances, clusters, start, length, false, pen);
     }
 
-    /// <summary>Measuring font, configured like <see cref="Utils.TextMeasurer"/>'s (Skia defaults).</summary>
+    /// <summary>Measuring font, configured exactly like the painter's drawing font (ISSUE-163).</summary>
     private static SKFont GetMeasureFont(SKTypeface typeface, float fontSize)
     {
         var key = new FontKey(typeface, fontSize);
         if (MeasureFonts.TryGetValue(key, out var font)) return font;
         // Superseded instances are left to the finalizer: another thread may still be measuring with them.
         if (MeasureFonts.Count >= MaxMeasureFonts) MeasureFonts.Clear();
-        font = new SKFont(typeface, fontSize);
+        font = Rendering.Painter.CreateHighQualityFont(typeface, fontSize);
         MeasureFonts[key] = font;
         return font;
     }

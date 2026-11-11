@@ -188,7 +188,8 @@ public class LabelsMeasureTest
         var size3 = label3.Measure();
         var lines3 = LineWidths(label3);
 
-        (LineWidths(label3).Count == 6).ShouldBeTrue();
+        lines3.Count.ShouldBe(6, string.Join(" | ", label3.Layout.Lines.Select(
+            line => $"{line.Text.Text}={line.Width:F2}")));
     }
 
     private const string LoremIpsum =

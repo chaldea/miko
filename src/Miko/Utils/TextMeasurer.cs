@@ -91,7 +91,7 @@ public static class TextMeasurer
 
         foreach (var run in textRuns)
         {
-            using var font = new SKFont(run.Typeface, fontSize);
+            var font = Rendering.Painter.CreateHighQualityFont(run.Typeface, fontSize);
             totalWidth += font.MeasureText(run.Text, _sharedPaint);
 
             var metrics = font.Metrics;
@@ -140,7 +140,7 @@ public static class TextMeasurer
                 SKFontStyleSlant.Upright);
         }
 
-        using var font = new SKFont(typeface, fontSize);
+        var font = Rendering.Painter.CreateHighQualityFont(typeface, fontSize);
 
         var metrics = font.Metrics;
         float height = -metrics.Ascent + metrics.Descent;

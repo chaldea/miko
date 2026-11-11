@@ -79,18 +79,22 @@ public class FontFallbackResolver
         var runs = new List<TextRun>();
 
         int runStart = 0;
+        int previousCodePoint = -1;
         SKTypeface? currentTypeface = null;
 
         // Per code point, not per UTF-16 unit: the two halves of a surrogate pair resolved separately
         // never match a font (ISSUE-157). A character that continues the previous one (combining
         // mark, joiner, variation selector, emoji modifier) stays in its font, so a cluster is never
-        // split across fonts — the shaper could not attach the mark to its base otherwise.
+        // split across fonts — the shaper could not attach the mark to its base otherwise. The code
+        // point after a ZWJ belongs to that cluster too; resolving it independently can return a new
+        // SKTypeface instance for the same family and prevent the emoji ligature from shaping.
         for (int i = 0; i < text.Length;)
         {
             int codePoint = char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text[i], text[i + 1]) : text[i];
             int width = codePoint > 0xFFFF ? 2 : 1;
 
-            SKTypeface? typeface = currentTypeface != null && IsClusterContinuation(codePoint)
+            SKTypeface? typeface = currentTypeface != null &&
+                (IsClusterContinuation(codePoint) || previousCodePoint == 0x200D)
                 ? currentTypeface
                 : ResolveFont(codePoint, fallbackChain, weight);
 
@@ -107,6 +111,7 @@ public class FontFallbackResolver
             }
 
             currentTypeface = typeface;
+            previousCodePoint = codePoint;
             i += width;
         }
 

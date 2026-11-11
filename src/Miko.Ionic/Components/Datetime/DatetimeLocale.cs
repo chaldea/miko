@@ -60,6 +60,17 @@ internal sealed partial class DatetimeLocale
     {
         Culture = culture;
         _hourCycleExtension = hourCycleExtension;
+
+        // Some Linux ICU installations have the Korean patterns but fall back to English AM/PM.
+        // Keep Ionic's Intl-compatible Korean labels stable without mutating the shared culture.
+        if (culture.TwoLetterISOLanguageName == "ko" &&
+            culture.DateTimeFormat.AMDesignator.Equals("AM", StringComparison.OrdinalIgnoreCase) &&
+            culture.DateTimeFormat.PMDesignator.Equals("PM", StringComparison.OrdinalIgnoreCase))
+        {
+            Culture = (CultureInfo)culture.Clone();
+            Culture.DateTimeFormat.AMDesignator = "오전";
+            Culture.DateTimeFormat.PMDesignator = "오후";
+        }
     }
 
     /// <summary>The culture the text is formatted with.</summary>
@@ -325,6 +336,18 @@ internal sealed partial class DatetimeLocale
             }
         }
 
+        // Some ICU versions write CJK dates as "7月15日周三", others as "7月15日 周三".
+        // Intl keeps a word boundary between the numeric date and its weekday.
+        if (weekday)
+        {
+            for (var i = 1; i < tokens.Count; i++)
+            {
+                if (tokens[i].Kind == FieldKind.Weekday && tokens[i - 1].IsLiteral &&
+                    HasLetter(tokens[i - 1]) && !char.IsWhiteSpace(Unescape(tokens[i - 1].Raw)[^1]))
+                    tokens.Insert(i++, Literal(" "));
+            }
+        }
+
         return Join(tokens);
     }
 
@@ -344,6 +367,20 @@ internal sealed partial class DatetimeLocale
             FieldKind.DayPeriod => twelve && hour,
             _ => false,
         });
+
+        // ICU uses a narrow no-break space between a 12-hour time and its trailing day period,
+        // while some .NET runtime/platform combinations expose an ordinary space in the pattern.
+        // Normalize emits NBSP (which more fonts cover); do not change day-period-first locales.
+        if (twelve)
+        {
+            for (var i = 1; i < tokens.Count; i++)
+            {
+                if (tokens[i].Kind != FieldKind.DayPeriod || !tokens[i - 1].IsLiteral) continue;
+                var separator = Unescape(tokens[i - 1].Raw);
+                if (separator.Length > 0 && string.IsNullOrWhiteSpace(separator))
+                    tokens[i - 1] = Literal(((char)0x00A0).ToString());
+            }
+        }
 
         for (var i = 0; i < tokens.Count; i++)
         {
