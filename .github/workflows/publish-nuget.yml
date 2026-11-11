@@ -46,7 +46,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          # The SDK pinned in global.json (10.0.4xx, latest patch), the band the mobile workloads match.
+          # The SDK pinned in global.json (11.0.1xx, latest patch), the band the mobile workloads match.
           global-json-file: global.json
 
       - name: Install mobile workloads

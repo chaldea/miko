@@ -326,7 +326,7 @@ internal class Painter
         float insetRight = rect.Right - halfWidth;
 
         using var path = new SKPath();
-
+#pragma warning disable CS0618 // SKPath mutation methods replaced by SKPathBuilder in SkiaSharp 4.x
         if (leftRadius > 0)
         {
             float arcRadius = Math.Max(0, leftRadius - halfWidth);
@@ -349,6 +349,7 @@ internal class Painter
         {
             path.LineTo(insetRight, insetTop);
         }
+#pragma warning restore CS0618
 
         _canvas.DrawPath(path, paint);
     }
@@ -369,7 +370,7 @@ internal class Painter
         float insetBottom = rect.Bottom - halfWidth;
 
         using var path = new SKPath();
-
+#pragma warning disable CS0618 // SKPath mutation methods replaced by SKPathBuilder in SkiaSharp 4.x
         if (topRadius > 0)
         {
             float arcRadius = Math.Max(0, topRadius - halfWidth);
@@ -392,6 +393,7 @@ internal class Painter
         {
             path.LineTo(insetRight, insetBottom);
         }
+#pragma warning restore CS0618
 
         _canvas.DrawPath(path, paint);
     }
@@ -412,7 +414,7 @@ internal class Painter
         float insetRight = rect.Right - halfWidth;
 
         using var path = new SKPath();
-
+#pragma warning disable CS0618 // SKPath mutation methods replaced by SKPathBuilder in SkiaSharp 4.x
         if (rightRadius > 0)
         {
             float arcRadius = Math.Max(0, rightRadius - halfWidth);
@@ -435,6 +437,7 @@ internal class Painter
         {
             path.LineTo(insetLeft, insetBottom);
         }
+#pragma warning restore CS0618
 
         _canvas.DrawPath(path, paint);
     }
@@ -455,7 +458,7 @@ internal class Painter
         float insetBottom = rect.Bottom - halfWidth;
 
         using var path = new SKPath();
-
+#pragma warning disable CS0618 // SKPath mutation methods replaced by SKPathBuilder in SkiaSharp 4.x
         if (bottomRadius > 0)
         {
             float arcRadius = Math.Max(0, bottomRadius - halfWidth);
@@ -478,6 +481,7 @@ internal class Painter
         {
             path.LineTo(insetLeft, insetTop);
         }
+#pragma warning restore CS0618
 
         _canvas.DrawPath(path, paint);
     }
@@ -1219,11 +1223,10 @@ internal class Painter
     {
         if (image == null) return;
 
-        using var paint = new SKPaint { IsAntialias = true };
         if (srcRect is { } src)
-            _canvas.DrawImage(image, src.ToSKRect(), dstRect.ToSKRect(), paint);
+            _canvas.DrawImage(image, src.ToSKRect(), dstRect.ToSKRect(), SKSamplingOptions.Default);
         else
-            _canvas.DrawImage(image, dstRect.ToSKRect(), paint);
+            _canvas.DrawImage(image, dstRect.ToSKRect(), SKSamplingOptions.Default);
     }
 
     /// <summary>
@@ -1337,9 +1340,11 @@ internal class Painter
 
             // 绘制勾选标记
             var path = new SKPath();
+#pragma warning disable CS0618 // SKPath mutation methods replaced by SKPathBuilder in SkiaSharp 4.x
             path.MoveTo(x + size * 0.2f, y + size * 0.5f);
             path.LineTo(x + size * 0.4f, y + size * 0.7f);
             path.LineTo(x + size * 0.8f, y + size * 0.3f);
+#pragma warning restore CS0618
             _canvas.DrawPath(path, paint);
         }
     }
@@ -1595,6 +1600,7 @@ internal class Painter
         };
 
         var path = new SKPath();
+#pragma warning disable CS0618 // SKPath mutation methods replaced by SKPathBuilder in SkiaSharp 4.x
         if (isOpen)
         {
             // 向上箭头
@@ -1610,6 +1616,7 @@ internal class Painter
             path.LineTo(arrowX + arrowWidth, arrowY);
         }
         path.Close();
+#pragma warning restore CS0618
         _canvas.DrawPath(path, paint);
     }
 
@@ -1673,7 +1680,9 @@ internal class Painter
         roundRect.SetRectRadii(rect, radii);
 
         var path = new SKPath();
+#pragma warning disable CS0618 // SKPath mutation methods replaced by SKPathBuilder in SkiaSharp 4.x
         path.AddRoundRect(roundRect);
+#pragma warning restore CS0618
         return path;
     }
 

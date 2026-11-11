@@ -14,7 +14,7 @@ permissions:
 jobs:
   build:
     name: Build and test
-    # macos-latest can target net10.0, net10.0-android and net10.0-ios at once,
+    # macos-latest can target net11.0, net11.0-android and net11.0-ios at once,
     # so the whole solution (including the Android/iOS implementation libraries)
     # is validated in a single job.
     runs-on: macos-latest
@@ -25,7 +25,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          # The SDK pinned in global.json (10.0.4xx, latest patch), the band the mobile workloads match.
+          # The SDK pinned in global.json (11.0.1xx, latest patch), the band the mobile workloads match.
           global-json-file: global.json
 
       - name: Install mobile workloads

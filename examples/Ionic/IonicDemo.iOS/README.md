@@ -1,6 +1,6 @@
 # IonicDemo.iOS
 
-This example targets Xcode 27 / `net10.0-ios27.0` and requires iOS 15 or later.
+This example targets Xcode 27 / `net11.0-ios` and requires iOS 15 or later.
 The .NET iOS bindings currently require the `XCODE_27_0_PREVIEW` opt-in in the
 project file.
 

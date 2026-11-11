@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Miko.Bootstrap</RootNamespace>
@@ -31,8 +31,8 @@
     <ProjectReference Include="..\Miko\Miko.csproj" />
     <!-- Build-order only: ensures Miko.Razor.Compiler is built before this project so
          the generator DLLs exist at the path used by _OverrideRazorSourceGenerator below.
-         The compiler targets net10.0 and is consumed only as analyzer DLLs by path, so its
-         output assembly is not referenced into this net10.0 project. -->
+         The compiler targets net11.0 and is consumed only as analyzer DLLs by path, so its
+         output assembly is not referenced into this net11.0 project. -->
     <ProjectReference Include="..\Miko.Razor.Compiler\Miko.Razor.Compiler.csproj"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"

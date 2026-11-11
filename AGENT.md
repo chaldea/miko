@@ -18,7 +18,7 @@ Razor / C# 组件
 
 基本技术约束：
 
-- 核心库目标框架为 `net10.0`，启用 nullable reference types；`Miko.Razor.Compiler` 为 `net10.0` 工具/分析器，`Miko.SourceGenerators` 为 `netstandard2.0` Roslyn 源生成器。
+- 核心库目标框架为 `net11.0`，启用 nullable reference types；`Miko.Razor.Compiler` 为 `net11.0` 工具/分析器，`Miko.SourceGenerators` 为 `netstandard2.0` Roslyn 源生成器。
 - UI 线程负责 DOM、样式、布局和绘制。后台任务只能通过 `MikoDispatcher`、`PostInvalidate` 等入口把工作投递回引擎。
 - `Style` 的 `null` 表示“未设置”，不能当作 CSS 默认值；`ComputedStyle` 才是布局和渲染使用的最终样式。
 - Skia 对象（`SKSurface`、`SKImage`、`SKBitmap`、`GRBackendRenderTarget` 等）有明确所有权，尤其是每帧创建的 GPU 对象必须在本帧释放。

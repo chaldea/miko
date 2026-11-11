@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -9,16 +9,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="coverlet.collector" Version="10.1.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.1" />
     <PackageReference Include="Shouldly" Version="4.3.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
     <!-- Native SkiaSharp / HarfBuzzSharp libraries for headless Linux (e.g. ubuntu-latest CI).
          The base packages ship no Linux native libs; without these the tests fail to load
          linux-x64/native/libSkiaSharp, or libHarfBuzzSharp in every test that shapes text. -->
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.1" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.1.2" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.155.0" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.4.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,9 +48,9 @@
   <!-- White-box: reads rendered pixels through SkiaSharp. Miko keeps Skia out of its public surface
        (ISSUE-162), so the package is referenced here and the engine is driven through the shim below. -->
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="3.119.1" />
+    <PackageReference Include="SkiaSharp" Version="4.155.0" />
     <!-- TextShapingTests calls the HarfBuzz shaper directly. -->
-    <PackageReference Include="HarfBuzzSharp" Version="8.3.1.2" />
+    <PackageReference Include="HarfBuzzSharp" Version="14.4.0" />
     <Compile Include="..\Shared\SkiaCanvasExtensions.cs" Link="Shared\SkiaCanvasExtensions.cs" />
     <Compile Include="..\Shared\FakeCameraBackend.cs" Link="Shared\FakeCameraBackend.cs" />
   </ItemGroup>

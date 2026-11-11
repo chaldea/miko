@@ -8,7 +8,7 @@ Miko 是一个原生、跨平台的 UI 渲染引擎，使用 Razor 作为布局 
 
 ## 环境要求
 
-- .NET 10.0 SDK
+- .NET 11.0 SDK
 - 操作系统：Windows / macOS / Linux / Android / iOS（支持 SkiaSharp 的平台）
 - 移动端开发需要安装相应的工作负载（`dotnet workload install android` / `dotnet workload install ios`）
 
@@ -148,7 +148,7 @@ miko-v5/
 │   ├── IonicPlatform.cs               # 平台检测（iOS/Android）
 │   ├── IonicStyleSheetFactory.cs      # 模式化样式表（md/ios）
 │   └── Components/Core/               # ClassMapper, IonicComponentBase
-├── src/Miko.Razor.Compiler/           # 自定义 Razor 源生成器（net10.0）
+├── src/Miko.Razor.Compiler/           # 自定义 Razor 源生成器（net11.0）
 │   └── 编译 .razor 组件为原生 Miko DOM 元素
 ├── src/Miko.DevTools/                 # 运行时调试工具
 │   └── DOM 和布局树检查器
@@ -712,7 +712,7 @@ Razor 项目必须包含 `_OverrideRazorSourceGenerator` 目标以使用 Miko �
 ```xml
 <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">
   <PropertyGroup>
-    <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\$(Configuration)\net10.0\</_CustomRazorGeneratorDir>
+    <_CustomRazorGeneratorDir>$(MSBuildThisFileDirectory)..\Miko.Razor.Compiler\bin\$(Configuration)\net11.0\</_CustomRazorGeneratorDir>
   </PropertyGroup>
   <ItemGroup>
     <Analyzer Remove="@(_RazorAnalyzer)" />
@@ -728,7 +728,7 @@ Razor 项目必须包含 `_OverrideRazorSourceGenerator` 目标以使用 Miko �
 ```
 
 通过 NuGet 包引用编译器时无需手写上述目标：包内 `build/Miko.Razor.Compiler.props` 按编译器**自身**的
-目标框架（`net10.0`）定位 `tools/net10.0/`，与消费项目的 TFM 无关，因此 `net10.0-android` / `net10.0-ios`
+目标框架（`net11.0`）定位 `tools/net11.0/`，与消费项目的 TFM 无关，因此 `net11.0-android` / `net11.0-ios`
 项目直接包含 `.razor` 文件也能构建（ISSUE-154）。
 
 项目还需要对 `Miko.Razor.Compiler` 的构建顺序引用：
@@ -1383,7 +1383,7 @@ public class App
 
 ### Razor 编译器
 
-- **目标框架**：`Miko.Razor.Compiler` 目标 net10.0，作为分析器 DLL 被 net10.0 项目消费
+- **目标框架**：`Miko.Razor.Compiler` 目标 net11.0，作为分析器 DLL 被 net11.0 项目消费
 - **热重载**：仅桌面平台支持，通过 `EnableHotReload()` 和 `InitializeHotReload()` 启用
 - **路由发现**：`UseGeneratedRoutes()` 自动扫描 `@page` 指令，无需手动注册路由
 - **编译输出**：生成的代码在 `obj/GeneratedFiles/` 目录，可查看调试

@@ -14,7 +14,7 @@ namespace Miko.Windowing.Video.MacOS;
 /// 因此本类只需按渲染节奏取出 <c>CVPixelBuffer</c>。
 ///
 /// <para>
-/// 因桌面项目为纯 net10.0（无 macOS 托管绑定），所有 AVFoundation 调用均经
+/// 因桌面项目为纯 net11.0（无 macOS 托管绑定），所有 AVFoundation 调用均经
 /// Objective-C runtime 手工发消息（见 <see cref="AVFoundationInterop"/>）。
 /// </para>
 ///

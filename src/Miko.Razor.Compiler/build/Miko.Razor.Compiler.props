@@ -7,15 +7,15 @@
     time, so we walk up one level to reach `tools/`.
 
     The folder is named after the compiler's OWN target framework, never the consuming
-    project's `$(TargetFramework)`: a platform project (`net10.0-android`, `net10.0-ios`,
-    `net10.0-windows`) that contains `.razor` files would otherwise look for a
-    `tools/net10.0-android/` folder that does not exist and silently lose the generator
+    project's `$(TargetFramework)`: a platform project (`net11.0-android`, `net11.0-ios`,
+    `net11.0-windows`) that contains `.razor` files would otherwise look for a
+    `tools/net11.0-android/` folder that does not exist and silently lose the generator
     (ISSUE-154). The compiler runs inside the build, not on the device, so one build serves
     every consumer TFM. Miko.Razor.Compiler.csproj checks at pack time that this value
     matches its TargetFramework.
   -->
   <PropertyGroup>
-    <_MikoRazorCompilerToolFramework>net10.0</_MikoRazorCompilerToolFramework>
+    <_MikoRazorCompilerToolFramework>net11.0</_MikoRazorCompilerToolFramework>
   </PropertyGroup>
 
   <Target Name="_OverrideRazorSourceGenerator" AfterTargets="_PrepareRazorSourceGenerators">

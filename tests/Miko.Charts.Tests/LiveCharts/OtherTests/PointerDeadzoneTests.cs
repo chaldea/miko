@@ -128,7 +128,7 @@ public class PointerDeadzoneTests
             "Deadzone must not engage when ZoomMode has zoom flags but no pan flags.");
     }
 
-    // _isMobile/_isTooltipCanceled live behind #if NET5_0_OR_GREATER in Chart.cs; Miko targets net10.0 only.
+    // _isMobile/_isTooltipCanceled live behind #if NET5_0_OR_GREATER in Chart.cs; Miko targets net11.0 only.
     [Fact]
     public void PointerUp_OnDesktop_ClearsTooltipCanceledForHoverAfterPan()
     {

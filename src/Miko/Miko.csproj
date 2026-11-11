@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
@@ -32,10 +32,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
     <!--
       The rendering backend is sealed inside this assembly (ISSUE-162): its packages flow to consumers
       for their runtime and native assets only, never for compile. Code outside Miko cannot name an
@@ -43,16 +41,15 @@
       GraphicsDevice). A project that genuinely needs Skia itself (a test reaching the internal
       SKCanvas overloads, a diagnostics probe) references the package explicitly.
     -->
-    <PackageReference Include="SkiaSharp" Version="3.119.1" PrivateAssets="compile;contentfiles;analyzers;build" />
+    <PackageReference Include="SkiaSharp" Version="4.155.0" PrivateAssets="compile;contentfiles;analyzers;build" />
     <!--
-      Svg.Skia 2.0.0.4 declares SkiaSharp.HarfBuzz 2.88.8, which drags in HarfBuzzSharp 7.3.0.2 —
-      its Android libHarfBuzzSharp.so is 4 KB page-aligned (XA0141, rejected by Google Play).
-      Referencing the SkiaSharp 3.x build directly wins NuGet's nearest-wins resolution for every
-      consumer of this package and brings HarfBuzzSharp 8.3.1.2, which is 16 KB aligned.
+      Svg.Skia 5.x declares HarfBuzzSharp 14.2.0 as its minimum. Referencing the SkiaSharp 4.x
+      build (which requires HarfBuzzSharp 14.4.0) directly wins NuGet's nearest-wins resolution for
+      every consumer of this package, so the .so is the latest 16 KB aligned build.
       Svg.Skia's assemblies never call HarfBuzz, so this only fixes the dependency graph.
     -->
-    <PackageReference Include="SkiaSharp.HarfBuzz" Version="3.119.1" PrivateAssets="compile;contentfiles;analyzers;build" />
-    <PackageReference Include="Svg.Skia" Version="2.0.0.4" PrivateAssets="compile;contentfiles;analyzers;build" />
+    <PackageReference Include="SkiaSharp.HarfBuzz" Version="4.155.0" PrivateAssets="compile;contentfiles;analyzers;build" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" PrivateAssets="compile;contentfiles;analyzers;build" />
   </ItemGroup>
 
   <ItemGroup>

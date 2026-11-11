@@ -4,13 +4,13 @@ using System.Text;
 // Generates the Unicode Bidirectional Algorithm data that Miko compiles in (ISSUE-157), and the
 // conformance-test subsets that tests/Miko.Tests runs against it.
 //
-//   dotnet run --project tools/Miko.UnicodeGen                  download UCD 15.1.0 and regenerate
+//   dotnet run --project tools/Miko.UnicodeGen                  download UCD 17.0.0 and regenerate
 //   dotnet run --project tools/Miko.UnicodeGen -- --ucd <dir>   use already-downloaded UCD files
 //
-// The version is pinned to the one HarfBuzzSharp 8.3 (the shaper Miko uses) was built with, so the
+// The version is pinned to the one HarfBuzzSharp 14.4 (the shaper Miko uses) was built with, so the
 // bidi classes and the shaper's script / mirroring data never disagree. Bump both together.
 
-const string UnicodeVersion = "15.1.0";
+const string UnicodeVersion = "17.0.0";
 
 var repoRoot = FindRepoRoot();
 var ucdIndex = Array.IndexOf(args, "--ucd");

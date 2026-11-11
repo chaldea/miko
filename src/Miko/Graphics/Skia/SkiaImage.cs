@@ -164,7 +164,7 @@ internal sealed class SkiaImage : Image
             }
             else if (ToSKImage() is { } image)
             {
-                canvas.DrawImage(image, 0, 0);
+                canvas.DrawImage(image, 0, 0, SKSamplingOptions.Default);
             }
             else
             {

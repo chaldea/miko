@@ -4,7 +4,7 @@ This guide covers publishing Miko apps for **Android** using the `Miko.Android` 
 
 ## Requirements
 
-- .NET 10 SDK with the `android` workload installed (`dotnet workload install android`)
+-   .NET 11 SDK with the `android` workload installed (`dotnet workload install android`)
 - Android SDK (installed automatically by the workload)
 - A signing keystore (required for Release builds and Google Play)
 
@@ -15,11 +15,11 @@ Google Play requires apps to be uploaded as an **Android App Bundle** (`.aab` fi
 ```bash
 dotnet publish MyApp.Android/MyApp.Android.csproj \
   -c Release \
-  -f net10.0-android \
+  -f net11.0-android \
   -p:AndroidPackageFormat=aab
 ```
 
-The output is `bin/Release/net10.0-android/publish/com.example.myapp-Signed.aab`.
+The output is `bin/Release/net11.0-android/publish/com.example.myapp-Signed.aab`.
 
 ## Build a Release APK
 
@@ -28,11 +28,11 @@ To build an APK for direct installation or testing:
 ```bash
 dotnet publish MyApp.Android/MyApp.Android.csproj \
   -c Release \
-  -f net10.0-android \
+  -f net11.0-android \
   -p:AndroidPackageFormat=apk
 ```
 
-The output is `bin/Release/net10.0-android/publish/com.example.myapp-Signed.apk`.
+The output is `bin/Release/net11.0-android/publish/com.example.myapp-Signed.apk`.
 
 ## Signing
 
@@ -69,7 +69,7 @@ Add the following properties to `MyApp.Android.csproj`:
 
 ```bash
 export KEYSTORE_PASSWORD="your_password_here"
-dotnet publish MyApp.Android/MyApp.Android.csproj -c Release -f net10.0-android -p:AndroidPackageFormat=aab
+dotnet publish MyApp.Android/MyApp.Android.csproj -c Release -f net11.0-android -p:AndroidPackageFormat=aab
 ```
 
 ## App metadata
@@ -158,7 +158,7 @@ Test the signed AAB or APK on a real device or emulator:
 
 ```bash
 # Install and run (device or emulator must be connected via adb)
-adb install bin/Release/net10.0-android/publish/com.example.myapp-Signed.apk
+adb install bin/Release/net11.0-android/publish/com.example.myapp-Signed.apk
 # The Activity class name is generated; ask the package manager for it
 adb shell am start -n "$(adb shell cmd package resolve-activity --brief com.example.myapp | tail -1)"
 ```

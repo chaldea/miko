@@ -5,7 +5,7 @@ official templates.
 
 ## Requirements
 
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/) or later
+- [.NET 11.0 SDK](https://dotnet.microsoft.com/) or later
 - A platform supported by SkiaSharp:
   - **Windows** — Windows 10 or 11
   - **macOS** — Current macOS release

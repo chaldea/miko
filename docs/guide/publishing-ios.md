@@ -5,7 +5,7 @@ This guide covers publishing Miko apps for **iOS** using the `Miko.iOS` host. Th
 ## Requirements
 
 - macOS with Xcode installed
-- .NET 10 SDK with the `ios` workload (`dotnet workload install ios`)
+-   .NET 11 SDK with the `ios` workload (`dotnet workload install ios`)
 - An Apple Developer account (required for signing and App Store distribution)
 - A signing identity (certificate) and provisioning profile
 
@@ -28,17 +28,17 @@ iOS apps must be signed with a certificate and provisioning profile. Add the fol
 ```bash
 dotnet publish MyApp.iOS/MyApp.iOS.csproj \
   -c Release \
-  -f net10.0-ios \
+  -f net11.0-ios \
   -r ios-arm64 \
   -p:ArchiveOnBuild=true
 ```
 
-The output is an `.xcarchive` in `bin/Release/net10.0-ios/ios-arm64/publish/`. You can also export an IPA from the archive:
+The output is an `.xcarchive` in `bin/Release/net11.0-ios/ios-arm64/publish/`. You can also export an IPA from the archive:
 
 ```bash
 xcodebuild -exportArchive \
-  -archivePath bin/Release/net10.0-ios/ios-arm64/publish/MyApp.xcarchive \
-  -exportPath bin/Release/net10.0-ios/ios-arm64/publish/ \
+  -archivePath bin/Release/net11.0-ios/ios-arm64/publish/MyApp.xcarchive \
+  -exportPath bin/Release/net11.0-ios/ios-arm64/publish/ \
   -exportOptionsPlist ExportOptions.plist
 ```
 

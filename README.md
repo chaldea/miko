@@ -85,7 +85,7 @@ Razor components  ─►  Miko source generator  ─►  native SkiaSharp render
 
 ### Requirements
 
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/) or later
+- [.NET 11.0 SDK](https://dotnet.microsoft.com/) or later
 - A platform supported by SkiaSharp (Windows, macOS, Linux, Android, or iOS)
 
 ### Create an app from the template
