@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Explore Miko.Ionic, Miko.Charts and Miko.Components running natively on a WebAssembly canvas." />
+  <title>Miko Component Playground</title>
+  <link rel="icon" href="data:," />
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #f3f5fa; }
+    #miko-app { display: block; width: 100vw; height: 100dvh; }
+    #miko-loading {
+      position: fixed; inset: 0; display: grid; place-content: center; gap: 14px;
+      font: 15px/1.5 system-ui, sans-serif; color: #667085; background: #f3f5fa; text-align: center;
+    }
+    #miko-loading strong { color: #20294a; font-size: 22px; font-weight: 650; }
+    #miko-loading::before {
+      content: ""; width: 34px; height: 34px; margin: 0 auto 4px; border: 3px solid #dce1ee;
+      border-top-color: #5267e8; border-radius: 50%; animation: miko-spin .8s linear infinite;
+    }
+    #miko-loading.miko-error { color: #b42318; padding: 24px; white-space: pre-wrap; }
+    #miko-loading.miko-error::before { display: none; }
+    @keyframes miko-spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <canvas id="miko-app" aria-label="Interactive Miko component playground"></canvas>
+  <div id="miko-loading" role="status"><strong>Miko Playground</strong>Preparing the native canvas…</div>
+  <script type="module" src="_content/Miko.Browser/miko-browser.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+@inherits LayoutComponentBase
+
+<div class="gallery-shell">
+    <div class="gallery-header">
+        <button class="gallery-brand" @onclick="OpenHome" aria-label="Miko playground home">
+            <span class="gallery-logo">M</span>
+            <span class="gallery-brand-copy">
+                <strong>Miko</strong>
+                <span>Component Playground</span>
+            </span>
+        </button>
+        <div class="gallery-header-actions">
+            <div class="gallery-mode" aria-label="Ionic design mode">
+                <span class="gallery-mode-label">Design mode</span>
+                <button class="@ModeButtonClass("md")" @onclick='() => SetMode("md")'>Material</button>
+                <button class="@ModeButtonClass("ios")" @onclick='() => SetMode("ios")'>iOS</button>
+            </div>
+            <span class="gallery-runtime"><span class="gallery-runtime-dot"></span>WebAssembly</span>
+        </div>
+    </div>
+
+    <div class="gallery-body">
+        <div class="gallery-sidebar">
+            <div class="gallery-sidebar-intro">
+                <span class="gallery-eyebrow">COMPONENT LIBRARY</span>
+                <h1>Explore Miko.</h1>
+                <p>Real components. Real interaction.<br />One Skia canvas.</p>
+            </div>
+
+            <div class="gallery-collection-label">MIKO.IONIC</div>
+            <nav class="gallery-nav" aria-label="Component examples">
+                <button class="gallery-nav-item selected" @onclick="OpenHome">
+                    <span class="gallery-nav-mark gallery-nav-mark-ionic">Io</span>
+                    <span class="gallery-nav-copy">
+                        <strong>Button</strong>
+                        <span>9 documented patterns</span>
+                    </span>
+                    <span class="gallery-nav-arrow">›</span>
+                </button>
+            </nav>
+            <div class="gallery-sidebar-footer">1 component · 9 interactive examples</div>
+        </div>
+
+        <div class="gallery-stage">
+            <div class="gallery-stage-heading">
+                <div>
+                    <span class="gallery-stage-family">MIKO.IONIC</span>
+                    <h2>Button</h2>
+                    <p>Colors, fills, sizes, shapes, icons and actions — all live.</p>
+                </div>
+                <span class="gallery-preview-badge">PHONE PREVIEW</span>
+            </div>
+
+            <div class="gallery-stage-canvas">
+                <div class="gallery-device gallery-device-phone">
+                    <div class="gallery-device-screen">
+                        <IonApp Class="gallery-device-app">
+                            @Body
+                        </IonApp>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gallery-stage-footer">
+                <span><span class="gallery-live-dot"></span>Live Miko rendering</span>
+                <span>Click and scroll inside the preview</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject] public NavigationManager Navigation { get; set; } = null!;
+    [Inject] public PlatformInfo Platform { get; set; } = null!;
+    [Inject] public MikoInteractionController Controller { get; set; } = null!;
+
+    private string CurrentMode => Platform.Platform == HostPlatform.Ios ? "ios" : "md";
+
+    private string ModeButtonClass(string mode) =>
+        $"gallery-mode-button{(CurrentMode == mode ? " selected" : null)}";
+
+    private void OpenHome() => Navigation.NavigateTo("/", NavigationDirection.Root);
+
+    private void SetMode(string mode)
+    {
+        Platform.Platform = mode == "ios" ? HostPlatform.Ios : HostPlatform.Android;
+        Controller.RequestRebuild();
+    }
+}

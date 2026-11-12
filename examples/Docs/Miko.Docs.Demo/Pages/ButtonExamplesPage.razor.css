@@ -1,0 +1,36 @@
+.button-examples-page {
+    width: 100%;
+    height: 100%;
+    background: #f5f6fa;
+    font-family: Inter;
+}
+
+.button-examples-intro {
+    padding: 26px 20px 20px;
+    background: #ffffff;
+    border-bottom: 1px solid #e8ebf2;
+}
+
+.button-examples-intro > span { color: #5267e8; font-size: 8px; font-weight: bold; letter-spacing: 1px; }
+.button-examples-intro h2 { margin: 9px 0 9px; color: #273150; font-size: 29px; line-height: 1.16; }
+.button-examples-intro p { margin: 0; color: #7f899f; font-size: 11px; line-height: 1.6; }
+
+.button-mode-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 14px;
+    color: #6977b8;
+    font-size: 9px;
+}
+
+.button-mode-hint > span { width: 6px; height: 6px; border-radius: 50%; background: #5267e8; }
+.button-examples-list { padding: 16px 14px 3px; }
+.button-example-note { color: #929bb0; font-size: 9px; line-height: 1.5; }
+.button-color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.button-size-row,
+.button-shape-row,
+.button-fill-row,
+.button-icon-row { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.button-inline { display: flex; align-items: center; }
+.button-examples-end { padding: 8px 18px 25px; color: #9aa2b5; font-size: 9px; text-align: center; }

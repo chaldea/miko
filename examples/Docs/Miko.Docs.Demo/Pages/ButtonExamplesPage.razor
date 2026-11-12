@@ -1,0 +1,102 @@
+@page "/button"
+
+<IonPage>
+    <IonContent Class="button-examples-page">
+        <div class="button-examples-intro">
+            <span>09 DOCUMENTED PATTERNS</span>
+            <h2>Small element.<br />Every detail.</h2>
+            <p>The same Razor components, rendered twice by one engine. Switch Material and iOS above to compare their visual language.</p>
+            <div class="button-mode-hint"><span></span>Try the mode switch in the gallery header</div>
+        </div>
+
+        <div class="button-examples-list">
+            <DemoExampleCard Title="Basic" Description="The default solid action" Index="1">
+                <div class="button-inline"><IonButton>Get started</IonButton></div>
+            </DemoExampleCard>
+
+            <DemoExampleCard Title="Click" Description="Strong emphasis and automatic rerendering" Index="2">
+                <div class="button-inline"><IonButton Strong="true" OnClick="Increment">Tapped @_count times</IonButton></div>
+                <div class="button-example-note">Every tap updates the component in place.</div>
+            </DemoExampleCard>
+
+            <DemoExampleCard Title="Colors" Description="Semantic colors from the Ionic palette" Index="3">
+                <div class="button-color-grid">
+                    <IonButton Color="primary">Primary</IonButton>
+                    <IonButton Color="secondary">Secondary</IonButton>
+                    <IonButton Color="tertiary">Tertiary</IonButton>
+                    <IonButton Color="success">Success</IonButton>
+                    <IonButton Color="warning">Warning</IonButton>
+                    <IonButton Color="danger">Danger</IonButton>
+                    <IonButton Color="medium">Medium</IonButton>
+                    <IonButton Color="dark">Dark</IonButton>
+                </div>
+            </DemoExampleCard>
+
+            <DemoExampleCard Title="Fill" Description="Solid, outline and clear variants" Index="4">
+                <div class="button-fill-row">
+                    <IonButton Fill="solid">Solid</IonButton>
+                    <IonButton Fill="outline">Outline</IonButton>
+                    <IonButton Fill="clear">Clear</IonButton>
+                </div>
+            </DemoExampleCard>
+
+            <DemoExampleCard Title="Size" Description="Compact, default and prominent actions" Index="5">
+                <div class="button-size-row">
+                    <IonButton Size="small">Small</IonButton>
+                    <IonButton Size="default">Default</IonButton>
+                    <IonButton Size="large">Large</IonButton>
+                </div>
+            </DemoExampleCard>
+
+            <DemoExampleCard Title="Shape" Description="Default corners and the round preset" Index="6">
+                <div class="button-shape-row">
+                    <IonButton>Default</IonButton>
+                    <IonButton Shape="round">Round</IonButton>
+                </div>
+            </DemoExampleCard>
+
+            <DemoExampleCard Title="Expand" Description="Content-box and edge-to-edge widths" Index="7">
+                <IonButton Expand="block">Block</IonButton>
+                <IonButton Expand="full" Color="secondary">Full</IonButton>
+            </DemoExampleCard>
+
+            <DemoExampleCard Title="Icons" Description="Leading, trailing and icon-only actions" Index="8">
+                <div class="button-icon-row">
+                    <IonButton>
+                        <Start><IonIcon Icon="@Ionicons.Star" /></Start>
+                        <ChildContent>Left icon</ChildContent>
+                    </IonButton>
+                    <IonButton Color="tertiary">
+                        <End><IonIcon Icon="@Ionicons.Heart" /></End>
+                        <ChildContent>Right icon</ChildContent>
+                    </IonButton>
+                    <IonButton Color="danger" aria-label="Favorite">
+                        <IconOnly><IonIcon Icon="@Ionicons.Heart" /></IconOnly>
+                    </IonButton>
+                </div>
+            </DemoExampleCard>
+
+            <DemoExampleCard Title="Toolbar" Description="Buttons adopt compact toolbar metrics" Index="9">
+                <IonToolbar>
+                    <Start>
+                        <IonButtons><IonButton>Cancel</IonButton></IonButtons>
+                    </Start>
+                    <ChildContent><IonTitle>Edit</IonTitle></ChildContent>
+                    <End>
+                        <IonButtons><IonButton Strong="true" OnClick="Save">Save</IonButton></IonButtons>
+                    </End>
+                </IonToolbar>
+                <div class="button-example-note">@_saveStatus</div>
+            </DemoExampleCard>
+        </div>
+        <div class="button-examples-end">Nine patterns. One component. Every interaction is real.</div>
+    </IonContent>
+</IonPage>
+
+@code {
+    private int _count;
+    private string _saveStatus = "Save uses the same click pipeline as any other button.";
+
+    private void Increment() => _count++;
+    private void Save() => _saveStatus = "Saved just now — the toolbar action works.";
+}
