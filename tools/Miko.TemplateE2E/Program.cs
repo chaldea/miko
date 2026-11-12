@@ -113,7 +113,7 @@ static async Task<int> RunAsync(Options options)
     return 0;
 }
 
-// The template package ships docs/**/*.md, which building Miko.DocGen (part of the solution)
+// The template package ships docs/Miko.Docs.Web/Content/**/*.md, which building Miko.DocGen (part of the solution)
 // regenerates: the libraries are packed first.
 static async Task<bool> PackAsync(string repoRoot, WorkDirectory work, CancellationToken cancellationToken)
 {

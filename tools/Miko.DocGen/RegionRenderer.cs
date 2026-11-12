@@ -443,7 +443,7 @@ public sealed class RegionRenderer
     /// <summary>
     /// Pages of the component folder that are guides, linked on their own rather than listed as
     /// components (Theming documents <c>ConfigProvider</c>, but is not a component page). Same
-    /// list as <c>ionicGuides</c> in docs/.vitepress/config.mts.
+    /// guide entries as the sidebar in docs/Miko.Docs.Web/miko.docs.json.
     /// </summary>
     private static readonly HashSet<string> GuidePages = new(StringComparer.Ordinal) { "index.md", "theming.md", "overlays.md" };
 

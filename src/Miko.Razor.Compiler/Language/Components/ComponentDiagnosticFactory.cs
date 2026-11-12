@@ -437,7 +437,7 @@ internal static class ComponentDiagnosticFactory
     public static readonly RazorDiagnosticDescriptor UnsupportedElementAttribute =
         new($"{DiagnosticPrefix}10100",
             "The attribute '{0}' is not supported on <{1}> and is ignored. Miko elements expose only the " +
-            "attributes listed in the element table (docs/guide/elements.md).",
+            "attributes listed in the element table (https://chaldea.github.io/miko/guide/elements/).",
             RazorDiagnosticSeverity.Warning);
 
     public static RazorDiagnostic Create_UnsupportedElementAttribute(SourceSpan? source, string attribute, string tagName)
@@ -446,7 +446,7 @@ internal static class ComponentDiagnosticFactory
     public static readonly RazorDiagnosticDescriptor UnknownElementTag =
         new($"{DiagnosticPrefix}10101",
             "<{0}> is not a Miko element; rendering it throws 'Unknown tag'. The supported tags are " +
-            "listed in the element table (docs/guide/elements.md).",
+            "listed in the element table (https://chaldea.github.io/miko/guide/elements/).",
             RazorDiagnosticSeverity.Warning);
 
     public static RazorDiagnostic Create_UnknownElementTag(SourceSpan? source, string tagName)
@@ -458,7 +458,7 @@ internal static class ComponentDiagnosticFactory
     // not understand.
     public static readonly RazorDiagnosticDescriptor UnsupportedCssProperty =
         new($"{DiagnosticPrefix}10102",
-            "The CSS property '{0}' is not supported by Miko and is ignored. See docs/guide/css.md.",
+            "The CSS property '{0}' is not supported by Miko and is ignored. See https://chaldea.github.io/miko/guide/css/.",
             RazorDiagnosticSeverity.Warning);
 
     public static readonly RazorDiagnosticDescriptor UnsupportedCssValue =
@@ -489,7 +489,7 @@ internal static class ComponentDiagnosticFactory
     public static readonly RazorDiagnosticDescriptor ScopedCssNotReceived =
         new($"{DiagnosticPrefix}10109",
             "This component has a .razor.css file, but the Miko compiler did not receive it, so its rules do not apply. " +
-            "A project that overrides the Razor generator by hand must also import Miko.Razor.Compiler.targets (see docs/guide/css.md).",
+            "A project that overrides the Razor generator by hand must also import Miko.Razor.Compiler.targets (see https://chaldea.github.io/miko/guide/css/).",
             RazorDiagnosticSeverity.Warning);
 
     public static readonly RazorDiagnosticDescriptor ApproximatedCss =

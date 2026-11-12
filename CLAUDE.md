@@ -321,7 +321,7 @@ Platform hosts provide:
 ### Drawing abstraction — SkiaSharp is sealed in the core (ISSUE-162)
 
 No SkiaSharp / HarfBuzzSharp / Svg.Skia type may appear in the core's public surface, and no other
-assembly may use one. Code outside `src/Miko` draws through `Miko.Graphics` (user docs: `docs/engine/drawing.md`).
+assembly may use one. Code outside `src/Miko` draws through `Miko.Graphics` (user docs: `docs/Miko.Docs.Web/Content/engine/drawing.md`).
 
 - **Enforced, not by convention.** `Miko.csproj` references the backend packages with
   `PrivateAssets="compile;…"`: consumers get the runtime and native assets but cannot compile against
@@ -510,7 +510,7 @@ build from the package (ISSUE-154). The compiler csproj fails `pack` if the two 
 
 CSS in `style="…"`, `<style>` elements and `.razor.css` files is translated into typed C# by the
 compiler (`Language/Components/Css/`); nothing parses CSS text at run time (selector *strings* are
-still parsed by `CssSelectorParser`, once, when a component first renders). User docs: `docs/guide/css.md`.
+still parsed by `CssSelectorParser`, once, when a component first renders). User docs: `docs/Miko.Docs.Web/Content/guide/css.md`.
 
 - **What runs where.** `ComponentStylePass` (directive classifier, before `ComponentWhitespacePass`
   so CSS offsets are still source offsets) lifts `<style>` and the `.razor.css` text into
@@ -582,8 +582,8 @@ See memory files for mode scoping and segment indicator patterns.
 
 ### Documentation
 
-`docs/` is the single source of user documentation — the VitePress site **and** the reference
-shipped to AI agents in scaffolded apps (`templates/Miko.Templates.csproj` packs `docs/**/*.md`
+`docs/Miko.Docs.Web/Content/` is the single source of user documentation — the Miko.Docs site **and** the reference
+shipped to AI agents in scaffolded apps (`templates/Miko.Templates.csproj` packs `docs/Miko.Docs.Web/Content/**/*.md`
 into `.miko/docs/`). `agent/` holds only agent-specific files: entry files, `.miko/rules.md`, and
 the `.miko/llms.txt` index. Links in shipped pages must be relative `.md` links.
 
@@ -596,7 +596,7 @@ on CI). Never edit between the markers:
 - `<!-- miko:tokens Foo -->` — `IonicTheme.Foo` with md and ios defaults.
 - `<!-- miko:type … -->` — options / event-args / controller types.
 - `<!-- miko:example examples/x/Y.razor -->` — inlines an example; the `.razor` files under
-  `docs/components/**/examples/` are compiled and rendered by `tests/Miko.Docs.Tests`.
+  `docs/Miko.Docs.Web/Content/components/**/examples/` are compiled and rendered by `tests/Miko.Docs.Tests`.
 - `<!-- miko:elements -->` — the Razor compiler's tag / attribute table (`MikoElements`).
 - `<!-- miko:component-index … -->`, `<!-- miko:include … -->` — indexes and shared fragments.
 
@@ -653,7 +653,7 @@ Built-in fallback chain: Arial → Segoe UI → Microsoft YaHei → SimSun → M
 
 ### Charts (Miko.Charts)
 
-`src/Miko.Charts` ports LiveCharts2 (MIT, notice in THIRD-PARTY-NOTICES.txt). User docs: `docs/components/charts.md`.
+`src/Miko.Charts` ports LiveCharts2 (MIT, notice in THIRD-PARTY-NOTICES.txt). User docs: `docs/Miko.Docs.Web/Content/components/charts.md`.
 
 - **`Core/` is LiveChartsCore copied unchanged** (namespaces `LiveChartsCore.*`, XAML-only `Generators/` files
   dropped). Keep it diffable against upstream: fix bugs in `MikoView/` where possible. `[MotionProperty]`
@@ -739,7 +739,7 @@ the app delivers compressed access units and the platform only decodes:
 
 ### Remote desktop (MikoVnc) and raw input
 
-`Miko.Components/Vnc` is a VNC client (issues/feat-components-vnc.md). User docs: `docs/components/vnc.md`;
+`Miko.Components/Vnc` is a VNC client (issues/feat-components-vnc.md). User docs: `docs/Miko.Docs.Web/Content/components/vnc.md`;
 decision and verification record: `src/Miko.Components/Vnc/DESIGN.md`.
 
 - **Everything is managed, no package**: RFB 3.3–3.8 (`Protocol/VncClient`), None / VNC / Tight security,
@@ -1039,5 +1039,5 @@ animationManager.PlayAnimation(element, animation);
 - Text editing (`ITextEditable`): `CursorPosition`, input-method selection and `MaxLength` count UTF-16
   code units; insert/backspace/delete/arrow keys work on grapheme clusters (`TextEditing` in
   `ITextEditable.cs`), so emoji and combining sequences are never split (ISSUE-154)
-- Documentation site under `docs/` (VitePress) contains the usage guide; see "Documentation" below
+- Documentation site under `docs/` (Miko.Docs) contains the usage guide; see "Documentation" below
 - `DEVELOPMENT.md` (in Chinese) has developer-oriented walkthrough

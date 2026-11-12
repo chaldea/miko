@@ -1,10 +1,16 @@
 <Solution>
+  <Folder Name="/docs/">
+    <Project Path="docs/Miko.Docs.Web/Miko.Docs.Web.csproj" />
+    <Project Path="docs/Miko.Docs.Demo/Miko.Docs.Demo.csproj" />
+    <Project Path="docs/Miko.Docs.Demo.Browser/Miko.Docs.Demo.Browser.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Miko.Android/Miko.Android.csproj" />
     <Project Path="src/Miko.Charts.Generators/Miko.Charts.Generators.csproj" />
     <Project Path="src/Miko.Charts/Miko.Charts.csproj" />
     <Project Path="src/Miko.Components/Miko.Components.csproj" />
     <Project Path="src/Miko.DevTools/Miko.DevTools.csproj" />
+    <Project Path="src/Miko.Docs/Miko.Docs.csproj" />
     <Project Path="src/Miko.Ionic/Miko.Ionic.csproj" />
     <Project Path="src/Miko.iOS/Miko.iOS.csproj" />
     <Project Path="src/Miko.McpServer/Miko.McpServer.csproj" />

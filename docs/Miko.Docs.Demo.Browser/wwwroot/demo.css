@@ -1,0 +1,7 @@
+:root { color-scheme: light dark; font: 17px/1.65 system-ui, sans-serif; }
+body { margin: 0; }
+main { max-width: 720px; margin: 12vh auto; padding: 24px; }
+h1 { font-size: clamp(2.5rem, 8vw, 4rem); line-height: 1.1; }
+.eyebrow { color: #8d78ed; font-weight: 700; letter-spacing: .12em; }
+a { color: #8d78ed; }
+#blazor-error-ui { display: none; padding: 16px; background: #fff0bd; color: #332b17; }

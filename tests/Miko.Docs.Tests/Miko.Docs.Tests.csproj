@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Miko\Miko.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Docs\Miko.Docs.csproj" />
     <ProjectReference Include="..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
     <ProjectReference Include="..\..\src\Miko.Testing\Miko.Testing.csproj" />
     <ProjectReference Include="..\..\tools\Miko.DocGen\Miko.DocGen.csproj" />
@@ -35,7 +36,7 @@
   </ItemGroup>
 
   <!--
-    The examples inlined into docs/components (miko:example regions) are real Razor
+    The examples inlined into docs/Miko.Docs.Web/Content/components (miko:example regions) are real Razor
     components, compiled here and rendered by ExampleRenderTests — so every example in the docs
     is known to build and render against the current API. They live next to the pages that show
     them; Link places them under Examples/, giving them the namespace
@@ -44,7 +45,7 @@
     that compiles here compiles when pasted into an app.
   -->
   <ItemGroup>
-    <Content Include="..\..\docs\components\**\examples\**\*.razor"
+    <Content Include="..\..\docs\Miko.Docs.Web\Content\components\**\examples\**\*.razor"
              Link="Examples\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
