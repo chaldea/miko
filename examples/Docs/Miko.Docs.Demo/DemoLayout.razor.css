@@ -241,6 +241,9 @@
 .property-value { color: #9a9fad; font-size: 9px; }
 .property-segment { display: flex; flex-shrink: 0; gap: 2px; padding: 3px; border-radius: 7px; background: #f0f0f4; }
 .property-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-grow: 1;
     min-width: 0;
     height: 27px;
