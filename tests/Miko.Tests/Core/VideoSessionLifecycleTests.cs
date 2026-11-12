@@ -150,6 +150,7 @@ public class VideoSessionLifecycleTests : IDisposable
         engine.HasPendingInvalidations.ShouldBeFalse();
         engine.PostInvalidate(root);
         engine.HasPendingInvalidations.ShouldBeTrue();
+        engine.Dispatcher.HasPendingActions.ShouldBeTrue("an on-demand host must be woken by async resource completion");
 
         // Render 排空待处理失效
         engine.Render(_canvas);

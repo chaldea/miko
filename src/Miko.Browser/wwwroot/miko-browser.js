@@ -436,6 +436,7 @@ function networkStatus() {
 
 function notifyNetwork() {
     nativeCallbacks.NetworkChanged(networkStatus());
+    requestFrame();
 }
 
 function subscribeNetwork() {
@@ -492,8 +493,8 @@ function getCurrentPosition(optionsJson) {
 
 function watchPosition(optionsJson) {
     const id = navigator.geolocation.watchPosition(
-        position => nativeCallbacks.PositionChanged(String(id), positionJson(position), null),
-        error => nativeCallbacks.PositionChanged(String(id), null, error.message),
+        position => { nativeCallbacks.PositionChanged(String(id), positionJson(position), null); requestFrame(); },
+        error => { nativeCallbacks.PositionChanged(String(id), null, error.message); requestFrame(); },
         positionOptions(optionsJson));
     return String(id);
 }

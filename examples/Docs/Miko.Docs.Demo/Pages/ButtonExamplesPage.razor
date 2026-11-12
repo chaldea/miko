@@ -116,7 +116,6 @@
 @code {
     [Inject] public ButtonPlaygroundState State { get; set; } = null!;
     [Inject] public PlatformInfo Platform { get; set; } = null!;
-    [Inject] public MikoInteractionController Controller { get; set; } = null!;
 
     private string ModeLabel => Platform.Platform == HostPlatform.Ios ? "iOS" : "Material";
     private string ButtonLabel => State.ClickCount == 0 ? "Tap me" : $"Tapped {State.ClickCount} times";
@@ -144,12 +143,10 @@
     private void ActivateMain()
     {
         State.Click("IonButton");
-        Controller.RequestRebuild();
     }
 
     private void Activate(string source)
     {
         State.Click(source);
-        Controller.RequestRebuild();
     }
 }

@@ -185,12 +185,20 @@ internal sealed class BrowserHost
 
     private void Changed()
     {
-        _needsPresent = true;
+        // Input often changes nothing visual (an irrelevant hover, a key with no focused editor).
+        // RenderFrame checks HasPendingWork before doing a full paint and RGBA readback; forcing
+        // _needsPresent here turned every pointer event into a full-canvas copy (feat-browser).
         BrowserInterop.RequestFrame();
     }
 
     internal void PointerDown(double x, double y, int button, int pointerType, int pointerId)
     {
+        if (pointerType == 1 && _controller.ScrollBehavior is DefaultScrollBehavior)
+        {
+            // Preserve app registrations and desktop wheel behavior. A real touch contact is the
+            // first reliable signal that this Browser host should use the shared mobile gesture model.
+            _controller.SetScrollBehavior(new ElasticScrollBehavior(new InertialScrollBehavior()));
+        }
         _controller.OnPointerDown((float)x, (float)y, Button(button), PointerType(pointerType), pointerId);
         Changed();
     }

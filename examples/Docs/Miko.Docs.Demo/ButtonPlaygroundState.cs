@@ -19,8 +19,11 @@ public sealed record PlaygroundLogEntry(int Id, string Time, string Kind, string
 /// <summary>Designer state shared by the property panel, preview and interaction console.</summary>
 public sealed class ButtonPlaygroundState
 {
+    private const int MaxEvents = 4;
     private readonly List<PlaygroundLogEntry> _events = [];
     private int _nextEventId;
+
+    public event Action? Changed;
 
     public ButtonPlaygroundState() => Record("ready", "IonButton playground initialized");
 
@@ -45,7 +48,8 @@ public sealed class ButtonPlaygroundState
     {
         _nextEventId++;
         _events.Insert(0, new PlaygroundLogEntry(_nextEventId, DateTime.Now.ToString("HH:mm:ss"), kind, message));
-        if (_events.Count > 60) _events.RemoveAt(_events.Count - 1);
+        if (_events.Count > MaxEvents) _events.RemoveAt(_events.Count - 1);
+        Changed?.Invoke();
     }
 
     public void Click(string source)

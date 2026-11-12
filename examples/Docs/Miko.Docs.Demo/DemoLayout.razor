@@ -215,7 +215,7 @@
                     {
                         @foreach (var entry in State.Events)
                         {
-                            <div class="console-entry"><span class="console-time">@entry.Time</span><span class="console-kind">@entry.Kind</span><span class="console-message">@entry.Message</span><span class="console-id">#@entry.Id.ToString("000")</span></div>
+                            <div class="console-entry">@($"{entry.Time}  {entry.Kind,-9} {entry.Message}  #{entry.Id:000}")</div>
                         }
                     }
                 </div>
@@ -230,7 +230,6 @@
     [Inject] public ButtonPlaygroundState State { get; set; } = null!;
     [Inject] public NavigationManager Navigation { get; set; } = null!;
     [Inject] public PlatformInfo Platform { get; set; } = null!;
-    [Inject] public MikoInteractionController Controller { get; set; } = null!;
 
     private static readonly (string Name, string Hex)[] Colors =
     [
@@ -266,6 +265,10 @@
         _ => position.ToString(),
     };
 
+    protected override void OnInitialized() => State.Changed += OnPlaygroundChanged;
+    protected override void OnDispose() => State.Changed -= OnPlaygroundChanged;
+    private void OnPlaygroundChanged() => StateHasChanged();
+
     private void ToggleCategory(string category)
     {
         if (!_expandedCategories.Add(category)) _expandedCategories.Remove(category);
@@ -282,28 +285,24 @@
             State.Record("scene", $"Switched to {SceneName.ToLowerInvariant()}");
         }
         if (Navigation.CurrentPath != "/") Navigation.NavigateTo("/", NavigationDirection.Root);
-        Controller.RequestRebuild();
     }
 
     private void SetMode(string mode)
     {
         Platform.Platform = mode == "ios" ? HostPlatform.Ios : HostPlatform.Android;
         State.Record("mode", $"Ionic design mode = {mode}");
-        Controller.RequestRebuild();
     }
 
     private void Change(string property, string value, Action update)
     {
         update();
         State.Record("property", $"{property} = {value}");
-        Controller.RequestRebuild();
     }
 
     private void Reset()
     {
         Platform.Platform = HostPlatform.Android;
         State.Reset();
-        Controller.RequestRebuild();
     }
 
     private void ClearConsole()
