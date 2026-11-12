@@ -1,102 +1,155 @@
 @page "/button"
 
 <IonPage>
-    <IonContent Class="button-examples-page">
-        <div class="button-examples-intro">
-            <span>09 DOCUMENTED PATTERNS</span>
-            <h2>Small element.<br />Every detail.</h2>
-            <p>The same Razor components, rendered twice by one engine. Switch Material and iOS above to compare their visual language.</p>
-            <div class="button-mode-hint"><span></span>Try the mode switch in the gallery header</div>
-        </div>
-
-        <div class="button-examples-list">
-            <DemoExampleCard Title="Basic" Description="The default solid action" Index="1">
-                <div class="button-inline"><IonButton>Get started</IonButton></div>
-            </DemoExampleCard>
-
-            <DemoExampleCard Title="Click" Description="Strong emphasis and automatic rerendering" Index="2">
-                <div class="button-inline"><IonButton Strong="true" OnClick="Increment">Tapped @_count times</IonButton></div>
-                <div class="button-example-note">Every tap updates the component in place.</div>
-            </DemoExampleCard>
-
-            <DemoExampleCard Title="Colors" Description="Semantic colors from the Ionic palette" Index="3">
-                <div class="button-color-grid">
-                    <IonButton Color="primary">Primary</IonButton>
-                    <IonButton Color="secondary">Secondary</IonButton>
-                    <IonButton Color="tertiary">Tertiary</IonButton>
-                    <IonButton Color="success">Success</IonButton>
-                    <IonButton Color="warning">Warning</IonButton>
-                    <IonButton Color="danger">Danger</IonButton>
-                    <IonButton Color="medium">Medium</IonButton>
-                    <IonButton Color="dark">Dark</IonButton>
-                </div>
-            </DemoExampleCard>
-
-            <DemoExampleCard Title="Fill" Description="Solid, outline and clear variants" Index="4">
-                <div class="button-fill-row">
-                    <IonButton Fill="solid">Solid</IonButton>
-                    <IonButton Fill="outline">Outline</IonButton>
-                    <IonButton Fill="clear">Clear</IonButton>
-                </div>
-            </DemoExampleCard>
-
-            <DemoExampleCard Title="Size" Description="Compact, default and prominent actions" Index="5">
-                <div class="button-size-row">
-                    <IonButton Size="small">Small</IonButton>
-                    <IonButton Size="default">Default</IonButton>
-                    <IonButton Size="large">Large</IonButton>
-                </div>
-            </DemoExampleCard>
-
-            <DemoExampleCard Title="Shape" Description="Default corners and the round preset" Index="6">
-                <div class="button-shape-row">
-                    <IonButton>Default</IonButton>
-                    <IonButton Shape="round">Round</IonButton>
-                </div>
-            </DemoExampleCard>
-
-            <DemoExampleCard Title="Expand" Description="Content-box and edge-to-edge widths" Index="7">
-                <IonButton Expand="block">Block</IonButton>
-                <IonButton Expand="full" Color="secondary">Full</IonButton>
-            </DemoExampleCard>
-
-            <DemoExampleCard Title="Icons" Description="Leading, trailing and icon-only actions" Index="8">
-                <div class="button-icon-row">
-                    <IonButton>
-                        <Start><IonIcon Icon="@Ionicons.Star" /></Start>
-                        <ChildContent>Left icon</ChildContent>
-                    </IonButton>
-                    <IonButton Color="tertiary">
-                        <End><IonIcon Icon="@Ionicons.Heart" /></End>
-                        <ChildContent>Right icon</ChildContent>
-                    </IonButton>
-                    <IonButton Color="danger" aria-label="Favorite">
-                        <IconOnly><IonIcon Icon="@Ionicons.Heart" /></IconOnly>
-                    </IonButton>
-                </div>
-            </DemoExampleCard>
-
-            <DemoExampleCard Title="Toolbar" Description="Buttons adopt compact toolbar metrics" Index="9">
+    @if (State.Scene == ButtonDemoScene.Toolbar)
+    {
+        <IonHeader>
+            <ConfigProvider IonicTheme="@ToolbarTheme">
                 <IonToolbar>
-                    <Start>
-                        <IonButtons><IonButton>Cancel</IonButton></IonButtons>
-                    </Start>
-                    <ChildContent><IonTitle>Edit</IonTitle></ChildContent>
-                    <End>
-                        <IonButtons><IonButton Strong="true" OnClick="Save">Save</IonButton></IonButtons>
-                    </End>
+                <Start>
+                    <IonButtons><IonButton OnClick='() => Activate("Cancel")'>Cancel</IonButton></IonButtons>
+                </Start>
+                <ChildContent><IonTitle>Edit profile</IonTitle></ChildContent>
+                <End>
+                    <IonButtons><IonButton Strong="true" OnClick='() => Activate("Save")'>Save</IonButton></IonButtons>
+                </End>
                 </IonToolbar>
-                <div class="button-example-note">@_saveStatus</div>
-            </DemoExampleCard>
-        </div>
-        <div class="button-examples-end">Nine patterns. One component. Every interaction is real.</div>
-    </IonContent>
+            </ConfigProvider>
+        </IonHeader>
+        <IonContent Class="toolbar-scene-content">
+            <div class="scene-explainer">
+                <span class="scene-kicker">CONTEXT 02 · TOOLBAR</span>
+                <h2>Same button.<br />Different job.</h2>
+                <p>Inside a toolbar, IonButton adopts compact dimensions and a clear fill so it belongs beside the title.</p>
+                <div class="context-facts">
+                    <div><span>Fill</span><strong>Clear by context</strong></div>
+                    <div><span>Metrics</span><strong>Compact</strong></div>
+                    <div><span>Toolbar color</span><strong>@State.ToolbarColor</strong></div>
+                    <div><span>Design mode</span><strong>@ModeLabel</strong></div>
+                </div>
+                <div class="scene-action-hint">Try Cancel or Save, then check the interaction output below.</div>
+            </div>
+        </IonContent>
+    }
+    else if (State.Scene == ButtonDemoScene.Icons)
+    {
+        <IonContent Class="icons-scene-content">
+            <div class="icons-stage">
+                <span class="scene-kicker">CONTEXT 03 · ICONS</span>
+                <h2>Icon + label<br />or just an icon.</h2>
+                <p>Each slot changes the button's layout without changing its interaction model.</p>
+                <div class="icon-example-list">
+                    <div class="icon-example">
+                        <IonButton Color="@State.Color" OnClick='() => Activate("Start icon")'>
+                            <Start><IonIcon Icon="@Ionicons.Star" /></Start>
+                            <ChildContent>Favorite</ChildContent>
+                        </IonButton>
+                        <span class="icon-example-label">START</span>
+                    </div>
+                    <div class="icon-example">
+                        <IonButton Color="@State.Color" OnClick='() => Activate("End icon")'>
+                            <End><IonIcon Icon="@Ionicons.Heart" /></End>
+                            <ChildContent>Like</ChildContent>
+                        </IonButton>
+                        <span class="icon-example-label">END</span>
+                    </div>
+                    <div class="icon-example">
+                        <IonButton Color="@State.Color" aria-label="Add favorite" OnClick='() => Activate("Icon only")'>
+                            <IconOnly><IonIcon Icon="@Ionicons.Heart" /></IconOnly>
+                        </IonButton>
+                        <span class="icon-example-label">ICON ONLY</span>
+                    </div>
+                </div>
+                <div class="icons-current-color">Current color · <strong>@State.Color</strong></div>
+            </div>
+        </IonContent>
+    }
+    else
+    {
+        <IonContent Class="button-playground">
+            <div class="component-stage">
+                <span class="component-stage-label">LIVE COMPONENT</span>
+                <div class="@ButtonContainerClass">
+                    @if (State.Icon == null)
+                    {
+                        <IonButton Color="@State.Color" Fill="@State.Fill" Size="@State.Size" Shape="@State.ShapeValue"
+                                   Expand="@State.ExpandValue" Strong="@State.Strong" Disabled="@State.Disabled"
+                                   aria-label="Interactive button" OnClick="ActivateMain">
+                            <ChildContent>@ButtonLabel</ChildContent>
+                        </IonButton>
+                    }
+                    else if (State.IconPosition == ButtonIconPosition.Start)
+                    {
+                        <IonButton Color="@State.Color" Fill="@State.Fill" Size="@State.Size" Shape="@State.ShapeValue"
+                                   Expand="@State.ExpandValue" Strong="@State.Strong" Disabled="@State.Disabled"
+                                   aria-label="Interactive button" OnClick="ActivateMain">
+                            <Start><IonIcon Icon="@CurrentIcon" /></Start>
+                            <ChildContent>@ButtonLabel</ChildContent>
+                        </IonButton>
+                    }
+                    else if (State.IconPosition == ButtonIconPosition.End)
+                    {
+                        <IonButton Color="@State.Color" Fill="@State.Fill" Size="@State.Size" Shape="@State.ShapeValue"
+                                   Expand="@State.ExpandValue" Strong="@State.Strong" Disabled="@State.Disabled"
+                                   aria-label="Interactive button" OnClick="ActivateMain">
+                            <End><IonIcon Icon="@CurrentIcon" /></End>
+                            <ChildContent>@ButtonLabel</ChildContent>
+                        </IonButton>
+                    }
+                    else
+                    {
+                        <IonButton Color="@State.Color" Fill="@State.Fill" Size="@State.Size" Shape="@State.ShapeValue"
+                                   Expand="@State.ExpandValue" Strong="@State.Strong" Disabled="@State.Disabled"
+                                   aria-label="Interactive button" OnClick="ActivateMain">
+                            <IconOnly><IonIcon Icon="@CurrentIcon" /></IconOnly>
+                        </IonButton>
+                    }
+                </div>
+                <div class="component-summary">@State.Color <span>·</span> @State.Fill <span>·</span> @State.Size</div>
+                <div class="component-state">@(State.Disabled ? "Interaction is disabled" : "Click the button and watch the output below")</div>
+                <div class="component-mode"><span></span>@($"{ModeLabel} preview")</div>
+            </div>
+        </IonContent>
+    }
 </IonPage>
 
 @code {
-    private int _count;
-    private string _saveStatus = "Save uses the same click pipeline as any other button.";
+    [Inject] public ButtonPlaygroundState State { get; set; } = null!;
+    [Inject] public PlatformInfo Platform { get; set; } = null!;
+    [Inject] public MikoInteractionController Controller { get; set; } = null!;
 
-    private void Increment() => _count++;
-    private void Save() => _saveStatus = "Saved just now — the toolbar action works.";
+    private string ModeLabel => Platform.Platform == HostPlatform.Ios ? "iOS" : "Material";
+    private string ButtonLabel => State.ClickCount == 0 ? "Tap me" : $"Tapped {State.ClickCount} times";
+    private string CurrentIcon => State.Icon == "star" ? Ionicons.Star : Ionicons.Heart;
+    private string ButtonContainerClass => $"component-button-wrap {State.Expand ?? "inline"}";
+    private Miko.Common.Color ToolbarBackground => State.ToolbarColor switch
+    {
+        "primary" => Miko.Common.Color.FromHex("#512bd4"),
+        "dark" => Miko.Common.Color.FromHex("#222428"),
+        _ => Miko.Common.Color.FromHex("#ffffff"),
+    };
+    private Miko.Common.Color ToolbarText => State.ToolbarColor == "light"
+        ? Miko.Common.Color.FromHex("#202941")
+        : Miko.Common.Color.FromHex("#ffffff");
+    private IonicTheme ToolbarTheme => new()
+    {
+        Toolbar = new ToolbarToken
+        {
+            Background = ToolbarBackground,
+            Color = ToolbarText,
+            BorderColor = ToolbarBackground,
+        },
+    };
+
+    private void ActivateMain()
+    {
+        State.Click("IonButton");
+        Controller.RequestRebuild();
+    }
+
+    private void Activate(string source)
+    {
+        State.Click(source);
+        Controller.RequestRebuild();
+    }
 }

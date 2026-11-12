@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Miko.Hosting;
 using Miko.Ionic;
 using Miko.Docs.Demo.Pages;
@@ -10,12 +11,13 @@ public static class App
     public static MikoAppContext CreateContext(Action<MikoAppBuilder>? configure = null)
     {
         var builder = MikoAppBuilder.CreateDefault();
-        builder.UseTitle("Miko · Button Gallery");
-        builder.UseSize(1280, 900);
+        builder.UseTitle("Miko · Button Playground");
+        builder.UseSize(1440, 960);
         builder.UseFonts(fonts => fonts.AddResource("Inter", typeof(App).Assembly, "Miko.Docs.Demo.Assets.Inter-Latin.ttf"));
+        builder.Services.AddSingleton<ButtonPlaygroundState>();
         builder.AddIonic(options => options.Theme = new IonicTheme
         {
-            Palette = new PaletteToken { Primary = "5267e8" },
+            Palette = new PaletteToken { Primary = "512bd4" },
         });
         builder.UseRouter(router =>
         {
