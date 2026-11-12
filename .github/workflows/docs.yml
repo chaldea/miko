@@ -76,7 +76,7 @@ jobs:
         with:
           path: artifacts/docs/wwwroot
 
-      # Exercise the native toolchain as well as the SDK-only publish above.
+      # Also verify an explicit native build at the root deployment path.
       - name: Publish root deployment with native WebAssembly
         if: github.event_name == 'pull_request'
         run: dotnet publish docs/Miko.Docs.Web/Miko.Docs.Web.csproj -c Release -o artifacts/docs-root -p:MikoDocsBasePath=/ -p:WasmBuildNative=true

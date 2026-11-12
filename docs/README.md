@@ -54,9 +54,11 @@ custom domains, root deployments, and repository subpaths use the same publish c
 
 The Ubuntu publishing job installs the SDK selected by global.json and the matching
 wasm-tools workload. Setup .NET alone does not install the Emscripten/native WASM
-toolchain. The current placeholder explicitly disables AOT and native linking, so
-it can also publish locally with only the .NET SDK. A future demo that requires
-native linking or AOT must enable those project properties; the CI toolchain is ready.
+toolchain. The placeholder follows SDK defaults: AOT is opt-in, and Release
+publishing can relink the runtime when the workload is installed. Without the
+workload, the current placeholder can use the prebuilt interpreter runtime.
+Do not force WasmBuildNative=false: SDK runtime settings can require relinking.
+A future demo can enable RunAOTCompilation when needed; the CI toolchain is ready.
 For local native/AOT publishing, first run:
 
 ~~~sh
