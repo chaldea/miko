@@ -6,14 +6,19 @@ $ErrorActionPreference = 'Stop'
 $site = (Resolve-Path -LiteralPath $SiteRoot).Path
 $info = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $site 'site-info.json') | ConvertFrom-Json
 if ($info.base -ne $BasePath) { throw "Expected base '$BasePath', got '$($info.base)'." }
-foreach ($file in @('index.html', '404.html', 'assets/miko.js', 'assets/search-index.json', 'demo/index.html', 'demo/demo.css', 'demo/_framework/blazor.webassembly.js', '.nojekyll')) {
+foreach ($file in @('index.html', '404.html', 'assets/miko.js', 'assets/highlight.js', 'assets/search-index.json', 'demo/index.html', 'demo/demo.css', 'demo/_framework/blazor.webassembly.js', 'demo/_framework/dotnet.js', '.nojekyll')) {
     if (-not (Test-Path -LiteralPath (Join-Path $site $file) -PathType Leaf)) { throw "Missing $file" }
 }
 $homeHtml = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $site 'index.html')
 if (-not $homeHtml.Contains('href="' + $BasePath + 'demo/"')) { throw 'The homepage must link to the demo under the deployment base.' }
 $demoHtml = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $site 'demo/index.html')
 if (-not $demoHtml.Contains('<base href="./">')) { throw 'The demo must resolve resources relative to /demo/.' }
-if (-not (Get-ChildItem -LiteralPath (Join-Path $site 'demo/_framework') -Filter '*.wasm')) { throw 'No WebAssembly binaries were published.' }
+$framework = Join-Path $site 'demo/_framework'
+foreach ($pattern in @('dotnet.native*.wasm', 'dotnet.runtime*.js')) {
+    if (-not (Get-ChildItem -LiteralPath $framework -Filter $pattern -File)) {
+        throw "The WebAssembly runtime is incomplete: missing $pattern."
+    }
+}
 if (Test-Path -LiteralPath (Join-Path $site '_framework')) { throw 'Demo runtime files leaked into the documentation root.' }
 foreach ($page in (Get-ChildItem -LiteralPath $site -Filter '*.html' -Recurse | Where-Object { -not $_.FullName.StartsWith((Join-Path $site 'demo') + [IO.Path]::DirectorySeparatorChar) })) {
     $html = Get-Content -Raw -Encoding UTF8 -LiteralPath $page.FullName

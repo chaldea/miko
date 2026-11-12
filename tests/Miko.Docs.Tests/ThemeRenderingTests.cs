@@ -42,7 +42,8 @@ public class ThemeRenderingTests
     public void Should_render_original_navigation_and_local_fonts_with_deployment_base()
     {
         var root = Path.Combine(RepoPaths.Root, "docs", "Miko.Docs.Web");
-        var output = Path.Combine(Path.GetTempPath(), "miko-theme-tests", Guid.NewGuid().ToString("N"));
+        using var temporary = new DocsTestDirectory();
+        var output = Path.Combine(temporary.Root, "output");
         try
         {
             new SiteBuilder().Build(root, output, "/miko/");

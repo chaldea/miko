@@ -25,7 +25,8 @@ public class SiteDeploymentTests
         var project = Path.Combine(RepoPaths.Root, "docs", "Miko.Docs.Web");
         var configPath = Path.Combine(project, "miko.docs.json");
         var before = File.ReadAllText(configPath);
-        var output = Path.Combine(Path.GetTempPath(), "miko-site-tests", Guid.NewGuid().ToString("N"));
+        using var temporary = new DocsTestDirectory();
+        var output = Path.Combine(temporary.Root, "output");
         try
         {
             Directory.CreateDirectory(Path.Combine(output, "demo", "_framework"));
@@ -52,7 +53,8 @@ public class SiteDeploymentTests
     public void Should_validate_publish_base_before_writing()
     {
         var project = Path.Combine(RepoPaths.Root, "docs", "Miko.Docs.Web");
-        var output = Path.Combine(Path.GetTempPath(), "miko-site-tests", Guid.NewGuid().ToString("N"));
+        using var temporary = new DocsTestDirectory();
+        var output = Path.Combine(temporary.Root, "output");
         Should.Throw<InvalidDataException>(() => new SiteBuilder().Build(project, output, "//bad/"));
         Directory.Exists(output).ShouldBeFalse();
     }

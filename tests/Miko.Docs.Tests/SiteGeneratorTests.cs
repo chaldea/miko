@@ -151,9 +151,8 @@ static void Write(string root, string path, string content)
 }
 static void WithSite(Action<string, string> action)
 {
-    var root = Path.Combine(Path.GetTempPath(), "miko-docs-tests", Guid.NewGuid().ToString("N"));
-    Directory.CreateDirectory(root);
-    try { Write(root, "docs/index.md", "# Home"); action(root, Path.Combine(root, "output")); }
-    finally { Directory.Delete(root, true); }
+    using var temporary = new DocsTestDirectory();
+    Write(temporary.Root, "docs/index.md", "# Home");
+    action(temporary.Root, Path.Combine(temporary.Root, "output"));
 }
 }

@@ -52,6 +52,22 @@ The development server rebuilds documentation sources; use the published preview
 combined-site check. The GitHub workflow obtains its base path from configure-pages so
 custom domains, root deployments, and repository subpaths use the same publish command.
 
+The Ubuntu publishing job installs the SDK selected by global.json and the matching
+wasm-tools workload. Setup .NET alone does not install the Emscripten/native WASM
+toolchain. The current placeholder explicitly disables AOT and native linking, so
+it can also publish locally with only the .NET SDK. A future demo that requires
+native linking or AOT must enable those project properties; the CI toolchain is ready.
+For local native/AOT publishing, first run:
+
+~~~sh
+dotnet workload install wasm-tools
+~~~
+
+Documentation pull requests run the same Ubuntu publish and layout checks for
+both /miko/ and /. The root publish additionally enables WasmBuildNative to exercise
+the native toolchain. PR runs skip Pages configuration, artifact upload and deployment;
+only main pushes or manual workflow runs deploy to GitHub Pages.
+
 ## Hosting boundaries
 
 - /demo/ is reserved for the browser application. Its relative base element keeps scripts,
