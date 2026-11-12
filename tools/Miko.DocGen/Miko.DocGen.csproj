@@ -37,8 +37,7 @@
     Opt out locally with -p:MikoGenerateDocs=false.
   -->
   <ItemGroup>
-    <_MikoDocGenInput Include="$(MikoRepoRoot)docs\**\*.md;$(MikoRepoRoot)docs\**\*.razor;$(MikoRepoRoot)agent\**\*.md;$(MikoRepoRoot)agent\**\*.txt"
-                      Exclude="$(MikoRepoRoot)docs\node_modules\**;$(MikoRepoRoot)docs\.vitepress\**" />
+    <_MikoDocGenInput Include="$(MikoRepoRoot)docs\Miko.Docs.Web\Content\**\*.md;$(MikoRepoRoot)docs\Miko.Docs.Web\Content\**\*.razor;$(MikoRepoRoot)agent\**\*.md;$(MikoRepoRoot)agent\**\*.txt" />
   </ItemGroup>
 
   <Target Name="MikoGenerateDocs"

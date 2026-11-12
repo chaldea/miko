@@ -4,7 +4,7 @@ using Miko.DocGen;
 //
 //   dotnet run --project tools/Miko.DocGen              update the docs in place
 //   dotnet run --project tools/Miko.DocGen -- --check   verify only; exit 1 on drift or problems
-//   … -- --only docs/components/ionic/button.md         write just the named file(s)
+//   … -- --only docs/Miko.Docs.Web/Content/components/ionic/button.md         write just the named file(s)
 //
 // Building this project runs the update automatically (outside CI); see Miko.DocGen.csproj.
 

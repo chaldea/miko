@@ -28,7 +28,7 @@ public sealed record DocsRunResult(IReadOnlyList<string> StaleFiles, IReadOnlyLi
 /// </summary>
 public static class DocsGenerator
 {
-    public const string ComponentDocsDir = "docs/components/ionic";
+    public const string ComponentDocsDir = AgentPackageLayout.DocsSource + "/components/ionic";
 
     private static readonly Regex Region = new(
         @"(?<open><!--\s*miko:(?<kind>[a-z-]+)(?<args>(?:[ \t]+[^\s]+?)*)\s*-->)(?<body>.*?)(?<close><!--\s*/miko:\k<kind>\s*-->)",
@@ -87,7 +87,10 @@ public static class DocsGenerator
         {
             var updated = Region.Replace(document.Text, match =>
             {
-                var body = renderer.Render(document, match.Groups["kind"].Value, Arguments(match));
+                // StringBuilder.AppendLine uses the host newline. Generated Markdown must
+                // remain identical on Windows and on the Linux/macOS CI runners.
+                var body = renderer.Render(document, match.Groups["kind"].Value, Arguments(match))
+                    .Replace("\r\n", "\n");
                 return $"{match.Groups["open"].Value}\n{body.TrimEnd('\n')}\n{match.Groups["close"].Value}";
             });
 
@@ -113,13 +116,9 @@ public static class DocsGenerator
     /// <summary>Every file that may carry generated regions.</summary>
     public static IEnumerable<string> SourceFiles(string repoRoot)
     {
-        var docs = Path.Combine(repoRoot, "docs");
+        var docs = Path.Combine(repoRoot, AgentPackageLayout.DocsSource);
         foreach (var file in Directory.EnumerateFiles(docs, "*.md", SearchOption.AllDirectories))
-        {
-            var relative = Path.GetRelativePath(docs, file).Replace('\\', '/');
-            if (!relative.StartsWith(".vitepress/", StringComparison.Ordinal) && !relative.StartsWith("node_modules/", StringComparison.Ordinal))
-                yield return file;
-        }
+            yield return file;
 
         var agent = Path.Combine(repoRoot, "agent");
         foreach (var file in Directory.EnumerateFiles(agent, "*", SearchOption.AllDirectories))
@@ -172,7 +171,7 @@ public sealed class DocumentFile
     {
         Path = path;
         RelativePath = System.IO.Path.GetRelativePath(repoRoot, path).Replace('\\', '/');
-        Text = text;
+        Text = text.Replace("\r\n", "\n");
     }
 
     public string Path { get; }

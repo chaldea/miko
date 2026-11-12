@@ -4,9 +4,8 @@ using System.Text.RegularExpressions;
 namespace Miko.DocGen;
 
 /// <summary>
-/// Markdown building blocks. Output is read raw by agents and compiled by VitePress, whose pages
-/// are Vue templates: a stray <c>&lt;IonItem&gt;</c> or <c>{{</c> in prose would be parsed as
-/// markup, so free text is escaped and tag-like tokens become code spans.
+/// Markdown building blocks shared by the agent reference and Miko.Docs site.
+/// Escape table delimiters and HTML-like text consistently, and show tag-like tokens as code.
 /// </summary>
 public static class Markdown
 {

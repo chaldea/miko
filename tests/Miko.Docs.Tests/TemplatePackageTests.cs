@@ -122,7 +122,7 @@ public partial class TemplatePackageTests(TemplatePackageFixture fixture) : ICla
         {
             var path = Path.Combine(app, ".miko", "docs", doc);
             File.Exists(path).ShouldBeTrue($".miko/docs/{doc} is missing from the scaffolded app");
-            File.ReadAllText(path).ShouldBe(File.ReadAllText(Path.Combine(RepoPaths.Root, "docs", doc)), $".miko/docs/{doc} was altered by scaffolding");
+            File.ReadAllText(path).ShouldBe(File.ReadAllText(Path.Combine(RepoPaths.Root, AgentPackageLayout.DocsSource, doc)), $".miko/docs/{doc} was altered by scaffolding");
         }
         File.Exists(Path.Combine(app, ".miko", "llms.txt")).ShouldBeTrue();
         File.Exists(Path.Combine(app, ".miko", "rules.md")).ShouldBeTrue();

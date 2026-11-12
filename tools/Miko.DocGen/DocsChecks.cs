@@ -94,7 +94,7 @@ public static class DocsChecks
 
     private static IEnumerable<string> OrphanExamples(string repoRoot)
     {
-        var docs = Path.Combine(repoRoot, "docs");
+        var docs = Path.Combine(repoRoot, AgentPackageLayout.DocsSource);
         var referenced = new HashSet<string>(StringComparer.Ordinal);
         foreach (var file in DocsGenerator.SourceFiles(repoRoot).Where(f => f.StartsWith(docs, StringComparison.Ordinal)))
         {
@@ -112,10 +112,10 @@ public static class DocsChecks
         }
     }
 
-    /// <summary>Links between docs pages, as VitePress sees them.</summary>
+    /// <summary>Links between docs pages, as Miko.Docs sees them.</summary>
     private static IEnumerable<string> SiteLinks(string repoRoot)
     {
-        var docs = Path.Combine(repoRoot, "docs");
+        var docs = Path.Combine(repoRoot, AgentPackageLayout.DocsSource);
         foreach (var file in DocsGenerator.SourceFiles(repoRoot).Where(f => f.StartsWith(docs, StringComparison.Ordinal)))
         {
             var relativeFile = Path.GetRelativePath(repoRoot, file).Replace('\\', '/');

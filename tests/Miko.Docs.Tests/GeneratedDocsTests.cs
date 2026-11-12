@@ -17,6 +17,14 @@ public class GeneratedDocsTests
     private static readonly Lazy<DocsRunResult> Result = new(() => DocsGenerator.Run(RepoPaths.Root, write: false));
 
     [Fact]
+    public void Should_compare_generated_regions_with_portable_newlines()
+    {
+        var path = Path.Combine(RepoPaths.Root, AgentPackageLayout.DocsSource, "index.md");
+        var document = new DocumentFile(RepoPaths.Root, path, "# Page\r\n\r\n<!-- region -->\r\nText\r\n");
+        document.Text.ShouldBe("# Page\n\n<!-- region -->\nText\n");
+    }
+
+    [Fact]
     public void Should_have_up_to_date_generated_regions()
     {
         Result.Value.StaleFiles.ShouldBeEmpty(

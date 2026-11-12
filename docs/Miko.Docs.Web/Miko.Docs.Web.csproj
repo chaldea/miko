@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <MikoDocsToolPath>$(MSBuildThisFileDirectory)../../src/Miko.Docs/bin/$(Configuration)/net11.0/Miko.Docs.dll</MikoDocsToolPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Miko.Docs/Miko.Docs.csproj" />
+    <!-- Build ordering and restore include the browser head; it is not a server dependency. -->
+    <ProjectReference Include="../Miko.Docs.Demo.Browser/Miko.Docs.Demo.Browser.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Import Project="../../src/Miko.Docs/buildTransitive/Miko.Docs.targets" />
+  <Target Name="ValidateDemoPath" BeforeTargets="MikoDocsPublish" DependsOnTargets="MikoDocsGenerate">
+    <Error Condition="Exists('$(MikoDocsOutputDirectory)/demo')"
+           Text="The /demo/ path is reserved for the WebAssembly application; documentation pages and public assets cannot use it." />
+  </Target>
+  <Target Name="PublishDemo" AfterTargets="Publish">
+    <PropertyGroup>
+      <_DemoPublishDir>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)demo-publish/', '$(MSBuildProjectDirectory)'))</_DemoPublishDir>
+    </PropertyGroup>
+    <MSBuild Projects="../Miko.Docs.Demo.Browser/Miko.Docs.Demo.Browser.csproj"
+             Targets="Publish"
+             RemoveProperties="PublishUrl;RuntimeIdentifier;SelfContained;MikoDocsOutputDirectory"
+             Properties="Configuration=$(Configuration);PublishDir=$(_DemoPublishDir)" />
+    <ItemGroup>
+      <_DemoFiles Include="$(_DemoPublishDir)wwwroot/**/*" />
+    </ItemGroup>
+    <Error Condition="!Exists('$(_DemoPublishDir)wwwroot/index.html')" Text="The WebAssembly demo publish output is missing." />
+    <Error Condition="Exists('$(PublishDir)wwwroot/demo') and !Exists('$(PublishDir)wwwroot/demo/.miko-demo')"
+           Text="The /demo/ path is reserved for the WebAssembly application; remove conflicting documentation content." />
+    <RemoveDir Directories="$(PublishDir)wwwroot/demo" />
+    <Copy SourceFiles="@(_DemoFiles)" DestinationFiles="@(_DemoFiles->'$(PublishDir)wwwroot/demo/%(RecursiveDir)%(Filename)%(Extension)')" />
+    <WriteLinesToFile File="$(PublishDir)wwwroot/demo/.miko-demo" Lines="Generated WebAssembly demo" Overwrite="true" />
+    <WriteLinesToFile File="$(PublishDir)wwwroot/.nojekyll" Lines="" Overwrite="true" />
+  </Target>
+</Project>
