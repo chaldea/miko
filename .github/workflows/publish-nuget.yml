@@ -31,7 +31,7 @@ permissions:
 jobs:
   publish:
     name: Pack and push
-    # macos-latest can build the desktop, Android and iOS packages in one job.
+    # macos-latest can build the desktop, Android, iOS and WebAssembly projects in one job.
     runs-on: macos-latest
     env:
       CONFIGURATION: Release
@@ -46,11 +46,12 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          # The SDK pinned in global.json (11.0.1xx, latest patch), the band the mobile workloads match.
+          # The SDK pinned in global.json (11.0.1xx, latest patch), matching the workloads below.
           global-json-file: global.json
 
-      - name: Install mobile workloads
-        run: dotnet workload install android ios
+      # The solution build also includes the demo, which requires the native WebAssembly toolchain.
+      - name: Install mobile and WebAssembly workloads
+        run: dotnet workload install android ios wasm-tools
 
       - name: Resolve version
         id: version
