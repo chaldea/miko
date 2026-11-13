@@ -284,7 +284,7 @@ Miko 实现类浏览器的渲染管线：
 4. 布局计算        → 约束向下传递（父→子），尺寸向上回传（子→父）
 5. 定位调整        → 处理 relative/absolute/fixed 定位偏移，登记 sticky 盒（偏移在每次绘制/命中测试前按滚动量施加）
 6. 视口观察        → 通知 IViewportObserver（虚拟化列表）此刻可见的区域；它们改了 DOM 就重排再通知，直到稳定
-7. 绘制            → RenderEngine 通过 Painter 绘制到宿主给的 IDrawingContext（支持增量渲染；Skia 封闭在核心库内，见 docs/engine/drawing.md）
+7. 绘制            → RenderEngine 通过 Painter 绘制到宿主给的 IDrawingContext（支持增量渲染；Skia 封闭在核心库内，见 docs/Miko.Docs.Web/Content/engine/drawing.md）
 ```
 
 ### 样式级联
@@ -1355,7 +1355,7 @@ public class App
 - **事件处理**：避免在高频事件（如 `OnMouseMove`）中执行耗时操作
 - **样式解析缓存**：`ComputedStyle` 在布局时计算并缓存，避免重复解析
 - **长列表**：成百上千行的列表用 `Virtualize<TItem>`（`Miko.Components.Virtualization`）只渲染可见的行，
-  打开、加载更多、滚动的成本与行数无关（ISSUE-151，见 `docs/guide/razor-components.md`）
+  打开、加载更多、滚动的成本与行数无关（ISSUE-151，见 `docs/Miko.Docs.Web/Content/guide/razor-components.md`）
 
 ### 平台差异
 
@@ -1407,18 +1407,18 @@ public class App
 
 ### 文档与资源
 
-- **在线文档**：https://chaldea.github.io/miko/（VitePress 站点，位于 `docs/` 目录）
-  - 组件文档在 `docs/components/ionic/`，每个页面由手写说明加生成区块组成：
+- **在线文档**：https://chaldea.github.io/miko/（Miko.Docs 站点，位于 `docs/Miko.Docs.Web` 目录）
+  - 组件文档在 `docs/Miko.Docs.Web/Content/components/ionic/`，每个页面由手写说明加生成区块组成：
     `<!-- miko:api -->`（参数/事件/插槽表，取自反射 + XML 注释）、`<!-- miko:tokens -->`
     （主题 Token 及 md/ios 默认值）、`<!-- miko:example -->`（内联 `examples/` 下的 `.razor`）、
     `<!-- miko:elements -->`（Razor 编译器的标签/属性表）等。区块内不要手改。
   - 生成：`dotnet run --project tools/Miko.DocGen`；本地构建解决方案时会自动生成（CI 不生成）。
     `-- --check` 只校验，`-- --only <文件>` 只写指定文件。
   - 改组件参数时写好 `///` 注释——它就是文档；缺注释、组件未入任何页面、示例未被引用、
-    链接失效，都会让 `tests/Miko.Docs.Tests` 失败。示例 `.razor` 在该测试项目里编译并渲染。
+    链接失效，都会让 `tests/Miko.Docs.Demo.Tests` 失败。示例 `.razor` 在该测试项目里编译并渲染。
 - **Agent 文档**：`agent/` 只放与 agent 相关的内容（入口文件、`rules.md`、`llms.txt` 索引）。
-  打包模板时 `docs/**/*.md` 被复制到生成应用的 `.miko/docs/`，因此 agent 与开发者读同一份文档；
-  `tests/Miko.Docs.Tests` 会打包模板、用 `dotnet new` 生成应用并检查文档完整性与链接。
+  打包模板时 `docs/Miko.Docs.Web/Content/**/*.md` 被复制到生成应用的 `.miko/docs/`，因此 agent 与开发者读同一份文档；
+  `tests/Miko.Docs.Demo.Tests` 会打包模板、用 `dotnet new` 生成应用并检查文档完整性与链接。
 - **开发指南**：本文档（DEVELOPMENT.md）
 - **项目指南**：CLAUDE.md（面向 AI 助手的项目概览）
 - **示例代码**：`examples/` 目录包含 Bootstrap、Ionic、多平台、异步、媒体播放等示例

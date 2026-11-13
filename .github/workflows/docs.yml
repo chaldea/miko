@@ -1,82 +1,101 @@
 name: Deploy Docs
 
-# Builds the VitePress documentation site and deploys it to GitHub Pages.
-#
-# One-time setup: in the repository, go to Settings → Pages and set
-# "Build and deployment > Source" to "GitHub Actions". The site is then served at
-# https://chaldea.github.io/miko/ (matching `base` in docs/.vitepress/config.mts).
-
+# One static artifact: documentation at / and the WebAssembly demo at /demo/.
+# Settings > Pages > Build and deployment > Source must be GitHub Actions.
 on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'src/Miko.Docs/**'
+      - 'tests/Miko.Docs.Tests/**'
+      - 'tests/Miko.Docs.Demo.Tests/**'
+      - 'Directory.Build.props'
+      - 'global.json'
+      - '.github/workflows/docs.yml'
   push:
     branches: [ main ]
     paths:
       - 'docs/**'
-      - 'examples/Docs/**'
-      - 'src/**'
-      - 'scripts/stage-docs-demo.mjs'
-      - 'scripts/clean-docs-demo.mjs'
-      - 'global.json'
+      - 'src/Miko.Docs/**'
+      - 'tests/Miko.Docs.Tests/**'
+      - 'tests/Miko.Docs.Demo.Tests/**'
       - 'Directory.Build.props'
-      - 'Directory.Packages.props'
-      - 'package.json'
-      - 'package-lock.json'
+      - 'global.json'
       - '.github/workflows/docs.yml'
-  # Allow manual runs from the Actions tab.
   workflow_dispatch:
 
-# Permissions required to deploy to GitHub Pages.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# Allow one concurrent deployment; don't cancel an in-progress production deploy.
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'deploy' }}
   cancel-in-progress: false
 
 jobs:
   build:
-    name: Build documentation and playground
+    name: Publish documentation and WebAssembly demo
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # full history so VitePress can compute lastUpdated timestamps
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
 
-      - name: Install WebAssembly tools
+      # setup-dotnet installs the SDK, not the Emscripten/native WASM toolchain.
+      # Keep this available for the full demo when it enables native linking/AOT.
+      - name: Install WebAssembly workload
         run: dotnet workload install wasm-tools
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
       - name: Setup Pages
+        if: github.event_name != 'pull_request'
+        id: pages
         uses: actions/configure-pages@v4
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Publish static site
+        env:
+          PAGES_BASE_PATH: ${{ github.event_name == 'pull_request' && '/miko' || steps.pages.outputs.base_path }}
+        run: >-
+          dotnet publish docs/Miko.Docs.Web/Miko.Docs.Web.csproj
+          -c Release -o artifacts/docs
+          -p:MikoDocsBasePath="${PAGES_BASE_PATH%/}/"
 
-      - name: Build VitePress and the WebAssembly playground
-        run: npm run docs:build
+      - name: Verify deployment layout
+        shell: pwsh
+        env:
+          PAGES_BASE_PATH: ${{ github.event_name == 'pull_request' && '/miko' || steps.pages.outputs.base_path }}
+        run: ./docs/Verify-Publish.ps1 -SiteRoot artifacts/docs/wwwroot -BasePath "$($env:PAGES_BASE_PATH.TrimEnd('/'))/"
 
       - name: Upload artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist
+          path: artifacts/docs/wwwroot
+
+      # Also verify an explicit native build at the root deployment path.
+      - name: Publish root deployment with native WebAssembly
+        if: github.event_name == 'pull_request'
+        run: dotnet publish docs/Miko.Docs.Web/Miko.Docs.Web.csproj -c Release -o artifacts/docs-root -p:MikoDocsBasePath=/ -p:WasmBuildNative=true
+
+      - name: Verify root deployment
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: ./docs/Verify-Publish.ps1 -SiteRoot artifacts/docs-root/wwwroot -BasePath /
 
   deploy:
     name: Deploy to GitHub Pages
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

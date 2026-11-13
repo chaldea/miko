@@ -27,7 +27,7 @@ into both template content roots:
 | `docs/**/*.md` (except `index.md`, `ionic-theme.md`) | `.miko/docs/` |
 
 The mapping is mirrored by `tools/Miko.DocGen/AgentPackageLayout.cs`;
-`tests/Miko.Docs.Tests` packs the templates, scaffolds an app from the package, and checks that
+`tests/Miko.Docs.Demo.Tests` packs the templates, scaffolds an app from the package, and checks that
 every file is there and every link in the shipped Markdown resolves inside the app.
 
 When scaffolding, `--agent` selects what lands in the app (via the `.template.config`

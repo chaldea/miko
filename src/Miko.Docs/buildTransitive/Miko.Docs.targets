@@ -1,0 +1,29 @@
+<Project>
+  <PropertyGroup>
+    <MikoDocsEnabled Condition="'$(MikoDocsEnabled)' == ''">true</MikoDocsEnabled>
+    <MikoDocsToolPath Condition="'$(MikoDocsToolPath)' == ''">$(MSBuildThisFileDirectory)../tools/net11.0/any/Miko.Docs.dll</MikoDocsToolPath>
+    <MikoDocsDotNetHost Condition="'$(MikoDocsDotNetHost)' == ''">dotnet</MikoDocsDotNetHost>
+    <RunWorkingDirectory Condition="'$(RunWorkingDirectory)' == ''">$(MSBuildProjectDirectory)</RunWorkingDirectory>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(MikoDocsEnabled)' == 'true'">
+    <Watch Include="$(MSBuildProjectDirectory)/**/*.md;$(MSBuildProjectDirectory)/**/*.json;$(MSBuildProjectDirectory)/**/*.css;$(MSBuildProjectDirectory)/**/*.js;$(MSBuildProjectDirectory)/**/*.svg;$(MSBuildProjectDirectory)/**/*.png" Exclude="$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**" />
+    <Watch Remove="$(MikoDocsOutputDirectory)/**" Condition="'$(MikoDocsOutputDirectory)' != ''" />
+  </ItemGroup>
+  <Target Name="MikoDocsGenerate" AfterTargets="Build" Condition="'$(MikoDocsEnabled)' == 'true' and '$(DesignTimeBuild)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
+    <PropertyGroup>
+      <MikoDocsOutputDirectory Condition="'$(MikoDocsOutputDirectory)' == ''">$(TargetDir)wwwroot</MikoDocsOutputDirectory>
+      <MikoDocsOutputDirectory>$([System.IO.Path]::GetFullPath('$(MikoDocsOutputDirectory)', '$(MSBuildProjectDirectory)'))</MikoDocsOutputDirectory>
+      <_MikoDocsBaseArgument Condition="'$(MikoDocsBasePath)' != ''"> --base &quot;$(MikoDocsBasePath)&quot;</_MikoDocsBaseArgument>
+    </PropertyGroup>
+    <Exec Command="&quot;$(MikoDocsDotNetHost)&quot; &quot;$(MikoDocsToolPath)&quot; build --project &quot;$(MSBuildProjectDirectory)&quot; --output &quot;$(MikoDocsOutputDirectory)&quot;$(_MikoDocsBaseArgument)" />
+  </Target>
+  <Target Name="MikoDocsPublish" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="MikoDocsGenerate" Condition="'$(MikoDocsEnabled)' == 'true'">
+    <ItemGroup>
+      <_MikoDocsFiles Include="$(MikoDocsOutputDirectory)/**/*" Exclude="$(MikoDocsOutputDirectory)/.miko-manifest.json" />
+      <ResolvedFileToPublish Include="@(_MikoDocsFiles)">
+        <RelativePath>wwwroot/%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+</Project>

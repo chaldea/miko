@@ -16,9 +16,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Assets\**\*" />
-    <ProjectReference Include="..\..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
-    <ProjectReference Include="..\..\..\src\Miko.Charts\Miko.Charts.csproj" />
-    <ProjectReference Include="..\..\..\src\Miko.Components\Miko.Components.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Charts\Miko.Charts.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Components\Miko.Components.csproj" />
   </ItemGroup>
 
 </Project>

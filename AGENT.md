@@ -45,7 +45,7 @@ Razor / C# 组件
 | `tests/*` | 核心、Ionic、Razor、MCP 回归测试；目录按功能镜像源码 |
 | `examples/*` | 可运行示例和人工验证场景 |
 | `benchmarks/*` | 布局、渲染、样式索引和交互帧性能基准 |
-| `docs/*` | VitePress 使用文档；`issues/*` 是问题分析和修复档案 |
+| `docs/*` | Miko.Docs 文档站和 WebAssembly Demo；`issues/*` 是问题分析和修复档案 |
 
 ## 构建、测试与运行
 
@@ -69,7 +69,7 @@ dotnet run --project examples/Multiplatform/MikoAppBlank/MikoAppBlank.Simulator/
 dotnet run --project examples/Ionic/IonicDemo
 ~~~
 
-移动平台需要相应 workload（Android/iOS）；不要因为本机没有移动 SDK 就改动平台抽象。文档站命令为 `npm run docs:dev` 和 `npm run docs:build`。性能回归使用 `dotnet run -c Release --project benchmarks/Miko.Benchmarks/Miko.Benchmarks.csproj`。
+移动平台需要相应 workload（Android/iOS）；不要因为本机没有移动 SDK 就改动平台抽象。文档站命令为 `dotnet run --project docs/Miko.Docs.Web` 和 `dotnet publish docs/Miko.Docs.Web -c Release`。性能回归使用 `dotnet run -c Release --project benchmarks/Miko.Benchmarks/Miko.Benchmarks.csproj`。
 
 修改前先定位最小测试项目；修改跨模块契约时再运行完整 `dotnet test`。构建生成的 Razor 文件位于 `obj/GeneratedFiles/`，源生成器输出位于 `src/Miko/obj/GeneratedFiles/`，调试生成代码时不要把这些产物提交到源码目录。
 

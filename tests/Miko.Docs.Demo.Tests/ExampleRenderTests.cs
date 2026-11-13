@@ -6,7 +6,7 @@ using Miko.Ionic;
 using Shouldly;
 using TestContext = Miko.Testing.TestContext;
 
-namespace Miko.Docs.Tests;
+namespace Miko.Docs.Demo.Tests;
 
 /// <summary>
 /// Every example shown in the component docs is a compiled component in this assembly (see the
@@ -15,7 +15,7 @@ namespace Miko.Docs.Tests;
 /// </summary>
 public class ExampleRenderTests
 {
-    private const string ExampleNamespace = "Miko.Docs.Tests.Examples";
+    private const string ExampleNamespace = "Miko.Docs.Demo.Tests.Examples";
 
     public static TheoryData<string> Examples()
     {
@@ -36,7 +36,7 @@ public class ExampleRenderTests
     [Fact]
     public void Should_compile_every_example_file()
     {
-        var files = Directory.EnumerateFiles(Path.Combine(RepoPaths.Root, "docs", "components"), "*.razor", SearchOption.AllDirectories)
+        var files = Directory.EnumerateFiles(Path.Combine(RepoPaths.Root, Miko.DocGen.AgentPackageLayout.DocsSource, "components"), "*.razor", SearchOption.AllDirectories)
             .Where(file => !Path.GetFileName(file).StartsWith('_'))
             .Count();
         files.ShouldBeGreaterThan(0);

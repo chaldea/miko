@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Miko.Docs.Demo\Miko.Docs.Demo.csproj" />
-    <ProjectReference Include="..\..\..\src\Miko.Browser\Miko.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Browser\Miko.Browser.csproj" />
   </ItemGroup>
 
   <ItemGroup>

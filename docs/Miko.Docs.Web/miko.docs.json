@@ -1,0 +1,488 @@
+{
+  "title": "Miko",
+  "description": "A native, cross-platform UI rendering engine for .NET that uses Razor as its layout DSL and draws every pixel with SkiaSharp — no browser, no WebView.",
+  "lang": "en-US",
+  "base": "/",
+  "srcDir": "Content",
+  "cleanUrls": true,
+  "themeConfig": {
+    "nav": [
+      {
+        "text": "Guide",
+        "link": "/guide/introduction"
+      },
+      {
+        "text": "Engine API",
+        "link": "/engine/overview"
+      },
+      {
+        "text": "Examples",
+        "link": "/examples"
+      },
+      {
+        "text": "Components",
+        "link": "/components/ionic/"
+      },
+      {
+        "text": "Packages",
+        "link": "/packages"
+      },
+      {
+        "text": "Resources",
+        "items": [
+          {
+            "text": "GitHub",
+            "link": "https://github.com/chaldea/miko"
+          },
+          {
+            "text": "NuGet",
+            "link": "https://www.nuget.org/packages/Miko"
+          }
+        ]
+      },
+      {
+        "text": "Live Demo",
+        "link": "/demo/"
+      }
+    ],
+    "sidebar": [
+      {
+        "text": "Introduction",
+        "collapsed": false,
+        "items": [
+          {
+            "text": "What is Miko?",
+            "link": "/guide/introduction"
+          },
+          {
+            "text": "Getting Started",
+            "link": "/guide/getting-started"
+          },
+          {
+            "text": "Project Structure",
+            "link": "/guide/project-structure"
+          }
+        ]
+      },
+      {
+        "text": "Building UIs with Razor",
+        "collapsed": false,
+        "items": [
+          {
+            "text": "Razor Components",
+            "link": "/guide/razor-components"
+          },
+          {
+            "text": "Elements",
+            "link": "/guide/elements"
+          },
+          {
+            "text": "Styling",
+            "link": "/guide/styling"
+          },
+          {
+            "text": "CSS in Components",
+            "link": "/guide/css"
+          },
+          {
+            "text": "Layout",
+            "link": "/guide/layout"
+          },
+          {
+            "text": "Fonts & Text",
+            "link": "/guide/fonts"
+          },
+          {
+            "text": "Localization & RTL",
+            "link": "/guide/localization"
+          },
+          {
+            "text": "Events",
+            "link": "/guide/events"
+          },
+          {
+            "text": "Async & Lifecycle",
+            "link": "/guide/async"
+          },
+          {
+            "text": "Native Capabilities",
+            "link": "/guide/native"
+          }
+        ]
+      },
+      {
+        "text": "Publishing",
+        "collapsed": false,
+        "items": [
+          {
+            "text": "Desktop Apps",
+            "link": "/guide/publishing-desktop"
+          },
+          {
+            "text": "Browser Apps",
+            "link": "/guide/publishing-browser"
+          },
+          {
+            "text": "Android Apps",
+            "link": "/guide/publishing-android"
+          },
+          {
+            "text": "iOS Apps",
+            "link": "/guide/publishing-ios"
+          }
+        ]
+      },
+      {
+        "text": "Ionic Components",
+        "collapsed": false,
+        "items": [
+          {
+            "text": "Overview",
+            "link": "/components/ionic/"
+          },
+          {
+            "text": "Theming",
+            "link": "/components/ionic/theming"
+          },
+          {
+            "text": "Overlays",
+            "link": "/components/ionic/overlays"
+          }
+        ]
+      },
+      {
+        "text": "Ionic Component Reference",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "Accordion",
+            "link": "/components/ionic/accordion"
+          },
+          {
+            "text": "Action Sheet",
+            "link": "/components/ionic/action-sheet"
+          },
+          {
+            "text": "Alert",
+            "link": "/components/ionic/alert"
+          },
+          {
+            "text": "App and Page",
+            "link": "/components/ionic/app"
+          },
+          {
+            "text": "Avatar",
+            "link": "/components/ionic/avatar"
+          },
+          {
+            "text": "Back Button",
+            "link": "/components/ionic/back-button"
+          },
+          {
+            "text": "Badge",
+            "link": "/components/ionic/badge"
+          },
+          {
+            "text": "Breadcrumbs",
+            "link": "/components/ionic/breadcrumbs"
+          },
+          {
+            "text": "Button",
+            "link": "/components/ionic/button"
+          },
+          {
+            "text": "Card",
+            "link": "/components/ionic/card"
+          },
+          {
+            "text": "Checkbox",
+            "link": "/components/ionic/checkbox"
+          },
+          {
+            "text": "Chip",
+            "link": "/components/ionic/chip"
+          },
+          {
+            "text": "Content",
+            "link": "/components/ionic/content"
+          },
+          {
+            "text": "Datetime",
+            "link": "/components/ionic/datetime"
+          },
+          {
+            "text": "Floating Action Button",
+            "link": "/components/ionic/fab"
+          },
+          {
+            "text": "Footer",
+            "link": "/components/ionic/footer"
+          },
+          {
+            "text": "Grid",
+            "link": "/components/ionic/grid"
+          },
+          {
+            "text": "Header",
+            "link": "/components/ionic/header"
+          },
+          {
+            "text": "Icon",
+            "link": "/components/ionic/icon"
+          },
+          {
+            "text": "Infinite Scroll",
+            "link": "/components/ionic/infinite-scroll"
+          },
+          {
+            "text": "Input",
+            "link": "/components/ionic/input"
+          },
+          {
+            "text": "Input OTP",
+            "link": "/components/ionic/input-otp"
+          },
+          {
+            "text": "Item",
+            "link": "/components/ionic/item"
+          },
+          {
+            "text": "Label",
+            "link": "/components/ionic/label"
+          },
+          {
+            "text": "List",
+            "link": "/components/ionic/list"
+          },
+          {
+            "text": "Loading",
+            "link": "/components/ionic/loading"
+          },
+          {
+            "text": "Menu",
+            "link": "/components/ionic/menu"
+          },
+          {
+            "text": "Modal",
+            "link": "/components/ionic/modal"
+          },
+          {
+            "text": "Note",
+            "link": "/components/ionic/note"
+          },
+          {
+            "text": "Picker",
+            "link": "/components/ionic/picker"
+          },
+          {
+            "text": "Popover",
+            "link": "/components/ionic/popover"
+          },
+          {
+            "text": "Progress Bar",
+            "link": "/components/ionic/progress-bar"
+          },
+          {
+            "text": "Radio",
+            "link": "/components/ionic/radio"
+          },
+          {
+            "text": "Range",
+            "link": "/components/ionic/range"
+          },
+          {
+            "text": "Refresher",
+            "link": "/components/ionic/refresher"
+          },
+          {
+            "text": "Reorder",
+            "link": "/components/ionic/reorder"
+          },
+          {
+            "text": "Searchbar",
+            "link": "/components/ionic/searchbar"
+          },
+          {
+            "text": "Segment",
+            "link": "/components/ionic/segment"
+          },
+          {
+            "text": "Select",
+            "link": "/components/ionic/select"
+          },
+          {
+            "text": "Skeleton Text",
+            "link": "/components/ionic/skeleton-text"
+          },
+          {
+            "text": "Slides",
+            "link": "/components/ionic/slides"
+          },
+          {
+            "text": "Spinner",
+            "link": "/components/ionic/spinner"
+          },
+          {
+            "text": "Tabs",
+            "link": "/components/ionic/tabs"
+          },
+          {
+            "text": "Text",
+            "link": "/components/ionic/text"
+          },
+          {
+            "text": "Textarea",
+            "link": "/components/ionic/textarea"
+          },
+          {
+            "text": "Thumbnail",
+            "link": "/components/ionic/thumbnail"
+          },
+          {
+            "text": "Title",
+            "link": "/components/ionic/title"
+          },
+          {
+            "text": "Toast",
+            "link": "/components/ionic/toast"
+          },
+          {
+            "text": "Toggle",
+            "link": "/components/ionic/toggle"
+          },
+          {
+            "text": "Toolbar",
+            "link": "/components/ionic/toolbar"
+          }
+        ]
+      },
+      {
+        "text": "Rendering Engine",
+        "collapsed": false,
+        "items": [
+          {
+            "text": "Pipeline Overview",
+            "link": "/engine/overview"
+          },
+          {
+            "text": "Using the Engine Directly",
+            "link": "/engine/direct-api"
+          },
+          {
+            "text": "Custom Drawing",
+            "link": "/engine/drawing"
+          }
+        ]
+      },
+      {
+        "text": "Reference",
+        "collapsed": false,
+        "items": [
+          {
+            "text": "Examples",
+            "link": "/examples"
+          },
+          {
+            "text": "Packages",
+            "link": "/packages"
+          },
+          {
+            "text": "Component Libraries",
+            "link": "/components/"
+          },
+          {
+            "text": "Charts",
+            "link": "/components/charts"
+          },
+          {
+            "text": "Network Camera",
+            "link": "/components/webcam"
+          },
+          {
+            "text": "Remote Desktop (VNC)",
+            "link": "/components/vnc"
+          },
+          {
+            "text": "MCP Server",
+            "link": "/mcp-server"
+          },
+          {
+            "text": "Known Limitations",
+            "link": "/guide/known-limitations"
+          }
+        ]
+      }
+    ],
+    "outlineTitle": "On this page",
+    "footer": "Released under the MIT License. Copyright © 2025–present Miko contributors",
+    "editLink": "https://github.com/chaldea/miko/edit/main/docs/Miko.Docs.Web/Content/:path",
+    "search": true,
+    "appearance": true,
+    "socialLinks": [
+      {
+        "icon": "github",
+        "link": "https://github.com/chaldea/miko"
+      }
+    ],
+    "outlineLevel": 2
+  },
+  "home": {
+    "name": "Miko",
+    "text": "Native UI for .NET, authored in Razor",
+    "tagline": "A cross-platform rendering engine that draws every pixel with SkiaSharp — no browser, no WebView, no HTML/CSS runtime.",
+    "actions": [
+      {
+        "theme": "brand",
+        "text": "Get Started",
+        "link": "/guide/getting-started"
+      },
+      {
+        "theme": "alt",
+        "text": "Live Demo",
+        "link": "/demo/"
+      },
+      {
+        "theme": "alt",
+        "text": "What is Miko?",
+        "link": "/guide/introduction"
+      },
+      {
+        "theme": "alt",
+        "text": "View on GitHub",
+        "link": "https://github.com/chaldea/miko"
+      }
+    ],
+    "features": [
+      {
+        "icon": "⚛️",
+        "title": "Razor as the UI DSL",
+        "details": "Author your UI as .razor components — the same syntax you know from Blazor. A source generator compiles them ahead of time into native draw calls. No XAML to learn."
+      },
+      {
+        "icon": "⚡",
+        "title": "Native SkiaSharp rendering",
+        "details": "Pixels are drawn directly onto a GPU-backed Skia surface through a browser-like pipeline of style cascade, layout, and incremental painting."
+      },
+      {
+        "icon": "🪶",
+        "title": "Tiny & dependency-free",
+        "details": "Ships as a few .NET assemblies plus SkiaSharp. No bundled Chromium, no Node, no WebView. Binaries are a fraction of an Electron app's."
+      },
+      {
+        "icon": "🖥️",
+        "title": "Cross-platform",
+        "details": "One codebase runs on Windows, macOS, Linux, Android, and iOS — everywhere SkiaSharp does."
+      },
+      {
+        "icon": "🚀",
+        "title": "Trimming & AOT-aware",
+        "details": "The routing and rendering paths are designed for trimmed / Native AOT publishing, for fast startup and small, self-contained binaries."
+      },
+      {
+        "icon": "🔥",
+        "title": "Hot reload",
+        "details": "Edit a .razor component and see the change without restarting the app."
+      }
+    ]
+  }
+}

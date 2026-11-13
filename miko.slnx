@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/docs/">
+    <Project Path="docs/Miko.Docs.Web/Miko.Docs.Web.csproj" />
+    <Project Path="docs/Miko.Docs.Demo/Miko.Docs.Demo.csproj" />
+    <Project Path="docs/Miko.Docs.Demo.Browser/Miko.Docs.Demo.Browser.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Miko.Android/Miko.Android.csproj" />
     <Project Path="src/Miko.Browser/Miko.Browser.csproj" />
@@ -6,6 +11,7 @@
     <Project Path="src/Miko.Charts/Miko.Charts.csproj" />
     <Project Path="src/Miko.Components/Miko.Components.csproj" />
     <Project Path="src/Miko.DevTools/Miko.DevTools.csproj" />
+    <Project Path="src/Miko.Docs/Miko.Docs.csproj" />
     <Project Path="src/Miko.Ionic/Miko.Ionic.csproj" />
     <Project Path="src/Miko.iOS/Miko.iOS.csproj" />
     <Project Path="src/Miko.McpServer/Miko.McpServer.csproj" />
@@ -18,8 +24,10 @@
     <Project Path="src/Miko/Miko.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Miko.Browser.Tests/Miko.Browser.Tests.csproj" />    <Project Path="tests/Miko.Charts.Tests/Miko.Charts.Tests.csproj" />
+    <Project Path="tests/Miko.Browser.Tests/Miko.Browser.Tests.csproj" />
+    <Project Path="tests/Miko.Charts.Tests/Miko.Charts.Tests.csproj" />
     <Project Path="tests/Miko.Components.Tests/Miko.Components.Tests.csproj" />
+    <Project Path="tests/Miko.Docs.Demo.Tests/Miko.Docs.Demo.Tests.csproj" />
     <Project Path="tests/Miko.Docs.Tests/Miko.Docs.Tests.csproj" />
     <Project Path="tests/Miko.Ionic.Tests/Miko.Ionic.Tests.csproj" />
     <Project Path="tests/Miko.McpServer.Tests/Miko.McpServer.Tests.csproj" />
@@ -27,10 +35,6 @@
     <Project Path="tests/Miko.Razor.Compiler.Tests/Miko.Razor.Compiler.Tests.csproj" />
     <Project Path="tests/Miko.Razor.Tests/Miko.Razor.Tests.csproj" />
     <Project Path="tests/Miko.Tests/Miko.Tests.csproj" />
-  </Folder>
-  <Folder Name="/examples/Docs/">
-    <Project Path="examples/Docs/Miko.Docs.Demo/Miko.Docs.Demo.csproj" />
-    <Project Path="examples/Docs/Miko.Docs.Demo.Browser/Miko.Docs.Demo.Browser.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Miko.DocGen/Miko.DocGen.csproj" />

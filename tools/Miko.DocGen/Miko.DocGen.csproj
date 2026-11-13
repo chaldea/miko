@@ -32,13 +32,12 @@
     Regenerate the docs whenever this tool builds — it builds whenever Miko.Ionic changes, so
     building the solution keeps the parameter / token tables in step with the code.
 
-    Skipped on CI: there the docs must already be current, and tests/Miko.Docs.Tests fails when
+    Skipped on CI: there the docs must already be current, and tests/Miko.Docs.Demo.Tests fails when
     they are not. Regenerating first would hide exactly the drift that test exists to catch.
     Opt out locally with -p:MikoGenerateDocs=false.
   -->
   <ItemGroup>
-    <_MikoDocGenInput Include="$(MikoRepoRoot)docs\**\*.md;$(MikoRepoRoot)docs\**\*.razor;$(MikoRepoRoot)agent\**\*.md;$(MikoRepoRoot)agent\**\*.txt"
-                      Exclude="$(MikoRepoRoot)docs\node_modules\**;$(MikoRepoRoot)docs\.vitepress\**" />
+    <_MikoDocGenInput Include="$(MikoRepoRoot)docs\Miko.Docs.Web\Content\**\*.md;$(MikoRepoRoot)docs\Miko.Docs.Web\Content\**\*.razor;$(MikoRepoRoot)agent\**\*.md;$(MikoRepoRoot)agent\**\*.txt" />
   </ItemGroup>
 
   <Target Name="MikoGenerateDocs"

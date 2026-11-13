@@ -266,10 +266,6 @@ paket-files/
 issues/**
 **/BenchmarkDotNet.Artifacts/**
 
-## VitePress documentation site
-docs/.vitepress/dist/
-docs/.vitepress/cache/
-
 ## Local NuGet feed: `dotnet pack` writes here (see Directory.Build.props) and the in-repo
 ## templates restore their Miko* packages from it (templates/*/nuget.config).
 /packages/
