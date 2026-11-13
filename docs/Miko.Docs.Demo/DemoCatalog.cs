@@ -112,7 +112,7 @@ public static class DemoCatalog
             Ionic<IonSelect>("select", "Select", "Single or multiple choices presented through an overlay.",
                 scenes: [new DemoScene("multiple", "Multiple selection", "A values collection with checkboxes",
                     P("Multiple", true, "Values", new[] { "miko", "ionic" }))],
-                preset: P("Label", "Favorite framework", "Value", "miko", "Placeholder", "Choose one", "Interface", "alert")),
+                preset: P("Label", "Favorite framework", "LabelPlacement", "stacked", "Value", "miko", "Placeholder", "Choose one", "Interface", "alert")),
             Ionic<IonSkeletonText>("skeleton-text", "Skeleton Text", "Animated placeholders for content being loaded.",
                 preset: P("Animated", true)),
             Ionic<IonSlides>("slides", "Slides", "A swipeable carousel with navigation, pagination and autoplay.",

@@ -11,22 +11,22 @@
 .designer-runtime > span { width: 7px; height: 7px; border-radius: 50%; background: #2da66f; }
 .designer-body { position: absolute; top: 60px; right: 0; bottom: 0; left: 0; min-height: 0; }
 .component-sidebar { display: flex; position: absolute; top: 0; bottom: 0; left: 0; flex-direction: column; width: 214px; height: auto; border-right: 1px solid #e1e2e8; background: #ffffff; }
-.component-sidebar-heading { padding: 19px 17px 12px; color: #9298a7; font-size: 9px; font-weight: bold; letter-spacing: 1px; }
+.component-sidebar-heading { padding: 19px 17px 12px; color: #687388; font-size: 11px; font-weight: bold; letter-spacing: 1px; }
 .component-menu { display: block; flex-grow: 1; padding: 0 9px; overflow-y: auto; }
 .component-group { display: block; margin-bottom: 4px; }
 .component-group-button { display: flex; align-items: center; gap: 7px; width: 100%; height: 38px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #3c465b; text-align: left; cursor: pointer; }
 .component-group-button:hover { background: #f6f4fa; }
-.component-group-button > strong { font-size: 11px; }
+.component-group-button > strong { font-size: 14px; }
 .component-chevron { width: 10px; color: #9ca2b0; font-size: 16px; text-align: center; }
 .component-chevron.expanded { color: #512bd4; transform: rotate(90deg); }
 .component-group-icon { display: flex; align-items: center; justify-content: center; width: 25px; height: 25px; border-radius: 7px; font-size: 9px; font-weight: bold; }
 .component-group-icon.ionic { background: #eee9fb; color: #512bd4; }
 .component-group-icon.charts { background: #e5f5ed; color: #24845a; }
 .component-group-icon.native, .component-group-icon.components { background: #fff0e5; color: #b86027; }
-.component-count { flex-grow: 1; color: #a0a5b1; font-size: 9px; text-align: right; }
+.component-count { flex-grow: 1; color: #7d8799; font-size: 11px; text-align: right; }
 .component-children { display: block; padding: 2px 0 5px 28px; }
-.component-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; height: 31px; margin-bottom: 2px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #6e7688; font-size: 10px; text-align: left; cursor: pointer; }
-.component-menu-item > span { width: 4px; height: 4px; border-radius: 50%; background: #b7bbc5; }
+.component-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; margin-bottom: 2px; padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: #4e5a70; font-size: 13px; line-height: 1.35; text-align: left; cursor: pointer; }
+.component-menu-item > span { flex-shrink: 0; width: 4px; height: 4px; border-radius: 50%; background: #b7bbc5; }
 .component-menu-item.selected { background: #eee8fb; color: #512bd4; font-weight: bold; }
 .component-menu-item.selected > span { background: #512bd4; }
 .component-menu-item:disabled { opacity: .42; cursor: default; }

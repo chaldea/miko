@@ -59,3 +59,5 @@
 .property-input { width: 100%; height: 30px; padding: 0 9px; border: 1px solid #e0e1e8; border-radius: 6px; outline: none; background: #fafafd; color: #566176; font-family: Inter; font-size: 10px; box-sizing: border-box; }
 .property-input:focus { border-color: #b9a5e1; background: #ffffff; }
 .property-number { text-align: right; }
+
+.reset-icon { flex-shrink: 0; width: 16px; height: 16px; }

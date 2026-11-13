@@ -19,7 +19,7 @@ public static class App
     {
         var builder = CreateDefault("Miko · Component Playground", 1440, 960);
         builder.Services.AddSingleton<DemoState>();
-        builder.UseRouter(ConfigureRoutes);
+        builder.UseRouter(ConfigureDesignerRoutes);
         builder.UseDefaultLayout<DemoLayout>();
         configure?.Invoke(builder);
         return builder.Build();
@@ -44,6 +44,7 @@ public static class App
     {
         var builder = MikoAppBuilder.CreateDefault();
         builder.UseTitle($"Miko · {typeof(T).Name}");
+        builder.AddResourceAssembly(typeof(App).Assembly);
         builder.UseSize(width, height);
         builder.UseFonts(fonts => fonts.AddResource("Inter", typeof(App).Assembly, "Miko.Docs.Demo.Assets.Inter-Latin.ttf"));
         builder.Services.AddSingleton(state);
@@ -75,9 +76,26 @@ public static class App
         return builder;
     }
 
+    /// <summary>The preview shows one component per route; the route value picks it.</summary>
     private static void ConfigureRoutes(Router router)
     {
         router.MapRoute<ComponentExamplesPage>("/");
+        router.MapRoute<ComponentExamplesPage>("/{id}");
+    }
+
+    /// <summary>
+    /// The designer shell never renders the routed page: its layout *is* the shell, and the component is drawn
+    /// by the isolated preview. A navigation still rebuilds the whole shell, and Miko restores scroll
+    /// offsets by page identity (the component type plus its route values). A <c>/{id}</c> route would give every
+    /// component its own identity, so picking an entry far down the menu came back with the menu scrolled to the
+    /// top. One parameterless route per component keeps a single identity: the offset captured when leaving is
+    /// the one replayed on the new shell. <c>/{id}</c> stays as the fallback for an unknown deep link.
+    /// </summary>
+    private static void ConfigureDesignerRoutes(Router router)
+    {
+        router.MapRoute<ComponentExamplesPage>("/");
+        foreach (var descriptor in DemoCatalog.All)
+            router.MapRoute<ComponentExamplesPage>($"/{descriptor.Id}");
         router.MapRoute<ComponentExamplesPage>("/{id}");
     }
 }

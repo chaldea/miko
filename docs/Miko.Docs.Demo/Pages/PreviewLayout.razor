@@ -3,10 +3,5 @@
 <IonApp Style="@PreviewStyle">@Body</IonApp>
 
 @code {
-    [Inject] public DemoState State { get; set; } = null!;
     private static Style PreviewStyle => new() { Width = Length.Percent(100), Height = Length.Percent(100), FontFamily = "Inter" };
-
-    protected override void OnInitialized() => State.PreviewChanged += OnPreviewChanged;
-    protected override void OnDispose() => State.PreviewChanged -= OnPreviewChanged;
-    private void OnPreviewChanged() => StateHasChanged();
 }

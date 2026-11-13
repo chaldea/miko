@@ -1,4 +1,9 @@
 <div class="example-sidebar">
+    <div class="example-introduction">
+        <div class="example-group-label">ABOUT</div>
+        <strong>@Current.Title</strong>
+        <p>@Current.Description</p>
+    </div>
     <div class="example-heading">EXAMPLES</div>
     <div class="example-group-label">MAIN EXAMPLE</div>
     <button class="@SceneButtonClass("main")" @onclick='() => State.SelectScene("main")'>
@@ -17,10 +22,6 @@
             </button>
         }
     }
-    <div class="example-tip">
-        <strong>@Current.Title</strong>
-        <p>@Current.Description</p>
-    </div>
 </div>
 
 @code {

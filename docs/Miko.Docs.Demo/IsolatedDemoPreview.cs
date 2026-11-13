@@ -67,6 +67,11 @@ public sealed class IsolatedDemoPreview : ComponentBase
         _canvas.OnWheel = OnWheel;
         _canvas.OnKeyDown = OnKeyDown;
         _canvas.OnKeyUp = OnKeyUp;
+        _canvas.OnBlur = _ =>
+        {
+            _preview?.Controller.SetFocus(null);
+            WakeOuter();
+        };
     }
 
     protected override void OnInitialized()
@@ -78,6 +83,7 @@ public sealed class IsolatedDemoPreview : ComponentBase
             _ => App.CreatePreviewContext(State, Platform),
         };
         _preview.Controller.Engine.GraphicsDevice = OuterEngine.GraphicsDevice;
+        _preview.Controller.AttachInputMethod(_canvas.InputMethod);
         if (Region == DemoRegion.Component)
             _navigation = _preview.Services.GetRequiredService<NavigationManager>();
         _preview.Engine.Dispatcher.Posted += WakeOuter;
@@ -242,9 +248,14 @@ public sealed class IsolatedDemoPreview : ComponentBase
     private void OnKeyDown(KeyboardEventArgs args)
     {
         if (_preview is null) return;
+        var handled = false;
         if (args.Repeat) _preview.Controller.RepeatKey(args.Code);
-        else _preview.Controller.OnKeyDown(args.Code, Modifiers(args));
-        args.PreventDefault();
+        else handled = _preview.Controller.OnKeyDown(args.Code, Modifiers(args));
+        // Editing keys were already applied by the inner controller. Ordinary keys must reach
+        // the browser's native editor so it can emit beforeinput / IME text commits.
+        if (handled || args.Code is MikoKey.Backspace or MikoKey.Delete or MikoKey.Left or MikoKey.Right
+            or MikoKey.Home or MikoKey.End or MikoKey.Enter)
+            args.PreventDefault();
         WakeOuter();
     }
 
@@ -287,33 +298,44 @@ public sealed class IsolatedDemoPreview : ComponentBase
     /// <summary>Focus/keyboard bridge for the outer controller; actual editing happens in the inner controller.</summary>
     private sealed class PreviewCanvasElement(IsolatedDemoPreview owner) : CanvasElement, ITextEditable
     {
-        private string? _value = string.Empty;
-        public string? Value { get => _value; set => _value = value; }
-        public int CursorPosition { get; set; }
+        public PreviewInputMethod InputMethod { get; } = new();
+        public string? Value { get => InputMethod.State?.Text ?? string.Empty; set { } }
+        public int CursorPosition
+        {
+            get => InputMethod.State?.CursorPosition ?? 0;
+            set => owner._preview?.Controller.SetTextSelection(value, value);
+        }
         public bool IsEditable => true;
-        public bool IsMultiline => true;
+        public bool IsMultiline => InputMethod.State?.IsMultiline == true;
 
         public void InsertText(string text)
         {
             owner._preview?.Controller.OnTextInput(text);
-            _value += text;
-            CursorPosition = _value?.Length ?? 0;
+            owner.WakeOuter();
         }
 
         public bool Backspace()
         {
-            owner._preview?.Controller.OnKeyDown(MikoKey.Backspace, MikoKeyModifiers.None);
-            if (_value?.Length > 0) _value = _value[..^1];
-            CursorPosition = _value?.Length ?? 0;
-            return true;
+            var before = Value;
+            owner._preview?.Controller.DeleteSurroundingText(1, 0);
+            owner.WakeOuter();
+            return Value != before;
         }
 
         public bool Delete()
         {
-            owner._preview?.Controller.OnKeyDown(MikoKey.Delete, MikoKeyModifiers.None);
-            return true;
+            var before = Value;
+            owner._preview?.Controller.DeleteSurroundingText(0, 1);
+            owner.WakeOuter();
+            return Value != before;
         }
 
-        public void MoveCursorToEnd() => CursorPosition = _value?.Length ?? 0;
+        public void MoveCursorToEnd() => CursorPosition = Value?.Length ?? 0;
+    }
+
+    private sealed class PreviewInputMethod : InputMethodBase
+    {
+        public InputMethodState? State { get; private set; }
+        public override void SetState(InputMethodState? state) => State = state;
     }
 }

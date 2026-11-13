@@ -7,12 +7,13 @@
     width: 172px;
     height: auto;
     padding: 17px 10px;
+    overflow-y: auto;
     border-right: 1px solid #e1e2e8;
     background: #fafafd;
     box-sizing: border-box;
 }
-.example-heading { padding: 0 7px 17px; color: #9298a7; font-size: 9px; font-weight: bold; letter-spacing: 1px; }
-.example-group-label { padding: 0 7px 7px; color: #a3a8b4; font-size: 8px; font-weight: bold; letter-spacing: .7px; }
+.example-heading { padding: 0 7px 17px; color: #667187; font-size: 11px; font-weight: bold; letter-spacing: 1px; }
+.example-group-label { padding: 0 7px 7px; color: #747e91; font-size: 10px; font-weight: bold; letter-spacing: .7px; }
 .example-group-label.scenes { padding-top: 18px; }
 .example-button {
     display: flex;
@@ -46,9 +47,10 @@
 }
 .example-button.selected .example-number { background: #ded1f5; color: #512bd4; }
 .example-button > span:last-child { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.example-button strong { font-size: 11px; }
-.example-description { color: #989eac; font-size: 9px; line-height: 1.35; white-space: normal; }
-.example-button.selected .example-description { color: #8872af; }
-.example-tip { margin: 19px 5px 0; padding: 11px; border: 1px solid #e4e2e9; border-radius: 8px; background: #ffffff; }
-.example-tip > strong { color: #727b8d; font-size: 9px; }
-.example-tip > p { margin: 6px 0 0; color: #969caa; font-size: 8px; line-height: 1.55; }
+.example-button strong { font-size: 13px; }
+.example-description { color: #6d778b; font-size: 11px; line-height: 1.35; white-space: normal; }
+.example-button.selected .example-description { color: #705b9c; }
+.example-introduction { margin: 0 7px 20px; padding-bottom: 18px; border-bottom: 1px solid #e1e2e8; }
+.example-introduction .example-group-label { padding: 0 0 8px; }
+.example-introduction > strong { color: #354158; font-size: 14px; }
+.example-introduction > p { margin: 8px 0 0; color: #677287; font-size: 12px; line-height: 1.55; }
