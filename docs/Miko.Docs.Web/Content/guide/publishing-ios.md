@@ -80,13 +80,13 @@ The template's `Info.plist` includes:
 
 ## App icon
 
-The template includes a placeholder icon (the .NET bot from the .NET MAUI template) in `Assets.xcassets/AppIcon.appiconset/`, referenced from `Info.plist` by `XSAppIconAssets`. The set contains one PNG per size listed in its `Contents.json`; replace every file with your artwork at the same pixel size. `Icon1024.png` is the App Store icon.
+The template includes the Miko icon in `Assets.xcassets/AppIcon.appiconset/`, referenced from `Info.plist` by `XSAppIconAssets`. The set contains one PNG per size listed in its `Contents.json`; replace every file with your artwork at the same pixel size. `Icon1024.png` is the App Store icon. Use opaque square PNGs without transparency or baked-in rounded corners; iOS applies its own mask.
 
 ## Launch screen
 
-iOS requires a launch screen. The template includes `Resources/LaunchScreen.storyboard`, a plain white view, referenced by `UILaunchStoryboardName` in `Info.plist`. Without a launch screen, iOS runs the app in a letterboxed compatibility mode, and **App Store Connect will reject the upload**.
+iOS requires a launch screen. The template includes `Resources/LaunchScreen.storyboard`, with the Miko mark centered on a lavender background, referenced by `UILaunchStoryboardName` in `Info.plist`. Without a launch screen, iOS runs the app in a letterboxed compatibility mode, and **App Store Connect will reject the upload**.
 
-Customize the storyboard in Xcode if you want a branded splash screen.
+Replace the PNGs in `Assets.xcassets/LaunchLogo.imageset/` (120, 240 and 360 pixels for 1x, 2x and 3x) and customize the storyboard background in Xcode to match your brand.
 
 ## Privacy manifest
 

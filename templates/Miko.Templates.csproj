@@ -69,7 +69,7 @@
   </ItemGroup>
 
   <!--
-    Scaffolded apps embed Ionicons and the .NET MAUI app icon, so they carry the notices too.
+    Scaffolded apps embed Ionicons, so they carry the notices too.
     The package-root copy comes from Directory.Build.props.
   -->
   <ItemGroup>

@@ -194,8 +194,8 @@ public partial class TemplatePackageTests(TemplatePackageFixture fixture) : ICla
         }
     }
 
-    // ISSUE-155 / Release-1.0.0 A5, A6: a solution over every head, store-ready icons (from the .NET
-    // MAUI template) and the iOS launch screen and scene lifecycle.
+    // ISSUE-155 / Release-1.0.0 A5, A6: a solution over every head, store-ready Miko icons,
+    // the iOS launch screen and scene lifecycle.
     [Theory]
     [InlineData("MyApp")]
     [InlineData("my-app")]

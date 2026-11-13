@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <title>Miko</title>
+  <rect id="background" width="240" height="240" rx="48" fill="#e9e8ff" />
+  <g id="mark" fill="#3851b8">
+    <path d="M58 73H91L110.5 134L129 73H162V166H140V97L119 166H101L79 97V166H58Z" />
+    <circle cx="172.5" cy="155.5" r="11.7" />
+  </g>
+</svg>

@@ -15,7 +15,20 @@
                     <view key="view" contentMode="scaleToFill" id="223">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="736"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <subviews>
+                            <imageView contentMode="scaleAspectFit" image="LaunchLogo" translatesAutoresizingMaskIntoConstraints="NO" id="miko-logo">
+                                <rect key="frame" x="147" y="308" width="120" height="120"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="120" id="miko-logo-width"/>
+                                    <constraint firstAttribute="height" constant="120" id="miko-logo-height"/>
+                                </constraints>
+                            </imageView>
+                        </subviews>
+                        <color key="backgroundColor" red="0.9137254902" green="0.9098039216" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="miko-logo" firstAttribute="centerX" secondItem="223" secondAttribute="centerX" id="miko-logo-center-x"/>
+                            <constraint firstItem="miko-logo" firstAttribute="centerY" secondItem="223" secondAttribute="centerY" id="miko-logo-center-y"/>
+                        </constraints>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="224" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -23,4 +36,7 @@
             <point key="canvasLocation" x="-200" y="-388"/>
         </scene>
     </scenes>
+    <resources>
+        <image name="LaunchLogo" width="120" height="120"/>
+    </resources>
 </document>

@@ -121,7 +121,7 @@ The template includes a default adaptive icon in `Resources/mipmap-*/`:
 - `appicon_background.png` — background layer (solid color or image)
 - `appicon.png` — fallback for launchers that do not support adaptive icons
 
-Replace these files with your own artwork, keeping the file names and pixel sizes. The default icon is the .NET bot from the .NET MAUI template and is only a placeholder.
+The default icon is Miko's indigo **M.** on a lavender background. Replace these files with your own artwork, keeping the file names and pixel sizes. Keep the foreground artwork inside the central 66dp safe circle of the 108dp adaptive layers so launcher masks do not clip it.
 
 `MainActivity` already references them:
 

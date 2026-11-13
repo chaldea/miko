@@ -9,6 +9,11 @@ The template accepts `--layout=blank`, `tabs`, `sidemenu`, `list`, or `full`; wr
 because `dotnet new` reads a separate `list` argument as its own `list` command. The `full`
 layout includes the Ionic component showcase and its embedded demo assets.
 
+## App icon
+
+`app.ico` contains the Miko icon at 16–256 pixels and is embedded in the executable by
+the project's `ApplicationIcon` property. Replace this file to brand your application.
+
 ## Run
 
 ```bash

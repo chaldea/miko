@@ -7,6 +7,9 @@ namespace Miko.Docs;
 
 internal static class HtmlTemplate
 {
+    private static string IconLink(string relation, string? url, SiteConfig config) =>
+        string.IsNullOrWhiteSpace(url) ? "" : $"<link rel=\"{relation}\" href=\"{E(Urls.Resolve(url, config))}\">";
+
     public static string Render(SitePage page, IReadOnlyList<SitePage> pages, SiteConfig config)
     {
         var theme = config.ThemeConfig;
@@ -23,6 +26,8 @@ internal static class HtmlTemplate
               <meta name="description" content="{{E(page.Content.Description)}}">
               <meta name="miko-base" content="{{E(config.Base)}}">
               <title>{{E(page.Content.Title == config.Title ? config.Title : page.Content.Title + " | " + config.Title)}}</title>
+              {{IconLink("icon", config.Favicon, config)}}
+              {{IconLink("apple-touch-icon", config.AppleTouchIcon, config)}}
               <script>try{document.documentElement.classList.toggle('dark',(localStorage.getItem('miko-theme')|| (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))==='dark')}catch{}</script>
               <link rel="stylesheet" href="{{E(config.Base)}}assets/vars.css">
               <link rel="preload" href="{{E(config.Base)}}assets/inter-roman-latin.woff2" as="font" type="font/woff2" crossorigin>

@@ -13,6 +13,8 @@ public sealed class SiteConfig
     public string Base { get; set; } = "/";
     public string SrcDir { get; set; } = "docs";
     public bool CleanUrls { get; set; } = true;
+    public string? Favicon { get; set; }
+    public string? AppleTouchIcon { get; set; }
     public ThemeConfig ThemeConfig { get; set; } = new();
     public HomeConfig Home { get; set; } = new();
     public static JsonSerializerOptions JsonOptions { get; } = new(JsonSerializerDefaults.Web)
@@ -47,6 +49,8 @@ public sealed class SiteConfig
             if (item.Link is not null) Urls.Safe(item.Link);
         }
         if (ThemeConfig.Logo is not null) Urls.Safe(ThemeConfig.Logo);
+        if (Favicon is not null) Urls.Safe(Favicon);
+        if (AppleTouchIcon is not null) Urls.Safe(AppleTouchIcon);
         if (ThemeConfig.EditLink is not null) Urls.Safe(ThemeConfig.EditLink);
         if (ThemeConfig.OutlineLevel is < 2 or > 3) throw new InvalidDataException("outlineLevel must be 2 or 3.");
         foreach (var social in ThemeConfig.SocialLinks)

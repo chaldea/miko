@@ -5,6 +5,34 @@ namespace Miko.Docs.Tests;
 
 public class ThemeRenderingTests
 {
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/miko/")]
+    public void Should_publish_brand_icons_and_resolve_them_on_nested_pages(string basePath)
+    {
+        using var temporary = new DocsTestDirectory();
+        var output = Path.Combine(temporary.Root, "output");
+        new SiteBuilder().Build(Path.Combine(RepoPaths.Root, "docs", "Miko.Docs.Web"), output, basePath);
+        foreach (var page in new[] { "index.html", "guide/introduction/index.html", "404.html" })
+        {
+            var html = File.ReadAllText(Path.Combine(output, page));
+            html.ShouldContain($"<link rel=\"icon\" href=\"{basePath}logo.svg\">");
+            html.ShouldContain($"<link rel=\"apple-touch-icon\" href=\"{basePath}apple-touch-icon.png\">");
+            html.ShouldContain($"<img class=\"logo\" alt=\"\" src=\"{basePath}logo.svg\">");
+        }
+        foreach (var asset in new[] { "logo.svg", "favicon.ico", "apple-touch-icon.png" })
+            File.Exists(Path.Combine(output, asset)).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("//example.com/icon.svg")]
+    public void Should_validate_icon_urls(string url)
+    {
+        Should.Throw<InvalidDataException>(() => new SiteConfig { Favicon = url }.Validate());
+        Should.Throw<InvalidDataException>(() => new SiteConfig { AppleTouchIcon = url }.Validate());
+    }
+
     [Fact]
     public void Should_preserve_code_source_and_use_an_icon_only_copy_button()
     {
