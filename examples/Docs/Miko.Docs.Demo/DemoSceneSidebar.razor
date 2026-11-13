@@ -1,0 +1,44 @@
+<div class="example-sidebar">
+    <div class="example-heading">EXAMPLES</div>
+    <div class="example-group-label">MAIN EXAMPLE</div>
+    <button class="@SceneButtonClass("main")" @onclick='() => State.SelectScene("main")'>
+        <span class="example-number">01</span>
+        <span><strong>Properties</strong><span class="example-description">Explore the public API</span></span>
+    </button>
+    @if (Current.Scenes.Count > 0)
+    {
+        <div class="example-group-label scenes">SCENES</div>
+        @for (var i = 0; i < Current.Scenes.Count; i++)
+        {
+            var scene = Current.Scenes[i];
+            <button class="@SceneButtonClass(scene.Id)" @onclick="() => State.SelectScene(scene.Id)">
+                <span class="example-number">@($"{i + 2:00}")</span>
+                <span><strong>@scene.Name</strong><span class="example-description">@scene.Description</span></span>
+            </button>
+        }
+    }
+    <div class="example-tip">
+        <strong>@Current.Title</strong>
+        <p>@Current.Description</p>
+    </div>
+</div>
+
+@code {
+    [Inject] public DemoState State { get; set; } = null!;
+    private DemoDescriptor Current => State.Current;
+
+    protected override void OnInitialized()
+    {
+        State.ComponentChanged += OnChanged;
+        State.SceneChanged += OnChanged;
+    }
+
+    protected override void OnDispose()
+    {
+        State.ComponentChanged -= OnChanged;
+        State.SceneChanged -= OnChanged;
+    }
+
+    private void OnChanged() => StateHasChanged();
+    private string SceneButtonClass(string scene) => $"example-button{(State.SceneId == scene ? " selected" : null)}";
+}

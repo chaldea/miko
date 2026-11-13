@@ -5,7 +5,8 @@
   "description": "Documentation site for Miko, a native cross-platform UI rendering engine for .NET.",
   "scripts": {
     "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
+    "docs:build": "vitepress build docs && npm run docs:demo:build",
+    "docs:demo:build": "node scripts/clean-docs-demo.mjs && dotnet publish examples/Docs/Miko.Docs.Demo.Browser/Miko.Docs.Demo.Browser.csproj -c Release && node scripts/stage-docs-demo.mjs",
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {

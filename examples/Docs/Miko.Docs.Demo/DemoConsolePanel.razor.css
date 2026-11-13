@@ -1,0 +1,18 @@
+.console-panel { display: flex; position: absolute; right: 0; bottom: 0; left: 0; flex-direction: column; height: 142px; border-top: 1px solid #dddde5; background: #ffffff; }
+.console-header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    height: 36px;
+    padding: 0 14px;
+    border-bottom: 1px solid #eeeef2;
+    box-sizing: border-box;
+}
+.console-header > div { display: flex; align-items: center; gap: 9px; }
+.console-header strong { color: #626c7f; font-size: 10px; }
+.console-header > div > span { color: #a0a5b1; font-size: 8px; }
+.console-header > button, .console-actions > button { padding: 4px 8px; border: 0; border-radius: 5px; background: #f2f2f5; color: #838b99; font-size: 8px; cursor: pointer; }
+.console-body { display: block; flex-grow: 1; min-height: 0; padding: 5px 14px; overflow-y: auto; box-sizing: border-box; }
+.console-entry { display: flex; align-items: center; min-height: 23px; border-bottom: 1px solid #f4f4f6; font-family: monospace; font-size: 10px; white-space: pre; color: #667083; }
+.console-empty { padding: 15px 0; color: #a0a5b1; font-size: 9px; }

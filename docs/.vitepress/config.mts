@@ -55,6 +55,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/introduction' },
       { text: 'Engine API', link: '/engine/overview' },
       { text: 'Examples', link: '/examples' },
+      { text: 'Playground', link: '/demo/' },
       { text: 'Components', link: '/components/ionic/' },
       { text: 'Packages', link: '/packages' },
       {

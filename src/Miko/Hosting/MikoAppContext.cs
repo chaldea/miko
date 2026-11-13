@@ -10,9 +10,10 @@ namespace Miko.Hosting;
 /// 它持有已配置好的服务容器、应用选项、交互控制器与渲染引擎，
 /// 供各平台实现层（桌面 / Android / iOS）的宿主驱动渲染循环。
 /// </summary>
-public sealed class MikoAppContext
+public sealed class MikoAppContext : IDisposable
 {
     private readonly MikoAppOptions _options;
+    private bool _disposed;
 
     public MikoAppContext(
         IServiceProvider services,
@@ -61,5 +62,14 @@ public sealed class MikoAppContext
 
             FontManager.Instance.RegisterFont(font.FamilyName, stream);
         }
+    }
+
+    /// <summary>Disposes the component tree, its subscriptions and every media session owned by this context.</summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        Controller.Engine.GetRoot()?.DisposeComponentSubtree();
+        Controller.Engine.DisposeMediaSessions();
     }
 }

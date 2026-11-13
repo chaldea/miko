@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Miko.Hosting;
@@ -45,6 +46,7 @@ public static class IonicExtensions
     /// platform changes (e.g. the simulator swapping the selected device). Icons are bundled as
     /// embedded SVG resources and resolved on demand, so no font registration is required.
     /// </summary>
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor, typeof(IonicOptions))]
     public static MikoAppBuilder AddIonic(this MikoAppBuilder builder, Action<IonicOptions>? configure = null)
     {
         builder.Services.AddOptions<IonicOptions>();

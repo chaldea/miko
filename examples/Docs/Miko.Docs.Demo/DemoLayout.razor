@@ -7,7 +7,7 @@
             <strong>Miko</strong>
             <span class="designer-product">Playground</span>
         </div>
-        <div class="designer-breadcrumb"><span>Components</span><b>›</b><span>Ionic</span><b>›</b><strong>Button</strong></div>
+        <div class="designer-breadcrumb"><span>Components</span><b>›</b><span>@Current.Category</span><b>›</b><strong>@Current.Title</strong></div>
         <div class="designer-runtime"><span></span>Running on WebAssembly</div>
     </div>
 
@@ -15,73 +15,31 @@
         <div class="component-sidebar">
             <div class="component-sidebar-heading">COMPONENTS</div>
             <div class="component-menu">
-                <div class="component-group">
-                    <button class="component-group-button" @onclick='() => ToggleCategory("ionic")'>
-                        <span class="@ChevronClass("ionic")">›</span><span class="component-group-icon ionic">Io</span><strong>Ionic</strong><span class="component-count">4</span>
-                    </button>
-                    @if (IsExpanded("ionic"))
-                    {
-                        <div class="component-children">
-                            <button class="component-menu-item selected" @onclick="OpenButton"><span></span>Button</button>
-                            <button class="component-menu-item" disabled="true"><span></span>Accordion</button>
-                            <button class="component-menu-item" disabled="true"><span></span>Input</button>
-                            <button class="component-menu-item" disabled="true"><span></span>Modal</button>
-                        </div>
-                    }
-                </div>
-                <div class="component-group">
-                    <button class="component-group-button" @onclick='() => ToggleCategory("charts")'>
-                        <span class="@ChevronClass("charts")">›</span><span class="component-group-icon charts">Ch</span><strong>Charts</strong><span class="component-count">3</span>
-                    </button>
-                    @if (IsExpanded("charts"))
-                    {
-                        <div class="component-children">
-                            <button class="component-menu-item" disabled="true"><span></span>CartesianChart</button>
-                            <button class="component-menu-item" disabled="true"><span></span>PieChart</button>
-                            <button class="component-menu-item" disabled="true"><span></span>PolarChart</button>
-                        </div>
-                    }
-                </div>
-                <div class="component-group">
-                    <button class="component-group-button" @onclick='() => ToggleCategory("components")'>
-                        <span class="@ChevronClass("components")">›</span><span class="component-group-icon native">Cx</span><strong>Components</strong><span class="component-count">3</span>
-                    </button>
-                    @if (IsExpanded("components"))
-                    {
-                        <div class="component-children">
-                            <button class="component-menu-item" disabled="true"><span></span>MikoPlayer</button>
-                            <button class="component-menu-item" disabled="true"><span></span>MikoCamera</button>
-                            <button class="component-menu-item" disabled="true"><span></span>MikoVnc</button>
-                        </div>
-                    }
-                </div>
+                @foreach (var category in Categories)
+                {
+                    var categoryId = category.ToString().ToLowerInvariant();
+                    <div class="component-group">
+                        <button class="component-group-button" @onclick="() => ToggleCategory(categoryId)">
+                            <span class="@ChevronClass(categoryId)">›</span><span class="@CategoryIconClass(category)">@CategoryAbbreviation(category)</span><strong>@category</strong><span class="component-count">@DemoCatalog.Category(category).Count()</span>
+                        </button>
+                        @if (IsExpanded(categoryId))
+                        {
+                            <div class="component-children">
+                                @foreach (var descriptor in DemoCatalog.Category(category))
+                                {
+                                    <button class="@ComponentMenuClass(descriptor)" @onclick="() => OpenComponent(descriptor.Id)"><span></span>@descriptor.Title</button>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
             </div>
-            <div class="component-sidebar-footer"><span>DESIGN PROTOTYPE</span><strong>Button · 01</strong></div>
+            <div class="component-sidebar-footer"><span>INTERACTIVE DOCUMENTATION</span><strong>@DemoCatalog.All.Count component playgrounds</strong></div>
         </div>
 
         <div class="designer-workspace">
-            <div class="workspace-main">
-                <div class="example-sidebar">
-                    <div class="example-heading">EXAMPLES</div>
-                    <div class="example-group-label">MAIN EXAMPLE</div>
-                    <button class="@SceneButtonClass(ButtonDemoScene.Component)" @onclick="() => SetScene(ButtonDemoScene.Component)">
-                        <span class="example-number">01</span>
-                        <span><strong>Properties</strong><span class="example-description">Explore every option</span></span>
-                    </button>
-                    <div class="example-group-label scenes">SCENES</div>
-                    <button class="@SceneButtonClass(ButtonDemoScene.Toolbar)" @onclick="() => SetScene(ButtonDemoScene.Toolbar)">
-                        <span class="example-number">02</span>
-                        <span><strong>In a toolbar</strong><span class="example-description">Compact context metrics</span></span>
-                    </button>
-                    <button class="@SceneButtonClass(ButtonDemoScene.Icons)" @onclick="() => SetScene(ButtonDemoScene.Icons)">
-                        <span class="example-number">03</span>
-                        <span><strong>With icons</strong><span class="example-description">Leading, trailing, only</span></span>
-                    </button>
-                    <div class="example-tip">
-                        <strong>Component vs. scene</strong>
-                        <p>Properties change the component itself. Scenes show how its context changes the presentation.</p>
-                    </div>
-                </div>
+            <div class="@WorkspaceMainClass">
+                <DemoSceneSidebar />
 
                 <div class="preview-workbench">
                     <div class="preview-toolbar">
@@ -91,183 +49,77 @@
                     <div class="preview-canvas">
                         <div class="preview-device">
                             <div class="preview-device-screen">
-                                <IonApp Class="preview-device-app">
-                                    @Body
-                                </IonApp>
+                                <IsolatedDemoPreview />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="property-panel">
-                    <div class="property-header"><div><span>COMPONENT</span><strong>IonButton</strong></div><span class="property-component-badge">Ionic</span></div>
-                    <div class="property-scroll">
-                        <div class="property-section">
-                            <div class="property-section-heading">PLATFORM</div>
-                            <div class="property-row"><span>Design mode</span><span class="property-value">@CurrentModeLabel</span></div>
-                            <div class="property-segment two">
-                                <button class="@ModeButtonClass("md")" @onclick='() => SetMode("md")'>Material</button>
-                                <button class="@ModeButtonClass("ios")" @onclick='() => SetMode("ios")'>iOS</button>
-                            </div>
-                        </div>
-
-                        <div class="property-section">
-                            <div class="property-section-heading">APPEARANCE</div>
-                            <div class="property-row"><span>Color</span><span class="property-value">@State.Color</span></div>
-                            <div class="property-swatches">
-                                @foreach (var color in Colors)
-                                {
-                                    <button class="@SwatchClass(color.Name)" style="@SwatchStyle(color.Hex)" aria-label="@color.Name" @onclick='() => Change("color", color.Name, () => State.Color = color.Name)'></button>
-                                }
-                            </div>
-                        </div>
-
-                        @if (State.Scene == ButtonDemoScene.Component)
-                        {
-                            <div class="property-section">
-                                <div class="property-row"><span>Fill</span><span class="property-value">@State.Fill</span></div>
-                                <div class="property-segment three">
-                                    @foreach (var fill in new[] { "solid", "outline", "clear" })
-                                    {
-                                        <button class="@OptionClass(State.Fill == fill)" @onclick='() => Change("fill", fill, () => State.Fill = fill)'>@Label(fill)</button>
-                                    }
-                                </div>
-                                <div class="property-row spaced"><span>Size</span><span class="property-value">@State.Size</span></div>
-                                <div class="property-segment three">
-                                    @foreach (var size in new[] { "small", "default", "large" })
-                                    {
-                                        <button class="@OptionClass(State.Size == size)" @onclick='() => Change("size", size, () => State.Size = size)'>@Label(size)</button>
-                                    }
-                                </div>
-                                <div class="property-row spaced"><span>Shape</span></div>
-                                <div class="property-segment two">
-                                    @foreach (var shape in new[] { "default", "round" })
-                                    {
-                                        <button class="@OptionClass(State.Shape == shape)" @onclick='() => Change("shape", shape, () => State.Shape = shape)'>@Label(shape)</button>
-                                    }
-                                </div>
-                                <div class="property-row spaced"><span>Expand</span><span class="property-value">@(State.Expand ?? "none")</span></div>
-                                <div class="property-segment three">
-                                    @foreach (var expand in new string?[] { null, "block", "full" })
-                                    {
-                                        <button class="@OptionClass(State.Expand == expand)" @onclick='() => Change("expand", expand ?? "none", () => State.Expand = expand)'>@(expand == null ? "None" : Label(expand))</button>
-                                    }
-                                </div>
-                            </div>
-
-                            <div class="property-section">
-                                <div class="property-section-heading">CONTENT & STATE</div>
-                                <div class="property-row"><span>Icon</span><span class="property-value">@(State.Icon ?? "none")</span></div>
-                                <div class="property-segment three">
-                                    @foreach (var icon in new string?[] { null, "heart", "star" })
-                                    {
-                                        <button class="@OptionClass(State.Icon == icon)" @onclick='() => Change("icon", icon ?? "none", () => State.Icon = icon)'>@(icon == null ? "None" : Label(icon))</button>
-                                    }
-                                </div>
-                                @if (State.Icon != null)
-                                {
-                                    <div class="property-row spaced"><span>Icon position</span></div>
-                                    <div class="property-segment three">
-                                        @foreach (var position in Enum.GetValues<ButtonIconPosition>())
-                                        {
-                                            <button class="@OptionClass(State.IconPosition == position)" @onclick='() => Change("icon position", position.ToString(), () => State.IconPosition = position)'>@PositionLabel(position)</button>
-                                        }
-                                    </div>
-                                }
-                                <div class="property-toggle-row"><span>Strong emphasis</span><button class="@ToggleClass(State.Strong)" @onclick='() => Change("strong", (!State.Strong).ToString().ToLowerInvariant(), () => State.Strong = !State.Strong)'><span></span></button></div>
-                                <div class="property-toggle-row"><span>Disabled</span><button class="@ToggleClass(State.Disabled)" @onclick='() => Change("disabled", (!State.Disabled).ToString().ToLowerInvariant(), () => State.Disabled = !State.Disabled)'><span></span></button></div>
-                            </div>
-                        }
-                        else if (State.Scene == ButtonDemoScene.Toolbar)
-                        {
-                            <div class="property-section">
-                                <div class="property-section-heading">TOOLBAR</div>
-                                <div class="property-row"><span>Toolbar color</span><span class="property-value">@State.ToolbarColor</span></div>
-                                <div class="property-segment three">
-                                    @foreach (var color in new[] { "light", "dark", "primary" })
-                                    {
-                                        <button class="@OptionClass(State.ToolbarColor == color)" @onclick='() => Change("toolbar color", color, () => State.ToolbarColor = color)'>@Label(color)</button>
-                                    }
-                                </div>
-                                <div class="property-note">The toolbar supplies compact metrics and a clear button fill automatically.</div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="property-section">
-                                <div class="property-section-heading">SCENE NOTES</div>
-                                <div class="property-note">Icons can lead, trail, or replace the label. The current color applies to every variant.</div>
-                            </div>
-                        }
-                    </div>
-                    <div class="property-footer"><button @onclick="Reset">↺ <span>Reset properties</span></button></div>
-                </div>
+                <IsolatedDemoPreview Region="DemoRegion.Properties" />
             </div>
 
-            <div class="console-panel">
-                <div class="console-header"><div><strong>Interaction output</strong><span>@($"{State.Events.Count} events")</span></div><button @onclick="ClearConsole">Clear</button></div>
-                <div class="console-body">
-                    @if (State.Events.Count == 0)
-                    {
-                        <div class="console-empty">Interact with the preview or change a property to see output here.</div>
-                    }
-                    else
-                    {
-                        @foreach (var entry in State.Events)
-                        {
-                            <div class="console-entry">@($"{entry.Time}  {entry.Kind,-9} {entry.Message}  #{entry.Id:000}")</div>
-                        }
-                    }
+            @if (State.ConsoleExpanded)
+            {
+                <IsolatedDemoPreview Region="DemoRegion.Console" />
+            }
+            else
+            {
+                <div class="console-panel collapsed">
+                    <button class="console-disclosure" @onclick="State.ToggleConsole"><span><strong>Interaction output</strong><span>Hidden</span></span><span>Show</span></button>
                 </div>
-            </div>
+            }
         </div>
     </div>
 </div>
 
 @code {
+    private static readonly DemoCategory[] Categories = [DemoCategory.Ionic, DemoCategory.Charts, DemoCategory.Components];
     private readonly HashSet<string> _expandedCategories = ["ionic"];
 
-    [Inject] public ButtonPlaygroundState State { get; set; } = null!;
+    [Inject] public DemoState State { get; set; } = null!;
     [Inject] public NavigationManager Navigation { get; set; } = null!;
-    [Inject] public PlatformInfo Platform { get; set; } = null!;
 
-    private static readonly (string Name, string Hex)[] Colors =
-    [
-        ("primary", "#512bd4"), ("secondary", "#0cd1e8"), ("tertiary", "#7044ff"), ("success", "#2dd36f"),
-        ("warning", "#ffc409"), ("danger", "#eb445a"), ("medium", "#92949c"), ("dark", "#222428"),
-    ];
+    private DemoDescriptor Current => State.Current;
+    private string WorkspaceMainClass => $"workspace-main{(State.ConsoleExpanded ? " console-open" : null)}";
+    private string SceneName => State.SceneId == "main"
+        ? "Properties"
+        : Current.Scenes.FirstOrDefault(scene => scene.Id == State.SceneId)?.Name ?? "Preview";
 
-    private string CurrentMode => Platform.Platform == HostPlatform.Ios ? "ios" : "md";
-    private string CurrentModeLabel => CurrentMode == "ios" ? "iOS" : "Material";
-    private string SceneName => State.Scene switch
+    protected override void OnInitialized()
     {
-        ButtonDemoScene.Component => "Properties",
-        ButtonDemoScene.Toolbar => "In a toolbar",
-        ButtonDemoScene.Icons => "With icons",
-        _ => "Preview",
-    };
+        State.ComponentChanged += OnChanged;
+        State.SceneChanged += OnChanged;
+        State.ConsoleVisibilityChanged += OnChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+        ActivateFromLocation();
+    }
 
-    private string SceneButtonClass(ButtonDemoScene scene) => $"example-button{(State.Scene == scene ? " selected" : null)}";
-    private string ModeButtonClass(string mode) => $"property-option{(CurrentMode == mode ? " selected" : null)}";
-    private string SwatchClass(string color) => $"property-swatch{(State.Color == color ? " selected" : null)}";
-    private static string OptionClass(bool selected) => $"property-option{(selected ? " selected" : null)}";
-    private static string ToggleClass(bool value) => $"property-toggle{(value ? " on" : null)}";
-    private string ChevronClass(string category) => $"component-chevron{(IsExpanded(category) ? " expanded" : null)}";
-    private bool IsExpanded(string category) => _expandedCategories.Contains(category);
-
-    private static Style SwatchStyle(string color) => new() { BackgroundColor = Miko.Common.Color.FromHex(color) };
-    private static string Label(string value) => char.ToUpperInvariant(value[0]) + value[1..];
-    private static string PositionLabel(ButtonIconPosition position) => position switch
+    protected override void OnDispose()
     {
-        ButtonIconPosition.Start => "Start",
-        ButtonIconPosition.End => "End",
-        ButtonIconPosition.IconOnly => "Only",
-        _ => position.ToString(),
-    };
+        State.ComponentChanged -= OnChanged;
+        State.SceneChanged -= OnChanged;
+        State.ConsoleVisibilityChanged -= OnChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
 
-    protected override void OnInitialized() => State.Changed += OnPlaygroundChanged;
-    protected override void OnDispose() => State.Changed -= OnPlaygroundChanged;
-    private void OnPlaygroundChanged() => StateHasChanged();
+    private void OnChanged() => StateHasChanged();
+    private void OnLocationChanged(NavigationEventArgs args) => ActivateFromLocation();
+
+    private void ActivateFromLocation()
+    {
+        var id = Navigation.CurrentPath.Trim('/');
+        State.Activate(string.IsNullOrEmpty(id) ? "button" : id);
+        var currentCategory = Current.Category.ToString().ToLowerInvariant();
+        _expandedCategories.RemoveWhere(category => category != currentCategory);
+        _expandedCategories.Add(currentCategory);
+    }
+
+    private void OpenComponent(string id)
+    {
+        var path = id == "button" ? "/" : $"/{id}";
+        if (Navigation.CurrentPath == path) State.Activate(id);
+        else Navigation.NavigateTo(path, NavigationDirection.Root);
+    }
 
     private void ToggleCategory(string category)
     {
@@ -275,39 +127,9 @@
         StateHasChanged();
     }
 
-    private void OpenButton() => SetScene(ButtonDemoScene.Component);
-
-    private void SetScene(ButtonDemoScene scene)
-    {
-        if (State.Scene != scene)
-        {
-            State.Scene = scene;
-            State.Record("scene", $"Switched to {SceneName.ToLowerInvariant()}");
-        }
-        if (Navigation.CurrentPath != "/") Navigation.NavigateTo("/", NavigationDirection.Root);
-    }
-
-    private void SetMode(string mode)
-    {
-        Platform.Platform = mode == "ios" ? HostPlatform.Ios : HostPlatform.Android;
-        State.Record("mode", $"Ionic design mode = {mode}");
-    }
-
-    private void Change(string property, string value, Action update)
-    {
-        update();
-        State.Record("property", $"{property} = {value}");
-    }
-
-    private void Reset()
-    {
-        Platform.Platform = HostPlatform.Android;
-        State.Reset();
-    }
-
-    private void ClearConsole()
-    {
-        State.ClearEvents();
-        StateHasChanged();
-    }
+    private string ComponentMenuClass(DemoDescriptor descriptor) => $"component-menu-item{(Current.Id == descriptor.Id ? " selected" : null)}";
+    private string ChevronClass(string category) => $"component-chevron{(IsExpanded(category) ? " expanded" : null)}";
+    private bool IsExpanded(string category) => _expandedCategories.Contains(category);
+    private static string CategoryAbbreviation(DemoCategory category) => category switch { DemoCategory.Ionic => "Io", DemoCategory.Charts => "Ch", _ => "Cx" };
+    private static string CategoryIconClass(DemoCategory category) => $"component-group-icon {category.ToString().ToLowerInvariant()}";
 }

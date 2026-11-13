@@ -10,6 +10,9 @@ hero:
       text: Get Started
       link: /guide/getting-started
     - theme: alt
+      text: Interactive Playground
+      link: /demo/
+    - theme: alt
       text: What is Miko?
       link: /guide/introduction
     - theme: alt

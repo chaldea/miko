@@ -28,6 +28,10 @@
     <Project Path="tests/Miko.Razor.Tests/Miko.Razor.Tests.csproj" />
     <Project Path="tests/Miko.Tests/Miko.Tests.csproj" />
   </Folder>
+  <Folder Name="/examples/Docs/">
+    <Project Path="examples/Docs/Miko.Docs.Demo/Miko.Docs.Demo.csproj" />
+    <Project Path="examples/Docs/Miko.Docs.Demo.Browser/Miko.Docs.Demo.Browser.csproj" />
+  </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Miko.DocGen/Miko.DocGen.csproj" />
     <Project Path="tools/Miko.TemplateE2E/Miko.TemplateE2E.csproj" />

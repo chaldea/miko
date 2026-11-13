@@ -1,0 +1,23 @@
+<div class="console-panel">
+    <div class="console-header"><div><strong>Interaction output</strong><span>@($"{State.Events.Count} events")</span></div><div class="console-actions"><button @onclick="State.ClearEvents">Clear</button><button @onclick="State.ToggleConsole">Hide</button></div></div>
+    <div class="console-body">
+        @if (State.Events.Count == 0)
+        {
+            <div class="console-empty">Interact with the preview or change a property to see output here.</div>
+        }
+        else
+        {
+            @foreach (var entry in State.Events)
+            {
+                <div class="console-entry">@($"{entry.Time}  {entry.Kind,-9} {entry.Message}  #{entry.Id:000}")</div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Inject] public DemoState State { get; set; } = null!;
+    protected override void OnInitialized() => State.Changed += OnChanged;
+    protected override void OnDispose() => State.Changed -= OnChanged;
+    private void OnChanged() => StateHasChanged();
+}

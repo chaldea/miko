@@ -11,6 +11,13 @@ on:
     branches: [ main ]
     paths:
       - 'docs/**'
+      - 'examples/Docs/**'
+      - 'src/**'
+      - 'scripts/stage-docs-demo.mjs'
+      - 'scripts/clean-docs-demo.mjs'
+      - 'global.json'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/docs.yml'
@@ -30,13 +37,21 @@ concurrency:
 
 jobs:
   build:
-    name: Build VitePress site
+    name: Build documentation and playground
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0   # full history so VitePress can compute lastUpdated timestamps
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Install WebAssembly tools
+        run: dotnet workload install wasm-tools
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -50,7 +65,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build with VitePress
+      - name: Build VitePress and the WebAssembly playground
         run: npm run docs:build
 
       - name: Upload artifact

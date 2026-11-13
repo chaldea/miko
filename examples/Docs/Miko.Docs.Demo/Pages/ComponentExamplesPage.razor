@@ -1,0 +1,466 @@
+@page "/{id}"
+
+@if (Current.Id == "app")
+{
+    <DynamicDemoComponent Descriptor="@Current" Values="@Values">
+        <ChildContent>
+            <IonHeader><IonToolbar><ChildContent><IonTitle>Miko application</IonTitle></ChildContent></IonToolbar></IonHeader>
+            <IonContent Class="demo-page-content">
+                <div class="scene-explainer">
+                    <span class="scene-kicker">IONAPP › IONPAGE</span>
+                    <h2>One host.<br />One page structure.</h2>
+                    <p>The outer playground owns IonApp and its overlay layer. This live IonPage demonstrates the header, scrollable content and footer contract used by every other example.</p>
+                </div>
+            </IonContent>
+            <IonFooter><IonToolbar><ChildContent><IonTitle>Ready</IonTitle></ChildContent></IonToolbar></IonFooter>
+        </ChildContent>
+    </DynamicDemoComponent>
+}
+else
+{
+    <IonPage>
+        @if (Current.Id == "header")
+        {
+            <DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent><IonToolbar><ChildContent><IonTitle>Page header</IonTitle></ChildContent></IonToolbar></ChildContent></DynamicDemoComponent>
+            <IonContent Class="demo-page-content">@StructureExplanation</IonContent>
+        }
+        else if (Current.Id == "footer")
+        {
+            <IonContent Class="demo-page-content">@StructureExplanation</IonContent>
+            <DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent><IonToolbar><ChildContent><IonTitle>Persistent footer</IonTitle></ChildContent></IonToolbar></ChildContent></DynamicDemoComponent>
+        }
+        else if (Current.Id == "content")
+        {
+            <IonHeader><IonToolbar><ChildContent><IonTitle>Scrollable content</IonTitle></ChildContent></IonToolbar></IonHeader>
+            <DynamicDemoComponent Descriptor="@Current" Values="@Values">
+                <ChildContent>
+                    <div class="content-demo-list">
+                        @for (var i = 1; i <= 18; i++)
+                        {
+                            <div class="content-demo-row"><span>@($"{i:00}")</span><div><strong>Scrollable content</strong><p>Rows remain in the page flow while this region scrolls.</p></div></div>
+                        }
+                    </div>
+                </ChildContent>
+            </DynamicDemoComponent>
+        }
+        else if (Current.Id == "button" && State.SceneId == "toolbar")
+        {
+            <IonHeader><ConfigProvider IonicTheme="@ToolbarTheme"><IonToolbar>
+                <Start><IonButtons><IonButton OnClick='() => State.Click("Cancel")'>Cancel</IonButton></IonButtons></Start>
+                <ChildContent><IonTitle>Edit profile</IonTitle></ChildContent>
+                <End><IonButtons><DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent>Save</ChildContent></DynamicDemoComponent></IonButtons></End>
+            </IonToolbar></ConfigProvider></IonHeader>
+            <IonContent Class="demo-page-content"><div class="scene-explainer"><span class="scene-kicker">CONTEXT 02 · TOOLBAR</span><h2>Same button.<br />Different job.</h2><p>Inside a toolbar, IonButton adopts compact dimensions and a clear fill so it belongs beside the title.</p><div class="scene-action-hint">Try Cancel or Save, then check the interaction output below. Color also themes the toolbar.</div></div></IonContent>
+        }
+        else if (Current.Id == "toolbar")
+        {
+            <IonHeader>
+                <DynamicDemoComponent Descriptor="@Current" Values="@Values">
+                    <Start><IonButtons><IonButton Fill="clear" OnClick='() => State.Click("Back")'><IconOnly><IonIcon Icon="@Ionicons.ArrowBack" /></IconOnly></IonButton></IonButtons></Start>
+                    <ChildContent>
+                        @if (State.SceneId == "controls")
+                        {
+                            <IonSegment Value="overview"><IonSegmentButton Value="overview"><IonLabel>Overview</IonLabel></IonSegmentButton><IonSegmentButton Value="activity"><IonLabel>Activity</IonLabel></IonSegmentButton></IonSegment>
+                        }
+                        else
+                        {
+                            <IonTitle>Workspace</IonTitle>
+                        }
+                    </ChildContent>
+                    <End><IonButtons><IonButton Fill="clear" OnClick='() => State.Click("More")'><IconOnly><IonIcon Icon="@Ionicons.EllipsisHorizontal" /></IconOnly></IonButton></IonButtons></End>
+                </DynamicDemoComponent>
+            </IonHeader>
+            <IonContent Class="demo-page-content">@StructureExplanation</IonContent>
+        }
+        else if (Current.Id == "progress-bar" && State.SceneId == "toolbar" || Current.Id == "searchbar" && State.SceneId == "toolbar")
+        {
+            <IonHeader><IonToolbar><ChildContent><DynamicDemoComponent Descriptor="@Current" Values="@Values" /></ChildContent></IonToolbar></IonHeader>
+            <IonContent Class="demo-page-content">@StructureExplanation</IonContent>
+        }
+        else if (Current.Id == "title")
+        {
+            <IonHeader><IonToolbar><Start><IonButtons><IonBackButton Text="Back" /></IonButtons></Start><ChildContent><DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent>Component gallery</ChildContent></DynamicDemoComponent></ChildContent></IonToolbar></IonHeader>
+            <IonContent Class="demo-page-content">@StructureExplanation</IonContent>
+        }
+        else if (Current.Id == "back-button")
+        {
+            <IonHeader><IonToolbar><Start><IonButtons><DynamicDemoComponent Descriptor="@Current" Values="@Values" /></IonButtons></Start><ChildContent><IonTitle>Details</IonTitle></ChildContent></IonToolbar></IonHeader>
+            <IonContent Class="demo-page-content">@StructureExplanation</IonContent>
+        }
+        else if (Current.Id == "menu")
+        {
+            <IonHeader><IonToolbar><Start><IonButtons><IonMenuButton OnClick='() => State.Set("IsOpen", true)' /></IonButtons></Start><ChildContent><IonTitle>Navigation drawer</IonTitle></ChildContent></IonToolbar></IonHeader>
+            <IonContent Class="demo-page-content"><div class="scene-explainer"><span class="scene-kicker">CONTROLLED MENU</span><h2>Open from the toolbar.<br />Close from the backdrop.</h2><p>The menu is the last child of IonPage. IsOpen, Side and BackButtonCloses are live parameters.</p></div></IonContent>
+            <DynamicDemoComponent Descriptor="@Current" Values="@Values">
+                <ChildContent>
+                    <IonHeader><IonToolbar><ChildContent><IonTitle>Miko</IonTitle></ChildContent></IonToolbar></IonHeader>
+                    <IonContent><IonList>
+                        <IonItem OnClick='() => State.Set("IsOpen", false)'><IonLabel>Components</IonLabel></IonItem>
+                        <IonItem OnClick='() => State.Set("IsOpen", false)'><IonLabel>Charts</IonLabel></IonItem>
+                        <IonItem OnClick='() => State.Set("IsOpen", false)'><IonLabel>Player</IonLabel></IonItem>
+                    </IonList></IonContent>
+                </ChildContent>
+            </DynamicDemoComponent>
+        }
+        else if (Current.Id == "tabs")
+        {
+            @if (State.SceneId == "top")
+            {
+                <IonTabs><Top>@TabBar</Top><Content>@TabContent</Content></IonTabs>
+            }
+            else
+            {
+                <IonTabs><Content>@TabContent</Content><Bottom>@TabBar</Bottom></IonTabs>
+            }
+        }
+        else if (Current.Id == "refresher")
+        {
+            <IonContent Class="demo-page-content">
+                <Fixed><DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent><IonRefresherContent PullingText="Pull to refresh" RefreshingText="Refreshing components…" /></ChildContent></DynamicDemoComponent></Fixed>
+                <ChildContent><div class="content-demo-list">@for (var i = 1; i <= 16; i++) { <div class="content-demo-row"><span>@($"{i:00}")</span><div><strong>Pull down from the top</strong><p>The refresher lives in IonContent.Fixed.</p></div></div> }</div></ChildContent>
+            </IonContent>
+        }
+        else if (Current.Id == "infinite-scroll")
+        {
+            <IonContent Class="demo-page-content">
+                <ChildContent>
+                    <IonList>@for (var i = 0; i < _visibleRows; i++) { <IonItem><IonLabel>Component row @(i + 1)</IonLabel></IonItem> }</IonList>
+                    <DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent><IonInfiniteScrollContent LoadingText="Loading more components…" /></ChildContent></DynamicDemoComponent>
+                </ChildContent>
+            </IonContent>
+        }
+        else
+        {
+            <IonContent Class="@ContentClass">
+                @if (Current.Id == "button" && State.SceneId == "toolbar")
+                {
+                    <div class="scene-explainer">
+                        <span class="scene-kicker">CONTEXT 02 · TOOLBAR</span><h2>Same button.<br />Different job.</h2>
+                        <p>The preview above this content normally supplies compact metrics. Use the main example to edit every public IonButton parameter.</p>
+                        <div class="scene-action-hint">The color parameter also themes this contextual toolbar.</div>
+                    </div>
+                }
+                else if (Current.Id == "button" && State.SceneId == "icons")
+                {
+                    <div class="icons-stage">
+                        <span class="scene-kicker">CONTEXT 03 · ICONS</span><h2>Icon + label<br />or just an icon.</h2><p>Each slot changes the button's layout without changing its interaction model.</p>
+                        <div class="icon-example-list">
+                            <div class="icon-example"><IonButton Color="@Color" Fill="@Fill" Size="@Size" Shape="@Shape" Strong="@Strong" Disabled="@Disabled" OnClick='() => State.Click("Start icon")'><Start><IonIcon Icon="@Ionicons.Star" /></Start><ChildContent>Favorite</ChildContent></IonButton><span class="icon-example-label">START</span></div>
+                            <div class="icon-example"><IonButton Color="@Color" Fill="@Fill" Size="@Size" Shape="@Shape" Strong="@Strong" Disabled="@Disabled" OnClick='() => State.Click("End icon")'><End><IonIcon Icon="@Ionicons.Heart" /></End><ChildContent>Like</ChildContent></IonButton><span class="icon-example-label">END</span></div>
+                            <div class="icon-example"><IonButton Color="@Color" Fill="@Fill" Size="@Size" Shape="@Shape" Strong="@Strong" Disabled="@Disabled" OnClick='() => State.Click("Icon only")'><IconOnly><IonIcon Icon="@Ionicons.Heart" /></IconOnly></IonButton><span class="icon-example-label">ICON ONLY</span></div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="@StageClass">
+                        <span class="component-stage-label">LIVE COMPONENT</span>
+                        <div class="@PreviewBodyClass">
+                            @if (IsOverlay)
+                            {
+                                <IonButton OnClick="OpenOverlay"><Start><IonIcon Icon="@Ionicons.OpenOutline" /></Start><ChildContent>@OpenLabel</ChildContent></IonButton>
+                            }
+                            @if (Current.Id == "item" && State.SceneId == "sliding")
+                            {
+                                <IonList><IonItemSliding Open="true" OpenSide="end"><DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent>@ItemContent</ChildContent></DynamicDemoComponent><IonItemOptions Side="end"><IonItemOption Color="danger" OnClick='() => State.Click("Delete")'>Delete</IonItemOption></IonItemOptions></IonItemSliding></IonList>
+                            }
+                            else if (Current.Id == "item")
+                            {
+                                <IonList><DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent>@ItemContent</ChildContent></DynamicDemoComponent></IonList>
+                            }
+                            else if (Current.Id == "reorder")
+                            {
+                                <IonList><DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent>@for (var i = 0; i < _reorderItems.Count; i++) { var item = _reorderItems[i]; <IonItem><IonLabel>@item</IonLabel><IonReorder /></IonItem> }</ChildContent></DynamicDemoComponent></IonList>
+                            }
+                            else if (Current.Id == "range" && State.SceneId == "item" || Current.Id == "input" && State.SceneId == "item")
+                            {
+                                <IonItem><DynamicDemoComponent Descriptor="@Current" Values="@Values" /></IonItem>
+                            }
+                            else if (Current.Id == "segment" && State.SceneId == "views")
+                            {
+                                <div class="segment-scene">
+                                    <DynamicDemoComponent Descriptor="@Current" Values="@Values"><ChildContent>@SegmentButtons</ChildContent></DynamicDemoComponent>
+                                    <IonSegmentView Value="@SegmentValue">
+                                        <IonSegmentContent Id="overview"><div class="segment-view-card"><strong>Overview</strong><p>Segment content coordinates through the shared Value.</p></div></IonSegmentContent>
+                                        <IonSegmentContent Id="activity"><div class="segment-view-card"><strong>Activity</strong><p>Select Activity to reveal this content.</p></div></IonSegmentContent>
+                                        <IonSegmentContent Id="settings"><div class="segment-view-card"><strong>Settings</strong><p>The segment and view remain separate components.</p></div></IonSegmentContent>
+                                    </IonSegmentView>
+                                </div>
+                            }
+                            else
+                            {
+                                <DynamicDemoComponent Descriptor="@Current" Values="@Values">
+                                    <ChildContent>
+                                        @if (Current.Id == "button") { @ButtonLabel }
+                                        else if (Current.Id == "accordion") { @AccordionContent }
+                                        else if (Current.Id == "avatar") { <img src="res://Assets/avatar.svg" /> }
+                                        else if (Current.Id == "badge") { <span>12</span> }
+                                        else if (Current.Id == "breadcrumbs") { <IonBreadcrumb Href="/">Home</IonBreadcrumb><IonBreadcrumb Href="/">Components</IonBreadcrumb><IonBreadcrumb Active="true">Button</IonBreadcrumb> }
+                                        else if (Current.Id == "card") { <IonCardHeader><IonCardSubtitle>INTERACTIVE DOCUMENTATION</IonCardSubtitle><IonCardTitle>Build once. Render anywhere.</IonCardTitle></IonCardHeader><IonCardContent>Cards group related content and actions on a raised, rounded surface.</IonCardContent> }
+                                        else if (Current.Id == "checkbox" || Current.Id == "toggle") { <span>Enable notifications</span> }
+                                        else if (Current.Id == "chip") { <IonIcon Icon="@Ionicons.Sparkles" /><span>Miko component</span> }
+                                        else if (Current.Id == "fab") { <IonFabButton OnClick='() => State.Click("FAB")'><IonIcon Icon="@Ionicons.Add" /></IonFabButton>@if (State.SceneId == "list") { <IonFabList Side="top" Activated="true"><IonFabButton Size="small" OnClick='() => State.Click("Camera action")'><IonIcon Icon="@Ionicons.Camera" /></IonFabButton><IonFabButton Size="small" OnClick='() => State.Click("Share action")'><IonIcon Icon="@Ionicons.Share" /></IonFabButton></IonFabList> } }
+                                        else if (Current.Id == "grid") { <IonRow><IonCol Size="4"><div class="grid-cell">4</div></IonCol><IonCol Size="4"><div class="grid-cell">4</div></IonCol><IonCol Size="4"><div class="grid-cell">4</div></IonCol></IonRow> }
+                                        else if (Current.Id == "label") { <span>A label with live palette and position parameters</span> }
+                                        else if (Current.Id == "list") { <IonListHeader><IonLabel>Components</IonLabel></IonListHeader><IonItem><IonLabel>Button</IonLabel></IonItem><IonItem><IonLabel>Charts</IonLabel></IonItem><IonItem><IonLabel>Player</IonLabel></IonItem> }
+                                        else if (Current.Id == "modal") { <div class="overlay-demo-content"><IonIcon Icon="@Ionicons.CheckmarkCircle" Color="success" Size="large" /><h2>Modal content</h2><p>Declarative content renders in the shared IonApp overlay layer.</p><IonButton OnClick='() => State.Set("IsOpen", false)'>Close</IonButton></div> }
+                                        else if (Current.Id == "note") { <span>Updated 2 minutes ago</span> }
+                                        else if (Current.Id == "picker") { <IonPickerColumn Value="miko"><IonPickerColumnOption Value="miko">Miko</IonPickerColumnOption><IonPickerColumnOption Value="ionic">Ionic</IonPickerColumnOption><IonPickerColumnOption Value="charts">Charts</IonPickerColumnOption></IonPickerColumn> }
+                                        else if (Current.Id == "popover") { <div class="overlay-demo-content"><strong>Contextual actions</strong><p>Popover content stays close to its trigger.</p><IonButton Fill="clear" OnClick='() => State.Set("IsOpen", false)'>Done</IonButton></div> }
+                                        else if (Current.Id == "radio") { <IonRadio Value="miko" LabelPlacement="end">Miko</IonRadio><IonRadio Value="ionic" LabelPlacement="end">Ionic</IonRadio><IonRadio Value="charts" LabelPlacement="end">Charts</IonRadio> }
+                                        else if (Current.Id == "segment") { @SegmentButtons }
+                                        else if (Current.Id == "select") { <IonSelectOption Value="miko">Miko</IonSelectOption><IonSelectOption Value="ionic">Ionic</IonSelectOption><IonSelectOption Value="charts">Charts</IonSelectOption><IonSelectOption Value="blazor">Blazor</IonSelectOption> }
+                                        else if (Current.Id == "slides") { <IonSlide><div class="slide-card purple"><span>01</span><strong>Razor</strong><p>Compose native UI with familiar components.</p></div></IonSlide><IonSlide><div class="slide-card green"><span>02</span><strong>SkiaSharp</strong><p>Draw every pixel without a WebView.</p></div></IonSlide><IonSlide><div class="slide-card orange"><span>03</span><strong>Anywhere</strong><p>Share one component across every host.</p></div></IonSlide> }
+                                        else if (Current.Id == "text") { <span>Miko makes native UI feel at home in .NET.</span> }
+                                        else if (Current.Id == "thumbnail") { <img src="res://Assets/thumbnail.svg" /> }
+                                    </ChildContent>
+                                </DynamicDemoComponent>
+                            }
+                        </div>
+                        @if (!IsOverlay)
+                        {
+                            <div class="component-summary">@Current.Name <span>·</span> @SceneSummary</div>
+                            <div class="component-state">@InteractionHint</div>
+                        }
+                        else
+                        {
+                            <div class="component-state">Open the overlay, then dismiss it to see IsOpenChanged and dismissal events.</div>
+                        }
+                        <div class="component-mode"><span></span>@ModeLabel</div>
+                    </div>
+                }
+            </IonContent>
+        }
+    </IonPage>
+}
+
+@code {
+    private int _visibleRows = 20;
+    private readonly List<string> _reorderItems = ["Button", "Input", "Charts", "Player"];
+
+    [Parameter] public string? Id { get; set; }
+    [Inject] public DemoState State { get; set; } = null!;
+
+    private DemoDescriptor Current => State.Current;
+    private IReadOnlyDictionary<string, object?> Values => PrepareValues();
+    private string Color => State.Value<string>("Color", "primary") ?? "primary";
+    private string Fill => State.Value<string>("Fill", "solid") ?? "solid";
+    private string Size => State.Value<string>("Size", "default") ?? "default";
+    private string Shape => State.Value<string>("Shape", "default") ?? "default";
+    private bool Strong => State.Value<bool>("Strong");
+    private bool Disabled => State.Value<bool>("Disabled");
+    private string OpenLabel => $"Open {Current.Title}";
+    private string SegmentValue => State.Value<string>("Value", "overview") ?? "overview";
+    private string ButtonLabel => State.ClickCount == 0 ? "Tap me" : $"Tapped {State.ClickCount} {(State.ClickCount == 1 ? "time" : "times")}";
+    private IonicTheme ToolbarTheme
+    {
+        get
+        {
+            var background = Miko.Common.Color.FromHex(Color switch
+            {
+                "secondary" => "#0cd1e8", "tertiary" => "#7044ff", "success" => "#2dd36f",
+                "warning" => "#ffc409", "danger" => "#eb445a", "medium" => "#92949c",
+                "dark" => "#222428", "light" => "#f4f5f8", _ => "#512bd4",
+            });
+            return new IonicTheme
+            {
+                Toolbar = new ToolbarToken
+                {
+                    Background = background,
+                    Color = Miko.Common.Color.FromHex(Color == "light" || Color == "warning" ? "#202941" : "#ffffff"),
+                    BorderColor = background,
+                },
+            };
+        }
+    }
+    private bool IsOverlay => Current.Id is "action-sheet" or "alert" or "loading" or "modal" or "popover" or "toast";
+    private string ContentClass => Current.Category == DemoCategory.Ionic ? "demo-page-content" : "demo-page-content chart-page-content";
+    private string StageClass => $"component-stage {(Current.Category != DemoCategory.Ionic ? "wide-stage" : null)}";
+    private string PreviewBodyClass => $"preview-component-body preview-{Current.Id} {(Current.Category != DemoCategory.Ionic ? "chart-component" : null)} expand-{State.Value<string>("Expand", "inline")}";
+    private string ModeLabel => Current.ShowMode ? $"{(State.IsIos ? "iOS" : "Material")} preview" : $"{Current.Category} preview";
+    private string SceneSummary => Current.Category == DemoCategory.Charts ? "Local deterministic data" : Current.Id == "player" ? "Simulated local media" : State.SceneId == "main" ? "Generated live properties" : "Context scene";
+    private string InteractionHint => Current.Id switch
+    {
+        "button" => "Click the button and watch the output below",
+        "geo-map" => "Drag the map to pan; switch its projection in the property panel",
+        "cartesian" => "Hover for a tooltip, click a data point, or drag to pan",
+        "player" => "Play, seek, adjust settings, or enter viewport fullscreen",
+        "slides" => "Swipe the carousel or use its navigation controls",
+        "reorder" => "Drag a handle to reorder the application-owned list",
+        _ => "Interact with the component and adjust its generated properties",
+    };
+
+    protected override void OnParametersSet()
+    {
+        State.Activate(string.IsNullOrEmpty(Id) ? "button" : Id);
+        PrepareValues();
+    }
+
+    private IReadOnlyDictionary<string, object?> PrepareValues()
+    {
+        var values = State.CurrentComponent.Values;
+        if (Current.Id == "refresher")
+            values["OnRefresh"] = EventCallback.Factory.Create<IonRefresherCustomEvent>(this, Refresh);
+        else if (Current.Id == "infinite-scroll")
+            values["OnInfinite"] = EventCallback.Factory.Create<IonInfiniteScrollCustomEvent>(this, LoadMore);
+        else if (Current.Id == "reorder")
+            values["OnItemReorder"] = EventCallback.Factory.Create<(int From, int To)>(this, Reorder);
+        return values;
+    }
+
+    private void OpenOverlay() => State.Set("IsOpen", true);
+
+    private async Task Refresh(IonRefresherCustomEvent args)
+    {
+        State.Record("refresh", "Refresh started");
+        await Task.Delay(700);
+        await args.Complete();
+        State.Record("refresh", "Refresh completed");
+    }
+
+    private async Task LoadMore(IonInfiniteScrollCustomEvent args)
+    {
+        _visibleRows = Math.Min(60, _visibleRows + 10);
+        StateHasChanged();
+        await Task.Delay(250);
+        await args.Complete();
+        State.Record("infinite", $"Loaded 10 rows · {_visibleRows} visible");
+        if (_visibleRows >= 60) State.Set("Disabled", true);
+    }
+
+    private void Reorder((int From, int To) change)
+    {
+        if (change.From < 0 || change.From >= _reorderItems.Count || change.To < 0 || change.To >= _reorderItems.Count) return;
+        var item = _reorderItems[change.From];
+        _reorderItems.RemoveAt(change.From);
+        _reorderItems.Insert(change.To, item);
+        State.Record("reorder", $"{item}: {change.From} → {change.To}");
+    }
+
+    private RenderFragment StructureExplanation => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "scene-explainer");
+        builder.AddMarkupContent(2, $"<span class='scene-kicker'>PAGE STRUCTURE</span><h2>{Current.Title}</h2><p>{Current.Description}</p><div class='scene-action-hint'>The live component is placed in its real Ionic page context.</div>");
+        builder.CloseElement();
+    };
+
+    private RenderFragment TabContent => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(0, "class", "component-stage");
+        builder.OpenElement(1, "span");
+        builder.AddAttribute(0, "class", "component-stage-label");
+        builder.AddContent(0, "IONTABS CONTENT");
+        builder.CloseElement();
+        builder.OpenElement(2, "div");
+        builder.AddAttribute(0, "class", "tab-preview");
+        builder.OpenComponent<IonIcon>(0);
+        builder.AddAttribute(0, "Icon", Ionicons.Apps);
+        builder.AddAttribute(1, "Color", "primary");
+        builder.AddAttribute(2, "Size", "large");
+        builder.CloseComponent();
+        builder.OpenElement(1, "h2");
+        builder.AddContent(0, "Independent destinations");
+        builder.CloseElement();
+        builder.OpenElement(2, "p");
+        builder.AddContent(0, "Tab buttons retain their selected state while the content region stays independent.");
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private RenderFragment TabBar => builder =>
+    {
+        builder.OpenComponent<IonTabBar>(0);
+        builder.AddAttribute(1, "ChildContent", (RenderFragment)(content =>
+        {
+            AddTab(content, 0, "Components", Ionicons.Apps, true);
+            AddTab(content, 1, "Charts", Ionicons.StatsChart, false);
+            AddTab(content, 2, "Player", Ionicons.PlayCircle, false);
+        }));
+        builder.CloseComponent();
+    };
+
+    private static void AddTab(RenderTreeBuilder builder, int sequence, string label, string icon, bool selected)
+    {
+        builder.OpenComponent<IonTabButton>(sequence);
+        builder.AddAttribute(0, "Selected", selected);
+        builder.AddAttribute(1, "ChildContent", (RenderFragment)(content =>
+        {
+            content.OpenComponent<IonIcon>(0);
+            content.AddAttribute(0, "Icon", icon);
+            content.CloseComponent();
+            content.OpenComponent<IonLabel>(1);
+            content.AddAttribute(0, "ChildContent", (RenderFragment)(text => text.AddContent(label)));
+            content.CloseComponent();
+        }));
+        builder.CloseComponent();
+    }
+
+    private RenderFragment ItemContent => builder =>
+    {
+        builder.OpenComponent<IonIcon>(0);
+        builder.AddAttribute(0, "Icon", Ionicons.Mail);
+        builder.AddAttribute(1, "slot", "start");
+        builder.CloseComponent();
+        builder.OpenComponent<IonLabel>(1);
+        builder.AddAttribute(0, "ChildContent", (RenderFragment)(content => content.AddContent("Inbox · live item properties")));
+        builder.CloseComponent();
+        builder.OpenComponent<IonBadge>(2);
+        builder.AddAttribute(0, "slot", "end");
+        builder.AddAttribute(1, "ChildContent", (RenderFragment)(content => content.AddContent("8")));
+        builder.CloseComponent();
+    };
+
+    private RenderFragment SegmentButtons => builder =>
+    {
+        AddSegmentButton(builder, 0, "overview", "Overview");
+        AddSegmentButton(builder, 1, "activity", "Activity");
+        AddSegmentButton(builder, 2, "settings", "Settings");
+    };
+
+    private static void AddSegmentButton(RenderTreeBuilder builder, int sequence, string value, string label)
+    {
+        builder.OpenComponent<IonSegmentButton>(sequence);
+        builder.AddAttribute(0, "Value", value);
+        builder.AddAttribute(1, "ChildContent", (RenderFragment)(content =>
+        {
+            content.OpenComponent<IonLabel>(0);
+            content.AddAttribute(0, "ChildContent", (RenderFragment)(text => text.AddContent(label)));
+            content.CloseComponent();
+        }));
+        builder.CloseComponent();
+    }
+
+    private RenderFragment AccordionContent => builder =>
+    {
+        AddAccordion(builder, 0, "first", "What is Miko?", "A native cross-platform UI engine for .NET, powered by Razor and SkiaSharp.");
+        AddAccordion(builder, 1, "second", "Does it use a WebView?", "No. Components are rendered through Miko's own style, layout and paint pipeline.");
+    };
+
+    private static void AddAccordion(RenderTreeBuilder builder, int sequence, string value, string header, string text)
+    {
+        builder.OpenComponent<IonAccordion>(sequence);
+        builder.AddAttribute(0, "Value", value);
+        builder.AddAttribute(1, "Header", (RenderFragment)(content =>
+        {
+            content.OpenComponent<IonItem>(0);
+            content.AddAttribute(0, "ChildContent", (RenderFragment)(item =>
+            {
+                item.OpenComponent<IonLabel>(0);
+                item.AddAttribute(0, "ChildContent", (RenderFragment)(label => label.AddContent(header)));
+                item.CloseComponent();
+            }));
+            content.CloseComponent();
+        }));
+        builder.AddAttribute(2, "Content", (RenderFragment)(content =>
+        {
+            content.OpenElement(0, "div");
+            content.AddAttribute(0, "class", "accordion-content");
+            content.AddContent(1, text);
+            content.CloseElement();
+        }));
+        builder.CloseComponent();
+    }
+}
