@@ -5,7 +5,10 @@
   "base": "/",
   "srcDir": "Content",
   "cleanUrls": true,
+  "favicon": "/logo.svg",
+  "appleTouchIcon": "/apple-touch-icon.png",
   "themeConfig": {
+    "logo": "/logo.svg",
     "nav": [
       {
         "text": "Guide",

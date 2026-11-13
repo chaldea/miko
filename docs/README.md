@@ -65,10 +65,9 @@ Install the workload before publishing locally:
 dotnet workload install wasm-tools
 ~~~
 
-Documentation pull requests run the same Ubuntu publish and layout checks for
-both /miko/ and /. The root publish additionally enables WasmBuildNative to exercise
-the native toolchain. PR runs skip Pages configuration, artifact upload and deployment;
-only main pushes or manual workflow runs deploy to GitHub Pages.
+The documentation workflow publishes and verifies the static site on relevant main-branch
+pushes or manual dispatches. Pull requests do not run the Pages workflow. To validate a
+pull request locally, publish and verify both /miko/ and / using the commands above.
 
 ## Hosting boundaries
 

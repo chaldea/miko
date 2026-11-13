@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 $site = (Resolve-Path -LiteralPath $SiteRoot).Path
 $info = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $site 'site-info.json') | ConvertFrom-Json
 if ($info.base -ne $BasePath) { throw "Expected base '$BasePath', got '$($info.base)'." }
-foreach ($file in @('index.html', '404.html', 'assets/miko.js', 'assets/highlight.js', 'assets/search-index.json', 'demo/index.html', 'demo/_content/Miko.Browser/miko-browser.js', 'demo/_framework/dotnet.js', '.nojekyll')) {
+foreach ($file in @('index.html', '404.html', 'logo.svg', 'favicon.ico', 'apple-touch-icon.png', 'assets/miko.js', 'assets/highlight.js', 'assets/search-index.json', 'demo/index.html', 'demo/logo.svg', 'demo/favicon.ico', 'demo/apple-touch-icon.png', 'demo/_content/Miko.Browser/miko-browser.js', 'demo/_framework/dotnet.js', '.nojekyll')) {
     if (-not (Test-Path -LiteralPath (Join-Path $site $file) -PathType Leaf)) { throw "Missing $file" }
 }
 $homeHtml = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $site 'index.html')

@@ -35,6 +35,8 @@ The output includes the .NET runtime. No installation required on the target mac
 
 The output is a `.exe` file plus supporting DLLs. Distribute the entire `publish/` folder or package it as a zip / installer.
 
+Both templates include `app.ico` (the Miko icon at 16–256 pixels), embedded in the Windows executable through `<ApplicationIcon>app.ico</ApplicationIcon>`. Replace it to use your own application icon. The multiplatform template includes a copy in both the Desktop and Simulator projects.
+
 ### macOS
 
 The output is a native Mach-O executable. For a proper `.app` bundle:

@@ -20,15 +20,18 @@ for its platform. `MikoMultiplatformApp.slnx` opens all six projects in Visual S
 
 ## App icon and launch screen
 
-The default icon is the .NET bot from the .NET MAUI template. Replace the PNGs in place, keeping
-their file names and pixel sizes:
+The default icon is Miko's indigo **M.** on a lavender background. Replace the assets in place,
+keeping their file names and pixel sizes:
 
+- Desktop / Simulator: `app.ico` in each host project is embedded in the executable by
+  `ApplicationIcon` and contains sizes from 16 to 256 pixels.
 - Android: `MikoMultiplatformApp.Android/Resources/mipmap-*/`. `appicon_foreground.png` and
   `appicon_background.png` form the adaptive icon (API 26+); `appicon.png` is the pre-rendered
   fallback. Android 12+ builds the launch splash from the icon.
 - iOS: `MikoMultiplatformApp.iOS/Assets.xcassets/AppIcon.appiconset/` (sizes listed in
   `Contents.json`; `Icon1024.png` is the App Store icon). The launch screen is
-  `Resources/LaunchScreen.storyboard`, a plain white view; App Store builds need one.
+  `Resources/LaunchScreen.storyboard`, with the `LaunchLogo.imageset` mark centered on a
+  lavender background. Replace its 1x/2x/3x PNGs and storyboard background for your brand.
 
 ## Layouts
 
