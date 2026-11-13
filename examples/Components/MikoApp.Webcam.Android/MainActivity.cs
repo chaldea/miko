@@ -18,7 +18,7 @@ public class MainActivity : Activity
     // Launch extras that become the variables App reads (an Android app has no environment of its own):
     // adb shell am start -n com.miko.webcamdemo/crc….MainActivity -e EZVIZ_DEVICE ezopen://CODE@open.ys7.com/SERIAL/1.live …
     private static readonly string[] Settings =
-        ["EZVIZ_APP_KEY", "EZVIZ_APP_SECRET", "EZVIZ_ACCESS_TOKEN", "EZVIZ_DEVICE", "EZVIZ_DEVICE_IP", "EZVIZ_CLOUD_RELAY"];
+        ["MIKO_MOCK_RTSP", "MIKO_MOCK_HTTP", "EZVIZ_APP_KEY", "EZVIZ_APP_SECRET", "EZVIZ_ACCESS_TOKEN", "EZVIZ_DEVICE", "EZVIZ_DEVICE_IP", "EZVIZ_CLOUD_RELAY"];
 
     private MikoSurfaceView? _view;
 
@@ -38,7 +38,7 @@ public class MainActivity : Activity
         SetContentView(_view);
     }
 
-    // The back button leaves fullscreen before it leaves the app.
+    // Back leaves fullscreen, then the monitor, then the app.
     public override void OnBackPressed()
     {
         if (_view is not null && _view.HandleBackPressed()) return;

@@ -1477,8 +1477,23 @@ public class RenderEngine
             try
             {
                 // 视频默认 object-fit: contain（letterbox），保持纵横比不变形。
-                var dst = FitContain(frame.Width, frame.Height, content);
-                _painter.DrawImage(frame, dst);
+                if (video.SourceRegion is { } crop && _canvas != null)
+                {
+                    var dst = FitContain(frame.Width * crop.Width, frame.Height * crop.Height, content);
+                    _canvas.Save();
+                    try
+                    {
+                        _canvas.ClipRect(dst.ToSKRect());
+                        _painter.DrawImage(frame, new RectF(dst.X - crop.X * dst.Width / crop.Width,
+                            dst.Y - crop.Y * dst.Height / crop.Height, dst.Width / crop.Width, dst.Height / crop.Height));
+                    }
+                    finally { _canvas.Restore(); }
+                }
+                else
+                {
+                    var dst = FitContain(frame.Width, frame.Height, content);
+                    _painter.DrawImage(frame, dst);
+                }
             }
             finally
             {

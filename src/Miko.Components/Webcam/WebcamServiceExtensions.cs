@@ -9,6 +9,18 @@ namespace Miko.Components.Webcam;
 
 public static class WebcamServiceExtensions
 {
+    /// <summary>Uses the mock panorama with client-side PTZ. Backends lacking H.264 stream decoding use the HTTP MP4 fallback.</summary>
+    /// <param name="fallbackSource">MP4 URL; defaults to the RTSP host on HTTP port 8080, /media/demo.mp4.</param>
+    public static IServiceCollection AddMikoMockWebcam(this IServiceCollection services, string source = "rtsp://127.0.0.1:8554/webcam", string? fallbackSource = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        var uri = new Uri(source);
+        fallbackSource ??= new UriBuilder("http", uri.Host, 8080, "/media/demo.mp4").Uri.AbsoluteUri;
+        services.Replace(ServiceDescriptor.Singleton<IWebcamProvider>(sp => new Mock.MockWebcamProvider(source, sp.GetService<TimeProvider>(),
+            sp.GetService<IVideoBackend>() is IVideoStreamDecoderFactory decoders && decoders.CanDecode(VideoCodec.H264) ? null : fallbackSource)));
+        return services.AddMikoRtsp();
+    }
+
     /// <summary>
     /// Registers <see cref="MikoWebcam"/>'s services: the Ezviz provider configured by
     /// <paramref name="configure"/> as <see cref="IWebcamProvider"/> (unless one is registered already —

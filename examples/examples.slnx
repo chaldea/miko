@@ -16,6 +16,7 @@
     <Project Path="Components/MikoApp.Player/MikoApp.Player.csproj" />
     <Project Path="Components/MikoApp.Webcam.Android/MikoApp.Webcam.Android.csproj" />
     <Project Path="Components/MikoApp.Webcam.Desktop/MikoApp.Webcam.Desktop.csproj" />
+    <Project Path="Components/MikoApp.Webcam.Simulator/MikoApp.Webcam.Simulator.csproj" />
     <Project Path="Components/MikoApp.Webcam.iOS/MikoApp.Webcam.iOS.csproj" />
     <Project Path="Components/MikoApp.Webcam/MikoApp.Webcam.csproj" />
     <Project Path="Components/MikoApp.Vnc.Android/MikoApp.Vnc.Android.csproj" />

@@ -5,9 +5,11 @@ using MikoApp.Webcam.Desktop;
 
 if (args.Length >= 2 && args[0] == "--verify")
     return WebcamVerification.Run(args[1]);
+if (args.Length >= 2 && args[0] == "--verify-config")
+    return WebcamVerification.Run(args[1], connect: false);
 
-// RTSP streams from the camera decode with VideoToolbox on macOS (UseSystemVideo); Windows and Linux
-// have no stream decoder yet and show the backend's error.
+// Starts on the configuration page. Mock uses the HTTP fallback on Windows/Linux;
+// Ezviz can use cloud relay there. macOS also decodes RTSP through VideoToolbox.
 MikoApp.Webcam.App.CreateContext(builder =>
 {
     builder.UseSystemVideo();

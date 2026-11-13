@@ -13,7 +13,7 @@ namespace MikoApp.Webcam.Desktop;
 /// </summary>
 internal static class WebcamVerification
 {
-    public static int Run(string directory)
+    public static int Run(string directory, bool connect = true)
     {
         Directory.CreateDirectory(directory);
         MikoApp.Webcam.WebcamDemo? page = null;
@@ -26,6 +26,18 @@ internal static class WebcamVerification
         var engine = context.Engine;
         using var surface = engine.Graphics.CreateSurface(420, 860);
         controller.Initialize(surface.Context, 420, 860);
+        for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
+        if (page == null || page.IsMonitoring || page.Webcam != null)
+        { Console.WriteLine("Expected configuration page before connecting."); return 2; }
+        File.WriteAllBytes(Path.Combine(directory, "config-miko.png"), surface.EncodePng());
+        page.SelectProvider("ezviz");
+        for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
+        File.WriteAllBytes(Path.Combine(directory, "config-ezviz.png"), surface.EncodePng());
+        page.SelectProvider("miko");
+        for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
+        if (!connect) { Console.WriteLine("configuration pages rendered; no connection started"); return 0; }
+        page.Connect();
+        if (page.ErrorMessage != null) { Console.WriteLine(page.ErrorMessage); return 2; }
 
         MikoWebcam? webcam = null;
         var clock = Stopwatch.StartNew();
@@ -58,8 +70,13 @@ internal static class WebcamVerification
         File.WriteAllBytes(Path.Combine(directory, "fullscreen.png"), landscape.EncodePng());
         webcam.ToggleFullscreen();
         for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
-        webcam.Dispose();
-        return webcam.State == WebcamState.Error ? 1 : 0;
+        bool failed = webcam.State == WebcamState.Error;
+        page!.Back();
+        for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
+        File.WriteAllBytes(Path.Combine(directory, "config-return.png"), surface.EncodePng());
+        engine.DisposeVideoSessions();
+        Console.WriteLine($"back: monitoring={page.IsMonitoring}, webcam={page.Webcam != null}");
+        return failed || page.IsMonitoring ? 1 : 0;
     }
 
     /// <summary>

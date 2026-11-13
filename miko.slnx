@@ -27,7 +27,6 @@
     <Project Path="tests/Miko.Browser.Tests/Miko.Browser.Tests.csproj" />
     <Project Path="tests/Miko.Charts.Tests/Miko.Charts.Tests.csproj" />
     <Project Path="tests/Miko.Components.Tests/Miko.Components.Tests.csproj" />
-    <Project Path="tests/Miko.Docs.Demo.Tests/Miko.Docs.Demo.Tests.csproj" />
     <Project Path="tests/Miko.Docs.Tests/Miko.Docs.Tests.csproj" />
     <Project Path="tests/Miko.Ionic.Tests/Miko.Ionic.Tests.csproj" />
     <Project Path="tests/Miko.McpServer.Tests/Miko.McpServer.Tests.csproj" />
@@ -35,12 +34,6 @@
     <Project Path="tests/Miko.Razor.Compiler.Tests/Miko.Razor.Compiler.Tests.csproj" />
     <Project Path="tests/Miko.Razor.Tests/Miko.Razor.Tests.csproj" />
     <Project Path="tests/Miko.Tests/Miko.Tests.csproj" />
-  </Folder>
-  <Folder Name="/tools/">
-    <Project Path="tools/Miko.Branding/Miko.Branding.csproj" />
-    <Project Path="tools/Miko.DocGen/Miko.DocGen.csproj" />
-    <Project Path="tools/Miko.TemplateE2E/Miko.TemplateE2E.csproj" />
-    <Project Path="tools/Miko.UnicodeGen/Miko.UnicodeGen.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/Miko.Benchmarks/Miko.Benchmarks.csproj" />

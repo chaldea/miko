@@ -165,6 +165,7 @@ public sealed class MikoWebcam : ComponentBase, IDisposable
     private PtzDirection? _ptzDirection;
     private Task _ptzQueue = Task.CompletedTask;
     private ITimer? _rateTimer, _hintTimer;
+    private ITimer? _panoramaTimer;
     private long _lastBytes = -1;
     private IPlatformService? _fullscreenPlatform;
     private IDisposable? _fullscreenBack;
@@ -191,6 +192,7 @@ public sealed class MikoWebcam : ComponentBase, IDisposable
     {
         if (!_built || !Equals(_device, Device))
         {
+            StopPtz();
             _device = Device;
             CurrentQuality = Quality;
             _lastQualityParameter = Quality;
@@ -373,6 +375,10 @@ public sealed class MikoWebcam : ComponentBase, IDisposable
     // Drops the stream (and the info unless kept), cancels pending provider calls; returns the new generation.
     private int Restart(bool keepInfo)
     {
+        StopPtz();
+        _panoramaTimer?.Dispose();
+        _panoramaTimer = null;
+        _video.SourceRegion = null;
         _load?.Cancel();
         _load?.Dispose();
         _load = new CancellationTokenSource();
@@ -432,9 +438,29 @@ public sealed class MikoWebcam : ComponentBase, IDisposable
             {
                 if (generation != _generation) return;
                 Stream = stream;
+                CurrentQuality = stream.Quality;
+                UpdateQualityButton();
                 _video.MimeType = stream.MimeType;
                 _video.AutoPlay = AutoPlay && !_userStopped;
+                _video.Loop = stream.Loop;
                 _video.Source = stream.Source;
+                if (stream.Panorama is { } panorama)
+                {
+                    _video.SourceRegion = panorama.Crop;
+                    _panoramaTimer = CreateTimer(static state =>
+                    {
+                        var webcam = (MikoWebcam)state!;
+                        webcam.PostToRenderThread(() =>
+                        {
+                            if (webcam.Stream?.Panorama is not { } view) return;
+                            var crop = view.Crop;
+                            if (Equals(webcam._video.SourceRegion, crop)) return;
+                            webcam._video.SourceRegion = crop;
+                            webcam.Repaint();
+                        });
+                    });
+                    _panoramaTimer.Change(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(50));
+                }
                 if (!_video.AutoPlay) _userStopped = true;
                 UpdateBadge();
                 SyncState();
@@ -996,6 +1022,8 @@ public sealed class MikoWebcam : ComponentBase, IDisposable
         StopRateTimer();
         _hintTimer?.Dispose();
         _hintTimer = null;
+        _panoramaTimer?.Dispose();
+        _panoramaTimer = null;
         ReleaseFullscreenPlatform();
         _icons.Dispose();
     }

@@ -126,6 +126,12 @@ public enum WebcamTransport
 /// <param name="Quality">The quality actually delivered.</param>
 public sealed record WebcamStream(string Source, string? MimeType, WebcamTransport Transport, WebcamQuality Quality)
 {
+    /// <summary>Optional client-side field of view for a panoramic stream.</summary>
+    public WebcamPanorama? Panorama { get; init; }
+
+    /// <summary>Loop recorded sources used to simulate a live stream.</summary>
+    public bool Loop { get; init; }
+
     // The source of a direct stream carries the camera password.
     public override string ToString() => $"{Transport} {Quality}";
 }

@@ -1,40 +1,169 @@
 @namespace MikoApp.Webcam
+@using Miko.Platform
 
-<div Style="@PageStyle">
-    <div Style="@HeaderStyle">
-        <span Style="@TitleStyle">@(_name ?? Device?.Serial ?? "MikoWebcam")</span>
-    </div>
-    @if (Device is null)
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                @if (IsMonitoring)
+                {
+                    <IonButtons><IonButton Class="webcam-back" OnClick="Back">返回</IonButton></IonButtons>
+                }
+            </Start>
+            <ChildContent><IonTitle>@(IsMonitoring ? _name ?? "摄像头监控" : "摄像头连接")</IonTitle></ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    @if (IsMonitoring)
     {
-        <div Style="@EmptyStyle">Set EZVIZ_DEVICE (ezopen://VERIFYCODE@open.ys7.com/SERIAL/1.live) and the Ezviz credentials, then restart.</div>
+        <div class="webcam-monitor" Style="@MonitorStyle">
+            <MikoWebcam @key="Session.Connection" @ref="_webcam" Device="@Session.Connection!.Device" Quality="@Session.Connection!.Quality"
+                        Texts="@WebcamTexts.Chinese" Style="@WebcamStyle" InfoLoaded="@(info => _name = info.Name)" />
+        </div>
     }
     else
     {
-        <MikoWebcam @ref="_webcam" Device="@Device" Texts="@WebcamTexts.Chinese" Style="@WebcamStyle" InfoLoaded="@(info => _name = info.Name)" />
+        <IonContent>
+            <div class="webcam-config" Style="@FormStyle">
+                <p Style="@IntroStyle">选择摄像头类型，填写参数后连接。</p>
+                <IonSegment Value="@Settings.Provider" ValueChanged="SelectProvider">
+                    <IonSegmentButton Class="webcam-type-miko" Value="miko">Miko Mock</IonSegmentButton>
+                    <IonSegmentButton Class="webcam-type-ezviz" Value="ezviz">萤石云</IonSegmentButton>
+                </IonSegment>
+                @if (Settings.Provider == "miko")
+                {
+                    <div class="webcam-miko-fields">
+                        <IonList Lines="full">
+                            <IonItem><IonInput Class="mock-rtsp" Label="RTSP 地址" LabelPlacement="stacked" @bind-Value="Settings.MockRtsp" Placeholder="rtsp://localhost:8554/webcam" /></IonItem>
+                            <IonItem><IonInput Class="mock-http" Label="HTTP 服务地址" LabelPlacement="stacked" @bind-Value="Settings.MockHttp" Placeholder="http://localhost:8080" /></IonItem>
+                            <IonItem><IonInput Label="RTSP 用户名（可选）" LabelPlacement="stacked" @bind-Value="Settings.MockUser" /></IonItem>
+                            <IonItem><IonInput Class="mock-password" Label="RTSP 密码（可选）" LabelPlacement="stacked" Type="password" @bind-Value="Settings.MockPassword" /></IonItem>
+                        </IonList>
+                        <p Style="@HintStyle">默认 Mock 服务无需用户名和密码。手机或远程服务器请填写服务器的局域网地址。HTTP 地址用于不支持 RTSP 的平台。</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="webcam-ezviz-fields">
+                        <IonList Lines="full">
+                            <IonItem><IonInput Class="ezviz-serial" Label="设备序列号" LabelPlacement="stacked" @bind-Value="Settings.Serial" Placeholder="例如 AB1234567" /></IonItem>
+                            <IonItem><IonInput Label="通道号" LabelPlacement="stacked" Type="number" @bind-Value="Settings.Channel" /></IonItem>
+                            <IonItem><IonInput Label="设备局域网地址（可选）" LabelPlacement="stacked" @bind-Value="Settings.LocalAddress" Placeholder="192.168.1.20:554" /></IonItem>
+                            <IonItem><IonInput Label="局域网用户名" LabelPlacement="stacked" @bind-Value="Settings.LocalUser" /></IonItem>
+                            <IonItem><IonInput Label="设备验证码 / 密码" LabelPlacement="stacked" Type="password" @bind-Value="Settings.VerifyCode" /></IonItem>
+                        </IonList>
+                        <p Style="@SectionStyle">认证方式</p>
+                        <IonSegment Value="@Settings.Authentication" ValueChanged="SelectAuthentication">
+                            <IonSegmentButton Value="token">Token</IonSegmentButton>
+                            <IonSegmentButton Value="app">App Key</IonSegmentButton>
+                            <IonSegmentButton Value="local">仅局域网</IonSegmentButton>
+                        </IonSegment>
+                        @if (Settings.Authentication != "local")
+                        {
+                            <IonList Lines="full">
+                                <IonItem><IonInput Label="萤石云 API 地址" LabelPlacement="stacked" @bind-Value="Settings.ApiBaseUrl" /></IonItem>
+                                @if (Settings.Authentication == "token")
+                                {
+                                    <IonItem><IonInput Class="ezviz-token" Label="Access Token" LabelPlacement="stacked" Type="password" @bind-Value="Settings.AccessToken" /></IonItem>
+                                }
+                                else
+                                {
+                                    <IonItem><IonInput Label="App Key" LabelPlacement="stacked" @bind-Value="Settings.AppKey" /></IonItem>
+                                    <IonItem><IonInput Label="App Secret" LabelPlacement="stacked" Type="password" @bind-Value="Settings.AppSecret" /></IonItem>
+                                }
+                                <IonItem><IonToggle @bind-Checked="Settings.EnableCloudRelay">允许云端中转</IonToggle></IonItem>
+                            </IonList>
+                            <p Style="@HintStyle">云端中转使用萤石云流量配额；Windows / Linux 观看萤石云画面需要启用中转。</p>
+                        }
+                        else
+                        {
+                            <p Style="@HintStyle">仅局域网模式不需要云账号，不提供云台控制。需要支持 RTSP 的视频后端。</p>
+                        }
+                    </div>
+                }
+                @if (ErrorMessage != null)
+                {
+                    <p class="webcam-config-error" Style="@ErrorStyle">@ErrorMessage</p>
+                }
+                <IonButton Class="webcam-connect" Expand="block" OnClick="Connect">连接摄像头</IonButton>
+                <p Style="@HintStyle">连接参数仅保留在本次运行中。</p>
+            </div>
+        </IonContent>
     }
-</div>
+</IonPage>
 
 @code {
-    [Parameter] public WebcamDevice? Device { get; set; }
+    [Parameter] public WebcamConnectionSettings Settings { get; set; } = new();
+    [Inject] public WebcamDemoSession Session { get; set; } = null!;
+    [Inject] public IPlatformService? Platform { get; set; }
 
+    public bool IsMonitoring => Session.Connection != null;
+    public string? ErrorMessage { get; private set; }
+    public MikoWebcam? Webcam => IsMonitoring ? _webcam : null;
     private MikoWebcam? _webcam;
     private string? _name;
+    private IDisposable? _back;
 
-    /// <summary>The webcam on the page, once built (the desktop head's offscreen verification drives it).</summary>
-    public MikoWebcam? Webcam => _webcam;
+    protected override void OnInitialized()
+    {
+        _back = Platform?.Back.Register(() =>
+        {
+            if (!IsMonitoring) return false;
+            Back();
+            return true;
+        }, BackButtonPriority.Navigation);
+    }
 
-    // Phones draw edge to edge: the header keeps clear of the status bar and the cutout.
-    private static readonly Style PageStyle = new()
+    public void SelectProvider(string provider) { Settings.Provider = provider; ErrorMessage = null; StateHasChanged(); }
+    private void SelectAuthentication(string authentication)
     {
-        Display = Display.Flex, FlexDirection = FlexDirection.Column, Width = Length.Percent(100), Height = Length.Percent(100),
-        BackgroundColor = Color.FromHex("#f3f5f9"), BoxSizing = BoxSizing.BorderBox, PaddingBottom = Length.SafeAreaInsetBottom,
-    };
-    private static readonly Style HeaderStyle = new()
+        Settings.Authentication = authentication;
+        if (authentication == "local") Settings.EnableCloudRelay = false;
+        ErrorMessage = null;
+    }
+
+    public void Connect()
     {
-        Display = Display.Flex, AlignItems = AlignItems.Center, FlexShrink = 0, Height = Length.SafeAreaInsetTop + Length.Px(52),
-        PaddingTop = Length.SafeAreaInsetTop, PaddingLeft = Length.Px(16), BackgroundColor = Color.FromHex("#f8f8f8"), BoxSizing = BoxSizing.BorderBox,
+        if (IsMonitoring) return;
+        try
+        {
+            Session.Connect(Settings);
+            ErrorMessage = null;
+            _name = Session.Connection!.Device.Name ?? Session.Connection.Device.Serial;
+        }
+        catch (ArgumentException ex) { ErrorMessage = ex.Message; }
+        StateHasChanged();
+    }
+
+    public void Back()
+    {
+        // Cancel pending provider calls, stop held PTZ and release fullscreen before unmounting.
+        _webcam?.Dispose();
+        _webcam = null;
+        Session.Disconnect();
+        _name = null;
+        StateHasChanged();
+    }
+
+    protected override void OnDispose()
+    {
+        _back?.Dispose();
+        _webcam?.Dispose();
+        Session.Disconnect();
+    }
+
+    private static readonly Style MonitorStyle = new()
+    {
+        Display = Display.Flex, FlexDirection = FlexDirection.Column, FlexGrow = 1, MinHeight = Length.Px(0),
+        OverflowY = Overflow.Auto, PaddingBottom = Length.SafeAreaInsetBottom, BackgroundColor = Color.FromHex("#f3f5f9"),
     };
-    private static readonly Style TitleStyle = new() { FontSize = Length.Px(18), Color = Color.FromHex("#2b2f36") };
-    private static readonly Style EmptyStyle = new() { Padding = Length.Px(24), Color = Color.FromHex("#6b7280"), FontSize = Length.Px(14) };
     private static readonly Style WebcamStyle = new() { FlexGrow = 1 };
+    private static readonly Style FormStyle = new()
+    {
+        Width = Length.Percent(100), MaxWidth = Length.Px(640), MarginLeft = Length.Auto, MarginRight = Length.Auto,
+        Padding = Length.Px(16), PaddingBottom = Length.SafeAreaInsetBottom + Length.Px(24), BoxSizing = BoxSizing.BorderBox,
+    };
+    private static readonly Style IntroStyle = new() { FontSize = Length.Px(16), MarginTop = Length.Px(0), MarginBottom = Length.Px(20) };
+    private static readonly Style HintStyle = new() { FontSize = Length.Px(13), LineHeight = Length.Px(20), Color = Color.FromHex("#64748b"), MarginTop = Length.Px(12), MarginBottom = Length.Px(16) };
+    private static readonly Style SectionStyle = new() { FontSize = Length.Px(15), FontWeight = FontWeight.Bold };
+    private static readonly Style ErrorStyle = new() { FontSize = Length.Px(14), Color = Color.FromHex("#b91c1c"), MarginTop = Length.Px(12) };
 }

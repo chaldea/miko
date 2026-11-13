@@ -168,6 +168,37 @@ public class VideoSessionLifecycleTests : IDisposable
         return null;
     }
 
+    [Fact]
+    public void Should_render_only_the_selected_video_region_and_preserve_frame_ownership()
+    {
+        var backend = new FakeVideoBackend();
+        var engine = new MikoEngineBuilder().Build();
+        engine.VideoBackend = backend;
+        var video = new VideoElement { Source = "panorama.mp4", Style = new Style { Width = Length.Px(200), Height = Length.Px(100) } };
+        var root = new DivElement { Children = { video } };
+        engine.Initialize(root, VideoSheet(), _canvas, 800, 600);
+        byte[] pixels = new byte[8 * 4 * 4];
+        for (int y = 0; y < 4; y++) for (int x = 0; x < 8; x++)
+        {
+            int i = (y * 8 + x) * 4;
+            pixels[i + (x < 4 ? 0 : 2)] = 255; pixels[i + 3] = 255;
+        }
+        using var image = engine.Graphics.CreateImage(8, 4, ImagePixelFormat.Rgba8888, pixels)!;
+        var frames = (FakeFrameSource)backend.CreatedSessions[0].FrameSource;
+        frames.Image = image;
+        video.SourceRegion = new RectF(0, 0, .5f, 1);
+        engine.RequestRepaint(); engine.Render(_canvas);
+        _bitmap.GetPixel(100, 50).ShouldBe(SKColors.Red);
+        _bitmap.GetPixel(10, 50).ShouldBe(SKColors.Black); // square crop is letterboxed in a 2:1 box
+        int released = frames.ReleaseCount;
+        video.SourceRegion = new RectF(.5f, 0, .5f, 1);
+        engine.RequestRepaint(); engine.Render(_canvas);
+        _bitmap.GetPixel(100, 50).ShouldBe(SKColors.Blue);
+        frames.ReleaseCount.ShouldBeGreaterThan(released);
+        image.Width.ShouldBe(8);
+        engine.DisposeVideoSessions();
+    }
+
     // ---- fakes -------------------------------------------------------------
 
     private sealed class FakeVideoBackend : IVideoBackend
@@ -215,7 +246,9 @@ public class VideoSessionLifecycleTests : IDisposable
 
     private sealed class FakeFrameSource : IVideoFrameSource
     {
-        public Image? AcquireCurrentFrame(GraphicsDevice device) => null;
-        public void ReleaseCurrentFrame() { }
+        public Image? Image { get; set; }
+        public int ReleaseCount { get; private set; }
+        public Image? AcquireCurrentFrame(GraphicsDevice device) => Image;
+        public void ReleaseCurrentFrame() { ReleaseCount++; }
     }
 }
