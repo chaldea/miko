@@ -67,8 +67,6 @@ THE SOFTWARE.
      Used in: Miko.Razor.Compiler, a fork of the Razor source generator
    - ASP.NET Core (Microsoft.Extensions.ObjectPool), https://github.com/dotnet/aspnetcore
      Used in: Miko.Razor.Compiler (bundled in tools/)
-   - .NET MAUI template app icon ("dotnet_bot"), https://github.com/dotnet/maui
-     Used in: Miko.Templates (default Android and iOS app icons of miko-multiplatform)
 ===============================================================================
 
 The MIT License (MIT)

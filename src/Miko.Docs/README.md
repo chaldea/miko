@@ -159,7 +159,7 @@ The package imports its MSBuild targets automatically. A package consumer does n
 
 Configuration is loaded from `miko.docs.json` in the documentation project directory. The file is optional: omitted properties use their defaults. JSON comments and trailing commas are supported. Property names are case-insensitive; examples use camel case.
 
-The following example includes every configurable property. It assumes that `docs/guide/getting-started.md`, `docs/guide/markdown.md`, and `docs/public/logo.svg` exist.
+The following example includes every configurable property. It assumes that `docs/guide/getting-started.md`, `docs/guide/markdown.md`, `docs/public/logo.svg`, and `docs/public/apple-touch-icon.png` exist.
 
 ```json
 {
@@ -169,6 +169,8 @@ The following example includes every configurable property. It assumes that `doc
   "base": "/",
   "srcDir": "docs",
   "cleanUrls": true,
+  "favicon": "/logo.svg",
+  "appleTouchIcon": "/apple-touch-icon.png",
   "themeConfig": {
     "logo": "/logo.svg",
     "nav": [
@@ -221,6 +223,8 @@ Replace the illustrative edit-link URL with your repository URL, or omit `editLi
 | `base` | string | `"/"` | Deployment prefix, such as `/` or `/manual/`. |
 | `srcDir` | string | `"docs"` | Documentation directory relative to the project directory. |
 | `cleanUrls` | boolean | `true` | Generate directory-style URLs; use `false` for `.html` pages. |
+| `favicon` | string or null | `null` | Browser icon URL (SVG, PNG or ICO). Local paths receive the configured `base` prefix. |
+| `appleTouchIcon` | string or null | `null` | Apple home-screen icon URL, usually a 180 px opaque PNG. Local paths receive the configured `base` prefix. |
 | `themeConfig` | object | Default theme settings | Navigation, sidebar, outline label, footer, search, and appearance settings. |
 | `home` | object | Default home settings | Hero content, actions, and feature cards for `layout: home` pages. |
 
