@@ -17,4 +17,7 @@ public sealed class NavigationEventArgs
 
     /// 页面转场效果；为 null 时本次导航瞬时切换（如 Tab 切换）。
     public NavigationTransition? Transition { get; init; }
+
+    /// <summary>The destination history entry's in-memory state, or null.</summary>
+    public object? State { get; init; }
 }
