@@ -149,6 +149,41 @@ Inject `Miko.Routing.NavigationManager` and call `NavigateTo(path, direction, tr
 ```
 <!-- /miko:example -->
 
+### Passing page state
+
+Pass an object with `NavigateTo(path, state)` and read it in the destination page with
+`NavigationManager.GetState<T>()`, including from `OnInitialized`. For example, two steps of a form
+can share the same draft:
+
+```csharp
+// First page: pass the existing draft to the next step.
+NavigationManager.NavigateTo("/form/step-2", draft);
+
+// Destination page: retrieve the same object.
+var draft = NavigationManager.GetState<FormDraft>();
+```
+
+The state overload also accepts a direction and transition:
+`Navigation.NavigateTo("/form/step-2", draft, NavigationDirection.Forward, IonicPageTransitions.Push(Mode))`.
+`CurrentState` exposes the untyped object; `GetState<T>()` returns `default(T)` if no state is present
+or the stored type is incompatible. State is available to `LocationChanged` listeners as `args.State`.
+
+Each history entry holds its own state by reference, so edits to the shared object are visible to
+both pages. `NavigateBack()` and `NavigateTo(path, NavigationDirection.Back)` restore the previous
+entry's state. Passing state explicitly with Back replaces that entry's state; passing `state: null`
+clears it. Forward and Root navigation without state start with no state, and Root discards the old
+history. Navigating to the current path remains a no-op, including its state.
+
+State stays in memory: it is not serialized into the URL or browser history and does not survive an
+application restart or browser reload. Use route parameters for values that must be part of a link.
+
+History holds state objects strongly until their entries are removed or their state is replaced.
+Pass application data such as a form draft. A state object that references a page component, an
+element, a layout box, or a delegate capturing the page will also keep that UI alive. If a page
+subscribes to events on shared state, unsubscribe in `OnDispose`. Normal navigation disposes the
+old page when its replacement is rendered; an animated transition disposes it when the transition
+ends or is interrupted.
+
 ## Page transitions
 
 `IonicPageTransitions` ports Ionic's page animations. The components use them automatically (`IonItem` `Href`, `IonBackButton`); code navigation passes them explicitly. Each transition moves and fades the leaving and entering pages as whole layers — it does not re-run layout — and Ionic's decorative iOS edge shadow is omitted. Navigating to the current path is a no-op.
