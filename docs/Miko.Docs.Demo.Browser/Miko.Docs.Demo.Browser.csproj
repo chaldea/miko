@@ -1,15 +1,31 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <StartupObject>Miko.Docs.Demo.Browser.Program</StartupObject>
+    <WasmBuildNative>true</WasmBuildNative>
+    <!-- Preserve component metadata and LiveCharts models while trimming the framework normally. -->
+    <PublishTrimmed>true</PublishTrimmed>
     <IsPackable>false</IsPackable>
-    <!-- Follow SDK defaults: AOT is opt-in, while Release publishing can relink
-         the runtime when wasm-tools is installed. Do not force WasmBuildNative=false. -->
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="11.0.0" PrivateAssets="all" />
-    <ProjectReference Include="../Miko.Docs.Demo/Miko.Docs.Demo.csproj" />
+    <ProjectReference Include="..\Miko.Docs.Demo\Miko.Docs.Demo.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Browser\Miko.Browser.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Miko" />
+    <TrimmerRootAssembly Include="Miko.Native" />
+    <TrimmerRootAssembly Include="Miko.Ionic" />
+    <TrimmerRootAssembly Include="Miko.Charts" />
+    <TrimmerRootAssembly Include="Miko.Components" />
+    <TrimmerRootAssembly Include="Miko.Browser" />
+    <TrimmerRootAssembly Include="Miko.Docs.Demo" />
+    <TrimmerRootAssembly Include="Miko.Docs.Demo.Browser" />
+  </ItemGroup>
+
 </Project>

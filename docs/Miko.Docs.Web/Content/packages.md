@@ -26,6 +26,7 @@ package that owns the window / surface / native input:
 | Package | Platform |
 | --- | --- |
 | `Miko.Windowing` | Desktop — Windows, Linux, macOS (Silk.NET). |
+| `Miko.Browser` | Browser — .NET WebAssembly, Canvas rendering and web native capabilities. |
 | `Miko.Android` | Android. |
 | `Miko.iOS` | iOS. |
 

@@ -4,7 +4,7 @@
     <PackageType>Template</PackageType>
     <PackageId>Miko.Templates</PackageId>
     <Authors>Miko</Authors>
-    <Description>dotnet new templates for building Miko apps with Razor components — desktop and cross-platform (Desktop/Android/iOS).</Description>
+    <Description>dotnet new templates for building Miko apps with Razor components — desktop and cross-platform (Desktop/Browser/Android/iOS).</Description>
     <PackageTags>miko;razor;template;dotnet-new</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
@@ -57,7 +57,7 @@
     maintained twice. Only Markdown ships — the example .razor files next to the component pages
     would otherwise be compiled into the generated app. Excluded: the documentation landing page
     and the Ionic theming design notes. Keep in sync with tools/Miko.DocGen/AgentPackageLayout.cs
-    (tests/Miko.Docs.Tests fails when the package and the layout disagree).
+    (tests/Miko.Docs.Demo.Tests fails when the package and the layout disagree).
   -->
   <ItemGroup>
     <_AgentDoc Include="..\docs\Miko.Docs.Web\Content\**\*.md"

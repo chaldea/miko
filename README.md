@@ -10,7 +10,7 @@
 **Miko** is a **native, cross-platform UI rendering engine for .NET** that uses
 **[Razor](https://learn.microsoft.com/aspnet/core/blazor/components/) as its layout
 DSL**. It draws every pixel itself with [SkiaSharp](https://github.com/mono/SkiaSharp) —
-**no browser, no WebView, no HTML/CSS runtime** — running a browser-like pipeline of
+**no embedded browser, no WebView, no HTML/CSS runtime** — running a browser-like pipeline of
 style cascade, layout, and incremental painting directly onto a GPU-accelerated canvas.
 
 You write your UI in Razor components — the same `.razor` syntax you already know from
@@ -25,7 +25,7 @@ Razor components  ─►  Miko source generator  ─►  native SkiaSharp render
   bundled Chromium, no Node, no WebView. Binaries are a fraction of an Electron app's.
 - ⚡ **Native rendering** — pixels are drawn directly on a GPU-backed Skia surface, not
   inside a web engine.
-- 🖥️ **Cross-platform** — one codebase runs on Windows, macOS, Linux, Android, and iOS,
+- 🖥️ **Cross-platform** — one codebase runs on Windows, macOS, Linux, Android, iOS, and the browser,
   wherever SkiaSharp does.
 - 🚀 **Trimming & AOT-aware** — the routing and rendering paths are designed for
   trimmed / Native AOT publishing for fast startup and small, self-contained binaries.
@@ -86,7 +86,8 @@ Razor components  ─►  Miko source generator  ─►  native SkiaSharp render
 ### Requirements
 
 - [.NET 11.0 SDK](https://dotnet.microsoft.com/) or later
-- A platform supported by SkiaSharp (Windows, macOS, Linux, Android, or iOS)
+- A platform supported by SkiaSharp (Windows, macOS, Linux, Android, iOS, or a modern browser)
+- For browser apps: `dotnet workload install wasm-tools`
 
 ### Create an app from the template
 
@@ -119,10 +120,10 @@ dotnet new miko-razor --layout=list      -o MyApp   # Ionic list page
 dotnet new miko-razor --layout=full      -o MyApp   # all Ionic component demos
 ```
 
-For a cross-platform app (Desktop + Android + iOS), use the multiplatform template instead:
+For a cross-platform app (Desktop + Browser + Android + iOS), use the multiplatform template instead:
 
 ```bash
-# Scaffold a shared app plus Desktop / Android / iOS startup projects
+# Scaffold a shared app plus Desktop / Browser / Android / iOS startup projects
 dotnet new miko-multiplatform -o MyApp
 cd MyApp
 
@@ -289,7 +290,8 @@ dotnet test
 ```
 
 The repository also contains runnable samples under [`examples/`](https://github.com/chaldea/miko/tree/main/examples), including
-`examples/App/Anime` (a complete Ionic app with Desktop, Simulator, Android and iOS heads).
+`examples/App/Anime` (a complete Ionic app with Desktop, Simulator, Android and iOS heads), and
+`examples/Ionic/IonicDemo.Browser` (the Ionic showcase running on WebAssembly).
 
 ---
 

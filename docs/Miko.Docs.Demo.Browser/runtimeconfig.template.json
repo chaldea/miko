@@ -1,0 +1,11 @@
+{
+  "wasmHostProperties": {
+    "mainAssembly": "Miko.Docs.Demo.Browser.dll",
+    "perHostConfig": [
+      {
+        "name": "browser",
+        "host": "browser"
+      }
+    ]
+  }
+}

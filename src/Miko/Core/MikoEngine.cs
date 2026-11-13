@@ -835,6 +835,9 @@ public partial class MikoEngine
         {
             _pendingInvalidations.Add(element);
         }
+        // On-demand hosts sleep until the dispatcher reports work. The actual mutation still happens
+        // on the render thread in DrainPendingInvalidations; this empty action is only the wake-up.
+        _dispatcher.Post(static () => { });
     }
 
     /// <summary>是否有待处理的跨线程失效请求（平台宿主据此决定是否需要再绘制一帧）。</summary>

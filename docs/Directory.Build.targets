@@ -1,0 +1,9 @@
+<Project>
+
+  <!--
+    The Razor projects under docs/ (Miko.Docs.Demo) are Miko UI, so they compile with the in-repo
+    Miko.Razor.Compiler exactly like the projects under examples/. Share that one definition.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)..\examples\Directory.Build.targets" />
+
+</Project>

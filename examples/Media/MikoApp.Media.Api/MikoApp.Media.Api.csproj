@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <!-- 缩略图用 SkiaSharp 离线生成；样例视频用 FFmpeg 离线编码。整个 demo 不依赖外网。 -->
-    <PackageReference Include="SkiaSharp" Version="4.155.0" />
+    <PackageReference Include="SkiaSharp" Version="4.158.0-preview.1.26556.2" />
     <PackageReference Include="Sdcb.FFmpeg" Version="7.0.0" />
     <PackageReference Include="Sdcb.FFmpeg.runtime.windows-x64" Version="7.1.0" />
   </ItemGroup>

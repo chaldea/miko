@@ -15,8 +15,8 @@ using Miko.TemplateE2E;
 //   dotnet run --project tools/Miko.TemplateE2E -- --layouts blank,full
 //   dotnet run --project tools/Miko.TemplateE2E -- --heads Desktop,Android --parallel 4
 //
-// Android heads need the android workload; iOS heads need macOS with the ios workload and build for
-// ios-arm64 without signing. Heads whose workload is missing are skipped, not failed.
+// Android heads need the android workload; Browser heads need wasm-tools; iOS heads need macOS with the ios
+// workload and build for ios-arm64 without signing. Heads whose workload is missing are skipped, not failed.
 
 try
 {

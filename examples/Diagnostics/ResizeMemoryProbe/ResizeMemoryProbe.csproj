@@ -14,7 +14,7 @@
     <ProjectReference Include="..\..\..\src\Miko.Windowing\Miko.Windowing.csproj" />
     <!-- 本探针刻意绕开 Miko 引擎、直接驱动 Skia（见 Program 的说明）。Miko 不向外暴露 Skia（ISSUE-162），
          所以这里显式引用。 -->
-    <PackageReference Include="SkiaSharp" Version="4.155.0" />
+    <PackageReference Include="SkiaSharp" Version="4.158.0-preview.1.26556.2" />
   </ItemGroup>
 
 </Project>

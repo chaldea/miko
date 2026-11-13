@@ -1,11 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
+
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RazorLangVersion>Latest</RazorLangVersion>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+    <StaticWebAssetsEnabled>true</StaticWebAssetsEnabled>
+    <!-- Miko consumes .razor.css at compile time; keep browser CSS bundling disabled. -->
+    <ScopedCssEnabled>true</ScopedCssEnabled>
+    <DisableScopedCssBundling>true</DisableScopedCssBundling>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="11.0.0" />
+    <EmbeddedResource Include="Assets\**\*" />
+    <ProjectReference Include="..\..\src\Miko.Ionic\Miko.Ionic.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Charts\Miko.Charts.csproj" />
+    <ProjectReference Include="..\..\src\Miko.Components\Miko.Components.csproj" />
   </ItemGroup>
+
 </Project>

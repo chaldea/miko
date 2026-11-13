@@ -14,8 +14,8 @@ permissions:
 jobs:
   build:
     name: Build and test
-    # macos-latest can target net11.0, net11.0-android and net11.0-ios at once,
-    # so the whole solution (including the Android/iOS implementation libraries)
+    # macos-latest can build desktop, Android, iOS and WebAssembly projects,
+    # so the whole solution (including the mobile libraries and browser demo)
     # is validated in a single job.
     runs-on: macos-latest
     steps:
@@ -25,13 +25,14 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          # The SDK pinned in global.json (11.0.1xx, latest patch), the band the mobile workloads match.
+          # The SDK pinned in global.json (11.0.1xx, latest patch), matching the workloads below.
           global-json-file: global.json
 
-      - name: Install mobile workloads
-        run: dotnet workload install android ios
+      # setup-dotnet installs the SDK, not the native WebAssembly toolchain required by the demo.
+      - name: Install mobile and WebAssembly workloads
+        run: dotnet workload install android ios wasm-tools
 
-      # Build the whole solution. miko.slnx includes the Android/iOS libraries,
+      # Build the whole solution. miko.slnx includes the mobile libraries and browser demo,
       # which the macOS runner can compile thanks to the workloads above.
       - name: Build solution (Release)
         run: dotnet build miko.slnx -c Release

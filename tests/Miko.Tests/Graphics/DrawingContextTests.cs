@@ -33,6 +33,21 @@ public class DrawingContextTests
     }
 
     [Fact]
+    public void Should_read_a_whole_surface_as_unpremultiplied_rgba()
+    {
+        using var surface = Graphics.CreateSurface(2, 1);
+        surface.Context.Clear(new Color(10, 20, 30, 128));
+
+        var pixels = new byte[8];
+        surface.ReadRgba8888(pixels);
+
+        pixels.ShouldBe(new byte[] { 10, 20, 30, 128, 10, 20, 30, 128 });
+        Should.Throw<ArgumentException>(() => surface.ReadRgba8888(new byte[7]));
+        surface.Dispose();
+        Should.Throw<ObjectDisposedException>(() => surface.ReadRgba8888(pixels));
+    }
+
+    [Fact]
     public void Should_clip_and_restore_state()
     {
         using var surface = Graphics.CreateSurface(20, 20);

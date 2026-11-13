@@ -45,10 +45,11 @@ try {
     await mkdir(screenshots, {recursive:true});
     await page.screenshot({path:resolve(screenshots,'home.png'),fullPage:true});
     await page.locator('.VPHomeHero a').filter({hasText:'Live Demo'}).click();
-    await page.locator('#demo-message').waitFor({timeout:60000});
+    // The playground draws on a canvas; the loading overlay is removed after the first presented frame.
+    await page.locator('#miko-app').waitFor({timeout:60000});
+    await page.locator('#miko-loading').waitFor({state:'detached', timeout:120000});
     assert.equal(new URL(page.url()).pathname, base + 'demo/');
-    assert.equal(await page.locator('#demo-message').innerText(), 'Coming soon, stay tuned...');
-    assert.equal(await page.locator('#demo-counter').count(), 0);
+    assert.equal(await page.locator('#miko-loading.miko-error').count(), 0);
     assert(wasm.length > 0, 'The demo must download actual WebAssembly binaries');
     for (const response of wasm) {
         assert(response.ok(), response.url());
@@ -60,9 +61,8 @@ try {
     assert.equal(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length), 0);
     await page.screenshot({path:resolve(screenshots,'demo.png'),fullPage:true});
     await page.reload();
-    await page.locator('#demo-message').waitFor({timeout:60000});
-    assert.equal(await page.locator('#demo-message').innerText(), 'Coming soon, stay tuned...');
-    await page.locator('#docs-link').click();
+    await page.locator('#miko-loading').waitFor({state:'detached', timeout:120000});
+    await page.goBack();
     await page.locator('.VPHomeHero').waitFor();
     assert.equal(new URL(page.url()).pathname, base);
     await page.goto(origin + base + 'guide/introduction/');

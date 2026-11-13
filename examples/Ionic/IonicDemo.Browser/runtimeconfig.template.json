@@ -1,0 +1,11 @@
+{
+  "wasmHostProperties": {
+    "mainAssembly": "IonicDemo.Browser.dll",
+    "perHostConfig": [
+      {
+        "name": "browser",
+        "host": "browser"
+      }
+    ]
+  }
+}

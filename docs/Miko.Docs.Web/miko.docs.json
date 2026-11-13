@@ -122,6 +122,10 @@
             "link": "/guide/publishing-desktop"
           },
           {
+            "text": "Browser Apps",
+            "link": "/guide/publishing-browser"
+          },
+          {
             "text": "Android Apps",
             "link": "/guide/publishing-android"
           },
@@ -439,16 +443,6 @@
         "theme": "alt",
         "text": "Live Demo",
         "link": "/demo/"
-      },
-      {
-        "theme": "alt",
-        "text": "What is Miko?",
-        "link": "/guide/introduction"
-      },
-      {
-        "theme": "alt",
-        "text": "View on GitHub",
-        "link": "https://github.com/chaldea/miko"
       }
     ],
     "features": [

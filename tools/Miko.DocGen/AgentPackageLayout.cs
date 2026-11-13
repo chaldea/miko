@@ -5,7 +5,7 @@ namespace Miko.DocGen;
 /// <c>_AgentAsset</c> / <c>_AgentDoc</c> items of <c>templates/Miko.Templates.csproj</c>:
 /// <c>agent/**</c> goes to the app root and the Markdown pages of <c>docs/Miko.Docs.Web/Content/</c> go to
 /// <c>.miko/docs/</c>, so the agent docs are the developer docs rather than a second copy.
-/// tests/Miko.Docs.Tests packs the templates and checks the package against this layout.
+/// tests/Miko.Docs.Demo.Tests packs the templates and checks the package against this layout.
 /// </summary>
 public static class AgentPackageLayout
 {

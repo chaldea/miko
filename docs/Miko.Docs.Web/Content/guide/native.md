@@ -29,6 +29,9 @@ App.CreateContext(b => b.UseDesktopNative()).RunDesktop();
 // Simulator head (Miko.Simulator)
 App.CreateContext(b => b.UseSimulatorNative()).RunSimulator();
 
+// Browser head (Miko.Browser)
+App.CreateContext(b => b.UseBrowserNative()).RunBrowser();
+
 // Android Activity (Miko.Android)
 MikoAndroidApp.CreateView(this, () => App.CreateContext(b => b.UseAndroidNative()));
 
@@ -85,25 +88,25 @@ Permission denials surface separately as `UnauthorizedAccessException`, and user
 
 ## Capability support
 
-| Interface | Android | iOS | Desktop | Simulator |
-| --- | :-: | :-: | :-: | :-: |
-| `IAppService` | ● | ● | ◐ | ◐ |
-| `IBrowserService` | ● | ● | ◐ | ◐ |
-| `ICameraService` | ● | ● | — | ◑ |
-| `IClipboardService` | ● | ● | ◐ | ◐ |
-| `IDeviceService` | ● | ● | ● | ◑ |
-| `IFilesystemService` | ● | ● | ● | ● |
-| `IGeolocationService` | ● | ● | — | ◑ |
-| `IHapticsService` | ● | ● | — | ◑ |
-| `IKeyboardService` | ◐ | ◐ | ◐ | ◐ |
-| `ILocalNotificationService` | ◐ | ● | — | ◑ |
-| `IMotionService` | ● | ● | — | — |
-| `INetworkService` | ● | ● | ● | ● |
-| `IPushNotificationService` | ◐ | ◐ | — | ◑ |
-| `IScreenReaderService` | ● | ● | ◐ | ◑ |
-| `ISplashScreenService` | — | — | — | ◑ |
-| `IStatusBarService` | ● | ● | — | ◑ |
-| `IToastService` | ● | ● | — | ◑ |
+| Interface | Android | iOS | Desktop | Browser | Simulator |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| `IAppService` | ● | ● | ◐ | ◐ | ◐ |
+| `IBrowserService` | ● | ● | ◐ | ◐ | ◐ |
+| `ICameraService` | ● | ● | — | — | ◑ |
+| `IClipboardService` | ● | ● | ◐ | ● | ◐ |
+| `IDeviceService` | ● | ● | ● | ◐ | ◑ |
+| `IFilesystemService` | ● | ● | ● | — | ● |
+| `IGeolocationService` | ● | ● | — | ● | ◑ |
+| `IHapticsService` | ● | ● | — | ◐ | ◑ |
+| `IKeyboardService` | ◐ | ◐ | ◐ | ◐ | ◐ |
+| `ILocalNotificationService` | ◐ | ● | — | — | ◑ |
+| `IMotionService` | ● | ● | — | — | — |
+| `INetworkService` | ● | ● | ● | ● | ● |
+| `IPushNotificationService` | ◐ | ◐ | — | — | ◑ |
+| `IScreenReaderService` | ● | ● | ◐ | ◐ | ◑ |
+| `ISplashScreenService` | — | — | — | — | ◑ |
+| `IStatusBarService` | ● | ● | — | — | ◑ |
+| `IToastService` | ● | ● | — | — | ◑ |
 
 ● full · ◐ partial (some members throw) · ◑ simulated · — not implemented
 
@@ -111,6 +114,10 @@ Two notes on the desktop column: `IClipboardService` and `IScreenReaderService` 
 (Linux and macOS have no dependency-free system stack, so they throw), and capabilities marked
 partial are ones where the platform genuinely lacks the concept — for example `ExitAppAsync()` is
 Android-only, and the iOS-specific keyboard members target a WebView that Miko does not use.
+
+On Browser, secure-context and user-gesture rules apply to clipboard, geolocation, vibration and
+popups. Battery information and vibration are not exposed by every browser; screen-reader detection
+is unavailable even though speech synthesis works. See [Browser Apps](./publishing-browser.md).
 
 ## Simulator behaviour
 

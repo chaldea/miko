@@ -61,6 +61,32 @@ public sealed class RenderSurface : IDisposable
         return data.ToArray();
     }
 
+    /// <summary>
+    /// 读取整张表面的 RGBA8888 像素（每像素依次 R、G、B、A，alpha 未预乘，行紧密排列）。
+    /// 供平台宿主把帧复制到外部像素缓冲（例如浏览器的 <c>ImageData</c>），无需 PNG 编解码。
+    /// </summary>
+    /// <param name="pixels">目标缓冲，至少要有 <c>Width * Height * 4</c> 字节。</param>
+    public void ReadRgba8888(byte[] pixels)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(pixels);
+        var required = checked(Width * Height * 4);
+        if (pixels.Length < required)
+            throw new ArgumentException($"The pixel buffer must contain at least {required} bytes.", nameof(pixels));
+
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            var info = new SKImageInfo(Width, Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+            if (!_surface.ReadPixels(info, handle.AddrOfPinnedObject(), Width * 4, 0, 0))
+                throw new InvalidOperationException("The surface could not be read back.");
+        }
+        finally
+        {
+            handle.Free();
+        }
+    }
+
     /// <summary>读取一个像素（alpha 未预乘）。坐标越界时抛出 <see cref="ArgumentOutOfRangeException"/>。</summary>
     public Color GetPixel(int x, int y)
     {

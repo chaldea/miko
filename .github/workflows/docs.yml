@@ -10,6 +10,7 @@ on:
       - 'docs/**'
       - 'src/Miko.Docs/**'
       - 'tests/Miko.Docs.Tests/**'
+      - 'tests/Miko.Docs.Demo.Tests/**'
       - 'Directory.Build.props'
       - 'global.json'
       - '.github/workflows/docs.yml'

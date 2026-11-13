@@ -1,7 +1,7 @@
 using Miko.DocGen;
 using Shouldly;
 
-namespace Miko.Docs.Tests;
+namespace Miko.Docs.Demo.Tests;
 
 /// <summary>
 /// The docs' generated regions (parameter tables, theme tokens, inlined examples, indexes) must

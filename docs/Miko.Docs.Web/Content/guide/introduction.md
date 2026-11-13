@@ -3,7 +3,7 @@
 **Miko** is a **native, cross-platform UI rendering engine for .NET** that uses
 **[Razor](https://learn.microsoft.com/aspnet/core/blazor/components/) as its layout
 DSL**. It draws every pixel itself with [SkiaSharp](https://github.com/mono/SkiaSharp) —
-**no browser, no WebView, no HTML/CSS runtime** — running a browser-like pipeline of
+**no embedded browser, no WebView, no HTML/CSS runtime** — running a browser-like pipeline of
 style cascade, layout, and incremental painting directly onto a GPU-accelerated canvas.
 
 You write your UI in Razor components — the same `.razor` syntax you already know from
@@ -24,7 +24,7 @@ This is a preview release. APIs may change before the stable 1.0 release. See [K
   bundled Chromium, no Node, no WebView. Binaries are a fraction of an Electron app's.
 - ⚡ **Native rendering** — pixels are drawn directly on a GPU-backed Skia surface, not
   inside a web engine.
-- 🖥️ **Cross-platform** — one codebase runs on Windows, macOS, Linux, Android, and iOS,
+- 🖥️ **Cross-platform** — one codebase runs on Windows, macOS, Linux, Android, iOS, and the browser,
   wherever SkiaSharp does.
 - 🚀 **Trimming & AOT-aware** — the routing and rendering paths are designed for
   trimmed / Native AOT publishing for fast startup and small, self-contained binaries.

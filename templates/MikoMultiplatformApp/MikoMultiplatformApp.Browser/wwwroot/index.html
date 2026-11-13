@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Miko Multiplatform App</title>
+  <link rel="icon" href="data:," />
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #fff; }
+    #miko-app { display: block; width: 100vw; height: 100dvh; }
+    #miko-loading {
+      position: fixed; inset: 0; display: grid; place-content: center; gap: 12px;
+      font: 16px/1.5 system-ui, sans-serif; color: #526075; background: #fff; text-align: center;
+    }
+    #miko-loading::before {
+      content: ""; width: 32px; height: 32px; margin: auto; border: 3px solid #dce2ec;
+      border-top-color: #3880ff; border-radius: 50%; animation: miko-spin .8s linear infinite;
+    }
+    #miko-loading.miko-error { color: #b00020; padding: 24px; white-space: pre-wrap; }
+    #miko-loading.miko-error::before { display: none; }
+    @keyframes miko-spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <canvas id="miko-app" aria-label="Miko application"></canvas>
+  <div id="miko-loading" role="status">Loading Miko…</div>
+  <script type="module" src="_content/Miko.Browser/miko-browser.js"></script>
+</body>
+</html>

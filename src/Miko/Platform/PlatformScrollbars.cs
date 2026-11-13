@@ -17,7 +17,7 @@ public static class PlatformScrollbars
     /// <summary>The default presentation on <paramref name="platform"/>.</summary>
     public static ScrollbarStyle GetDefault(HostPlatform platform) => platform switch
     {
-        HostPlatform.MacOS => ScrollbarStyle.Overlay,
+        HostPlatform.MacOS or HostPlatform.Browser => ScrollbarStyle.Overlay,
         HostPlatform.Ios or HostPlatform.Android => ScrollbarStyle.None,
         _ => ScrollbarStyle.Classic,
     };

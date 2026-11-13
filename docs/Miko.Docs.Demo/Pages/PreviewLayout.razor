@@ -1,0 +1,7 @@
+@inherits LayoutComponentBase
+
+<IonApp Style="@PreviewStyle">@Body</IonApp>
+
+@code {
+    private static Style PreviewStyle => new() { Width = Length.Percent(100), Height = Length.Percent(100), FontFamily = "Inter" };
+}

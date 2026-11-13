@@ -1415,10 +1415,10 @@ public class App
   - 生成：`dotnet run --project tools/Miko.DocGen`；本地构建解决方案时会自动生成（CI 不生成）。
     `-- --check` 只校验，`-- --only <文件>` 只写指定文件。
   - 改组件参数时写好 `///` 注释——它就是文档；缺注释、组件未入任何页面、示例未被引用、
-    链接失效，都会让 `tests/Miko.Docs.Tests` 失败。示例 `.razor` 在该测试项目里编译并渲染。
+    链接失效，都会让 `tests/Miko.Docs.Demo.Tests` 失败。示例 `.razor` 在该测试项目里编译并渲染。
 - **Agent 文档**：`agent/` 只放与 agent 相关的内容（入口文件、`rules.md`、`llms.txt` 索引）。
   打包模板时 `docs/Miko.Docs.Web/Content/**/*.md` 被复制到生成应用的 `.miko/docs/`，因此 agent 与开发者读同一份文档；
-  `tests/Miko.Docs.Tests` 会打包模板、用 `dotnet new` 生成应用并检查文档完整性与链接。
+  `tests/Miko.Docs.Demo.Tests` 会打包模板、用 `dotnet new` 生成应用并检查文档完整性与链接。
 - **开发指南**：本文档（DEVELOPMENT.md）
 - **项目指南**：CLAUDE.md（面向 AI 助手的项目概览）
 - **示例代码**：`examples/` 目录包含 Bootstrap、Ionic、多平台、异步、媒体播放等示例

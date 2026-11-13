@@ -1,0 +1,135 @@
+@inherits LayoutComponentBase
+
+<div class="designer-shell">
+    <div class="designer-header">
+        <div class="designer-brand">
+            <span class="designer-logo">M</span>
+            <strong>Miko</strong>
+            <span class="designer-product">Playground</span>
+        </div>
+        <div class="designer-breadcrumb"><span>Components</span><b>›</b><span>@Current.Category</span><b>›</b><strong>@Current.Title</strong></div>
+        <div class="designer-runtime"><span></span>Running on WebAssembly</div>
+    </div>
+
+    <div class="designer-body">
+        <div class="component-sidebar">
+            <div class="component-sidebar-heading">COMPONENTS</div>
+            <div class="component-menu">
+                @foreach (var category in Categories)
+                {
+                    var categoryId = category.ToString().ToLowerInvariant();
+                    <div class="component-group">
+                        <button class="component-group-button" @onclick="() => ToggleCategory(categoryId)">
+                            <span class="@ChevronClass(categoryId)">›</span><span class="@CategoryIconClass(category)">@CategoryAbbreviation(category)</span><strong>@category</strong><span class="component-count">@DemoCatalog.Category(category).Count()</span>
+                        </button>
+                        @if (IsExpanded(categoryId))
+                        {
+                            <div class="component-children">
+                                @foreach (var descriptor in DemoCatalog.Category(category))
+                                {
+                                    <button class="@ComponentMenuClass(descriptor)" @onclick="() => OpenComponent(descriptor.Id)"><span></span>@descriptor.Title</button>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="component-sidebar-footer"><span>INTERACTIVE DOCUMENTATION</span><strong>@DemoCatalog.All.Count component playgrounds</strong></div>
+        </div>
+
+        <div class="designer-workspace">
+            <div class="@WorkspaceMainClass">
+                <DemoSceneSidebar />
+
+                <div class="preview-workbench">
+                    <div class="preview-toolbar">
+                        <div><span class="preview-live-dot"></span><strong>Live preview</strong><span class="preview-toolbar-separator">/</span><span>@SceneName</span></div>
+                        <span class="preview-viewport">360 × 620</span>
+                    </div>
+                    <div class="preview-canvas">
+                        <div class="preview-device">
+                            <div class="preview-device-screen">
+                                <IsolatedDemoPreview />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <IsolatedDemoPreview Region="DemoRegion.Properties" />
+            </div>
+
+            @if (State.ConsoleExpanded)
+            {
+                <IsolatedDemoPreview Region="DemoRegion.Console" />
+            }
+            else
+            {
+                <div class="console-panel collapsed">
+                    <button class="console-disclosure" @onclick="State.ToggleConsole"><span><strong>Interaction output</strong><span>Hidden</span></span><span>Show</span></button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly DemoCategory[] Categories = [DemoCategory.Ionic, DemoCategory.Charts, DemoCategory.Components];
+    private readonly HashSet<string> _expandedCategories = ["ionic"];
+
+    [Inject] public DemoState State { get; set; } = null!;
+    [Inject] public NavigationManager Navigation { get; set; } = null!;
+
+    private DemoDescriptor Current => State.Current;
+    private string WorkspaceMainClass => $"workspace-main{(State.ConsoleExpanded ? " console-open" : null)}";
+    private string SceneName => State.SceneId == "main"
+        ? "Properties"
+        : Current.Scenes.FirstOrDefault(scene => scene.Id == State.SceneId)?.Name ?? "Preview";
+
+    protected override void OnInitialized()
+    {
+        State.ComponentChanged += OnChanged;
+        State.SceneChanged += OnChanged;
+        State.ConsoleVisibilityChanged += OnChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+        ActivateFromLocation();
+    }
+
+    protected override void OnDispose()
+    {
+        State.ComponentChanged -= OnChanged;
+        State.SceneChanged -= OnChanged;
+        State.ConsoleVisibilityChanged -= OnChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+
+    private void OnChanged() => StateHasChanged();
+    private void OnLocationChanged(NavigationEventArgs args) => ActivateFromLocation();
+
+    private void ActivateFromLocation()
+    {
+        var id = Navigation.CurrentPath.Trim('/');
+        State.Activate(string.IsNullOrEmpty(id) ? "button" : id);
+        var currentCategory = Current.Category.ToString().ToLowerInvariant();
+        _expandedCategories.RemoveWhere(category => category != currentCategory);
+        _expandedCategories.Add(currentCategory);
+    }
+
+    private void OpenComponent(string id)
+    {
+        var path = id == "button" ? "/" : $"/{id}";
+        if (Navigation.CurrentPath == path) State.Activate(id);
+        else Navigation.NavigateTo(path, NavigationDirection.Root);
+    }
+
+    private void ToggleCategory(string category)
+    {
+        if (!_expandedCategories.Add(category)) _expandedCategories.Remove(category);
+        StateHasChanged();
+    }
+
+    private string ComponentMenuClass(DemoDescriptor descriptor) => $"component-menu-item{(Current.Id == descriptor.Id ? " selected" : null)}";
+    private string ChevronClass(string category) => $"component-chevron{(IsExpanded(category) ? " expanded" : null)}";
+    private bool IsExpanded(string category) => _expandedCategories.Contains(category);
+    private static string CategoryAbbreviation(DemoCategory category) => category switch { DemoCategory.Ionic => "Io", DemoCategory.Charts => "Ch", _ => "Cx" };
+    private static string CategoryIconClass(DemoCategory category) => $"component-group-icon {category.ToString().ToLowerInvariant()}";
+}

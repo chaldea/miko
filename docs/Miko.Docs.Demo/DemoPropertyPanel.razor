@@ -1,0 +1,123 @@
+<div class="property-panel">
+    <div class="property-header"><div><span>COMPONENT</span><strong>@Current.Name</strong></div><span class="property-component-badge">@Current.Category</span></div>
+    <div class="property-scroll">
+        @if (Current.ShowMode)
+        {
+            <div class="property-section">
+                <div class="property-section-heading">PLATFORM</div>
+                <div class="property-row"><span>Design mode</span><span class="property-value">@(State.IsIos ? "iOS" : "Material")</span></div>
+                <div class="property-segment two">
+                    <button class="@ModeButtonClass("md")" @onclick='() => State.SetMode("md")'>Material</button>
+                    <button class="@ModeButtonClass("ios")" @onclick='() => State.SetMode("ios")'>iOS</button>
+                </div>
+            </div>
+        }
+
+        @foreach (var group in PropertyGroups)
+        {
+            var properties = Current.Properties.Where(property => property.Group == group).ToArray();
+            if (properties.Length == 0) continue;
+            <div class="property-section">
+                <div class="property-section-heading">@group</div>
+                @foreach (var property in properties)
+                {
+                    <div class="generated-property">
+                        <div class="property-row"><span>@property.DisplayName</span><span class="property-value">@ShortValue(property)</span></div>
+                        @if (property.Name == "Color" && property.ValueType == typeof(string))
+                        {
+                            <div class="property-swatches">
+                                @foreach (var color in Colors)
+                                {
+                                    <button class="@SwatchClass(property, color.Name)" style="@SwatchStyle(color.Hex)" aria-label="@color.Name" @onclick="() => State.Set(property.Name, color.Name)"></button>
+                                }
+                            </div>
+                        }
+                        else if (property.Kind == DemoPropertyKind.Option && property.Options is not null)
+                        {
+                            <div class="property-segment generated-options">
+                                @foreach (var option in property.Options)
+                                {
+                                    <button class="@OptionClass(property, option)" @onclick="() => State.Set(property.Name, option.Value)">@option.Label</button>
+                                }
+                            </div>
+                        }
+                        else if (property.Kind == DemoPropertyKind.Boolean)
+                        {
+                            <div class="property-toggle-row generated-toggle"><span>@(State.Value<bool>(property.Name) ? "Enabled" : "Disabled")</span><button class="@ToggleClass(State.Value<bool>(property.Name))" @onclick="() => State.Set(property.Name, !State.Value<bool>(property.Name))"><span></span></button></div>
+                        }
+                        else if (property.Kind == DemoPropertyKind.Number)
+                        {
+                            <input class="property-input property-number" type="number" min="@Number(property.Minimum)" max="@Number(property.Maximum)" value="@TextValue(property)" @onchange="args => State.SetText(property, ReadInput(args))" />
+                        }
+                        else
+                        {
+                            <input class="property-input" type="text" value="@TextValue(property)" placeholder="@(property.IsNullable ? "Default" : "")" @onchange="args => State.SetText(property, ReadInput(args))" />
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (Current.PresetParameters is not null)
+        {
+            var sceneData = Current.PresetParameters.Keys.Where(key => Current.FindProperty(key) is null && Current.Events.All(item => item.Name != key)).ToArray();
+            if (sceneData.Length > 0)
+            {
+                <div class="property-section">
+                    <div class="property-section-heading">SCENE DATA</div>
+                    <div class="property-note">@SceneDataNote(sceneData)</div>
+                </div>
+            }
+        }
+        @if (Current.Id == "player")
+        {
+            <div class="property-section">
+                <div class="property-section-heading">BROWSER PREVIEW</div>
+                <div class="property-note">A demo-only media session supplies a fixed picture and a 60-second clock. It exercises the player UI without claiming Browser video decoding.</div>
+            </div>
+        }
+    </div>
+    <div class="property-footer"><button @onclick="Reset"><img class="reset-icon" src="res://Assets/reset.svg" /><span>Reset properties</span></button></div>
+</div>
+
+@code {
+    private static readonly string[] PropertyGroups = ["CONTENT", "APPEARANCE", "BEHAVIOR", "PROPERTIES"];
+    private static readonly (string Name, string Hex)[] Colors =
+    [
+        ("primary", "#512bd4"), ("secondary", "#0cd1e8"), ("tertiary", "#7044ff"), ("success", "#2dd36f"),
+        ("warning", "#ffc409"), ("danger", "#eb445a"), ("medium", "#92949c"), ("dark", "#222428"), ("light", "#f4f5f8"),
+    ];
+
+    [Inject] public DemoState State { get; set; } = null!;
+    private DemoDescriptor Current => State.Current;
+
+    protected override void OnInitialized()
+    {
+        State.ComponentChanged += OnChanged;
+        State.PreviewChanged += OnChanged;
+    }
+
+    protected override void OnDispose()
+    {
+        State.ComponentChanged -= OnChanged;
+        State.PreviewChanged -= OnChanged;
+    }
+
+    private void OnChanged() => StateHasChanged();
+    private string ModeButtonClass(string mode) => $"property-option{(State.Mode == mode ? " selected" : null)}";
+    private string OptionClass(DemoProperty property, DemoOption option) => $"property-option{(Equals(State.Value(property.Name), option.Value) ? " selected" : null)}";
+    private string SwatchClass(DemoProperty property, string color) => $"property-swatch{(Equals(State.Value(property.Name), color) ? " selected" : null)}";
+    private static string ToggleClass(bool value) => $"property-toggle{(value ? " on" : null)}";
+    private static Style SwatchStyle(string color) => new() { BackgroundColor = Miko.Common.Color.FromHex(color) };
+    private string TextValue(DemoProperty property) => State.Value(property.Name) is null ? string.Empty : DemoProperty.FormatValue(State.Value(property.Name));
+    private string ShortValue(DemoProperty property)
+    {
+        var value = TextValue(property);
+        if (string.IsNullOrEmpty(value)) return "default";
+        return value.Length <= 25 ? value : value[..22] + "…";
+    }
+    private static string Number(double value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private static string SceneDataNote(string[] names) => $"This example supplies {string.Join(", ", names)}. Complex values stay in the scene; scalar parameters above remain live.";
+    private static string? ReadInput(ChangeEventArgs args) => args.NewValue ?? (args.Target as Miko.Core.DomElements.InputElement)?.Value;
+    private void Reset() => State.Reset();
+}

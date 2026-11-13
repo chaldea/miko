@@ -4,7 +4,7 @@ using System.Xml.Linq;
 using Miko.DocGen;
 using Shouldly;
 
-namespace Miko.Docs.Tests;
+namespace Miko.Docs.Demo.Tests;
 
 /// <summary>
 /// Packs <c>templates/Miko.Templates.csproj</c> once, then checks that the package carries the

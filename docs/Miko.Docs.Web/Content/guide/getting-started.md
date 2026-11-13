@@ -12,9 +12,10 @@ official templates.
   - **Linux** — glibc-based distros (Ubuntu, Debian, Fedora, etc.). Desktop apps require a working OpenGL driver; `libSkiaSharp.so` and `libHarfBuzzSharp.so` are shipped via `SkiaSharp.NativeAssets.Linux` and `HarfBuzzSharp.NativeAssets.Linux`.
   - **Android** — API 26 (Android 8.0) or later, targeting API 36
   - **iOS** — iOS 15.0 or later
+  - **Browser** — a modern browser with WebAssembly and Canvas 2D support
 
-For Android / iOS heads you also need the corresponding .NET workloads
-(`dotnet workload install android ios`).
+For Browser / Android / iOS heads you also need the corresponding .NET workloads
+(`dotnet workload install wasm-tools android ios`).
 
 ## Create an app from the template
 
@@ -58,16 +59,19 @@ dotnet new miko-razor --agent claude -o MyApp   # CLAUDE.md + .claude/  (claude 
 
 ## Cross-platform apps
 
-For an app that targets Desktop + Android + iOS from one codebase, use the
+For an app that targets Desktop + Browser + Android + iOS from one codebase, use the
 multiplatform template instead:
 
 ```bash
-# Scaffold a shared app plus Desktop / Android / iOS startup projects
+# Scaffold a shared app plus Desktop / Browser / Android / iOS startup projects
 dotnet new miko-multiplatform -o MyApp
 cd MyApp
 
 # Run on the desktop
 dotnet run --project MyApp.Desktop
+
+# Or start the browser development server (requires the wasm-tools workload)
+dotnet run --project MyApp.Browser
 ```
 
 This produces a shared Razor UI project plus one thin host project per platform. See

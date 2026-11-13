@@ -617,7 +617,7 @@ Console.WriteLine(page.Html);
 ## Development and verification
 
 The generator lives in src/Miko.Docs, the site in docs/Miko.Docs.Web, and generator
-regressions are merged into tests/Miko.Docs.Tests alongside the documentation and template checks.
+regressions live in tests/Miko.Docs.Tests (documentation example and template checks are in tests/Miko.Docs.Demo.Tests).
 See docs/README.md for combined static documentation and WebAssembly demo hosting.
 
 ~~~sh

@@ -32,7 +32,7 @@
     Regenerate the docs whenever this tool builds — it builds whenever Miko.Ionic changes, so
     building the solution keeps the parameter / token tables in step with the code.
 
-    Skipped on CI: there the docs must already be current, and tests/Miko.Docs.Tests fails when
+    Skipped on CI: there the docs must already be current, and tests/Miko.Docs.Demo.Tests fails when
     they are not. Regenerating first would hide exactly the drift that test exists to catch.
     Opt out locally with -p:MikoGenerateDocs=false.
   -->
