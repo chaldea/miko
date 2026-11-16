@@ -96,6 +96,17 @@ public sealed class MikoVncTests : IDisposable
         _server.Drain(50);
     }
 
+    [Fact]
+    public void Should_disconnect_when_parent_removes_viewer()
+    {
+        Connected();
+        var host = new RemovalHost(_vnc);
+        host.Build();
+        host.Remove();
+        Render();
+        _vnc.Client.ShouldBeNull();
+    }
+
     // A red remote screen with a blue square at remote (100, 50) – (139, 69).
     private void PaintRemote()
     {

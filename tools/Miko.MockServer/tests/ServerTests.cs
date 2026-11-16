@@ -12,13 +12,34 @@ namespace Miko.MockServer.Tests;
 public sealed class ServerTests
 {
     [Fact]
-    public async Task Should_serve_independent_interactive_vnc_sessions()
+    public async Task Should_stop_with_a_websocket_waiting_for_an_incremental_frame()
+    {
+        await using var app = MockApplication.Build(["--urls=http://127.0.0.1:0", "--Mock:VncPort=0", "--Mock:RtspPort=0"]);
+        await app.StartAsync();
+        var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+        using var client = await VncClient.ConnectAsync(new(address.Replace("http://", "ws://") + "/vnc"));
+        var frame = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        client.FramebufferUpdated += () => frame.TrySetResult();
+        client.Disconnected += _ => closed.TrySetResult();
+        client.Start();
+        await frame.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_serve_independent_interactive_vnc_sessions(bool webSocket)
     {
         await using var app = MockApplication.Build(["--urls=http://127.0.0.1:0", "--Mock:VncPort=0", "--Mock:RtspPort=0"]);
         await app.StartAsync();
         var port = app.Services.GetRequiredService<VncServer>().Port;
-        using var first = await VncClient.ConnectAsync(new("127.0.0.1", port));
-        using var second = await VncClient.ConnectAsync(new("127.0.0.1", port));
+        var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+        var host = webSocket ? address.Replace("http://", "ws://") + "/vnc" : "127.0.0.1";
+        using var first = await VncClient.ConnectAsync(new(host, port));
+        using var second = await VncClient.ConnectAsync(new(host, port));
         var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var secondReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         first.FramebufferUpdated += () => changed.TrySetResult();
@@ -34,6 +55,39 @@ public sealed class ServerTests
         while (first.Framebuffer.Pixels.SequenceEqual(before)) await Task.Delay(20, timeout.Token);
         second.Framebuffer.Pixels.ShouldNotBe(first.Framebuffer.Pixels);
         second.Framebuffer.Pixels.ShouldBe(secondBefore);
+        var clipboard = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        first.ClipboardReceived += text => clipboard.TrySetResult(text);
+        first.SendClipboard("WebSocket clipboard");
+        (await clipboard.Task.WaitAsync(TimeSpan.FromSeconds(5))).ShouldBe("WebSocket clipboard");
+        first.Dispose();
+        second.Dispose();
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task Should_serve_hls_playlist_and_segments_with_cross_origin_headers()
+    {
+        await using var app = MockApplication.Build(["--urls=http://127.0.0.1:0", "--Mock:VncPort=0", "--Mock:RtspPort=0"]);
+        await app.StartAsync();
+        var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+        using var http = new HttpClient { BaseAddress = new Uri(address) };
+        http.DefaultRequestHeaders.Add("Origin", "https://docs.example.com");
+        using var playlist = await http.GetAsync("/media/webcam.m3u8");
+        playlist.EnsureSuccessStatusCode();
+        playlist.Content.Headers.ContentType!.MediaType.ShouldBe("application/vnd.apple.mpegurl");
+        playlist.Headers.GetValues("Access-Control-Allow-Origin").Single().ShouldBe("*");
+        var manifest = await playlist.Content.ReadAsStringAsync();
+        manifest.ShouldContain("#EXT-X-ENDLIST");
+        foreach (var file in manifest.Split('\n').Select(s => s.Trim()).Where(s => s.Length > 0 && !s.StartsWith('#')))
+        {
+            using var segment = await http.GetAsync("/media/" + file);
+            segment.EnsureSuccessStatusCode();
+            segment.Content.Headers.ContentType!.MediaType.ShouldBe("video/mp2t");
+            var bytes = await segment.Content.ReadAsByteArrayAsync();
+            bytes.Length.ShouldBeGreaterThan(188);
+            bytes[0].ShouldBe((byte)0x47);
+        }
+        (await http.GetAsync("/vnc")).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         await app.StopAsync();
     }
 

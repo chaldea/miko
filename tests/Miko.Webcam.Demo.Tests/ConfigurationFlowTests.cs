@@ -10,6 +10,7 @@ using Miko.Hosting;
 using Miko.Layout;
 using Miko.Platform;
 using Miko.Platform.Video;
+using Miko.Routing;
 using MikoApp.Webcam;
 using Shouldly;
 
@@ -22,16 +23,19 @@ public sealed class ConfigurationFlowTests : IDisposable
     private readonly Backend _backend = new();
     private readonly PendingApi _pendingApi = new();
     private WebcamDemo _page = null!;
+    private WebcamMonitor _monitor = null!;
     private Element Root => _context.Engine.GetRoot()!;
+    private NavigationManager Navigation => _context.Services.GetRequiredService<NavigationManager>();
 
     public ConfigurationFlowTests()
     {
         _context = App.CreateContext(builder =>
         {
             builder.Services.Replace(ServiceDescriptor.Singleton<IVideoBackend>(_backend));
+            builder.Services.Replace(ServiceDescriptor.Singleton(new WebcamConnectionSettings()));
             builder.Services.Replace(ServiceDescriptor.Singleton(_ => new HttpClient(_pendingApi)));
         },
-            page: p => { _page = p; p.Settings = new WebcamConnectionSettings(); });
+            page: p => _page = p, monitor: p => _monitor = p);
         _surface = _context.Engine.Graphics.CreateSurface(420, 860);
         _context.Controller.Initialize(_surface.Context, 420, 860);
         Render();
@@ -39,7 +43,7 @@ public sealed class ConfigurationFlowTests : IDisposable
 
     public void Dispose()
     {
-        _page.Back();
+        _monitor?.Back();
         _context.Engine.DisposeVideoSessions();
         _surface.Dispose();
         ((IDisposable)_context.Services).Dispose();
@@ -49,7 +53,8 @@ public sealed class ConfigurationFlowTests : IDisposable
     public void Should_show_mock_configuration_without_opening_a_video_session()
     {
         _page.Settings.Provider.ShouldBe("miko");
-        _page.IsMonitoring.ShouldBeFalse();
+        Navigation.CurrentPath.ShouldBe("/");
+        Navigation.CurrentState.ShouldBeNull();
         Root.FindByClass("webcam-config").ShouldHaveSingleItem();
         Root.FindByTagName("video").ShouldBeEmpty();
         _backend.Sessions.ShouldBeEmpty();
@@ -64,6 +69,8 @@ public sealed class ConfigurationFlowTests : IDisposable
         _page.Settings.Provider.ShouldBe("ezviz");
         Root.FindByClass("webcam-ezviz-fields").ShouldHaveSingleItem();
         Root.FindByClass("webcam-miko-fields").ShouldBeEmpty();
+        Root.FindByClass("ezviz-serial").Single().FindByTagName("input").Single()
+            .ShouldBeOfType<InputElement>().Value.ShouldBeNullOrEmpty();
         Root.FindByClass("ezviz-token").Single().FindByTagName("input").Single()
             .ShouldBeOfType<InputElement>().Type.ShouldBe(InputType.Password);
         Click("webcam-type-miko");
@@ -77,19 +84,25 @@ public sealed class ConfigurationFlowTests : IDisposable
         Edit("mock-rtsp", "bad address");
         _page.Settings.MockRtsp.ShouldBe("bad address");
         Click("webcam-connect");
-        _page.IsMonitoring.ShouldBeFalse();
+        Navigation.CurrentPath.ShouldBe("/");
+        Navigation.CanGoBack.ShouldBeFalse();
         Root.FindByClass("webcam-config-error").ShouldHaveSingleItem();
         _backend.Sessions.ShouldBeEmpty();
         Edit("mock-rtsp", "rtsp://camera.test:8554/webcam");
         Edit("mock-http", "http://camera.test:9080");
         Click("webcam-connect");
-        _page.IsMonitoring.ShouldBeTrue();
+        Navigation.CurrentPath.ShouldBe("/monitor");
+        Navigation.GetState<WebcamConnection>().ShouldNotBeNull();
+        Navigation.History.ShouldBe(["/", "/monitor"]);
+        Root.FindByClass("webcam-config").ShouldBeEmpty();
         _page.ErrorMessage.ShouldBeNull();
         _backend.Sources.ShouldBe(["http://camera.test:9080/media/demo.mp4"]);
         _backend.Sessions.Single().Loop.ShouldBeTrue();
-        _page.Webcam.ShouldNotBeNull();
+        _monitor.Webcam.ShouldNotBeNull();
         Click("webcam-back");
-        _page.IsMonitoring.ShouldBeFalse();
+        Navigation.CurrentPath.ShouldBe("/");
+        Navigation.CurrentState.ShouldBeNull();
+        Navigation.CanGoBack.ShouldBeFalse();
         _backend.Sessions.Single().Disposed.ShouldBeTrue();
         Root.FindByTagName("video").ShouldBeEmpty();
         _page.Settings.MockHttp.ShouldBe("http://camera.test:9080");
@@ -102,13 +115,59 @@ public sealed class ConfigurationFlowTests : IDisposable
     public void Should_leave_fullscreen_before_returning_to_configuration()
     {
         Click("webcam-connect");
-        _page.Webcam!.ToggleFullscreen(); Render();
+        _monitor.Webcam!.ToggleFullscreen(); Render();
         _context.Controller.OnBackButton().ShouldBeTrue(); Render();
-        _page.IsMonitoring.ShouldBeTrue();
-        _page.Webcam!.IsFullscreen.ShouldBeFalse();
+        Navigation.CurrentPath.ShouldBe("/monitor");
+        _monitor.Webcam!.IsFullscreen.ShouldBeFalse();
         _context.Controller.OnBackButton().ShouldBeTrue(); Render();
-        _page.IsMonitoring.ShouldBeFalse();
+        Navigation.CurrentPath.ShouldBe("/");
         _backend.Sessions.Single().Disposed.ShouldBeTrue();
+        _context.Controller.OnBackButton().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Should_pass_a_connection_snapshot_to_a_separate_monitor_page()
+    {
+        var configuration = _page;
+        var settings = _page.Settings;
+        Edit("mock-http", "http://camera.test:9080");
+        Click("webcam-connect");
+
+        var connection = Navigation.GetState<WebcamConnection>().ShouldNotBeNull();
+        _monitor.Webcam!.Device.ShouldBeSameAs(connection.Device);
+        _monitor.Webcam.Quality.ShouldBe(connection.Quality);
+        Root.FindByClass("webcam-monitor").ShouldHaveSingleItem();
+        Root.FindByClass("webcam-config").ShouldBeEmpty();
+        settings.MockHttp = "http://changed.test:9081";
+        _monitor.Webcam.Stream!.Source.ShouldBe("http://camera.test:9080/media/demo.mp4");
+
+        Navigation.NavigateBack().ShouldBeTrue(); Render();
+
+        _page.ShouldNotBeSameAs(configuration);
+        _page.Settings.ShouldBeSameAs(settings);
+        _page.Settings.MockHttp.ShouldBe("http://changed.test:9081");
+        Root.FindByClass("webcam-config").ShouldHaveSingleItem();
+        Root.FindByClass("webcam-monitor").ShouldBeEmpty();
+        _monitor.Webcam.ShouldBeNull();
+        _backend.Sessions.Single().Disposed.ShouldBeTrue();
+        Navigation.CurrentState.ShouldBeNull();
+        _context.Controller.OnBackButton().ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_return_to_configuration_when_the_monitor_has_no_connection(bool wrongStateType)
+    {
+        Navigation.NavigateTo("/monitor", wrongStateType ? new object() : null);
+        Render();
+
+        Navigation.CurrentPath.ShouldBe("/");
+        Navigation.CurrentState.ShouldBeNull();
+        Navigation.CanGoBack.ShouldBeFalse();
+        Root.FindByClass("webcam-config").ShouldHaveSingleItem();
+        Root.FindByClass("webcam-monitor").ShouldBeEmpty();
+        _backend.Sessions.ShouldBeEmpty();
         _context.Controller.OnBackButton().ShouldBeFalse();
     }
 
@@ -117,12 +176,12 @@ public sealed class ConfigurationFlowTests : IDisposable
     {
         Click("webcam-connect");
         _backend.Sessions.Single().Fail(); Render();
-        _page.Webcam!.State.ShouldBe(WebcamState.Error);
+        _monitor.Webcam!.State.ShouldBe(WebcamState.Error);
         Click("webcam-back");
         Edit("mock-http", "http://other.test:8081");
         Click("webcam-connect");
         _backend.Sources.Last().ShouldBe("http://other.test:8081/media/demo.mp4");
-        _page.Webcam!.State.ShouldBe(WebcamState.Playing);
+        _monitor.Webcam!.State.ShouldBe(WebcamState.Playing);
     }
 
     private void Edit(string className, string value)
@@ -133,8 +192,10 @@ public sealed class ConfigurationFlowTests : IDisposable
         Render();
     }
 
-    [Fact]
-    public async Task Should_cancel_pending_cloud_requests_on_back_and_keep_the_new_connection()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_cancel_pending_cloud_requests_when_leaving_and_keep_the_new_connection(bool rootNavigation)
     {
         _page.Settings.Provider = "ezviz";
         _page.Settings.Serial = "AB1234";
@@ -142,13 +203,15 @@ public sealed class ConfigurationFlowTests : IDisposable
         _page.Settings.EnableCloudRelay = true;
         _page.Connect(); Render();
         await _pendingApi.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        _page.Back(); Render();
+        if (rootNavigation) Navigation.NavigateTo("/", NavigationDirection.Root);
+        else _monitor.Back();
+        Render();
         await _pendingApi.Cancelled.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        _page.IsMonitoring.ShouldBeFalse();
+        Navigation.CurrentPath.ShouldBe("/");
         _page.SelectProvider("miko");
         _page.Connect(); Render();
-        _page.Webcam!.Stream!.Source.ShouldBe("http://localhost:8080/media/demo.mp4");
-        _page.Webcam.State.ShouldBe(WebcamState.Playing);
+        _monitor.Webcam!.Stream!.Source.ShouldBe("http://localhost:8080/media/demo.mp4");
+        _monitor.Webcam.State.ShouldBe(WebcamState.Playing);
         _backend.Sessions.ShouldHaveSingleItem();
     }
 

@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -8,6 +9,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Miko.Components.Vnc.Protocol;
 
 /// <summary>How to reach and talk to a VNC server.</summary>
+/// <param name="Host">TCP hostname or a complete ws:// / wss:// URL (in which case Port is ignored).</param>
+/// <param name="Port">TCP port, ignored for WebSocket URLs.</param>
 public sealed record VncConnectOptions(string Host, int Port = 5900)
 {
     /// <summary>The VNC password, or null to ask <see cref="PasswordProvider"/> when the server wants one.</summary>
@@ -19,7 +22,7 @@ public sealed record VncConnectOptions(string Host, int Port = 5900)
     /// <summary>Let other viewers stay connected (false asks the server to disconnect them).</summary>
     public bool Shared { get; init; } = true;
 
-    /// <summary>Frame encodings in order of preference. CopyRect and Raw are always offered.</summary>
+    /// <summary>TCP frame encodings in order of preference. WebSocket uses Raw/CopyRect plus desktop/cursor extensions.</summary>
     public IReadOnlyList<int> Encodings { get; init; } = DefaultEncodings;
 
     /// <summary>Tight JPEG quality 0-9, or null for lossless only. Needs <see cref="JpegDecoder"/>.</summary>
@@ -39,7 +42,8 @@ public sealed record VncConnectOptions(string Host, int Port = 5900)
         [VncEncoding.Tight, VncEncoding.Zrle, VncEncoding.Hextile, VncEncoding.Zlib, VncEncoding.Rre];
 
     // The password is a secret: keep it out of logs and debugger displays.
-    public override string ToString() => $"{Host}:{Port.ToString(CultureInfo.InvariantCulture)}";
+    public override string ToString() => Uri.TryCreate(Host, UriKind.Absolute, out var uri) && uri.Scheme is "ws" or "wss"
+        ? uri.GetLeftPart(UriPartial.Path) : $"{Host}:{Port.ToString(CultureInfo.InvariantCulture)}";
 }
 
 /// <summary>
@@ -48,10 +52,10 @@ public sealed record VncConnectOptions(string Host, int Port = 5900)
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="ConnectAsync"/> completes the handshake; <see cref="Start"/> then starts the receive thread, which
-/// decodes into <see cref="Framebuffer"/> and raises the events (on that thread). Input methods
+/// <see cref="ConnectAsync"/> completes the handshake; <see cref="Start"/> then starts the receive loop, which
+/// decodes into <see cref="Framebuffer"/> and raises the events on the receiving context. Input methods
 /// (<see cref="SendPointer"/>, <see cref="SendKey"/>…) can be called from any thread and never block: messages go
-/// through a queue that a writer thread drains, and pointer moves with the same buttons coalesce.
+/// through a queue that a writer loop drains, and pointer moves with the same buttons coalesce.
 /// </para>
 /// <para>
 /// The client asks for the next update as soon as one is decoded, so the frame rate follows the network and
@@ -63,8 +67,10 @@ public sealed class VncClient : IDisposable
     private const int MaxNameLength = 64 * 1024;
     private const int MaxClipboardLength = 16 * 1024 * 1024;
 
-    private readonly Socket _socket;
-    private readonly NetworkStream _stream;
+    private readonly Socket? _socket;
+    private readonly Stream _stream;
+    private readonly SemaphoreSlim _outSignal = new(0, 1);
+    private readonly CancellationTokenSource _lifetime = new();
     private readonly VncStreamReader _reader;
     private readonly VncDecoders _decoders;
     private readonly ILogger _logger;
@@ -72,7 +78,7 @@ public sealed class VncClient : IDisposable
     private readonly List<byte[]> _outbox = new();
     private int _pendingPointer = -1;   // index in _outbox of a pointer move that a newer one may replace
     private byte _lastPointerMask;      // buttons of the latest pointer event queued
-    private Thread? _receiveThread, _sendThread;
+    private bool _started;
     private volatile bool _disposed;
     private int _disconnectRaised;
     private volatile VncFramebuffer _framebuffer;
@@ -82,7 +88,7 @@ public sealed class VncClient : IDisposable
     private readonly bool _canJpeg;
     private bool _fullRefresh;
 
-    private VncClient(Socket socket, NetworkStream stream, VncStreamReader reader, VncConnectOptions options,
+    private VncClient(Socket? socket, Stream stream, VncStreamReader reader, VncConnectOptions options,
         int width, int height, string name, int minor, int security)
     {
         _socket = socket;
@@ -126,16 +132,16 @@ public sealed class VncClient : IDisposable
     /// <summary>Rectangles decoded per encoding (see <see cref="VncEncoding.Name"/>).</summary>
     public IReadOnlyDictionary<int, int> EncodingCounts => _decoders.Counts;
 
-    /// <summary>The desktop changed size; <see cref="Framebuffer"/> is the new one (receive thread).</summary>
+    /// <summary>The desktop changed size; <see cref="Framebuffer"/> is the new one (receive loop).</summary>
     public event Action<VncFramebuffer>? FramebufferResized;
 
-    /// <summary>Pixels changed: after each update, and during long ones (receive thread).</summary>
+    /// <summary>Pixels changed: after each update, and during long ones (receive loop).</summary>
     public event Action? FramebufferUpdated;
 
-    /// <summary>The remote pointer's shape changed (receive thread).</summary>
+    /// <summary>The remote pointer's shape changed (receive loop).</summary>
     public event Action<VncCursorShape>? CursorChanged;
 
-    /// <summary>The server's clipboard text (receive thread).</summary>
+    /// <summary>The server's clipboard text (receive loop).</summary>
     public event Action<string>? ClipboardReceived;
 
     public event Action? Bell;
@@ -154,52 +160,49 @@ public sealed class VncClient : IDisposable
     public static async Task<VncClient> ConnectAsync(VncConnectOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+        Socket? socket = null;
+        Stream? stream = null;
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(options.ConnectTimeout);
         try
         {
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-            using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            if (Uri.TryCreate(options.Host, UriKind.Absolute, out var uri) && uri.Scheme is "ws" or "wss")
             {
-                timeout.CancelAfter(options.ConnectTimeout);
-                try
-                {
-                    await socket.ConnectAsync(options.Host, options.Port, timeout.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-                {
-                    throw new VncException($"{options} did not answer within {options.ConnectTimeout.TotalSeconds:0} s.", new TimeoutException());
-                }
-                catch (SocketException ex)
-                {
-                    throw new VncException($"Cannot connect to {options}: {ex.Message}", ex);
-                }
+                var webSocket = new ClientWebSocket();
+                stream = new VncWebSocketStream(webSocket);
+                webSocket.Options.AddSubProtocol("binary");
+                await webSocket.ConnectAsync(uri, timeout.Token).ConfigureAwait(false);
             }
-
-            var stream = new NetworkStream(socket, ownsSocket: true) { ReadTimeout = (int)options.ConnectTimeout.TotalMilliseconds };
-            using var registration = cancellationToken.Register(static s => ((Socket)s!).Dispose(), socket);
-            try
+            else
             {
-                return await Task.Run(() => HandshakeAsync(socket, stream, options, cancellationToken), cancellationToken).ConfigureAwait(false);
+                if (OperatingSystem.IsBrowser()) throw new VncException("Browser VNC requires a ws:// or wss:// server address.");
+                socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+                await socket.ConnectAsync(options.Host, options.Port, timeout.Token).ConfigureAwait(false);
+                stream = new NetworkStream(socket, ownsSocket: true);
             }
-            catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                throw new VncException($"The connection to {options} failed during the handshake: {ex.Message}", ex);
-            }
+            return await HandshakeAsync(socket, stream, options, timeout).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
-            socket.Dispose();
+            stream?.Dispose();
+            socket?.Dispose();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (ex is OperationCanceledException)
+                throw new VncException($"{options} did not answer within {options.ConnectTimeout.TotalSeconds:0} s.", new TimeoutException());
+            if (ex is IOException or SocketException or WebSocketException or ObjectDisposedException)
+                throw new VncException($"Cannot connect to {options}: {ex.Message}", ex);
             throw;
         }
     }
 
-    private static async Task<VncClient> HandshakeAsync(Socket socket, NetworkStream stream, VncConnectOptions options, CancellationToken ct)
+    private static async Task<VncClient> HandshakeAsync(Socket? socket, Stream stream, VncConnectOptions options, CancellationTokenSource timeout)
     {
+        var ct = timeout.Token;
         var reader = new VncStreamReader(stream);
 
         // ProtocolVersion: "RFB xxx.yyy\n".
-        var versionBytes = reader.ReadBytes(12);
+        var versionBytes = await reader.ReadBytesAsync(12, ct);
         var version = Encoding.ASCII.GetString(versionBytes);
         if (!version.StartsWith("RFB ", StringComparison.Ordinal) || version[7] != '.' || version[11] != '\n'
             || !int.TryParse(version.AsSpan(4, 3), NumberStyles.None, CultureInfo.InvariantCulture, out int major)
@@ -208,72 +211,73 @@ public sealed class VncClient : IDisposable
         // 3.3 ≤ ours ≤ 3.8. Apple's 3.889 and any 4.x speak 3.8; UltraVNC's 3.4 / 3.6 are 3.3.
         int minor = major > 3 || serverMinor >= 8 ? 8 : serverMinor == 7 ? 7 : serverMinor >= 3 ? 3 : -1;
         if (major < 3 || minor < 0) throw new VncProtocolException($"{options} speaks RFB {major}.{serverMinor}, which is too old.");
-        stream.Write(Encoding.ASCII.GetBytes($"RFB 003.00{minor}\n"));
+        await stream.WriteAsync(Encoding.ASCII.GetBytes($"RFB 003.00{minor}\n"), ct);
 
         // Security.
         int security;
         if (minor >= 7)
         {
-            int count = reader.ReadByte();
-            if (count == 0) throw new VncAuthenticationException(ReadReason(reader, "The server refused the connection."), false);
-            var types = reader.ReadBytes(count);
+            int count = await reader.ReadByteAsync(ct);
+            if (count == 0) throw new VncAuthenticationException(await ReadReasonAsync(reader, ct, "The server refused the connection."), false);
+            var types = await reader.ReadBytesAsync(count, ct);
             security = ChooseSecurity(types, options);
-            stream.WriteByte((byte)security);
+            await stream.WriteAsync(new byte[] { (byte)security }, ct);
         }
         else
         {
-            security = (int)reader.ReadUInt32();
-            if (security == 0) throw new VncAuthenticationException(ReadReason(reader, "The server refused the connection."), false);
+            security = (int)await reader.ReadUInt32Async(ct);
+            if (security == 0) throw new VncAuthenticationException(await ReadReasonAsync(reader, ct, "The server refused the connection."), false);
             if (security is not (1 or 2)) throw new VncProtocolException($"The server wants security type {security}, which is not supported.");
         }
 
         int authType = security;
-        if (security == 16) authType = TightSecurity(reader, stream);
+        if (security == 16) authType = await TightSecurityAsync(reader, stream, ct);
 
         bool usedPassword = false;
         if (authType == 2)
         {
-            var challenge = reader.ReadBytes(16);
+            var challenge = await reader.ReadBytesAsync(16, ct);
             string? password = options.Password;
             if (password == null && options.PasswordProvider != null)
             {
                 // The user may take a while: no read timeout while asking.
-                password = await options.PasswordProvider(ct).ConfigureAwait(false);
+                timeout.CancelAfter(Timeout.InfiniteTimeSpan);
+                try { password = await options.PasswordProvider(ct).ConfigureAwait(false); }
+                finally { timeout.CancelAfter(options.ConnectTimeout); }
             }
             if (password == null) throw new VncPasswordRequiredException();
-            stream.Write(VncDes.EncryptChallenge(password, challenge));
+            await stream.WriteAsync(VncDes.EncryptChallenge(password, challenge), ct);
             usedPassword = true;
         }
 
         // SecurityResult: always in 3.8, only after authentication before.
         if (minor >= 8 || authType == 2)
         {
-            uint result = reader.ReadUInt32();
+            uint result = await reader.ReadUInt32Async(ct);
             if (result != 0)
             {
-                string reason = minor >= 8 ? ReadReason(reader, "") : "";
+                string reason = minor >= 8 ? await ReadReasonAsync(reader, ct, "") : "";
                 if (reason.Length == 0) reason = usedPassword ? "The password was not accepted." : "The server refused the connection.";
                 throw new VncAuthenticationException(reason, usedPassword);
             }
         }
 
         // ClientInit / ServerInit.
-        stream.WriteByte(options.Shared ? (byte)1 : (byte)0);
-        int width = reader.ReadUInt16(), height = reader.ReadUInt16();
-        reader.Skip(16);   // the server's pixel format: ours is set below
-        uint nameLength = reader.ReadUInt32();
+        await stream.WriteAsync(new byte[] { options.Shared ? (byte)1 : (byte)0 }, ct);
+        int width = await reader.ReadUInt16Async(ct), height = await reader.ReadUInt16Async(ct);
+        await reader.SkipAsync(16, ct);   // the server's pixel format: ours is set below
+        uint nameLength = await reader.ReadUInt32Async(ct);
         if (nameLength > MaxNameLength) throw new VncProtocolException("The desktop name is implausibly long.");
-        string name = Encoding.UTF8.GetString(reader.ReadBytes((int)nameLength));
+        string name = Encoding.UTF8.GetString(await reader.ReadBytesAsync((int)nameLength, ct));
         if (security == 16)
         {
             // Tight interaction capabilities: server messages, client messages, encodings (16 bytes each).
-            int serverMessages = reader.ReadUInt16(), clientMessages = reader.ReadUInt16(), encodings = reader.ReadUInt16();
-            reader.Skip(2);
-            reader.Skip(16L * (serverMessages + clientMessages + encodings));
+            int serverMessages = await reader.ReadUInt16Async(ct), clientMessages = await reader.ReadUInt16Async(ct), encodings = await reader.ReadUInt16Async(ct);
+            await reader.SkipAsync(2, ct);
+            await reader.SkipAsync(16L * (serverMessages + clientMessages + encodings), ct);
         }
         if (width == 0 || height == 0) throw new VncProtocolException("The server has an empty desktop.");
 
-        stream.ReadTimeout = Timeout.Infinite;
         var client = new VncClient(socket, stream, reader, options, width, height, name, minor, security);
         client._logger.LogInformation("VNC connected to {Server}: {Name} {Width}×{Height}, RFB 3.{Minor}, security {Security}",
             options, name, width, height, minor, security);
@@ -301,37 +305,37 @@ public sealed class VncClient : IDisposable
     };
 
     // Tight security (TightVNC 2.x): no tunnel, then None or VNC authentication.
-    private static int TightSecurity(VncStreamReader reader, NetworkStream stream)
+    private static async Task<int> TightSecurityAsync(VncStreamReader reader, Stream stream, CancellationToken ct)
     {
-        uint tunnels = reader.ReadUInt32();
+        uint tunnels = await reader.ReadUInt32Async(ct);
         if (tunnels > 0)
         {
-            reader.Skip(16L * tunnels);
-            stream.Write(new byte[] { 0, 0, 0, 0 });   // NOTUNNEL
+            await reader.SkipAsync(16L * tunnels, ct);
+            await stream.WriteAsync(new byte[] { 0, 0, 0, 0 }, ct);   // NOTUNNEL
         }
-        uint authCount = reader.ReadUInt32();
+        uint authCount = await reader.ReadUInt32Async(ct);
         if (authCount == 0) return 1;
         var codes = new List<int>();
         for (uint i = 0; i < authCount; i++)
         {
-            codes.Add(reader.ReadInt32());
-            reader.Skip(12);
+            codes.Add(await reader.ReadInt32Async(ct));
+            await reader.SkipAsync(12, ct);
         }
         int chosen = codes.Contains(1) ? 1 : codes.Contains(2) ? 2 : throw new VncAuthenticationException(
             "The server's Tight security only offers authentication schemes this viewer does not support.", false);
-        Span<byte> code = stackalloc byte[4];
+        var code = new byte[4];
         BinaryPrimitives.WriteInt32BigEndian(code, chosen);
-        stream.Write(code);
+        await stream.WriteAsync(code, ct);
         return chosen;
     }
 
-    private static string ReadReason(VncStreamReader reader, string fallback)
+    private static async Task<string> ReadReasonAsync(VncStreamReader reader, CancellationToken ct, string fallback)
     {
         try
         {
-            uint length = reader.ReadUInt32();
+            uint length = await reader.ReadUInt32Async(ct);
             if (length > MaxNameLength) return fallback;
-            var text = Encoding.UTF8.GetString(reader.ReadBytes((int)length)).Trim();
+            var text = Encoding.UTF8.GetString(await reader.ReadBytesAsync((int)length, ct)).Trim();
             return text.Length > 0 ? text : fallback;
         }
         catch (Exception ex) when (ex is IOException or EndOfStreamException)
@@ -342,43 +346,44 @@ public sealed class VncClient : IDisposable
 
     // ---- session -------------------------------------------------------------------
 
-    /// <summary>Sets the pixel format and encodings, asks for the first frame and starts the receive and send threads.</summary>
+    /// <summary>Sets the pixel format and encodings, asks for the first frame and starts the receive and send loops.</summary>
     public void Start()
     {
-        if (_receiveThread != null) throw new InvalidOperationException("The client is already started.");
+        if (_started) throw new InvalidOperationException("The client is already started.");
         ObjectDisposedException.ThrowIf(_disposed, this);
         Enqueue(SetPixelFormatMessage());
         Enqueue(SetEncodingsMessage());
         Enqueue(UpdateRequest(incremental: false));
-        _sendThread = new Thread(SendLoop) { IsBackground = true, Name = "Miko VNC send" };
-        _receiveThread = new Thread(ReceiveLoop) { IsBackground = true, Name = "Miko VNC receive" };
-        _sendThread.Start();
-        _receiveThread.Start();
+        _started = true;
+        _ = SendLoopAsync();
+        // TCP may use the blocking compressed decoders; WebSocket only offers buffered Raw/CopyRect.
+        if (_stream is VncWebSocketStream) _ = ReceiveLoopAsync();
+        else _ = Task.Run(ReceiveLoopAsync);
     }
 
-    private void ReceiveLoop()
+    private async Task ReceiveLoopAsync()
     {
         Exception? failure = null;
         try
         {
             while (!_disposed)
             {
-                int type = _reader.ReadByte();
+                int type = await _reader.ReadByteAsync(_lifetime.Token);
                 switch (type)
                 {
-                    case 0: FramebufferUpdate(); break;
+                    case 0: await FramebufferUpdateAsync(); break;
                     case 1:
                         // SetColourMapEntries: not used with a true-colour format, but skip it if sent.
-                        _reader.Skip(3);
-                        int colors = _reader.ReadUInt16();
-                        _reader.Skip(6L * colors);
+                        await _reader.SkipAsync(3, _lifetime.Token);
+                        int colors = await _reader.ReadUInt16Async(_lifetime.Token);
+                        await _reader.SkipAsync(6L * colors, _lifetime.Token);
                         break;
                     case 2: Bell?.Invoke(); break;
                     case 3:
-                        _reader.Skip(3);
-                        uint length = _reader.ReadUInt32();
+                        await _reader.SkipAsync(3, _lifetime.Token);
+                        uint length = await _reader.ReadUInt32Async(_lifetime.Token);
                         if (length > MaxClipboardLength) throw new VncProtocolException("The server's clipboard text is implausibly long.");
-                        var text = Encoding.Latin1.GetString(_reader.ReadBytes((int)length));
+                        var text = Encoding.Latin1.GetString(await _reader.ReadBytesAsync((int)length, _lifetime.Token));
                         ClipboardReceived?.Invoke(text);
                         break;
                     default:
@@ -398,16 +403,16 @@ public sealed class VncClient : IDisposable
         RaiseDisconnected(failure);
     }
 
-    private void FramebufferUpdate()
+    private async Task FramebufferUpdateAsync()
     {
-        _reader.Skip(1);
-        int count = _reader.ReadUInt16();
+        await _reader.SkipAsync(1, _lifetime.Token);
+        int count = await _reader.ReadUInt16Async(_lifetime.Token);
         bool unbounded = count == 0xFFFF;   // with LastRect, the server may not know the count up front
         long lastNotify = Environment.TickCount64;
         for (int i = 0; unbounded || i < count; i++)
         {
-            int x = _reader.ReadUInt16(), y = _reader.ReadUInt16(), w = _reader.ReadUInt16(), h = _reader.ReadUInt16();
-            int encoding = _reader.ReadInt32();
+            int x = await _reader.ReadUInt16Async(_lifetime.Token), y = await _reader.ReadUInt16Async(_lifetime.Token), w = await _reader.ReadUInt16Async(_lifetime.Token), h = await _reader.ReadUInt16Async(_lifetime.Token);
+            int encoding = await _reader.ReadInt32Async(_lifetime.Token);
             switch (encoding)
             {
                 case VncEncoding.LastRect:
@@ -418,21 +423,37 @@ public sealed class VncClient : IDisposable
                     Resize(w, h);
                     continue;
                 case VncEncoding.ExtendedDesktopSize:
-                    int screens = _reader.ReadByte();
-                    _reader.Skip(3 + 16L * screens);
+                    int screens = await _reader.ReadByteAsync(_lifetime.Token);
+                    await _reader.SkipAsync(3 + 16L * screens, _lifetime.Token);
                     // y is the status: 0 = the size is in effect (a change, or the answer to our request).
                     if (y == 0) Resize(w, h);
                     continue;
                 case VncEncoding.Cursor:
+                    if (_stream is VncWebSocketStream)
+                    {
+                        if (w > 512 || h > 512) throw new VncProtocolException("Pointer is too large.");
+                        await _reader.EnsureAsync(w * h * 4 + ((w + 7) / 8) * h, _lifetime.Token);
+                    }
                     var shape = _decoders.ReadCursor(x, y, w, h);
                     CursorChanged?.Invoke(shape);
                     continue;
                 case VncEncoding.DesktopName:
-                    uint length = _reader.ReadUInt32();
+                    uint length = await _reader.ReadUInt32Async(_lifetime.Token);
                     if (length > MaxNameLength) throw new VncProtocolException("The desktop name is implausibly long.");
-                    DesktopName = Encoding.UTF8.GetString(_reader.ReadBytes((int)length));
+                    DesktopName = Encoding.UTF8.GetString(await _reader.ReadBytesAsync((int)length, _lifetime.Token));
                     DesktopNameChanged?.Invoke(DesktopName);
                     continue;
+            }
+            if (_stream is VncWebSocketStream)
+            {
+                _framebuffer.Check(x, y, w, h);
+                int bytes = encoding switch
+                {
+                    VncEncoding.Raw => checked(w * h * 4),
+                    VncEncoding.CopyRect => 4,
+                    _ => throw new VncProtocolException($"WebSocket server used unrequested encoding {encoding}.")
+                };
+                await _reader.EnsureAsync(bytes, _lifetime.Token);
             }
             _decoders.Decode(_framebuffer, encoding, x, y, w, h);
             // A big first frame over a slow link shows as it arrives.
@@ -488,7 +509,7 @@ public sealed class VncClient : IDisposable
             }
             _outbox.Add(message);
             _pendingPointer = move ? _outbox.Count - 1 : -1;
-            Monitor.Pulse(_outLock);
+            SignalOutput();
         }
     }
 
@@ -541,7 +562,7 @@ public sealed class VncClient : IDisposable
         var list = new List<int>();
         // CopyRect first: it is cheap, and servers take the first acceptable encoding for each rectangle.
         list.Add(VncEncoding.CopyRect);
-        foreach (var e in _encodings)
+        foreach (var e in _stream is VncWebSocketStream ? Array.Empty<int>() : _encodings)
             if (e is not (VncEncoding.CopyRect or VncEncoding.Raw) && !list.Contains(e)) list.Add(e);
         list.Add(VncEncoding.Raw);
         list.Add(VncEncoding.Cursor);
@@ -570,6 +591,11 @@ public sealed class VncClient : IDisposable
         return message;
     }
 
+    private void SignalOutput()
+    {
+        if (_outSignal.CurrentCount == 0) _outSignal.Release();
+    }
+
     private void Enqueue(byte[] message)
     {
         lock (_outLock)
@@ -577,26 +603,26 @@ public sealed class VncClient : IDisposable
             if (_disposed) return;
             _outbox.Add(message);
             _pendingPointer = -1;
-            Monitor.Pulse(_outLock);
+            SignalOutput();
         }
     }
 
-    private void SendLoop()
+    private async Task SendLoopAsync()
     {
         var batch = new List<byte[]>();
         try
         {
             while (true)
             {
+                await _outSignal.WaitAsync(_lifetime.Token).ConfigureAwait(false);
                 lock (_outLock)
                 {
-                    while (_outbox.Count == 0 && !_disposed) Monitor.Wait(_outLock);
                     if (_disposed) return;
                     batch.AddRange(_outbox);
                     _outbox.Clear();
                     _pendingPointer = -1;
                 }
-                foreach (var message in batch) _stream.Write(message);
+                foreach (var message in batch) await _stream.WriteAsync(message, _lifetime.Token).ConfigureAwait(false);
                 batch.Clear();
             }
         }
@@ -604,7 +630,7 @@ public sealed class VncClient : IDisposable
         {
             if (!_disposed) _logger.LogWarning(ex, "VNC send to {Host}:{Port} failed", Host, Port);
             // The receive thread notices the broken connection too; closing makes sure it does.
-            try { _socket.Dispose(); } catch { }
+            try { _stream.Dispose(); } catch { }
         }
     }
 
@@ -615,10 +641,10 @@ public sealed class VncClient : IDisposable
         {
             bool byUser = _disposed;
             _disposed = true;
-            Monitor.PulseAll(_outLock);
+            _lifetime.Cancel();
             if (byUser) return;
         }
-        try { _socket.Dispose(); } catch { }
+        try { _stream.Dispose(); } catch { }
         Disconnected?.Invoke(failure);
     }
 
@@ -629,10 +655,10 @@ public sealed class VncClient : IDisposable
         {
             if (_disposed) return;
             _disposed = true;
-            Monitor.PulseAll(_outLock);
+            _lifetime.Cancel();
         }
-        try { _socket.Shutdown(SocketShutdown.Both); } catch { }
+        try { _socket?.Shutdown(SocketShutdown.Both); } catch { }
         _stream.Dispose();
-        _socket.Dispose();
+        _socket?.Dispose();
     }
 }

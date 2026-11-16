@@ -56,7 +56,7 @@ public static class VncAddress
 
     /// <summary>
     /// Parses <c>host</c>, <c>host:display</c> (below 100: port 5900 + display), <c>host:port</c>,
-    /// <c>host::port</c> and <c>[ipv6]:port</c>.
+    /// <c>host::port</c>, <c>[ipv6]:port</c>, and complete <c>ws://</c> / <c>wss://</c> URLs.
     /// </summary>
     public static bool TryParse(string? text, out string host, out int port)
     {
@@ -64,6 +64,14 @@ public static class VncAddress
         port = DefaultPort;
         if (string.IsNullOrWhiteSpace(text)) return false;
         text = text.Trim();
+        if (Uri.TryCreate(text, UriKind.Absolute, out var websocket) && websocket.Scheme is "ws" or "wss")
+        {
+            if (websocket.UserInfo.Length != 0 || websocket.Fragment.Length != 0) return false;
+            host = websocket.AbsoluteUri;
+            port = websocket.Port;
+            return true;
+        }
+        if (text.Contains("://") && !text.StartsWith("vnc://", StringComparison.OrdinalIgnoreCase)) return false;
         if (text.StartsWith("vnc://", StringComparison.OrdinalIgnoreCase)) text = text[6..].TrimEnd('/');
 
         string? portText = null;
@@ -115,6 +123,7 @@ public static class VncAddress
     /// <summary>The address as written back into the connect form.</summary>
     public static string Format(string host, int port)
     {
+        if (Uri.TryCreate(host, UriKind.Absolute, out var uri) && uri.Scheme is "ws" or "wss") return host;
         string h = host.Contains(':') ? $"[{host}]" : host;
         return port == DefaultPort ? h : $"{h}::{port.ToString(CultureInfo.InvariantCulture)}";
     }

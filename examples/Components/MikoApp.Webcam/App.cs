@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Miko.Components.Webcam;
 using Miko.Hosting;
 using Miko.Ionic;
+using Miko.Routing;
 
 namespace MikoApp.Webcam;
 
@@ -9,25 +10,25 @@ namespace MikoApp.Webcam;
 public static class App
 {
     /// <param name="device">Optional Ezviz form preset; it never starts a connection automatically.</param>
-    /// <param name="page">Receives the page for the desktop head's offscreen verification.</param>
-    public static MikoAppContext CreateContext(Action<MikoAppBuilder>? configure = null, WebcamDevice? device = null, Action<WebcamDemo>? page = null)
+    /// <param name="page">Receives each configuration page for offscreen verification.</param>
+    /// <param name="monitor">Receives each monitor page for offscreen verification.</param>
+    public static MikoAppContext CreateContext(Action<MikoAppBuilder>? configure = null, WebcamDevice? device = null,
+        Action<WebcamDemo>? page = null, Action<WebcamMonitor>? monitor = null)
     {
         var builder = MikoAppBuilder.CreateDefault();
         builder.UseTitle("MikoWebcam").UseSize(420, 860);
         builder.AddIonic();
         builder.Services.AddMikoRtsp();
         builder.Services.AddSingleton(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(15) });
-        builder.Services.AddSingleton<WebcamDemoSession>();
+        builder.Services.AddSingleton(WebcamConnectionSettings.FromEnvironment(device));
+        if (page != null) builder.Services.AddSingleton(page);
+        if (monitor != null) builder.Services.AddSingleton(monitor);
         // A provider belongs to a mounted monitor. Reconnecting uses a fresh snapshot;
         // pending operations on a discarded monitor still target its original provider.
-        builder.Services.AddTransient<IWebcamProvider>(sp => sp.GetRequiredService<WebcamDemoSession>().RequireProvider());
-        var settings = WebcamConnectionSettings.FromEnvironment(device);
-        builder.UseRootComponent(() =>
-        {
-            var demo = new WebcamDemo { Settings = settings };
-            page?.Invoke(demo);
-            return demo.Build();
-        });
+        builder.Services.AddTransient<IWebcamProvider>(sp =>
+            sp.GetRequiredService<NavigationManager>().GetState<WebcamConnection>()?.Provider
+            ?? throw new InvalidOperationException("Navigate with a connection before mounting the webcam."));
+        builder.UseGeneratedRoutes();
         configure?.Invoke(builder);
         return builder.Build();
     }

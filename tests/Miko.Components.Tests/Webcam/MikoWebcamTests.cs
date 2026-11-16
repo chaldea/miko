@@ -314,6 +314,17 @@ public sealed class MikoWebcamTests : IDisposable
     // ---- actions ---------------------------------------------------------------------------
 
     [Fact]
+    public void Should_stop_ptz_when_parent_removes_camera()
+    {
+        var host = new RemovalHost(_webcam);
+        host.Build();
+        _webcam.StartPtz(PtzDirection.Left);
+        host.Remove();
+        Render();
+        _provider.Ptz.ShouldBe(["start Left Normal", "stop Left"]);
+    }
+
+    [Fact]
     public void Should_Take_A_Snapshot()
     {
         WebcamSnapshot? taken = null;

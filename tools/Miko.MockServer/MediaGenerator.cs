@@ -48,6 +48,9 @@ public static class MediaGenerator
                 "-g", "10", "-keyint_min", "10", "-sc_threshold", "0", "-bf", "0", "-x264-params", "aud=1:repeat-headers=1",
                 "-movflags", "+faststart", Path.Combine(directory, "demo.mp4"));
             await Run(ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-i", Path.Combine(directory, "demo.mp4"), "-c:v", "copy", "-bsf:v", "h264_mp4toannexb", "-f", "h264", Path.Combine(directory, "panorama.h264"));
+            await Run(ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-i", Path.Combine(directory, "demo.mp4"),
+                "-c:v", "copy", "-hls_time", "2", "-hls_playlist_type", "vod", "-hls_flags", "independent_segments",
+                "-hls_segment_filename", Path.Combine(directory, "webcam-%03d.ts"), Path.Combine(directory, "webcam.m3u8"));
         }
         finally { File.Delete(temporary); }
         Console.WriteLine($"Generated original demo assets in {directory}");

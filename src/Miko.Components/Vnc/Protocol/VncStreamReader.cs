@@ -3,19 +3,59 @@ using System.Buffers.Binary;
 namespace Miko.Components.Vnc.Protocol;
 
 /// <summary>
-/// Blocking, buffered big-endian reads over the connection (RFB numbers are big-endian). Used by one
-/// thread; a closed connection surfaces as <see cref="EndOfStreamException"/> or <see cref="IOException"/>.
+/// Buffered big-endian reads (RFB numbers are big-endian), used by one receive loop.
+/// Async prefetch keeps WebSocket reads off the blocking decoder path. A closed connection surfaces
+/// as <see cref="EndOfStreamException"/> or <see cref="IOException"/>.
 /// </summary>
 internal sealed class VncStreamReader
 {
     private readonly Stream _stream;
-    private readonly byte[] _buffer = new byte[64 * 1024];
+    private byte[] _buffer = new byte[64 * 1024];
     private int _start, _end;
 
     public VncStreamReader(Stream stream) => _stream = stream;
 
     /// <summary>Bytes read from the network so far.</summary>
     public long BytesRead { get; private set; }
+
+    // Prefetch before using the synchronous pixel decoders on a browser's event loop.
+    public async ValueTask EnsureAsync(int count, CancellationToken ct = default)
+    {
+        if (count < 0 || count > 128 * 1024 * 1024) throw new InvalidDataException("RFB payload is too large.");
+        if (_end - _start >= count) return;
+        Buffer.BlockCopy(_buffer, _start, _buffer, 0, _end - _start);
+        _end -= _start;
+        _start = 0;
+        if (_buffer.Length < count) Array.Resize(ref _buffer, count);
+        while (_end < count)
+        {
+            int n = await _stream.ReadAsync(_buffer.AsMemory(_end), ct).ConfigureAwait(false);
+            if (n == 0) throw new EndOfStreamException("The server closed the connection.");
+            _end += n;
+            BytesRead += n;
+        }
+    }
+
+    public async ValueTask<byte[]> ReadBytesAsync(int count, CancellationToken ct = default)
+    { await EnsureAsync(count, ct).ConfigureAwait(false); return ReadBytes(count); }
+    public async ValueTask<byte> ReadByteAsync(CancellationToken ct = default)
+    { await EnsureAsync(1, ct).ConfigureAwait(false); return ReadByte(); }
+    public async ValueTask<ushort> ReadUInt16Async(CancellationToken ct = default)
+    { await EnsureAsync(2, ct).ConfigureAwait(false); return ReadUInt16(); }
+    public async ValueTask<uint> ReadUInt32Async(CancellationToken ct = default)
+    { await EnsureAsync(4, ct).ConfigureAwait(false); return ReadUInt32(); }
+    public async ValueTask<int> ReadInt32Async(CancellationToken ct = default)
+    { await EnsureAsync(4, ct).ConfigureAwait(false); return ReadInt32(); }
+    public async ValueTask SkipAsync(long count, CancellationToken ct = default)
+    {
+        while (count > 0)
+        {
+            int n = (int)Math.Min(count, 64 * 1024);
+            await EnsureAsync(n, ct).ConfigureAwait(false);
+            Skip(n);
+            count -= n;
+        }
+    }
 
     public byte ReadByte()
     {

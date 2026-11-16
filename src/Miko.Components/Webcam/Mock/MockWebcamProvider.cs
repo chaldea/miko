@@ -13,12 +13,12 @@ public sealed class MockWebcamProvider : IWebcamProvider
 
     public MockWebcamProvider(string source = "rtsp://127.0.0.1:8554/webcam", TimeProvider? clock = null, string? fallbackSource = null)
     {
-        if (!Uri.TryCreate(source, UriKind.Absolute, out var uri) || uri.Scheme != "rtsp")
-            throw new ArgumentException("Expected an rtsp:// URI.", nameof(source));
+        if (!Uri.TryCreate(source, UriKind.Absolute, out var uri) || uri.Scheme is not ("rtsp" or "http" or "https"))
+            throw new ArgumentException("Expected an RTSP or HTTP(S) media URI.", nameof(source));
         _source = uri;
         _clock = clock ?? TimeProvider.System;
         if (fallbackSource != null && (!Uri.TryCreate(fallbackSource, UriKind.Absolute, out var fallback) || fallback.Scheme is not ("http" or "https")))
-            throw new ArgumentException("Expected an HTTP(S) MP4 fallback URI.", nameof(fallbackSource));
+            throw new ArgumentException("Expected an HTTP(S) media fallback URI.", nameof(fallbackSource));
         _fallbackSource = fallbackSource;
     }
 
@@ -32,9 +32,12 @@ public sealed class MockWebcamProvider : IWebcamProvider
     public Task<WebcamStream> GetLiveStreamAsync(WebcamDevice device, WebcamQuality quality, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(new WebcamStream(_fallbackSource ?? _source.AbsoluteUri,
-            _fallbackSource == null ? "application/x-rtsp" : "video/mp4", WebcamTransport.LocalNetwork, WebcamQuality.Smooth)
-        { Panorama = View(device), Loop = _fallbackSource != null });
+        var source = _fallbackSource ?? _source.AbsoluteUri;
+        bool http = new Uri(source).Scheme is "http" or "https";
+        var mime = !http ? "application/x-rtsp" : new Miko.Platform.Video.VideoSourceDescriptor(source).IsHls
+            ? "application/vnd.apple.mpegurl" : "video/mp4";
+        return Task.FromResult(new WebcamStream(source, mime, WebcamTransport.LocalNetwork, WebcamQuality.Smooth)
+        { Panorama = View(device), Loop = http });
     }
 
     public Task StartPtzAsync(WebcamDevice device, PtzDirection direction, PtzSpeed speed, CancellationToken cancellationToken = default)

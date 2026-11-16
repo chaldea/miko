@@ -129,12 +129,3 @@ public sealed class WebcamConnectionSettings
 
 /// <summary>A connection keeps its own provider snapshot, including while old async calls finish.</summary>
 public sealed record WebcamConnection(WebcamDevice Device, IWebcamProvider Provider, WebcamQuality Quality);
-
-/// <summary>App-local state; a newly mounted MikoWebcam receives the active provider once through DI.</summary>
-public sealed class WebcamDemoSession(IVideoBackend backend, HttpClient http)
-{
-    public WebcamConnection? Connection { get; private set; }
-    public void Connect(WebcamConnectionSettings settings) => Connection = settings.CreateConnection(backend, http);
-    public void Disconnect() => Connection = null;
-    public IWebcamProvider RequireProvider() => Connection?.Provider ?? throw new InvalidOperationException("Connect before mounting the webcam.");
-}

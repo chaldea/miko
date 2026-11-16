@@ -18,11 +18,21 @@ public static class MockApplication
         builder.Services.AddHostedService(sp => sp.GetRequiredService<VncServer>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspServer>());
         builder.Services.AddSingleton<DanmakuStore>();
+        // Public, credential-free demo resources must be readable by a separately hosted WASM app.
+        builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()
+            .WithExposedHeaders("Content-Range", "Accept-Ranges")));
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNameCaseInsensitive = true);
         builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 16 * 1024);
         var app = builder.Build();
+        app.UseCors();
+        app.UseWebSockets();
+        app.MapGet("/vnc", VncWebSocket.HandleAsync);
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-        app.MapGet("/", () => Results.Ok(new { video = "/media/demo.mp4", danmaku = "/api/danmaku", vncPort = options.VncPort, rtspPort = options.RtspPort, rtspPath = "/webcam" }));
+        app.MapGet("/", () => Results.Ok(new { video = "/media/demo.mp4", webcamHls = "/media/webcam.m3u8", vncWebSocket = "/vnc", danmaku = "/api/danmaku", vncPort = options.VncPort, rtspPort = options.RtspPort, rtspPath = "/webcam" }));
+        app.MapMethods("/media/webcam.m3u8", ["GET", "HEAD"], () =>
+            Results.File(Path.Combine(options.MediaDirectory, "webcam.m3u8"), "application/vnd.apple.mpegurl"));
+        app.MapMethods("/media/{segment:regex(^webcam-[0-9]+\\.ts$)}", ["GET", "HEAD"], (string segment) =>
+            Results.File(Path.Combine(options.MediaDirectory, segment), "video/mp2t", enableRangeProcessing: true));
         app.MapMethods("/media/demo.mp4", ["GET", "HEAD"], (MediaLibrary media) =>
             Results.File(media.Mp4Path, "video/mp4", enableRangeProcessing: true));
         app.MapGet("/api/danmaku", (double? from, double? to, DanmakuStore store) =>

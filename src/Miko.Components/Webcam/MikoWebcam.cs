@@ -1010,6 +1010,8 @@ public sealed class MikoWebcam : ComponentBase, IDisposable
 
     private void Repaint() => Engine?.RequestRepaint();
 
+    protected override void OnDispose() => Dispose();
+
     public void Dispose()
     {
         if (_disposed) return;

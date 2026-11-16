@@ -585,6 +585,8 @@ public sealed partial class MikoVnc : ComponentBase, IDisposable
 
     private bool IsTouchPlatform => (PlatformService?.Platform ?? PlatformInfo.Detect()) is HostPlatform.Android or HostPlatform.Ios;
 
+    protected override void OnDispose() => Dispose();
+
     public void Dispose()
     {
         if (_disposed) return;

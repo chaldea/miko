@@ -7,6 +7,20 @@ namespace Miko.Components.Tests.Webcam;
 
 public sealed class MockWebcamProviderTests
 {
+    [Theory]
+    [InlineData("https://demo.example/media/webcam.m3u8", "application/vnd.apple.mpegurl")]
+    [InlineData("http://localhost:8080/media/demo.mp4", "video/mp4")]
+    public async Task Should_use_explicit_http_source_with_panorama_and_loop(string url, string mime)
+    {
+        var services = new ServiceCollection().AddMikoMockWebcam(url);
+        using var container = services.BuildServiceProvider();
+        var stream = await container.GetRequiredService<IWebcamProvider>().GetLiveStreamAsync(new WebcamDevice("mock"), WebcamQuality.Smooth);
+        stream.Source.ShouldBe(url);
+        stream.MimeType.ShouldBe(mime);
+        stream.Loop.ShouldBeTrue();
+        stream.Panorama.ShouldNotBeNull();
+    }
+
     [Fact]
     public async Task Should_clamp_ptz_and_zoom_to_panorama_edges_and_stop_motion()
     {

@@ -26,9 +26,10 @@ public static class App
     }
 
     /// <summary>Creates the preview's own engine/DI container while sharing only explicit playground state.</summary>
-    public static MikoAppContext CreatePreviewContext(DemoState state, PlatformInfo platform)
+    public static MikoAppContext CreatePreviewContext(DemoState state, PlatformInfo platform, DemoNetworkVideo? networkVideo = null)
     {
         var builder = CreateDefault("Miko · Isolated Component Preview", (int)IsolatedDemoPreview.LogicalWidth, (int)IsolatedDemoPreview.LogicalHeight);
+        if (networkVideo != null) builder.Services.AddSingleton(networkVideo);
         builder.Services.AddSingleton(state);
         builder.Services.AddSingleton(platform);
         builder.Services.AddSingleton<IPlatformInfo>(platform);
@@ -69,6 +70,8 @@ public static class App
         });
         builder.Services.AddMikoPlayer();
         builder.Services.AddSingleton<IVideoBackend, DemoVideoBackend>();
+        builder.Services.AddSingleton<MockMediaConnection>();
+        builder.Services.AddTransient<Miko.Components.Webcam.IWebcamProvider>(sp => sp.GetRequiredService<MockMediaConnection>().Provider);
         builder.AddIonic(options => options.Theme = new IonicTheme
         {
             Palette = new PaletteToken { Primary = "512bd4" },

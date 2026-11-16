@@ -9,6 +9,23 @@ namespace Miko.Components.Tests.Vnc;
 /// </summary>
 public sealed class VncClientTests : IDisposable
 {
+    [Fact]
+    public async Task Should_timeout_when_tcp_server_accepts_without_sending_handshake()
+    {
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            var pending = listener.AcceptTcpClientAsync();
+            var connect = VncClient.ConnectAsync(new("127.0.0.1", ((System.Net.IPEndPoint)listener.LocalEndpoint).Port)
+                { ConnectTimeout = TimeSpan.FromMilliseconds(150) });
+            using var accepted = await pending;
+            var error = await Should.ThrowAsync<VncException>(() => connect.WaitAsync(TimeSpan.FromSeconds(3)));
+            error.InnerException.ShouldBeOfType<TimeoutException>();
+        }
+        finally { listener.Stop(); }
+    }
+
     private readonly FakeVncServer _server = new();
     private VncClient? _client;
 
