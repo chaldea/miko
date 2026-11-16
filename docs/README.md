@@ -20,6 +20,15 @@ The demo is the Miko component playground: a Miko app (docs/Miko.Docs.Demo, Ioni
 Components) drawn on a canvas by the Miko.Browser host (docs/Miko.Docs.Demo.Browser). It needs the
 wasm-tools workload (`WasmBuildNative=true`).
 
+The **VNC** and **Webcam** entries connect to `tools/Miko.MockServer` over WebSocket
+and HTTP HLS. Run `dotnet run --project tools/Miko.MockServer --no-launch-profile`,
+then open `/#/vnc` or `/#/webcam` in the demo and click Connect after entering the
+server address. The defaults are `ws://localhost:8080/vnc` and
+`http://localhost:8080/media/webcam.m3u8`. HTTPS deployments require HTTPS/WSS media
+endpoints. See [Mock Server](../tools/Miko.MockServer/README.md) for deployment and
+application registration. The Player's default local demonstration remains available;
+HTTP sources in the Browser head now use the browser's real video decoder.
+
 ## Publish one static site
 
 ~~~sh

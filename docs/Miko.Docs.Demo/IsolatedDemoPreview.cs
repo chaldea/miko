@@ -47,6 +47,7 @@ public sealed class IsolatedDemoPreview : ComponentBase
     [Inject] public MikoEngine OuterEngine { get; set; } = null!;
     [Inject] public MikoInteractionController OuterController { get; set; } = null!;
     [Inject] public IGraphicsFactory Graphics { get; set; } = null!;
+    [Inject] public DemoNetworkVideo? NetworkVideo { get; set; }
 
     public IsolatedDemoPreview()
     {
@@ -80,7 +81,7 @@ public sealed class IsolatedDemoPreview : ComponentBase
         {
             DemoRegion.Properties => App.CreateRegionContext<DemoPropertyPanel>(State, Platform, 260, 640),
             DemoRegion.Console => App.CreateRegionContext<DemoConsolePanel>(State, Platform, 1200, 142),
-            _ => App.CreatePreviewContext(State, Platform),
+            _ => App.CreatePreviewContext(State, Platform, NetworkVideo),
         };
         _preview.Controller.Engine.GraphicsDevice = OuterEngine.GraphicsDevice;
         _preview.Controller.AttachInputMethod(_canvas.InputMethod);

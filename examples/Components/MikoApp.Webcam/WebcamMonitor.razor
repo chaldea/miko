@@ -1,0 +1,75 @@
+@page "/monitor"
+@namespace MikoApp.Webcam
+@using Miko.Platform
+@using Miko.Routing
+
+<IonPage>
+    <IonHeader>
+        <IonToolbar>
+            <Start>
+                <IonButtons><IonButton Class="webcam-back" OnClick="Back">返回</IonButton></IonButtons>
+            </Start>
+            <ChildContent><IonTitle>@(_name ?? "摄像头监控")</IonTitle></ChildContent>
+        </IonToolbar>
+    </IonHeader>
+    @if (_connection != null)
+    {
+        <div class="webcam-monitor" Style="@MonitorStyle">
+            <MikoWebcam @ref="_webcam" Device="@_connection.Device" Quality="@_connection.Quality"
+                        Texts="@WebcamTexts.Chinese" Style="@WebcamStyle" InfoLoaded="@(info => _name = info.Name)" />
+        </div>
+    }
+</IonPage>
+
+@code {
+    [Inject] public IPlatformService? Platform { get; set; }
+    [Inject] public Action<WebcamMonitor>? Created { get; set; }
+
+    public MikoWebcam? Webcam => _webcam;
+    private WebcamConnection? _connection;
+    private MikoWebcam? _webcam;
+    private string? _name;
+    private IDisposable? _back;
+
+    protected override void OnInitialized()
+    {
+        _connection = NavigationManager!.GetState<WebcamConnection>();
+        if (_connection == null)
+        {
+            NavigationManager.NavigateTo("/", NavigationDirection.Root);
+            return;
+        }
+
+        _name = _connection.Device.Name ?? _connection.Device.Serial;
+        _back = Platform?.Back.Register(() =>
+        {
+            if (NavigationManager.CurrentPath != "/monitor") return false;
+            Back();
+            return true;
+        }, BackButtonPriority.Navigation);
+        Created?.Invoke(this);
+    }
+
+    public void Back()
+    {
+        if (NavigationManager!.CurrentPath != "/monitor") return;
+        // Stop pending requests, held PTZ and fullscreen before the next route renders.
+        _webcam?.Dispose();
+        NavigationManager.NavigateTo("/", NavigationDirection.Back);
+    }
+
+    protected override void OnDispose()
+    {
+        _back?.Dispose();
+        _webcam?.Dispose();
+        _webcam = null;
+        _connection = null;
+    }
+
+    private static readonly Style MonitorStyle = new()
+    {
+        Display = Display.Flex, FlexDirection = FlexDirection.Column, FlexGrow = 1, MinHeight = Length.Px(0),
+        OverflowY = Overflow.Auto, PaddingBottom = Length.SafeAreaInsetBottom, BackgroundColor = Color.FromHex("#f3f5f9"),
+    };
+    private static readonly Style WebcamStyle = new() { FlexGrow = 1 };
+}

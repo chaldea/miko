@@ -1,0 +1,51 @@
+@using Miko.Components.Vnc
+@using Miko.Components.Webcam
+
+@if (Mode == "vnc")
+{
+    <div Style="@Fill"><MikoVnc Texts="@VncLabels" /></div>
+}
+else if (_device != null)
+{
+    <div>
+        <IonButton OnClick="Disconnect">Connection settings</IonButton>
+        <MikoWebcam @key="_device" Device="@_device" Style="@CameraStyle" />
+    </div>
+}
+else
+{
+    <div Style="@FormStyle">
+        <h3>Mock webcam</h3>
+        <p>Enter the camera's HLS or MP4 address, then connect.</p>
+        <IonInput Label="Video URL" LabelPlacement="stacked" @bind-Value="_url" />
+        <IonButton Expand="block" OnClick="Connect">Connect</IonButton>
+        @if (_error != null)
+        {
+            <p>@_error</p>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Mode { get; set; } = "webcam";
+    [Inject] public MockMediaConnection Connection { get; set; } = null!;
+    private string? _url = "http://localhost:8080/media/webcam.m3u8";
+    private WebcamDevice? _device;
+    private string? _error;
+    private static readonly VncTexts VncLabels = new()
+    {
+        ConnectDescription = "Connect to the mock desktop over WebSocket",
+        AddressPlaceholder = "ws://localhost:8080/vnc",
+        InvalidAddress = "Enter a WebSocket URL, for example ws://localhost:8080/vnc."
+    };
+    private static readonly Style Fill = new() { Width = Length.Percent(100), Height = Length.Px(606) };
+    private static readonly Style CameraStyle = new() { Width = Length.Percent(100), Height = Length.Px(470) };
+    private static readonly Style FormStyle = new() { Padding = Length.Px(16) };
+    private void Connect()
+    {
+        try { _device = Connection.Connect(_url ?? ""); _error = null; }
+        catch (ArgumentException error) { _error = error.Message; }
+        StateHasChanged();
+    }
+    private void Disconnect() { _device = null; StateHasChanged(); }
+}

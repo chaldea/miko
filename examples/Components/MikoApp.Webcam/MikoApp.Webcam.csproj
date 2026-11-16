@@ -10,5 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/Miko.Components/Miko.Components.csproj" />
+    <ProjectReference Include="../../../src/Miko.Ionic/Miko.Ionic.csproj" />
   </ItemGroup>
 </Project>

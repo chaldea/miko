@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Miko.Components.Webcam;
 using Miko.Graphics;
+using Miko.Routing;
 using Miko.Windowing.Native;
 using Miko.Windowing.Video;
 
@@ -13,26 +15,40 @@ namespace MikoApp.Webcam.Desktop;
 /// </summary>
 internal static class WebcamVerification
 {
-    public static int Run(string directory)
+    public static int Run(string directory, bool connect = true)
     {
         Directory.CreateDirectory(directory);
         MikoApp.Webcam.WebcamDemo? page = null;
+        MikoApp.Webcam.WebcamMonitor? monitor = null;
         var context = MikoApp.Webcam.App.CreateContext(builder =>
         {
             builder.UseSystemVideo();
             builder.UseDesktopNative();
-        }, page: p => page = p);
+        }, page: p => page = p, monitor: p => monitor = p);
+        var navigation = context.Services.GetRequiredService<NavigationManager>();
         var controller = context.Controller;
         var engine = context.Engine;
         using var surface = engine.Graphics.CreateSurface(420, 860);
         controller.Initialize(surface.Context, 420, 860);
+        for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
+        if (page == null || navigation.CurrentPath != "/" || monitor != null)
+        { Console.WriteLine("Expected configuration page before connecting."); return 2; }
+        File.WriteAllBytes(Path.Combine(directory, "config-miko.png"), surface.EncodePng());
+        page.SelectProvider("ezviz");
+        for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
+        File.WriteAllBytes(Path.Combine(directory, "config-ezviz.png"), surface.EncodePng());
+        page.SelectProvider("miko");
+        for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
+        if (!connect) { Console.WriteLine("configuration pages rendered; no connection started"); return 0; }
+        page.Connect();
+        if (page.ErrorMessage != null) { Console.WriteLine(page.ErrorMessage); return 2; }
 
         MikoWebcam? webcam = null;
         var clock = Stopwatch.StartNew();
         while (clock.Elapsed < TimeSpan.FromSeconds(20))
         {
             Frame(controller, surface, 420, 860);
-            webcam ??= page?.Webcam;
+            webcam ??= monitor?.Webcam;
             if (webcam is { State: WebcamState.Playing or WebcamState.Error }) break;
             Thread.Sleep(16);
         }
@@ -58,8 +74,13 @@ internal static class WebcamVerification
         File.WriteAllBytes(Path.Combine(directory, "fullscreen.png"), landscape.EncodePng());
         webcam.ToggleFullscreen();
         for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
-        webcam.Dispose();
-        return webcam.State == WebcamState.Error ? 1 : 0;
+        bool failed = webcam.State == WebcamState.Error;
+        monitor!.Back();
+        for (int i = 0; i < 5; i++) Frame(controller, surface, 420, 860);
+        File.WriteAllBytes(Path.Combine(directory, "config-return.png"), surface.EncodePng());
+        engine.DisposeVideoSessions();
+        Console.WriteLine($"back: route={navigation.CurrentPath}, webcam={monitor.Webcam != null}");
+        return failed || navigation.CurrentPath != "/" ? 1 : 0;
     }
 
     /// <summary>

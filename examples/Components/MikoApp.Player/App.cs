@@ -31,7 +31,13 @@ public static class App
         var builder = MikoAppBuilder.CreateDefault();
         builder.UseTitle("MikoPlayer").UseSize(960, 760);
         builder.Services.AddMikoPlayer();
-        builder.UseRootComponent(() => new PlayerDemo { LocalSource = localSource, InitialSource = initialSource }.Build());
+        var mockUrl = Environment.GetEnvironmentVariable("MIKO_MOCK_HTTP")?.TrimEnd('/');
+        builder.UseRootComponent(() => new PlayerDemo
+        {
+            LocalSource = localSource,
+            InitialSource = initialSource ?? (string.IsNullOrWhiteSpace(mockUrl) ? null : mockUrl + "/media/demo.mp4"),
+            MockServer = mockUrl,
+        }.Build());
         configure?.Invoke(builder);
         return builder.Build();
     }

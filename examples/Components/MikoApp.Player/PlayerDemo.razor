@@ -1,4 +1,6 @@
 @namespace MikoApp.Player
+@using System.Net.Http.Json
+@implements IDisposable
 
 <div Style="@PageStyle">
     <h2 Style="@HeadingStyle">MikoPlayer</h2>
@@ -8,7 +10,16 @@
         <button @onclick="OpenLocal" Style="@ButtonStyle">Local</button>
         <button @onclick="OpenHls" Style="@ButtonStyle">HLS</button>
     </div>
-    <MikoPlayer Source="@_source" AutoPlay="true" Loop="true" Danmaku="@Comments" />
+    <MikoPlayer @ref="_player" Source="@_source" AutoPlay="true" Loop="true" Danmaku="@_comments" />
+    @if (!string.IsNullOrWhiteSpace(MockServer))
+    {
+        <div Style="@SourceStyle">
+            <input @bind="_comment" Style="@InputStyle" />
+            <button @onclick="SendComment" Style="@ButtonStyle">Send</button>
+            <button @onclick="RefreshComments" Style="@ButtonStyle">Refresh comments</button>
+        </div>
+        <div Style="@HintStyle">@_commentStatus</div>
+    }
     <div Style="@HintStyle">Touch: tap shows or hides the controls, double tap plays or pauses, long press plays at 2x. Mouse: click plays or pauses.</div>
 </div>
 
@@ -18,9 +29,57 @@
 
     /// <summary>The source opened first; <see cref="LocalSource"/> when null.</summary>
     [Parameter] public string? InitialSource { get; set; }
+    [Parameter] public string? MockServer { get; set; }
 
     private string _source = "";
     private string _sourceInput = "";
+    private MikoPlayer? _player;
+    private string _comment = "";
+    private string _commentStatus = "";
+    private IReadOnlyList<DanmakuItem> _comments = Comments;
+    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private readonly CancellationTokenSource _stop = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(MockServer)) await RefreshComments();
+    }
+
+    private async Task RefreshComments()
+    {
+        try
+        {
+            var items = await _http.GetFromJsonAsync<MockComment[]>(MockServer + "/api/danmaku", _stop.Token) ?? [];
+            _comments = items.Select(x => new DanmakuItem(TimeSpan.FromSeconds(x.Time), x.Text,
+                Enum.Parse<DanmakuMode>(x.Mode, true), Color.FromHex(x.Color))).ToArray();
+            _commentStatus = $"{items.Length} comments loaded";
+        }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+        catch (Exception ex) { _commentStatus = ex.Message; }
+        StateHasChanged();
+    }
+
+    private async Task SendComment()
+    {
+        if (string.IsNullOrWhiteSpace(_comment)) return;
+        try
+        {
+            using var response = await _http.PostAsJsonAsync(MockServer + "/api/danmaku", new
+            {
+                time = _player?.Controller.Position.TotalSeconds ?? 0,
+                text = _comment.Trim(), mode = "scroll", color = "#ffffff",
+            }, _stop.Token);
+            response.EnsureSuccessStatusCode();
+            _comment = "";
+            await RefreshComments();
+        }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+        catch (Exception ex) { _commentStatus = ex.Message; }
+        StateHasChanged();
+    }
+
+    private sealed record MockComment(double Time, string Text, string Mode, string Color);
+    public void Dispose() { _stop.Cancel(); _stop.Dispose(); _http.Dispose(); }
 
     protected override void OnInitialized()
     {

@@ -1,6 +1,9 @@
 using System.Runtime.Versioning;
 using Miko.Browser;
 using Miko.Browser.Native;
+using Miko.Browser.Video;
+using Miko.Graphics;
+using Microsoft.Extensions.DependencyInjection;
 using Miko.Docs.Demo;
 #if DEBUG
 using Miko.Diagnostics;
@@ -13,7 +16,11 @@ public static class Program
 {
     public static void Main()
     {
-        var context = App.CreateContext(builder => builder.UseBrowserNative());
+        var context = App.CreateContext(builder =>
+        {
+            builder.UseBrowserNative();
+            builder.Services.AddSingleton(sp => new DemoNetworkVideo(new BrowserVideoBackend(sp.GetRequiredService<IGraphicsFactory>())));
+        });
 #if DEBUG
         FrameProfiler.Enable(static profile =>
         {

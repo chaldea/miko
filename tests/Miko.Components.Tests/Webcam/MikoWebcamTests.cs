@@ -189,6 +189,45 @@ public sealed class MikoWebcamTests : IDisposable
     // ---- pan / tilt ------------------------------------------------------------------------
 
     [Fact]
+    public void Should_apply_mock_panorama_ptz_to_the_video_and_stop_on_device_change()
+    {
+        _webcam.Dispose();
+        _root.Children.Clear();
+        var provider = new Miko.Components.Webcam.Mock.MockWebcamProvider(clock: _clock);
+        _webcam = new MikoWebcam
+        {
+            Engine = _engine, Provider = provider, Clock = _clock, Device = new WebcamDevice("mock"),
+        };
+        _root.Children.Add(_webcam.Build());
+        Render();
+        var stream = _webcam.Stream!;
+        var video = _root.FindByTagName("video").Single().ShouldBeOfType<VideoElement>();
+        var initial = video.SourceRegion!.Value;
+        _webcam.StartPtz(PtzDirection.Right);
+        _clock.Advance(TimeSpan.FromSeconds(.5));
+        Render();
+        video.SourceRegion!.Value.X.ShouldBeGreaterThan(initial.X);
+        _webcam.StopPtz();
+        var stopped = video.SourceRegion;
+        _clock.Advance(TimeSpan.FromSeconds(1));
+        Render();
+        video.SourceRegion.ShouldBe(stopped);
+        _webcam.StartPtz(PtzDirection.Left);
+        _webcam.Device = new WebcamDevice("next");
+        _webcam.Build();
+        Render();
+        var oldCrop = stream.Panorama!.Crop;
+        _clock.Advance(TimeSpan.FromSeconds(1));
+        Render();
+        stream.Panorama.Crop.ShouldBe(oldCrop);
+        video.SourceRegion.ShouldBe(initial);
+        _webcam.Dispose();
+        _clock.Advance(TimeSpan.FromSeconds(1));
+        Render();
+        video.SourceRegion.ShouldBe(initial);
+    }
+
+    [Fact]
     public void Should_Turn_While_An_Arrow_Is_Held_And_Stop_On_Release()
     {
         var (x, y) = PadPoint(PtzDirection.Right);
@@ -273,6 +312,17 @@ public sealed class MikoWebcamTests : IDisposable
     }
 
     // ---- actions ---------------------------------------------------------------------------
+
+    [Fact]
+    public void Should_stop_ptz_when_parent_removes_camera()
+    {
+        var host = new RemovalHost(_webcam);
+        host.Build();
+        _webcam.StartPtz(PtzDirection.Left);
+        host.Remove();
+        Render();
+        _provider.Ptz.ShouldBe(["start Left Normal", "stop Left"]);
+    }
 
     [Fact]
     public void Should_Take_A_Snapshot()

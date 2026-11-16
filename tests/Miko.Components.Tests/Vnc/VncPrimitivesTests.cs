@@ -9,6 +9,16 @@ namespace Miko.Components.Tests.Vnc;
 /// <summary>The managed building blocks: zlib inflater, DES (VNC authentication), keysyms, addresses.</summary>
 public class VncPrimitivesTests
 {
+    [Theory]
+    [InlineData("ws://localhost:8080/vnc")]
+    [InlineData("wss://example.com/mock/vnc?token=demo")]
+    public void Should_roundtrip_websocket_addresses(string address)
+    {
+        VncAddress.TryParse(address, out var host, out var port).ShouldBeTrue();
+        host.ShouldBe(address);
+        VncAddress.Format(host, port).ShouldBe(address);
+    }
+
     // ---- inflater: against the BCL's zlib, fed piece by piece as VNC servers send it ------------
 
     [Theory]

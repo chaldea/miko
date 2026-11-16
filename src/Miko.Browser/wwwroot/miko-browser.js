@@ -1,4 +1,5 @@
 import { dotnet } from '../../_framework/dotnet.js';
+import { videoInterop } from './miko-video.js';
 
 let callbacks;
 let canvas;
@@ -522,6 +523,7 @@ async function requestGeolocationPermission() {
 
 const runtime = await dotnet.create();
 const { setModuleImports, getAssemblyExports, runMain } = runtime;
+setModuleImports('miko-video', videoInterop);
 setModuleImports('miko-browser', {
     initialize,
     requestFrame,

@@ -74,6 +74,20 @@ public class VideoElement : Element
     /// <summary>是否渲染默认控件层。预留扩展点，当前版本不绘制原生控件。</summary>
     public bool Controls { get; set; }
 
+    private RectF? _sourceRegion;
+    /// <summary>Optional normalized source crop (0..1), fitted without stretching. Call MikoEngine.RequestRepaint after changing it.</summary>
+    public RectF? SourceRegion
+    {
+        get => _sourceRegion;
+        set
+        {
+            if (value is { } r && (!float.IsFinite(r.X) || !float.IsFinite(r.Y) || !float.IsFinite(r.Width) || !float.IsFinite(r.Height) ||
+                r.X < 0 || r.Y < 0 || r.Width <= 0 || r.Height <= 0 || r.X + r.Width > 1.000001f || r.Y + r.Height > 1.000001f))
+                throw new ArgumentOutOfRangeException(nameof(value));
+            _sourceRegion = value;
+        }
+    }
+
     /// <summary>首帧到达前显示的占位图源（与 <see cref="ImageElement"/> 同路径解码）。</summary>
     public string? Poster { get; set; }
 

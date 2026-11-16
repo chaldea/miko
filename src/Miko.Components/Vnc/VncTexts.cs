@@ -10,7 +10,7 @@ public sealed record VncTexts
     public string ConnectTitle { get; init; } = "Remote desktop";
     public string ConnectDescription { get; init; } = "Connect to a VNC server";
     public string Address { get; init; } = "Address";
-    public string AddressPlaceholder { get; init; } = "host, host:display or host::port";
+    public string AddressPlaceholder { get; init; } = "host:display, host::port or ws(s)://host/vnc";
     public string Password { get; init; } = "Password";
     public string PasswordPlaceholder { get; init; } = "Asked for when needed";
     public string Connect { get; init; } = "Connect";
@@ -69,7 +69,7 @@ public sealed record VncTexts
         ConnectTitle = "远程桌面",
         ConnectDescription = "连接到 VNC 服务器",
         Address = "地址",
-        AddressPlaceholder = "主机、主机:显示号 或 主机::端口",
+        AddressPlaceholder = "主机::端口 或 ws(s)://主机/vnc",
         Password = "密码",
         PasswordPlaceholder = "需要时再询问",
         Connect = "连接",

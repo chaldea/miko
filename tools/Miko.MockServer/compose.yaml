@@ -1,0 +1,14 @@
+services:
+  mock:
+    image: chaldea/miko-mock
+    restart: unless-stopped
+    build:
+      context: .
+      tags:
+        - chaldea/miko-mock:latest
+    ports:
+      - "8080:8080"
+      - "5900:5900"
+      - "8554:8554"
+    environment:
+      Mock__MaxConnections: 64

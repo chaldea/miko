@@ -132,6 +132,12 @@ else
                 </ChildContent>
             </IonContent>
         }
+        else if (Current.Id is "vnc" or "webcam")
+        {
+            <IonContent Class="demo-page-content">
+                <MockMediaDemo @key="Current.Id" Mode="@Current.Id" />
+            </IonContent>
+        }
         else
         {
             @if (Current.Category == DemoCategory.Ionic)

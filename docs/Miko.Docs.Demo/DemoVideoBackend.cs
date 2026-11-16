@@ -8,13 +8,16 @@ namespace Miko.Docs.Demo;
 /// Demo-only media backend: a fixed locally drawn picture and a deterministic 60-second clock.
 /// It deliberately does not claim to decode MP4/HLS in the Browser host.
 /// </summary>
-internal sealed class DemoVideoBackend(IGraphicsFactory graphics) : IVideoBackend
+internal sealed class DemoVideoBackend(IGraphicsFactory graphics, DemoNetworkVideo? network = null) : IVideoBackend
 {
     public VideoBackendCapabilities Capabilities { get; } = new(false, false, ["video/mp4"]);
 
     public IVideoSession CreateSession(VideoSourceDescriptor source, VideoSessionOptions options)
-        => new DemoVideoSession(graphics, options);
+        => source.IsNetwork && network != null ? network.Backend.CreateSession(source, options) : new DemoVideoSession(graphics, options);
 }
+
+/// <summary>The host's network video backend, shared with the isolated component preview.</summary>
+public sealed record DemoNetworkVideo(IVideoBackend Backend);
 
 internal sealed class DemoVideoSession : IVideoSession
 {
