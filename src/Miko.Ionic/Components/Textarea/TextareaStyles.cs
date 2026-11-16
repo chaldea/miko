@@ -28,6 +28,9 @@ internal static class TextareaStyles
 {
     internal static CssObject GenStyle(string mode, IonicTheme t)
     {
+        // textarea.md.scss --padding-top / textarea.ios.vars.scss $textarea-ios-padding-top.
+        var paddingTop = Length.Px(mode == "ios" ? 10 : 18);
+        var paddingBottom = Length.Px(8); // textarea.vars.scss $textarea-padding-bottom
         var css = new CssObject
         {
             // ion-textarea — the host. Ionic's :host: display block, relative, full width, 44px
@@ -55,7 +58,8 @@ internal static class TextareaStyles
             },
 
             // .textarea-wrapper — the flex click surface. Grows to fill the host, aligns children to
-            // the top on the cross axis (multi-line text sits top-aligned), carries the field padding.
+            // the top on the cross axis. Only horizontal padding belongs here; vertical padding
+            // is shared by the label and native field so their first lines align.
             [$".ion-textarea.{mode} .textarea-wrapper"] = new()
             {
                 Display = Display.Flex,
@@ -66,7 +70,7 @@ internal static class TextareaStyles
                 MinHeight = Length.Px(t.InputMinHeight),
                 PaddingTop = Length.Px(0),
                 PaddingRight = Length.Px(t.InputPaddingEnd),
-                PaddingBottom = Length.Px(8),           // $textarea-padding-bottom
+                PaddingBottom = Length.Px(0),
                 PaddingLeft = Length.Px(t.InputPaddingStart),
                 BackgroundColor = t.InputBackground,
                 BoxSizing = BoxSizing.BorderBox,
@@ -106,16 +110,22 @@ internal static class TextareaStyles
                 Color = t.InputTextColor,
                 FontSize = Length.Px(t.InputFontSize),
                 WhiteSpace = WhiteSpace.PreWrap,
+                PaddingTop = paddingTop,
+                PaddingRight = Length.Px(0),
+                PaddingBottom = paddingBottom,
+                PaddingLeft = Length.Px(0),
                 BoxSizing = BoxSizing.BorderBox,
                 ZIndex = 1,
             },
 
-            // .label-text-wrapper — centers the label vertically; caps its width so it never eats the
-            // whole line. (Ionic clips overflow; Miko has no text-overflow so overflow hides it.)
+            // .label-text-wrapper — aligns the label with the first line of the native textarea,
+            // including its top/bottom padding (textarea.scss). Caps the label width.
             [$".ion-textarea.{mode} .label-text-wrapper"] = new()
             {
                 Display = Display.Flex,
                 MaxWidth = Length.Px(200),
+                PaddingTop = paddingTop,
+                PaddingBottom = paddingBottom,
             },
             [$".ion-textarea.{mode} .label-text"] = new()
             {
@@ -216,10 +226,27 @@ internal static class TextareaStyles
             [$".ion-textarea.{mode}.textarea-label-placement-stacked .label-text-wrapper"] = new()
             {
                 MaxWidth = Length.Percent(100),
+                PaddingTop = Length.Px(0),
+                PaddingBottom = Length.Px(0),
             },
             [$".ion-textarea.{mode}.textarea-label-placement-floating .label-text-wrapper"] = new()
             {
                 MaxWidth = Length.Percent(100),
+                PaddingTop = Length.Px(0),
+                PaddingBottom = Length.Px(0),
+            },
+            // textarea.scss resets --padding-top for labels above the field and separates
+            // the field with an 8px margin. Bottom padding remains on the native textarea,
+            // including when Rows/AutoGrow sizes it.
+            [$".ion-textarea.{mode}.textarea-label-placement-stacked .native-textarea"] = new()
+            {
+                PaddingTop = Length.Px(0),
+                MarginTop = Length.Px(8),
+            },
+            [$".ion-textarea.{mode}.textarea-label-placement-floating .native-textarea"] = new()
+            {
+                PaddingTop = Length.Px(0),
+                MarginTop = Length.Px(8),
             },
         };
 

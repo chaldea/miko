@@ -59,8 +59,10 @@ internal static class InputStyles
                 Position = Position.Relative,
                 FlexGrow = 1,
                 AlignItems = AlignItems.Stretch,
-                Height = Length.Percent(100),
-                MinHeight = Length.Px(t.InputMinHeight),
+                // input.scss inherits both values from the host, including the taller
+                // stacked/floating minimum. A fixed 44px minimum leaves the field too short.
+                Height = Css.Inherit,
+                MinHeight = Css.Inherit,
                 PaddingTop = Length.Px(0),
                 PaddingRight = Length.Px(t.InputPaddingEnd),
                 PaddingBottom = Length.Px(0),
@@ -230,6 +232,24 @@ internal static class InputStyles
             [$".ion-input.{mode}.input-label-placement-floating .label-text-wrapper"] = new()
             {
                 MaxWidth = Length.Percent(100),
+            },
+
+            // input.scss: stacked labels always use the label-floating transform. Moving
+            // down by half the unscaled line height provides the top inset; scaling from
+            // the top-left keeps the label aligned with the value. Outline needs its own
+            // notch layout (not yet ported), so this covers the default and solid fills.
+            [$".ion-input.{mode}.input-label-placement-stacked:not(.input-fill-outline) .label-text-wrapper"] = new()
+            {
+                TransformOrigin = TransformOrigin.TopLeft,
+                Transform = new Transform(
+                    new TransformFunction.TranslateY(Length.Percent(50)),
+                    new TransformFunction.Scale(0.75f, 0.75f)),
+                MaxWidth = Length.Percent(100f / 0.75f),
+                ZIndex = 2,
+            },
+            [$".ion-input.{mode}.input-label-placement-stacked:not(.input-fill-outline) .native-input"] = new()
+            {
+                MarginTop = Length.Px(1),
             },
         };
 
