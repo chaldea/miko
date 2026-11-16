@@ -356,6 +356,47 @@ public class IonTextareaTests : IonicComponentTestBase
 
     // ---- Box model ---------------------------------------------------------
 
+    [Theory]
+    [InlineData(Miko.Platform.HostPlatform.Android, true, "")]
+    [InlineData(Miko.Platform.HostPlatform.Android, true, "First line\nSecond line")]
+    [InlineData(Miko.Platform.HostPlatform.Ios, true, "")]
+    [InlineData(Miko.Platform.HostPlatform.Ios, true, "First line\nSecond line")]
+    [InlineData(Miko.Platform.HostPlatform.Android, false, "")]
+    [InlineData(Miko.Platform.HostPlatform.Android, false, "First line\nSecond line")]
+    [InlineData(Miko.Platform.HostPlatform.Ios, false, "")]
+    [InlineData(Miko.Platform.HostPlatform.Ios, false, "First line\nSecond line")]
+    public void IonTextarea_Notes_LabelAlignsWithFirstLineBelowTopInset(
+        Miko.Platform.HostPlatform platform, bool inItem, string value)
+    {
+        UsePlatform(platform);
+        Context.ViewportWidth = 390;
+        Context.AddStyleSheet(IonicStyleSheetFactory.CreateAllModes());
+
+        // Match InputPage's Notes field: default label placement and two native rows.
+        var cut = inItem
+            ? Context.Render<IonItem>(p => p.Add(nameof(IonItem.ChildContent),
+                (RenderFragment)(builder =>
+                {
+                    var textarea = builder.OpenComponent<IonTextarea>();
+                    textarea.Label = "Notes";
+                    textarea.Value = value;
+                    builder.CloseComponent();
+                })))
+            : RenderTextarea(Context, p => p.Add(nameof(IonTextarea.Value), value), label: "Notes");
+
+        var host = cut.GetBoxModel(cut.FindByClass("ion-textarea").Single())!;
+        var label = cut.GetBoxModel(cut.FindByClass("label-text").Single())!;
+        var native = cut.GetBoxModel(cut.FindByClass("native-textarea").Single())!;
+        var topInset = platform == Miko.Platform.HostPlatform.Ios ? 10f : 18f;
+
+        // Padding belongs to both the label and native field, so their first lines align
+        // even when the field is empty; the item must contain both rows and bottom spacing.
+        (label.Content.Y - host.Content.Y).ShouldBe(topInset, 0.5f);
+        native.Content.Y.ShouldBe(label.Content.Y, 0.5f);
+        native.Content.Height.ShouldBeGreaterThanOrEqualTo(label.Content.Height * 2 - 0.5f);
+        (host.Content.Bottom - native.Content.Bottom).ShouldBe(8f, 0.5f);
+    }
+
     [Fact]
     public void IonTextarea_BoxModel_SolidFillPadsWrapper()
     {

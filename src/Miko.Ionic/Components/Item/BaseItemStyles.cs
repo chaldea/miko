@@ -98,8 +98,9 @@ internal static class BaseItemStyles
         },
 
         // .input-wrapper — wraps the default slot (the label); grows to take the free space so
-        // the end slot / detail icon sit at the trailing edge.
-        [$".ion-item.{mode} .input-wrapper"] = new()
+        // the end slot / detail icon sit at the trailing edge. Ionic scopes this to the
+        // item's shadow root; do not match IonInput's own .input-wrapper inside the slot.
+        [$".ion-item.{mode} > .item-native > .item-inner > .input-wrapper"] = new()
         {
             Display = Display.Flex,
             AlignItems = AlignItems.Center,
