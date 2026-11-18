@@ -1,3 +1,17 @@
+# Reader Examples
+
+`MikoApp.Reader` shares a bookshelf and reader pages across Desktop, Android and iOS. The shelf lists ebooks and comics; selecting a title opens `BookReader` or `ComicReader`. Both readers include mobile directory, appearance and settings sheets, with component parameters available for customization. Returning to the shelf retains settings and directory index for the current session. The desktop head can add a local TXT, EPUB, PDF, CBZ or CBR file to the shelf. No reader-specific service registration is needed; the source owner disposes file handles after the window closes.
+
+```sh
+dotnet run --project examples/Components/MikoApp.Reader.Desktop
+dotnet run --project examples/Components/MikoApp.Reader.Desktop -- /path/to/book.epub
+dotnet run --project examples/Components/MikoApp.Reader.Desktop -- --verify /tmp/miko-reader-preview
+dotnet build examples/Components/MikoApp.Reader.Android -t:Run
+dotnet build examples/Components/MikoApp.Reader.iOS -t:Run -r iossimulator-arm64
+```
+
+Mobile commands require the matching workload/SDK and emulator or device; iOS also requires macOS/Xcode. `--verify` exercises shelf navigation and settings using real touch events, then writes phone and desktop screenshots without a window. See the [sample README](MikoApp.Reader/README.md) for launch details and [reader documentation](../../docs/Miko.Docs.Web/Content/components/reader.md) for provider APIs, settings and format limitations.
+
 # Player Examples
 
 The `MikoPlayer` demo page is shared; each platform head registers its system video backend and

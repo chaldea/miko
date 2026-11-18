@@ -6,6 +6,6 @@ Miko ships ready-made Razor component libraries on top of the built-in [elements
 | --- | --- | --- |
 | `Miko.Ionic` | Port of the Ionic Framework components, with Material Design and iOS modes. Used by every app template. | [Ionic components](./ionic/index.md) |
 | `Miko.Charts` | **Preview.** Animated charts ported from LiveCharts2: line, column, pie, gauge, scatter, financial, polar and map. | [Charts](./charts.md) |
-| `Miko.Components` | **Preview.** Native video player with danmaku, camera, barcode scanner, a network camera view with pan / tilt (Ezviz built in, RTSP on every mobile platform), and a VNC remote desktop. | [Network Camera](./webcam.md), [Remote Desktop](./vnc.md) |
+| `Miko.Components` | **Preview.** Native video player with danmaku, camera, barcode scanner, network camera, VNC remote desktop, and book/comic readers. | [Network Camera](./webcam.md), [Remote Desktop](./vnc.md), [Readers](./reader.md) |
 
 To build your own components, see [Razor Components](../guide/razor-components.md).

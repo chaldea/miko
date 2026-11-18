@@ -5,6 +5,10 @@
     <Project Path="Async/MikoApp.AsyncDemo/MikoApp.AsyncDemo.csproj" />
   </Folder>
   <Folder Name="/Components/">
+    <Project Path="Components/MikoApp.Reader/MikoApp.Reader.csproj" />
+    <Project Path="Components/MikoApp.Reader.Android/MikoApp.Reader.Android.csproj" />
+    <Project Path="Components/MikoApp.Reader.iOS/MikoApp.Reader.iOS.csproj" />
+    <Project Path="Components/MikoApp.Reader.Desktop/MikoApp.Reader.Desktop.csproj" />
     <Project Path="Components/MikoApp.Camera.Android/MikoApp.Camera.Android.csproj" />
     <Project Path="Components/MikoApp.Charts.Desktop/MikoApp.Charts.Desktop.csproj" />
     <Project Path="Components/MikoApp.Charts/MikoApp.Charts.csproj" />
