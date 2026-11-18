@@ -406,6 +406,10 @@
             "link": "/components/vnc"
           },
           {
+            "text": "Book and Comic Readers",
+            "link": "/components/reader"
+          },
+          {
             "text": "MCP Server",
             "link": "/mcp-server"
           },

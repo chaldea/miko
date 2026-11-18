@@ -6,8 +6,8 @@
     <IsPackable>true</IsPackable>
     <PackageId>Miko.Components</PackageId>
     <Authors>Miko</Authors>
-    <Description>Native player, camera, QR code scanner, network camera (webcam) and VNC remote desktop components for Miko.</Description>
-    <PackageTags>miko;components;player;video;camera;qrcode;scanner;webcam;rtsp;ezviz;vnc;rfb;remote-desktop;ui</PackageTags>
+    <Description>Native player, camera, scanner, webcam, VNC and book/comic reader components for Miko.</Description>
+    <PackageTags>miko;components;player;video;camera;qrcode;scanner;webcam;rtsp;ezviz;vnc;rfb;remote-desktop;reader;epub;pdf;cbz;cbr;ui</PackageTags>
     <PackageProjectUrl>https://github.com/chaldea/miko</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -24,6 +24,13 @@
     <ProjectReference Include="../Miko/Miko.csproj" />
     <!-- Barcode decoding for MikoBarcodeScanner: a managed port of ZXing (Apache-2.0), no native code. -->
     <PackageReference Include="ZXing.Net" Version="0.16.11" />
+    <!-- Readers: RAR decoding (MIT), PDF page rasterization (Apache-2.0), inert EPUB HTML parsing (MIT). -->
+    <PackageReference Include="SharpCompress" Version="0.50.9" />
+    <PackageReference Include="PdfPig.Rendering.Skia" Version="0.1.16.8" />
+    <PackageReference Include="AngleSharp" Version="1.10.4" />
+    <EmbeddedResource Include="../Miko.Ionic/Resources/svg/arrow-back-outline.svg;../Miko.Ionic/Resources/svg/list-outline.svg;../Miko.Ionic/Resources/svg/sunny-outline.svg;../Miko.Ionic/Resources/svg/moon-outline.svg;../Miko.Ionic/Resources/svg/options-outline.svg;../Miko.Ionic/Resources/svg/chevron-forward-outline.svg;../Miko.Ionic/Resources/svg/book-outline.svg">
+      <LogicalName>Miko.Reader.Icons.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="../Miko.Ionic/Resources/svg/chevron-back-outline.svg;../Miko.Ionic/Resources/svg/close-outline.svg;../Miko.Ionic/Resources/svg/flash-outline.svg;../Miko.Ionic/Resources/svg/flash-off-outline.svg;../Miko.Ionic/Resources/svg/camera-reverse-outline.svg;../Miko.Ionic/Resources/svg/images.svg;../Miko.Ionic/Resources/svg/flashlight.svg">
       <Link>Camera/Icons/%(Filename)%(Extension)</Link>
       <LogicalName>Miko.Camera.Icons.%(Filename)%(Extension)</LogicalName>

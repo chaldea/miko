@@ -73,6 +73,23 @@ The picture streams straight from the camera on the local network over RTSP (use
 
 The protocol is managed code (`VncClient`): RFB 3.3–3.8; None, VNC and Tight security; Raw, CopyRect, RRE, Hextile, Zlib, ZRLE and Tight with JPEG. zlib and DES are managed too, with no native package. See [Remote Desktop](../../docs/components/vnc.md) and [design](Vnc/DESIGN.md).
 
+## Book and Comic Readers
+
+`BookReader` and `ComicReader` share lazy directory/page loading, navigation, cancellation and a bounded cache. `FileReaderSource` reads TXT, EPUB, PDF, CBZ and CBR; `IReaderSource` and `DelegateReaderSource` also support separate remote directory/content APIs.
+
+```razor
+@using Miko.Components.Reader
+
+<BookReader Source="@book" FontSize="22" Theme="ReaderTheme.Sepia" />
+<ComicReader Source="@comic" PageMode="ComicPageMode.Double" Direction="ReaderDirection.RightToLeft" />
+```
+
+Books support typography, page margins, themes, eye care, measured pagination and scrolling. Comics support single/double pages, both reading directions and axes, fit-width, double-tap zoom and dragging. Both start with immersive mobile layouts: tap to reveal navigation/progress and open directory, appearance or settings sheets. Controls respect safe areas and do not resize the reading surface. `Immersive="false"` shows controls initially; `BackRequested` connects the reader to application navigation, and `Dimness` shades content without changing system brightness. The application owns and disposes sources; components own their loading controllers and decoded images.
+
+The [reader example](../../examples/Components/MikoApp.Reader/README.md) provides a shared bookshelf with Desktop, Android and iOS launch projects. Selecting an ebook or comic opens the matching reader with built-in settings; returning to the shelf retains its settings and chapter/page index for the session.
+
+EPUB currently reflows chapter text without publication CSS or illustrations. PDFs preserve original pages by default, including scans; `ReaderFileOptions.ReflowPdf` enables extracted text and adjustable typography, without OCR. See [readers](../../docs/Miko.Docs.Web/Content/components/reader.md), [design](Reader/DESIGN.md) and [examples](../../examples/Components/README.md).
+
 ## Platform Backends
 
 | Platform | System Pipeline | Notes |

@@ -1,0 +1,70 @@
+@namespace MikoApp.Reader
+
+@if (_selected is null)
+{
+    <ReaderShelf Books="@Books" Opened="@OpenBook" />
+}
+else if (_selected.IsComic)
+{
+    <ComicReader @ref="_comic" Source="@_selected.Source" Index="@_selected.Index"
+                 PageMode="@_selected.PageMode" Direction="@_selected.Direction" Orientation="@_selected.Orientation"
+                 FitWidth="@_selected.FitWidth" Background="@_selected.ComicBackground" Dimness="@_selected.Dimness"
+                 Texts="@ReaderTexts.Chinese" BackRequested="@ReturnToShelf" Style="@Fill" />
+}
+else
+{
+    <BookReader @ref="_book" Source="@_selected.Source" Index="@_selected.Index" Theme="@_selected.Theme"
+                FontSize="@_selected.FontSize" FontFamily="@_selected.FontFamily" LineSpacing="@_selected.LineSpacing"
+                ParagraphSpacing="@_selected.ParagraphSpacing" PageMargin="@_selected.PageMargin"
+                Mode="@_selected.Mode" EyeCare="@_selected.EyeCare" Dimness="@_selected.Dimness"
+                Texts="@ReaderTexts.Chinese" BackRequested="@ReturnToShelf" Style="@Fill" />
+}
+
+@code {
+    [Parameter] public IReaderSource? Source { get; set; }
+    [Parameter] public bool Comic { get; set; }
+    [Parameter] public string? FileTitle { get; set; }
+    private readonly List<ShelfBook> _books = ShelfBook.Samples();
+    public IReadOnlyList<ShelfBook> Books => _books;
+    public ReaderComponentBase? Reader => _selected == null ? null : _selected.IsComic ? _comic : _book;
+    public bool IsShelfVisible => _selected == null;
+    private ShelfBook? _selected;
+    private BookReader? _book;
+    private ComicReader? _comic;
+    private static readonly Style Fill = new() { Width = Length.Percent(100), Height = Length.Percent(100) };
+
+    protected override void OnInitialized()
+    {
+        if (Source != null) _books.Insert(0, new(FileTitle ?? "本地图书", "本地文件", Comic, Source, "#687d92"));
+    }
+
+    public void OpenBook(ShelfBook book)
+    {
+        _selected = book;
+        StateHasChanged();
+    }
+
+    public void ReturnToShelf()
+    {
+        if (_selected is { } selected && Reader is { } reader)
+        {
+            selected.Index = reader.CurrentIndex;
+            selected.Dimness = reader.Dimness;
+            if (reader is BookReader book)
+            {
+                selected.FontSize = book.FontSize; selected.FontFamily = book.FontFamily;
+                selected.LineSpacing = book.LineSpacing; selected.ParagraphSpacing = book.ParagraphSpacing;
+                selected.PageMargin = book.PageMargin; selected.Theme = book.Theme;
+                selected.EyeCare = book.EyeCare; selected.Mode = book.Mode;
+            }
+            if (reader is ComicReader comic)
+            {
+                selected.PageMode = comic.PageMode; selected.Direction = comic.Direction;
+                selected.Orientation = comic.Orientation; selected.FitWidth = comic.FitWidth;
+                selected.ComicBackground = comic.Background;
+            }
+        }
+        _selected = null;
+        StateHasChanged();
+    }
+}
