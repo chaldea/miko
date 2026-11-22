@@ -13,6 +13,7 @@ public static class MockApplication
         options.Validate();
         builder.Services.AddSingleton(options);
         builder.Services.AddSingleton<MediaLibrary>();
+        builder.Services.AddSingleton<MapFixture>();
         builder.Services.AddSingleton<VncServer>();
         builder.Services.AddSingleton<RtspServer>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<VncServer>());
@@ -28,13 +29,15 @@ public static class MockApplication
         app.UseWebSockets();
         app.MapGet("/vnc", VncWebSocket.HandleAsync);
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-        app.MapGet("/", () => Results.Ok(new { video = "/media/demo.mp4", webcamHls = "/media/webcam.m3u8", vncWebSocket = "/vnc", danmaku = "/api/danmaku", vncPort = options.VncPort, rtspPort = options.RtspPort, rtspPath = "/webcam" }));
+        app.MapGet("/", () => Results.Ok(new { map = "/api/map?longitude=116.397&latitude=39.916&zoom=14&width=640&height=480", video = "/media/demo.mp4", webcamHls = "/media/webcam.m3u8", vncWebSocket = "/vnc", danmaku = "/api/danmaku", vncPort = options.VncPort, rtspPort = options.RtspPort, rtspPath = "/webcam" }));
         app.MapMethods("/media/webcam.m3u8", ["GET", "HEAD"], () =>
             Results.File(Path.Combine(options.MediaDirectory, "webcam.m3u8"), "application/vnd.apple.mpegurl"));
         app.MapMethods("/media/{segment:regex(^webcam-[0-9]+\\.ts$)}", ["GET", "HEAD"], (string segment) =>
             Results.File(Path.Combine(options.MediaDirectory, segment), "video/mp2t", enableRangeProcessing: true));
         app.MapMethods("/media/demo.mp4", ["GET", "HEAD"], (MediaLibrary media) =>
             Results.File(media.Mp4Path, "video/mp4", enableRangeProcessing: true));
+        app.MapGet("/api/map", (double longitude, double latitude, int zoom, int width, int height, MapFixture map) =>
+            map.Render(longitude, latitude, zoom, width, height));
         app.MapGet("/api/danmaku", (double? from, double? to, DanmakuStore store) =>
         {
             if (from is { } f && (!double.IsFinite(f) || f < 0) || to is { } t && (!double.IsFinite(t) || t < 0) || from > to)

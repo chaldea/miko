@@ -166,6 +166,48 @@ xcrun simctl install booted examples/Components/MikoApp.Vnc.iOS/bin/Debug/net10.
 SIMCTL_CHILD_VNC_HOST=192.168.1.20 xcrun simctl launch booted com.miko.vncdemo
 ```
 
+# Map Example
+
+The Desktop, Miko Simulator, Android and iOS projects launch the shared Beijing map in `MikoApp.Map`. Drag to pan, use the zoom buttons, or tap **Recenter** to return to the Palace Museum.
+
+Start the mock server from the repository root and leave it running in a separate terminal.
+
+```sh
+dotnet run --project tools/Miko.MockServer --no-launch-profile
+```
+
+**Desktop or Miko Simulator** — run either project. Both use the host’s mock server at `http://127.0.0.1:8080`.
+
+```sh
+dotnet run --project examples/Components/MikoApp.Map.Desktop
+dotnet run --project examples/Components/MikoApp.Map.Simulator
+```
+
+**Android** — with an emulator running or a device connected, install and launch the app.
+
+```sh
+dotnet build examples/Components/MikoApp.Map.Android -t:Install
+adb shell am start -n com.miko.mapdemo/.MainActivity
+```
+
+The Android emulator reaches the host at `http://10.0.2.2:8080`. On a physical device, pass the server’s LAN address as a launch extra. On Android 17 or later, allow local network access when prompted.
+
+```sh
+adb shell am start -S -n com.miko.mapdemo/.MainActivity --es MIKO_MOCK_HTTP http://192.168.1.20:8080
+```
+
+**iOS** — with an iOS Simulator booted on an Apple silicon Mac, run:
+
+```sh
+dotnet build examples/Components/MikoApp.Map.iOS -r iossimulator-arm64
+xcrun simctl install booted examples/Components/MikoApp.Map.iOS/bin/Debug/net11.0-ios/iossimulator-arm64/MikoApp.Map.iOS.app
+xcrun simctl launch booted com.miko.mapdemo
+```
+
+The iOS Simulator uses the Mac’s loopback address. For an iPhone or iPad, use the `ios-arm64` runtime, your signing identity, and the server’s LAN address in the `MIKO_MOCK_HTTP` launch environment.
+
+To use live maps, set `AMAP_WEB_KEY` to an AMap Web Service key before launch. Desktop and Miko Simulator read it from the shell, Android accepts `--es AMAP_WEB_KEY "$AMAP_WEB_KEY"`, and iOS Simulator accepts `SIMCTL_CHILD_AMAP_WEB_KEY="$AMAP_WEB_KEY" xcrun simctl launch --terminate-running-process booted com.miko.mapdemo`. The same platform mechanisms can override `MIKO_MOCK_HTTP`.
+
 # Chart Examples
 
 `MikoApp.Charts` is the `Miko.Charts` gallery (`ChartsDemo.razor`): a live line chart (timer, add and

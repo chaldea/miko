@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="1000" viewBox="-800 -500 1600 1000">
+  <!-- Original schematic. Origin: the Palace Museum, 116.397 E, 39.916 N (GCJ-02), zoom 14. -->
+  <defs>
+    <pattern id="blocks" width="63" height="47" patternUnits="userSpaceOnUse">
+      <rect width="63" height="47" fill="#faf7ef"/>
+      <rect x="2" y="2" width="25" height="18" rx="2" fill="#e7e2d8"/>
+      <rect x="30" y="2" width="31" height="18" rx="2" fill="#eae6db"/>
+      <rect x="2" y="23" width="59" height="22" rx="2" fill="#e5e1d7"/>
+    </pattern>
+    <path id="main-roads" d="M-800 104 Q-340 102 -24 105 T800 98 M-800 -295 L-220 -291 350 -304 800 -300 M-800 325 L-260 327 800 319 M-322 -500 L-320 -190 -310 82 -305 500 M262 -500 L260 -186 258 104 271 500 M-800 -83 L-287 -85 -239 -87 M-61 -84 L50 -88 800 -95"/>
+    <path id="streets" d="M-650 -500 L-616 500 M-490 -500 L-480 500 M-800 -185 L-335 -182 -240 -181 M-800 4 L-287 8 -215 4 M-800 200 L-104 194 M-800 410 L800 397 M-160 500 L-168 116 M-83 500 L-86 186 M119 -500 L119 -98 M141 -85 L145 500 M403 -500 L395 500 M551 -500 L570 500 M703 -500 L710 500 M58 -187 L800 -195 M68 6 L800 -1 M93 205 L800 191 M-800 -397 L800 -408 M-61 71 L-64 -79 M58 69 L52 -83"/>
+  </defs>
+  <rect x="-800" y="-500" width="1600" height="1000" fill="url(#blocks)"/>
+  <g fill="#c3dab1" stroke="#a1bf98" stroke-width="2">
+    <path d="M-194 -248 Q-123 -268 -78 -225 L-72 -98 -127 -46 -205 -60Z"/>
+    <path d="M-226 -58 Q-162 -94 -87 -52 L-83 81 -216 88Z"/>
+    <path d="M-62 -155 Q-12 -174 61 -159 L62 -95 -62 -91Z"/>
+    <path d="M-205 -477 Q-117 -489 -72 -437 L-60 -342 -134 -311 -186 -356Z"/>
+    <path d="M-740 161 L-615 144 -581 258 -711 286Z M438 -227 L539 -240 567 -140 475 -129Z"/>
+  </g>
+  <g fill="#8fc8d6">
+    <path d="M-178 -232 Q-144 -264 -119 -221 T-96 -169 Q-82 -139 -120 -109 T-165 -69 Q-199 -66 -184 -124 T-178 -232Z"/>
+    <path d="M-189 -47 Q-141 -72 -108 -45 T-111 24 Q-137 74 -190 57 T-189 -47Z"/>
+    <path d="M-190 -466 Q-150 -481 -109 -436 L-90 -389 Q-91 -365 -122 -358 L-148 -401Z"/>
+    <path d="M-138 -353 Q-104 -338 -72 -341 T-36 -309 Q-60 -291 -98 -310Z"/>
+  </g>
+  <g fill="none" stroke-linejoin="round">
+    <use xlink:href="#streets" stroke="#d5cfc3" stroke-width="8"/>
+    <use xlink:href="#streets" stroke="#fffdf8" stroke-width="6"/>
+    <use xlink:href="#main-roads" stroke="#d6bb88" stroke-width="12"/>
+    <use xlink:href="#main-roads" stroke="#f8e3b5" stroke-width="9"/>
+  </g>
+  <path d="M-51 -72 L44 -75 50 58 -47 62Z" fill="#c4a47c" stroke="#8fc8d6" stroke-width="9"/>
+  <path d="M-46 -67 L40 -70 45 54 -42 57Z" fill="#e6d0ac"/>
+  <g fill="#bd8867" stroke="#a4745e" stroke-width="1">
+    <path d="M-30 -55H25V-46H-30Z M-25 -37H21V-29H-25Z M-29 -19H26V-9H-29Z M-22 1H20V11H-22Z M-26 25H25V35H-26Z M-34 44H31V50H-34Z"/>
+  </g>
+  <path d="M-43 70 L47 66 47 96 -45 98Z" fill="#c3dab1"/>
+  <path d="M-29 117 L30 115 32 195 -28 198Z" fill="#e7cdb3"/>
+  <g font-family="sans-serif" font-size="13" text-anchor="middle" fill="#406456">
+    <text x="-139" y="-153">Beihai Park</text>
+    <text x="0" y="-120">Jingshan Park</text>
+    <text x="-128" y="-388">Shichahai</text>
+  </g>
+  <g font-family="sans-serif" font-size="13" text-anchor="middle" fill="#615c51">
+    <text x="-173" y="102">West Chang’an Avenue</text>
+    <text x="241" y="96">East Chang’an Avenue</text>
+    <text x="8" y="164">Tiananmen Square</text>
+    <text x="275" y="-208">Dongsi</text>
+    <text x="215" y="24">Wangfujing</text>
+    <text x="-348" y="40">Xidan</text>
+    <text x="-300" y="-315">Xisi</text>
+    <text x="5" y="298">Qianmen</text>
+  </g>
+</svg>
