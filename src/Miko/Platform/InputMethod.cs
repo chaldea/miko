@@ -10,8 +10,9 @@ public sealed record InputMethodState(
     InputMethodType InputType,
     RectF CursorRect)
 {
-    public int SelectionStart => CursorPosition;
-    public int SelectionEnd => CursorPosition;
+    public int? SelectionAnchor { get; init; }
+    public int SelectionStart => Math.Min(CursorPosition, SelectionAnchor ?? CursorPosition);
+    public int SelectionEnd => Math.Max(CursorPosition, SelectionAnchor ?? CursorPosition);
 }
 
 /// <summary>Hints used by platform keyboards when configuring their editor.</summary>

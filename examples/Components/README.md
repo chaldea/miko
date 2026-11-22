@@ -224,6 +224,14 @@ registers the charts with `AddMikoCharts()`.
 dotnet run --project examples/Components/MikoApp.Charts.Desktop
 ```
 
+# Editor Example
+
+The [editor example](MikoApp.Editor.Desktop/EditorDemo.razor) opens an editable INI file. **Format** applies the registered INI formatter, **Show changes** compares the buffer with the original, and the theme button switches the editor palette.
+
+```sh
+dotnet run --project examples/Components/MikoApp.Editor.Desktop
+```
+
 ## Tests
 
 ```sh

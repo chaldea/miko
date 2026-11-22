@@ -370,7 +370,7 @@ internal sealed class BrowserInputMethod : InputMethodBase
             _ => "text",
         };
         var rect = state.CursorRect;
-        BrowserInterop.SetInputMethodState(state.Text, state.CursorPosition, state.IsMultiline, type,
+        BrowserInterop.SetInputMethodState(state.Text, state.CursorPosition, state.SelectionAnchor ?? state.CursorPosition, state.IsMultiline, type,
             rect.X, rect.Y, rect.Width, rect.Height);
     }
 

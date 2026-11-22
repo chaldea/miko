@@ -63,13 +63,20 @@ public partial class MikoMetalView : IUITextInput
 
     public void ReplaceText(UITextRange range, string text)
     {
-        // 自动更正、听写、粘贴走这里。只支持替换光标前的一段（最常见：替换刚打的单词），
-        // 换算成「删掉光标前 n 个码元再插入」。
         var r = (MikoTextRange)range;
         EndMarked(commit: false);
         int caret = Caret;
         int start = Math.Clamp(r.StartOffset, 0, Committed.Length);
         int end = Math.Clamp(r.EndOffset, 0, Committed.Length);
+        if (_inputMethod.SupportsSelection)
+        {
+            _controller.SetTextSelection(start, end);
+            if (!string.IsNullOrEmpty(text)) _inputMethod.Commit(text);
+            else if (start != end) _controller.OnKeyDown(Platform.MikoKey.Delete, Platform.MikoKeyModifiers.None);
+            SetNeedsDisplay();
+            return;
+        }
+        // Basic text fields use the existing collapsed-caret replacement path.
         if (end > caret || start > end)
         {
             InsertText(text);
@@ -89,13 +96,12 @@ public partial class MikoMetalView : IUITextInput
                 var at = Caret + (int)_markedSelection.Location;
                 return new MikoTextRange(at, at + (int)_markedSelection.Length);
             }
-            return new MikoTextRange(Caret, Caret);
+            return new MikoTextRange(_inputMethod.SelectionStart, _inputMethod.SelectionEnd);
         }
         set
         {
             if (value is not MikoTextRange r || _markedText.Length > 0) return;
-            var at = Math.Clamp(r.StartOffset, 0, Committed.Length);
-            _controller.SetTextSelection(at, at);
+            _controller.SetTextSelection(r.StartOffset, r.EndOffset);
             SetNeedsDisplay();
         }
     }

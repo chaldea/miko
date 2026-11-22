@@ -46,6 +46,16 @@ public interface ITextEditable
     void MoveCursorToEnd();
 }
 
+/// <summary>A multiline editor that draws its own caret and supports range selection and tab input.</summary>
+public interface ITextEditorClient : ITextEditable
+{
+    int SelectionAnchor { get; }
+    void SetSelection(int anchor, int caret);
+
+    /// <summary>Caret in logical pixels relative to the element's content box.</summary>
+    Miko.Common.RectF CaretRect { get; }
+}
+
 /// <summary>
 /// 字素簇（UAX #29 扩展字素簇，经 <see cref="StringInfo"/>）边界计算，供文本控件与控制器共用。
 ///

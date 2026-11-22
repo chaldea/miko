@@ -1,0 +1,44 @@
+@using Miko.Components
+@using Miko.Components.Editor
+@using Miko.Common
+@using Miko.Styling
+
+<div style="height:100%; display:flex; flex-direction:column; background-color:#233c38; padding:16px; gap:12px;">
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+        <span style="font-size:20px; color:#f7f3e8; flex-grow:1;">settings.ini</span>
+        @if (!_diff)
+        {
+            <button style="@ButtonStyle" @onclick="Format">Format</button>
+        }
+        <button style="@ButtonStyle" @onclick="ToggleDiff">@(_diff ? "Edit" : "Show changes")</button>
+        <button style="@ButtonStyle" @onclick="ToggleTheme">@(_theme == EditorTheme.Dark ? "Light theme" : "Dark theme")</button>
+    </div>
+    <MikoEditor @ref="_editor" @bind-Value="_text" Language="ini" Services="@_services" Theme="@_theme"
+                OriginalValue="@(_diff ? Original : null)" Style="@EditorStyle" />
+</div>
+
+@code {
+    private const string Original = "; Workspace settings\n[editor]\ntab_size = 2\nfont_size = 15\n\n[files]\nencoding = utf-8\n";
+    private string _text = Original.Replace("tab_size = 2", "tab_size=4").Replace("encoding = utf-8", "encoding=utf-8\ntrim_whitespace=true");
+    private bool _diff;
+    private EditorTheme _theme = EditorTheme.Light;
+    private MikoEditor? _editor;
+    private readonly EditorServices _services = new();
+    private static readonly Style EditorStyle = new() { FlexGrow = 1, Height = Length.Px(0), MinHeight = Length.Px(0) };
+    private static readonly Style ButtonStyle = new()
+    {
+        Padding = Padding.Symmetric(Length.Px(7), Length.Px(12)), BorderRadius = Length.Px(4),
+        BackgroundColor = Color.FromHex("#e1e9df"), Color = Color.FromHex("#233c38")
+    };
+
+    protected override void OnInitialized()
+    {
+        var ini = new IniLanguage();
+        _services.RegisterLanguage("ini", ini);
+        _services.RegisterFormatter("ini", ini);
+    }
+
+    private void Format() => _editor?.FormatDocument();
+    private void ToggleDiff() => _diff = !_diff;
+    private void ToggleTheme() => _theme = _theme == EditorTheme.Dark ? EditorTheme.Light : EditorTheme.Dark;
+}
