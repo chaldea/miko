@@ -1,0 +1,32 @@
+@namespace MikoApp.Map
+@using Miko.Common
+@using Miko.Components.Map
+@using Miko.Styling
+
+<div Style="@Page">
+    <div Style="@Toolbar">
+        <span Style="@Title">Beijing</span>
+        <span Style="@Location">@Coordinates</span>
+        <button @onclick="Recenter" Style="@Button">Recenter</button>
+    </div>
+    <MikoMap @bind-Camera="_camera" Markers="@Places" Style="@MapStyle" />
+</div>
+
+@code {
+    private MapCamera _camera = MapCamera.Beijing;
+    private string Coordinates => FormattableString.Invariant($"{_camera.Center.Latitude:F4}°, {_camera.Center.Longitude:F4}° · z{_camera.Zoom}");
+    private void Recenter() => _camera = MapCamera.Beijing;
+    private static readonly MapMarker[] Places = [new(MapCamera.Beijing.Center, "Palace Museum")];
+
+    private static readonly Style Page = new() { Display = Display.Flex, FlexDirection = FlexDirection.Column,
+        Width = Length.Percent(100), Height = Length.Percent(100), BoxSizing = BoxSizing.BorderBox,
+        PaddingTop = Length.SafeAreaInsetTop, PaddingBottom = Length.SafeAreaInsetBottom,
+        PaddingLeft = Length.SafeAreaInsetLeft, PaddingRight = Length.SafeAreaInsetRight, BackgroundColor = Color.FromHex("#faf9f4") };
+    private static readonly Style Toolbar = new() { Display = Display.Flex, AlignItems = AlignItems.Center,
+        Padding = Length.Px(14), Gap = Length.Px(16) };
+    private static readonly Style Title = new() { FontSize = Length.Px(22), FontWeight = FontWeight.Bold };
+    private static readonly Style Location = new() { FlexGrow = 1, Color = Color.FromHex("#50635c") };
+    private static readonly Style Button = new() { Padding = Length.Px(8), BorderRadius = Length.Px(4),
+        Color = Color.White, BackgroundColor = Color.FromHex("#345d52") };
+    private static readonly Style MapStyle = new() { FlexGrow = 1, MinHeight = Length.Px(0), Height = Length.Px(0) };
+}

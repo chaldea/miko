@@ -29,11 +29,14 @@ docker run --rm -p 8080:8080 -p 5900:5900 -p 8554:8554 miko-mock
 | --- | --- | --- |
 | HTTP | `http://localhost:8080/health` | 健康检查 |
 | Player | `http://localhost:8080/media/demo.mp4` | H.264 MP4，支持 GET / HEAD / Range、拖动进度 |
+| 地图 | `http://localhost:8080/api/map?longitude=116.397&latitude=39.916&zoom=14&width=640&height=480` | 根据中心、缩放级别（3–18）和宽高（1–1024 像素）返回 SVG 底图 |
 | 弹幕 | `http://localhost:8080/api/danmaku` | GET 查询、POST 发送 |
 | VNC | `localhost:5900` | 独立桌面、按钮、计数器、键盘、剪贴板回显 |
 | VNC WebSocket | `ws://localhost:8080/vnc` | binary RFB，与 TCP 共用连接上限，各连接独立桌面 |
 | Webcam | `rtsp://localhost:8554/webcam` | TCP interleaved H.264，全景循环播放 |
 | Webcam HLS | `http://localhost:8080/media/webcam.m3u8` | 12 秒 VOD，6 个独立 2 秒分片，由客户端循环播放 |
+
+地图服务按 Web Mercator 投影裁取随服务嵌入的 [北京示意图](Map/beijing.svg)。测试数据覆盖故宫周边，可离线运行。启动 `examples/Components/MikoApp.Map.Desktop` 即可通过默认的 `MikoProvider` 平移、缩放和查看标记。
 
 容器以非 root 用户运行。若 Docker daemon 位于远程主机，应将上述 `localhost` 换成该主机地址；手机使用服务器的局域网地址。
 

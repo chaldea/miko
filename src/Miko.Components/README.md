@@ -47,6 +47,32 @@ Settings — speed, loop, volume, danmaku on/off, opacity, text size, travel tim
 
 Fullscreen covers the whole screen. With the platform's native services registered (`UseAndroidNative()` / `UseIosNative()`), it locks landscape, keeps the screen on and hides the system bars — Android hides the status and navigation bars and lets the picture run under the camera cutout, iOS hides the status bar and auto-hides the home indicator — and the controls keep clear of the cutout through the safe area. Back leaves fullscreen. On the desktop it fills the window without changing the OS window mode. Unknown-duration live streams show `LIVE` and disable duration-based seeking. Buffered ranges are displayed only when the backend reports them. `Poster` currently follows the core video element's local-file support.
 
+## Map
+
+`MikoMap` draws a north-up Web Mercator map, markers and attribution on a Miko canvas. Drag to pan, use the wheel to zoom around the pointer, or tap the zoom buttons.
+
+```csharp
+using Miko.Components.Map;
+
+builder.Services.AddMikoMap(); // Miko.MockServer at http://127.0.0.1:8080
+// To use the AMap static map Web Service, register builder.Services.AddAMap(webServiceKey).
+```
+
+```razor
+@using Miko.Components.Map
+
+<MikoMap @bind-Camera="_camera" Markers="@_places" />
+
+@code {
+    private MapCamera _camera = MapCamera.Beijing;
+    private readonly MapMarker[] _places = [new(MapCamera.Beijing.Center, "Palace Museum")];
+}
+```
+
+Coordinates are longitude then latitude in the provider’s datum. AMap expects GCJ-02. Camera zoom uses 256-pixel XYZ levels 3–18. The engine keeps the last frame under the markers while a pan, zoom or resize loads a replacement. A viewport larger than 1024 pixels uses a lower-resolution frame covering the same area. At the minimum zoom, up to four adjacent images cover the world. Tap a failed map to retry, or inspect `MikoMap.Error` and call `Retry()`.
+
+An `IMapProvider` supplies attribution and an encoded image for the center, zoom, width and height in `MapImageRequest`. Register a custom provider in DI or pass a server base address to `AddMikoMap(baseUrl)`. The [map example](../../examples/Components/README.md#map-example) supports both providers on Desktop, Android, iOS and Miko Simulator.
+
 ## Network Camera
 
 `MikoWebcam` shows a network camera: the live picture with a toolbar (play / stop, quality, bitrate, fullscreen), snapshot / privacy / flip actions, and a pan / tilt disk. The camera is an `IWebcamProvider`; Ezviz (萤石) is built in.

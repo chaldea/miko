@@ -6,6 +6,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Map/beijing.svg" LogicalName="Miko.Map.Beijing.svg" />
     <Compile Remove="tests/**/*.cs" />
     <Content Remove="tests/**" />
     <None Remove="tests/**" />
