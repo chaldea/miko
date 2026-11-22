@@ -1404,6 +1404,8 @@ public sealed class MikoInteractionController
             if (filtered.Length == 0) return;
 
             var before = editable.Value ?? string.Empty;
+            int selectedLength = editable is ITextEditorClient client
+                ? Math.Abs(client.SelectionAnchor - editable.CursorPosition) : 0;
             editable.InsertText(filtered);
             var after = editable.Value ?? string.Empty;
 
@@ -1415,7 +1417,7 @@ public sealed class MikoInteractionController
             }
 
             // 插入后光标停在插入内容之后，据此取回真正插入（可能被截断）的那段。
-            var insertedLength = after.Length - before.Length;
+            var insertedLength = after.Length - before.Length + selectedLength;
             var insertedStart = editable.CursorPosition - insertedLength;
             var inserted = insertedLength > 0 && insertedStart >= 0 && insertedStart + insertedLength <= after.Length
                 ? after.Substring(insertedStart, insertedLength)
@@ -1466,7 +1468,8 @@ public sealed class MikoInteractionController
 
             // Native IMEs may commit a newline directly (not as a key event) for a
             // multiline editor; preserve it while still filtering other controls.
-            if (char.IsControl(character) && !(character is '\r' or '\n' && multiline))
+            if (char.IsControl(character) && !(character is '\r' or '\n' && multiline)
+                && !(character == '\t' && element is ITextEditorClient))
                 continue;
             result.Append(character);
         }
@@ -1525,6 +1528,8 @@ public sealed class MikoInteractionController
     {
         lock (_sync)
         {
+            if (_compositionText.Length != 0 && FocusedElement is ITextEditorClient editor)
+                _engine.InvalidateElement((Element)editor);
             _compositionText = string.Empty;
             if (!string.IsNullOrEmpty(committedText))
                 OnTextInput(committedText);
@@ -1536,14 +1541,17 @@ public sealed class MikoInteractionController
     /// <summary>
     /// Updates the insertion point reported by a native text connection. <paramref name="start"/> and
     /// <paramref name="end"/> are UTF-16 code-unit offsets (as on Android/iOS); Miko keeps a collapsed
-    /// caret at the start, snapped back to a grapheme-cluster boundary.
+    /// caret at the start for basic text controls. Custom editors receive both endpoints.
     /// </summary>
     public void SetTextSelection(int start, int end)
     {
         lock (_sync)
         {
             if (FocusedElement is not ITextEditable editable || !editable.IsEditable) return;
-            editable.CursorPosition = TextEditing.SnapToBoundary(editable.Value ?? string.Empty, Math.Min(start, end));
+            if (editable is ITextEditorClient client)
+                client.SetSelection(start, end);
+            else
+                editable.CursorPosition = TextEditing.SnapToBoundary(editable.Value ?? string.Empty, Math.Min(start, end));
             _engine.InvalidateElement((Element)editable);
             PublishInputMethodState();
         }
@@ -1566,7 +1574,7 @@ public sealed class MikoInteractionController
         var rect = GetInputMethodCursorRect(focused, editable);
         var inputType = focused switch
         {
-            TextAreaElement => InputMethodType.Multiline,
+            TextAreaElement or ITextEditorClient => InputMethodType.Multiline,
             InputElement { Type: InputType.Password } => InputMethodType.Password,
             InputElement { Type: InputType.Number } => InputMethodType.Number,
             _ => InputMethodType.Text,
@@ -1576,7 +1584,7 @@ public sealed class MikoInteractionController
             Math.Clamp(editable.CursorPosition, 0, (editable.Value ?? string.Empty).Length),
             editable.IsMultiline,
             inputType,
-            rect);
+            rect) { SelectionAnchor = (editable as ITextEditorClient)?.SelectionAnchor };
         if (Equals(_publishedInputMethodState, state)) return;
         _publishedInputMethodState = state;
         _inputMethod.SetState(state);
@@ -1590,6 +1598,13 @@ public sealed class MikoInteractionController
         var content = box.BoxModel.Content;
         var style = box.ComputedStyle;
         var ancestorScroll = GetAccumulatedScrollOffset(element);
+        if (editable is ITextEditorClient client)
+        {
+            var caret = client.CaretRect;
+            caret.X += content.Left - ancestorScroll.x;
+            caret.Y += content.Top - ancestorScroll.y;
+            return caret;
+        }
         if (element is InputElement input)
         {
             var text = input.Value ?? string.Empty;

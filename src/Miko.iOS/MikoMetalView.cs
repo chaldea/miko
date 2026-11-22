@@ -301,6 +301,9 @@ public partial class MikoMetalView : MTKView, IMTKViewDelegate, IUIKeyInput
 
         public string Text => _state?.Text ?? string.Empty;
         public int CursorPosition => _state?.CursorPosition ?? 0;
+        public int SelectionStart => _state?.SelectionStart ?? 0;
+        public int SelectionEnd => _state?.SelectionEnd ?? 0;
+        public bool SupportsSelection => _state?.SelectionAnchor.HasValue == true;
         public Common.RectF CursorRect => _state?.CursorRect ?? default;
 
         public override void SetState(InputMethodState? state)

@@ -28,6 +28,26 @@ builder.UseAndroidNative(); // Phones: fullscreen locks landscape and hides the 
 
 The library is written as C# components, so consumers use the existing Miko Razor compiler without requiring an additional compiler in this package.
 
+## Text and code editor
+
+`MikoEditor` supports multiline input, IME composition, drag and Shift selection, tab stops, undo and redo. The canvas draws the visible rows and columns of an indexed text snapshot.
+
+```razor
+@using Miko.Components.Editor
+
+<MikoEditor @bind-Value="_source" Language="csharp" Theme="@EditorTheme.Dark" />
+
+@code {
+    private string _source = "int answer = 42;";
+}
+```
+
+Set `OriginalValue` to a baseline string (including an empty string) for a read-only unified line diff. Set it to `null` to resume editing. Additions and deletions have both a color and a gutter marker. Line matching compares line contents across LF, CRLF and CR files. Editing preserves existing line endings and Enter uses the first ending in the document.
+
+The editor uses the host's `ISyntaxHighlighter` by default. Pass an `EditorServices` instance to register an `IEditorLanguageService` and an `IEditorFormatter` independently by language ID. A language service receives the immutable document and a visible line index. Return ordered `CodeToken` ranges relative to that line. A formatter receives the whole snapshot and returns the replacement text. Call `FormatDocument()` on the editor reference to apply it as one undoable edit. `EditorTheme.Light` and `EditorTheme.Dark` can be customized with a record `with` expression.
+
+Lines longer than 4,096 UTF-16 units use plain text rendering. Scroll measurements and the example with a registered INI language and formatter are in the [desktop example](../../examples/Components/MikoApp.Editor.Desktop/README.md).
+
 ## Playback
 
 Parameters: `Source`, `MimeType`, `Poster`, `AutoPlay`, `Loop`, `Muted`, `Volume`, `PlaybackRate`, `Class`, `Style`, `Danmaku`, `DanmakuSettings`, `LongPressPlaybackRate` (default 2; 0 disables the long press) and `ControlsHideDelay` (default 5 s; zero keeps the controls up).

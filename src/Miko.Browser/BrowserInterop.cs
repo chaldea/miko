@@ -24,7 +24,7 @@ internal static partial class BrowserInterop
 
     [JSImport("setInputMethodState", Module)]
     internal static partial void SetInputMethodState(
-        string text, int cursor, bool multiline, string inputType,
+        string text, int cursor, int anchor, bool multiline, string inputType,
         double left, double top, double width, double height);
 
     [JSImport("showKeyboard", Module)]

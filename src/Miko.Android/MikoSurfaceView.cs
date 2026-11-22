@@ -748,36 +748,36 @@ public class MikoSurfaceView : GLSurfaceView
 
             public override ICharSequence? GetTextBeforeCursorFormatted(int length, GetTextFlags flags)
             {
-                if (length <= 0) return new Java.Lang.String(string.Empty);
-                var cursor = Cursor;
-                var start = System.Math.Max(0, cursor - length);
-                return new Java.Lang.String(Text.Substring(start, cursor - start));
+                if (length <= 0 || _owner.State is not { } state) return new Java.Lang.String(string.Empty);
+                var start = System.Math.Max(0, state.SelectionStart - length);
+                return new Java.Lang.String(state.Text[start..state.SelectionStart]);
             }
 
             public override ICharSequence? GetTextAfterCursorFormatted(int length, GetTextFlags flags)
             {
-                if (length <= 0) return new Java.Lang.String(string.Empty);
-                var text = Text;
-                var cursor = Cursor;
-                var count = System.Math.Min(length, text.Length - cursor);
-                return new Java.Lang.String(text.Substring(cursor, count));
+                if (length <= 0 || _owner.State is not { } state) return new Java.Lang.String(string.Empty);
+                var count = System.Math.Min(length, state.Text.Length - state.SelectionEnd);
+                return new Java.Lang.String(state.Text.Substring(state.SelectionEnd, count));
             }
 
-            // 光标为折叠状态（Miko 目前不支持选区），没有被选中的文本。
-            public override ICharSequence? GetSelectedTextFormatted(GetTextFlags flags) => null;
+            public override ICharSequence? GetSelectedTextFormatted(GetTextFlags flags)
+            {
+                var state = _owner.State;
+                return state == null || state.SelectionStart == state.SelectionEnd ? null :
+                    new Java.Lang.String(state.Text[state.SelectionStart..state.SelectionEnd]);
+            }
 
             public override ExtractedText? GetExtractedText(ExtractedTextRequest? request, GetTextFlags flags)
             {
-                var text = Text;
-                var cursor = Cursor;
+                var state = _owner.State;
                 return new ExtractedText
                 {
-                    Text = new Java.Lang.String(text),
+                    Text = new Java.Lang.String(state?.Text ?? string.Empty),
                     StartOffset = 0,
                     PartialStartOffset = -1,
                     PartialEndOffset = -1,
-                    SelectionStart = cursor,
-                    SelectionEnd = cursor,
+                    SelectionStart = state?.SelectionStart ?? 0,
+                    SelectionEnd = state?.SelectionEnd ?? 0,
                 };
             }
 

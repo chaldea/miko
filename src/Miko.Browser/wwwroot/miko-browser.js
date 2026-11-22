@@ -145,7 +145,7 @@ function configureEditor(editor, state) {
     if (!composing && editor.value !== state.text) editor.value = state.text;
 }
 
-function setInputMethodState(text, cursor, multiline, inputType, left, top, width, height) {
+function setInputMethodState(text, cursor, anchor, multiline, inputType, left, top, width, height) {
     const editor = multiline ? textarea : input;
     activeEditor = editor;
     const other = editor === input ? textarea : input;
@@ -160,7 +160,9 @@ function setInputMethodState(text, cursor, multiline, inputType, left, top, widt
     configureEditor(editor, { text, cursor });
     if (document.activeElement !== editor) editor.focus({ preventScroll: true });
     if (!composing) {
-        try { editor.setSelectionRange(cursor, cursor); } catch { /* input types without selection */ }
+        try {
+            editor.setSelectionRange(Math.min(anchor, cursor), Math.max(anchor, cursor), cursor < anchor ? 'backward' : 'forward');
+        } catch { /* input types without selection */ }
     }
 }
 
