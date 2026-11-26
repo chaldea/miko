@@ -1,0 +1,18 @@
+<Project>
+  <UsingTask TaskName="Miko.Packaging.CreateDesktopPackages" AssemblyFile="$(MSBuildThisFileDirectory)../tools/net11.0/Miko.Packaging.dll" />
+  <Target Name="MikoPackageDesktop" AfterTargets="Publish"
+          Condition="'$(IsPublishable)' != 'false' and ('$(OutputType)' == 'Exe' or '$(OutputType)' == 'WinExe')
+                     and ('$(TargetPlatformIdentifier)' == '' or '$(TargetPlatformIdentifier)' == 'Windows' or '$(TargetPlatformIdentifier)' == 'macOS')">
+    <PropertyGroup>
+      <_MikoPackageRid>$(RuntimeIdentifier)</_MikoPackageRid>
+      <_MikoPackageRid Condition="'$(_MikoPackageRid)' == ''">$(NETCoreSdkRuntimeIdentifier)</_MikoPackageRid>
+    </PropertyGroup>
+    <CreateDesktopPackages PublishDirectory="$(PublishDir)" ProjectDirectory="$(MSBuildProjectDirectory)"
+                           OutputDirectory="$(MikoPackageOutputDirectory)" Formats="$(MikoPackageFormats)"
+                           RuntimeIdentifier="$(_MikoPackageRid)" AppName="$(AssemblyName)" Version="$(Version)"
+                           PackageId="$(MikoPackageId)" License="$(PackageLicenseExpression)" Maintainer="$(Authors)" Description="$(Description)"
+                           DebDepends="$(MikoDebDepends)" RpmRequires="$(MikoRpmRequires)">
+      <Output TaskParameter="Packages" ItemName="MikoDesktopPackage" />
+    </CreateDesktopPackages>
+  </Target>
+</Project>
