@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Version>1.2.3</Version>
+    <Authors>Miko</Authors>
+    <Description>Miko desktop packaging example</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <MikoPackageId>org.miko.demo</MikoPackageId>
+    <MikoPackageFormats Condition="$(RuntimeIdentifier.StartsWith('linux-'))">deb;rpm;tar.gz</MikoPackageFormats>
+    <MikoPackageFormats Condition="$(RuntimeIdentifier.StartsWith('win-'))">msi;zip</MikoPackageFormats>
+    <MikoPackageFormats Condition="$(RuntimeIdentifier.StartsWith('osx-'))">dmg;pkg</MikoPackageFormats>
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(MSBuildThisFileDirectory)../../packages</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Miko.Packaging" Version="1.0.0-dev" PrivateAssets="all" />
+    <ProjectReference Include="../Multiplatform/MikoAppBlank/MikoAppBlank/MikoAppBlank.csproj" />
+    <ProjectReference Include="../../src/Miko.Windowing/Miko.Windowing.csproj" />
+    <None Include="../../LICENSE" Link="licenses/Miko.txt" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

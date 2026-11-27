@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <Authors>Miko</Authors>
+    <Description>Build desktop installers and archives directly from dotnet publish.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/chaldea/miko</RepositoryUrl>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <EnablePackageValidation>false</EnablePackageValidation>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackPackagingTask</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Build.Framework" HintPath="$(MSBuildBinPath)/Microsoft.Build.Framework.dll" Private="false" />
+    <Reference Include="Microsoft.Build.Utilities.Core" HintPath="$(MSBuildBinPath)/Microsoft.Build.Utilities.Core.dll" Private="false" />
+    <PackageReference Include="OpenMcdf" Version="3.4.0" />
+    <InternalsVisibleTo Include="Miko.Packaging.Tests" />
+    <None Update="build/Miko.Packaging.targets" Pack="true" PackagePath="build/Miko.Packaging.targets" />
+    <None Update="README.md" Pack="true" PackagePath="/" />
+    <None Update="OpenMcdf-LICENSE.txt" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <Target Name="PackPackagingTask" DependsOnTargets="BuildOnlySettings;ResolveReferences">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(TargetPath);@(ReferenceCopyLocalPaths)" PackagePath="tools/net11.0/" />
+    </ItemGroup>
+  </Target>
+</Project>
